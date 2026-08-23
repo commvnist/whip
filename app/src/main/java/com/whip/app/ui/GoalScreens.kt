@@ -1303,6 +1303,20 @@ private fun GoalLinkEditorDialog(
         LinkSourceType.Metric -> sourceGoalMetricId != null
         LinkSourceType.Workout -> true
     }
+    val sourceAvailability = ControlAvailability(
+        enabled = sourceAvailable,
+        unavailableExplanation = if (sourceAvailable) {
+            null
+        } else {
+            when (sourceType) {
+                LinkSourceType.Habit -> "Create a Habit first, or choose another Source."
+                LinkSourceType.Task, LinkSourceType.Subtask -> "Create a Task first, or choose another Source."
+                LinkSourceType.Exercise -> "Create an Exercise first, or choose another Source."
+                LinkSourceType.Metric -> "Create another Goal or measurement first, or choose another Source."
+                LinkSourceType.Workout -> null
+            }
+        },
+    )
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(if (initialRule == null) "Link progress to ${goal.name}" else "Edit link to ${goal.name}") },
@@ -1340,6 +1354,7 @@ private fun GoalLinkEditorDialog(
                     }
                     LinkSourceType.Workout -> Unit
                 }
+                item { AvailabilityNotice("Link actions", sourceAvailability) }
                 item { GoalEnumDropdown("Source value", availableMetrics(sourceType), sourceMetric, { it.name.replace(Regex("([a-z])([A-Z])"), "$1 $2") }) { sourceMetric = it } }
                 if (goal.type == GoalType.WeightedMilestones) {
                     item { GoalEnumDropdown("Milestone", projection.milestones, projection.milestones.firstOrNull { it.id == targetMilestoneId } ?: projection.milestones.firstOrNull(), { it?.name ?: "No milestone" }) { targetMilestoneId = it?.id } }
@@ -1358,14 +1373,14 @@ private fun GoalLinkEditorDialog(
                     }
                 }
                 if (includeHistory) {
-                    item { OutlinedButton(enabled = sourceAvailable, onClick = { onPreview(draft()) }, modifier = Modifier.fillMaxWidth()) { Text("Preview backfill") } }
+                    item { OutlinedButton(enabled = sourceAvailability.enabled, onClick = { onPreview(draft()) }, modifier = Modifier.fillMaxWidth()) { Text("Preview backfill") } }
                     state.backfillPreview?.let { preview ->
                         item { Text("${preview.contributionCount} contributions · ${formatGoalValue(preview.totalCanonicalValue, goal.precision)} canonical total · ${preview.firstDate ?: "—"} to ${preview.lastDate ?: "—"}") }
                     }
                 }
             }
         },
-        confirmButton = { TextButton(enabled = !saving && sourceAvailable && name.isNotBlank(), onClick = { onSave(draft(), includeHistory) }) { Text(if (saving) "Saving…" else if (initialRule == null) "Create link" else "Save link") } },
+        confirmButton = { TextButton(enabled = !saving && sourceAvailability.enabled && name.isNotBlank(), onClick = { onSave(draft(), includeHistory) }) { Text(if (saving) "Saving…" else if (initialRule == null) "Create link" else "Save link") } },
         dismissButton = { TextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )
 }

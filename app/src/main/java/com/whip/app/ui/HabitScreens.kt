@@ -1397,7 +1397,10 @@ private fun HabitEditorDialog(
                         }
                     }
                     item {
-                        WeekdayReminderEditor(parseWeekdayReminderMap(weekdayReminders)) { updated ->
+                        WeekdayReminderEditor(
+                            values = parseWeekdayReminderMap(weekdayReminders),
+                            firstDayOfWeek = weekStart,
+                        ) { updated ->
                             if (updated.values.any { it.isNotEmpty() } && parseWeekdayReminderMap(weekdayReminders).values.all { it.isEmpty() }) {
                                 onRequestNotificationPermission()
                             }
@@ -1816,14 +1819,21 @@ private fun parseClockMinutes(value: String): Int? {
     return hours * 60 + minutes
 }
 
-private fun parseWeekdayReminderMap(value: String): Map<DayOfWeek, List<Int>> = value.split(';').mapNotNull { segment ->
+internal fun parseWeekdayReminderMap(value: String): Map<DayOfWeek, List<Int>> = value.split(';').mapNotNull { segment ->
     val pieces = segment.split('=', limit = 2)
     val key = pieces.getOrNull(0)?.trim()?.uppercase().orEmpty()
-    val day = DayOfWeek.entries.firstOrNull { it.name.startsWith(key) } ?: return@mapNotNull null
-    day to pieces.getOrNull(1).orEmpty().split(',').mapNotNull { parseClockMinutes(it.trim()) }.distinct().sorted()
+    if (key.isBlank()) return@mapNotNull null
+    val day = DayOfWeek.entries.firstOrNull { key == it.name || key == it.name.take(3) }
+        ?: return@mapNotNull null
+    val times = pieces.getOrNull(1).orEmpty().split(',')
+        .mapNotNull { parseClockMinutes(it.trim()) }
+        .distinct()
+        .sorted()
+    if (times.isEmpty()) null else day to times
 }.toMap()
 
-private fun formatWeekdayReminderMap(value: Map<DayOfWeek, List<Int>>): String = value.entries
+internal fun formatWeekdayReminderMap(value: Map<DayOfWeek, List<Int>>): String = value.entries
+    .filter { (_, times) -> times.isNotEmpty() }
     .sortedBy { it.key.value }
     .joinToString(";") { (day, times) ->
         "${day.name.take(3)}=${times.distinct().sorted().joinToString(",", transform = ::formatClockMinutes)}"

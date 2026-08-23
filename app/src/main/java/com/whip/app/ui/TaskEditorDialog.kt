@@ -808,28 +808,10 @@ fun TaskEditorDialog(
                         }
 
                         if (showAdvanced) {
-                        FieldLabel("Cadence anchor")
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            RecurrenceAnchor.entries.forEach { anchor ->
-                                FilterChip(
-                                    selected = recurrenceAnchor == anchor,
-                                    enabled = anchor == RecurrenceAnchor.Schedule || repeatPreset != RepeatPreset.Weekdays,
-                                    onClick = { recurrenceAnchor = anchor },
-                                    label = { Text(if (anchor == RecurrenceAnchor.Schedule) "Scheduled date" else "Completion date") },
-                                )
-                            }
-                        }
-                        Text(
-                            if (recurrenceAnchor == RecurrenceAnchor.Schedule) {
-                                "The calendar cadence stays fixed when an occurrence is completed late."
-                            } else {
-                                "Only the next occurrence is created, measured from when you complete this one."
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        RecurrenceAnchorSelector(
+                            selected = recurrenceAnchor,
+                            usesSelectedWeekdays = repeatPreset == RepeatPreset.Weekdays,
+                            onSelect = { recurrenceAnchor = it },
                         )
                         if (recurrenceAnchor == RecurrenceAnchor.Schedule) {
                             FieldLabel("If occurrences are missed")
@@ -1235,6 +1217,54 @@ fun TaskEditorDialog(
     }
 }
 
+internal fun completionAnchorAvailability(usesSelectedWeekdays: Boolean): ControlAvailability =
+    ControlAvailability(
+        enabled = !usesSelectedWeekdays,
+        unavailableExplanation = if (usesSelectedWeekdays) {
+            "Selected-day repeats stay tied to the calendar. Under Repeats, choose Daily or an Every X option to use completion-based timing."
+        } else {
+            null
+        },
+    )
+
+@Composable
+internal fun RecurrenceAnchorSelector(
+    selected: RecurrenceAnchor,
+    usesSelectedWeekdays: Boolean,
+    onSelect: (RecurrenceAnchor) -> Unit,
+) {
+    val completionAvailability = completionAnchorAvailability(usesSelectedWeekdays)
+    FieldLabel("Next repeat is based on")
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        RecurrenceAnchor.entries.forEach { anchor ->
+            val availability = if (anchor == RecurrenceAnchor.Schedule) {
+                ControlAvailability(enabled = true)
+            } else {
+                completionAvailability
+            }
+            FilterChip(
+                selected = selected == anchor,
+                enabled = availability.enabled,
+                onClick = { onSelect(anchor) },
+                label = { Text(if (anchor == RecurrenceAnchor.Schedule) "Scheduled date" else "Completion date") },
+            )
+        }
+    }
+    AvailabilityNotice("Completion date", completionAvailability)
+    Text(
+        if (selected == RecurrenceAnchor.Schedule) {
+            "Scheduled date keeps the calendar cadence fixed when an occurrence is completed late."
+        } else {
+            "Completion date creates only the next occurrence, measured from when you complete this one."
+        },
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
 @Composable
 private fun TaskRecipeDialog(
     today: LocalDate,
@@ -1379,7 +1409,7 @@ private val RepeatPreset.label: String
     get() = when (this) {
         RepeatPreset.Daily -> "Daily"
         RepeatPreset.EveryDays -> "Every X days"
-        RepeatPreset.Weekdays -> "Weekdays"
+        RepeatPreset.Weekdays -> "Selected days"
         RepeatPreset.EveryWeeks -> "Every X weeks"
         RepeatPreset.EveryMonths -> "Every X months"
         RepeatPreset.EveryYears -> "Every X years"

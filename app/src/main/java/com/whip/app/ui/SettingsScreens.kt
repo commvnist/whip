@@ -504,8 +504,17 @@ fun SettingsContent(
             ) { Text("Open battery optimization settings") }
         }
         item {
-            Button(
+            val testNotificationAvailability = ControlAvailability(
                 enabled = notificationPermissionGranted && appNotificationsEnabled && taskNotificationChannelEnabled,
+                unavailableExplanation = when {
+                    !notificationPermissionGranted -> "Allow Whip notifications in Android settings."
+                    !appNotificationsEnabled -> "Turn on Whip notifications in Android settings."
+                    !taskNotificationChannelEnabled -> "Turn on the Tasks reminder channel in Android settings."
+                    else -> null
+                },
+            )
+            Button(
+                enabled = testNotificationAvailability.enabled,
                 onClick = {
                     notificationTestMessage = if (ReminderNotifications.showTest(context)) {
                         "Test sent. Check the notification shade."
@@ -515,6 +524,7 @@ fun SettingsContent(
                 },
                 modifier = Modifier.fillMaxWidth().testTag("send-test-notification"),
             ) { Text("Send test notification") }
+            AvailabilityNotice("Send test notification", testNotificationAvailability)
         }
         item { TextButton(onClick = { diagnosticRefresh++ }) { Text("Refresh notification status") } }
         item {
@@ -705,18 +715,32 @@ fun SettingsContent(
                 NumberSetting("Days to sync", settings.healthSyncDays) { value ->
                     viewModel.update { it.copy(healthSyncDays = value.coerceIn(1, 365)) }
                 }
+                val accessAvailability = ControlAvailability(
+                    enabled = settings.healthDataTypes.isNotEmpty(),
+                    unavailableExplanation = "Select at least one Health Connect category above.",
+                )
+                val syncAvailability = ControlAvailability(
+                    enabled = settings.healthConnectEnabled && settings.healthDataTypes.isNotEmpty(),
+                    unavailableExplanation = when {
+                        !settings.healthConnectEnabled -> "Turn on Health Connect sync above."
+                        settings.healthDataTypes.isEmpty() -> "Select at least one Health Connect category above."
+                        else -> null
+                    },
+                )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
                         onClick = { healthPermissions.launch(viewModel.requiredHealthPermissions()) },
-                        enabled = settings.healthDataTypes.isNotEmpty(),
+                        enabled = accessAvailability.enabled,
                         modifier = Modifier.weight(1f),
                     ) { Text("Review access") }
                     Button(
                         onClick = viewModel::syncHealthConnect,
-                        enabled = settings.healthConnectEnabled && settings.healthDataTypes.isNotEmpty() && !state.busy,
+                        enabled = syncAvailability.enabled && !state.busy,
                         modifier = Modifier.weight(1f),
                     ) { Text("Sync now") }
                 }
+                AvailabilityNotice("Review access", accessAvailability)
+                AvailabilityNotice("Sync now", syncAvailability)
                 state.healthConnect.lastSync?.let { Text("Last sync: $it · ${state.healthConnect.importedEntries} entries", style = MaterialTheme.typography.bodySmall) }
             }
         }

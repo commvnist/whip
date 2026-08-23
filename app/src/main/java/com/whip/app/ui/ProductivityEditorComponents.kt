@@ -17,8 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -46,6 +44,39 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.whip.app.domain.editableNumericValue
 import java.time.DayOfWeek
+
+/**
+ * Models a dependent control without allowing an unexplained disabled state.
+ * Callers must provide the reason and the action that makes the control available.
+ */
+internal data class ControlAvailability(
+    val enabled: Boolean,
+    val unavailableExplanation: String? = null,
+) {
+    init {
+        require(enabled || !unavailableExplanation.isNullOrBlank()) {
+            "Disabled controls must explain why they are unavailable and how to enable them"
+        }
+    }
+}
+
+@Composable
+internal fun AvailabilityNotice(
+    label: String,
+    availability: ControlAvailability,
+    modifier: Modifier = Modifier,
+) {
+    if (!availability.enabled) {
+        Text(
+            "$label unavailable. ${availability.unavailableExplanation}",
+            modifier = modifier.semantics {
+                contentDescription = "$label unavailable. ${availability.unavailableExplanation}"
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
 
 /**
  * A full-window dialog whose card can be positioned wholly inside the active fold pane.
@@ -204,65 +235,95 @@ internal fun ReminderTimesEditor(
 @Composable
 internal fun WeekdayReminderEditor(
     values: Map<DayOfWeek, List<Int>>,
+    firstDayOfWeek: DayOfWeek = DayOfWeek.MONDAY,
     onChange: (Map<DayOfWeek, List<Int>>) -> Unit,
 ) {
-    var selectedDayName by rememberSaveable { mutableStateOf(DayOfWeek.MONDAY.name) }
-    var dayMenuOpen by rememberSaveable { mutableStateOf(false) }
-    var adding by rememberSaveable { mutableStateOf(false) }
-    val selectedDay = DayOfWeek.valueOf(selectedDayName)
+    var choosingDay by rememberSaveable { mutableStateOf(false) }
+    var addingDayName by rememberSaveable { mutableStateOf<String?>(null) }
+    val activeValues = values.mapValues { (_, times) -> times.distinct().sorted() }
+        .filterValues { it.isNotEmpty() }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text("Weekday-specific reminders", style = MaterialTheme.typography.labelLarge)
-        values.toSortedMap(compareBy { it.value }).forEach { (day, times) ->
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Text(day.name.lowercase().replaceFirstChar(Char::uppercase), modifier = Modifier.weight(1f))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    times.sorted().forEach { value ->
-                        FilterChip(
-                            selected = true,
-                            onClick = {
-                                val remaining = times - value
-                                onChange(if (remaining.isEmpty()) values - day else values + (day to remaining))
-                            },
-                            label = { Text(formatClockMinutes(value)) },
-                            trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = null) },
-                        )
-                    }
+        Text(
+            if (activeValues.isEmpty()) {
+                "No weekday-specific reminders. Days without one use Default reminders."
+            } else {
+                "Days without a weekday-specific time use Default reminders."
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        activeValues.toSortedMap(compareBy { it.value }).forEach { (day, times) ->
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("${day.weekdayLabel()} reminders", style = MaterialTheme.typography.labelMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    times.sorted().forEach { value -> FilterChip(
+                        selected = true,
+                        onClick = {
+                            val remaining = times - value
+                            onChange(if (remaining.isEmpty()) activeValues - day else activeValues + (day to remaining))
+                        },
+                        label = { Text(formatClockMinutes(value)) },
+                        trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = null) },
+                    ) }
                 }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Column(Modifier.weight(1f)) {
-                OutlinedButton(onClick = { dayMenuOpen = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(selectedDay.name.lowercase().replaceFirstChar(Char::uppercase))
-                }
-                DropdownMenu(expanded = dayMenuOpen, onDismissRequest = { dayMenuOpen = false }) {
-                    DayOfWeek.entries.forEach { day ->
-                        DropdownMenuItem(
-                            text = { Text(day.name.lowercase().replaceFirstChar(Char::uppercase)) },
-                            onClick = { selectedDayName = day.name; dayMenuOpen = false },
-                        )
-                    }
-                }
-            }
-            OutlinedButton(onClick = { adding = true }, modifier = Modifier.weight(1f)) {
-                Icon(Icons.Filled.Add, contentDescription = null)
-                Spacer(Modifier.width(4.dp))
-                Text("Add time")
-            }
+        OutlinedButton(onClick = { choosingDay = true }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Filled.Add, contentDescription = null)
+            Spacer(Modifier.width(4.dp))
+            Text("Add weekday reminder")
         }
     }
-    if (adding) {
+    if (choosingDay) {
+        AlertDialog(
+            onDismissRequest = { choosingDay = false },
+            title = { Text("Choose weekday") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        "Nothing is scheduled until you choose a time and tap Add.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        orderedWeekdays(firstDayOfWeek).forEach { day -> FilterChip(
+                            selected = false,
+                            onClick = {
+                                addingDayName = day.name
+                                choosingDay = false
+                            },
+                            label = { Text(day.weekdayLabel()) },
+                        ) }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { choosingDay = false }) { Text("Cancel") } },
+        )
+    }
+    addingDayName?.let { dayName ->
+        val selectedDay = DayOfWeek.valueOf(dayName)
         ClockPickerDialog(
-            title = "${selectedDay.name.lowercase().replaceFirstChar(Char::uppercase)} reminder",
-            initialMinutes = values[selectedDay]?.lastOrNull() ?: 8 * 60,
-            onDismiss = { adding = false },
+            title = "${selectedDay.weekdayLabel()} reminder",
+            initialMinutes = activeValues[selectedDay]?.lastOrNull() ?: 8 * 60,
+            onDismiss = { addingDayName = null },
             onSet = { value ->
-                onChange(values + (selectedDay to (values[selectedDay].orEmpty() + value).distinct().sorted()))
-                adding = false
+                onChange(activeValues + (selectedDay to (activeValues[selectedDay].orEmpty() + value).distinct().sorted()))
+                addingDayName = null
             },
         )
     }
 }
+
+private fun DayOfWeek.weekdayLabel(): String = name.lowercase().replaceFirstChar(Char::uppercase)
+
+private fun orderedWeekdays(first: DayOfWeek): List<DayOfWeek> =
+    (0..6).map { offset -> DayOfWeek.of((first.value - 1 + offset) % 7 + 1) }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
