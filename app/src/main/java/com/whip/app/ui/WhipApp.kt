@@ -1555,16 +1555,15 @@ internal fun AreaScopeMenu(
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             if (activeAreas.isEmpty()) {
                 DropdownMenuItem(
-                    text = { Column { Text("Set up areas"); Text("Separate Personal, Work, Health, and more.", style = MaterialTheme.typography.bodySmall) } },
+                    text = { Column { Text("Create area…"); Text("Use any name that is useful to you.", style = MaterialTheme.typography.bodySmall) } },
                     onClick = { expanded = false; creating = true },
                 )
-                listOf("Personal", "Work", "Health").forEach { suggestion ->
-                    DropdownMenuItem(text = { Text("Create $suggestion") }, onClick = {
-                        expanded = false
-                        onCreateArea(suggestion, null) { result -> result.onSuccess { onSelect(AreaScope.One(it)) } }
-                    })
+                if (areas.any(Area::archived)) {
+                    DropdownMenuItem(
+                        text = { Text("Manage archived areas…") },
+                        onClick = { expanded = false; onManage() },
+                    )
                 }
-                DropdownMenuItem(text = { Text("Create custom area…") }, onClick = { expanded = false; creating = true })
                 return@DropdownMenu
             }
             DropdownMenuItem(

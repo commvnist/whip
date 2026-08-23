@@ -89,7 +89,7 @@ internal fun AreaPicker(
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Area", style = MaterialTheme.typography.labelLarge)
         Text(
-            "Keep Personal, Work, Health, and other parts of life separate.",
+            "Group this item with related tasks, habits, and goals.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -201,7 +201,7 @@ internal fun CreateAreaDialog(
                     onValueChange = { name = it.take(40); error = null },
                     label = { Text("Area name") },
                     supportingText = { Text("${name.length}/40") },
-                    placeholder = { Text("Personal, Work, Health…") },
+                    placeholder = { Text("Enter a name") },
                     isError = error != null,
                     singleLine = true,
                     enabled = !saving,

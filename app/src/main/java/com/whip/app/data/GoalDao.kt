@@ -20,6 +20,9 @@ interface GoalDao {
     @Query("SELECT * FROM goals WHERE id = :id")
     suspend fun getGoal(id: Long): GoalEntity?
 
+    @Query("SELECT * FROM goals")
+    suspend fun getAllGoals(): List<GoalEntity>
+
     @Query("SELECT * FROM goals WHERE status IN ('Active', 'Paused')")
     suspend fun getOpenGoals(): List<GoalEntity>
 

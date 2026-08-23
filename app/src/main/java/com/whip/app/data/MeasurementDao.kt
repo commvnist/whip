@@ -73,6 +73,15 @@ interface MeasurementDao {
     @Query("DELETE FROM areas WHERE id = :id")
     suspend fun deleteArea(id: String): Int
 
+    @Query("UPDATE tasks SET areaId = NULL, area = '' WHERE areaId = :areaId")
+    suspend fun clearTaskAreaReferences(areaId: String): Int
+
+    @Query("UPDATE habits SET areaId = NULL, area = '' WHERE areaId = :areaId")
+    suspend fun clearHabitAreaReferences(areaId: String): Int
+
+    @Query("UPDATE goals SET areaId = NULL, area = '' WHERE areaId = :areaId")
+    suspend fun clearGoalAreaReferences(areaId: String): Int
+
     @Query("UPDATE tasks SET areaId = :targetId, area = :targetName WHERE areaId = :sourceId")
     suspend fun moveTaskAreaReferences(sourceId: String, targetId: String, targetName: String)
 

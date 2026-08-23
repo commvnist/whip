@@ -12,6 +12,7 @@ import com.whip.app.core.HealthDataType
 import com.whip.app.core.SavedTaskFilter
 import com.whip.app.core.SavedReviewFilter
 import com.whip.app.core.PlatePreset
+import com.whip.app.core.withoutAreaReferences
 import com.whip.app.data.BackupPreview
 import com.whip.app.data.EncryptedBackupCodec
 import com.whip.app.data.PortableBackupOutcome
@@ -24,6 +25,7 @@ import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.Area
 import com.whip.app.domain.AreaScope
 import com.whip.app.domain.WhipTag
+import com.whip.app.widget.WhipWidgetProvider
 import java.time.DayOfWeek
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -273,6 +275,22 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             repository.update { it.copy(activeAreaScope = AreaScope.One(targetId).storageKey) }
         }
     }
+    fun deleteAreaAndKeepItems(id: String) = runIo("Area deleted; assigned items moved to No area") {
+        val area = requireNotNull(uiState.value.areas.firstOrNull { it.id == id }) { "Area no longer exists" }
+        app.areaRepository.deletePermanently(id)
+        clearAreaReferences(id, area.name)
+    }
+    fun deleteAreaAndItems(id: String) = runIo("Area and assigned items permanently deleted") {
+        val area = requireNotNull(uiState.value.areas.firstOrNull { it.id == id }) { "Area no longer exists" }
+        val summary = app.areaDeletionCoordinator.deleteAreaAndItems(id)
+        summary.taskIds.forEach { taskId ->
+            app.reminderScheduler.syncTask(taskId)
+            app.locationReminderScheduler.syncTask(taskId)
+        }
+        summary.habitIds.forEach { app.habitReminderScheduler.syncHabit(it) }
+        summary.goalIds.forEach { app.goalReminderScheduler.syncGoal(it) }
+        clearAreaReferences(id, area.name, summary.taskIds.toSet())
+    }
     fun setAreaColor(id: String, colorArgb: Long?) = runIo("Area color updated") { app.areaRepository.setColor(id, colorArgb) }
     fun renameTag(id: String, name: String) = runIo("Tag updated") { app.measurementRepository.renameTag(id, name) }
     fun setAreaArchived(id: String, archived: Boolean) = runIo(if (archived) "Area archived" else "Area restored") {
@@ -285,6 +303,22 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         app.measurementRepository.setTagArchived(id, archived)
     }
     fun moveArea(id: String, direction: Int) = runIo("Area order updated") { app.areaRepository.move(id, direction) }
+
+    private fun clearAreaReferences(id: String, name: String, deletedTaskIds: Set<Long> = emptySet()) {
+        repository.update { settings ->
+            settings.withoutAreaReferences(id, name).let { cleaned ->
+                if (cleaned.focusTimerTaskId in deletedTaskIds) {
+                    cleaned.copy(focusTimerDeadlineMillis = null, focusTimerTaskId = null)
+                } else {
+                    cleaned
+                }
+            }
+        }
+        if (app.settingsRepository.current().focusTimerTaskId == null && deletedTaskIds.isNotEmpty()) {
+            app.focusTimerScheduler.cancel()
+        }
+        WhipWidgetProvider.clearAreaScope(app, id)
+    }
 
     fun saveReviewFilter(filter: SavedReviewFilter) = update { current ->
         current.copy(

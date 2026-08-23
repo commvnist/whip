@@ -15,6 +15,7 @@ interface AreaRepository {
     suspend fun create(name: String, colorArgb: Long? = null): String
     suspend fun rename(id: String, name: String)
     suspend fun merge(sourceId: String, targetId: String)
+    suspend fun deletePermanently(id: String)
     suspend fun setColor(id: String, colorArgb: Long?)
     suspend fun setArchived(id: String, archived: Boolean)
     suspend fun move(id: String, direction: Int)
@@ -77,6 +78,14 @@ class RoomAreaRepository(
         val source = requireNotNull(dao.getArea(sourceId)) { "Source Area no longer exists" }
         val target = requireNotNull(dao.getArea(targetId)) { "Destination Area no longer exists" }
         mergeRows(source, target)
+    }
+
+    override suspend fun deletePermanently(id: String) = database.withTransaction {
+        requireNotNull(dao.getArea(id)) { "Area no longer exists" }
+        dao.clearTaskAreaReferences(id)
+        dao.clearHabitAreaReferences(id)
+        dao.clearGoalAreaReferences(id)
+        check(dao.deleteArea(id) == 1) { "Area could not be deleted" }
     }
 
     override suspend fun setColor(id: String, colorArgb: Long?) {

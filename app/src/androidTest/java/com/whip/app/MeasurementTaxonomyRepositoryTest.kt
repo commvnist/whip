@@ -105,6 +105,35 @@ class MeasurementTaxonomyRepositoryTest {
         assertFalse(measurements.tags.first().single { it.id == tag }.archived)
     }
 
+    @Test
+    fun permanentAreaDeleteCanKeepEveryAssignedItemAsUnassigned() = runBlocking {
+        val areaId = areas.create("Client Delta")
+        tasks.create(TaskDraft(title = "Task", areaId = areaId, area = "Client Delta"))
+        habits.create(HabitDraft(name = "Habit", areaId = areaId, area = "Client Delta", startDate = FixedClock.today()))
+        goals.create(
+            GoalDraft(
+                name = "Goal",
+                areaId = areaId,
+                area = "Client Delta",
+                type = GoalType.OpenEndedTrend,
+                startDate = FixedClock.today(),
+            ),
+        )
+
+        areas.deletePermanently(areaId)
+
+        assertTrue(areas.areas.first().isEmpty())
+        assertEquals(1, tasks.tasks.first().size)
+        assertEquals(null, tasks.tasks.first().single().areaId)
+        assertEquals("", tasks.tasks.first().single().area)
+        assertEquals(1, habits.habits.first().size)
+        assertEquals(null, habits.habits.first().single().areaId)
+        assertEquals("", habits.habits.first().single().area)
+        assertEquals(1, goals.goals.first().size)
+        assertEquals(null, goals.goals.first().single().areaId)
+        assertEquals("", goals.goals.first().single().area)
+    }
+
     private object FixedClock : WhipClock {
         override fun now(): Instant = Instant.parse("2026-08-19T12:00:00Z")
         override fun zoneId(): ZoneId = ZoneId.of("UTC")

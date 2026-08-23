@@ -1,5 +1,6 @@
 package com.whip.app.core
 
+import com.whip.app.domain.AreaScope
 import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.WorkoutSetClassification
@@ -63,5 +64,24 @@ class PowerUserSettingsTest {
         )
         assertEquals("", invalid.encodeRepPrescriptionSchemes())
         assertEquals(emptyList<RepPrescriptionScheme>(), "aWQ|bmFtZQ|3|8|10|Working|not-a-number".decodeRepPrescriptionSchemes())
+    }
+
+    @Test
+    fun deletingAnAreaClearsEverySavedReferenceWithoutRemovingFilters() {
+        val settings = AppSettings(
+            activeAreaScope = AreaScope.One("client-delta").storageKey,
+            savedTaskFilters = listOf(
+                SavedTaskFilter("By ID", area = "Client Delta", areaId = "client-delta"),
+                SavedTaskFilter("Legacy", area = "client delta"),
+                SavedTaskFilter("Other", area = "Other", areaId = "other"),
+            ),
+        )
+
+        val result = settings.withoutAreaReferences("client-delta", "Client Delta")
+
+        assertEquals(AreaScope.All.storageKey, result.activeAreaScope)
+        assertEquals(SavedTaskFilter("By ID"), result.savedTaskFilters[0])
+        assertEquals(SavedTaskFilter("Legacy"), result.savedTaskFilters[1])
+        assertEquals(settings.savedTaskFilters[2], result.savedTaskFilters[2])
     }
 }

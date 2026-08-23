@@ -19,6 +19,10 @@ class WhipWidgetAreaScopeTest {
         assertEquals(AreaScope.One("work"), WhipWidgetProvider.loadScope(context, 101))
         assertEquals(AreaScope.One("health"), WhipWidgetProvider.loadScope(context, 202))
 
+        WhipWidgetProvider.clearAreaScope(context, "work", intArrayOf(101, 202))
+        assertEquals(AreaScope.All, WhipWidgetProvider.loadScope(context, 101))
+        assertEquals(AreaScope.One("health"), WhipWidgetProvider.loadScope(context, 202))
+
         WhipWidgetProvider().onDeleted(context, intArrayOf(101))
         assertEquals(AreaScope.All, WhipWidgetProvider.loadScope(context, 101))
         assertEquals(AreaScope.One("health"), WhipWidgetProvider.loadScope(context, 202))

@@ -24,7 +24,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -66,6 +65,7 @@ internal fun AreaManagementDialog(
     var colorId by rememberSaveable { mutableStateOf<String?>(null) }
     var mergeSourceId by rememberSaveable { mutableStateOf<String?>(null) }
     var archiveId by rememberSaveable { mutableStateOf<String?>(null) }
+    var deleteId by rememberSaveable { mutableStateOf<String?>(null) }
     var archivedExpanded by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     val snackbar = remember { SnackbarHostState() }
@@ -97,9 +97,9 @@ internal fun AreaManagementDialog(
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text("Areas", style = MaterialTheme.typography.headlineSmall)
-                            Text("Separate Personal, Work, Health, and other parts of life.", style = MaterialTheme.typography.bodySmall)
+                            Text("Group related tasks, habits, and goals.", style = MaterialTheme.typography.bodySmall)
                         }
-                        Button(onClick = { createOpen = true }) { Text("Add") }
+                        Button(onClick = { createOpen = true }) { Text("Create") }
                         TextButton(onClick = onDismiss) { Text("Done") }
                     }
                     HorizontalDivider()
@@ -120,14 +120,7 @@ internal fun AreaManagementDialog(
                         if (active.isEmpty()) item {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Text("No active areas yet", style = MaterialTheme.typography.titleMedium)
-                                Text("Create one to filter Home, Tasks, Habits, Goals, Search, and Review together.")
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    listOf("Personal", "Work", "Health").forEach { suggestion ->
-                                        OutlinedButton(onClick = {
-                                            viewModel.createArea(suggestion) { result -> result.onFailure { } }
-                                        }) { Text(suggestion) }
-                                    }
-                                }
+                                Text("Create an area with any name you want, then use it across Home, Tasks, Habits, Goals, Search, and Review.")
                                 Button(onClick = { createOpen = true }) { Text("Create area") }
                             }
                         }
@@ -145,6 +138,7 @@ internal fun AreaManagementDialog(
                                 onMove = { viewModel.moveArea(area.id, it) },
                                 onMerge = { mergeSourceId = area.id },
                                 onArchive = { archiveId = area.id },
+                                onDelete = { deleteId = area.id },
                             )
                         }
                         if (archived.isNotEmpty()) item {
@@ -167,7 +161,10 @@ internal fun AreaManagementDialog(
                                     Text(area.name)
                                     Text("Archived · ${usageText(state.areaUsage[area.id] ?: AreaUsageCounts())}", style = MaterialTheme.typography.bodySmall)
                                 }
-                                TextButton(onClick = { viewModel.setAreaArchived(area.id, false) }) { Text("Restore") }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    TextButton(onClick = { viewModel.setAreaArchived(area.id, false) }) { Text("Restore") }
+                                    TextButton(onClick = { deleteId = area.id }) { Text("Delete") }
+                                }
                             }
                         }
                     }
@@ -223,6 +220,22 @@ internal fun AreaManagementDialog(
             dismissButton = { TextButton(onClick = { archiveId = null }) { Text("Cancel") } },
         )
     } }
+    deleteId?.let { id -> state.areas.firstOrNull { it.id == id }?.let { area ->
+        PermanentAreaDeleteDialog(
+            modifier = childDialogModifier,
+            area = area,
+            usage = state.areaUsage[id] ?: AreaUsageCounts(),
+            onDismiss = { deleteId = null },
+            onKeepItems = {
+                viewModel.deleteAreaAndKeepItems(id)
+                deleteId = null
+            },
+            onDeleteItems = {
+                viewModel.deleteAreaAndItems(id)
+                deleteId = null
+            },
+        )
+    } }
 }
 
 @Composable
@@ -236,6 +249,7 @@ private fun AreaManagerRow(
     onMove: (Int) -> Unit,
     onMerge: () -> Unit,
     onArchive: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     var menu by rememberSaveable { mutableStateOf(false) }
     Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.medium) {
@@ -261,10 +275,51 @@ private fun AreaManagerRow(
                     DropdownMenuItem({ Text("Move down") }, { menu = false; onMove(1) }, enabled = canMoveDown)
                     DropdownMenuItem({ Text("Merge into…") }, { menu = false; onMerge() })
                     DropdownMenuItem({ Text("Archive") }, { menu = false; onArchive() })
+                    DropdownMenuItem({ Text("Delete permanently") }, { menu = false; onDelete() })
                 }
             }
         }
     }
+}
+
+@Composable
+internal fun PermanentAreaDeleteDialog(
+    modifier: Modifier = Modifier,
+    area: Area,
+    usage: AreaUsageCounts,
+    onDismiss: () -> Unit,
+    onKeepItems: () -> Unit,
+    onDeleteItems: () -> Unit,
+) {
+    val explanation = if (usage.total == 0) {
+        "This area is empty. Deleting it cannot be undone."
+    } else {
+        "Choose what happens to ${usage.total} assigned items: ${usage.tasks} tasks, ${usage.habits} habits, and ${usage.goals} goals. " +
+            "Moving them keeps the items and their history. Deleting the items cannot be undone. " +
+            "Saved filters and widgets using this area will reset to All areas."
+    }
+    PaneAwareAlertDialog(
+        modifier = modifier,
+        onDismissRequest = onDismiss,
+        title = { Text("Delete ${area.name} permanently?") },
+        text = { Text(explanation) },
+        confirmButton = {
+            Column(horizontalAlignment = Alignment.End) {
+                if (usage.total > 0) {
+                    TextButton(onClick = onKeepItems) { Text("Move items to No area") }
+                }
+                TextButton(
+                    onClick = if (usage.total == 0) onKeepItems else onDeleteItems,
+                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text(if (usage.total == 0) "Delete area" else "Delete area and ${usage.total} items")
+                }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable private fun AreaDot(area: Area) {

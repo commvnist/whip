@@ -23,11 +23,12 @@ templates, copies prior workouts, and can create exercises or machines inline
 without losing the draft. Explicit load meaning keeps total, per-hand, per-side,
 bodyweight, assisted, displayed-mass, and ordinal-machine history honest.
 
-First-class productivity Areas organize Tasks, Habits, and Goals into durable
-contexts such as Personal, Work, and Health. A global All/Unassigned/Area scope
+First-class productivity Areas organize Tasks, Habits, and Goals into durable,
+user-named contexts. A global All/Unassigned/Area scope
 stays consistent across Home, the three productivity destinations, Search, and
 Review; Gym remains explicitly unscoped. Areas have stable identities, colors,
-ordering, archive/merge management, editor pickers, and tappable record badges.
+ordering, archive/merge management, permanent deletion with preserve-or-delete
+item choices, editor pickers, and tappable record badges.
 
 All records live in Room and work offline. Explicit contribution and trigger
 links connect domains without merging their meaning. Optional read-only Health

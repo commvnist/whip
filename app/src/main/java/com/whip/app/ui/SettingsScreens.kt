@@ -395,7 +395,7 @@ fun SettingsContent(
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Areas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("Areas keep Personal, Work, Health, and other parts of life separate across Tasks, Habits, Goals, Search, and Review.")
+                    Text("Create your own named areas to group related items across Tasks, Habits, Goals, Search, and Review.")
                     Text("${state.areas.count { !it.archived }} active · ${state.areas.count { it.archived }} archived · ${state.areaUsage.values.sumOf(AreaUsageCounts::total) + state.unassignedAreaUsage.total} items", style = MaterialTheme.typography.bodySmall)
                     Button(onClick = onEditAreas, modifier = Modifier.fillMaxWidth()) { Text("Edit areas") }
                 }

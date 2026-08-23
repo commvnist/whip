@@ -5,7 +5,9 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
+import com.whip.app.data.AreaDeletionCoordinator
 import com.whip.app.data.DomainDeletionCoordinator
+import com.whip.app.data.RoomAreaRepository
 import com.whip.app.data.RoomGoalRepository
 import com.whip.app.data.RoomGymRepository
 import com.whip.app.data.RoomHabitRepository
@@ -14,6 +16,7 @@ import com.whip.app.data.RoomMeasurementRepository
 import com.whip.app.data.RoomRoutineRepository
 import com.whip.app.data.RoomTaskRepository
 import com.whip.app.data.RoomBackupRepository
+import com.whip.app.data.TaskDeletionCoordinator
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.GymMachineDraft
@@ -60,7 +63,9 @@ class DomainDeletionCoordinatorTest {
     private lateinit var routines: RoomRoutineRepository
     private lateinit var links: RoomLinkRepository
     private lateinit var tasks: RoomTaskRepository
+    private lateinit var areas: RoomAreaRepository
     private lateinit var coordinator: DomainDeletionCoordinator
+    private lateinit var areaDeletionCoordinator: AreaDeletionCoordinator
 
     @Before fun setUp() {
         database = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), WhipDatabase::class.java).build()
@@ -72,7 +77,14 @@ class DomainDeletionCoordinatorTest {
         routines = RoomRoutineRepository(database, FixedClock, ids)
         links = RoomLinkRepository(database, measurements, FixedClock, ids)
         tasks = RoomTaskRepository(database, FixedClock)
+        areas = RoomAreaRepository(database, FixedClock, ids)
         coordinator = DomainDeletionCoordinator(database, links, routines)
+        areaDeletionCoordinator = AreaDeletionCoordinator(
+            database,
+            areas,
+            TaskDeletionCoordinator(database, tasks, links),
+            coordinator,
+        )
     }
 
     @After fun tearDown() = database.close()
@@ -123,6 +135,51 @@ class DomainDeletionCoordinatorTest {
         assertTrue(links.contributions.first().isEmpty())
         assertNull(database.measurementDao().getMetric(metricId))
         assertEquals(1, habits.habits.first().size)
+    }
+
+    @Test fun areaDeleteWithItemsRemovesEveryDomainAndItsDependentHistory() = runBlocking {
+        val areaId = areas.create("Client Delta")
+        val taskId = tasks.create(TaskDraft(title = "Prompt source", areaId = areaId, area = "Client Delta"))
+        val habitId = habits.create(
+            HabitDraft(name = "Read", areaId = areaId, area = "Client Delta", startDate = FixedClock.today()),
+        )
+        habits.log(habitId, 1.0)
+        val goalId = goals.create(accumulatingGoal("Reading goal").copy(areaId = areaId, area = "Client Delta"))
+        links.createRule(
+            LinkRuleDraft(
+                "Read link",
+                sourceType = LinkSourceType.Habit,
+                sourceEntityId = habitId,
+                sourceMetric = LinkSourceMetric.NumericValue,
+                targetGoalId = goalId,
+                retroactiveFrom = FixedClock.today(),
+            ),
+            commitBackfill = true,
+        )
+        links.createTrigger(
+            TriggerRuleDraft(
+                "Prompt reading",
+                LinkSourceType.Task,
+                taskId,
+                targetType = TriggerTargetType.Habit,
+                targetEntityId = habitId,
+            ),
+        )
+
+        val summary = areaDeletionCoordinator.deleteAreaAndItems(areaId)
+
+        assertEquals(listOf(taskId), summary.taskIds)
+        assertEquals(listOf(habitId), summary.habitIds)
+        assertEquals(listOf(goalId), summary.goalIds)
+        assertEquals(3, summary.total)
+        assertTrue(areas.areas.first().isEmpty())
+        assertTrue(tasks.tasks.first().isEmpty())
+        assertTrue(habits.habits.first().isEmpty())
+        assertTrue(habits.logs.first().isEmpty())
+        assertTrue(goals.goals.first().isEmpty())
+        assertTrue(links.rules.first().isEmpty())
+        assertTrue(links.contributions.first().isEmpty())
+        assertTrue(links.triggerRules.first().isEmpty())
     }
 
     @Test fun exerciseDeleteCleansHistoryTemplatesRecordsAndGraphPresets() = runBlocking {

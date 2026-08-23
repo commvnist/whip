@@ -96,6 +96,23 @@ class WhipWidgetProvider : AppWidgetProvider() {
             WhipWidgetProvider().onUpdate(context, AppWidgetManager.getInstance(context), intArrayOf(appWidgetId))
         }
 
+        fun clearAreaScope(
+            context: Context,
+            areaId: String,
+            appWidgetIds: IntArray? = null,
+        ) {
+            val resolvedIds = appWidgetIds ?: AppWidgetManager.getInstance(context)
+                .getAppWidgetIds(ComponentName(context, WhipWidgetProvider::class.java))
+            resolvedIds.forEach { appWidgetId ->
+                if (loadScope(context, appWidgetId) == AreaScope.One(areaId)) {
+                    saveScope(context, appWidgetId, AreaScope.All)
+                }
+            }
+            if (appWidgetIds == null && resolvedIds.isNotEmpty()) {
+                WhipWidgetProvider().onUpdate(context, AppWidgetManager.getInstance(context), resolvedIds)
+            }
+        }
+
         private fun launch(context: Context, action: String, requestCode: Int, areaScope: AreaScope): PendingIntent =
             PendingIntent.getActivity(
                 context,

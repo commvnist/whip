@@ -15,6 +15,7 @@ import com.whip.app.data.RoomLinkRepository
 import com.whip.app.data.RoomBackupRepository
 import com.whip.app.data.TaskDeletionCoordinator
 import com.whip.app.data.DomainDeletionCoordinator
+import com.whip.app.data.AreaDeletionCoordinator
 import com.whip.app.data.PortableBackupManager
 import com.whip.app.data.PortableBackupScheduler
 import com.whip.app.data.WhipDatabase
@@ -81,6 +82,9 @@ class WhipApplication : Application() {
     }
     val domainDeletionCoordinator by lazy {
         DomainDeletionCoordinator(database, linkRepository, routineRepository)
+    }
+    val areaDeletionCoordinator by lazy {
+        AreaDeletionCoordinator(database, areaRepository, taskDeletionCoordinator, domainDeletionCoordinator)
     }
     val backupRepository by lazy { RoomBackupRepository(database, settingsRepository) }
     val restoreRecoveryManager by lazy { RestoreRecoveryManager(this, backupRepository) }

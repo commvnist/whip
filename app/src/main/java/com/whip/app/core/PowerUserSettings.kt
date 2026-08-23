@@ -1,5 +1,6 @@
 package com.whip.app.core
 
+import com.whip.app.domain.AreaScope
 import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.WorkoutSetClassification
@@ -34,6 +35,21 @@ data class SavedTaskFilter(
 data class SavedReviewFilter(
     val name: String,
     val sections: Set<HomeSection> = HomeSection.entries.toSet(),
+)
+
+internal fun AppSettings.withoutAreaReferences(areaId: String, areaName: String): AppSettings = copy(
+    activeAreaScope = activeAreaScope.takeUnless { it == AreaScope.One(areaId).storageKey }
+        ?: AreaScope.All.storageKey,
+    savedTaskFilters = savedTaskFilters.map { filter ->
+        if (
+            filter.areaId == areaId ||
+            (filter.areaId == null && filter.area.equals(areaName, ignoreCase = true))
+        ) {
+            filter.copy(area = "", areaId = null)
+        } else {
+            filter
+        }
+    },
 )
 
 data class PlatePreset(

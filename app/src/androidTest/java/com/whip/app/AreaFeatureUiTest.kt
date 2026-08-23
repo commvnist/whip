@@ -1,9 +1,11 @@
 package com.whip.app.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.whip.app.domain.Area
@@ -62,21 +64,27 @@ class AreaFeatureUiTest {
 
     @Test
     fun zeroAreaScopeOffersSetupInsteadOfDuplicateAllAndNoAreaFilters() {
+        val selected = AtomicReference<AreaScope>()
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 AreaScopeMenu(
                     scope = AreaScope.All,
                     areas = emptyList(),
-                    onSelect = {},
-                    onCreateArea = { name, _, result -> result(Result.success(name.lowercase())) },
+                    onSelect = selected::set,
+                    onCreateArea = { _, _, result -> result(Result.success("client-delta")) },
                 )
             }
         }
 
         compose.onNodeWithText("Set up areas").performClick()
-        compose.onNodeWithText("Create Personal").assertIsDisplayed()
-        compose.onNodeWithText("Create Work").assertIsDisplayed()
-        compose.onNodeWithText("Create Health").assertIsDisplayed()
+        compose.onNodeWithText("Create area…").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Area name").performTextInput("Client Delta")
+        compose.onNodeWithText("Create").performClick()
+
+        assertEquals(AreaScope.One("client-delta"), selected.get())
+        compose.onAllNodesWithText("Create Personal").assertCountEquals(0)
+        compose.onAllNodesWithText("Create Work").assertCountEquals(0)
+        compose.onAllNodesWithText("Create Health").assertCountEquals(0)
     }
 
     @Test
@@ -114,6 +122,30 @@ class AreaFeatureUiTest {
         compose.onNodeWithText("Find area").performTextInput("Area 50")
         compose.onNodeWithContentDescription("Area Area 50").performClick()
         assertEquals("area-50" to "Area 50", selected.get())
+    }
+
+    @Test
+    fun permanentDeleteExplainsBothChoicesAndRequiresAnExplicitChoice() {
+        val choice = AtomicReference<String>()
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                PermanentAreaDeleteDialog(
+                    area = area("client-delta", "Client Delta"),
+                    usage = AreaUsageCounts(tasks = 2, habits = 1, goals = 1),
+                    onDismiss = { choice.set("cancel") },
+                    onKeepItems = { choice.set("keep") },
+                    onDeleteItems = { choice.set("delete") },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Delete Client Delta permanently?").assertIsDisplayed()
+        compose.onNodeWithText("Moving them keeps the items and their history.", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Deleting the items cannot be undone.", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Move items to No area").assertIsDisplayed().performClick()
+        assertEquals("keep", choice.get())
+        compose.onNodeWithText("Delete area and 4 items").assertIsDisplayed().performClick()
+        assertEquals("delete", choice.get())
     }
 
     private fun area(id: String, name: String) = Area(
