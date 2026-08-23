@@ -64,8 +64,8 @@ From a configured terminal:
 ./scripts/check
 # Also run persisted-data, migration, UI, and fold-layout tests on a device:
 ./scripts/check --device
-# CI/release gate also assembles the optimized benchmark target and harness:
-./scripts/check --ci
+# Full local gate also assembles the optimized release and benchmark harness:
+./scripts/check --full
 ```
 
 The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`. See

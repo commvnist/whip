@@ -4,6 +4,7 @@ Local quality gate:
 
 ```bash
 scripts/check
+scripts/check --full
 scripts/check --device
 ```
 
@@ -15,17 +16,14 @@ adaptive-layout tests. Android instrumentation resets only the separate
 `commvne.com.whip.app.debug` app, so it can run beside the signed
 `commvne.com.whip.app` release
 without replacing release data. Device execution remains deliberately opt-in.
-CI uses `scripts/check --ci`, which also builds the minified release and
-optimized Macrobenchmark target/harness, and runs the device suite on every
-supported API tier.
-
-The GitHub workflow runs the build gate and instrumentation tests on API 26,
-28, and 35 emulators. A manually dispatched performance job runs the benchmark
-scenarios on a fixed API 35 emulator and archives the raw reports; those numbers
-are execution smoke, not physical-device performance evidence. See
-[`performance.md`](performance.md). A current physical device remains the final
-smoke test for platform permission surfaces, wireless install/launch, Health
-Connect presence, input devices, and real folding transitions.
+`scripts/check --full` is the comprehensive local gate; it also builds the
+minified release and optimized Macrobenchmark target/harness. Run the device
+suite locally against API 26, 28, and 35 emulators when compatibility coverage
+is required. Benchmark emulator runs are execution smoke, not physical-device
+performance evidence. See [`performance.md`](performance.md). A current physical
+device remains the final smoke test for platform permission surfaces, wireless
+install/launch, Health Connect presence, input devices, and real folding
+transitions.
 
 Release signing is opt-in and never checked into the repository. Set all four
 variables before building a signed release:
@@ -39,7 +37,7 @@ export WHIP_KEY_PASSWORD='...'
 ```
 
 Without them, `assembleRelease` still performs the R8/resource-shrinking build
-and emits an unsigned APK suitable for CI verification.
+and emits an unsigned APK suitable for local verification.
 
 On the configured WSL workstation, `scripts/device release-deploy` reads the
 mode-600 key and password file under `/root/.android/whip`, exports those values
@@ -72,7 +70,7 @@ and update this matrix if it introduces a new feature area.
 
 Current baseline: 389 product tests—185 fast JVM tests and 204 Android
 instrumentation tests—plus 9 Macrobenchmark/Baseline Profile scenarios, lint,
-debug/release/benchmark builds, and the three-API CI emulator matrix.
+debug/release/benchmark builds, and the three-API local emulator matrix.
 
 | Product capability | Deterministic/domain coverage | Persisted/integration coverage | UI/E2E coverage |
 | --- | --- | --- | --- |

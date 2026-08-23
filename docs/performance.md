@@ -28,12 +28,11 @@ ANDROID_SERIAL=device-serial \
   ./gradlew :benchmark:connectedBenchmarkAndroidTest
 ```
 
-The GitHub **Android quality gates** workflow builds the harness on every CI
-build. Its manually dispatched `performance-smoke` job also runs the suite on a
-fixed API 35 emulator and uploads all benchmark/profile outputs. Emulator
-numbers prove only that scenarios execute; release performance decisions must
-come from an otherwise-idle physical reference device, repeated before and
-after the same change and build.
+Run the suite locally on a fixed API 35+ emulator when execution smoke is
+needed, and retain the raw benchmark/profile outputs with the audit evidence.
+Emulator numbers prove only that scenarios execute; release performance
+decisions must come from an otherwise-idle physical reference device, repeated
+before and after the same change and build.
 
 ## Acceptance budgets
 

@@ -48,7 +48,7 @@ The current Tasks order—destination, view selector, full-width action row, pag
 - `14-task-editor-initial.png` was recaptured after QA found a transient personal Messages banner in the first capture. The contaminated capture was overwritten and is not part of the retained evidence.
 - Checked-in historical screenshots were not used.
 - The pre-implementation audit set is open-fold/book-layout evidence. The post-implementation acceptance set adds fresh compact/closed-fold and open-fold captures from the exact installed release; see `artifacts/ux-planning/2026-08-22/post-implementation/`.
-- Tabletop, populated-at-scale, error, large-text, RTL, and assistive-technology matrices remain emulator/CI responsibilities. Current source and deterministic tests inform those gates but do not substitute for the retained manual device evidence.
+- Tabletop, populated-at-scale, error, large-text, RTL, and assistive-technology matrices remain local emulator responsibilities. Current source and deterministic tests inform those gates but do not substitute for the retained manual device evidence.
 - Automated instrumentation must run on an emulator or dedicated test device. The personal phone is reserved for controlled manual validation because prior instrumentation affected its lock/fold behavior.
 
 ## Debate participants and convergence

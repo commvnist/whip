@@ -15,7 +15,7 @@ usage() {
         'Usage:' \
         '  scripts/check             Unit tests, Android-test compilation, lint, debug APK' \
         '  scripts/check --device    Also run instrumentation tests on the selected device' \
-        '  scripts/check --ci        Also build release and the optimized benchmark harness' \
+        '  scripts/check --full      Also build release and the optimized benchmark harness' \
         '' \
         'Instrumentation reinstalls/clears the debug app. Select among multiple devices with:' \
         '  ANDROID_SERIAL=serial scripts/check --device'
@@ -24,7 +24,7 @@ usage() {
 while (($#)); do
     case "$1" in
         --device) run_device_tests=true ;;
-        --ci) build_release=true ;;
+        --full) build_release=true ;;
         -h|--help) usage; exit 0 ;;
         *) usage >&2; printf 'error: unknown option %s\n' "$1" >&2; exit 2 ;;
     esac
