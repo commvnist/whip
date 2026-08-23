@@ -1,0 +1,267 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly RELEASE_APP_ID="commvne.com.whip.app"
+readonly DEBUG_APP_ID="commvne.com.whip.app.debug"
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+readonly DEBUG_APK="${PROJECT_ROOT}/app/build/outputs/apk/debug/app-debug.apk"
+readonly RELEASE_APK="${PROJECT_ROOT}/app/build/outputs/apk/release/app-release.apk"
+readonly RELEASE_KEYSTORE="${WHIP_RELEASE_KEYSTORE_FILE:-/root/.android/whip/whip-release.jks}"
+readonly RELEASE_PASSWORD_FILE="${WHIP_RELEASE_PASSWORD_FILE:-/root/.android/whip/release-password.txt}"
+readonly RELEASE_KEY_ALIAS="${WHIP_RELEASE_KEY_ALIAS:-whip}"
+
+usage() {
+    cat <<'EOF'
+Wirelessly deploy whip to an Android device.
+
+Usage:
+  scripts/device pair IP:PAIRING_PORT
+  scripts/device connect IP:DEBUG_PORT
+  scripts/device devices
+  scripts/device deploy
+  scripts/device install
+  scripts/device release-deploy
+  scripts/device release-install
+  scripts/device dev-run
+  scripts/device dev-logs
+  scripts/device release-run
+  scripts/device release-logs
+  scripts/device disconnect [IP:DEBUG_PORT]
+  scripts/device doctor
+
+Pairing and connection use different ports shown on the phone:
+  1. Settings > Developer options > Wireless debugging
+  2. "Pair device with pairing code" supplies IP:PAIRING_PORT and the code.
+  3. The main Wireless debugging screen supplies IP:DEBUG_PORT.
+
+When multiple devices are connected, select one for a command:
+  WHIP_DEVICE=192.168.1.50:37123 scripts/device deploy
+EOF
+}
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
+
+require_command() {
+    command -v "$1" >/dev/null 2>&1 || die "'$1' is not installed or not on PATH"
+}
+
+require_endpoint() {
+    local endpoint="${1:-}"
+    [[ "$endpoint" =~ ^[^:[:space:]]+:[0-9]+$ ]] || {
+        die "expected an endpoint in IP:PORT form"
+    }
+}
+
+select_device() {
+    local requested="${WHIP_DEVICE:-}"
+    local -a connected=()
+
+    mapfile -t connected < <(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }')
+
+    if [[ -n "$requested" ]]; then
+        for serial in "${connected[@]}"; do
+            if [[ "$serial" == "$requested" ]]; then
+                printf '%s\n' "$serial"
+                return
+            fi
+        done
+        die "WHIP_DEVICE '$requested' is not connected; run 'scripts/device devices'"
+    fi
+
+    case "${#connected[@]}" in
+        0)
+            die "no device is connected; run the pair and connect commands first"
+            ;;
+        1)
+            printf '%s\n' "${connected[0]}"
+            ;;
+        *)
+            adb devices -l >&2
+            die "multiple devices are connected; set WHIP_DEVICE to one serial"
+            ;;
+    esac
+}
+
+build_debug_apk() {
+    printf 'Building debug APK...\n'
+    (cd "$PROJECT_ROOT" && ./gradlew assembleDebug)
+}
+
+build_release_apk() {
+    [[ -f "$RELEASE_KEYSTORE" ]] || die "release keystore not found at '$RELEASE_KEYSTORE'"
+    [[ -f "$RELEASE_PASSWORD_FILE" ]] || die "release password file not found at '$RELEASE_PASSWORD_FILE'"
+    local release_password
+    IFS= read -r release_password < "$RELEASE_PASSWORD_FILE"
+    [[ -n "$release_password" ]] || die "release password file is empty"
+    printf 'Building signed release APK...\n'
+    (
+        cd "$PROJECT_ROOT"
+        WHIP_KEYSTORE_FILE="$RELEASE_KEYSTORE" \
+        WHIP_KEYSTORE_PASSWORD="$release_password" \
+        WHIP_KEY_ALIAS="$RELEASE_KEY_ALIAS" \
+        WHIP_KEY_PASSWORD="$release_password" \
+            ./gradlew assembleRelease
+    )
+}
+
+install_apk() {
+    local serial="$1"
+    [[ -f "$DEBUG_APK" ]] || die "debug APK not found; run 'scripts/device deploy' first"
+
+    printf 'Installing on %s...\n' "$serial"
+    printf 'Artifact: %s · SHA-256 %s\n' "$DEBUG_APP_ID" "$(sha256sum "$DEBUG_APK" | awk '{print $1}')"
+    adb -s "$serial" install -r "$DEBUG_APK"
+    report_installed "$serial" "$DEBUG_APP_ID" "$DEBUG_APK"
+}
+
+install_release_apk() {
+    local serial="$1"
+    [[ -f "$RELEASE_APK" ]] || die "release APK not found; run 'scripts/device release-deploy' first"
+
+    printf 'Installing signed release on %s...\n' "$serial"
+    printf 'Artifact: %s · SHA-256 %s\n' "$RELEASE_APP_ID" "$(sha256sum "$RELEASE_APK" | awk '{print $1}')"
+    adb -s "$serial" install -r "$RELEASE_APK"
+    report_installed "$serial" "$RELEASE_APP_ID" "$RELEASE_APK"
+}
+
+report_installed() {
+    local serial="$1" app_id="$2" apk="$3" remote_path remote_sha package_info
+    remote_path="$(adb -s "$serial" shell pm path "$app_id" | sed -n 's/^package://p' | head -n 1 | tr -d '\r')"
+    [[ -n "$remote_path" ]] || die "$app_id was not found after install"
+    remote_sha="$(adb -s "$serial" exec-out cat "$remote_path" | sha256sum | awk '{print $1}')"
+    package_info="$(adb -s "$serial" shell dumpsys package "$app_id" | awk '/versionCode=|versionName=|lastUpdateTime=/{print; if (++count == 3) exit}' | tr -d '\r')"
+    printf 'Installed package: %s\n%s\n' "$app_id" "$package_info"
+    printf 'Installed base APK SHA-256: %s\n' "$remote_sha"
+    [[ "$remote_sha" == "$(sha256sum "$apk" | awk '{print $1}')" ]] || die "installed APK hash does not match $apk"
+}
+
+launch_app() {
+    local serial="$1"
+    local app_id="${2:-$RELEASE_APP_ID}"
+
+    printf 'Launching %s on %s...\n' "$app_id" "$serial"
+    adb -s "$serial" shell am start -W -S -n "${app_id}/com.whip.app.MainActivity"
+    local resumed
+    resumed="$(adb -s "$serial" shell dumpsys activity activities | awk '/topResumedActivity=|mResumedActivity|ResumedActivity:/{print; exit}' | tr -d '\r')"
+    printf 'Foreground: %s\n' "$resumed"
+    [[ "$resumed" == *"$app_id/com.whip.app.MainActivity"* || "$resumed" == *"$app_id/.MainActivity"* ]] ||
+        die "$app_id did not become the resumed activity"
+}
+
+show_logs() {
+    local serial="$1" app_id="$2" app_pid
+    app_pid="$(adb -s "$serial" shell pidof -s "$app_id" | tr -d '\r')"
+    [[ -n "$app_pid" ]] || die "$app_id is not running; launch the matching variant first"
+    printf 'Showing logs for %s on %s (Ctrl-C to stop)...\n' "$app_id" "$serial"
+    adb -s "$serial" logcat --pid="$app_pid"
+}
+
+main() {
+    require_command adb
+    require_command sha256sum
+
+    local command="${1:-}"
+    case "$command" in
+        pair)
+            require_endpoint "${2:-}"
+            printf 'Enter the six-digit code shown on the device when prompted.\n'
+            adb pair "$2"
+            ;;
+        connect)
+            require_endpoint "${2:-}"
+            adb connect "$2"
+            adb devices -l
+            ;;
+        devices)
+            adb devices -l
+            ;;
+        deploy)
+            local deploy_serial
+            deploy_serial="$(select_device)"
+            build_debug_apk
+            install_apk "$deploy_serial"
+            launch_app "$deploy_serial" "$DEBUG_APP_ID"
+            ;;
+        install)
+            local install_serial
+            install_serial="$(select_device)"
+            install_apk "$install_serial"
+            ;;
+        release-deploy)
+            local release_deploy_serial
+            release_deploy_serial="$(select_device)"
+            build_release_apk
+            install_release_apk "$release_deploy_serial"
+            launch_app "$release_deploy_serial"
+            ;;
+        release-install)
+            local release_install_serial
+            release_install_serial="$(select_device)"
+            install_release_apk "$release_install_serial"
+            ;;
+        dev-run)
+            local run_serial
+            run_serial="$(select_device)"
+            launch_app "$run_serial" "$DEBUG_APP_ID"
+            ;;
+        release-run)
+            local release_run_serial
+            release_run_serial="$(select_device)"
+            launch_app "$release_run_serial" "$RELEASE_APP_ID"
+            ;;
+        dev-logs)
+            local log_serial
+            log_serial="$(select_device)"
+            show_logs "$log_serial" "$DEBUG_APP_ID"
+            ;;
+        release-logs)
+            local release_log_serial
+            release_log_serial="$(select_device)"
+            show_logs "$release_log_serial" "$RELEASE_APP_ID"
+            ;;
+        run|logs)
+            die "'$command' is ambiguous because dev and release coexist; use dev-$command or release-$command"
+            ;;
+        disconnect)
+            if [[ -n "${2:-}" ]]; then
+                require_endpoint "$2"
+                adb disconnect "$2"
+            else
+                adb disconnect
+            fi
+            ;;
+        doctor)
+            printf 'adb: %s\n' "$(command -v adb)"
+            adb version | sed -n '1,3p'
+            printf 'project: %s\n' "$PROJECT_ROOT"
+            printf 'APK: %s\n' "$DEBUG_APK"
+            if [[ -f "$DEBUG_APK" ]]; then
+                printf 'APK status: ready\n'
+            else
+                printf 'APK status: not built\n'
+            fi
+            printf 'Release APK: %s\n' "$RELEASE_APK"
+            printf 'Release keystore: %s\n' "$RELEASE_KEYSTORE"
+            if [[ -f "$RELEASE_APK" && -f "$RELEASE_KEYSTORE" && -f "$RELEASE_PASSWORD_FILE" ]]; then
+                printf 'Release status: ready\n'
+            else
+                printf 'Release status: setup or build required\n'
+            fi
+            adb devices -l
+            ;;
+        -h|--help|help|'')
+            usage
+            ;;
+        *)
+            usage >&2
+            die "unknown command '$command'"
+            ;;
+    esac
+}
+
+main "$@"

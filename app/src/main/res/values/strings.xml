@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Whip</string>
+    <string name="widget_description">Today’s Whip tasks and habits with quick add actions</string>
+    <string name="widget_add_task">+ Task</string>
+    <string name="widget_add_habit">+ Habit</string>
+</resources>

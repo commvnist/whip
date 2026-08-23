@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+
+run_device_tests=false
+build_release=false
+
+usage() {
+    printf '%s\n' \
+        'Run Whip automated quality gates.' \
+        '' \
+        'Usage:' \
+        '  scripts/check             Unit tests, Android-test compilation, lint, debug APK' \
+        '  scripts/check --device    Also run instrumentation tests on the selected device' \
+        '  scripts/check --ci        Also build release and the optimized benchmark harness' \
+        '' \
+        'Instrumentation reinstalls/clears the debug app. Select among multiple devices with:' \
+        '  ANDROID_SERIAL=serial scripts/check --device'
+}
+
+while (($#)); do
+    case "$1" in
+        --device) run_device_tests=true ;;
+        --ci) build_release=true ;;
+        -h|--help) usage; exit 0 ;;
+        *) usage >&2; printf 'error: unknown option %s\n' "$1" >&2; exit 2 ;;
+    esac
+    shift
+done
+
+tasks=(
+    :app:testDebugUnitTest
+    :app:compileDebugAndroidTestKotlin
+    :app:lintDebug
+    :app:assembleDebug
+)
+if [[ "$build_release" == true ]]; then
+    tasks+=(:app:assembleRelease :benchmark:assembleBenchmark)
+fi
+
+cd "$PROJECT_ROOT"
+
+jvm_test_count="$(rg -o '@Test' app/src/test --glob '*.kt' | wc -l | tr -d ' ')"
+android_test_count="$(rg -o '@Test' app/src/androidTest --glob '*.kt' | wc -l | tr -d ' ')"
+product_test_count="$((jvm_test_count + android_test_count))"
+documented_baseline="Current baseline: ${product_test_count} product tests—${jvm_test_count} fast JVM tests and ${android_test_count} Android"
+if ! grep -Fq "$documented_baseline" docs/testing.md; then
+    printf 'error: docs/testing.md test baseline is stale; expected: %s instrumentation tests\n' "$documented_baseline" >&2
+    exit 1
+fi
+
+./gradlew "${tasks[@]}"
+
+if [[ "$run_device_tests" == true ]]; then
+    command -v adb >/dev/null 2>&1 || {
+        printf 'error: adb is required for --device\n' >&2
+        exit 1
+    }
+    ./gradlew :app:connectedDebugAndroidTest
+fi
