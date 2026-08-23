@@ -43,8 +43,8 @@ fi
 
 cd "$PROJECT_ROOT"
 
-jvm_test_count="$(rg -o '@Test' app/src/test --glob '*.kt' | wc -l | tr -d ' ')"
-android_test_count="$(rg -o '@Test' app/src/androidTest --glob '*.kt' | wc -l | tr -d ' ')"
+jvm_test_count="$(grep -Rho --include='*.kt' '@Test' app/src/test | wc -l | tr -d ' ')"
+android_test_count="$(grep -Rho --include='*.kt' '@Test' app/src/androidTest | wc -l | tr -d ' ')"
 product_test_count="$((jvm_test_count + android_test_count))"
 documented_baseline="Current baseline: ${product_test_count} product tests—${jvm_test_count} fast JVM tests and ${android_test_count} Android"
 if ! grep -Fq "$documented_baseline" docs/testing.md; then
@@ -60,7 +60,7 @@ if [[ -z "$merged_manifest" ]]; then
     printf 'error: debug merged manifest was not produced\n' >&2
     exit 1
 fi
-if rg -q 'android\.permission\.ACCESS_(BACKGROUND_LOCATION|COARSE_LOCATION|FINE_LOCATION)' "$merged_manifest"; then
+if grep -Eq 'android\.permission\.ACCESS_(BACKGROUND_LOCATION|COARSE_LOCATION|FINE_LOCATION)' "$merged_manifest"; then
     printf 'error: retired location permission found in merged manifest: %s\n' "$merged_manifest" >&2
     exit 1
 fi
