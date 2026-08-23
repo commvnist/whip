@@ -3539,7 +3539,7 @@ SPLcom/whip/app/ui/TaskComponentsKt;-><clinit>()V
 SPLcom/whip/app/ui/TaskComponentsKt;->SectionHeading$lambda$0$0(ILandroidx/compose/runtime/Composer;I)Lkotlin/Unit;
 SPLcom/whip/app/ui/TaskComponentsKt;->SectionHeading(Ljava/lang/String;ILkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;II)V
 SPLcom/whip/app/ui/TaskComponentsKt;->TaskRow$lambda$0(ZLkotlin/jvm/functions/Function0;Lcom/whip/app/domain/ScheduledTask;Lkotlin/jvm/functions/Function0;ZZLkotlin/jvm/functions/Function0;Landroidx/compose/foundation/layout/ColumnScope;Landroidx/compose/runtime/Composer;I)Lkotlin/Unit;
-SPLcom/whip/app/ui/TaskComponentsKt;->TaskRow(Lcom/whip/app/domain/ScheduledTask;ZLkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;ZZLkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;II)V
+SPLcom/whip/app/ui/TaskComponentsKt;->TaskRow(Lcom/whip/app/domain/ScheduledTask;ZLkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;ZZLkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;II)V
 SPLcom/whip/app/ui/TaskComponentsKt;->detailLabel(Lcom/whip/app/domain/ScheduledTask;Z)Ljava/lang/String;
 Lcom/whip/app/ui/TaskComponentsKt$$ExternalSyntheticLambda10;
 SPLcom/whip/app/ui/TaskComponentsKt$$ExternalSyntheticLambda10;-><init>(Ljava/lang/String;ILkotlin/jvm/functions/Function0;II)V

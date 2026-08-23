@@ -12,9 +12,17 @@ The shipping artwork is vector-native. `whip-monogram-concept.png` is the visual
 exploration retained for design provenance; Android renders the deterministic
 resources in `app/src/main/res/drawable`. `whip-app-icon.jpg` is the requested
 512×512 RGB repository export. `whip-app-icon-play.png` is the matching 512×512
-32-bit RGBA export for the Google Play store listing. Regenerate both exports
-from the shipping geometry by running `java scripts/RenderBrandIcon.java` from
-the repository root.
+32-bit RGBA export for the Google Play store listing.
+
+Google Play listing assets are kept here with the source brand material:
+
+- `whip-app-icon-play.png` — 512×512 RGBA Play Store app icon.
+- `whip-app-icon.jpg` — 512×512 RGB/JPEG repository export of the same icon.
+- `whip-feature-graphic-play.png` — 1024×500 RGB Play Store feature graphic.
+- `whip-feature-graphic.jpg` — 1024×500 RGB/JPEG feature-graphic export.
+
+Regenerate all four exports from the shipping geometry by running
+`java scripts/RenderBrandIcon.java` from the repository root.
 
 ## Final generation prompt
 

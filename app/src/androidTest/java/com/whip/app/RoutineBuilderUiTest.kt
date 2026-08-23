@@ -81,6 +81,8 @@ class RoutineBuilderUiTest {
             hasText("Exercise 200") and hasAnyAncestor(hasTestTag("routine-selected-exercises")),
             useUnmergedTree = true,
         ).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Edit routine exercise Exercise 200").assertIsDisplayed()
+        compose.onNodeWithContentDescription("More options for Exercise 200").assertIsDisplayed()
         compose.onNodeWithText("Hypertrophy · 3 × 8–10").performClick()
         compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasText("Reps min"))
         compose.onNodeWithTag("routine-reps-min-3").assertTextContains("8")

@@ -23,6 +23,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
@@ -48,6 +50,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.MoreVert
 import com.whip.app.domain.Area
 import kotlinx.coroutines.launch
 
@@ -264,10 +268,10 @@ private fun AreaManagerRow(
                 Text(usageText(usage), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Box {
-                TextButton(
+                IconButton(
                     onClick = { menu = true },
                     modifier = Modifier.semantics { contentDescription = "More options for ${area.name}" },
-                ) { Text("•••") }
+                ) { Icon(Icons.Outlined.MoreVert, contentDescription = null) }
                 DropdownMenu(menu, { menu = false }) {
                     DropdownMenuItem({ Text("Rename") }, { menu = false; onRename() })
                     DropdownMenuItem({ Text("Choose color") }, { menu = false; onColor() })

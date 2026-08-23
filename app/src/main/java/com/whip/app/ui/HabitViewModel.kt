@@ -65,6 +65,7 @@ data class HabitUiState(
     val today: List<HabitDayProgress> = emptyList(),
     val all: List<HabitDayProgress> = emptyList(),
     val archived: List<Habit> = emptyList(),
+    val archivedProgress: List<HabitDayProgress> = emptyList(),
     val logs: List<HabitLog> = emptyList(),
     val pauses: List<HabitPause> = emptyList(),
     val currentDate: LocalDate = LocalDate.now(),
@@ -312,10 +313,12 @@ private data class HabitData(
 private fun buildHabitUiState(data: HabitData, today: LocalDate, customUnits: List<UnitDefinition>): HabitUiState {
     val active = data.habits.filterNot(Habit::archived)
     val progress = active.map { habit -> buildProgress(habit, data, today, customUnits) }
+    val archived = data.habits.filter(Habit::archived)
     return HabitUiState(
         today = progress.filter { it.scheduled },
         all = progress,
-        archived = data.habits.filter(Habit::archived),
+        archived = archived,
+        archivedProgress = archived.map { habit -> buildProgress(habit, data, today, customUnits) },
         logs = data.logs,
         pauses = data.pauses,
         currentDate = today,

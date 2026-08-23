@@ -4,7 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -38,11 +37,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.MoreVert
 import com.whip.app.domain.RecurrenceEnd
 import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.RecurrenceAnchor
@@ -85,6 +85,7 @@ fun TaskRow(
     completed: Boolean,
     onComplete: (() -> Unit)?,
     onOpenActions: (() -> Unit)?,
+    onEdit: (() -> Unit)? = null,
     selectionMode: Boolean = false,
     selected: Boolean = false,
     onSelectionToggle: (() -> Unit)? = null,
@@ -106,7 +107,9 @@ fun TaskRow(
                 .then(
                     when {
                         selectionMode && onSelectionToggle != null -> Modifier.clickable(onClickLabel = "Select ${item.task.title}", onClick = onSelectionToggle)
-                        onOpenActions != null -> Modifier.clickable(onClickLabel = "Open ${item.task.title} actions", onClick = onOpenActions)
+                        onOpenActions != null -> Modifier
+                            .clickable(onClickLabel = "Open task details for ${item.task.title}", onClick = onOpenActions)
+                            .semantics { contentDescription = "Open task details for ${item.task.title}" }
                         else -> Modifier
                     },
                 )
@@ -181,10 +184,8 @@ fun TaskRow(
                     )
                 }
             }
-            if (onOpenActions != null && !selectionMode) {
-                Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Outlined.MoreVert, contentDescription = "Task actions", modifier = Modifier.size(28.dp))
-                }
+            if (onEdit != null && !selectionMode) {
+                ItemEditButton("task", item.task.title, onEdit)
             }
         }
     }
@@ -222,15 +223,12 @@ fun TaskActionsDialog(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TaskDetailSection.entries.forEach { value ->
-                        androidx.compose.material3.FilterChip(
-                            selected = section == value,
-                            onClick = { section = value },
-                            label = { Text(value.label) },
-                        )
-                    }
-                }
+                DetailSectionBar(
+                    labels = TaskDetailSection.entries.map(TaskDetailSection::label),
+                    selected = section.label,
+                    onSelect = { label -> section = TaskDetailSection.entries.first { it.label == label } },
+                    testTagPrefix = "task-detail-section",
+                )
                 if (section == TaskDetailSection.Overview) {
                     if (item.subtasks.isEmpty()) Text("No subtasks. Edit this task to add steps.")
                     else {
@@ -283,16 +281,6 @@ fun TaskActionsDialog(
                     if (!item.task.archived) {
                     TextButton(onClick = onComplete, modifier = Modifier.fillMaxWidth()) {
                         Text("Complete", modifier = Modifier.fillMaxWidth())
-                    }
-                    TextButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        if (item.task.scheduleKind == ScheduleKind.Recurring) {
-                            "Edit this and future"
-                        } else {
-                            "Edit task"
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
                     }
                     }
                 }
@@ -359,7 +347,12 @@ fun TaskActionsDialog(
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-        dismissButton = {},
+        dismissButton = {
+            DetailEditButton(
+                if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit this and future" else "Edit task",
+                onEdit,
+            )
+        },
     )
 }
 
@@ -373,6 +366,7 @@ private enum class TaskDetailSection(val label: String) {
 fun CompletedTaskDialog(
     item: ScheduledTask,
     onDismiss: () -> Unit,
+    onEdit: () -> Unit,
     onReopen: () -> Unit,
     onDeletePermanently: () -> Unit,
     occurrenceHistory: List<TaskOccurrence> = emptyList(),
@@ -397,6 +391,12 @@ fun CompletedTaskDialog(
                         "This task is complete. You can put it back on your list."
                     },
                 )
+                TextButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit this and future" else "Edit task",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 if (item.task.scheduleKind == ScheduleKind.Recurring) {
                     SeriesHistory(
                         occurrences = occurrenceHistory,

@@ -411,7 +411,9 @@ fun WhipScreen(
     var chooseMeasurementGoal by rememberSaveable { mutableStateOf(false) }
     var searchOpen by rememberSaveable { mutableStateOf(false) }
     var openHabitIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
+    var editHabitIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var openGoalIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
+    var editGoalIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var openGymSearchDomain by rememberSaveable { mutableStateOf<SearchDomain?>(null) }
     var openGymSearchId by rememberSaveable { mutableStateOf<Long?>(null) }
     var reviewOpen by rememberSaveable { mutableStateOf(false) }
@@ -971,12 +973,29 @@ fun WhipScreen(
                         habitViewModel?.toggleChecklist(habitId, itemId, date, completed)
                     },
                     onOpenHabits = { appDestination = AppDestination.Habits },
+                    onOpenHabit = { item ->
+                        openHabitIdRequested = item.habit.id
+                        appDestination = AppDestination.Habits
+                    },
+                    onEditHabit = { item ->
+                        editHabitIdRequested = item.habit.id
+                        appDestination = AppDestination.Habits
+                    },
                     onOpenTasks = { appDestination = AppDestination.Tasks; taskDestination = TaskDestination.Today },
                     onCompleteTask = ::requestCompletion,
                     onOpenTask = { actionItemKey = it.stableKey },
+                    onEditTask = ::openTaskEditor,
                     onOpenGym = { appDestination = AppDestination.Gym },
                     onStartRoutine = { routineId, dayId -> gymViewModel?.startRoutine(routineId, dayId) },
                     onOpenGoals = { appDestination = AppDestination.Goals },
+                    onOpenGoal = { projection ->
+                        openGoalIdRequested = projection.goal.id
+                        appDestination = AppDestination.Goals
+                    },
+                    onEditGoal = { projection ->
+                        editGoalIdRequested = projection.goal.id
+                        appDestination = AppDestination.Goals
+                    },
                     onRecordGoal = { projection ->
                         recordGoalIdRequested = projection.goal.id
                         appDestination = AppDestination.Goals
@@ -1008,6 +1027,7 @@ fun WhipScreen(
                     onDestinationChange = { taskDestination = it },
                     onCompleteTask = ::requestCompletion,
                     onOpenTask = { actionItemKey = it.stableKey },
+                    onEditTask = ::openTaskEditor,
                     onOpenCompleted = { completedItemKey = it.stableKey },
                     appSettings = settingsState.settings,
                     habitState = habitState,
@@ -1042,6 +1062,8 @@ fun WhipScreen(
                         onCreateRequestConsumed = { createHabitRequested = false },
                         openHabitIdRequest = openHabitIdRequested,
                         onOpenHabitRequestConsumed = { openHabitIdRequested = null },
+                        editHabitIdRequest = editHabitIdRequested,
+                        onEditHabitRequestConsumed = { editHabitIdRequested = null },
                         onRequestNotificationPermission = onRequestNotificationPermission,
                         lowPressureMode = settingsState.settings.lowPressureMode,
                         operationStatus = habitOperationStatus,
@@ -1096,6 +1118,8 @@ fun WhipScreen(
                     onExternalRequestConsumed = { createGoalRequested = false; recordGoalIdRequested = null },
                     openGoalIdRequest = openGoalIdRequested,
                     onOpenGoalRequestConsumed = { openGoalIdRequested = null },
+                    editGoalIdRequest = editGoalIdRequested,
+                    onEditGoalRequestConsumed = { editGoalIdRequested = null },
                     onRequestNotificationPermission = onRequestNotificationPermission,
                     operationStatus = goalOperationStatus,
                     dialogModifier = paneDialogModifier,
@@ -1439,6 +1463,10 @@ fun WhipScreen(
         CompletedTaskDialog(
             item = item,
             onDismiss = { completedItemKey = null },
+            onEdit = {
+                openTaskEditor(item)
+                completedItemKey = null
+            },
             onReopen = {
                 if (item.task.scheduleKind == ScheduleKind.Recurring) {
                     onReopenOccurrence(item)
@@ -2008,12 +2036,17 @@ private fun HomeContent(
     canUndoHabit: (com.whip.app.domain.HabitDayProgress) -> Boolean,
     onChecklist: (Long, Long, LocalDate, Boolean) -> Unit,
     onOpenHabits: () -> Unit,
+    onOpenHabit: (com.whip.app.domain.HabitDayProgress) -> Unit,
+    onEditHabit: (com.whip.app.domain.HabitDayProgress) -> Unit,
     onOpenTasks: () -> Unit,
     onCompleteTask: (ScheduledTask) -> Unit,
     onOpenTask: (ScheduledTask) -> Unit,
+    onEditTask: (ScheduledTask) -> Unit,
     onOpenGym: () -> Unit,
     onStartRoutine: (Long, Long?) -> Unit,
     onOpenGoals: () -> Unit,
+    onOpenGoal: (com.whip.app.domain.GoalProjection) -> Unit,
+    onEditGoal: (com.whip.app.domain.GoalProjection) -> Unit,
     onRecordGoal: (com.whip.app.domain.GoalProjection) -> Unit,
     onToggleMilestone: (Long, Boolean) -> Unit,
     onSelectHomeTaskFilter: (String?) -> Unit,
@@ -2066,7 +2099,13 @@ private fun HomeContent(
                         if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
                         else if (homeTasks.isEmpty()) item { Text(if (homeTaskFilter == null) areaScopeLabel?.let { "No tasks due today in $it. Create in $it with +, or show all areas above." } ?: "Nothing due today. Use + to create a task for today." else "No due tasks match ${homeTaskFilter.name}.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
                         items(homeTasks, key = ScheduledTask::stableKey) { task ->
-                            TaskRow(task, false, { onCompleteTask(task) }, onOpenActions = { onOpenTask(task) })
+                            TaskRow(
+                                item = task,
+                                completed = false,
+                                onComplete = { onCompleteTask(task) },
+                                onOpenActions = { onOpenTask(task) },
+                                onEdit = { onEditTask(task) },
+                            )
                         }
                     }
                 }
@@ -2077,7 +2116,8 @@ private fun HomeContent(
                         items(habitState.today, key = { "home-habit-${it.habit.id}" }) { habit ->
                             HabitProgressCard(
                                 item = habit,
-                                onOpen = onOpenHabits,
+                                onOpen = { onOpenHabit(habit) },
+                                onEdit = { onEditHabit(habit) },
                                 onQuick = { onQuickHabit(habit) },
                                 onQuickValue = { value -> onHabitValue(habit, value) },
                                 onSetValue = { onSetHabitValue(habit) },
@@ -2094,7 +2134,16 @@ private fun HomeContent(
                     item { SectionHeading("Goals", goalState.active.size, onOpenGoals) }
                     if (!collapsed) {
                         if (goalState.active.isEmpty()) item { HomeStatusCard(areaScopeLabel?.let { "No active goals in $it" } ?: "No active goals", "Create a measurable or milestone goal.", onOpenGoals) }
-                        items(goalState.active.take(3), key = { "home-goal-${it.goal.id}" }) { projection -> GoalCard(projection, goalState.customUnits, onOpenGoals, { onRecordGoal(projection) }, onToggleMilestone) }
+                        items(goalState.active.take(3), key = { "home-goal-${it.goal.id}" }) { projection ->
+                            GoalCard(
+                                projection = projection,
+                                customUnits = goalState.customUnits,
+                                onOpen = { onOpenGoal(projection) },
+                                onEdit = { onEditGoal(projection) },
+                                onRecord = { onRecordGoal(projection) },
+                                onToggleMilestone = onToggleMilestone,
+                            )
+                        }
                     }
                 }
                 HomeSection.Gym -> {
@@ -2164,6 +2213,7 @@ private fun TaskAreaContent(
     onDestinationChange: (TaskDestination) -> Unit,
     onCompleteTask: (ScheduledTask) -> Unit,
     onOpenTask: (ScheduledTask) -> Unit,
+    onEditTask: (ScheduledTask) -> Unit,
     onOpenCompleted: (ScheduledTask) -> Unit,
     appSettings: AppSettings,
     habitState: HabitUiState,
@@ -2329,34 +2379,17 @@ private fun TaskAreaContent(
         }
         item { DestinationHeader(destination, visibleTasks.size) }
         item {
-            FlowRow(
+            ProgressiveDestinationBar(
+                selected = destination,
+                primary = listOf(TaskDestination.Today, TaskDestination.Inbox, TaskDestination.Upcoming),
+                secondary = listOf(TaskDestination.Anytime, TaskDestination.Completed, TaskDestination.Archived),
+                expanded = extendedDestinationsOpen,
+                onExpandedChange = { extendedDestinationsOpen = it },
+                onSelect = onDestinationChange,
+                label = TaskDestination::label,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                val primaryDestinations = listOf(TaskDestination.Today, TaskDestination.Inbox, TaskDestination.Upcoming)
-                primaryDestinations.forEach { tab ->
-                    FilterChip(
-                        selected = destination == tab,
-                        onClick = { onDestinationChange(tab) },
-                        label = { Text(tab.label) },
-                    )
-                }
-                FilterChip(
-                    selected = extendedDestinationsOpen || destination !in primaryDestinations,
-                    onClick = { extendedDestinationsOpen = !extendedDestinationsOpen },
-                    label = { Text("More") },
-                )
-                if (extendedDestinationsOpen || destination !in primaryDestinations) {
-                    listOf(TaskDestination.Anytime, TaskDestination.Completed, TaskDestination.Archived).forEach { tab ->
-                        FilterChip(
-                            selected = destination == tab,
-                            onClick = { onDestinationChange(tab) },
-                            label = { Text(tab.label) },
-                        )
-                    }
-                }
-            }
+                testTagPrefix = "task-destination",
+            )
         }
         if (destination in setOf(TaskDestination.Today, TaskDestination.Inbox)) {
             item {
@@ -2712,7 +2745,17 @@ private fun TaskAreaContent(
                     )
                 }
                 items(tasks, key = ScheduledTask::stableKey) { item ->
-                    TaskPlanningRow(item, destination, selectionMode, selectedKeys, { selectedKeys = it }, onCompleteTask, onOpenTask, onOpenCompleted)
+                    TaskPlanningRow(
+                        item = item,
+                        destination = destination,
+                        selectionMode = selectionMode,
+                        selectedKeys = selectedKeys,
+                        onSelectionChange = { selectedKeys = it },
+                        onCompleteTask = onCompleteTask,
+                        onOpenTask = onOpenTask,
+                        onEditTask = onEditTask,
+                        onOpenCompleted = onOpenCompleted,
+                    )
                 }
                 items(plannedHabitsByDate[date].orEmpty(), key = { "agenda-habit-${date}-${it.habit.id}" }) { habit ->
                     Card(
@@ -2734,14 +2777,34 @@ private fun TaskAreaContent(
             visibleTasks.groupBy { it.groupingLabel(groupMode, appSettings.zoneId()) }.toSortedMap().forEach { (label, tasks) ->
                 item(key = "task-group-$groupMode-$label") { Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
                 items(tasks, key = ScheduledTask::stableKey) { item ->
-                    TaskPlanningListRow(item, destination, selectionMode, selectedKeys, { selectedKeys = it }, onCompleteTask, onOpenTask, onOpenCompleted, emptyList(), onReorder)
+                    TaskPlanningListRow(
+                        item = item,
+                        destination = destination,
+                        selectionMode = selectionMode,
+                        selectedKeys = selectedKeys,
+                        onSelectionChange = { selectedKeys = it },
+                        onCompleteTask = onCompleteTask,
+                        onOpenTask = onOpenTask,
+                        onEditTask = onEditTask,
+                        onOpenCompleted = onOpenCompleted,
+                        manualOrder = emptyList(),
+                        onReorder = onReorder,
+                    )
                 }
             }
         } else items(visibleTasks, key = ScheduledTask::stableKey) { item ->
             TaskPlanningListRow(
-                item, destination, selectionMode, selectedKeys, { selectedKeys = it },
-                onCompleteTask, onOpenTask, onOpenCompleted,
-                visibleTasks.takeIf { sortMode == "Manual" }.orEmpty(), onReorder,
+                item = item,
+                destination = destination,
+                selectionMode = selectionMode,
+                selectedKeys = selectedKeys,
+                onSelectionChange = { selectedKeys = it },
+                onCompleteTask = onCompleteTask,
+                onOpenTask = onOpenTask,
+                onEditTask = onEditTask,
+                onOpenCompleted = onOpenCompleted,
+                manualOrder = visibleTasks.takeIf { sortMode == "Manual" }.orEmpty(),
+                onReorder = onReorder,
             )
         }
     }
@@ -2990,6 +3053,7 @@ private fun TaskPlanningRow(
     onSelectionChange: (Set<String>) -> Unit,
     onCompleteTask: (ScheduledTask) -> Unit,
     onOpenTask: (ScheduledTask) -> Unit,
+    onEditTask: (ScheduledTask) -> Unit,
     onOpenCompleted: (ScheduledTask) -> Unit,
 ) {
     val completed = destination == TaskDestination.Completed
@@ -2998,6 +3062,7 @@ private fun TaskPlanningRow(
         completed = completed,
         onComplete = if (completed) null else ({ onCompleteTask(item) }),
         onOpenActions = if (completed) ({ onOpenCompleted(item) }) else ({ onOpenTask(item) }),
+        onEdit = { onEditTask(item) },
         selectionMode = selectionMode,
         selected = item.stableKey in selectedKeys,
         onSelectionToggle = {
@@ -3018,12 +3083,23 @@ private fun TaskPlanningListRow(
     onSelectionChange: (Set<String>) -> Unit,
     onCompleteTask: (ScheduledTask) -> Unit,
     onOpenTask: (ScheduledTask) -> Unit,
+    onEditTask: (ScheduledTask) -> Unit,
     onOpenCompleted: (ScheduledTask) -> Unit,
     manualOrder: List<ScheduledTask>,
     onReorder: (List<ScheduledTask>) -> Unit,
 ) {
     Column {
-        TaskPlanningRow(item, destination, selectionMode, selectedKeys, onSelectionChange, onCompleteTask, onOpenTask, onOpenCompleted)
+        TaskPlanningRow(
+            item = item,
+            destination = destination,
+            selectionMode = selectionMode,
+            selectedKeys = selectedKeys,
+            onSelectionChange = onSelectionChange,
+            onCompleteTask = onCompleteTask,
+            onOpenTask = onOpenTask,
+            onEditTask = onEditTask,
+            onOpenCompleted = onOpenCompleted,
+        )
         if (manualOrder.isNotEmpty() && !selectionMode) {
             val unique = manualOrder.distinctBy { it.task.id }
             val index = unique.indexOfFirst { it.task.id == item.task.id }

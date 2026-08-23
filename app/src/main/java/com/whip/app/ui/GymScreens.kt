@@ -410,6 +410,7 @@ fun GymAreaContent(
                 archived = state.archivedExercises,
                 onCreate = { creatingExercise = true },
                 onOpen = { exerciseActionsId = it.id },
+                onEdit = { exerciseEditorId = it.id },
             )
             GymDestination.Machines -> MachineLibraryContent(
                 state = state,
@@ -1056,7 +1057,7 @@ internal fun WorkoutExerciseCard(
                 Text(item.exercise.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Box {
                     IconButton(onClick = { actionMenuExpanded = true }, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.Outlined.MoreVert, contentDescription = "Exercise actions", modifier = Modifier.size(28.dp))
+                        Icon(Icons.Outlined.MoreVert, contentDescription = "More options for ${item.exercise.name}", modifier = Modifier.size(28.dp))
                     }
                     DropdownMenu(expanded = actionMenuExpanded, onDismissRequest = { actionMenuExpanded = false }) {
                         DropdownMenuItem(
@@ -1216,7 +1217,7 @@ internal fun WorkoutExerciseCard(
                         }
                         Box {
                             IconButton(onClick = { setMenuId = set.id }, modifier = Modifier.size(48.dp)) {
-                                Icon(Icons.Outlined.MoreVert, contentDescription = "Set actions", modifier = Modifier.size(26.dp))
+                                Icon(Icons.Outlined.MoreVert, contentDescription = "More options for set ${index + 1}", modifier = Modifier.size(26.dp))
                             }
                             DropdownMenu(expanded = setMenuId == set.id, onDismissRequest = { setMenuId = null }) {
                                 DropdownMenuItem(text = { Text("Duplicate set") }, onClick = { setMenuId = null; onDuplicateSet(set.id) })
@@ -1541,6 +1542,7 @@ private fun ExerciseLibraryContent(
     archived: List<Exercise>,
     onCreate: () -> Unit,
     onOpen: (Exercise) -> Unit,
+    onEdit: (Exercise) -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var showArchived by rememberSaveable { mutableStateOf(false) }
@@ -1608,7 +1610,7 @@ private fun ExerciseLibraryContent(
                         }
                         Text(exercise.trackingType.label + unitDetail, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Icon(Icons.Outlined.MoreVert, contentDescription = "Exercise actions", modifier = Modifier.size(28.dp))
+                    ItemEditButton("exercise", exercise.name, onEdit = { onEdit(exercise) })
                 }
             }
         }
@@ -1655,13 +1657,14 @@ private fun MachineLibraryContent(
             Text(if (showArchived) "No archived machines." else "No machines yet. Free weights continue to work without a machine profile.")
         }
         items(visible, key = GymMachine::id) { machine ->
-            Card(Modifier.fillMaxWidth().clickable(onClickLabel = "Edit ${machine.displayName}") { onEdit(machine) }) {
+            Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(machine.displayName, fontWeight = FontWeight.Bold)
                             Text(exerciseById[machine.exerciseId]?.name ?: "Archived exercise")
                         }
+                        ItemEditButton("machine", machine.displayName, onEdit = { onEdit(machine) })
                         Box {
                             IconButton(
                                 onClick = { actionMenuId = machine.id },
@@ -1669,7 +1672,7 @@ private fun MachineLibraryContent(
                             ) {
                                 Icon(
                                     Icons.Outlined.MoreVert,
-                                    contentDescription = "Actions for ${machine.displayName}",
+                                    contentDescription = "More options for ${machine.displayName}",
                                     modifier = Modifier.size(28.dp),
                                 )
                             }
@@ -1677,10 +1680,6 @@ private fun MachineLibraryContent(
                                 expanded = actionMenuId == machine.id,
                                 onDismissRequest = { actionMenuId = null },
                             ) {
-                                DropdownMenuItem(
-                                    text = { Text("Edit") },
-                                    onClick = { actionMenuId = null; onEdit(machine) },
-                                )
                                 DropdownMenuItem(
                                     text = { Text(if (machine.archived) "Restore" else "Archive") },
                                     onClick = { actionMenuId = null; onArchive(machine.id, !machine.archived) },
@@ -2188,7 +2187,7 @@ private fun ExerciseCategoryContent(state: GymUiState, viewModel: GymViewModel) 
         if (visible.isEmpty()) item { Text(if (showArchived) "No archived categories." else "No categories yet. Exercises do not require one.") }
         items(visible.size, key = { visible[it].id }) { index ->
             val category = visible[index]
-            Card(Modifier.fillMaxWidth().clickable(onClickLabel = "Edit ${category.name}") { editingCategoryId = category.id }) {
+            Card(Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) { Text(category.name, fontWeight = FontWeight.Bold); Text(category.kind, style = MaterialTheme.typography.labelSmall) }
                     if (!showArchived) {
@@ -2196,6 +2195,7 @@ private fun ExerciseCategoryContent(state: GymUiState, viewModel: GymViewModel) 
                             val ids = visible.map(ExerciseCategory::id).toMutableList(); java.util.Collections.swap(ids, index, index - 1); viewModel.reorderCategories(ids)
                         }) { Icon(Icons.Outlined.ArrowUpward, contentDescription = "Move category up", modifier = Modifier.size(24.dp)) }
                     }
+                    ItemEditButton("category", category.name, onEdit = { editingCategoryId = category.id })
                     TextButton(onClick = { viewModel.setCategoryArchived(category.id, !category.archived) }) { Text(if (category.archived) "Restore" else "Archive") }
                 }
             }
@@ -2379,7 +2379,7 @@ private fun WorkoutHistoryContent(
                             OutlinedButton(onClick = { onResume(session.id) }, modifier = Modifier.weight(1f)) { Text("Edit / resume") }
                             Box {
                                 IconButton(onClick = { actionMenuId = session.id }, modifier = Modifier.size(48.dp)) {
-                                    Icon(Icons.Outlined.MoreVert, contentDescription = "Workout actions", modifier = Modifier.size(28.dp))
+                                    Icon(Icons.Outlined.MoreVert, contentDescription = "More options for workout ${session.name.ifBlank { "Workout" }}", modifier = Modifier.size(28.dp))
                                 }
                                 DropdownMenu(expanded = actionMenuId == session.id, onDismissRequest = { actionMenuId = null }) {
                                     DropdownMenuItem(text = { Text("Copy to today") }, onClick = { actionMenuId = null; onCopy(session.id) })
@@ -3199,9 +3199,13 @@ private fun RoutineContent(
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(routine.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        ItemEditButton("routine", routine.name, onEdit = {
+                            editingRoutineId = routine.id
+                            onEditorStateChange(true)
+                        })
                         Box {
                             IconButton(onClick = { actionMenuId = routine.id }, modifier = Modifier.size(48.dp)) {
-                                Icon(Icons.Outlined.MoreVert, contentDescription = "Routine actions", modifier = Modifier.size(28.dp))
+                                Icon(Icons.Outlined.MoreVert, contentDescription = "More options for routine ${routine.name}", modifier = Modifier.size(28.dp))
                             }
                             DropdownMenu(expanded = actionMenuId == routine.id, onDismissRequest = { actionMenuId = null }) {
                                 if (!showArchived && query.isBlank()) {
@@ -3226,11 +3230,6 @@ private fun RoutineContent(
                                         },
                                     )
                                 }
-                                DropdownMenuItem(text = { Text("Edit") }, onClick = {
-                                    actionMenuId = null
-                                    editingRoutineId = routine.id
-                                    onEditorStateChange(true)
-                                })
                                 DropdownMenuItem(text = { Text("Duplicate") }, onClick = { actionMenuId = null; viewModel.duplicateRoutine(routine.id) })
                                 DropdownMenuItem(text = { Text(if (routine.pinned) "Unpin from Home" else "Pin to Home") }, onClick = { actionMenuId = null; viewModel.setRoutinePinned(routine.id, !routine.pinned) })
                                 DropdownMenuItem(text = { Text(if (routine.archived) "Restore" else "Archive") }, onClick = { actionMenuId = null; viewModel.setRoutineArchived(routine.id, !routine.archived) })
@@ -4334,7 +4333,6 @@ private fun ExerciseActionsDialog(
         title = { Text(exercise.name) },
         text = {
             Column {
-                TextButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) { Text("Edit", modifier = Modifier.fillMaxWidth()) }
                 TextButton(onClick = onFavorite, modifier = Modifier.fillMaxWidth()) { Text(if (exercise.favorite) "Remove favorite" else "Favorite", modifier = Modifier.fillMaxWidth()) }
                 TextButton(onClick = onDuplicate, modifier = Modifier.fillMaxWidth()) { Text("Duplicate", modifier = Modifier.fillMaxWidth()) }
                 TextButton(onClick = onArchive, modifier = Modifier.fillMaxWidth()) { Text(if (exercise.archived) "Restore" else "Archive", modifier = Modifier.fillMaxWidth()) }
@@ -4344,6 +4342,7 @@ private fun ExerciseActionsDialog(
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        dismissButton = { DetailEditButton("Edit exercise", onEdit) },
     )
 }
 

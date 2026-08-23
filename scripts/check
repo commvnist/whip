@@ -52,6 +52,7 @@ if ! grep -Fq "$documented_baseline" docs/testing.md; then
     exit 1
 fi
 
+java scripts/RenderBrandIcon.java --verify
 ./gradlew "${tasks[@]}"
 
 if [[ "$run_device_tests" == true ]]; then

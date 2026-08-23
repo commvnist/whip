@@ -112,6 +112,8 @@ fun HabitAreaContent(
     onCreateRequestConsumed: () -> Unit = {},
     openHabitIdRequest: Long? = null,
     onOpenHabitRequestConsumed: () -> Unit = {},
+    editHabitIdRequest: Long? = null,
+    onEditHabitRequestConsumed: () -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     lowPressureMode: Boolean = false,
     operationStatus: OperationStatus = OperationStatus.Idle,
@@ -144,7 +146,7 @@ fun HabitAreaContent(
     var editingLogId by rememberSaveable { mutableStateOf<Long?>(null) }
     var focusedArchivedHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var deleteCandidateHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
-    val progressById = (state.all + state.today).associateBy { it.habit.id }
+    val progressById = (state.all + state.today + state.archivedProgress).associateBy { it.habit.id }
     val editing = editingHabitId?.let(progressById::get)
     val actions = actionsHabitId?.let(progressById::get)
     val numericLog = numericLogHabitId?.let(progressById::get)
@@ -198,41 +200,36 @@ fun HabitAreaContent(
             }
             state.archived.any { it.id == requestedId } -> {
                 destination = HabitDestination.Archived
+                actionsHabitId = requestedId
                 focusedArchivedHabitId = requestedId
                 onOpenHabitRequestConsumed()
             }
         }
     }
+    LaunchedEffect(editHabitIdRequest, state.all, state.archivedProgress) {
+        val requestedId = editHabitIdRequest ?: return@LaunchedEffect
+        val requested = progressById[requestedId]
+        if (requested != null) {
+            destination = if (requested.habit.archived) HabitDestination.Archived else HabitDestination.All
+            editingHabitId = requestedId
+            focusedArchivedHabitId = requestedId.takeIf { requested.habit.archived }
+            onEditHabitRequestConsumed()
+        }
+    }
     Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-        FlowRow(
+        val primaryDestinations = listOf(HabitDestination.Today, HabitDestination.All, HabitDestination.Insights)
+        ProgressiveDestinationBar(
+            selected = destination,
+            primary = primaryDestinations,
+            secondary = listOf(HabitDestination.Connections, HabitDestination.Archived),
+            expanded = moreDestinationsOpen,
+            onExpandedChange = { moreDestinationsOpen = it },
+            onSelect = { destination = it; focusedArchivedHabitId = null },
+            label = HabitDestination::name,
             modifier = Modifier.fillMaxWidth()
                 .padding(start = 20.dp, end = 52.dp, top = 8.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            val primary = listOf(HabitDestination.Today, HabitDestination.All, HabitDestination.Insights)
-            primary.forEach { tab ->
-                FilterChip(
-                    selected = destination == tab,
-                    onClick = { destination = tab; focusedArchivedHabitId = null },
-                    label = { Text(tab.name) },
-                )
-            }
-            FilterChip(
-                selected = moreDestinationsOpen || destination !in primary,
-                onClick = { moreDestinationsOpen = !moreDestinationsOpen },
-                label = { Text("More") },
-            )
-            if (moreDestinationsOpen || destination !in primary) {
-                listOf(HabitDestination.Connections, HabitDestination.Archived).forEach { tab ->
-                    FilterChip(
-                        selected = destination == tab,
-                        onClick = { destination = tab; focusedArchivedHabitId = null },
-                        label = { Text(tab.name) },
-                    )
-                }
-            }
-        }
+            testTagPrefix = "habit-destination",
+        )
         when (destination) {
             HabitDestination.Today -> HabitList(
                 title = "Today",
@@ -242,6 +239,7 @@ fun HabitAreaContent(
                 onCreate = { creating = true },
                 onTemplates = { templatesOpen = true },
                 onOpen = { actionsHabitId = it.habit.id },
+                onEdit = { editingHabitId = it.habit.id },
                 onQuick = { item -> quickHabitAction(item, viewModel) { numericLogHabitId = item.habit.id } },
                 onQuickValue = viewModel::addValue,
                 onSetValue = { numericLogHabitId = it.habit.id },
@@ -260,6 +258,7 @@ fun HabitAreaContent(
                 onCreate = { creating = true },
                 onTemplates = { templatesOpen = true },
                 onOpen = { actionsHabitId = it.habit.id },
+                onEdit = { editingHabitId = it.habit.id },
                 onQuick = { item -> quickHabitAction(item, viewModel) { numericLogHabitId = item.habit.id } },
                 onQuickValue = viewModel::addValue,
                 onSetValue = { numericLogHabitId = it.habit.id },
@@ -282,8 +281,8 @@ fun HabitAreaContent(
             HabitDestination.Archived -> ArchivedHabitList(
                 habits = state.archived,
                 focusedHabitId = focusedArchivedHabitId,
-                onRestore = { habit -> viewModel.setArchived(habit.id, false) },
-                onDelete = { deleteCandidateHabitId = it.id },
+                onOpen = { actionsHabitId = it.id },
+                onEdit = { editingHabitId = it.id },
             )
         }
     }
@@ -340,7 +339,7 @@ fun HabitAreaContent(
             linkedGoals = goalState.linkRules.filter { it.sourceType == LinkSourceType.Habit && it.sourceEntityId == item.habit.id }
                 .mapNotNull { rule -> (goalState.active + goalState.completed + goalState.archived).firstOrNull { it.goal.id == rule.targetGoalId }?.goal?.name },
             onLinkGoal = { linkingHabitId = item.habit.id; actionsHabitId = null },
-            onArchive = { viewModel.setArchived(item.habit.id, true); actionsHabitId = null },
+            onArchive = { viewModel.setArchived(item.habit.id, !item.habit.archived); actionsHabitId = null },
             onDelete = { deleteCandidateHabitId = item.habit.id; actionsHabitId = null },
             lowPressureMode = lowPressureMode,
         )
@@ -585,6 +584,7 @@ private fun HabitAutomationDialog(
 fun HabitProgressCard(
     item: HabitDayProgress,
     onOpen: () -> Unit,
+    onEdit: () -> Unit,
     onQuick: () -> Unit,
     onQuickValue: (Double) -> Unit = { onQuick() },
     onSetValue: () -> Unit = onQuick,
@@ -599,9 +599,9 @@ fun HabitProgressCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClickLabel = "Open ${habit.name}", onClick = onOpen)
+            .clickable(onClickLabel = "Open habit details for ${habit.name}", onClick = onOpen)
             .testTag("habit-card-${habit.id}")
-            .semantics { contentDescription = "Open ${habit.name}" },
+            .semantics { contentDescription = "Open habit details for ${habit.name}" },
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -642,6 +642,7 @@ fun HabitProgressCard(
                         else Icon(Icons.Filled.Add, contentDescription = "Log ${habit.name}", modifier = Modifier.size(24.dp))
                     }
                 }
+                ItemEditButton("habit", habit.name, onEdit)
             }
             if (habit.sourceMetricId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.LimitAvoid)) {
                 val quickValues = (listOf(habit.quickIncrement) + habit.quickActions)
@@ -726,6 +727,7 @@ private fun HabitList(
     onCreate: () -> Unit,
     onTemplates: () -> Unit,
     onOpen: (HabitDayProgress) -> Unit,
+    onEdit: (HabitDayProgress) -> Unit,
     onQuick: (HabitDayProgress) -> Unit,
     onQuickValue: (HabitDayProgress, Double) -> Unit,
     onSetValue: (HabitDayProgress) -> Unit,
@@ -775,6 +777,7 @@ private fun HabitList(
                 HabitProgressCard(
                     item = item,
                     onOpen = { onOpen(item) },
+                    onEdit = { onEdit(item) },
                     onQuick = { onQuick(item) },
                     onQuickValue = { value -> onQuickValue(item, value) },
                     onSetValue = { onSetValue(item) },
@@ -910,21 +913,27 @@ private fun HabitRateChart(name: String, rates: List<Double?>) {
 private fun ArchivedHabitList(
     habits: List<Habit>,
     focusedHabitId: Long? = null,
-    onRestore: (Habit) -> Unit,
-    onDelete: (Habit) -> Unit,
+    onOpen: (Habit) -> Unit,
+    onEdit: (Habit) -> Unit,
 ) {
     val visible = habits.filter { focusedHabitId == null || it.id == focusedHabitId }
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp)) {
         item { Text("Archived habits", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }
         if (visible.isEmpty()) item { Text("No archived habits.") }
         items(visible, key = Habit::id) { habit ->
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(habit.name)
-                    if (habit.areaId != null) AreaBadge(habit.areaId, habit.area)
+            Card(
+                modifier = Modifier.fillMaxWidth()
+                    .clickable(onClickLabel = "Open habit details for ${habit.name}") { onOpen(habit) }
+                    .semantics { contentDescription = "Open habit details for ${habit.name}" },
+            ) {
+                Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(habit.name, fontWeight = FontWeight.Bold)
+                        if (habit.areaId != null) AreaBadge(habit.areaId, habit.area)
+                        Text("Archived", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    ItemEditButton("habit", habit.name, onEdit = { onEdit(habit) })
                 }
-                TextButton(onClick = { onRestore(habit) }) { Text("Restore") }
-                TextButton(onClick = { onDelete(habit) }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             }
         }
     }
@@ -1592,25 +1601,29 @@ private fun HabitActionsDialog(
     lowPressureMode: Boolean = false,
 ) {
     var visibleLogs by rememberSaveable(item.habit.id) { mutableIntStateOf(8) }
-    var section by rememberSaveable(item.habit.id) { mutableStateOf(HabitDetailSection.Today) }
+    var section by rememberSaveable(item.habit.id) {
+        mutableStateOf(if (item.habit.archived) HabitDetailSection.More else HabitDetailSection.Today)
+    }
     PaneAwareAlertDialog(
         modifier = dialogModifier.testTag("habit-detail-surface"),
         onDismissRequest = onDismiss,
         title = { Text(item.habit.name) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    HabitDetailSection.entries.forEach { value ->
-                        FilterChip(selected = section == value, onClick = { section = value }, label = { Text(value.label) })
-                    }
-                }
+                DetailSectionBar(
+                    labels = HabitDetailSection.entries.map(HabitDetailSection::label),
+                    selected = section.label,
+                    onSelect = { label -> section = HabitDetailSection.entries.first { it.label == label } },
+                    testTagPrefix = "habit-detail-section",
+                )
                 when (section) {
                     HabitDetailSection.Today -> {
                         Text(
-                            if (lowPressureMode) "${formatHabitValue(item.value, item.habit.precision)} logged"
+                            if (item.habit.archived) "This habit is archived. Restore it from More to resume check-ins."
+                            else if (lowPressureMode) "${formatHabitValue(item.value, item.habit.precision)} logged"
                             else "${formatHabitValue(item.value, item.habit.precision)} logged · streak ${item.streak}",
                         )
-                        listOf(
+                        if (!item.habit.archived) listOf(
                             (if (item.habit.paused) "Resume" else "Pause indefinitely") to onPause,
                             "Schedule pause dates" to onSchedulePause,
                             "Skip today" to onSkip,
@@ -1640,15 +1653,18 @@ private fun HabitActionsDialog(
                     HabitDetailSection.Connections -> {
                         if (linkedGoals.isEmpty()) Text("This habit does not feed any goals yet.")
                         else Text("Feeds: ${linkedGoals.distinct().joinToString()}", style = MaterialTheme.typography.bodyMedium)
-                        TextButton(onClick = onLinkGoal, modifier = Modifier.fillMaxWidth()) { Text("Link to a goal", modifier = Modifier.fillMaxWidth()) }
+                        if (!item.habit.archived) TextButton(onClick = onLinkGoal, modifier = Modifier.fillMaxWidth()) { Text("Link to a goal", modifier = Modifier.fillMaxWidth()) }
                     }
                     HabitDetailSection.More -> {
-                        listOf(
-                            "Edit" to onEdit,
-                            "Duplicate" to onDuplicate,
-                            (if (item.habit.pinned) "Unpin" else "Pin") to onPin,
-                            "Archive" to onArchive,
-                        ).forEach { (label, action) -> TextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text(label, modifier = Modifier.fillMaxWidth()) } }
+                        if (!item.habit.archived) {
+                            listOf(
+                                "Duplicate" to onDuplicate,
+                                (if (item.habit.pinned) "Unpin" else "Pin") to onPin,
+                            ).forEach { (label, action) -> TextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text(label, modifier = Modifier.fillMaxWidth()) } }
+                        }
+                        TextButton(onClick = onArchive, modifier = Modifier.fillMaxWidth()) {
+                            Text(if (item.habit.archived) "Restore" else "Archive", modifier = Modifier.fillMaxWidth())
+                        }
                         TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
                             Text("Delete permanently", modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.error)
                         }
@@ -1657,6 +1673,7 @@ private fun HabitActionsDialog(
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        dismissButton = { DetailEditButton("Edit habit", onEdit) },
     )
 }
 

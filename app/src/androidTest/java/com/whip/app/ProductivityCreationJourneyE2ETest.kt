@@ -14,8 +14,10 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -69,7 +71,7 @@ class ProductivityCreationJourneyE2ETest {
             compose.onNodeWithTag("task-editor-title").assertIsDisplayed()
             compose.onNodeWithText("Save").performClick()
             compose.waitUntil(5_000) { compose.onAllNodesWithText("Journey task").fetchSemanticsNodes().isNotEmpty() }
-            compose.onNodeWithContentDescription("Task actions").performClick()
+            compose.onNodeWithContentDescription("Open task details for Journey task").performClick()
             compose.onNodeWithText("Schedule").assertIsDisplayed()
             check(compose.onAllNodesWithText("More").fetchSemanticsNodes().isNotEmpty())
             compose.onNodeWithText("Close").performClick()
@@ -95,6 +97,20 @@ class ProductivityCreationJourneyE2ETest {
             runBlocking {
                 withTimeout(5_000) { app.habitRepository.logs.first { logs -> logs.any { it.habitId == habitId } } }
             }
+            compose.onNodeWithContentDescription("Edit habit Journey water")
+                .performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithText("Edit habit").assertIsDisplayed()
+            compose.onNodeWithText("Cancel").performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithContentDescription("Open habit details for Journey water")
+                .performSemanticsAction(SemanticsActions.OnClick)
+            listOf("Today", "History", "Connections", "More").forEach { section ->
+                compose.onNodeWithTag("habit-detail-section-$section")
+                    .performSemanticsAction(SemanticsActions.OnClick)
+                compose.onNodeWithText("Edit habit").assertIsDisplayed()
+            }
+            compose.onNodeWithText("Edit habit").performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithText("Edit habit").assertIsDisplayed()
+            compose.onNodeWithText("Cancel").performSemanticsAction(SemanticsActions.OnClick)
 
             compose.onNodeWithContentDescription("Goals tab").performClick()
             compose.onNodeWithContentDescription("Add goal").performClick()
@@ -110,7 +126,23 @@ class ProductivityCreationJourneyE2ETest {
             }
             compose.waitUntil(5_000) { compose.onAllNodesWithText("Goal created").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Done").performClick()
-            compose.onNodeWithText("Insights").performClick()
+            compose.onNodeWithContentDescription("Edit goal Journey target")
+                .performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithText("Edit goal").assertIsDisplayed()
+            compose.onNodeWithText("Cancel").performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithContentDescription("Open goal details for Journey target")
+                .performSemanticsAction(SemanticsActions.OnClick)
+            listOf("Overview", "History", "Connections", "More").forEach { section ->
+                compose.onNodeWithTag("goal-detail-section-$section")
+                    .performSemanticsAction(SemanticsActions.OnClick)
+                compose.onNodeWithText("Edit goal").assertIsDisplayed()
+            }
+            compose.onNodeWithText("Edit goal").performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithText("Edit goal").assertIsDisplayed()
+            compose.onNodeWithText("Cancel").performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithTag("goal-destination-more").performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithTag("goal-destination-Archived").assertIsDisplayed()
+            compose.onNodeWithTag("goal-destination-Insights").performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithText("Goal insights").assertIsDisplayed()
             compose.onNodeWithTag("goal-insight-$goalId").assertIsDisplayed()
         }

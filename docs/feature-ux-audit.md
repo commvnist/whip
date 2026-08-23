@@ -188,6 +188,35 @@ are covered by new persisted and Compose tests.
 
 ## UX rules for future changes
 
+### Shared control grammar
+
+Tasks, habits, goals, exercises, machines, categories, routines, and routine
+placements follow the same control meanings:
+
+- Tapping an item card opens its details or the closest non-destructive detail
+  surface. A card must not silently mean Edit in one library and Details in
+  another.
+- A trailing pencil always opens the editor for that exact item. It remains a
+  separate 48 dp target and never relies on a decorative ellipsis.
+- The status-specific quick action (check off, log, start/stop, complete) is a
+  separate control. It must not also open details or edit the item.
+- A vertical-ellipsis control always opens a real overflow menu. Overflow is
+  reserved for lower-frequency actions such as duplicate, reorder, archive,
+  restore, and permanent delete.
+- Detail surfaces keep Edit in a persistent footer opposite Close. Changing
+  Overview/Today, History/Schedule, Connections, or More must never make Edit
+  disappear.
+- Permanent deletion lives in More/overflow, uses error styling, and requires a
+  consequence-aware confirmation. Archive and restore remain reversible.
+- Compact domain navigation exposes three common destinations followed by a
+  consistent More chip for lower-frequency destinations such as Archived.
+- Selection or reorder modes may temporarily replace ordinary item controls,
+  but the mode and its exit control must be explicit.
+
+Accessibility descriptions use the same verbs: `Open <type> details for
+<name>`, `Edit <type> <name>`, and `More options for <name>`. Automated UI
+tests should invoke and distinguish these controls independently.
+
 1. A first successful task, habit, goal, or workout must be possible without
    opening an advanced section.
 2. Archive is reversible and uses neutral language. Delete is permanent, uses

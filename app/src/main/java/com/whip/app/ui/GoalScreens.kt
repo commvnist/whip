@@ -106,6 +106,8 @@ fun GoalAreaContent(
     onExternalRequestConsumed: () -> Unit = {},
     openGoalIdRequest: Long? = null,
     onOpenGoalRequestConsumed: () -> Unit = {},
+    editGoalIdRequest: Long? = null,
+    onEditGoalRequestConsumed: () -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     operationStatus: OperationStatus = OperationStatus.Idle,
     dialogModifier: Modifier = Modifier,
@@ -120,6 +122,7 @@ fun GoalAreaContent(
         return
     }
     var destination by rememberSaveable { mutableStateOf(GoalDestination.Active) }
+    var moreDestinationsOpen by rememberSaveable { mutableStateOf(false) }
     var creating by rememberSaveable { mutableStateOf(false) }
     var editingGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var recordingGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -213,6 +216,19 @@ fun GoalAreaContent(
         actionsGoalId = projection.goal.id
         onOpenGoalRequestConsumed()
     }
+    LaunchedEffect(editGoalIdRequest, state.active, state.completed, state.archived) {
+        val requestedId = editGoalIdRequest ?: return@LaunchedEffect
+        val projection = (state.active + state.completed + state.archived)
+            .firstOrNull { it.goal.id == requestedId }
+            ?: return@LaunchedEffect
+        destination = when {
+            projection in state.completed -> GoalDestination.Completed
+            projection in state.archived -> GoalDestination.Archived
+            else -> GoalDestination.Active
+        }
+        editingGoalId = projection.goal.id
+        onEditGoalRequestConsumed()
+    }
     val list = when (destination) {
         GoalDestination.Active, GoalDestination.Insights -> state.active
         GoalDestination.Completed -> state.completed
@@ -226,24 +242,19 @@ fun GoalAreaContent(
             projection.goal.tags.joinToString(" "),
         ).any { it.contains(query, ignoreCase = true) }
     }
-    val destinationScrollState = rememberScrollState()
-    val destinationBringIntoView = remember { BringIntoViewRequester() }
-    LaunchedEffect(destination) { destinationBringIntoView.bringIntoView() }
     Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(destinationScrollState)
+        ProgressiveDestinationBar(
+            selected = destination,
+            primary = listOf(GoalDestination.Active, GoalDestination.Insights, GoalDestination.Completed),
+            secondary = listOf(GoalDestination.Archived),
+            expanded = moreDestinationsOpen,
+            onExpandedChange = { moreDestinationsOpen = it },
+            onSelect = { destination = it },
+            label = GoalDestination::name,
+            modifier = Modifier.fillMaxWidth()
                 .padding(start = 20.dp, end = 52.dp, top = 8.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            GoalDestination.entries.forEach { tab ->
-                FilterChip(
-                    selected = destination == tab,
-                    modifier = if (destination == tab) Modifier.bringIntoViewRequester(destinationBringIntoView) else Modifier,
-                    onClick = { destination = tab },
-                    label = { Text(tab.name) },
-                )
-            }
-        }
+            testTagPrefix = "goal-destination",
+        )
         if (destination == GoalDestination.Insights) {
             GoalInsightsContent(
                 projections = state.active,
@@ -277,6 +288,7 @@ fun GoalAreaContent(
                         projection,
                         customUnits = state.customUnits,
                         onOpen = { actionsGoalId = projection.goal.id },
+                        onEdit = { editingGoalId = projection.goal.id },
                         onRecord = { recordingGoalId = projection.goal.id },
                         onToggleMilestone = viewModel::toggleMilestone,
                     )
@@ -477,11 +489,16 @@ fun GoalCard(
     projection: GoalProjection,
     customUnits: List<UnitDefinition> = emptyList(),
     onOpen: () -> Unit,
+    onEdit: () -> Unit,
     onRecord: () -> Unit,
     onToggleMilestone: (Long, Boolean) -> Unit,
 ) {
     val goal = projection.goal
-    Card(modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Open ${goal.name}", onClick = onOpen)) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+            .clickable(onClickLabel = "Open goal details for ${goal.name}", onClick = onOpen)
+            .semantics { contentDescription = "Open goal details for ${goal.name}" },
+    ) {
         Column(modifier = Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(goal.icon, style = MaterialTheme.typography.titleLarge)
@@ -494,6 +511,7 @@ fun GoalCard(
                 if (goal.status == GoalStatus.Active && goal.type != GoalType.WeightedMilestones) {
                     TextButton(onClick = onRecord) { Text("Log") }
                 }
+                ItemEditButton("goal", goal.name, onEdit)
             }
             projection.progress?.let { progress ->
                 LinearProgressIndicator(progress = { progress.toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
@@ -1067,11 +1085,12 @@ private fun GoalActionsDialog(
         text = {
             LazyColumn {
                 item {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        GoalDetailSection.entries.forEach { value ->
-                            FilterChip(selected = section == value, onClick = { section = value }, label = { Text(value.label) })
-                        }
-                    }
+                    DetailSectionBar(
+                        labels = GoalDetailSection.entries.map(GoalDetailSection::label),
+                        selected = section.label,
+                        onSelect = { label -> section = GoalDetailSection.entries.first { it.label == label } },
+                        testTagPrefix = "goal-detail-section",
+                    )
                 }
                 if (section == GoalDetailSection.Overview) {
                 item {
@@ -1164,7 +1183,7 @@ private fun GoalActionsDialog(
                 }
                 if (section == GoalDetailSection.More) {
                 item {
-                    listOf("Edit" to onEdit, "Duplicate" to onDuplicate, (if (projection.goal.pinned) "Unpin" else "Pin") to onPin, (if (projection.goal.status == GoalStatus.Paused) "Resume" else "Pause") to onPause, "Complete" to onComplete, "Abandon" to onAbandon, (if (projection.goal.status == GoalStatus.Archived) "Restore" else "Archive") to onArchive).forEach { (label, action) ->
+                    listOf("Duplicate" to onDuplicate, (if (projection.goal.pinned) "Unpin" else "Pin") to onPin, (if (projection.goal.status == GoalStatus.Paused) "Resume" else "Pause") to onPause, "Complete" to onComplete, "Abandon" to onAbandon, (if (projection.goal.status == GoalStatus.Archived) "Restore" else "Archive") to onArchive).forEach { (label, action) ->
                         TextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text(label, modifier = Modifier.fillMaxWidth()) }
                     }
                     TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
@@ -1175,6 +1194,7 @@ private fun GoalActionsDialog(
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        dismissButton = { DetailEditButton("Edit goal", onEdit) },
     )
 }
 

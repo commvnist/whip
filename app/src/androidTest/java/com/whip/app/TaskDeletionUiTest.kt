@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -20,6 +21,7 @@ import com.whip.app.ui.PermanentTaskDeleteDialog
 import com.whip.app.ui.PermanentDeleteDialog
 import com.whip.app.ui.CompletedTaskDialog
 import com.whip.app.ui.TaskActionsDialog
+import com.whip.app.ui.TaskRow
 import com.whip.app.data.TaskDeletionImpact
 import com.whip.app.ui.theme.WhipTheme
 import java.util.concurrent.atomic.AtomicInteger
@@ -33,6 +35,52 @@ import org.junit.runner.RunWith
 class TaskDeletionUiTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun taskCardSeparatesDetailsFromDirectEditing() {
+        val details = AtomicInteger()
+        val edits = AtomicInteger()
+        val item = ScheduledTask(
+            task = WhipTask(
+                id = 1,
+                title = "Editable task",
+                notes = "",
+                scheduleKind = ScheduleKind.Anytime,
+                date = null,
+                recurrence = null,
+                timeMinutes = null,
+                reminderEnabled = false,
+                archived = false,
+                completedAtMillis = null,
+                createdAtMillis = 1,
+                updatedAtMillis = 1,
+            ),
+            originalDate = null,
+            scheduledDate = null,
+        )
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                TaskRow(
+                    item = item,
+                    completed = false,
+                    onComplete = {},
+                    onOpenActions = { details.incrementAndGet() },
+                    onEdit = { edits.incrementAndGet() },
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Edit task Editable task").performClick()
+        compose.runOnIdle {
+            assertEquals(0, details.get())
+            assertEquals(1, edits.get())
+        }
+        compose.onNodeWithContentDescription("Open task details for Editable task").performClick()
+        compose.runOnIdle {
+            assertEquals(1, details.get())
+            assertEquals(1, edits.get())
+        }
+    }
 
     @Test
     fun permanentDeleteRequiresExplicitSecondConfirmation() {
@@ -111,6 +159,7 @@ class TaskDeletionUiTest {
     @Test
     fun completedRecurringTaskOffersOccurrenceLevelRecovery() {
         val reopens = AtomicInteger()
+        val edits = AtomicInteger()
         val date = LocalDate.of(2026, 8, 18)
         val item = ScheduledTask(
             task = WhipTask(
@@ -139,14 +188,65 @@ class TaskDeletionUiTest {
                 CompletedTaskDialog(
                     item = item,
                     onDismiss = {},
+                    onEdit = { edits.incrementAndGet() },
                     onReopen = { reopens.incrementAndGet() },
                     onDeletePermanently = {},
                 )
             }
         }
 
+        compose.onNodeWithText("Edit this and future").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(1, edits.get()) }
         compose.onNodeWithText("Reopen occurrence").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, reopens.get()) }
+    }
+
+    @Test
+    fun editRemainsVisibleInEveryTaskDetailsSectionIncludingArchivedTasks() {
+        val edits = AtomicInteger()
+        val date = LocalDate.of(2026, 8, 18)
+        val item = ScheduledTask(
+            task = WhipTask(
+                id = 17,
+                title = "Archived recurring task",
+                notes = "",
+                scheduleKind = ScheduleKind.Recurring,
+                date = date,
+                recurrence = RecurrenceRule(RecurrenceUnit.Days, startDate = date),
+                timeMinutes = null,
+                reminderEnabled = false,
+                archived = true,
+                completedAtMillis = null,
+                createdAtMillis = 1,
+                updatedAtMillis = 1,
+            ),
+            originalDate = date,
+            scheduledDate = date,
+        )
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                TaskActionsDialog(
+                    item = item,
+                    onDismiss = {},
+                    onComplete = {},
+                    onEdit = { edits.incrementAndGet() },
+                    onReschedule = {},
+                    onSkip = {},
+                    onArchive = {},
+                    onDeletePermanently = {},
+                    onPin = {},
+                    onToggleSubtask = { _, _ -> },
+                    onPromoteSubtask = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Edit this and future").assertIsDisplayed()
+        compose.onNodeWithText("Schedule").performClick()
+        compose.onNodeWithText("Edit this and future").assertIsDisplayed()
+        compose.onNodeWithText("More").performClick()
+        compose.onNodeWithText("Edit this and future").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(1, edits.get()) }
     }
 
     @Test

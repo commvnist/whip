@@ -125,10 +125,9 @@ class CoreFeatureJourneyE2ETest {
 
         ActivityScenario.launch<MainActivity>(intent, options).use { scenario ->
             compose.waitUntil(timeoutMillis = 5_000) {
-                compose.onAllNodesWithContentDescription("Task actions").fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithContentDescription("Edit task", substring = true).fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithContentDescription("Task actions").performClick()
-            compose.onNodeWithText("Edit task").performClick()
+            compose.onAllNodesWithContentDescription("Edit task", substring = true)[0].performClick()
             compose.onNodeWithTag("task-editor-title").performTextClearance()
             compose.onNodeWithTag("task-editor-title").performTextInput("Unsaved fold draft")
 

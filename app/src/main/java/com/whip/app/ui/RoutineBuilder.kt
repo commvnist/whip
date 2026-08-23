@@ -769,12 +769,16 @@ private fun RoutinePlacementCard(
                 placement.groupKey?.let { Text(it, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium) }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             }
+            ItemEditButton(
+                itemType = "routine exercise",
+                itemName = exercise?.name ?: placement.exerciseNameSnapshot,
+                onEdit = onOpen,
+            )
             Box {
-                IconButton(onClick = { menu = true }, modifier = Modifier.semantics { contentDescription = "Actions for ${exercise?.name ?: placement.exerciseNameSnapshot}" }) {
+                IconButton(onClick = { menu = true }, modifier = Modifier.semantics { contentDescription = "More options for ${exercise?.name ?: placement.exerciseNameSnapshot}" }) {
                     Icon(Icons.Outlined.MoreVert, contentDescription = null)
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(text = { Text("Edit prescription") }, onClick = { menu = false; onOpen() }, leadingIcon = { Icon(Icons.Outlined.Edit, null) })
                     DropdownMenuItem(text = { Text("Move up") }, onClick = { menu = false; onMove(-1) })
                     DropdownMenuItem(text = { Text("Move down") }, onClick = { menu = false; onMove(1) })
                     DropdownMenuItem(text = { Text("Duplicate") }, onClick = { menu = false; onDuplicate() }, leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) })
