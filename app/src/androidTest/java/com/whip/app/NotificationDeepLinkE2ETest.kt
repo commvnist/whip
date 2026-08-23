@@ -36,7 +36,7 @@ class NotificationDeepLinkE2ETest {
     fun prepare() = runBlocking {
         app = ApplicationProvider.getApplicationContext()
         app.backupRepository.deleteAllData()
-        app.settingsRepository.update { it.copy(setupCompleted = true, backupPrivacyChoiceHandled = true) }
+        app.settingsRepository.update { it.copy(setupCompleted = true) }
         habitId = app.habitRepository.create(HabitDraft(name = "Deep link habit", startDate = app.clock.today()))
     }
 

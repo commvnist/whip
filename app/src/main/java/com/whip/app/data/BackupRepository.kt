@@ -460,8 +460,6 @@ private fun AppSettings.toJson(): JSONObject = JSONObject()
     .put("setupCompleted", setupCompleted)
     .put("powerMode", powerMode)
     .put("lowPressureMode", lowPressureMode)
-    .put("backupPrivacyChoice", backupPrivacyChoice)
-    .put("backupPrivacyChoiceHandled", backupPrivacyChoiceHandled)
     .put("notificationPermissionRequested", notificationPermissionRequested)
     .put("activeAreaScope", activeAreaScope)
     .put("hardSetClassifications", JSONArray(hardSetClassifications.toList()))
@@ -552,8 +550,6 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     setupCompleted = optBoolean("setupCompleted", true),
     powerMode = optBoolean("powerMode", true),
     lowPressureMode = optBoolean("lowPressureMode", false),
-    backupPrivacyChoice = optString("backupPrivacyChoice", "Later"),
-    backupPrivacyChoiceHandled = optBoolean("backupPrivacyChoiceHandled", true),
     notificationPermissionRequested = optBoolean("notificationPermissionRequested", false),
     activeAreaScope = optString("activeAreaScope", "all"),
     hardSetClassifications = optJSONArray("hardSetClassifications")?.let { array ->

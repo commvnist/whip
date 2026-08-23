@@ -45,7 +45,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -104,8 +103,6 @@ fun SettingsContent(
     state: SettingsUiState,
     innerPadding: PaddingValues,
     viewModel: SettingsViewModel,
-    firstRunBackupRequest: String? = null,
-    onFirstRunBackupRequestConsumed: () -> Unit = {},
     onEditAreas: () -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -168,23 +165,6 @@ fun SettingsContent(
     val allReminderChannelsEnabled = channelHealth.values.all { it }
     val batteryUnrestricted = context.getSystemService(PowerManager::class.java)
         .isIgnoringBatteryOptimizations(context.packageName)
-    LaunchedEffect(firstRunBackupRequest) {
-        when (firstRunBackupRequest) {
-            "Encrypted" -> {
-                section = SettingsSection.DataPrivacy
-                compactSectionOpen = true
-                showEncryptedExport = true
-                onFirstRunBackupRequestConsumed()
-            }
-            "Plaintext" -> {
-                section = SettingsSection.DataPrivacy
-                compactSectionOpen = true
-                pendingExport = ExportKind.Backup
-                createDocument.launch("whip-${LocalDate.now(settings.zoneId())}.whip.json")
-                onFirstRunBackupRequestConsumed()
-            }
-        }
-    }
     BoxWithConstraints(Modifier.fillMaxSize().padding(innerPadding)) {
         val wideSettingsNavigation = maxWidth >= 840.dp
         if (!wideSettingsNavigation && !compactSectionOpen) {

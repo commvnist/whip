@@ -27,10 +27,12 @@ Home keeps these sections visibly separate while supporting quick logging. Use
 Settings to reorder, collapse, or hide Home sections. Pin important tasks,
 habits, goals, and routines to surface them first.
 
-The skippable first-run setup chooses the Home sections you want emphasized,
-simple or power defaults, kg or lb, notification intent, low-pressure display,
-and a backup privacy preference. Hiding a section changes presentation only: its
-data and navigation remain available in Settings and global add/search.
+The first-run setup chooses the Home sections you want emphasized, simple or
+power defaults, kg or lb, notification intent, and low-pressure display. **Use
+Defaults** starts with Tasks and Habits on Home, simple presentation, kg, and no
+notification request. Backups stay out of onboarding and can be configured when
+needed in **Settings → Data & Privacy**. Hiding a section changes presentation
+only: its data and navigation remain available in Settings and global add/search.
 Low-pressure mode removes streak pressure from Habit cards and Insights while
 keeping the underlying history intact.
 

@@ -27,23 +27,19 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.whip.app.core.HomeSection
 
-private enum class BackupChoice(val label: String) {
-    Encrypted("Create encrypted backup now"),
-    Plaintext("Create plain JSON backup now"),
-    Later("Decide later"),
-}
+internal val DEFAULT_FIRST_RUN_HOME_SECTIONS: Set<HomeSection> =
+    setOf(HomeSection.Tasks, HomeSection.Habits)
 
 @Composable
 fun FirstRunSetupDialog(
-    onComplete: (Set<HomeSection>, Boolean, Boolean, Boolean, String, Boolean) -> Unit,
-    onSkip: () -> Unit,
+    onComplete: (Set<HomeSection>, Boolean, Boolean, Boolean, Boolean) -> Unit,
+    onUseDefaults: () -> Unit,
 ) {
-    var selectedAreas by rememberSaveable { mutableStateOf(setOf(HomeSection.Tasks, HomeSection.Habits)) }
+    var selectedSections by rememberSaveable { mutableStateOf(DEFAULT_FIRST_RUN_HOME_SECTIONS) }
     var powerMode by rememberSaveable { mutableStateOf(false) }
     var usePounds by rememberSaveable { mutableStateOf(false) }
     var lowPressureMode by rememberSaveable { mutableStateOf(false) }
     var notifications by rememberSaveable { mutableStateOf(false) }
-    var backupChoice by rememberSaveable { mutableStateOf(BackupChoice.Later) }
     var showOptionalPreferences by rememberSaveable { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = {},
@@ -56,13 +52,17 @@ fun FirstRunSetupDialog(
                 Text("Choose what belongs at Home. Tasks, Habits, Goals, and Gym remain available from main navigation; this only changes the Home overview.")
                 Text("Home Sections", style = MaterialTheme.typography.titleSmall)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    HomeSection.entries.forEach { area ->
+                    HomeSection.entries.forEach { section ->
                         WhipFilterChip(
-                            selected = area in selectedAreas,
+                            selected = section in selectedSections,
                             onClick = {
-                                selectedAreas = if (area in selectedAreas) selectedAreas - area else selectedAreas + area
+                                selectedSections = if (section in selectedSections) {
+                                    selectedSections - section
+                                } else {
+                                    selectedSections + section
+                                }
                             },
-                            label = { Text(area.name) },
+                            label = { Text(section.name) },
                         )
                     }
                 }
@@ -75,6 +75,7 @@ fun FirstRunSetupDialog(
                     if (powerMode) "Show advanced choices by default where useful." else "Keep advanced choices folded until requested.",
                     style = MaterialTheme.typography.bodySmall,
                 )
+                Text("Weight Units", style = MaterialTheme.typography.titleSmall)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     WhipFilterChip(!usePounds, { usePounds = false }, { Text("kg") })
                     WhipFilterChip(usePounds, { usePounds = true }, { Text("lb") })
@@ -88,29 +89,25 @@ fun FirstRunSetupDialog(
                 if (showOptionalPreferences) {
                     SetupToggle("Low-pressure presentation (less streak emphasis)", lowPressureMode) { lowPressureMode = it }
                     SetupToggle("I want reminder notifications", notifications) { notifications = it }
-                    Text("Portable Backup Privacy", style = MaterialTheme.typography.titleSmall)
-                    BackupChoice.entries.forEach { choice ->
-                        WhipFilterChip(backupChoice == choice, { backupChoice = choice }, { Text(choice.label.uiTitleCase()) })
-                    }
-                    Text(
-                        "Encrypted backups use a passphrase Whip cannot recover. Plain JSON is readable by other tools and is not encrypted.",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
                 } else {
                     Text(
-                        "Reminder, low-pressure, and backup choices can be configured later in Settings.",
+                        "Reminder and low-pressure preferences can be configured later in Settings.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
+                Text(
+                    "Whip stores your data locally and does not require an account. Configure backups anytime in Settings → Data & Privacy.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
         },
         confirmButton = {
-            WhipTextButton(
-                enabled = selectedAreas.isNotEmpty(),
-                onClick = { onComplete(selectedAreas, powerMode, usePounds, lowPressureMode, backupChoice.name, notifications) },
-            ) { Text("Finish Setup") }
+            WhipButton(
+                enabled = selectedSections.isNotEmpty(),
+                onClick = { onComplete(selectedSections, powerMode, usePounds, lowPressureMode, notifications) },
+            ) { Text("Start Using Whip") }
         },
-        dismissButton = { WhipTextButton(onClick = onSkip) { Text("Skip · Simple Mode") } },
+        dismissButton = { WhipTextButton(onClick = onUseDefaults) { Text("Use Defaults") } },
     )
 }
 

@@ -436,7 +436,6 @@ fun WhipScreen(
     var areaMoveRestoreScope by rememberSaveable { mutableStateOf<String?>(null) }
     var homeHabitValueItemId by rememberSaveable { mutableStateOf<Long?>(null) }
     var contentPaneExpanded by rememberSaveable { mutableStateOf(false) }
-    var firstRunBackupRequest by rememberSaveable { mutableStateOf<String?>(null) }
     var consumedLaunchDeliveryId by rememberSaveable { mutableStateOf<Long?>(null) }
     val shortcutFocusRequester = remember { FocusRequester() }
     val searchInvokerFocusRequester = remember { FocusRequester() }
@@ -534,18 +533,6 @@ fun WhipScreen(
                 taskEditorSaveStarted = false
             }
             else -> Unit
-        }
-    }
-
-    LaunchedEffect(
-        settingsState.settings.setupCompleted,
-        settingsState.settings.backupPrivacyChoice,
-        settingsState.settings.backupPrivacyChoiceHandled,
-    ) {
-        val settings = settingsState.settings
-        if (settings.setupCompleted && !settings.backupPrivacyChoiceHandled) {
-            firstRunBackupRequest = settings.backupPrivacyChoice
-            openSettings()
         }
     }
 
@@ -1404,11 +1391,6 @@ fun WhipScreen(
                     settingsState,
                     innerPadding,
                     settingsViewModel,
-                    firstRunBackupRequest = firstRunBackupRequest,
-                    onFirstRunBackupRequestConsumed = {
-                        firstRunBackupRequest = null
-                        settingsViewModel.markBackupPrivacyChoiceHandled()
-                    },
                     onEditAreas = { areaManagerOpen = true },
                 )
                 else RoadmapEmptyArea("Settings", "Settings are loading.", innerPadding)
@@ -1774,17 +1756,16 @@ fun WhipScreen(
     }
     if (!settingsState.settings.setupCompleted && settingsViewModel != null) {
         FirstRunSetupDialog(
-            onComplete = { areas, power, pounds, lowPressure, backupChoice, notifications ->
-                settingsViewModel.completeSetup(areas, power, pounds, lowPressure, backupChoice)
+            onComplete = { sections, power, pounds, lowPressure, notifications ->
+                settingsViewModel.completeSetup(sections, power, pounds, lowPressure)
                 if (notifications) onRequestNotificationPermission()
             },
-            onSkip = {
+            onUseDefaults = {
                 settingsViewModel.completeSetup(
-                    HomeSection.entries.toSet(),
+                    DEFAULT_FIRST_RUN_HOME_SECTIONS,
                     powerMode = false,
                     usePounds = false,
                     lowPressureMode = false,
-                    backupPrivacyChoice = "Later",
                 )
             },
         )

@@ -32,9 +32,6 @@ data class AppSettings(
     val setupCompleted: Boolean = false,
     val powerMode: Boolean = false,
     val lowPressureMode: Boolean = false,
-    val backupPrivacyChoice: String = "Later",
-    /** False until the first-run backup choice has opened the matching setup flow. */
-    val backupPrivacyChoiceHandled: Boolean = true,
     val notificationPermissionRequested: Boolean = false,
     val activeAreaScope: String = AreaScope.All.storageKey,
     val themeMode: AppThemeMode = AppThemeMode.System,
@@ -109,8 +106,6 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         setupCompleted = preferences.getBoolean("setupCompleted", false),
         powerMode = preferences.getBoolean("powerMode", false),
         lowPressureMode = preferences.getBoolean("lowPressureMode", false),
-        backupPrivacyChoice = preferences.getString("backupPrivacyChoice", "Later") ?: "Later",
-        backupPrivacyChoiceHandled = preferences.getBoolean("backupPrivacyChoiceHandled", true),
         notificationPermissionRequested = preferences.getBoolean("notificationPermissionRequested", false),
         activeAreaScope = preferences.getString("activeAreaScope", AreaScope.All.storageKey)
             ?: AreaScope.All.storageKey,
@@ -188,8 +183,8 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .putBoolean("setupCompleted", value.setupCompleted)
             .putBoolean("powerMode", value.powerMode)
             .putBoolean("lowPressureMode", value.lowPressureMode)
-            .putString("backupPrivacyChoice", value.backupPrivacyChoice)
-            .putBoolean("backupPrivacyChoiceHandled", value.backupPrivacyChoiceHandled)
+            .remove("backupPrivacyChoice")
+            .remove("backupPrivacyChoiceHandled")
             .putBoolean("notificationPermissionRequested", value.notificationPermissionRequested)
             .putString("activeAreaScope", value.activeAreaScope)
             .putString("theme", value.themeMode.name)

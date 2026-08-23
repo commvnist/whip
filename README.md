@@ -36,8 +36,8 @@ Connect sync can be selected as a Habit or Goal source. Complete versioned
 backup/restore, optional authenticated encrypted archives, a remembered
 portable-backup folder with crash-safe verified daily copies and retention,
 per-domain CSV export, widgets, notification actions, unified search, and
-weekly/monthly reviews are included. A skippable first-run setup supports a
-focused simple start while every area remains available.
+weekly/monthly reviews are included. First-run setup supports a focused simple
+start with explicit one-tap defaults while every area remains available.
 The interface adapts live across compact phones, tablets, and folding postures.
 The Fold's flat inner display, book/tabletop postures, and other expanded
 windows use the extra pane for navigation and contextual task, day, habit,

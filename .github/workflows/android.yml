@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+env:
+  ANDROID_CMDLINE_TOOLS_VERSION: "16111833"
+  ANDROID_PLATFORM: "platforms;android-37.0"
+  ANDROID_BUILD_TOOLS: "build-tools;36.0.0"
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,8 +23,10 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: ${{ env.ANDROID_CMDLINE_TOOLS_VERSION }}
+          packages: "platform-tools ${{ env.ANDROID_PLATFORM }} ${{ env.ANDROID_BUILD_TOOLS }}"
       - uses: gradle/actions/setup-gradle@v4
-      - run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
       - run: ./scripts/check --ci
       - uses: actions/upload-artifact@v4
         with:
@@ -39,8 +46,10 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: ${{ env.ANDROID_CMDLINE_TOOLS_VERSION }}
+          packages: "platform-tools ${{ env.ANDROID_PLATFORM }} ${{ env.ANDROID_BUILD_TOOLS }}"
       - uses: gradle/actions/setup-gradle@v4
-      - run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
       - uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
@@ -58,8 +67,10 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: ${{ env.ANDROID_CMDLINE_TOOLS_VERSION }}
+          packages: "platform-tools ${{ env.ANDROID_PLATFORM }} ${{ env.ANDROID_BUILD_TOOLS }}"
       - uses: gradle/actions/setup-gradle@v4
-      - run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
       - uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35

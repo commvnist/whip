@@ -55,7 +55,7 @@ class ProductivityCreationJourneyE2ETest {
         }
         app.backupRepository.deleteAllData()
         app.settingsRepository.update {
-            it.copy(setupCompleted = true, backupPrivacyChoiceHandled = true, powerMode = false)
+            it.copy(setupCompleted = true, powerMode = false)
         }
     }
 

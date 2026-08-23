@@ -168,22 +168,29 @@ class ProductivityDefaultsUiTest {
     }
 
     @Test
-    fun optionalOnboardingChoicesAreProgressiveAndSwitchesHaveAccessibleLabels() {
+    fun onboardingKeepsBackupOutOfSetupAndMakesItsActionsExplicit() {
         val completedNotifications = AtomicReference<Boolean?>()
+        val defaultsUsed = AtomicInteger()
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 FirstRunSetupDialog(
-                    onComplete = { _: Set<HomeSection>, _, _, _, _, notifications -> completedNotifications.set(notifications) },
-                    onSkip = {},
+                    onComplete = { _: Set<HomeSection>, _, _, _, notifications -> completedNotifications.set(notifications) },
+                    onUseDefaults = { defaultsUsed.incrementAndGet() },
                 )
             }
         }
 
-        compose.onAllNodesWithText("Portable backup privacy").assertCountEquals(0)
+        compose.onNodeWithText("Start Using Whip").assertIsDisplayed()
+        compose.onNodeWithText("Use Defaults").assertIsDisplayed()
+        compose.onAllNodesWithText("Decide Later").assertCountEquals(0)
+        compose.onAllNodesWithText("Create Encrypted Backup Now").assertCountEquals(0)
+        compose.onNodeWithText("Whip stores your data locally", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Use Defaults").performClick()
+        compose.runOnIdle { assertEquals(1, defaultsUsed.get()) }
         compose.onNodeWithText("More Preferences").performClick()
-        compose.onNodeWithText("Portable Backup Privacy").assertIsDisplayed()
+        compose.onAllNodesWithText("Portable Backup Privacy").assertCountEquals(0)
         compose.onNodeWithContentDescription("I want reminder notifications").assertHasClickAction().performClick()
-        compose.onNodeWithText("Finish Setup").performClick()
+        compose.onNodeWithText("Start Using Whip").performClick()
         compose.runOnIdle { assertEquals(true, completedNotifications.get()) }
     }
 

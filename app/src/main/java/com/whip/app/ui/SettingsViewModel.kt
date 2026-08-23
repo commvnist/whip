@@ -180,26 +180,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun completeSetup(
-        selectedAreas: Set<HomeSection>,
+        selectedSections: Set<HomeSection>,
         powerMode: Boolean,
         usePounds: Boolean,
         lowPressureMode: Boolean,
-        backupPrivacyChoice: String,
     ) = update { current ->
         current.copy(
             setupCompleted = true,
             powerMode = powerMode,
             lowPressureMode = lowPressureMode,
-            backupPrivacyChoice = backupPrivacyChoice,
-            backupPrivacyChoiceHandled = backupPrivacyChoice == "Later",
-            hiddenHomeSections = HomeSection.entries.toSet() - selectedAreas,
+            hiddenHomeSections = HomeSection.entries.toSet() - selectedSections,
             massUnitId = if (usePounds) "pound" else "kilogram",
             gymWeightUnitId = if (usePounds) "pound" else "kilogram",
         )
-    }
-
-    fun markBackupPrivacyChoiceHandled() = update {
-        it.copy(backupPrivacyChoiceHandled = true)
     }
 
     fun saveTaskFilter(filter: SavedTaskFilter) = update { current ->
