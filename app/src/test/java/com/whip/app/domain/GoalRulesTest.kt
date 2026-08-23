@@ -11,7 +11,7 @@ class GoalRulesTest {
 
     @Test fun increasingAndDecreasingProgressUseBaseline() {
         assertEquals(.5, calculateGoalProgress(goal(baseline = 0.0, target = 100.0), 50.0)!!, 0.0)
-        assertEquals(.5, calculateGoalProgress(goal(baseline = 100.0, target = 80.0, direction = GoalDirection.Decrease), 90.0)!!, 0.0)
+        assertEquals(.5, calculateGoalProgress(goal(baseline = 100.0, target = 80.0, type = GoalType.ReduceValue), 90.0)!!, 0.0)
     }
 
     @Test fun baselineEqualTargetIsDefined() {
@@ -29,13 +29,41 @@ class GoalRulesTest {
 
     @Test fun paceAndForecastAreDeterministic() {
         val projection = projectGoal(
-            goal(baseline = 0.0, target = 100.0).copy(deadline = today.plusDays(100)),
+            goal(baseline = 0.0, target = 100.0).copy(
+                deadline = today.plusDays(100),
+                paceType = GoalPaceType.Linear,
+            ),
             listOf(entry(25.0, today.plusDays(25))),
             emptyList(),
             today.plusDays(25),
         )
         assertTrue(projection.onPace == true)
         assertEquals(today.plusDays(100), projection.forecastDate)
+    }
+
+    @Test fun goalTypeNormalizesCalculationDirectionAndDeadlinePace() {
+        val accumulated = GoalDraft(
+            name = "Distance",
+            type = GoalType.AccumulateTotal,
+            startDate = today,
+            aggregation = GoalAggregation.Latest,
+            direction = GoalDirection.Decrease,
+            paceType = GoalPaceType.Linear,
+        ).withTypeSemantics()
+
+        assertEquals(GoalAggregation.Sum, accumulated.aggregation)
+        assertEquals(GoalDirection.Increase, accumulated.direction)
+        assertEquals(GoalPaceType.None, accumulated.paceType)
+
+        val range = accumulated.copy(
+            type = GoalType.MaintainRange,
+            aggregation = GoalAggregation.TimeInRange,
+            deadline = today.plusMonths(1),
+            paceType = GoalPaceType.Linear,
+        ).withTypeSemantics()
+        assertEquals(GoalAggregation.TimeInRange, range.aggregation)
+        assertEquals(GoalDirection.Neutral, range.direction)
+        assertEquals(GoalPaceType.Linear, range.paceType)
     }
 
     @Test fun rollingAverageOnlyUsesConfiguredWindow() {
@@ -102,7 +130,7 @@ class GoalRulesTest {
         assertEquals(today.plusDays(90), reach.forecastDate)
 
         val reduce = buildGoalInsights(
-            goal(baseline = 100.0, target = 80.0, direction = GoalDirection.Decrease, type = GoalType.ReduceValue),
+            goal(baseline = 100.0, target = 80.0, type = GoalType.ReduceValue),
             listOf(entry(95.0, today).copy(id = "r1"), entry(90.0, today.plusDays(5)).copy(id = "r2")),
         )
         assertEquals(today.plusDays(15), reduce.forecastDate)
@@ -140,19 +168,19 @@ class GoalRulesTest {
     private fun goal(
         baseline: Double? = 0.0,
         target: Double? = 100.0,
-        direction: GoalDirection = GoalDirection.Increase,
         type: GoalType = GoalType.ReachValue,
+        direction: GoalDirection = type.defaultDirection(),
     ) = Goal(
         id = 1, uuid = "g", metricId = "m", name = "Goal", description = "", area = "",
-        tags = emptyList(), icon = "◎", colorArgb = null, type = type,
+        tags = emptyList(), icon = "◎", type = type,
         dimension = UnitDimension.Unitless, unitId = "unitless", precision = 1,
         baseline = baseline, targetMin = target, targetMax = null, direction = direction,
-        startDate = today, deadline = null, aggregation = GoalAggregation.Latest,
-        entryMode = GoalEntryMode.CurrentTotal, paceType = GoalPaceType.Linear,
+        startDate = today, deadline = null, aggregation = type.defaultAggregation(),
+        paceType = GoalPaceType.None,
         reminderMinutes = null, status = GoalStatus.Active, pinned = false, position = 0,
         createdAtMillis = 1, updatedAtMillis = 1,
     )
 
-    private fun milestone(weight: Double, completed: Boolean) = GoalMilestone(1, "ms-$weight", 1, "M", 0, weight, null, completed, null, null, "", 1, 1)
+    private fun milestone(weight: Double, completed: Boolean) = GoalMilestone(1, "ms-$weight", 1, "M", 0, weight, completed, null, "", 1, 1)
     private fun entry(value: Double, date: LocalDate) = MetricEntry("e", "m", value, value, "unitless", MetricEntryStatus.Recorded, date.atStartOfDay(java.time.ZoneOffset.UTC).toInstant(), date, "UTC", 0, MetricSourceType.Manual, null, "", 1, 1)
 }

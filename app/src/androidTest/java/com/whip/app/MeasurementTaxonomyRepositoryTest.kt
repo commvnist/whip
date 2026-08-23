@@ -106,7 +106,8 @@ class MeasurementTaxonomyRepositoryTest {
     }
 
     @Test
-    fun permanentAreaDeleteCanKeepEveryAssignedItemAsUnassigned() = runBlocking {
+    fun permanentAreaDeleteMovesEveryAssignedItemToAnotherArea() = runBlocking {
+        val mainId = areas.ensureDefaultArea()
         val areaId = areas.create("Client Delta")
         tasks.create(TaskDraft(title = "Task", areaId = areaId, area = "Client Delta"))
         habits.create(HabitDraft(name = "Habit", areaId = areaId, area = "Client Delta", startDate = FixedClock.today()))
@@ -120,18 +121,72 @@ class MeasurementTaxonomyRepositoryTest {
             ),
         )
 
-        areas.deletePermanently(areaId)
+        areas.deletePermanently(areaId, mainId)
 
-        assertTrue(areas.areas.first().isEmpty())
+        assertEquals(listOf("Main"), areas.areas.first().map { it.name })
         assertEquals(1, tasks.tasks.first().size)
-        assertEquals(null, tasks.tasks.first().single().areaId)
-        assertEquals("", tasks.tasks.first().single().area)
+        assertEquals(mainId, tasks.tasks.first().single().areaId)
+        assertEquals("Main", tasks.tasks.first().single().area)
         assertEquals(1, habits.habits.first().size)
-        assertEquals(null, habits.habits.first().single().areaId)
-        assertEquals("", habits.habits.first().single().area)
+        assertEquals(mainId, habits.habits.first().single().areaId)
+        assertEquals("Main", habits.habits.first().single().area)
         assertEquals(1, goals.goals.first().size)
-        assertEquals(null, goals.goals.first().single().areaId)
-        assertEquals("", goals.goals.first().single().area)
+        assertEquals(mainId, goals.goals.first().single().areaId)
+        assertEquals("Main", goals.goals.first().single().area)
+    }
+
+    @Test
+    fun blankAssignmentsDefaultToMainAndCanMoveBetweenAreas() = runBlocking {
+        val mainId = areas.ensureDefaultArea()
+        val personalId = areas.create("Personal")
+        tasks.create(TaskDraft(title = "Task"))
+        habits.create(HabitDraft(name = "Habit", startDate = FixedClock.today()))
+        goals.create(GoalDraft(name = "Goal", type = GoalType.OpenEndedTrend, startDate = FixedClock.today()))
+
+        assertEquals(mainId, tasks.tasks.first().single().areaId)
+        assertEquals(mainId, habits.habits.first().single().areaId)
+        assertEquals(mainId, goals.goals.first().single().areaId)
+
+        database.openHelper.writableDatabase.execSQL("UPDATE tasks SET areaId = NULL, area = ''")
+        database.openHelper.writableDatabase.execSQL("UPDATE habits SET areaId = NULL, area = ''")
+        database.openHelper.writableDatabase.execSQL("UPDATE goals SET areaId = NULL, area = ''")
+        areas.ensureDefaultArea()
+
+        assertEquals(mainId, tasks.tasks.first().single().areaId)
+        assertEquals(mainId, habits.habits.first().single().areaId)
+        assertEquals(mainId, goals.goals.first().single().areaId)
+
+        areas.moveAssignments(sourceId = mainId, targetId = personalId)
+
+        assertEquals(personalId, tasks.tasks.first().single().areaId)
+        assertEquals("Personal", tasks.tasks.first().single().area)
+        assertEquals(personalId, habits.habits.first().single().areaId)
+        assertEquals("Personal", habits.habits.first().single().area)
+        assertEquals(personalId, goals.goals.first().single().areaId)
+        assertEquals("Personal", goals.goals.first().single().area)
+        assertEquals(listOf("Main", "Personal"), areas.areas.first().map { it.name })
+
+        areas.moveAssignments(sourceId = personalId, targetId = mainId)
+
+        assertEquals(mainId, tasks.tasks.first().single().areaId)
+        assertEquals("Main", tasks.tasks.first().single().area)
+        assertEquals(mainId, habits.habits.first().single().areaId)
+        assertEquals("Main", habits.habits.first().single().area)
+        assertEquals(mainId, goals.goals.first().single().areaId)
+        assertEquals("Main", goals.goals.first().single().area)
+        assertEquals(listOf("Main", "Personal"), areas.areas.first().map { it.name })
+    }
+
+    @Test
+    fun lastActiveAreaCannotBeArchivedOrDeleted() = runBlocking {
+        val mainId = areas.ensureDefaultArea()
+
+        val archiveFailure = runCatching { areas.setArchived(mainId, true) }.exceptionOrNull()
+        val deleteFailure = runCatching { areas.deletePermanently(mainId) }.exceptionOrNull()
+
+        assertTrue(archiveFailure?.message?.contains("Create another Area") == true)
+        assertTrue(deleteFailure?.message?.contains("Create another Area") == true)
+        assertEquals(listOf("Main"), areas.areas.first().filterNot { it.archived }.map { it.name })
     }
 
     private object FixedClock : WhipClock {

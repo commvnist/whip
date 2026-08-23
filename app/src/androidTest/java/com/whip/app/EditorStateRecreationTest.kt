@@ -3,6 +3,7 @@ package com.whip.app
 import android.content.Intent
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -62,8 +63,8 @@ class EditorStateRecreationTest {
 
         pressSystemBack()
 
-        compose.onNodeWithText("Discard unsaved changes?").assertIsDisplayed()
-        compose.onNodeWithText("Keep editing").performClick()
+        compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+        compose.onNodeWithText("Keep Editing").performClick()
         compose.onNodeWithTag("task-editor-title").assertTextContains("Do not lose this")
     }
 
@@ -78,10 +79,10 @@ class EditorStateRecreationTest {
         device.wait(Until.findObject(By.text("Cancel")), 3_000).click()
 
         compose.waitUntil(3_000) {
-            compose.onAllNodesWithText("Discard unsaved changes?").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithText("Discard Unsaved Changes?").fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("Discard unsaved changes?").assertIsDisplayed()
-        compose.onNodeWithText("Discard changes").performClick()
+        compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+        compose.onNodeWithText("Discard Changes").performClick()
     }
 
     @Test fun primaryEntityEditorsRequireExplicitDiscardOnBack() = withActivity {
@@ -90,8 +91,8 @@ class EditorStateRecreationTest {
             compose.onNodeWithTag(tag).performTextInput(value)
             compose.waitForIdle()
             pressSystemBack()
-            compose.onNodeWithText("Discard unsaved changes?").assertIsDisplayed()
-            compose.onNodeWithText("Discard changes").performClick()
+            compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+            compose.onNodeWithText("Discard Changes").performClick()
         }
 
         verify("Habit", "habit-editor-name", "Protected habit")
@@ -99,19 +100,19 @@ class EditorStateRecreationTest {
         verify("Exercise", "exercise-editor-name", "Protected exercise")
 
         openGymDestination("Machines")
-        compose.onNodeWithText("Create machine profile").performScrollTo().performClick()
+        compose.onNodeWithText("Create Machine Profile").performScrollTo().performClick()
         compose.onNodeWithTag("machine-editor-name").performTextInput("Protected machine")
         compose.waitForIdle()
         pressSystemBack()
-        compose.onNodeWithText("Discard unsaved changes?").assertIsDisplayed()
-        compose.onNodeWithText("Discard changes").performClick()
+        compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+        compose.onNodeWithText("Discard Changes").performClick()
 
         openGymDestination("Routines")
-        compose.onNodeWithText("Create routine").performScrollTo().performClick()
+        compose.onNodeWithText("Create Routine").performScrollTo().performClick()
         compose.onNodeWithTag("routine-editor-name").performTextInput("Protected routine")
         compose.waitForIdle()
         pressSystemBack()
-        compose.onNodeWithText("Discard unsaved changes?").assertIsDisplayed()
+        compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
     }
 
     @Test fun dirtyHabitEditorSurvivesActivityRecreation() = withActivity {
@@ -143,13 +144,13 @@ class EditorStateRecreationTest {
         compose.onNodeWithTag("exercise-editor-name").performTextInput("Protected exercise")
         compose.waitForIdle()
         pressSystemBack()
-        compose.onNodeWithText("Discard unsaved changes?").assertIsDisplayed()
-        compose.onNodeWithText("Discard changes").performClick()
+        compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+        compose.onNodeWithText("Discard Changes").performClick()
     }
 
     @Test fun dirtyMachineEditorSurvivesActivityRecreation() = withActivity {
         openGymDestination("Machines")
-        compose.onNodeWithText("Create machine profile").performScrollTo().performClick()
+        compose.onNodeWithText("Create Machine Profile").performScrollTo().performClick()
         compose.onNodeWithTag("machine-editor-name").performTextInput("Keep machine draft")
         it.recreate()
         compose.waitForIdle()
@@ -158,7 +159,7 @@ class EditorStateRecreationTest {
 
     @Test fun dirtyRoutineEditorSurvivesActivityRecreation() = withActivity {
         openGymDestination("Routines")
-        compose.onNodeWithText("Create routine").performScrollTo().performClick()
+        compose.onNodeWithText("Create Routine").performScrollTo().performClick()
         compose.onNodeWithTag("routine-editor-name").performTextInput("Keep routine draft")
         it.recreate()
         compose.waitForIdle()
@@ -188,11 +189,11 @@ class EditorStateRecreationTest {
         device.pressBack()
         device.waitForIdle(2_000)
         compose.waitForIdle()
-        if (compose.onAllNodesWithText("Discard unsaved changes?").fetchSemanticsNodes().isEmpty()) {
+        if (compose.onAllNodesWithText("Discard Unsaved Changes?").fetchSemanticsNodes().isEmpty()) {
             device.pressBack()
             device.waitForIdle(2_000)
             compose.waitUntil(3_000) {
-                compose.onAllNodesWithText("Discard unsaved changes?").fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithText("Discard Unsaved Changes?").fetchSemanticsNodes().isNotEmpty()
             }
         }
     }
@@ -200,9 +201,23 @@ class EditorStateRecreationTest {
     private fun openGymDestination(label: String) {
         compose.onNodeWithContentDescription("Gym tab").performClick()
         if (label in setOf("Routines", "Exercises", "Machines", "Categories", "Tools")) {
-            compose.onNodeWithTag("gym-destination-library").performClick()
+            compose.onNodeWithTag("gym-destination-Library").performClick()
+            compose.onNodeWithTag("gym-library-$label").performClick()
+            compose.onNodeWithTag("gym-destination-Library").assertIsSelected()
+        } else {
+            compose.onNodeWithTag("gym-destination-$label").performClick().assertIsSelected()
         }
-        compose.onNodeWithTag("gym-destination-$label").performClick()
+        compose.waitForIdle()
+        val readyText = when (label) {
+            "Machines" -> "Create Machine Profile"
+            "Routines" -> "Create Routine"
+            else -> null
+        }
+        readyText?.let { expected ->
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithText(expected).fetchSemanticsNodes().isNotEmpty()
+            }
+        }
     }
 
     private fun withActivity(block: (ActivityScenario<MainActivity>) -> Unit) {

@@ -3,14 +3,12 @@ package com.whip.app.data
 import androidx.room.withTransaction
 import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
-import com.whip.app.domain.AvoidMissingPolicy
 import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitChecklistItem
 import com.whip.app.domain.HabitChecklistItemDraft
 import com.whip.app.domain.HabitChecklistState
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitEndType
-import com.whip.app.domain.HabitIntent
 import com.whip.app.domain.HabitLog
 import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.HabitPause
@@ -378,11 +376,10 @@ private fun validateHabit(draft: HabitDraft) {
         ) { "Enter a positive whole-number ending threshold" }
         HabitEndType.AfterTotal -> require(draft.endValue?.let { it.isFinite() && it > 0.0 } == true) { "Enter a positive ending total" }
     }
-    if (draft.intent == HabitIntent.Avoid) require(draft.avoidMissingPolicy != AvoidMissingPolicy.Unknown || draft.comparison != TargetComparison.None) { "Choose how missing avoid-habit data is handled" }
 }
 
 private fun HabitTrackingMode.metricValueKind() = when (this) {
-    HabitTrackingMode.CheckOff, HabitTrackingMode.LimitAvoid -> MetricValueKind.Boolean
+    HabitTrackingMode.CheckOff -> MetricValueKind.Boolean
     HabitTrackingMode.Count -> MetricValueKind.Integer
     HabitTrackingMode.Decimal, HabitTrackingMode.LogOnly -> MetricValueKind.Decimal
     HabitTrackingMode.Duration -> MetricValueKind.Duration
@@ -395,31 +392,30 @@ private fun HabitDraft.toEntity(
     pinned: Boolean = false, position: Int, archived: Boolean = false, paused: Boolean = false,
     createdAtMillis: Long, updatedAtMillis: Long = createdAtMillis,
 ) = HabitEntity(
-    id, uuid, metricId, name.trim(), notes.trim(), areaId, area.trim(), tags.map(String::trim).filter(String::isNotBlank).distinct().joinToString(","), icon, colorArgb, intent.name,
+    id, uuid, metricId, name.trim(), notes.trim(), areaId, area.trim(), tags.map(String::trim).filter(String::isNotBlank).distinct().joinToString(","), icon,
     trackingMode.name, dimension.name, unitId, precision, comparison.name, targetMin,
     targetMax, targetPeriod.name, rollingDays, scheduleType.name, scheduleInterval,
     weekdays.toWeekdayMask(), flexibleTimesPerWeek, startDate.toEpochDay(), endType.name,
     endDate?.takeIf { endType == HabitEndType.OnDate }?.toEpochDay(),
     endValue?.takeIf { endType in setOf(HabitEndType.AfterStreak, HabitEndType.AfterCompletions, HabitEndType.AfterTotal) },
-    timeWindowStartMinutes, timeWindowEndMinutes,
     quickIncrement, quickActions.joinToString(","), reminderMinutes.joinToString(","),
-    weekdayReminderMinutes.toReminderCsv(), weekStart.name, avoidMissingPolicy.name, timerStartedAtMillis, pinned, position,
+    weekdayReminderMinutes.toReminderCsv(), weekStart.name, timerStartedAtMillis, pinned, position,
     archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId,
 )
 
 private fun HabitEntity.toDomain() = Habit(
-    id, uuid, metricId, name, notes, areaId, area, tagsCsv.split(',').map(String::trim).filter(String::isNotBlank), icon, colorArgb, HabitIntent.valueOf(intent),
+    id, uuid, metricId, name, notes, areaId, area, tagsCsv.split(',').map(String::trim).filter(String::isNotBlank), icon,
     HabitTrackingMode.valueOf(trackingMode), UnitDimension.valueOf(dimension), unitId,
     precision, TargetComparison.valueOf(comparison), targetMin, targetMax,
     TargetPeriod.valueOf(targetPeriod), rollingDays, HabitScheduleType.valueOf(scheduleType),
     scheduleInterval, weekdaysMask.toWeekdays(), flexibleTimesPerWeek,
     LocalDate.ofEpochDay(startEpochDay), HabitEndType.valueOf(endType),
-    endEpochDay?.let(LocalDate::ofEpochDay), endValue, timeWindowStartMinutes,
-    timeWindowEndMinutes, quickIncrement, quickActionsCsv.split(',').mapNotNull(String::toDoubleOrNull),
+    endEpochDay?.let(LocalDate::ofEpochDay), endValue, quickIncrement,
+    quickActionsCsv.split(',').mapNotNull(String::toDoubleOrNull),
     reminderMinutesCsv.split(',').mapNotNull(String::toIntOrNull),
     weekdayReminderMinutesCsv.fromReminderCsv(),
-    java.time.DayOfWeek.valueOf(weekStart), AvoidMissingPolicy.valueOf(avoidMissingPolicy),
-    timerStartedAtMillis, pinned, position, archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId,
+    java.time.DayOfWeek.valueOf(weekStart), timerStartedAtMillis, pinned, position,
+    archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId,
 )
 
 private fun HabitChecklistItemEntity.toDomain() = HabitChecklistItem(id, uuid, habitId, name, position, archived, createdAtMillis, updatedAtMillis)
@@ -428,14 +424,38 @@ private fun HabitChecklistStateEntity.toDomain() = HabitChecklistState(habitId, 
 private fun HabitPauseEntity.toDomain() = HabitPause(id, habitId, LocalDate.ofEpochDay(startEpochDay), endEpochDay?.let(LocalDate::ofEpochDay), note)
 
 private fun Habit.toDraft(items: List<HabitChecklistItemEntity>) = HabitDraft(
-    name, notes, areaId, area, tags, icon, colorArgb, intent, trackingMode, dimension, unitId, precision,
-    comparison, targetMin, targetMax, targetPeriod, rollingDays, scheduleType,
-    scheduleInterval, weekdays, flexibleTimesPerWeek, startDate, endType, endDate,
-    endValue, timeWindowStartMinutes, timeWindowEndMinutes, quickIncrement, quickActions,
-    reminderMinutes, weekdayReminderMinutes, weekStart, avoidMissingPolicy,
-    items.mapIndexed { index, item ->
+    name = name,
+    notes = notes,
+    areaId = areaId,
+    area = area,
+    tags = tags,
+    icon = icon,
+    trackingMode = trackingMode,
+    dimension = dimension,
+    unitId = unitId,
+    precision = precision,
+    comparison = comparison,
+    targetMin = targetMin,
+    targetMax = targetMax,
+    targetPeriod = targetPeriod,
+    rollingDays = rollingDays,
+    scheduleType = scheduleType,
+    scheduleInterval = scheduleInterval,
+    weekdays = weekdays,
+    flexibleTimesPerWeek = flexibleTimesPerWeek,
+    startDate = startDate,
+    endType = endType,
+    endDate = endDate,
+    endValue = endValue,
+    quickIncrement = quickIncrement,
+    quickActions = quickActions,
+    reminderMinutes = reminderMinutes,
+    weekdayReminderMinutes = weekdayReminderMinutes,
+    weekStart = weekStart,
+    checklistItems = items.mapIndexed { index, item ->
         HabitChecklistItemDraft(item.name, index, id = item.id, uuid = item.uuid)
-    }, sourceMetricId,
+    },
+    sourceMetricId = sourceMetricId,
 )
 
 private fun Map<java.time.DayOfWeek, List<Int>>.toReminderCsv(): String = entries

@@ -25,8 +25,6 @@ data class TaskStepEntity(
     val title: String,
     val position: Int,
     val notes: String,
-    /** Retained in the database for backup compatibility; subtask progress is always equal-weight. */
-    val weight: Double,
     val archived: Boolean,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,

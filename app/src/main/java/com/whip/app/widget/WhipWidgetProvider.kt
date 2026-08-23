@@ -44,7 +44,7 @@ class WhipWidgetProvider : AppWidgetProvider() {
                     }
                     val scopeLabel = when (areaScope) {
                         AreaScope.All -> "All areas"
-                        AreaScope.Unassigned -> "No area"
+                        AreaScope.Unassigned -> areas.firstOrNull { !it.archived }?.name ?: "Main"
                         is AreaScope.One -> areas.firstOrNull { it.id == areaScope.areaId }?.name ?: "All areas"
                     }
                     val views = RemoteViews(context.packageName, R.layout.whip_widget).apply {

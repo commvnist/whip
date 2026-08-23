@@ -16,7 +16,6 @@ import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalDraft
-import com.whip.app.domain.GoalEntryMode
 import com.whip.app.domain.GoalMilestoneDraft
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.HabitDraft
@@ -75,8 +74,7 @@ class LinkRepositoryTest {
         val habitId = habits.create(HabitDraft(name = "Read", trackingMode = HabitTrackingMode.Count, startDate = FixedClock.today()))
         val logId = habits.log(habitId, 20.0)
         val goalId = goals.create(GoalDraft(name = "Read pages", type = GoalType.AccumulateTotal, dimension = UnitDimension.Count,
-            unitId = "count", targetMin = 1000.0, startDate = FixedClock.today(), aggregation = GoalAggregation.Sum,
-            entryMode = GoalEntryMode.AmountToAdd))
+            unitId = "count", targetMin = 1000.0, startDate = FixedClock.today(), aggregation = GoalAggregation.Sum))
         val draft = LinkRuleDraft("Reading", sourceType = LinkSourceType.Habit, sourceEntityId = habitId,
             sourceMetric = LinkSourceMetric.NumericValue, targetGoalId = goalId, retroactiveFrom = FixedClock.today())
         val preview = links.previewBackfill(draft)
@@ -128,7 +126,6 @@ class LinkRepositoryTest {
                 targetMin = 100_000.0,
                 startDate = FixedClock.today(),
                 aggregation = GoalAggregation.Sum,
-                entryMode = GoalEntryMode.AmountToAdd,
             ),
         )
         val ruleId = links.createRule(
@@ -233,8 +230,7 @@ class LinkRepositoryTest {
         val habitId = habits.create(HabitDraft(name = "Read", trackingMode = HabitTrackingMode.Count, startDate = FixedClock.today()))
         habits.log(habitId, 20.0)
         val goalId = goals.create(GoalDraft(name = "Read pages", type = GoalType.AccumulateTotal, dimension = UnitDimension.Count,
-            unitId = "count", targetMin = 1000.0, startDate = FixedClock.today(), aggregation = GoalAggregation.Sum,
-            entryMode = GoalEntryMode.AmountToAdd))
+            unitId = "count", targetMin = 1000.0, startDate = FixedClock.today(), aggregation = GoalAggregation.Sum))
         links.createRule(LinkRuleDraft("Reading", sourceType = LinkSourceType.Habit, sourceEntityId = habitId,
             sourceMetric = LinkSourceMetric.NumericValue, targetGoalId = goalId, retroactiveFrom = FixedClock.today()), commitBackfill = true)
         val contribution = links.contributions.first().single()
@@ -288,7 +284,6 @@ class LinkRepositoryTest {
                 targetMin = 8.0,
                 startDate = FixedClock.today(),
                 aggregation = GoalAggregation.Sum,
-                entryMode = GoalEntryMode.AmountToAdd,
             ),
         )
 
@@ -334,7 +329,6 @@ class LinkRepositoryTest {
                 targetMin = 10.0,
                 startDate = FixedClock.today(),
                 aggregation = GoalAggregation.Sum,
-                entryMode = GoalEntryMode.AmountToAdd,
             ),
         )
         links.createRule(

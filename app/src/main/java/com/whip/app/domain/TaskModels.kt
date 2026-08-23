@@ -60,27 +60,8 @@ enum class TaskPriority {
 
 enum class TaskEffort(val label: String) {
     Light("Light"),
-    Moderate("Moderate"),
-    Deep("Deep focus"),
-}
-
-enum class LocationTrigger {
-    Arrive,
-    Leave,
-}
-
-data class TaskLocationReminder(
-    val name: String,
-    val latitude: Double,
-    val longitude: Double,
-    val radiusMeters: Float = 150f,
-    val trigger: LocationTrigger = LocationTrigger.Arrive,
-) {
-    init {
-        require(latitude in -90.0..90.0) { "Latitude must be between -90 and 90" }
-        require(longitude in -180.0..180.0) { "Longitude must be between -180 and 180" }
-        require(radiusMeters in 100f..10_000f) { "Location radius must be 100–10,000 metres" }
-    }
+    Moderate("Medium"),
+    Deep("High"),
 }
 
 data class RecurrenceRule(
@@ -130,7 +111,6 @@ data class WhipTask(
     val tags: Set<String> = emptySet(),
     val deadline: LocalDate? = null,
     val reminderOffsetsMinutes: List<Int> = emptyList(),
-    val locationReminder: TaskLocationReminder? = null,
     val missedOccurrencePolicy: MissedOccurrencePolicy = MissedOccurrencePolicy.KeepLatest,
     /** Inbox is an explicit untriaged state, not an alias for every anytime task. */
     val inbox: Boolean = false,
@@ -231,7 +211,6 @@ data class TaskDraft(
     val tags: Set<String> = emptySet(),
     val deadline: LocalDate? = null,
     val reminderOffsetsMinutes: List<Int> = emptyList(),
-    val locationReminder: TaskLocationReminder? = null,
     val missedOccurrencePolicy: MissedOccurrencePolicy = MissedOccurrencePolicy.KeepLatest,
     val inbox: Boolean = true,
     val durationMinutes: Int? = null,
@@ -286,7 +265,6 @@ fun WhipTask.toDraft(): TaskDraft = TaskDraft(
     tags = tags,
     deadline = deadline,
     reminderOffsetsMinutes = reminderOffsetsMinutes,
-    locationReminder = locationReminder,
     missedOccurrencePolicy = missedOccurrencePolicy,
     inbox = inbox,
     durationMinutes = durationMinutes,

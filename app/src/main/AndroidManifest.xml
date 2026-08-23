@@ -2,9 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.health.READ_WEIGHT" />
     <uses-permission android:name="android.permission.health.READ_STEPS" />
@@ -64,12 +61,6 @@
             </intent-filter>
         </activity-alias>
         <receiver android:name=".reminders.ReminderActionReceiver" android:exported="false" />
-        <receiver android:name=".reminders.LocationReminderReceiver" android:exported="false" />
-        <receiver android:name=".reminders.LocationReminderBootReceiver" android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
         <receiver android:name=".reminders.HabitReminderActionReceiver" android:exported="false" />
         <receiver android:name=".reminders.GoalReminderActionReceiver" android:exported="false" />
         <receiver

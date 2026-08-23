@@ -1,19 +1,22 @@
 package com.whip.app.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +30,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import com.whip.app.core.ReviewPeriod
 import com.whip.app.core.HomeSection
 import com.whip.app.core.SavedReviewFilter
@@ -120,17 +125,41 @@ fun ReviewDialog(
             }
         }
     }
+    val hasReviewData = signals.any { signal -> signal.values.any { it != 0.0 } }
 
-    PaneAwareAlertDialog(
-        modifier = dialogModifier,
-        onDismissRequest = onDismiss,
-        title = { Text("Review and trends") },
-        text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    BackHandler(onBack = onDismiss)
+    WhipFullScreenSurface(title = "Review & Trends") {
+        Column(Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onDismiss, modifier = Modifier.semantics { contentDescription = "Close Review & Trends" }) {
+                    Icon(Icons.Outlined.Close, contentDescription = null)
+                }
+                WhipPageHeader(
+                    title = "Review & Trends",
+                    supportingText = "Understand progress across your selected period and open any section for details.",
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            HorizontalDivider()
+            LazyColumn(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp, 16.dp, 20.dp, 96.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 productivityAreaLabel?.let { label -> item {
                     Text("Productivity: $label · Gym: All data", style = MaterialTheme.typography.labelLarge)
                     Text("Gym is shown for context but excluded from scoped cross-domain correlations.", style = MaterialTheme.typography.bodySmall)
                 } }
+                if (!hasReviewData) item {
+                    WhipEmptyState(
+                        title = "Nothing Recorded Yet",
+                        supportingText = "Complete a task, check in a habit, record goal progress, or finish a workout. Review & Trends will build from those entries.",
+                    )
+                }
                 item {
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
@@ -138,29 +167,20 @@ fun ReviewDialog(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         ReviewPeriod.entries.forEach { value ->
-                            FilterChip(value == period, { onPeriodChange(value) }, { Text(value.name) })
+                            WhipFilterChip(value == period, { onPeriodChange(value) }, { Text(value.name) })
                         }
                     }
                     Text("$start – $through", style = MaterialTheme.typography.bodySmall)
                 }
-                if (signals.all { signal -> signal.values.all { it == 0.0 } }) {
-                    item {
-                        Text("Nothing recorded in this period yet", fontWeight = FontWeight.Bold)
-                        Text(
-                            "Complete a task, check in a habit, record a goal measurement, or finish a workout. Your review will build from those entries.",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                }
-                item {
-                    Text("Included sections", fontWeight = FontWeight.Bold)
+                if (hasReviewData) item {
+                    Text("Included Sections", fontWeight = FontWeight.Bold)
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         HomeSection.entries.forEach { section ->
-                            FilterChip(
+                            WhipFilterChip(
                                 selected = section in sections,
                                 onClick = {
                                     val changed = if (section in sections) sections - section else sections + section
@@ -176,18 +196,18 @@ fun ReviewDialog(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            FilterChip(selectedFilterName == null, { onSelectFilter(null) }, { Text("Custom") })
+                            WhipFilterChip(selectedFilterName == null, { onSelectFilter(null) }, { Text("Custom") })
                             savedFilters.forEach { filter ->
-                                FilterChip(selectedFilterName == filter.name, { onSelectFilter(filter.name) }, { Text(filter.name) })
+                                WhipFilterChip(selectedFilterName == filter.name, { onSelectFilter(filter.name) }, { Text(filter.name) })
                             }
                         }
                         selectedFilterName?.let { name ->
-                            TextButton(onClick = { onDeleteFilter(name) }) { Text("Delete “$name”") }
+                            WhipTextButton(onClick = { onDeleteFilter(name) }) { Text("Delete “$name”") }
                         }
                     }
-                    TextButton(onClick = { saveFilterOpen = true }) { Text("Save review filter") }
+                    WhipTextButton(onClick = { saveFilterOpen = true }) { Text("Save Review Filter") }
                 }
-                allSignals.filter { it.first in sections }.forEach { (section, signal) ->
+                if (hasReviewData) allSignals.filter { it.first in sections }.forEach { (section, signal) ->
                     item {
                         Row(
                             Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClickLabel = "Open ${signal.name} details") { onDrillDown(section) }.padding(vertical = 6.dp),
@@ -211,8 +231,8 @@ fun ReviewDialog(
                         )
                     }
                 }
-                item {
-                    Text("30-day correlations", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                if (hasReviewData) item {
+                    Text("30-Day Correlations", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text("Correlation is an association, not evidence that one activity caused another. At least 7 observed days per series are required.", style = MaterialTheme.typography.bodySmall)
                     if (correlations.isEmpty()) Text("Not enough observations yet.", modifier = Modifier.padding(top = 6.dp))
                     correlations.forEach { (left, right, result) ->
@@ -220,16 +240,15 @@ fun ReviewDialog(
                     }
                 }
             }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-    )
+        }
+    }
     if (saveFilterOpen) {
         AlertDialog(
             onDismissRequest = { saveFilterOpen = false },
-            title = { Text("Save review filter") },
+            title = { Text("Save Review Filter") },
             text = { OutlinedTextField(filterName, { filterName = it }, label = { Text("Filter name") }) },
             confirmButton = {
-                TextButton(
+                WhipTextButton(
                     enabled = filterName.isNotBlank(),
                     onClick = {
                         onSaveFilter(SavedReviewFilter(filterName.trim(), sections))
@@ -238,7 +257,7 @@ fun ReviewDialog(
                     },
                 ) { Text("Save") }
             },
-            dismissButton = { TextButton(onClick = { saveFilterOpen = false }) { Text("Cancel") } },
+            dismissButton = { WhipTextButton(onClick = { saveFilterOpen = false }) { Text("Cancel") } },
         )
     }
 }

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,10 +23,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -43,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ChevronRight
 import com.whip.app.domain.RecurrenceEnd
 import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.RecurrenceAnchor
@@ -69,12 +67,15 @@ fun SectionHeading(title: String, count: Int, onClick: (() -> Unit)? = null) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHighest) {
-            Text(
-                count.toString(),
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                style = MaterialTheme.typography.labelMedium,
-            )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainerHighest) {
+                Text(
+                    count.toString(),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+            if (onClick != null) Icon(Icons.Outlined.ChevronRight, contentDescription = null)
         }
     }
 }
@@ -92,7 +93,7 @@ fun TaskRow(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = when {
                 completed -> MaterialTheme.colorScheme.surfaceContainerLow
@@ -122,6 +123,13 @@ fun TaskRow(
                     if (selectionMode) onSelectionToggle?.invoke() else onComplete?.invoke()
                 },
                 enabled = if (selectionMode) onSelectionToggle != null else onComplete != null,
+                modifier = Modifier.semantics {
+                    contentDescription = if (selectionMode) {
+                        if (selected) "Deselect task ${item.task.title}" else "Select task ${item.task.title}"
+                    } else if (completed) {
+                        "Task ${item.task.title} completed"
+                    } else "Complete task ${item.task.title}"
+                },
             )
             Column(modifier = Modifier.weight(1f)) {
                 Row(
@@ -138,7 +146,7 @@ fun TaskRow(
                     )
                     if (item.isOverdue) {
                         Surface(
-                            shape = CircleShape,
+                            shape = MaterialTheme.shapes.small,
                             color = MaterialTheme.colorScheme.errorContainer,
                         ) {
                             Text(
@@ -254,6 +262,11 @@ fun TaskActionsDialog(
                                 onCheckedChange = { checked ->
                                     onToggleSubtask(subtask.step.id, checked)
                                 },
+                                modifier = Modifier.semantics {
+                                    contentDescription = if (subtask.completed) {
+                                        "Mark subtask ${subtask.step.title} incomplete"
+                                    } else "Complete subtask ${subtask.step.title}"
+                                },
                             )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
@@ -271,7 +284,7 @@ fun TaskActionsDialog(
                                     )
                                 }
                             }
-                            TextButton(enabled = !item.task.archived, onClick = { onPromoteSubtask(subtask.step.id) }) {
+                            WhipTextButton(enabled = !item.task.archived, onClick = { onPromoteSubtask(subtask.step.id) }) {
                                 Text("Promote")
                             }
                         }
@@ -279,8 +292,8 @@ fun TaskActionsDialog(
                     Spacer(Modifier.height(6.dp))
                     }
                     if (!item.task.archived) {
-                    TextButton(onClick = onComplete, modifier = Modifier.fillMaxWidth()) {
-                        Text("Complete", modifier = Modifier.fillMaxWidth())
+                    WhipTextButton(onClick = onComplete, modifier = Modifier.fillMaxWidth()) {
+                        Text("Complete")
                     }
                     }
                 }
@@ -288,47 +301,51 @@ fun TaskActionsDialog(
                     if (item.task.scheduleKind == ScheduleKind.Recurring) {
                         SeriesHistory(
                             occurrences = occurrenceHistory,
-                            scheduleExplanation = item.task.seriesScheduleExplanation(),
+                            scheduleExplanation = item.task.scheduleExplanation(),
                             actionsEnabled = !item.task.archived,
                             onReopenOccurrence = onReopenOccurrence,
                             onResetOccurrence = onResetOccurrence,
                         )
-                    } else Text(item.task.seriesScheduleExplanation())
-                    if (!item.task.archived && item.scheduledDate != null) {
-                        TextButton(onClick = onReschedule, modifier = Modifier.fillMaxWidth()) {
+                    } else Text(item.task.scheduleExplanation())
+                    if (!item.task.archived) {
+                        WhipTextButton(onClick = onReschedule, modifier = Modifier.fillMaxWidth()) {
                             Text(
-                                if (item.task.scheduleKind == ScheduleKind.Recurring) "Move this occurrence" else "Change due date",
+                                when (item.task.scheduleKind) {
+                                    ScheduleKind.Anytime -> "Choose a Date"
+                                    ScheduleKind.Once -> "Change Due Date"
+                                    ScheduleKind.Recurring -> "Move This Occurrence"
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
                     }
                     if (!item.task.archived && item.task.scheduleKind == ScheduleKind.Recurring) {
-                        TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
-                            Text("Skip this occurrence", modifier = Modifier.fillMaxWidth())
+                        WhipTextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
+                            Text("Skip This Occurrence")
                         }
                     }
                 }
                 if (section == TaskDetailSection.More) {
                     if (!item.task.archived) {
-                        TextButton(onClick = onPin, modifier = Modifier.fillMaxWidth()) {
-                            Text(if (item.task.pinned) "Unpin from Home" else "Pin to Home", modifier = Modifier.fillMaxWidth())
+                        WhipTextButton(onClick = onPin, modifier = Modifier.fillMaxWidth()) {
+                            Text(if (item.task.pinned) "Unpin from Home" else "Pin to Home")
                         }
-                        TextButton(onClick = onDuplicate, modifier = Modifier.fillMaxWidth()) {
-                            Text("Duplicate to Inbox", modifier = Modifier.fillMaxWidth())
+                        WhipTextButton(onClick = onDuplicate, modifier = Modifier.fillMaxWidth()) {
+                            Text("Duplicate to Inbox")
                         }
                         if (item.task.scheduleKind == ScheduleKind.Anytime) {
-                            TextButton(onClick = onToggleInbox, modifier = Modifier.fillMaxWidth()) {
-                                Text(if (item.task.inbox) "Mark triaged" else "Move to Inbox", modifier = Modifier.fillMaxWidth())
+                            WhipTextButton(onClick = onToggleInbox, modifier = Modifier.fillMaxWidth()) {
+                                Text(if (item.task.inbox) "Mark Triaged" else "Move to Inbox")
                             }
                         }
-                        Text("Focus timer", style = MaterialTheme.typography.labelMedium)
+                        Text("Focus Timer", style = MaterialTheme.typography.labelMedium)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf(15, 25, 45, 60).forEach { minutes ->
-                                OutlinedButton(onClick = { onStartFocus(minutes) }) { Text("$minutes min") }
+                                WhipOutlinedButton(onClick = { onStartFocus(minutes) }) { Text("$minutes min") }
                             }
                         }
                     }
-                    TextButton(onClick = onArchive, modifier = Modifier.fillMaxWidth()) {
+                    WhipTextButton(onClick = onArchive, modifier = Modifier.fillMaxWidth()) {
                         Text(
                             if (item.task.archived) "Restore task" else if (item.task.scheduleKind == ScheduleKind.Recurring) "Stop series (archive)" else "Archive task",
                             modifier = Modifier.fillMaxWidth(),
@@ -336,7 +353,7 @@ fun TaskActionsDialog(
                         )
                     }
                     HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
-                    TextButton(onClick = onDeletePermanently, modifier = Modifier.fillMaxWidth()) {
+                    WhipTextButton(onClick = onDeletePermanently, modifier = Modifier.fillMaxWidth()) {
                         Text(
                             if (item.task.scheduleKind == ScheduleKind.Recurring) "Delete entire series permanently" else "Delete permanently",
                             modifier = Modifier.fillMaxWidth(),
@@ -346,7 +363,7 @@ fun TaskActionsDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        confirmButton = { WhipTextButton(onClick = onDismiss) { Text("Close") } },
         dismissButton = {
             DetailEditButton(
                 if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit this and future" else "Edit task",
@@ -359,7 +376,7 @@ fun TaskActionsDialog(
 private enum class TaskDetailSection(val label: String) {
     Overview("Overview"),
     Schedule("Schedule"),
-    More("More"),
+    More("Options"),
 }
 
 @Composable
@@ -391,7 +408,7 @@ fun CompletedTaskDialog(
                         "This task is complete. You can put it back on your list."
                     },
                 )
-                TextButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
+                WhipTextButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit this and future" else "Edit task",
                         modifier = Modifier.fillMaxWidth(),
@@ -400,7 +417,7 @@ fun CompletedTaskDialog(
                 if (item.task.scheduleKind == ScheduleKind.Recurring) {
                     SeriesHistory(
                         occurrences = occurrenceHistory,
-                        scheduleExplanation = item.task.seriesScheduleExplanation(),
+                        scheduleExplanation = item.task.scheduleExplanation(),
                         actionsEnabled = true,
                         onReopenOccurrence = onReopenOccurrence,
                         onResetOccurrence = onResetOccurrence,
@@ -409,10 +426,10 @@ fun CompletedTaskDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onReopen) {
+            WhipTextButton(onClick = onReopen) {
                 Text(
                     if (item.task.scheduleKind == ScheduleKind.Recurring) {
-                        "Reopen occurrence"
+                        "Reopen Occurrence"
                     } else {
                         "Reopen"
                     },
@@ -420,12 +437,12 @@ fun CompletedTaskDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDeletePermanently) {
+            WhipTextButton(onClick = onDeletePermanently) {
                 Text(
                     if (item.task.scheduleKind == ScheduleKind.Recurring) {
-                        "Delete entire series"
+                        "Delete Entire Series"
                     } else {
-                        "Delete permanently"
+                        "Delete Permanently"
                     },
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -444,7 +461,7 @@ private fun SeriesHistory(
 ) {
     var visibleCount by rememberSaveable { mutableIntStateOf(SERIES_HISTORY_PAGE_SIZE) }
     Text(
-        "Series history",
+        "Series History",
         style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(top = 6.dp),
@@ -486,25 +503,25 @@ private fun SeriesHistory(
             }
             if (actionsEnabled) {
                 when (occurrence.state) {
-                    OccurrenceState.Completed -> TextButton(
+                    OccurrenceState.Completed -> WhipTextButton(
                         onClick = { onReopenOccurrence(occurrence) },
                     ) { Text("Reopen") }
-                    OccurrenceState.Skipped -> TextButton(
+                    OccurrenceState.Skipped -> WhipTextButton(
                         onClick = { onResetOccurrence(occurrence) },
-                    ) { Text("Undo skip") }
+                    ) { Text("Undo Skip") }
                     OccurrenceState.Open -> if (occurrence.scheduledDate != occurrence.originalDate) {
-                        TextButton(onClick = { onResetOccurrence(occurrence) }) { Text("Reset date") }
+                        WhipTextButton(onClick = { onResetOccurrence(occurrence) }) { Text("Reset Date") }
                     }
                 }
             }
         }
     }
     if (visibleCount < occurrences.size) {
-        TextButton(
+        WhipTextButton(
             onClick = { visibleCount = (visibleCount + SERIES_HISTORY_PAGE_SIZE).coerceAtMost(occurrences.size) },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Show ${minOf(SERIES_HISTORY_PAGE_SIZE, occurrences.size - visibleCount)} more · ${occurrences.size - visibleCount} remaining")
+            Text("Show ${minOf(SERIES_HISTORY_PAGE_SIZE, occurrences.size - visibleCount)} More · ${occurrences.size - visibleCount} Remaining")
         }
     }
 }
@@ -523,8 +540,8 @@ fun PermanentTaskDeleteDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                if (recurring) "Delete “${item.task.title}” series permanently?"
-                else "Delete “${item.task.title}” permanently?",
+                if (recurring) "Delete “${item.task.title}” Series Permanently?"
+                else "Delete “${item.task.title}” Permanently?",
             )
         },
         text = {
@@ -548,15 +565,15 @@ fun PermanentTaskDeleteDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            WhipTextButton(
                 enabled = impact?.taskId == item.task.id && impact.exists,
                 onClick = onConfirm,
             ) {
-                Text("Delete permanently", color = MaterialTheme.colorScheme.error)
+                Text("Delete Permanently", color = MaterialTheme.colorScheme.error)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            WhipTextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
 }
@@ -582,7 +599,6 @@ private fun ScheduledTask.detailLabel(completed: Boolean): String {
     task.durationMinutes?.let { parts += "$it min" }
     if (task.durationMinutes != null) parts += task.effort.label
     if (task.tags.isNotEmpty()) parts += task.tags.joinToString(prefix = "#", separator = " #")
-    task.locationReminder?.let { parts += "${it.trigger.name} ${it.name}" }
     if (task.scheduleKind == ScheduleKind.Recurring) parts += task.repeatLabel()
     if (task.inbox) parts += "Inbox"
     else if (task.scheduleKind == ScheduleKind.Anytime && parts.isEmpty()) parts += "Anytime"
@@ -617,8 +633,15 @@ private fun WhipTask.repeatLabel(): String {
     }
 }
 
-private fun WhipTask.seriesScheduleExplanation(): String {
-    val rule = requireNotNull(recurrence)
+private fun WhipTask.scheduleExplanation(): String {
+    if (scheduleKind == ScheduleKind.Anytime) {
+        return "This task has no date. Choose a date when you are ready to schedule it."
+    }
+    if (scheduleKind == ScheduleKind.Once) {
+        return date?.let { "Due ${it.format(shortDateFormatter)}." }
+            ?: "This task does not currently have a due date."
+    }
+    val rule = requireNotNull(recurrence) { "Recurring tasks require a recurrence rule" }
     val cadence = when {
         rule.unit == RecurrenceUnit.Days && rule.interval == 1 -> "each day"
         rule.unit == RecurrenceUnit.Days -> "every ${rule.interval} days from ${rule.startDate.format(shortDateFormatter)}"

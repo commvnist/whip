@@ -1,10 +1,14 @@
 package com.whip.app.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import android.content.Intent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,29 +24,22 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -66,15 +63,17 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
+import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.ChevronLeft
@@ -136,6 +135,8 @@ import com.whip.app.domain.steppedNumericValue
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.core.PlatePreset
 import com.whip.app.core.OperationStatus
+import com.whip.app.core.DEFAULT_REST_TIMER_PRESET_SECONDS
+import com.whip.app.core.normalizeRestTimerPresets
 import java.text.NumberFormat
 import java.io.Serializable
 import java.time.LocalDate
@@ -146,6 +147,8 @@ import java.time.format.FormatStyle
 import java.util.Locale
 import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.whip.app.data.MachineDeletionImpact
 import com.whip.app.domain.RoutineEquipmentBindingState
 import com.whip.app.domain.equipmentScopeKey
@@ -154,6 +157,7 @@ enum class GymDestination {
     Workout,
     History,
     Progress,
+    Library,
     Routines,
     Exercises,
     Machines,
@@ -165,11 +169,28 @@ internal val primaryGymDestinations = listOf(
     GymDestination.Workout,
     GymDestination.History,
     GymDestination.Progress,
+    GymDestination.Library,
 )
 
 internal val libraryGymDestinations = GymDestination.entries.filterNot(primaryGymDestinations::contains)
 
 private enum class WorkoutHistoryRange { Month, ThreeMonths, Year, All }
+
+private enum class ExerciseLibrarySort(val label: String) {
+    Name("Name"),
+    RecentlyUsed("Recently Used"),
+    RecentlyAdded("Recently Added"),
+    FavoritesFirst("Favorites First"),
+}
+
+private const val MACHINE_EQUIPMENT_FILTER = "__machine__"
+
+private fun WorkoutHistoryRange.uiLabel(): String = when (this) {
+    WorkoutHistoryRange.Month -> "1 Month"
+    WorkoutHistoryRange.ThreeMonths -> "3 Months"
+    WorkoutHistoryRange.Year -> "1 Year"
+    WorkoutHistoryRange.All -> "All Time"
+}
 
 @Composable
 fun GymAreaContent(
@@ -188,6 +209,8 @@ fun GymAreaContent(
     operationStatus: OperationStatus = OperationStatus.Idle,
     initialDestination: GymDestination = GymDestination.Workout,
     onDestinationChange: (GymDestination) -> Unit = {},
+    requestedWorkoutExerciseId: Long? = null,
+    onRequestedWorkoutExerciseConsumed: () -> Unit = {},
 ) {
     if (state.loading || state.errorMessage != null) {
         DomainLoadContent("gym data", innerPadding, state.errorMessage, viewModel::retryLoading)
@@ -197,7 +220,6 @@ fun GymAreaContent(
     val machineDeletionImpact by viewModel.machineDeletionImpact.collectAsStateWithLifecycle()
     val machineDeletionInProgress by viewModel.machineDeletionInProgress.collectAsStateWithLifecycle()
     var destination by rememberSaveable(initialDestination) { mutableStateOf(initialDestination) }
-    var libraryDestinationsOpen by rememberSaveable { mutableStateOf(initialDestination in libraryGymDestinations) }
     var exerciseEditorId by rememberSaveable { mutableStateOf<Long?>(null) }
     var creatingExercise by rememberSaveable { mutableStateOf(false) }
     var addCreatedExerciseToSession by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -212,6 +234,7 @@ fun GymAreaContent(
     var editedSetId by rememberSaveable { mutableStateOf<Long?>(null) }
     var exerciseNotesEditorId by rememberSaveable { mutableStateOf<Long?>(null) }
     var focusedWorkoutId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var historyWorkoutEditorId by rememberSaveable { mutableStateOf<Long?>(null) }
     var focusedRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
     var exerciseDeleteCandidateId by rememberSaveable { mutableStateOf<Long?>(null) }
     var workoutDeleteCandidateId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -240,6 +263,7 @@ fun GymAreaContent(
         state.activeWorkoutExercises.firstOrNull { it.workoutExercise.id == set.workoutExerciseId }?.let { set to it }
     }
     val workoutDeleteCandidate = workoutDeleteCandidateId?.let { id -> state.allSessions.firstOrNull { it.id == id } }
+    val historyWorkoutEditor = historyWorkoutEditorId?.let { id -> state.history.firstOrNull { it.id == id } }
     val routineDeleteCandidate = routineDeleteCandidateId?.let { id -> (state.routines + state.archivedRoutines).firstOrNull { it.id == id } }
     fun closeCatalogEditors() {
         creatingMachine = false
@@ -314,11 +338,12 @@ fun GymAreaContent(
         view.keepScreenOn = shouldKeepAwake
         onDispose { view.keepScreenOn = false }
     }
-    val destinationBringIntoView = remember { BringIntoViewRequester() }
     LaunchedEffect(destination) {
         onDestinationChange(destination)
-        if (destination in libraryGymDestinations) libraryDestinationsOpen = true
-        destinationBringIntoView.bringIntoView()
+    }
+    BackHandler(enabled = destination in libraryGymDestinations && !routineEditorOpen) {
+        destination = GymDestination.Library
+        focusedRoutineId = null
     }
 
     Column(
@@ -326,54 +351,39 @@ fun GymAreaContent(
             .fillMaxSize()
             .padding(innerPadding),
     ) {
-        if (!routineEditorOpen) FlowRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            primaryGymDestinations.forEach { tab ->
-                FilterChip(
-                    selected = destination == tab,
-                    modifier = Modifier
-                        .testTag("gym-destination-${tab.name}")
-                        .then(if (destination == tab) Modifier.bringIntoViewRequester(destinationBringIntoView) else Modifier),
-                    onClick = {
-                        destination = tab
-                        focusedWorkoutId = null
-                        focusedRoutineId = null
-                    },
-                    label = { Text(tab.name) },
-                )
-            }
-            FilterChip(
-                selected = libraryDestinationsOpen || destination in libraryGymDestinations,
-                onClick = { libraryDestinationsOpen = !libraryDestinationsOpen },
-                label = { Text("Library") },
-                modifier = Modifier.testTag("gym-destination-library"),
-            )
-            if (libraryDestinationsOpen || destination in libraryGymDestinations) {
-                libraryGymDestinations.forEach { tab ->
-                    FilterChip(
-                        selected = destination == tab,
-                        modifier = Modifier
-                            .testTag("gym-destination-${tab.name}")
-                            .then(if (destination == tab) Modifier.bringIntoViewRequester(destinationBringIntoView) else Modifier),
-                        onClick = {
-                            destination = tab
-                            focusedWorkoutId = null
-                            focusedRoutineId = null
-                        },
-                        label = { Text(tab.name) },
-                    )
+        if (!routineEditorOpen) DestinationTabBar(
+            selected = destination.takeUnless { it in libraryGymDestinations } ?: GymDestination.Library,
+            destinations = primaryGymDestinations,
+            onSelect = {
+                destination = it
+                focusedWorkoutId = null
+                focusedRoutineId = null
+            },
+            label = GymDestination::name,
+            testTagPrefix = "gym-destination",
+        )
+        if (!routineEditorOpen && destination in libraryGymDestinations) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                WhipTextButton(
+                    onClick = { destination = GymDestination.Library },
+                    modifier = Modifier.testTag("gym-library-child-${destination.name}"),
+                ) {
+                    Icon(Icons.Outlined.ChevronLeft, contentDescription = null)
+                    Text("Back to Library")
                 }
             }
         }
         when (destination) {
+            GymDestination.Library -> GymLibraryLanding(onOpen = { destination = it })
             GymDestination.Workout -> WorkoutContent(
                 state = state,
+                requestedWorkoutExerciseId = requestedWorkoutExerciseId,
+                onRequestedWorkoutExerciseConsumed = onRequestedWorkoutExerciseConsumed,
                 onStart = { showStartWorkout = true },
+                onCreateExercise = { creatingExercise = true },
                 onEditWorkout = { showEditWorkout = true },
                 onAddExercise = { showExercisePicker = true },
                 onAddSet = viewModel::addSet,
@@ -382,8 +392,8 @@ fun GymAreaContent(
                 onCompleteSet = { id, completed ->
                     viewModel.completeSet(id, completed)
                 },
-                onSaveQuickSet = { id, workoutExerciseId, draft, addNext ->
-                    viewModel.saveQuickSet(id, workoutExerciseId, draft, addNext)
+                onSaveQuickSet = { id, workoutExerciseId, draft, addNext, restOverrideSeconds ->
+                    viewModel.saveQuickSet(id, workoutExerciseId, draft, addNext, restOverrideSeconds)
                 },
                 onDuplicateSet = viewModel::duplicateSet,
                 onDeleteSet = viewModel::deleteSet,
@@ -403,11 +413,11 @@ fun GymAreaContent(
                 },
                 onAdjustTimer = viewModel::adjustRestTimer,
                 onStopTimer = viewModel::stopRestTimer,
+                onRestTimerPresetsChange = viewModel::updateRestTimerPresets,
                 onGroupExercises = { showGroupDialog = true },
             )
             GymDestination.Exercises -> ExerciseLibraryContent(
-                exercises = state.exercises,
-                archived = state.archivedExercises,
+                state = state,
                 onCreate = { creatingExercise = true },
                 onOpen = { exerciseActionsId = it.id },
                 onEdit = { exerciseEditorId = it.id },
@@ -415,30 +425,41 @@ fun GymAreaContent(
             GymDestination.Machines -> MachineLibraryContent(
                 state = state,
                 onCreate = { creatingMachine = true },
+                onCreateExercise = { creatingExercise = true },
                 onEdit = { machineEditorId = it.id },
                 onArchive = viewModel::setMachineArchived,
                 onNewVersion = { machineVersionSourceId = it.id },
                 onDelete = { viewModel.previewMachineDeletion(it.id) },
             )
-            GymDestination.Categories -> ExerciseCategoryContent(state, viewModel)
+            GymDestination.Categories -> ExerciseCategoryContent(state, viewModel, dialogModifier)
             GymDestination.History -> WorkoutHistoryContent(
                 history = state.history,
                 state = state,
                 onCopy = viewModel::duplicateWorkout,
                 onResume = viewModel::resumeWorkout,
+                onEditDetails = { historyWorkoutEditorId = it.id },
+                onOpenActiveWorkout = { destination = GymDestination.Workout },
                 onSaveAsRoutine = viewModel::saveWorkoutAsRoutine,
                 onCopyExercise = viewModel::copyWorkoutExercise,
                 onShare = { session -> shareWorkout(context, session, state) },
                 onRestore = viewModel::restoreWorkout,
                 onDelete = { workoutDeleteCandidateId = it.id },
                 focusedWorkoutId = focusedWorkoutId,
+                dialogModifier = dialogModifier,
             )
-            GymDestination.Progress -> GymProgressContent(state, viewModel)
+            GymDestination.Progress -> GymProgressContent(
+                state,
+                viewModel,
+                onOpenExercises = { destination = GymDestination.Exercises },
+                onOpenWorkout = { destination = GymDestination.Workout },
+                dialogModifier = dialogModifier,
+            )
             GymDestination.Routines -> RoutineContent(
                 state = state,
                 viewModel = viewModel,
                 focusedRoutineId = focusedRoutineId,
                 onDeleteRequest = { routineDeleteCandidateId = it.id },
+                onOpenActiveWorkout = { destination = GymDestination.Workout },
                 dialogModifier = dialogModifier,
                 onEditorStateChange = { open ->
                     routineEditorOpen = open
@@ -449,17 +470,25 @@ fun GymAreaContent(
                 state,
                 onSavePreset = viewModel::savePlatePreset,
                 onDeletePreset = viewModel::deletePlatePreset,
+                dialogModifier = dialogModifier,
             )
         }
     }
 
     if (creatingMachine || machineEditor != null || machineVersionSource != null) {
         MachineEditorDialog(
+            modifier = dialogModifier,
             machine = machineVersionSource ?: machineEditor,
             exercises = if (machineEditor == null) state.exercises else state.exercises + state.archivedExercises,
             definitionLocked = machineVersionSource == null && machineEditor?.let { selected -> state.allWorkoutExercises.any { it.machineId == selected.id } } == true,
             creatingVersion = machineVersionSource != null,
             initialExerciseId = inlineMachineExerciseId,
+            onCreateVersion = machineEditor?.takeIf { selected -> state.allWorkoutExercises.any { it.machineId == selected.id } }?.let { selected ->
+                {
+                    machineEditorId = null
+                    machineVersionSourceId = selected.id
+                }
+            },
             saving = catalogSavePending,
             onDismiss = {
                 closeCatalogEditors()
@@ -511,6 +540,7 @@ fun GymAreaContent(
 
     exerciseNotesEditor?.let { item ->
         WorkoutExerciseNotesDialog(
+            modifier = dialogModifier,
             exerciseName = item.exercise.name,
             initialNotes = item.workoutExercise.notes,
             machines = state.machines.filter { it.exerciseId == item.exercise.id },
@@ -534,6 +564,7 @@ fun GymAreaContent(
 
     exerciseActions?.let { exercise ->
         ExerciseActionsDialog(
+            modifier = dialogModifier,
             exercise = exercise,
             onDismiss = { exerciseActionsId = null },
             onEdit = {
@@ -565,7 +596,8 @@ fun GymAreaContent(
         val setCount = state.allSets.count { it.workoutExerciseId in placementIds }
         val routineCount = state.routineExercises.count { it.exerciseId == exercise.id }
         PermanentDeleteDialog(
-            title = "Delete ${exercise.name} permanently?",
+            modifier = dialogModifier,
+            title = "Delete ${exercise.name} Permanently?",
             impacts = listOf(
                 "${placements.size} workout entr${if (placements.size == 1) "y" else "ies"} and $setCount set${if (setCount == 1) "" else "s"} will be removed from history",
                 "$routineCount routine placement${if (routineCount == 1) "" else "s"} and affected graph presets will be updated",
@@ -581,7 +613,8 @@ fun GymAreaContent(
         val placementIds = placements.mapTo(mutableSetOf()) { it.id }
         val setCount = state.allSets.count { it.workoutExerciseId in placementIds }
         PermanentDeleteDialog(
-            title = "Delete ${workout.name.ifBlank { "workout" }} permanently?",
+            modifier = dialogModifier,
+            title = "Delete ${workout.name.ifBlank { "Workout" }} Permanently?",
             impacts = listOf(
                 "${placements.size} exercise entr${if (placements.size == 1) "y" else "ies"} and $setCount set${if (setCount == 1) "" else "s"} will be removed",
                 "Personal records, goal contributions, and workout automations will be recalculated",
@@ -598,7 +631,8 @@ fun GymAreaContent(
         val exerciseCount = state.routineExercises.count { it.routineDayId in dayIds }
         val historyCount = state.allSessions.count { it.sourceRoutineId == routine.id }
         PermanentDeleteDialog(
-            title = "Delete ${routine.name} permanently?",
+            modifier = dialogModifier,
+            title = "Delete ${routine.name} Permanently?",
             impacts = listOf(
                 "${days.size} template day${if (days.size == 1) "" else "s"} and $exerciseCount planned exercise entr${if (exerciseCount == 1) "y" else "ies"} will be removed",
                 "$historyCount completed workout${if (historyCount == 1) "" else "s"} created from it will be preserved as ordinary history",
@@ -610,6 +644,7 @@ fun GymAreaContent(
 
     machineDeletionImpact?.let { impact ->
         MachinePermanentDeleteDialog(
+            modifier = dialogModifier,
             impact = impact,
             onDismiss = viewModel::dismissMachineDeletion,
             onConfirm = viewModel::confirmMachineDeletion,
@@ -635,6 +670,7 @@ fun GymAreaContent(
                 ?.workoutExercise?.alternativeExerciseIdsSnapshot
         }.orEmpty()
         ExercisePickerDialog(
+            modifier = dialogModifier,
             exercises = state.exercises,
             preferredIds = preferredSubstitutions,
             onDismiss = { showExercisePicker = false; substituteWorkoutExerciseId = null },
@@ -662,6 +698,7 @@ fun GymAreaContent(
 
     pendingMachineExercise?.let { exercise ->
         MachineChoiceDialog(
+            modifier = dialogModifier,
             exercise = exercise,
             machines = state.machines.filter { it.exerciseId == exercise.id },
             onDismiss = { pendingMachineExerciseId = null; substituteWorkoutExerciseId = null },
@@ -677,6 +714,7 @@ fun GymAreaContent(
 
     if (showStartWorkout) {
         WorkoutEditorDialog(
+            modifier = dialogModifier,
             session = null,
             initialDate = LocalDate.now(state.appSettings.zoneId()),
             initialKeepAwake = state.appSettings.keepScreenAwake,
@@ -691,6 +729,7 @@ fun GymAreaContent(
     if (showEditWorkout) {
         state.activeSession?.let { session ->
             WorkoutEditorDialog(
+                modifier = dialogModifier,
                 session = session,
                 initialDate = session.localDate,
                 onDismiss = { showEditWorkout = false },
@@ -702,16 +741,31 @@ fun GymAreaContent(
         }
     }
 
+    historyWorkoutEditor?.let { session ->
+        WorkoutEditorDialog(
+            modifier = dialogModifier,
+            session = session,
+            initialDate = session.localDate,
+            onDismiss = { historyWorkoutEditorId = null },
+            onStart = { name, notes, _, keepAwake ->
+                viewModel.updateWorkout(session.id, name, notes, keepAwake)
+                historyWorkoutEditorId = null
+            },
+        )
+    }
+
     editedSet?.let { (set, item) ->
+        val effectiveShowRpe = item.exercise.showRpe ?: state.appSettings.showGymRpe
         WorkoutSetEditorDialog(
+            modifier = dialogModifier,
             set = set,
             exercise = item.exercise,
             workoutExercise = item.workoutExercise,
             machine = item.machine,
             preferredWeightUnitId = state.appSettings.gymWeightUnitId,
             preferredDistanceUnitId = state.appSettings.distanceUnitId,
-            showRpe = item.exercise.showRpe ?: state.appSettings.showGymRpe,
-            showRir = item.exercise.showRir ?: state.appSettings.showGymRir,
+            showRpe = effectiveShowRpe,
+            showRir = (item.exercise.showRir ?: state.appSettings.showGymRir) && !effectiveShowRpe,
             showTempo = item.exercise.showTempo ?: state.appSettings.showGymTempo,
             onDismiss = { editedSetId = null },
             onSave = { draft ->
@@ -725,8 +779,9 @@ fun GymAreaContent(
         val completedSets = state.activeWorkoutExercises.sumOf { item -> item.sets.count { it.completed && it.deletedAtMillis == null } }
         val incompleteSets = state.activeWorkoutExercises.sumOf { item -> item.sets.count { !it.completed && it.deletedAtMillis == null } }
         ConfirmationDialog(
-            title = "Review and finish workout?",
-            message = "${state.activeWorkoutExercises.size} exercises · $completedSets completed sets" +
+            modifier = dialogModifier,
+            title = "Review and Finish Workout?",
+            message = "${quantityLabel(state.activeWorkoutExercises.size, "exercise")} · ${quantityLabel(completedSets, "completed set")}" +
                 if (incompleteSets > 0) " · $incompleteSets planned sets remain incomplete and stay visible in History." else
                     ". Every saved value and equipment snapshot remains editable in History.",
             confirmLabel = "Finish",
@@ -735,7 +790,7 @@ fun GymAreaContent(
                 state.activeSession?.let { session ->
                     finishedSummary = buildString {
                         append(session.name.ifBlank { "Workout" })
-                        append("\n${state.activeWorkoutExercises.size} exercises · $completedSets completed sets")
+                        append("\n${quantityLabel(state.activeWorkoutExercises.size, "exercise")} · ${quantityLabel(completedSets, "completed set")}")
                         state.summary?.let { summary ->
                             append(" · ${summary.repetitions} reps")
                             append("\n${formatNumber(massFromKilograms(summary.volumeKg, state.appSettings.gymWeightUnitId), state.appSettings.numberPrecision)} ${unitSymbol(state.appSettings.gymWeightUnitId)} volume · ${formatDuration(summary.elapsedSeconds)}")
@@ -749,19 +804,21 @@ fun GymAreaContent(
         )
     }
     finishedSummary?.let { summary ->
-        AlertDialog(
+        PaneAwareAlertDialog(
+            modifier = dialogModifier,
             onDismissRequest = { finishedSummary = null },
-            title = { Text("Workout saved") },
+            title = { Text("Workout Saved") },
             text = { Text(summary) },
             confirmButton = {
-                TextButton(onClick = { finishedSummary = null; destination = GymDestination.History }) { Text("View history") }
+                WhipTextButton(onClick = { finishedSummary = null; destination = GymDestination.History }) { Text("View History") }
             },
-            dismissButton = { TextButton(onClick = { finishedSummary = null }) { Text("Done") } },
+            dismissButton = { WhipTextButton(onClick = { finishedSummary = null }) { Text("Done") } },
         )
     }
     if (discardConfirmation) {
         ConfirmationDialog(
-            title = "Discard workout?",
+            modifier = dialogModifier,
+            title = "Discard Workout?",
             message = "This hides the session from normal history. Your exercise library is not changed.",
             confirmLabel = "Discard",
             onDismiss = { discardConfirmation = false },
@@ -773,6 +830,7 @@ fun GymAreaContent(
     }
     if (showGroupDialog) {
         WorkoutGroupDialog(
+            modifier = dialogModifier,
             exercises = state.activeWorkoutExercises,
             onDismiss = { showGroupDialog = false },
             onCreate = { name, type, ids ->
@@ -791,16 +849,67 @@ fun GymAreaContent(
 }
 
 @Composable
+private fun GymLibraryLanding(onOpen: (GymDestination) -> Unit) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item {
+            WhipPageHeader(
+                title = "Library",
+                supportingText = "Manage the reusable building blocks and utilities behind your workouts.",
+            )
+        }
+        items(libraryGymDestinations, key = GymDestination::name) { destination ->
+            NavigationRow(
+                title = destination.name,
+                supportingText = when (destination) {
+                    GymDestination.Routines -> "Workout templates and training days"
+                    GymDestination.Exercises -> "Exercise catalog and tracking setup"
+                    GymDestination.Machines -> "Equipment profiles and resistance settings"
+                    GymDestination.Categories -> "Organize exercises for faster browsing"
+                    GymDestination.Tools -> "Plate calculator, rep maxes, and utilities"
+                    else -> ""
+                },
+                onClick = { onOpen(destination) },
+                modifier = Modifier.testTag("gym-library-${destination.name}"),
+            )
+        }
+    }
+}
+
+internal fun selectNextWorkoutSet(
+    items: List<WorkoutExerciseUi>,
+    nextExerciseByGroup: Map<Long, Long?>,
+): Pair<WorkoutExerciseUi, WorkoutSet>? {
+    fun firstIncomplete(item: WorkoutExerciseUi) = item.sets.sortedBy(WorkoutSet::position)
+        .firstOrNull { set -> !set.completed && set.deletedAtMillis == null }
+
+    return items.asSequence()
+        .mapNotNull { item ->
+            val designatedGroupMemberId = item.group?.let { nextExerciseByGroup[it.id] }
+            if (designatedGroupMemberId != null && designatedGroupMemberId != item.workoutExercise.id) return@mapNotNull null
+            firstIncomplete(item)?.let { set -> item to set }
+        }
+        .firstOrNull()
+        ?: items.asSequence().mapNotNull { item -> firstIncomplete(item)?.let { set -> item to set } }.firstOrNull()
+}
+
+@Composable
 private fun WorkoutContent(
     state: GymUiState,
+    requestedWorkoutExerciseId: Long? = null,
+    onRequestedWorkoutExerciseConsumed: () -> Unit = {},
     onStart: () -> Unit,
+    onCreateExercise: () -> Unit,
     onEditWorkout: () -> Unit,
     onAddExercise: () -> Unit,
     onAddSet: (Long) -> Unit,
     onEditSet: (WorkoutSet, WorkoutExerciseUi) -> Unit,
     onEditExerciseNotes: (WorkoutExerciseUi) -> Unit,
     onCompleteSet: (Long, Boolean) -> Unit,
-    onSaveQuickSet: (Long, Long, WorkoutSetDraft, Boolean) -> Unit,
+    onSaveQuickSet: (Long, Long, WorkoutSetDraft, Boolean, Int?) -> Unit,
     onDuplicateSet: (Long) -> Unit,
     onDeleteSet: (Long) -> Unit,
     onUndoDeleteSet: (Long) -> Unit,
@@ -813,6 +922,7 @@ private fun WorkoutContent(
     onStartTimer: (Long, Int) -> Unit,
     onAdjustTimer: (Long, Int) -> Unit,
     onStopTimer: (Long) -> Unit,
+    onRestTimerPresetsChange: (List<Int>) -> Unit,
     onGroupExercises: () -> Unit,
 ) {
     val session = state.activeSession
@@ -823,12 +933,22 @@ private fun WorkoutContent(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Current workout", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
-            Text(
-                "Start a blank workout, then add only the exercises you created.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            WhipPageHeader(
+                title = "Current Workout",
+                supportingText = "Log sets with fast, repeatable controls while you train.",
             )
-            Button(onClick = onStart) { Text("Start workout") }
+            WhipEmptyState(
+                title = "No Workout in Progress",
+                supportingText = if (state.exercises.isEmpty()) {
+                    "Create exercises once, then reuse them in workouts and routines. You can also start empty and create one while logging."
+                } else {
+                    "Start a workout, then choose from your reusable exercise library."
+                },
+                primaryActionLabel = if (state.exercises.isEmpty()) "Create First Exercise" else "Start Workout",
+                onPrimaryAction = if (state.exercises.isEmpty()) onCreateExercise else onStart,
+                secondaryActionLabel = "Start Empty Workout".takeIf { state.exercises.isEmpty() },
+                onSecondaryAction = onStart.takeIf { state.exercises.isEmpty() },
+            )
         }
         return
     }
@@ -846,11 +966,15 @@ private fun WorkoutContent(
             if (lastCompletedMember == null) ordered.firstOrNull()?.workoutExercise?.id
             else ordered[(ordered.indexOf(lastCompletedMember) + 1) % ordered.size].workoutExercise.id
         }
-    val nextSet = state.activeWorkoutExercises.asSequence()
-        .flatMap { item -> item.sets.sortedBy(WorkoutSet::position).asSequence().map { item to it } }
-        .firstOrNull { (_, set) -> !set.completed && set.deletedAtMillis == null }
+    val nextSet = selectNextWorkoutSet(state.activeWorkoutExercises, nextExerciseByGroup)
     val workoutListState = rememberLazyListState()
     val workoutScrollScope = rememberCoroutineScope()
+    LaunchedEffect(requestedWorkoutExerciseId, state.activeWorkoutExercises) {
+        val requestedId = requestedWorkoutExerciseId ?: return@LaunchedEffect
+        val exerciseIndex = state.activeWorkoutExercises.indexOfFirst { it.workoutExercise.id == requestedId }
+        if (exerciseIndex >= 0) workoutListState.scrollToItem(exerciseIndex + 2)
+        onRequestedWorkoutExerciseConsumed()
+    }
     var lastFocusedSetId by rememberSaveable(session.id) { mutableStateOf(nextSet?.second?.id) }
     LaunchedEffect(nextSet?.second?.id) {
         val next = nextSet ?: return@LaunchedEffect
@@ -862,60 +986,30 @@ private fun WorkoutContent(
         }
         lastFocusedSetId = next.second.id
     }
+    var workoutRestOverrideSeconds by rememberSaveable(session.id) { mutableStateOf<Int?>(null) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = workoutListState,
-        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp),
+        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            WhipPageHeader(
+                title = session.name.ifBlank { "Workout" },
+                supportingText = session.localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        session.name.ifBlank { "Workout" },
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        session.localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                TextButton(onClick = onEditWorkout) { Text("Edit") }
+                WhipTextButton(onClick = onEditWorkout) { Text("Edit Workout") }
             }
             state.summary?.let { summary ->
                 Text(
-                    "${summary.exerciseCount} exercises · ${summary.completedSetCount} sets · " +
-                        "${summary.repetitions} reps · ${formatNumber(massFromKilograms(summary.volumeKg, state.appSettings.gymWeightUnitId), state.appSettings.numberPrecision)} " +
+                    "${quantityLabel(summary.exerciseCount, "exercise")} · ${quantityLabel(summary.completedSetCount, "set")} · " +
+                        "${quantityLabel(summary.repetitions, "rep")} · ${formatNumber(massFromKilograms(summary.volumeKg, state.appSettings.gymWeightUnitId), state.appSettings.numberPrecision)} " +
                         "${unitSymbol(state.appSettings.gymWeightUnitId)} volume · " +
                         formatDuration(summary.elapsedSeconds),
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.labelLarge,
                 )
-            }
-            nextSet?.let { (exerciseItem, set) ->
-                TextButton(
-                    onClick = {
-                        val exerciseIndex = state.activeWorkoutExercises.indexOfFirst {
-                            it.workoutExercise.id == exerciseItem.workoutExercise.id
-                        }
-                        if (exerciseIndex >= 0) workoutScrollScope.launch {
-                            workoutListState.scrollToItem(exerciseIndex + 2)
-                        }
-                    },
-                    modifier = Modifier.testTag("next-set-focus"),
-                ) {
-                    Text(
-                        "Jump to next set · ${exerciseItem.exercise.name} · set ${set.position + 1}",
-                        color = MaterialTheme.colorScheme.tertiary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
             }
         }
         stickyHeader {
@@ -927,9 +1021,20 @@ private fun WorkoutContent(
                 Column(Modifier.padding(vertical = 4.dp)) {
                     nextSet?.let { (exerciseItem, set) ->
                         Text(
-                            "NEXT · ${exerciseItem.exercise.name} · set ${set.position + 1}" +
+                            "NEXT · ${exerciseItem.exercise.name} · Set ${set.position + 1}" +
                                 set.prescriptionLabel(state.appSettings.gymWeightUnitId, state.appSettings.numberPrecision, exerciseItem.workoutExercise)?.let { " · $it" }.orEmpty(),
-                            modifier = Modifier.padding(horizontal = 12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(onClickLabel = "Jump to next incomplete set") {
+                                    val exerciseIndex = state.activeWorkoutExercises.indexOfFirst {
+                                        it.workoutExercise.id == exerciseItem.workoutExercise.id
+                                    }
+                                    if (exerciseIndex >= 0) workoutScrollScope.launch {
+                                        workoutListState.scrollToItem(exerciseIndex + 2)
+                                    }
+                                }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                .testTag("next-set-focus"),
                             color = MaterialTheme.colorScheme.tertiary,
                             fontWeight = FontWeight.Bold,
                         )
@@ -937,7 +1042,11 @@ private fun WorkoutContent(
                     RestTimerCard(
                         session = session,
                         remaining = state.restSecondsRemaining,
-                        defaultSeconds = state.appSettings.defaultRestSeconds,
+                        selectedSeconds = workoutRestOverrideSeconds ?: state.appSettings.defaultRestSeconds,
+                        presetSeconds = state.appSettings.restTimerPresetSeconds,
+                        notificationPermissionRequested = state.appSettings.notificationPermissionRequested,
+                        onSelectedSecondsChange = { workoutRestOverrideSeconds = it },
+                        onPresetSecondsChange = onRestTimerPresetsChange,
                         onStart = onStartTimer,
                         onAdjust = onAdjustTimer,
                         onStop = onStopTimer,
@@ -947,23 +1056,27 @@ private fun WorkoutContent(
         }
         if (state.activeWorkoutExercises.isEmpty()) {
             item {
-                Text(
-                    "No exercises yet. Create your first exercise to start logging workouts.",
-                    modifier = Modifier.padding(vertical = 20.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                WhipEmptyState(
+                    title = "Add Your First Exercise",
+                    supportingText = "Choose a reusable exercise from your library or create one without leaving this workout.",
+                    primaryActionLabel = "Add Exercise",
+                    onPrimaryAction = onAddExercise,
+                    secondaryActionLabel = "Create New Exercise",
+                    onSecondaryAction = onCreateExercise,
                 )
             }
         }
         items(state.activeWorkoutExercises.size, key = { state.activeWorkoutExercises[it].workoutExercise.id }) { itemIndex ->
             val item = state.activeWorkoutExercises[itemIndex]
+            val effectiveShowRpe = item.exercise.showRpe ?: state.appSettings.showGymRpe
             WorkoutExerciseCard(
                 item = item,
                 preferredWeightUnitId = state.appSettings.gymWeightUnitId,
                 preferredDistanceUnitId = state.appSettings.distanceUnitId,
                 numberPrecision = state.appSettings.numberPrecision,
                 compactRows = state.appSettings.gymCompactSetRows,
-                showRpe = item.exercise.showRpe ?: state.appSettings.showGymRpe,
-                showRir = item.exercise.showRir ?: state.appSettings.showGymRir,
+                showRpe = effectiveShowRpe,
+                showRir = (item.exercise.showRir ?: state.appSettings.showGymRir) && !effectiveShowRpe,
                 nextSetId = nextSet?.second?.id,
                 nextInGroup = item.group?.let { nextExerciseByGroup[it.id] == item.workoutExercise.id } == true,
                 canMoveUp = itemIndex > 0,
@@ -985,7 +1098,13 @@ private fun WorkoutContent(
                 onEditNotes = { onEditExerciseNotes(item) },
                 onCompleteSet = onCompleteSet,
                 onSaveQuickSet = { setId, draft, addNext ->
-                    onSaveQuickSet(setId, item.workoutExercise.id, draft, addNext)
+                    onSaveQuickSet(
+                        setId,
+                        item.workoutExercise.id,
+                        draft,
+                        addNext,
+                        workoutRestOverrideSeconds,
+                    )
                 },
                 onDuplicateSet = onDuplicateSet,
                 onDeleteSet = onDeleteSet,
@@ -994,21 +1113,21 @@ private fun WorkoutContent(
             )
         }
         item {
-            OutlinedButton(onClick = onAddExercise, modifier = Modifier.fillMaxWidth()) {
-                Text("Add exercise")
+            WhipOutlinedButton(onClick = onAddExercise, modifier = Modifier.fillMaxWidth()) {
+                Text("Add Exercise")
             }
         }
         if (state.activeWorkoutExercises.size >= 2) {
             item {
-                OutlinedButton(onClick = onGroupExercises, modifier = Modifier.fillMaxWidth()) {
-                    Text("Group exercises as superset / circuit")
+                WhipOutlinedButton(onClick = onGroupExercises, modifier = Modifier.fillMaxWidth()) {
+                    Text("Group Exercises as Superset / Circuit")
                 }
             }
         }
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onFinish, modifier = Modifier.weight(1f)) { Text("Finish") }
-                OutlinedButton(onClick = onDiscard, modifier = Modifier.weight(1f)) { Text("Discard") }
+                WhipButton(onClick = onFinish, modifier = Modifier.weight(1f)) { Text("Finish") }
+                WhipOutlinedButton(onClick = onDiscard, modifier = Modifier.weight(1f)) { Text("Discard") }
             }
         }
     }
@@ -1044,16 +1163,10 @@ internal fun WorkoutExerciseCard(
     var actionMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var setMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
     var setupExpanded by rememberSaveable(item.workoutExercise.id) { mutableStateOf(false) }
+    var completedSetsExpanded by rememberSaveable(item.workoutExercise.id) { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(if (compactRows) 9.dp else 14.dp), verticalArrangement = Arrangement.spacedBy(if (compactRows) 4.dp else 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                ReorderHandle(
-                    label = item.exercise.name,
-                    canMoveUp = canMoveUp,
-                    canMoveDown = canMoveDown,
-                    onMoveUp = onMoveUp,
-                    onMoveDown = onMoveDown,
-                )
                 Text(item.exercise.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Box {
                     IconButton(onClick = { actionMenuExpanded = true }, modifier = Modifier.size(48.dp)) {
@@ -1061,30 +1174,29 @@ internal fun WorkoutExerciseCard(
                     }
                     DropdownMenu(expanded = actionMenuExpanded, onDismissRequest = { actionMenuExpanded = false }) {
                         DropdownMenuItem(
-                            text = { Text("Move up") },
+                            text = { Text("Move Up") },
                             enabled = canMoveUp,
                             leadingIcon = { Icon(Icons.Outlined.ArrowUpward, contentDescription = null) },
                             onClick = { actionMenuExpanded = false; onMoveUp() },
                         )
                         DropdownMenuItem(
-                            text = { Text("Move down") },
+                            text = { Text("Move Down") },
                             enabled = canMoveDown,
                             leadingIcon = { Icon(Icons.Outlined.ArrowDownward, contentDescription = null) },
                             onClick = { actionMenuExpanded = false; onMoveDown() },
                         )
                         DropdownMenuItem(
-                            text = { Text("Substitute exercise") },
+                            text = { Text("Substitute Exercise") },
                             onClick = { actionMenuExpanded = false; onSubstituteExercise() },
                         )
                         DropdownMenuItem(
-                            text = { Text("Remove from workout") },
+                            text = { Text("Remove from Workout") },
                             leadingIcon = { Icon(Icons.Outlined.DeleteOutline, contentDescription = null) },
                             onClick = { actionMenuExpanded = false; onRemoveExercise() },
                         )
                     }
                 }
             }
-            Text(item.exercise.trackingType.label, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (item.workoutExercise.machineNameSnapshot.isNotBlank()) {
                 Text(
                     "Machine: ${item.workoutExercise.machineNameSnapshot}",
@@ -1092,45 +1204,6 @@ internal fun WorkoutExerciseCard(
                     fontWeight = FontWeight.SemiBold,
                 )
             }
-            val setupAvailable = item.exercise.notes.isNotBlank() ||
-                item.workoutExercise.machineConfigurationSnapshot.isNotBlank() ||
-                item.workoutExercise.notes.isNotBlank()
-            if (setupAvailable) {
-                OutlinedButton(
-                    onClick = { setupExpanded = !setupExpanded },
-                    modifier = Modifier.fillMaxWidth().semantics {
-                        contentDescription = if (setupExpanded) "Hide setup and form cues" else "Show setup and form cues"
-                    },
-                ) { Text(if (setupExpanded) "Hide setup / form cues" else "Setup / form cues") }
-                if (setupExpanded) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            item.workoutExercise.machineConfigurationSnapshot.takeIf(String::isNotBlank)?.let {
-                                Text("Saved machine setup", fontWeight = FontWeight.Bold)
-                                Text(it)
-                            }
-                            item.exercise.notes.takeIf(String::isNotBlank)?.let {
-                                Text("Exercise cues", fontWeight = FontWeight.Bold)
-                                Text(it)
-                            }
-                            item.workoutExercise.notes.takeIf(String::isNotBlank)?.let {
-                                Text("This workout", fontWeight = FontWeight.Bold)
-                                Text(it)
-                            }
-                            Text(
-                                "This machine setup is the snapshot captured when it was added to the workout.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-            }
-            TextButton(onClick = onEditNotes) { Text(if (item.workoutExercise.notes.isBlank()) "Add workout-specific note" else "Edit workout-specific note") }
             item.group?.let {
                 Text(
                     "${it.type.name}: ${it.name}${if (nextInGroup) " · Next in rotation" else ""}",
@@ -1138,49 +1211,115 @@ internal fun WorkoutExerciseCard(
                     fontWeight = if (nextInGroup) FontWeight.Bold else FontWeight.Normal,
                 )
             }
-            if (item.previousSets.isNotEmpty()) {
-                val omittedSets = item.previousSetCount - item.previousSets.size
-                Text(
-                    "Previous workout: ${item.previousSets.joinToString(" · ") { it.shortLabel(preferredWeightUnitId, preferredDistanceUnitId, numberPrecision, item.workoutExercise, item.exercise.weightUnitId) }}" +
-                        if (omittedSets > 0) " · +$omittedSets more in History" else "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            val orderedSets = item.sets.sortedBy(WorkoutSet::position)
+            val completedSetCount = orderedSets.count { it.completed && it.deletedAtMillis == null }
+            val hasIncompleteSet = orderedSets.any { !it.completed && it.deletedAtMillis == null }
+            val focusedEntry = orderedSets.withIndex().firstOrNull { (_, set) ->
+                set.id == nextSetId && set.deletedAtMillis == null
+            }
+            focusedEntry?.let { (index, set) ->
+                val suggestedSet = orderedSets.take(index).lastOrNull { candidate ->
+                    candidate.completed && candidate.deletedAtMillis == null
+                } ?: item.previousSets.maxByOrNull { previous ->
+                    previous.completedAtMillis ?: previous.updatedAtMillis
+                }
+                Surface(
+                    modifier = Modifier.fillMaxWidth().testTag("active-set-composer"),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.34f),
+                    shape = MaterialTheme.shapes.small,
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "Up Next · Set ${index + 1}${set.classification.uiLabel().takeUnless { it == "Working" }?.let { " · $it" }.orEmpty()}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                                set.prescriptionLabel(preferredWeightUnitId, numberPrecision, item.workoutExercise)?.let { target ->
+                                    Text(
+                                        "Target · $target",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                            Box {
+                                IconButton(onClick = { setMenuId = set.id }, modifier = Modifier.size(48.dp)) {
+                                    Icon(
+                                        Icons.Outlined.MoreVert,
+                                        contentDescription = "More options for set ${index + 1}",
+                                        modifier = Modifier.size(26.dp),
+                                    )
+                                }
+                                WorkoutSetActionsMenu(
+                                    expanded = setMenuId == set.id,
+                                    onDismiss = { setMenuId = null },
+                                    canMoveUp = index > 0,
+                                    canMoveDown = index < orderedSets.lastIndex,
+                                    onDuplicate = { setMenuId = null; onDuplicateSet(set.id) },
+                                    onMoveUp = {
+                                        setMenuId = null
+                                        val ids = orderedSets.map(WorkoutSet::id).toMutableList()
+                                        java.util.Collections.swap(ids, index, index - 1)
+                                        onReorderSets(ids)
+                                    },
+                                    onMoveDown = {
+                                        setMenuId = null
+                                        val ids = orderedSets.map(WorkoutSet::id).toMutableList()
+                                        java.util.Collections.swap(ids, index, index + 1)
+                                        onReorderSets(ids)
+                                    },
+                                    onRemove = { setMenuId = null; onDeleteSet(set.id) },
+                                )
+                            }
+                        }
+                        QuickSetEntry(
+                            set = set,
+                            exercise = item.exercise,
+                            workoutExercise = item.workoutExercise,
+                            machine = item.machine,
+                            preferredWeightUnitId = preferredWeightUnitId,
+                            preferredDistanceUnitId = preferredDistanceUnitId,
+                            showRpe = showRpe,
+                            showRir = showRir,
+                            suggestedSet = suggestedSet,
+                            onMoreDetails = { onEditSet(set) },
+                            onSave = { draft, addNext -> onSaveQuickSet(set.id, draft, addNext) },
+                        )
+                    }
+                }
+            }
+            if (completedSetCount > 0 && hasIncompleteSet) {
+                DisclosureButton(
+                    label = quantityLabel(completedSetCount, "Completed Set"),
+                    expanded = completedSetsExpanded,
+                    onClick = { completedSetsExpanded = !completedSetsExpanded },
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
-            val orderedSets = item.sets.sortedBy(WorkoutSet::position)
-            orderedSets.forEachIndexed { index, set ->
+            orderedSets.withIndex()
+                .filter { (_, set) ->
+                    set.id != focusedEntry?.value?.id &&
+                        (!set.completed || completedSetsExpanded || !hasIncompleteSet)
+                }
+                .forEach { (index, set) ->
                 if (set.deletedAtMillis != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Set ${index + 1} removed", modifier = Modifier.weight(1f))
-                        TextButton(onClick = { onUndoDeleteSet(set.id) }) { Text("Undo") }
+                        WhipTextButton(onClick = { onUndoDeleteSet(set.id) }) { Text("Undo") }
                     }
                 } else {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .then(
-                                if (set.id == nextSetId) Modifier
-                                    .semantics { contentDescription = "Next set to complete" }
-                                    .testTag("next-set-row") else Modifier,
-                            )
                             .clickable(onClickLabel = "Edit set ${index + 1}") { onEditSet(set) },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        ReorderHandle(
-                            label = "set ${index + 1}",
-                            canMoveUp = index > 0,
-                            canMoveDown = index < orderedSets.lastIndex,
-                            onMoveUp = {
-                                val ids = orderedSets.map(WorkoutSet::id).toMutableList()
-                                java.util.Collections.swap(ids, index, index - 1)
-                                onReorderSets(ids)
-                            },
-                            onMoveDown = {
-                                val ids = orderedSets.map(WorkoutSet::id).toMutableList()
-                                java.util.Collections.swap(ids, index, index + 1)
-                                onReorderSets(ids)
-                            },
-                        )
                         if (set.completed) {
                             Checkbox(
                                 checked = true,
@@ -1190,7 +1329,7 @@ internal fun WorkoutExerciseCard(
                             Box(
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .semantics { contentDescription = "Incomplete set ${index + 1}; enter values below to save" },
+                                    .semantics { contentDescription = "Incomplete set ${index + 1}; enter its required values to save" },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text("○", style = MaterialTheme.typography.titleLarge)
@@ -1198,13 +1337,12 @@ internal fun WorkoutExerciseCard(
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "${if (set.id == nextSetId) "Next · " else ""}${index + 1}. ${set.shortLabel(preferredWeightUnitId, preferredDistanceUnitId, numberPrecision, item.workoutExercise, item.exercise.weightUnitId)}",
+                                "Set ${index + 1} · ${set.shortLabel(preferredWeightUnitId, preferredDistanceUnitId, numberPrecision, item.workoutExercise, item.exercise.weightUnitId).replace("Empty set", "Ready")}",
                                 fontWeight = FontWeight.SemiBold,
-                                textDecoration = TextDecoration.LineThrough.takeIf { set.completed },
                             )
                             if (!compactRows) Text(
                                 buildString {
-                                    append(set.classification.name)
+                                    append(set.classification.uiLabel())
                                     if (set.planned) append(" · planned")
                                     set.rpe?.let { append(" · RPE $it") }
                                 },
@@ -1219,59 +1357,109 @@ internal fun WorkoutExerciseCard(
                             IconButton(onClick = { setMenuId = set.id }, modifier = Modifier.size(48.dp)) {
                                 Icon(Icons.Outlined.MoreVert, contentDescription = "More options for set ${index + 1}", modifier = Modifier.size(26.dp))
                             }
-                            DropdownMenu(expanded = setMenuId == set.id, onDismissRequest = { setMenuId = null }) {
-                                DropdownMenuItem(text = { Text("Duplicate set") }, onClick = { setMenuId = null; onDuplicateSet(set.id) })
-                                DropdownMenuItem(
-                                    text = { Text("Move up") },
-                                    enabled = index > 0,
-                                    leadingIcon = { Icon(Icons.Outlined.ArrowUpward, contentDescription = null) },
-                                    onClick = {
-                                        setMenuId = null
-                                        val ids = orderedSets.map(WorkoutSet::id).toMutableList()
-                                        java.util.Collections.swap(ids, index, index - 1)
-                                        onReorderSets(ids)
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Move down") },
-                                    enabled = index < orderedSets.lastIndex,
-                                    leadingIcon = { Icon(Icons.Outlined.ArrowDownward, contentDescription = null) },
-                                    onClick = {
-                                        setMenuId = null
-                                        val ids = orderedSets.map(WorkoutSet::id).toMutableList()
-                                        java.util.Collections.swap(ids, index, index + 1)
-                                        onReorderSets(ids)
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Remove set") },
-                                    leadingIcon = { Icon(Icons.Outlined.DeleteOutline, contentDescription = null) },
-                                    onClick = { setMenuId = null; onDeleteSet(set.id) },
-                                )
-                            }
+                            WorkoutSetActionsMenu(
+                                expanded = setMenuId == set.id,
+                                onDismiss = { setMenuId = null },
+                                canMoveUp = index > 0,
+                                canMoveDown = index < orderedSets.lastIndex,
+                                onDuplicate = { setMenuId = null; onDuplicateSet(set.id) },
+                                onMoveUp = {
+                                    setMenuId = null
+                                    val ids = orderedSets.map(WorkoutSet::id).toMutableList()
+                                    java.util.Collections.swap(ids, index, index - 1)
+                                    onReorderSets(ids)
+                                },
+                                onMoveDown = {
+                                    setMenuId = null
+                                    val ids = orderedSets.map(WorkoutSet::id).toMutableList()
+                                    java.util.Collections.swap(ids, index, index + 1)
+                                    onReorderSets(ids)
+                                },
+                                onRemove = { setMenuId = null; onDeleteSet(set.id) },
+                            )
                         }
-                    }
-                    if (!set.completed) {
-                        QuickSetEntry(
-                            set = set,
-                            exercise = item.exercise,
-                            workoutExercise = item.workoutExercise,
-                            machine = item.machine,
-                            preferredWeightUnitId = preferredWeightUnitId,
-                            preferredDistanceUnitId = preferredDistanceUnitId,
-                            showRpe = showRpe,
-                            showRir = showRir,
-                            onSave = { draft, addNext -> onSaveQuickSet(set.id, draft, addNext) },
-                        )
                     }
                 }
             }
-            TextButton(onClick = onAddSet) {
+            WhipTextButton(onClick = onAddSet) {
                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Add set")
+                Text("Add Set")
+            }
+            if (item.previousSets.isNotEmpty()) {
+                val omittedSets = item.previousSetCount - item.previousSets.size
+                Text(
+                    "Previous workout · ${item.previousSets.joinToString(" · ") { it.shortLabel(preferredWeightUnitId, preferredDistanceUnitId, numberPrecision, item.workoutExercise, item.exercise.weightUnitId) }}" +
+                        if (omittedSets > 0) " · +$omittedSets more in History" else "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            DisclosureButton(
+                label = "Exercise Details",
+                expanded = setupExpanded,
+                onClick = { setupExpanded = !setupExpanded },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (setupExpanded) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        item.workoutExercise.machineConfigurationSnapshot.takeIf(String::isNotBlank)?.let {
+                            Text("Saved Machine Setup", fontWeight = FontWeight.Bold)
+                            Text(it)
+                        }
+                        item.exercise.notes.takeIf(String::isNotBlank)?.let {
+                            Text("Exercise Cues", fontWeight = FontWeight.Bold)
+                            Text(it)
+                        }
+                        item.workoutExercise.notes.takeIf(String::isNotBlank)?.let {
+                            Text("This Workout", fontWeight = FontWeight.Bold)
+                            Text(it)
+                        }
+                        WhipTextButton(onClick = onEditNotes) {
+                            Text(if (item.workoutExercise.notes.isBlank()) "Add Workout Note" else "Edit Workout Note")
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun WorkoutSetActionsMenu(
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onDuplicate: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        DropdownMenuItem(text = { Text("Duplicate Set") }, onClick = onDuplicate)
+        DropdownMenuItem(
+            text = { Text("Move Up") },
+            enabled = canMoveUp,
+            leadingIcon = { Icon(Icons.Outlined.ArrowUpward, contentDescription = null) },
+            onClick = onMoveUp,
+        )
+        DropdownMenuItem(
+            text = { Text("Move Down") },
+            enabled = canMoveDown,
+            leadingIcon = { Icon(Icons.Outlined.ArrowDownward, contentDescription = null) },
+            onClick = onMoveDown,
+        )
+        DropdownMenuItem(
+            text = { Text("Remove Set") },
+            leadingIcon = { Icon(Icons.Outlined.DeleteOutline, contentDescription = null) },
+            onClick = onRemove,
+        )
     }
 }
 
@@ -1331,6 +1519,8 @@ internal fun QuickSetEntry(
     preferredDistanceUnitId: String,
     showRpe: Boolean,
     showRir: Boolean,
+    suggestedSet: WorkoutSet? = null,
+    onMoreDetails: () -> Unit = {},
     onSave: (WorkoutSetDraft, Boolean) -> Unit,
 ) {
     val policyExercise = workoutExercise.applyPolicySnapshot(exercise)
@@ -1365,6 +1555,9 @@ internal fun QuickSetEntry(
     var rpe by rememberSaveable(editorKey) { mutableStateOf(set.rpe?.let(::editableNumber).orEmpty()) }
     var rir by rememberSaveable(editorKey) { mutableStateOf(set.rir?.let(::editableNumber).orEmpty()) }
     var unilateral by rememberSaveable(editorKey) { mutableStateOf(set.unilateral) }
+    var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
+    val displayRpe = showRpe
+    val displayRir = showRir && !showRpe
     val largeText = LocalDensity.current.fontScale >= 1.5f
     fun fieldWidth(normal: androidx.compose.ui.unit.Dp): Modifier =
         if (largeText) Modifier.fillMaxWidth() else Modifier.width(normal)
@@ -1412,7 +1605,7 @@ internal fun QuickSetEntry(
         },
         unilateral = unilateral,
     )
-    val error = runCatching {
+    val domainError = runCatching {
         validateWorkoutSetDraft(draft, policyExercise.trackingType, machineType, workoutExercise.loadInterpretationSnapshot)
     }.exceptionOrNull()?.message
     val loadLabel = when {
@@ -1422,58 +1615,174 @@ internal fun QuickSetEntry(
         workoutExercise.loadInterpretationSnapshot == LoadInterpretation.AddedLoad -> "Added (${unitSymbol(weightUnitId)})"
         else -> "Weight (${unitSymbol(weightUnitId)})"
     }
+    val requiresLoad = policyExercise.trackingType in setOf(
+        ExerciseTrackingType.WeightReps,
+        ExerciseTrackingType.WeightOnly,
+        ExerciseTrackingType.WeightDuration,
+    ) || (policyExercise.trackingType == ExerciseTrackingType.AssistedBodyweightReps && machineType != null)
+    val loadValue = if (machineType == MachineLoadType.Level) machineSetting.toWhipDoubleOrNull() else weight.toWhipDoubleOrNull()
+    val loadError = "Required".takeIf {
+        requiresLoad && (loadValue == null || (loadValue <= 0.0 && workoutExercise.loadInterpretationSnapshot != LoadInterpretation.AddedLoad))
+    }
+    val repsError = "Enter at least 1".takeIf { needsReps && (reps.toIntOrNull() ?: 0) <= 0 }
+    val distanceError = "Enter a value above 0".takeIf { needsDistance && (distance.toWhipDoubleOrNull() ?: 0.0) <= 0.0 }
+    val durationError = "Enter at least 1 second".takeIf { needsDuration && (duration.toLongOrNull() ?: 0L) <= 0L }
+    val bodyweightError = "Enter a value above 0".takeIf {
+        bodyweight.isNotBlank() && (bodyweight.toWhipDoubleOrNull() ?: 0.0) <= 0.0
+    }
+    val rpeError = "RPE must be 1–10".takeIf { rpe.isNotBlank() && rpe.toWhipDoubleOrNull()?.let { it !in 1.0..10.0 } != false }
+    val rirError = "RIR must be 0–10".takeIf { rir.isNotBlank() && rir.toWhipDoubleOrNull()?.let { it !in 0.0..10.0 } != false }
+    val fieldErrors = listOfNotNull(loadError, repsError, distanceError, durationError, bodyweightError, rpeError, rirError)
+    val validationMessages = fieldErrors.ifEmpty { listOfNotNull(domainError) }.distinct()
+    fun applySuggestion(suggestion: WorkoutSet) {
+        weight = suggestion.enteredWeight?.let(::editableNumber)
+            ?: suggestion.canonicalWeightKg?.let { editableNumber(massFromKilograms(it, weightUnitId)) }
+            ?: weight
+        machineSetting = suggestion.machineLoadValue?.let(::editableNumber) ?: machineSetting
+        reps = suggestion.repetitions?.toString() ?: reps
+        distance = suggestion.enteredDistance?.let(::editableNumber)
+            ?: suggestion.canonicalDistanceMetres?.let { editableNumber(distanceFromMetres(it, distanceUnitId)) }
+            ?: distance
+        duration = suggestion.durationSeconds?.toString() ?: duration
+        bodyweight = suggestion.bodyweightKg?.let { editableNumber(massFromKilograms(it, weightUnitId)) } ?: bodyweight
+        unilateral = suggestion.unilateral
+        validationRequested = false
+    }
+    fun submit(addNext: Boolean) {
+        validationRequested = true
+        if (validationMessages.isEmpty()) onSave(draft, addNext)
+    }
     Column(
-        modifier = Modifier.fillMaxWidth().padding(start = 48.dp, bottom = 8.dp).testTag("quick-set-${set.id}"),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.fillMaxWidth().testTag("quick-set-${set.id}"),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (needsWeight) {
-                OutlinedTextField(
-                    value = if (machineType == MachineLoadType.Level) machineSetting else weight,
-                    onValueChange = { value ->
-                        if (machineType == MachineLoadType.Level) machineSetting = value else {
-                            weight = value
-                            if (machineType == MachineLoadType.Mass) machineSetting = value
-                        }
-                    },
-                    label = { Text(loadLabel) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = fieldWidth(156.dp).testTag("quick-set-load-${set.id}"),
+        suggestedSet?.takeIf { suggestion ->
+            suggestion.shortLabel(
+                preferredWeightUnitId,
+                preferredDistanceUnitId,
+                1,
+                workoutExercise,
+                exercise.weightUnitId,
+            ) != "Empty set"
+        }?.let { suggestion ->
+            WhipTonalButton(
+                onClick = { applySuggestion(suggestion) },
+                modifier = Modifier.fillMaxWidth().testTag("quick-set-use-last-${set.id}"),
+            ) {
+                Text(
+                    "Use Previous · ${suggestion.shortLabel(preferredWeightUnitId, preferredDistanceUnitId, 1, workoutExercise, exercise.weightUnitId)}",
+                    maxLines = 1,
                 )
-                val currentLoad = (if (machineType == MachineLoadType.Level) machineSetting else weight).toWhipDoubleOrNull()
-                OutlinedButton(onClick = {
-                    val next = steppedWorkoutLoad(currentLoad, -1, machine?.availableLoads.orEmpty(), exercise.weightIncrement)
-                    val text = editableNumber(next)
-                    if (machineType == MachineLoadType.Level) machineSetting = text else {
-                        weight = text
-                        if (machineType == MachineLoadType.Mass) machineSetting = text
-                    }
-                }) { Text("−") }
-                OutlinedButton(onClick = {
-                    val next = steppedWorkoutLoad(currentLoad, 1, machine?.availableLoads.orEmpty(), exercise.weightIncrement)
-                    val text = editableNumber(next)
-                    if (machineType == MachineLoadType.Level) machineSetting = text else {
-                        weight = text
-                        if (machineType == MachineLoadType.Mass) machineSetting = text
-                    }
-                }) { Text("+") }
-            }
-            if (needsReps) OutlinedTextField(reps, { reps = it }, label = { Text("Reps") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, modifier = fieldWidth(110.dp).testTag("quick-set-reps-${set.id}"))
-            if (needsDistance) OutlinedTextField(distance, { distance = it }, label = { Text("Distance (${unitSymbol(preferredDistanceUnitId)})") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true, modifier = fieldWidth(156.dp))
-            if (needsDuration) OutlinedTextField(duration, { duration = it }, label = { Text("Seconds") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, modifier = fieldWidth(120.dp))
-            if (exercise.trackingType in setOf(ExerciseTrackingType.BodyweightReps, ExerciseTrackingType.AssistedBodyweightReps)) {
-                OutlinedTextField(bodyweight, { bodyweight = it }, label = { Text("Bodyweight") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true, modifier = fieldWidth(140.dp))
-            }
-            if (showRpe) OutlinedTextField(rpe, { rpe = it }, label = { Text("RPE") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true, modifier = fieldWidth(100.dp))
-            if (showRir) OutlinedTextField(rir, { rir = it }, label = { Text("RIR") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true, modifier = fieldWidth(100.dp))
-            if (workoutExercise.loadInterpretationSnapshot in setOf(LoadInterpretation.PerHand, LoadInterpretation.PerSide) ||
-                workoutExercise.machineStackModeSnapshot == MachineStackMode.DualIndependent) {
-                FilterChip(selected = unilateral, onClick = { unilateral = !unilateral }, label = { Text("One side / limb") })
             }
         }
-        Text("Tap the set summary for notes, tempo, class, and rest.", style = MaterialTheme.typography.bodySmall)
+        if (needsWeight) {
+            SteppedNumberField(
+                value = if (machineType == MachineLoadType.Level) machineSetting else weight,
+                onValueChange = { value ->
+                    if (machineType == MachineLoadType.Level) machineSetting = value else {
+                        weight = value
+                        if (machineType == MachineLoadType.Mass) machineSetting = value
+                    }
+                },
+                label = loadLabel,
+                increment = exercise.weightIncrement,
+                allowedValues = machine?.availableLoads.orEmpty(),
+                actionSubject = "${exercise.name} $loadLabel",
+                isError = validationRequested && loadError != null,
+                supportingText = loadError.takeIf { validationRequested },
+                modifier = Modifier.testTag("quick-set-load-${set.id}"),
+            )
+        }
+        if (needsReps) {
+            SteppedNumberField(
+                value = reps,
+                onValueChange = { reps = it },
+                label = "Repetitions",
+                increment = exercise.repetitionIncrement.toDouble(),
+                integer = true,
+                actionSubject = "${exercise.name} repetitions",
+                isError = validationRequested && repsError != null,
+                supportingText = repsError.takeIf { validationRequested },
+                modifier = Modifier.testTag("quick-set-reps-${set.id}"),
+            )
+        }
+        if (needsDistance || needsDuration) {
+            Text(
+                "Set Values",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (needsDistance) OutlinedTextField(
+                distance,
+                { distance = it },
+                label = { Text("Distance (${unitSymbol(preferredDistanceUnitId)})") },
+                isError = validationRequested && distanceError != null,
+                supportingText = distanceError.takeIf { validationRequested }?.let { { Text(it) } },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                modifier = fieldWidth(170.dp),
+            )
+            if (needsDuration) OutlinedTextField(
+                duration,
+                { duration = it },
+                label = { Text("Seconds") },
+                isError = validationRequested && durationError != null,
+                supportingText = durationError.takeIf { validationRequested }?.let { { Text(it) } },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = fieldWidth(130.dp),
+            )
+            if (exercise.trackingType in setOf(ExerciseTrackingType.BodyweightReps, ExerciseTrackingType.AssistedBodyweightReps)) {
+                OutlinedTextField(
+                    bodyweight,
+                    { bodyweight = it },
+                    label = { Text("Bodyweight") },
+                    isError = validationRequested && bodyweightError != null,
+                    supportingText = bodyweightError.takeIf { validationRequested }?.let { { Text(it) } },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = fieldWidth(150.dp),
+                )
+            }
+            if (workoutExercise.loadInterpretationSnapshot in setOf(LoadInterpretation.PerHand, LoadInterpretation.PerSide) ||
+                workoutExercise.machineStackModeSnapshot == MachineStackMode.DualIndependent) {
+                WhipFilterChip(selected = unilateral, onClick = { unilateral = !unilateral }, label = { Text("One Side / Limb") })
+            }
+        }
+        WhipButton(
+            onClick = { submit(false) },
+            modifier = Modifier.fillMaxWidth().testTag("quick-set-save-next-${set.id}"),
+        ) { Text("Complete Set") }
+        if (displayRpe || displayRir) {
+            Text(
+                "Effort (Optional) · ${if (displayRpe) "RPE" else "RIR"}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            SteppedNumberField(
+                value = if (displayRpe) rpe else rir,
+                onValueChange = { value -> if (displayRpe) rpe = value else rir = value },
+                label = if (displayRpe) "RPE (1–10)" else "RIR (0–10)",
+                increment = 0.5,
+                actionSubject = if (displayRpe) "RPE" else "RIR",
+                isError = validationRequested && if (displayRpe) rpeError != null else rirError != null,
+                supportingText = (if (displayRpe) rpeError else rirError).takeIf { validationRequested },
+            )
+        }
+        if (validationRequested) {
+            listOfNotNull(rpeError, rirError).distinct().forEach { message ->
+                Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+            if (fieldErrors.isEmpty()) domainError?.let { message ->
+                Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+        }
         machine?.availableLoads?.takeIf { it.isNotEmpty() && it.size <= 12 }?.let { values ->
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -1481,7 +1790,7 @@ internal fun QuickSetEntry(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 values.forEach { value ->
-                    FilterChip(
+                    WhipFilterChip(
                         selected = (if (machineType == MachineLoadType.Level) machineSetting else weight).toWhipDoubleOrNull() == value,
                         onClick = {
                             val text = editableNumber(value)
@@ -1493,94 +1802,350 @@ internal fun QuickSetEntry(
                 }
             }
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Button(
-                enabled = error == null,
-                onClick = { onSave(draft, true) },
-                modifier = Modifier.testTag("quick-set-save-next-${set.id}"),
-            ) { Text("Save + next") }
-            OutlinedButton(enabled = error == null, onClick = { onSave(draft, false) }) { Text("Save set") }
-        }
+        WhipTextButton(onClick = onMoreDetails, modifier = Modifier.align(Alignment.End)) { Text("Set Details") }
     }
 }
 
 @Composable
-private fun RestTimerCard(
+internal fun RestTimerCard(
     session: WorkoutSession,
     remaining: Int?,
-    defaultSeconds: Int,
+    selectedSeconds: Int,
+    presetSeconds: List<Int>,
+    notificationPermissionRequested: Boolean,
+    onSelectedSecondsChange: (Int) -> Unit,
+    onPresetSecondsChange: (List<Int>) -> Unit,
     onStart: (Long, Int) -> Unit,
     onAdjust: (Long, Int) -> Unit,
     onStop: (Long) -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    var showDurationEditor by rememberSaveable(session.id) { mutableStateOf(false) }
+    val context = LocalContext.current
+    val notificationAvailable = NotificationManagerCompat.from(context).areNotificationsEnabled() &&
+        (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
         Row(
-            modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Rest timer", fontWeight = FontWeight.Bold)
-                Text(remaining?.let { formatDuration(it.toLong()) } ?: "Ready")
-            }
+            Text(
+                "Rest · ${formatDuration((remaining ?: selectedSeconds).coerceAtLeast(1).toLong())}",
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f),
+            )
             if (remaining == null) {
-                TextButton(onClick = { onStart(session.id, defaultSeconds.coerceAtLeast(1)) }) {
-                    Text(formatDuration(defaultSeconds.coerceAtLeast(1).toLong()))
+                WhipTextButton(
+                    onClick = { showDurationEditor = true },
+                    modifier = Modifier.semantics { contentDescription = "Adjust rest time for this workout" },
+                ) {
+                    Text("Adjust")
+                }
+                WhipTextButton(onClick = { onStart(session.id, selectedSeconds.coerceAtLeast(1)) }) {
+                    Text("Start")
                 }
             } else {
-                TextButton(onClick = { onAdjust(session.id, -15) }) { Text("−15") }
-                TextButton(onClick = { onAdjust(session.id, 15) }) { Text("+15") }
-                TextButton(onClick = { onStop(session.id) }) { Text("Stop") }
+                WhipTextButton(onClick = { onAdjust(session.id, -15) }) { Text("−15") }
+                WhipTextButton(onClick = { onAdjust(session.id, 15) }) { Text("+15") }
+                WhipTextButton(onClick = { onStop(session.id) }) { Text("Stop") }
             }
         }
+        if (remaining != null && notificationPermissionRequested && !notificationAvailable) {
+            Text(
+                "Background alert off · the in-app timer still works",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        }
+    }
+    if (showDurationEditor) {
+        RestDurationDialog(
+            initialSeconds = selectedSeconds,
+            presetSeconds = presetSeconds,
+            onDismiss = { showDurationEditor = false },
+            onPresetSecondsChange = onPresetSecondsChange,
+            onConfirm = { seconds ->
+                onSelectedSecondsChange(seconds)
+                showDurationEditor = false
+            },
+        )
     }
 }
 
 @Composable
+private fun RestDurationDialog(
+    initialSeconds: Int,
+    presetSeconds: List<Int>,
+    onDismiss: () -> Unit,
+    onPresetSecondsChange: (List<Int>) -> Unit,
+    onConfirm: (Int) -> Unit,
+) {
+    var secondsText by rememberSaveable(initialSeconds) { mutableStateOf(initialSeconds.coerceAtLeast(15).toString()) }
+    var editingPresets by rememberSaveable { mutableStateOf(false) }
+    var presetDraft by remember(presetSeconds) { mutableStateOf(normalizeRestTimerPresets(presetSeconds)) }
+    var newPresetText by rememberSaveable { mutableStateOf("") }
+    val seconds = secondsText.toIntOrNull()
+    val valid = seconds != null && seconds in 15..3_600
+    val newPreset = newPresetText.toIntOrNull()
+    val newPresetValid = newPreset != null && newPreset in 15..3_600 && newPreset !in presetDraft && presetDraft.size < 12
+    PaneAwareAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (editingPresets) "Manage Rest Presets" else "Rest Time for This Workout") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (editingPresets) {
+                    Text(
+                        "Choose the shortcuts shown in the workout rest-time editor. Keep at least one preset; up to 12 are supported.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        presetDraft.forEach { preset ->
+                            WhipOutlinedButton(
+                                enabled = presetDraft.size > 1,
+                                onClick = { presetDraft = presetDraft - preset },
+                                modifier = Modifier.semantics {
+                                    contentDescription = "Remove ${formatDuration(preset.toLong())} rest preset"
+                                },
+                            ) {
+                                Text("${formatDuration(preset.toLong())} ×")
+                            }
+                        }
+                    }
+                    SteppedNumberField(
+                        value = newPresetText,
+                        onValueChange = { newPresetText = it },
+                        label = "New Preset (Seconds)",
+                        increment = 15.0,
+                        integer = true,
+                        actionSubject = "new rest preset",
+                        isError = newPresetText.isNotBlank() && newPreset?.let { it !in 15..3_600 } != false,
+                        supportingText = "Enter 15–3,600 seconds".takeIf {
+                            newPresetText.isNotBlank() && newPreset?.let { it !in 15..3_600 } != false
+                        },
+                        modifier = Modifier.testTag("rest-preset-seconds"),
+                    )
+                    WhipButton(
+                        enabled = newPresetValid,
+                        onClick = {
+                            presetDraft = normalizeRestTimerPresets(presetDraft + requireNotNull(newPreset))
+                            newPresetText = ""
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Add Preset") }
+                    if (newPresetText.isNotBlank() && newPreset != null && newPreset in presetDraft) {
+                        Text("That preset already exists.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else if (presetDraft.size >= 12) {
+                        Text("Remove a preset before adding another.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    WhipTextButton(
+                        onClick = { presetDraft = DEFAULT_REST_TIMER_PRESET_SECONDS },
+                        modifier = Modifier.align(Alignment.End),
+                    ) { Text("Restore Defaults") }
+                } else {
+                    Text(
+                        "This changes rest timers started during the current workout. It does not change your default in Settings.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        "Selected · ${seconds?.takeIf { it > 0 }?.let { formatDuration(it.toLong()) } ?: "Invalid"}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        presetDraft.forEach { preset ->
+                            WhipFilterChip(
+                                selected = seconds == preset,
+                                onClick = { secondsText = preset.toString() },
+                                label = { Text(formatDuration(preset.toLong())) },
+                            )
+                        }
+                    }
+                    WhipTextButton(onClick = { editingPresets = true }, modifier = Modifier.align(Alignment.End)) {
+                        Text("Manage Presets")
+                    }
+                    SteppedNumberField(
+                        value = secondsText,
+                        onValueChange = { secondsText = it },
+                        label = "Seconds",
+                        increment = 15.0,
+                        integer = true,
+                        actionSubject = "workout rest time",
+                        isError = secondsText.isNotBlank() && !valid,
+                        supportingText = "Enter 15–3,600 seconds".takeIf { secondsText.isNotBlank() && !valid },
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (editingPresets) {
+                WhipTextButton(onClick = {
+                    val normalized = normalizeRestTimerPresets(presetDraft)
+                    presetDraft = normalized
+                    onPresetSecondsChange(normalized)
+                    editingPresets = false
+                }) { Text("Save Presets") }
+            } else {
+                WhipTextButton(enabled = valid, onClick = { onConfirm(requireNotNull(seconds)) }) {
+                    Text("Use for This Workout")
+                }
+            }
+        },
+        dismissButton = {
+            WhipTextButton(onClick = {
+                if (editingPresets) {
+                    presetDraft = normalizeRestTimerPresets(presetSeconds)
+                    editingPresets = false
+                } else {
+                    onDismiss()
+                }
+            }) { Text(if (editingPresets) "Back" else "Cancel") }
+        },
+    )
+}
+
+@Composable
 private fun ExerciseLibraryContent(
-    exercises: List<Exercise>,
-    archived: List<Exercise>,
+    state: GymUiState,
     onCreate: () -> Unit,
     onOpen: (Exercise) -> Unit,
     onEdit: (Exercise) -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var showArchived by rememberSaveable { mutableStateOf(false) }
-    val source = if (showArchived) archived else exercises
-    val visible = source.filter { it.name.contains(query, ignoreCase = true) }
+    var filtersExpanded by rememberSaveable { mutableStateOf(false) }
+    var favoritesOnly by rememberSaveable { mutableStateOf(false) }
+    var selectedCategoryId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var selectedTrackingType by rememberSaveable { mutableStateOf<ExerciseTrackingType?>(null) }
+    var selectedEquipment by rememberSaveable { mutableStateOf<String?>(null) }
+    var sort by rememberSaveable { mutableStateOf(ExerciseLibrarySort.Name) }
+    val source = if (showArchived) state.archivedExercises else state.exercises
+    val machineNamesByExercise = (state.machines + state.archivedMachines).groupBy(GymMachine::exerciseId)
+        .mapValues { (_, machines) -> machines.joinToString(" ") { it.displayName } }
+    val equipmentOptions = source.map(Exercise::equipment).filter(String::isNotBlank).distinct().sorted()
+    val lastUsedAtByExercise = state.allWorkoutExercises.groupingBy(WorkoutExercise::exerciseId)
+        .fold(0L) { latest, placement -> maxOf(latest, placement.createdAtMillis) }
+    val visible = source.filter { exercise ->
+        exerciseMatchesQuery(exercise, query, machineNamesByExercise[exercise.id].orEmpty()) &&
+            (!favoritesOnly || exercise.favorite) &&
+            (selectedTrackingType == null || exercise.trackingType == selectedTrackingType) &&
+            (selectedEquipment == null || if (selectedEquipment == MACHINE_EQUIPMENT_FILTER) {
+                machineNamesByExercise.containsKey(exercise.id)
+            } else exercise.equipment.equals(selectedEquipment, ignoreCase = true)) &&
+            (selectedCategoryId == null || state.categoryLinks.any { it.exerciseId == exercise.id && it.categoryId == selectedCategoryId })
+    }.let { matches ->
+        when (sort) {
+            ExerciseLibrarySort.Name -> matches.sortedBy { it.name.lowercase() }
+            ExerciseLibrarySort.RecentlyUsed -> matches.sortedWith(
+                compareByDescending<Exercise> { lastUsedAtByExercise[it.id] ?: Long.MIN_VALUE }
+                    .thenBy { it.name.lowercase() },
+            )
+            ExerciseLibrarySort.RecentlyAdded -> matches.sortedByDescending(Exercise::id)
+            ExerciseLibrarySort.FavoritesFirst -> matches.sortedWith(compareByDescending<Exercise> { it.favorite }.thenBy { it.name.lowercase() })
+        }
+    }
+    val activeFilterCount = listOf(favoritesOnly, showArchived, selectedCategoryId != null, selectedTrackingType != null, selectedEquipment != null).count { it }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp),
+        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            Text("Exercise library", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text(
-                "Only your exercises appear here—Whip never seeds a movement list.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            WhipPageHeader(
+                title = "Exercise Library",
+                supportingText = "Only your exercises appear here—Whip never seeds a movement list.",
+            ) {
+                WhipButton(onClick = onCreate) { Text("Create Exercise") }
+            }
         }
         item {
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
-                label = { Text("Search exercises") },
-                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Search Exercises") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag("exercise-library-search"),
             )
         }
         item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = showArchived, onCheckedChange = { showArchived = it })
-                Spacer(Modifier.width(8.dp))
-                Text("Show archived")
+            DisclosureRow(
+                title = "Filters and Sort",
+                supportingText = if (activeFilterCount == 0) sort.label else "$activeFilterCount active · ${sort.label}",
+                expanded = filtersExpanded,
+                onClick = { filtersExpanded = !filtersExpanded },
+            )
+        }
+        if (filtersExpanded) item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ToggleRow("Favorites only", favoritesOnly) { favoritesOnly = it }
+                ToggleRow("Show archived", showArchived) { showArchived = it }
+                GymEnumDropdown(
+                    "Category",
+                    listOf<Long?>(null) + state.categories.map(ExerciseCategory::id),
+                    selectedCategoryId,
+                    { id -> state.categories.firstOrNull { it.id == id }?.name ?: "All Categories" },
+                    titleCaseValues = false,
+                ) { selectedCategoryId = it }
+                GymEnumDropdown(
+                    "Tracking Type",
+                    listOf<ExerciseTrackingType?>(null) + ExerciseTrackingType.entries,
+                    selectedTrackingType,
+                    { it?.label ?: "All Tracking Types" },
+                    titleCaseValues = false,
+                ) { selectedTrackingType = it }
+                GymEnumDropdown(
+                    "Equipment",
+                    listOf<String?>(null, MACHINE_EQUIPMENT_FILTER) + equipmentOptions,
+                    selectedEquipment,
+                    { value -> when (value) {
+                        null -> "All Equipment"
+                        MACHINE_EQUIPMENT_FILTER -> "Any Machine"
+                        else -> value
+                    } },
+                    titleCaseValues = false,
+                ) { selectedEquipment = it }
+                GymEnumDropdown("Sort", ExerciseLibrarySort.entries, sort, ExerciseLibrarySort::label) { sort = it }
+            }
+        }
+        if (activeFilterCount > 0) item {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (favoritesOnly) WhipFilterChip(true, { favoritesOnly = false }, { Text("Favorites ×") })
+                if (showArchived) WhipFilterChip(true, { showArchived = false }, { Text("Archived ×") })
+                selectedCategoryId?.let { id ->
+                    WhipFilterChip(true, { selectedCategoryId = null }, { Text("${state.categories.firstOrNull { it.id == id }?.name ?: "Category"} ×") })
+                }
+                selectedTrackingType?.let { type -> WhipFilterChip(true, { selectedTrackingType = null }, { Text("${type.label} ×") }) }
+                selectedEquipment?.let { equipment ->
+                    WhipFilterChip(
+                        true,
+                        { selectedEquipment = null },
+                        { Text("${if (equipment == MACHINE_EQUIPMENT_FILTER) "Any Machine" else equipment} ×") },
+                    )
+                }
             }
         }
         if (visible.isEmpty()) {
             item {
-                Text(
-                    if (showArchived) "No archived exercises." else "Your library is empty. Create your first named exercise.",
-                    modifier = Modifier.padding(vertical = 24.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                WhipEmptyState(
+                    title = if (source.isEmpty() && showArchived) "No Archived Exercises" else if (source.isEmpty()) "Exercise Library Is Empty" else "No Matching Exercises",
+                    supportingText = if (source.isEmpty() && showArchived) "Archived exercises will appear here." else if (source.isEmpty()) "Create your first named exercise to use it in workouts and routines." else "Clear or change the search and filters.",
+                    primaryActionLabel = "Create Exercise".takeUnless { showArchived || source.isNotEmpty() },
+                    onPrimaryAction = onCreate.takeUnless { showArchived || source.isNotEmpty() },
                 )
             }
         }
@@ -1608,14 +2173,11 @@ private fun ExerciseLibraryContent(
                         } else {
                             ""
                         }
-                        Text(exercise.trackingType.label + unitDetail, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(exercise.trackingType.label.uiTitleCase() + unitDetail, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     ItemEditButton("exercise", exercise.name, onEdit = { onEdit(exercise) })
                 }
             }
-        }
-        item {
-            Button(onClick = onCreate, modifier = Modifier.fillMaxWidth()) { Text("Create exercise") }
         }
     }
 }
@@ -1624,37 +2186,41 @@ private fun ExerciseLibraryContent(
 private fun MachineLibraryContent(
     state: GymUiState,
     onCreate: () -> Unit,
+    onCreateExercise: () -> Unit,
     onEdit: (GymMachine) -> Unit,
     onArchive: (Long, Boolean) -> Unit,
     onNewVersion: (GymMachine) -> Unit,
     onDelete: (GymMachine) -> Unit,
 ) {
     var showArchived by rememberSaveable { mutableStateOf(false) }
-    var query by rememberSaveable { mutableStateOf("") }
     var actionMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
     val exerciseById = (state.exercises + state.archivedExercises).associateBy(Exercise::id)
-    val visible = (if (showArchived) state.archivedMachines else state.machines).filter { machine ->
-        query.isBlank() || listOf(machine.name, machine.location, machine.details, exerciseById[machine.exerciseId]?.name.orEmpty())
-            .any { it.contains(query, true) }
-    }
+    val visible = if (showArchived) state.archivedMachines else state.machines
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("gym-machine-list"),
-        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp),
+        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            Text("Machines", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text(
-                "Give each physical machine its own profile. Whip keeps its history, previous sets, records, and graphs separate from other machines.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        item {
-            OutlinedTextField(query, { query = it }, label = { Text("Search machines, locations, or exercises") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            WhipPageHeader(
+                title = "Machines",
+                supportingText = "Give each physical machine its own profile. Whip keeps its history and records separate.",
+            ) {
+                WhipButton(onClick = if (state.exercises.isEmpty()) onCreateExercise else onCreate) {
+                    Text(if (state.exercises.isEmpty()) "Create Exercise" else "Create Machine")
+                }
+            }
         }
         item { ToggleRow("Show archived", showArchived) { showArchived = it } }
         if (visible.isEmpty()) item {
-            Text(if (showArchived) "No archived machines." else "No machines yet. Free weights continue to work without a machine profile.")
+            WhipEmptyState(
+                title = if (showArchived) "No Archived Machines" else "No Machine Profiles",
+                supportingText = if (state.exercises.isEmpty()) {
+                    "Create an exercise first, then add the machine profile used for it."
+                } else "Free weights continue to work without a machine profile.",
+                primaryActionLabel = if (state.exercises.isEmpty()) "Create Exercise" else "Create Machine",
+                onPrimaryAction = if (state.exercises.isEmpty()) onCreateExercise else onCreate,
+            )
         }
         items(visible, key = GymMachine::id) { machine ->
             Card(Modifier.fillMaxWidth()) {
@@ -1685,11 +2251,11 @@ private fun MachineLibraryContent(
                                     onClick = { actionMenuId = null; onArchive(machine.id, !machine.archived) },
                                 )
                                 if (!machine.archived) DropdownMenuItem(
-                                    text = { Text("New configuration version") },
+                                    text = { Text("New Configuration Version") },
                                     onClick = { actionMenuId = null; onNewVersion(machine) },
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Delete permanently", color = MaterialTheme.colorScheme.error) },
+                                    text = { Text("Delete Permanently", color = MaterialTheme.colorScheme.error) },
                                     leadingIcon = { Icon(Icons.Outlined.DeleteOutline, contentDescription = null) },
                                     onClick = { actionMenuId = null; onDelete(machine) },
                                 )
@@ -1707,7 +2273,7 @@ private fun MachineLibraryContent(
                     )
                     if (machine.loadType == MachineLoadType.Mass) {
                         Text(
-                            "Entry meaning: ${machine.loadInterpretation.label}" +
+                            "Entry meaning: ${machine.loadInterpretation.label.uiTitleCase()}" +
                                 if (machine.loadInterpretation == LoadInterpretation.PerSide && machine.baseLoadKg != null) {
                                     " · base ${editableNumber(massFromKilograms(machine.baseLoadKg, machine.unitId))} ${unitSymbol(machine.unitId)}"
                                 } else "",
@@ -1726,16 +2292,12 @@ private fun MachineLibraryContent(
                 }
             }
         }
-        item {
-            Button(onClick = onCreate, enabled = state.exercises.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
-                Text(if (state.exercises.isEmpty()) "Create an exercise first" else "Create machine profile")
-            }
-        }
     }
 }
 
 @Composable
 internal fun MachinePermanentDeleteDialog(
+    modifier: Modifier = Modifier,
     impact: MachineDeletionImpact,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
@@ -1745,10 +2307,10 @@ internal fun MachinePermanentDeleteDialog(
     deleting: Boolean,
 ) {
     val blocked = impact.activePlacements > 0
-    AlertDialog(
+    PaneAwareAlertDialog(
+        modifier = modifier.testTag("machine-delete-dialog"),
         onDismissRequest = { if (!deleting) onDismiss() },
-        modifier = Modifier.testTag("machine-delete-dialog"),
-        title = { Text("Delete “${impact.displayName}” v${impact.configurationVersion} permanently?") },
+        title = { Text("Delete “${impact.displayName}” v${impact.configurationVersion} Permanently?") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 item {
@@ -1764,7 +2326,7 @@ internal fun MachinePermanentDeleteDialog(
                     )
                 }
                 if (impact.routineReferences > 0) item {
-                    Text("Needs attention", fontWeight = FontWeight.Bold)
+                    Text("Needs Attention", fontWeight = FontWeight.Bold)
                     Text(
                         "${impact.routineReferences} routine placement${if (impact.routineReferences == 1) "" else "s"} " +
                             "will be marked Needs equipment and cannot start until replaced." +
@@ -1773,12 +2335,12 @@ internal fun MachinePermanentDeleteDialog(
                                 limit = 3,
                             ).orEmpty(),
                     )
-                    TextButton(onClick = onReviewRoutines) { Text("Review routines") }
+                    WhipTextButton(onClick = onReviewRoutines) { Text("Review Routines") }
                 }
                 if (blocked) item {
-                    Text("Active workout", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                    Text("Active Workout", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                     Text("This profile is currently in use. Finish the workout or change that exercise’s equipment before deleting it.")
-                    TextButton(onClick = onOpenActiveWorkout) { Text("Open active workout") }
+                    WhipTextButton(onClick = onOpenActiveWorkout) { Text("Open Active Workout") }
                 }
                 item {
                     Text(
@@ -1786,18 +2348,18 @@ internal fun MachinePermanentDeleteDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    TextButton(onClick = onBackUpFirst) { Text("Back up first") }
+                    WhipTextButton(onClick = onBackUpFirst) { Text("Back Up First") }
                 }
             }
         },
         confirmButton = {
-            TextButton(
+            WhipTextButton(
                 enabled = !blocked && !deleting,
                 onClick = onConfirm,
                 modifier = Modifier.testTag("machine-delete-confirm"),
             ) { Text(if (deleting) "Deleting…" else "Delete profile permanently", color = MaterialTheme.colorScheme.error) }
         },
-        dismissButton = { TextButton(enabled = !deleting, onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !deleting, onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -1809,13 +2371,13 @@ internal fun MachineEditorDialog(
     definitionLocked: Boolean,
     creatingVersion: Boolean = false,
     initialExerciseId: Long? = null,
+    onCreateVersion: (() -> Unit)? = null,
     onDismiss: () -> Unit,
     onSave: (GymMachineDraft) -> Unit,
     saving: Boolean = false,
 ) {
     val editorKey = "machine-${machine?.id ?: initialExerciseId ?: "new"}-${if (creatingVersion) "version" else "edit"}"
     var exerciseId by rememberSaveable(editorKey) { mutableStateOf(machine?.exerciseId ?: initialExerciseId ?: exercises.firstOrNull()?.id) }
-    var exerciseMenu by rememberSaveable(editorKey) { mutableStateOf(false) }
     var name by rememberSaveable(editorKey) { mutableStateOf(machine?.name.orEmpty()) }
     var location by rememberSaveable(editorKey) { mutableStateOf(machine?.location.orEmpty()) }
     var details by rememberSaveable(editorKey) { mutableStateOf(machine?.details.orEmpty()) }
@@ -1855,6 +2417,7 @@ internal fun MachineEditorDialog(
         mutableStateOf(machine?.massMappingKg?.entries?.sortedBy { it.key }?.joinToString("\n") { "${editableNumber(it.key)}=${editableNumber(massFromKilograms(it.value, mappingUnitId))}" }.orEmpty())
     }
     var compatibleForComparison by rememberSaveable(editorKey) { mutableStateOf(machine?.compatibleForComparison ?: false) }
+    var showAdvancedSetup by rememberSaveable(editorKey) { mutableStateOf(machine != null) }
     val initialSequence = remember(machine?.id) {
         machine?.availableLoads?.takeIf(List<Double>::isNotEmpty)?.let(::compactNumericSequence)
     }
@@ -1933,30 +2496,42 @@ internal fun MachineEditorDialog(
         modifier = modifier,
         testTag = "exercise-editor-surface",
         onDismissRequest = { if (!saving) requestDismiss() },
-        title = { Text(if (creatingVersion) "New machine configuration version" else if (machine == null) "Create machine profile" else "Edit machine profile") },
+        title = { Text(if (creatingVersion) "New Machine Configuration Version" else if (machine == null) "Create Machine Profile" else "Edit Machine Profile") },
         text = {
             LazyColumn(
                 modifier = Modifier.testTag("machine-editor-list"),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item {
-                    Text("Exercise", style = MaterialTheme.typography.labelMedium)
-                    OutlinedButton(enabled = !definitionLocked, onClick = { exerciseMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(exercises.firstOrNull { it.id == exerciseId }?.name ?: "Choose exercise")
-                    }
-                    DropdownMenu(exerciseMenu, { exerciseMenu = false }) {
-                        exercises.forEach { exercise ->
-                            DropdownMenuItem(
-                                text = { Text(exercise.name) },
-                                onClick = {
-                                    exerciseId = exercise.id
-                                    if (machine == null && loadType == MachineLoadType.Mass) {
-                                        unitId = exercise.weightUnitId.ifBlank { "kilogram" }
-                                        applyStandardSequence(unit = unitId)
-                                    }
-                                    exerciseMenu = false
-                                },
-                            )
+                    val choices = listOf<Exercise?>(null) + exercises
+                    SelectionField(
+                        label = "Exercise",
+                        values = choices,
+                        selected = exercises.firstOrNull { it.id == exerciseId },
+                        valueText = { it?.name ?: "Choose Exercise" },
+                        enabled = !definitionLocked,
+                        onSelect = { exercise ->
+                            exerciseId = exercise?.id
+                            if (exercise != null && machine == null && loadType == MachineLoadType.Mass) {
+                                unitId = exercise.weightUnitId.ifBlank { "kilogram" }
+                                applyStandardSequence(unit = unitId)
+                            }
+                        }
+                    )
+                }
+                if (definitionLocked) item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AvailabilityNotice(
+                            label = "Exercise and resistance definition",
+                            availability = ControlAvailability(
+                                enabled = false,
+                                unavailableExplanation = "Locked to preserve workout history. Names, notes, setup cues, and presets remain editable.",
+                            ),
+                        )
+                        onCreateVersion?.let { createVersion ->
+                            WhipOutlinedButton(onClick = createVersion, modifier = Modifier.fillMaxWidth()) {
+                                Text("Create New Configuration Version")
+                            }
                         }
                     }
                 }
@@ -1964,7 +2539,15 @@ internal fun MachineEditorDialog(
                 item { OutlinedTextField(location, { location = it }, label = { Text("Location") }, supportingText = { Text("Example: Home or Downtown Gym") }, modifier = Modifier.fillMaxWidth()) }
                 item { OutlinedTextField(details, { details = it }, label = { Text("Model / setup notes") }, supportingText = { Text("Seat, attachment, pulley, or other setup that changes resistance") }, modifier = Modifier.fillMaxWidth()) }
                 item {
-                    Text("Repeatable setup", style = MaterialTheme.typography.labelMedium)
+                    DisclosureButton(
+                        label = "Advanced Machine Setup",
+                        expanded = showAdvancedSetup,
+                        onClick = { showAdvancedSetup = !showAdvancedSetup },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                if (showAdvancedSetup) item {
+                    Text("Repeatable Setup", style = MaterialTheme.typography.labelMedium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(seatPosition, { seatPosition = it }, label = { Text("Seat") }, singleLine = true, modifier = setupFieldWidth(130.dp))
                         OutlinedTextField(backPosition, { backPosition = it }, label = { Text("Back") }, singleLine = true, modifier = setupFieldWidth(130.dp))
@@ -1972,35 +2555,44 @@ internal fun MachineEditorDialog(
                     }
                     Text("Use the machine's own labels (for example seat 4, back B, rope). These values are snapshotted into each workout.", style = MaterialTheme.typography.bodySmall)
                 }
-                item {
+                if (showAdvancedSetup) item {
                     GymEnumDropdown("Stack / arm arrangement", MachineStackMode.entries, stackMode, MachineStackMode::label) { stackMode = it }
                     NumberField(pulleyRatio, { pulleyRatio = it }, "Effective resistance multiplier")
                     Text("Use 1 for direct resistance, 0.5 when a 2:1 pulley halves the displayed resistance, or the manufacturer-tested multiplier.", style = MaterialTheme.typography.bodySmall)
                     OutlinedTextField(stackLabels, { stackLabels = it }, label = { Text("Stack / arm labels") }, supportingText = { Text("Comma-separated, e.g. left, right") }, modifier = Modifier.fillMaxWidth())
                 }
                 item {
-                    Text("How this machine labels resistance", style = MaterialTheme.typography.labelMedium)
+                    Text("Resistance", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("How This Machine Labels Resistance", style = MaterialTheme.typography.labelMedium)
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         MachineLoadType.entries.forEach { type ->
-                            FilterChip(selected = loadType == type, enabled = !definitionLocked, onClick = { changeLoadType(type) }, label = { Text(type.label) })
+                            WhipFilterChip(selected = loadType == type, enabled = !definitionLocked, onClick = { changeLoadType(type) }, label = { Text(type.label.uiTitleCase()) })
                         }
                     }
+                    DependentSettingsNotice(
+                        message = if (loadType == MachineLoadType.Mass) {
+                            "Mass units, entry meaning, and optional base resistance appear next."
+                        } else {
+                            "The setting label and optional mass mapping appear next."
+                        },
+                        testTag = "machine-load-type-consequence",
+                    )
                 }
                 if (loadType == MachineLoadType.Mass) {
                     item {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(selected = unitId == "kilogram", enabled = !definitionLocked, onClick = { changeMachineUnit("kilogram") }, label = { Text("kg") })
-                            FilterChip(selected = unitId == "pound", enabled = !definitionLocked, onClick = { changeMachineUnit("pound") }, label = { Text("lb") })
+                            WhipFilterChip(selected = unitId == "kilogram", enabled = !definitionLocked, onClick = { changeMachineUnit("kilogram") }, label = { Text("kg") })
+                            WhipFilterChip(selected = unitId == "pound", enabled = !definitionLocked, onClick = { changeMachineUnit("pound") }, label = { Text("lb") })
                         }
                         Text("Use this only when the stack is labeled as a mass. Comparisons still stay inside this machine profile.", style = MaterialTheme.typography.bodySmall)
                     }
                     item {
                         if (definitionLocked) {
-                            Text("Entry meaning: ${loadInterpretation.label}", style = MaterialTheme.typography.labelMedium)
+                            Text("Entry meaning: ${loadInterpretation.label.uiTitleCase()}", style = MaterialTheme.typography.labelMedium)
                         } else {
                             GymEnumDropdown(
                                 "What one entered load means",
@@ -2036,8 +2628,8 @@ internal fun MachineEditorDialog(
                         OutlinedTextField(levelLabel, { levelLabel = it }, enabled = !definitionLocked, label = { Text("Setting label") }, supportingText = { Text("Examples: level, pin, plate, resistance") }, modifier = Modifier.fillMaxWidth())
                         Text("Numbered settings stay ordinal and are excluded from mass analytics unless you explicitly map each setting to a mass.", style = MaterialTheme.typography.bodySmall)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(selected = mappingUnitId == "kilogram", onClick = { changeMappingUnit("kilogram") }, label = { Text("Mapping in kg") })
-                            FilterChip(selected = mappingUnitId == "pound", onClick = { changeMappingUnit("pound") }, label = { Text("Mapping in lb") })
+                            WhipFilterChip(selected = mappingUnitId == "kilogram", onClick = { changeMappingUnit("kilogram") }, label = { Text("Mapping in kg") })
+                            WhipFilterChip(selected = mappingUnitId == "pound", onClick = { changeMappingUnit("pound") }, label = { Text("Mapping in lb") })
                         }
                         OutlinedTextField(
                             massMapping,
@@ -2049,13 +2641,14 @@ internal fun MachineEditorDialog(
                         )
                     }
                 }
-                item {
+                if (showAdvancedSetup) item {
                     NumberField(addOnPlate, { addOnPlate = it }, "Add-on resistance (${unitSymbol(if (loadType == MachineLoadType.Mass) unitId else mappingUnitId)})")
                     ToggleRow("Allow comparison with selected compatible versions", compatibleForComparison) { compatibleForComparison = it }
-                    if (creatingVersion) Text("The old configuration remains immutable in history. This becomes version ${(machine?.configurationVersion ?: 0) + 1} of the same physical machine family.", style = MaterialTheme.typography.bodySmall)
+                }
+                if (creatingVersion) item {
+                    Text("The old configuration remains immutable in history. This becomes version ${(machine?.configurationVersion ?: 0) + 1} of the same physical machine family.", style = MaterialTheme.typography.bodySmall)
                 }
                 item {
-                    if (definitionLocked) Text("Exercise, scale type, unit, and label are locked because this machine has history. Names, notes, and available presets remain editable.", style = MaterialTheme.typography.bodySmall)
                     OutlinedTextField(
                         loads,
                         { loads = it },
@@ -2093,7 +2686,7 @@ internal fun MachineEditorDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            WhipTextButton(
                 enabled = !saving && name.isNotBlank() && exerciseId != null && parsedLoads.error == null &&
                     (loadType == MachineLoadType.Mass || levelLabel.isNotBlank()) &&
                     (pulleyRatio.toWhipDoubleOrNull()?.let { it > 0.0 && it <= 10.0 } == true) &&
@@ -2122,13 +2715,14 @@ internal fun MachineEditorDialog(
                 },
             ) { Text(if (saving) "Saving…" else "Save") }
         },
-        dismissButton = { TextButton(onClick = requestDismiss, enabled = !saving) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = requestDismiss, enabled = !saving) { Text("Cancel") } },
     )
     pendingMachineUnit?.let { selected ->
         val currentSummary = machineLoadSummary(parsedLoads.values)
         val convertedSummary = machineLoadSummary(parsedLoads.values.map { convertPracticalMassValue(it, unitId, selected) })
         DefaultsMeaningChangeDialog(
-            title = "Change machine labels to ${unitSymbol(selected)}?",
+            modifier = modifier,
+            title = "Change Machine Labels to ${unitSymbol(selected)}?",
             explanation = "Choose what should happen to this profile's future-entry values. Convert changes $currentSummary ${unitSymbol(unitId)} to $convertedSummary ${unitSymbol(selected)} and converts base/add-on resistance. Keep changes only the label. Reset uses Whip's standard ${unitSymbol(selected)} stack and clears base/add-on resistance. Logged workouts keep their snapshots.",
             onConvert = { convertMachineDefaults(selected); pendingMachineUnit = null },
             onKeep = { unitId = selected; pendingMachineUnit = null },
@@ -2137,18 +2731,20 @@ internal fun MachineEditorDialog(
         )
     }
     if (showDiscardConfirmation) {
-        UnsavedChangesDialog("machine profile", { showDiscardConfirmation = false }, onDismiss)
+        UnsavedChangesDialog("machine profile", { showDiscardConfirmation = false }, onDismiss, modifier)
     }
 }
 
 @Composable
 private fun MachineChoiceDialog(
+    modifier: Modifier = Modifier,
     exercise: Exercise,
     machines: List<GymMachine>,
     onDismiss: () -> Unit,
     onChoose: (Long?) -> Unit,
 ) {
-    AlertDialog(
+    PaneAwareAlertDialog(
+        modifier = modifier,
         onDismissRequest = onDismiss,
         title = { Text("Equipment for ${exercise.name}") },
         text = {
@@ -2157,58 +2753,82 @@ private fun MachineChoiceDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item { Text("Choose the exact machine so previous sets and progress remain comparable.") }
-                item { OutlinedButton(onClick = { onChoose(null) }, modifier = Modifier.fillMaxWidth()) { Text("No machine / free weights") } }
+                item { WhipOutlinedButton(onClick = { onChoose(null) }, modifier = Modifier.fillMaxWidth()) { Text("No Machine / Free Weights") } }
                 items(machines, key = GymMachine::id) { machine ->
-                    OutlinedButton(onClick = { onChoose(machine.id) }, modifier = Modifier.fillMaxWidth()) {
+                    WhipOutlinedButton(onClick = { onChoose(machine.id) }, modifier = Modifier.fillMaxWidth()) {
                         Text(machine.displayName)
                     }
                 }
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
 @Composable
-private fun ExerciseCategoryContent(state: GymUiState, viewModel: GymViewModel) {
+private fun ExerciseCategoryContent(
+    state: GymUiState,
+    viewModel: GymViewModel,
+    dialogModifier: Modifier = Modifier,
+) {
     var editingCategoryId by rememberSaveable { mutableStateOf<Long?>(null) }
     val editing = editingCategoryId?.let { id -> (state.categories + state.archivedCategories).firstOrNull { it.id == id } }
     var creating by rememberSaveable { mutableStateOf(false) }
     val editorKey = "category-${editingCategoryId ?: "new"}"
     var name by rememberSaveable(editorKey) { mutableStateOf(editing?.name.orEmpty()) }
     var kind by rememberSaveable(editorKey) { mutableStateOf(editing?.kind ?: "Category") }
-    var colorHex by rememberSaveable(editorKey) { mutableStateOf(colorArgbToHex(editing?.colorArgb)) }
     var showArchived by rememberSaveable { mutableStateOf(false) }
     val visible = if (showArchived) state.archivedCategories else state.categories
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item { Text("Exercise categories", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold); Text("Create your own muscle, equipment, movement, or training tags.") }
+    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item {
+            WhipPageHeader(
+                title = "Exercise Categories",
+                supportingText = "Create your own muscle, equipment, movement, or training tags.",
+            ) {
+                if (visible.isNotEmpty() && !showArchived) {
+                    WhipButton(onClick = { creating = true }) { Text("Create Category") }
+                }
+            }
+        }
         item { ToggleRow("Show archived", showArchived) { showArchived = it } }
-        if (visible.isEmpty()) item { Text(if (showArchived) "No archived categories." else "No categories yet. Exercises do not require one.") }
+        if (visible.isEmpty()) item {
+            WhipEmptyState(
+                title = if (showArchived) "No Archived Categories" else "No Categories Yet",
+                supportingText = if (showArchived) "Archived categories will appear here." else "Categories are optional and can make a large exercise library easier to browse.",
+                primaryActionLabel = "Create Category".takeUnless { showArchived },
+                onPrimaryAction = { creating = true }.takeUnless { showArchived },
+            )
+        }
         items(visible.size, key = { visible[it].id }) { index ->
             val category = visible[index]
             Card(Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) { Text(category.name, fontWeight = FontWeight.Bold); Text(category.kind, style = MaterialTheme.typography.labelSmall) }
                     if (!showArchived) {
-                        TextButton(enabled = index > 0, onClick = {
+                        WhipTextButton(enabled = index > 0, onClick = {
                             val ids = visible.map(ExerciseCategory::id).toMutableList(); java.util.Collections.swap(ids, index, index - 1); viewModel.reorderCategories(ids)
                         }) { Icon(Icons.Outlined.ArrowUpward, contentDescription = "Move category up", modifier = Modifier.size(24.dp)) }
                     }
                     ItemEditButton("category", category.name, onEdit = { editingCategoryId = category.id })
-                    TextButton(onClick = { viewModel.setCategoryArchived(category.id, !category.archived) }) { Text(if (category.archived) "Restore" else "Archive") }
+                    WhipTextButton(onClick = { viewModel.setCategoryArchived(category.id, !category.archived) }) { Text(if (category.archived) "Restore" else "Archive") }
                 }
             }
         }
-        item { Button(onClick = { creating = true }, modifier = Modifier.fillMaxWidth()) { Text("Create category") } }
     }
     if (creating || editing != null) {
-        AlertDialog(
+        PaneAwareAlertDialog(
+            modifier = dialogModifier,
             onDismissRequest = { creating = false; editingCategoryId = null },
-            title = { Text(if (editing == null) "Create category" else "Edit category") },
-            text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { OutlinedTextField(name, { name = it }, label = { Text("Name") }); OutlinedTextField(kind, { kind = it }, label = { Text("Type, e.g. Muscle or Equipment") }); OutlinedTextField(colorHex, { colorHex = it }, label = { Text("Color, #RRGGBB or #AARRGGBB") }) } },
-            confirmButton = { TextButton(enabled = name.isNotBlank(), onClick = { viewModel.saveCategory(editing?.id, name, kind, parseColorArgb(colorHex)); creating = false; editingCategoryId = null }) { Text("Save") } },
-            dismissButton = { TextButton(onClick = { creating = false; editingCategoryId = null }) { Text("Cancel") } },
+            title = { Text(if (editing == null) "Create Category" else "Edit Category") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(name, { name = it }, label = { Text("Name") })
+                    OutlinedTextField(kind, { kind = it }, label = { Text("Type, e.g. Muscle or Equipment") })
+                }
+            },
+            confirmButton = { WhipTextButton(enabled = name.isNotBlank(), onClick = { viewModel.saveCategory(editing?.id, name, kind); creating = false; editingCategoryId = null }) { Text("Save") } },
+            dismissButton = { WhipTextButton(onClick = { creating = false; editingCategoryId = null }) { Text("Cancel") } },
         )
     }
 }
@@ -2219,12 +2839,15 @@ private fun WorkoutHistoryContent(
     state: GymUiState,
     onCopy: (Long) -> Unit,
     onResume: (Long) -> Unit,
+    onEditDetails: (WorkoutSession) -> Unit,
+    onOpenActiveWorkout: () -> Unit,
     onSaveAsRoutine: (Long, String) -> Unit,
     onCopyExercise: (Long) -> Unit,
     onShare: (WorkoutSession) -> Unit,
     onRestore: (Long) -> Unit,
     onDelete: (WorkoutSession) -> Unit,
     focusedWorkoutId: Long? = null,
+    dialogModifier: Modifier = Modifier,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var calendarView by rememberSaveable { mutableStateOf(false) }
@@ -2235,7 +2858,10 @@ private fun WorkoutHistoryContent(
     var historyRange by rememberSaveable { mutableStateOf(WorkoutHistoryRange.All) }
     var recordsOnly by rememberSaveable { mutableStateOf(false) }
     var showArchived by rememberSaveable { mutableStateOf(false) }
+    var historyOptionsExpanded by rememberSaveable { mutableStateOf(false) }
     var actionMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var expandedSessionId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var resumeCandidateId by rememberSaveable { mutableStateOf<Long?>(null) }
     LaunchedEffect(focusedWorkoutId, state.archivedWorkouts) {
         if (focusedWorkoutId != null) {
             showArchived = state.archivedWorkouts.any { it.id == focusedWorkoutId }
@@ -2250,7 +2876,7 @@ private fun WorkoutHistoryContent(
     }
     val sourceHistory = if (showArchived) state.archivedWorkouts else history
     val exerciseById = (state.exercises + state.archivedExercises).associateBy(Exercise::id)
-    val through = sourceHistory.maxOfOrNull(WorkoutSession::localDate) ?: LocalDate.now(state.appSettings.zoneId())
+    val through = LocalDate.now(state.appSettings.zoneId())
     var calendarMonth by rememberSaveable(through) { mutableStateOf(YearMonth.from(through)) }
     var selectedCalendarDate by rememberSaveable { mutableStateOf<LocalDate?>(null) }
     val from = when (historyRange) {
@@ -2285,36 +2911,53 @@ private fun WorkoutHistoryContent(
     }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp),
+        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            Text("Workout history", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text("Chronological view · search by workout or exercise", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            WhipPageHeader(
+                title = "Workout History",
+                supportingText = if (focusedWorkoutId == null) {
+                    "Chronological view with optional date, exercise, routine, category, and record filters."
+                } else "Showing the workout opened from search.",
+            )
         }
+        if (focusedWorkoutId == null) {
         item {
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
-                label = { Text("Filter history") },
+                label = { Text("Search Workouts") },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
         item {
-            ToggleRow("Calendar view", calendarView) { enabled ->
-                calendarView = enabled
-                if (enabled) {
-                    calendarMonth = YearMonth.from(through)
-                    selectedCalendarDate = through
-                } else {
-                    selectedCalendarDate = null
-                }
-            }
+            DisclosureRow(
+                title = "History options",
+                supportingText = buildString {
+                    append(historyRange.uiLabel())
+                    append(if (calendarView) " · Calendar" else " · List")
+                    if (showArchived) append(" · Archived")
+                    if (recordsOnly) append(" · Records only")
+                },
+                expanded = historyOptionsExpanded,
+                onClick = { historyOptionsExpanded = !historyOptionsExpanded },
+            )
         }
-        item { ToggleRow("Show discarded / archived workouts", showArchived) { showArchived = it } }
-        item { GymEnumDropdown("Date range", WorkoutHistoryRange.entries, historyRange, { it.name }) { historyRange = it } }
-        if (state.exercises.isNotEmpty()) {
-            item {
+        if (historyOptionsExpanded) item {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ToggleRow("Calendar view", calendarView) { enabled ->
+                    calendarView = enabled
+                    if (enabled) {
+                        calendarMonth = YearMonth.from(through)
+                        selectedCalendarDate = through
+                    } else {
+                        selectedCalendarDate = null
+                    }
+                }
+                ToggleRow("Show discarded or archived workouts", showArchived) { showArchived = it }
+                GymEnumDropdown("Date range", WorkoutHistoryRange.entries, historyRange, WorkoutHistoryRange::uiLabel) { historyRange = it }
+                if (state.exercises.isNotEmpty()) {
                 OutlinedTextField(
                     exerciseFilterQuery,
                     { exerciseFilterQuery = it },
@@ -2324,21 +2967,22 @@ private fun WorkoutHistoryContent(
                 )
                 val matches = state.exercises.filter { it.name.contains(exerciseFilterQuery, true) }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    FilterChip(selectedExerciseId == null, { selectedExerciseId = null }, { Text("All exercises") })
+                    WhipFilterChip(selectedExerciseId == null, { selectedExerciseId = null }, { Text("All Exercises") })
                     matches.take(20).forEach { option ->
-                        FilterChip(selectedExerciseId == option.id, { selectedExerciseId = option.id }, { Text(option.name) })
+                        WhipFilterChip(selectedExerciseId == option.id, { selectedExerciseId = option.id }, { Text(option.name) })
                     }
                 }
                 if (matches.size > 20) Text("Refine the search to choose among ${matches.size} matches.", style = MaterialTheme.typography.bodySmall)
+                }
+                if (state.categories.isNotEmpty()) {
+                    GymEnumDropdown("Category filter", listOf<Long?>(null) + state.categories.map(ExerciseCategory::id), selectedCategoryId, { id -> state.categories.firstOrNull { it.id == id }?.name ?: "All Categories" }, titleCaseValues = false) { selectedCategoryId = it }
+                }
+                if (state.routines.isNotEmpty()) {
+                    GymEnumDropdown("Routine filter", listOf<Long?>(null) + state.routines.map(GymRoutine::id), selectedRoutineId, { id -> state.routines.firstOrNull { it.id == id }?.name ?: "All Routines" }, titleCaseValues = false) { selectedRoutineId = it }
+                }
+                ToggleRow("Personal-record workouts only", recordsOnly) { recordsOnly = it }
             }
         }
-        if (state.categories.isNotEmpty()) {
-            item { GymEnumDropdown("Category filter", listOf<Long?>(null) + state.categories.map(ExerciseCategory::id), selectedCategoryId, { id -> state.categories.firstOrNull { it.id == id }?.name ?: "All categories" }) { selectedCategoryId = it } }
-        }
-        if (state.routines.isNotEmpty()) {
-            item { GymEnumDropdown("Routine filter", listOf<Long?>(null) + state.routines.map(GymRoutine::id), selectedRoutineId, { id -> state.routines.firstOrNull { it.id == id }?.name ?: "All routines" }) { selectedRoutineId = it } }
-        }
-        item { ToggleRow("Personal-record workouts only", recordsOnly) { recordsOnly = it } }
         if (calendarView) {
             item {
                 WorkoutMonthCalendar(
@@ -2358,55 +3002,97 @@ private fun WorkoutHistoryContent(
                 )
             }
         }
-        if (visible.isEmpty()) item { Text("Finished workouts will appear here.") }
+        }
+        if (visible.isEmpty()) item {
+            WhipEmptyState(
+                title = if (filteredHistory.isEmpty() && history.isNotEmpty()) "No Matching Workouts" else "No Workout History",
+                supportingText = if (history.isEmpty()) {
+                    "Finished workouts will appear here."
+                } else "Change the history options or clear the filter to see more workouts.",
+            )
+        }
         items(visible, key = WorkoutSession::id) { session ->
             val count = state.allWorkoutExercises.count { it.sessionId == session.id }
+            val expanded = expandedSessionId == session.id
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(session.name.ifBlank { "Workout" }, fontWeight = FontWeight.Bold)
-                    Text(
-                        "${session.localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} · $count exercises",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (session.notes.isNotBlank()) Text(session.notes)
-                    if (showArchived) {
-                        TextButton(onClick = { onRestore(session.id) }) { Text("Restore to history") }
-                        TextButton(onClick = { onDelete(session) }) {
-                            Text("Delete permanently", color = MaterialTheme.colorScheme.error)
-                        }
-                    } else {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            OutlinedButton(onClick = { onResume(session.id) }, modifier = Modifier.weight(1f)) { Text("Edit / resume") }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(session.name.ifBlank { "Workout" }, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
+                        if (!showArchived) {
                             Box {
                                 IconButton(onClick = { actionMenuId = session.id }, modifier = Modifier.size(48.dp)) {
                                     Icon(Icons.Outlined.MoreVert, contentDescription = "More options for workout ${session.name.ifBlank { "Workout" }}", modifier = Modifier.size(28.dp))
                                 }
                                 DropdownMenu(expanded = actionMenuId == session.id, onDismissRequest = { actionMenuId = null }) {
-                                    DropdownMenuItem(text = { Text("Copy to today") }, onClick = { actionMenuId = null; onCopy(session.id) })
-                                    DropdownMenuItem(text = { Text("Save as routine") }, onClick = { actionMenuId = null; onSaveAsRoutine(session.id, session.name) })
+                                    if (state.activeSession == null) {
+                                        DropdownMenuItem(text = { Text("Copy to Today") }, onClick = { actionMenuId = null; onCopy(session.id) })
+                                    } else {
+                                        DropdownMenuItem(text = { Text("Open Active Workout") }, onClick = { actionMenuId = null; onOpenActiveWorkout() })
+                                    }
+                                    DropdownMenuItem(text = { Text("Save as Routine") }, onClick = { actionMenuId = null; onSaveAsRoutine(session.id, session.name) })
                                     DropdownMenuItem(text = { Text("Share") }, onClick = { actionMenuId = null; onShare(session) })
                                     DropdownMenuItem(
-                                        text = { Text("Delete permanently", color = MaterialTheme.colorScheme.error) },
+                                        text = { Text("Delete Permanently", color = MaterialTheme.colorScheme.error) },
                                         onClick = { actionMenuId = null; onDelete(session) },
                                     )
                                 }
                             }
                         }
                     }
-                    state.allWorkoutExercises.filter { it.sessionId == session.id }.forEach { workoutExercise ->
-                        exerciseById[workoutExercise.exerciseId]?.let { sourceExercise ->
-                            if (workoutExercise.notes.isNotBlank()) Text("${sourceExercise.name}: ${workoutExercise.notes}", style = MaterialTheme.typography.bodySmall)
-                            TextButton(onClick = { onCopyExercise(workoutExercise.id) }) { Text("Copy ${sourceExercise.name} sets") }
+                    Text(
+                        "${session.localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} · " +
+                            quantityLabel(count, "exercise"),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (showArchived) {
+                        WhipTextButton(onClick = { onRestore(session.id) }) { Text("Restore to History") }
+                        WhipTextButton(onClick = { onDelete(session) }) {
+                            Text("Delete Permanently", color = MaterialTheme.colorScheme.error)
+                        }
+                    } else {
+                        WhipTextButton(
+                            onClick = { expandedSessionId = session.id.takeUnless { expanded } },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text(if (expanded) "Hide Details" else "View Details") }
+                    }
+                    if (expanded) {
+                        if (session.notes.isNotBlank()) Text(session.notes)
+                        state.allWorkoutExercises.filter { it.sessionId == session.id }.forEach { workoutExercise ->
+                            exerciseById[workoutExercise.exerciseId]?.let { sourceExercise ->
+                                Text(sourceExercise.name, fontWeight = FontWeight.SemiBold)
+                                if (workoutExercise.notes.isNotBlank()) Text(workoutExercise.notes, style = MaterialTheme.typography.bodySmall)
+                                WhipTextButton(onClick = { onCopyExercise(workoutExercise.id) }) { Text("Copy ${sourceExercise.name} Sets") }
+                            }
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            WhipOutlinedButton(onClick = { onEditDetails(session) }, modifier = Modifier.weight(1f)) { Text("Edit Details") }
+                            if (state.activeSession == null) {
+                                WhipOutlinedButton(onClick = { resumeCandidateId = session.id }, modifier = Modifier.weight(1f)) { Text("Resume Workout") }
+                            } else {
+                                WhipOutlinedButton(onClick = onOpenActiveWorkout, modifier = Modifier.weight(1f)) { Text("Open Active Workout") }
+                            }
                         }
                     }
                 }
             }
         }
     }
+    resumeCandidateId?.let { id ->
+        val session = history.firstOrNull { it.id == id }
+        ConfirmationDialog(
+            modifier = dialogModifier,
+            title = "Resume ${session?.name?.ifBlank { "Workout" } ?: "Workout"}?",
+            message = "This moves the finished workout out of History, makes it the active workout, and clears its previous end time. Use Edit Details if you only need to change its name or notes.",
+            confirmLabel = "Resume Workout",
+            onDismiss = { resumeCandidateId = null },
+            onConfirm = { onResume(id); resumeCandidateId = null },
+        )
+    }
 }
 
 @Composable
 private fun WorkoutExerciseNotesDialog(
+    modifier: Modifier = Modifier,
     exerciseName: String,
     initialNotes: String,
     machines: List<GymMachine>,
@@ -2418,37 +3104,34 @@ private fun WorkoutExerciseNotesDialog(
 ) {
     var notes by rememberSaveable(initialNotes) { mutableStateOf(initialNotes) }
     var machineId by rememberSaveable(selectedMachineId) { mutableStateOf(selectedMachineId) }
-    var machineMenu by rememberSaveable { mutableStateOf(false) }
-    AlertDialog(
+    ProductivityEditorDialog(
+        modifier = modifier,
+        testTag = "workout-exercise-notes-editor",
         onDismissRequest = onDismiss,
-        title = { Text("$exerciseName notes") },
+        title = { Text("$exerciseName Notes") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(notes, { notes = it }, label = { Text("Notes for this workout") }, minLines = 3, modifier = Modifier.fillMaxWidth())
                 if (machines.isNotEmpty() || selectedMachineId != null) {
-                    Text("Machine", style = MaterialTheme.typography.labelMedium)
-                    OutlinedButton(
+                    SelectionField(
+                        label = "Machine",
+                        values = listOf<GymMachine?>(null) + machines,
+                        selected = machines.firstOrNull { it.id == machineId },
+                        valueText = { it?.displayName ?: "No Machine / Free Weights" },
                         enabled = !machineLocked,
-                        onClick = { machineMenu = true },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text(machines.firstOrNull { it.id == machineId }?.displayName ?: "No machine / free weights") }
-                    DropdownMenu(machineMenu, { machineMenu = false }) {
-                        DropdownMenuItem(text = { Text("No machine / free weights") }, onClick = { machineId = null; machineMenu = false })
-                        machines.forEach { machine ->
-                            DropdownMenuItem(text = { Text(machine.displayName) }, onClick = { machineId = machine.id; machineMenu = false })
-                        }
-                    }
+                        onSelect = { machineId = it?.id },
+                    )
                     if (machineLocked) Text("Machine identity is locked after the first set. Add the exercise again to switch machines without reinterpreting history.", style = MaterialTheme.typography.bodySmall)
                 }
                 if (!machineLocked) {
-                    OutlinedButton(onClick = onCreateMachine, modifier = Modifier.fillMaxWidth()) {
-                        Text("Create and assign a machine without losing these notes")
+                    WhipOutlinedButton(onClick = onCreateMachine, modifier = Modifier.fillMaxWidth()) {
+                        Text("Create and Assign a Machine without Losing These Notes")
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(notes, machineId) }) { Text("Save") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { WhipTextButton(onClick = { onSave(notes, machineId) }) { Text("Save") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -2480,14 +3163,19 @@ private fun WorkoutMonthCalendar(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
-            if (selectedDate != null) TextButton(onClick = { onSelectDate(null) }) { Text("All") }
+            if (selectedDate != null) WhipTextButton(onClick = { onSelectDate(null) }) { Text("All") }
             IconButton(onClick = onNextMonth, modifier = Modifier.size(48.dp)) {
                 Icon(Icons.Outlined.ChevronRight, contentDescription = "Next month", modifier = Modifier.size(30.dp))
             }
         }
         Row {
             orderedDays.forEach { day ->
-                Text(day.name.take(3).lowercase().replaceFirstChar(Char::uppercase), modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall)
+                Text(
+                    day.name.take(3).lowercase().replaceFirstChar(Char::uppercase),
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
             }
         }
         (0 until cellCount).chunked(7).forEach { week ->
@@ -2499,9 +3187,13 @@ private fun WorkoutMonthCalendar(
                     } else {
                         val date = month.atDay(dayNumber)
                         val count = counts[date] ?: 0
-                        TextButton(
+                        WhipTextButton(
                             onClick = { onSelectDate(date.takeUnless { it == selectedDate }) },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
+                                selected = date == selectedDate
+                                stateDescription = if (date == selectedDate) "Selected" else "Not selected"
+                                contentDescription = "${date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL))}, ${count} workout${if (count == 1) "" else "s"}"
+                            },
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
@@ -2526,10 +3218,41 @@ private fun WorkoutMonthCalendar(
 }
 
 @Composable
-private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
+private fun GymProgressContent(
+    state: GymUiState,
+    viewModel: GymViewModel,
+    onOpenExercises: () -> Unit,
+    onOpenWorkout: () -> Unit,
+    dialogModifier: Modifier = Modifier,
+) {
     var selectedExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
     LaunchedEffect(state.exercises) {
         if (state.exercises.none { it.id == selectedExerciseId }) selectedExerciseId = state.exercises.firstOrNull()?.id
+    }
+    if (state.exercises.isEmpty() || state.history.isEmpty()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().testTag("gym-progress-list"),
+            contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item {
+                WhipPageHeader(
+                    title = "Progress",
+                    supportingText = "Charts are built from your completed workouts and keep their source records.",
+                )
+            }
+            item {
+                WhipEmptyState(
+                    title = if (state.exercises.isEmpty()) "No Exercises to Chart" else "No Workout History Yet",
+                    supportingText = if (state.exercises.isEmpty()) {
+                        "Create an exercise before configuring a progress chart."
+                    } else "Finish a workout to create your first progress data point.",
+                    primaryActionLabel = if (state.exercises.isEmpty()) "Open Exercise Library" else "Open Workout",
+                    onPrimaryAction = if (state.exercises.isEmpty()) onOpenExercises else onOpenWorkout,
+                )
+            }
+        }
+        return
     }
     val exercise = state.exercises.firstOrNull { it.id == selectedExerciseId }
     val exercisePlacements = state.allWorkoutExercises.filter { it.exerciseId == selectedExerciseId }
@@ -2562,7 +3285,10 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
     var customTo by rememberSaveable { mutableStateOf("") }
     var sourceWorkoutId by rememberSaveable { mutableStateOf<Long?>(null) }
     var showAllChartData by rememberSaveable { mutableStateOf(false) }
+    var graphOptionsExpanded by rememberSaveable { mutableStateOf(false) }
+    var graphPresetsExpanded by rememberSaveable { mutableStateOf(false) }
     var selectedChartPointDate by rememberSaveable { mutableStateOf<LocalDate?>(null) }
+    var selectedChartSeriesName by rememberSaveable { mutableStateOf<String?>(null) }
     val machineScoped = exercisePlacements.requiresMachineScope()
     val compatibleMachineScopes = if (includeCompatibleVersions && selectedMachine?.compatibleForComparison == true) {
         val family = selectedMachine.configurationGroupId
@@ -2586,9 +3312,10 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
         }
         if (machineScoped) comparisonIds = emptySet()
     }
-    val through = state.history.maxOfOrNull(WorkoutSession::localDate) ?: LocalDate.now(state.appSettings.zoneId())
-    val effectiveFrom = if (range == GymGraphRange.Custom) runCatching { LocalDate.parse(customFrom) }.getOrNull() else graphRangeStart(range, through)
-    val effectiveTo = if (range == GymGraphRange.Custom) runCatching { LocalDate.parse(customTo) }.getOrNull() ?: through else through
+    val through = LocalDate.now(state.appSettings.zoneId())
+    val validatedRange = validateGymGraphRange(range, customFrom, customTo, through)
+    val effectiveFrom = validatedRange.from
+    val effectiveTo = validatedRange.to
     val selectedPlacement = exercisePlacements.firstOrNull { it.equipmentScopeKey == selectedMachineScope }
     val selectedMachineLoadType = selectedMachine?.loadType ?: selectedPlacement?.machineLoadTypeSnapshot
     val selectedMachineUnitId = selectedMachine?.unitId?.takeIf(String::isNotBlank)
@@ -2602,7 +3329,7 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
     } else {
         exercise?.weightUnitId ?: state.appSettings.gymWeightUnitId
     }
-    val exercisePoints = exercise?.let {
+    val exercisePoints = exercise?.takeIf { validatedRange.error == null }?.let {
         buildExerciseGraph(
             exercise = it,
             sessions = state.history,
@@ -2623,8 +3350,7 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
         ).map { point -> point.copy(value = metric.displayValue(point.value, displayWeightUnitId, state.appSettings.distanceUnitId)) }
     }.orEmpty()
     val sourceWorkout = sourceWorkoutId?.let { id -> state.history.firstOrNull { it.id == id } }
-    val selectedChartPoint = selectedChartPointDate?.let { date -> exercisePoints.lastOrNull { it.date == date } }
-    val comparisons = if (machineScoped) emptyMap() else comparisonIds.mapNotNull { id -> state.exercises.firstOrNull { it.id == id } }.associateWith { compared ->
+    val comparisons = if (machineScoped || validatedRange.error != null) emptyMap() else comparisonIds.mapNotNull { id -> state.exercises.firstOrNull { it.id == id } }.associateWith { compared ->
         buildExerciseGraph(
             exercise = compared, sessions = state.history, workoutExercises = state.allWorkoutExercises,
             sets = state.allSets, metric = metric, aggregation = aggregation, from = effectiveFrom,
@@ -2640,24 +3366,29 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
         state.appSettings.distanceUnitId,
         machineLevelLabel,
     )
+    val primarySeriesName = exercise?.name.orEmpty()
+    val chartSeries = buildList {
+        if (exercisePoints.isNotEmpty()) add(GymChartSeries(primarySeriesName, exercisePoints))
+        comparisons.forEach { (compared, points) -> if (points.isNotEmpty()) add(GymChartSeries(compared.name, points)) }
+    }
+    val selectedSeries = chartSeries.firstOrNull { it.name == (selectedChartSeriesName ?: primarySeriesName) }
+    val selectedChartPoint = selectedChartPointDate?.let { date -> selectedSeries?.points?.lastOrNull { it.date == date } }
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("gym-progress-list"),
-        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp),
+        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text(
-                "Progress",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
+            WhipPageHeader(
+                title = "Progress",
+                supportingText = "Choose a metric, range, and aggregation. Derived estimates retain their source workouts.",
                 modifier = Modifier.testTag("gym-progress-title"),
             )
-            Text("Choose a metric, range, and aggregation. Derived estimates are labeled and retain their source workouts.")
             if (exercisePoints.isNotEmpty()) {
                 val unit = displayUnit
                 val summary = chartDescription(
                     exercise?.name.orEmpty(),
-                    metric.label,
+                    metric.label.uiTitleCase(),
                     exercisePoints,
                     unit,
                 )
@@ -2675,8 +3406,10 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
             }
         }
         item {
-            OutlinedButton(onClick = { menuExpanded = true }) {
-                Text(exercise?.name ?: "Choose exercise")
+            Text("Exercise", style = MaterialTheme.typography.labelMedium)
+            WhipOutlinedButton(onClick = { menuExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(exercise?.name ?: "Choose Exercise", modifier = Modifier.weight(1f))
+                Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)
             }
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                 OutlinedTextField(
@@ -2686,7 +3419,7 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
                     singleLine = true,
                     modifier = Modifier.width(300.dp).padding(8.dp),
                 )
-                state.exercises.filter { it.name.contains(exerciseMenuQuery, true) }.take(50).forEach { option ->
+                state.exercises.filter { exerciseMatchesQuery(it, exerciseMenuQuery) }.take(50).forEach { option ->
                     DropdownMenuItem(
                         text = { Text(option.name) },
                         onClick = {
@@ -2700,15 +3433,15 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
             }
         }
         if (machineScoped) item {
-            Text("Machine / equipment scope", style = MaterialTheme.typography.labelMedium)
+            Text("Machine / Equipment Scope", style = MaterialTheme.typography.labelMedium)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (hasUnassignedHistory) {
-                    FilterChip(selected = selectedMachineScope == null, onClick = { selectedMachineScope = null }, label = { Text("No machine / free weights") })
+                    WhipFilterChip(selected = selectedMachineScope == null, onClick = { selectedMachineScope = null }, label = { Text("No Machine / Free Weights") })
                 }
                 usedMachineScopes.forEach { machineScope ->
                     val profile = (state.machines + state.archivedMachines).firstOrNull { it.uuid == machineScope }
                     val snapshot = exercisePlacements.firstOrNull { it.equipmentScopeKey == machineScope }?.machineNameSnapshot
-                    FilterChip(
+                    WhipFilterChip(
                         selected = selectedMachineScope == machineScope,
                         onClick = { selectedMachineScope = machineScope },
                         label = { Text(profile?.displayName ?: snapshot ?: "Deleted machine") },
@@ -2735,24 +3468,49 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
             }
             GymEnumDropdown("Metric", availableMetrics, metric.takeIf { it in availableMetrics } ?: availableMetrics.first(), { it.label }) { metric = it }
         }
-        item { ResponsiveFieldPair(
-            first = { field -> Column(field) { GymEnumDropdown("Range", GymGraphRange.entries, range, { it.name }) { range = it } } },
-            second = { field -> Column(field) { GymEnumDropdown("Aggregate", GymGraphAggregation.entries, aggregation, { it.name }) { aggregation = it } } },
-        ) }
-        if (range == GymGraphRange.Custom) item { ResponsiveFieldPair(
-            first = { field -> OutlinedTextField(customFrom, { customFrom = it }, label = { Text("From YYYY-MM-DD") }, modifier = field) },
-            second = { field -> OutlinedTextField(customTo, { customTo = it }, label = { Text("To YYYY-MM-DD") }, modifier = field) },
-        ) }
-        if (metric in setOf(GymGraphMetric.MaxWeightForReps, GymGraphMetric.ActualRepMaxHistory)) item { NumberField(selectedRepetitions, { selectedRepetitions = it }, "Repetitions", integer = true) }
-        if (state.exercises.size > 1 && !machineScoped) item {
-            Text("Compare up to 3 exercises", style = MaterialTheme.typography.labelMedium)
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                state.exercises.filter { it.id != selectedExerciseId }.forEach { option ->
-                    FilterChip(
-                        selected = option.id in comparisonIds,
-                        onClick = { comparisonIds = if (option.id in comparisonIds) comparisonIds - option.id else if (comparisonIds.size < 3) comparisonIds + option.id else comparisonIds },
-                        label = { Text(option.name) },
-                    )
+        item {
+            DisclosureRow(
+                title = "Graph options",
+                supportingText = "${range.uiLabel()} · ${aggregation.name}",
+                expanded = graphOptionsExpanded,
+                onClick = { graphOptionsExpanded = !graphOptionsExpanded },
+            )
+        }
+        if (graphOptionsExpanded) item {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ResponsiveFieldPair(
+                    first = { field -> Column(field) {
+                        GymEnumDropdown("Range", GymGraphRange.entries, range, GymGraphRange::uiLabel) { selected ->
+                            range = selected
+                            if (selected == GymGraphRange.Custom) {
+                                if (customFrom.isBlank()) customFrom = through.minusMonths(3).toString()
+                                if (customTo.isBlank()) customTo = through.toString()
+                            }
+                        }
+                    } },
+                    second = { field -> Column(field) { GymEnumDropdown("Aggregate", GymGraphAggregation.entries, aggregation, { it.name }) { aggregation = it } } },
+                )
+                if (range == GymGraphRange.Custom) ResponsiveFieldPair(
+                    first = { field -> OutlinedTextField(customFrom, { customFrom = it }, label = { Text("From YYYY-MM-DD") }, isError = validatedRange.error != null, modifier = field) },
+                    second = { field -> OutlinedTextField(customTo, { customTo = it }, label = { Text("To YYYY-MM-DD") }, isError = validatedRange.error != null, modifier = field) },
+                )
+                if (range == GymGraphRange.Custom && validatedRange.error != null) {
+                    Text(requireNotNull(validatedRange.error), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+                if (metric in setOf(GymGraphMetric.MaxWeightForReps, GymGraphMetric.ActualRepMaxHistory)) {
+                    NumberField(selectedRepetitions, { selectedRepetitions = it }, "Repetitions", integer = true)
+                }
+                if (state.exercises.size > 1 && !machineScoped) {
+                    Text("Compare up to 3 Exercises", style = MaterialTheme.typography.labelMedium)
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        state.exercises.filter { it.id != selectedExerciseId }.forEach { option ->
+                            WhipFilterChip(
+                                selected = option.id in comparisonIds,
+                                onClick = { comparisonIds = if (option.id in comparisonIds) comparisonIds - option.id else if (comparisonIds.size < 3) comparisonIds + option.id else comparisonIds },
+                                label = { Text(option.name) },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -2761,35 +3519,32 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
                 Text("No eligible data for this metric and date range.")
             } else {
                 val best = if (metric == GymGraphMetric.Pace) exercisePoints.minOf { it.value } else exercisePoints.maxOf { it.value }
-                Text("${metric.label} · ${formatNumber(best, state.appSettings.numberPrecision)} $displayUnit · best")
-                SimpleLineChart(
-                    values = downsampleEvenly(exercisePoints, 200).map { it.value },
-                    description = chartDescription(exercise?.name.orEmpty(), metric.label, exercisePoints, displayUnit),
+                Text("${metric.label.uiTitleCase()} · ${formatNumber(best, state.appSettings.numberPrecision)} $displayUnit · best")
+                SharedGymLineChart(
+                    series = chartSeries.map { it.copy(points = downsampleEvenly(it.points, 200)) },
+                    unit = displayUnit,
+                    precision = state.appSettings.numberPrecision,
+                    description = chartSeries.joinToString(" ") { series ->
+                        chartDescription(series.name, metric.label, series.points, displayUnit)
+                    },
+                    onPointSelected = { seriesName, point ->
+                        selectedChartSeriesName = seriesName
+                        selectedChartPointDate = point.date
+                    },
                 )
-                TextButton(onClick = { showAllChartData = !showAllChartData }) {
-                    Text(if (showAllChartData) "Show recent data only" else "Show accessible data table (${exercisePoints.size})")
-                }
+                DisclosureButton(
+                    label = "Data table · ${exercisePoints.size}",
+                    expanded = showAllChartData,
+                    onClick = { showAllChartData = !showAllChartData },
+                )
                 (if (showAllChartData) exercisePoints else exercisePoints.takeLast(8)).forEach { point ->
                     Text(
                         "${point.date}: ${formatNumber(point.value, state.appSettings.numberPrecision)} · tap for details",
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.heightIn(min = 48.dp).clickable(onClickLabel = "Open details for ${point.date}") { selectedChartPointDate = point.date },
-                    )
-                }
-            }
-        }
-        comparisons.forEach { (compared, points) ->
-            item(key = "comparison-${compared.id}") {
-                Text(compared.name, fontWeight = FontWeight.Bold)
-                if (points.isEmpty()) Text("No compatible observations") else {
-                    SimpleLineChart(
-                        downsampleEvenly(points, 200).map { it.value },
-                        chartDescription(compared.name, metric.label, points, displayUnit),
-                    )
-                    val latest = points.last()
-                    Text(
-                        "${points.size} points · latest ${latest.date}: ${formatNumber(latest.value, state.appSettings.numberPrecision)} $displayUnit",
-                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.heightIn(min = 48.dp).clickable(onClickLabel = "Open details for ${point.date}") {
+                            selectedChartSeriesName = primarySeriesName
+                            selectedChartPointDate = point.date
+                        },
                     )
                 }
             }
@@ -2805,7 +3560,7 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
             }
             if (records.isNotEmpty()) {
                 HorizontalDivider()
-                Text("Current records", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Current Records", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 records.forEach { record ->
                     Text(
                         "${record.type.name}: ${formatNumber(record.displayValue(displayWeightUnitId, state.appSettings.distanceUnitId), state.appSettings.numberPrecision)} " +
@@ -2815,8 +3570,17 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
             }
         }
         item {
+            DisclosureRow(
+                title = "Graph presets",
+                supportingText = if (state.graphPresets.isEmpty()) "Save this graph setup for reuse." else "${state.graphPresets.size} saved",
+                expanded = graphPresetsExpanded || selectedPresetId != null,
+                onClick = { graphPresetsExpanded = !graphPresetsExpanded },
+            )
+        }
+        if (graphPresetsExpanded || selectedPresetId != null) item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(presetName, { presetName = it }, label = { Text("Preset name") }, modifier = Modifier.fillMaxWidth())
-            OutlinedButton(
+            WhipOutlinedButton(
                 enabled = presetName.isNotBlank() && exercise != null,
                 onClick = {
                     val exerciseIds = listOfNotNull(exercise?.id) + comparisonIds
@@ -2827,28 +3591,28 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
                     selectedPresetId = null
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text(if (selectedPresetId == null) "Save graph preset" else "Update selected preset") }
+            ) { Text(if (selectedPresetId == null) "Save Graph Preset" else "Update Selected Preset") }
             if (selectedPresetId != null) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(
+                    WhipTextButton(
                         onClick = { selectedPresetId = null; presetName = "" },
                         modifier = Modifier.weight(1f),
-                    ) { Text("Cancel edit") }
-                    TextButton(
+                    ) { Text("Cancel Edit") }
+                    WhipTextButton(
                         onClick = {
                             viewModel.deleteGraphPreset(requireNotNull(selectedPresetId))
                             selectedPresetId = null
                             presetName = ""
                         },
                         modifier = Modifier.weight(1f),
-                    ) { Text("Delete preset", color = MaterialTheme.colorScheme.error) }
+                    ) { Text("Delete Preset", color = MaterialTheme.colorScheme.error) }
                 }
             }
             if (state.graphPresets.isNotEmpty()) {
-                Text("Saved presets", style = MaterialTheme.typography.labelSmall)
+                Text("Saved Presets", style = MaterialTheme.typography.labelSmall)
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     state.graphPresets.forEach { preset ->
-                        FilterChip(
+                        WhipFilterChip(
                             selected = false,
                             onClick = {
                                 val ids = preset.exerciseIds.filter { id -> state.exercises.any { it.id == id } }
@@ -2864,6 +3628,7 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
                         )
                     }
                 }
+            }
             }
         }
         item {
@@ -2915,17 +3680,19 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
         }
     }
     sourceWorkout?.let { workout ->
-        AlertDialog(
+        PaneAwareAlertDialog(
+            modifier = dialogModifier,
             onDismissRequest = { sourceWorkoutId = null },
             title = { Text(workout.name.ifBlank { "Workout" }) },
             text = { Text("${workout.localDate}\n${workout.notes.ifBlank { "Source workout for this graph point." }}") },
-            confirmButton = { TextButton(onClick = { sourceWorkoutId = null }) { Text("Close") } },
+            confirmButton = { WhipTextButton(onClick = { sourceWorkoutId = null }) { Text("Close") } },
         )
     }
     selectedChartPoint?.let { point ->
-        AlertDialog(
+        PaneAwareAlertDialog(
+            modifier = dialogModifier,
             onDismissRequest = { selectedChartPointDate = null },
-            title = { Text("${metric.label} · ${point.date}") },
+            title = { Text("${selectedSeries?.name.orEmpty()} · ${metric.label.uiTitleCase()} · ${point.date}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -2935,17 +3702,17 @@ private fun GymProgressContent(state: GymUiState, viewModel: GymViewModel) {
                     )
                     Text("Built from ${point.sourceCount} source${if (point.sourceCount == 1) "" else "s"}.")
                     point.sourceSessionId?.let { sessionId ->
-                        OutlinedButton(
+                        WhipOutlinedButton(
                             onClick = {
                                 sourceWorkoutId = sessionId
                                 selectedChartPointDate = null
                             },
                             modifier = Modifier.fillMaxWidth(),
-                        ) { Text("Open source workout") }
+                        ) { Text("Open Source Workout") }
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { selectedChartPointDate = null }) { Text("Close") } },
+            confirmButton = { WhipTextButton(onClick = { selectedChartPointDate = null }) { Text("Close") } },
         )
     }
 }
@@ -2957,6 +3724,7 @@ private fun GymToolsContent(
     state: GymUiState,
     onSavePreset: (PlatePreset) -> Unit,
     onDeletePreset: (String) -> Unit,
+    dialogModifier: Modifier = Modifier,
 ) {
     val weightUnit = state.appSettings.gymWeightUnitId
     val weightSymbol = unitSymbol(weightUnit)
@@ -2979,23 +3747,85 @@ private fun GymToolsContent(
     var plateUnit by rememberSaveable(weightUnit) { mutableStateOf(if (weightUnit == "pound") "lb" else "kg") }
     var presetName by rememberSaveable { mutableStateOf("") }
     var selectedPreset by rememberSaveable { mutableStateOf<String?>(null) }
+    var activeTool by rememberSaveable { mutableStateOf("1RM") }
+    var pendingPlateUnit by rememberSaveable { mutableStateOf<String?>(null) }
+    fun unitId(label: String): String = if (label == "lb") "pound" else "kilogram"
+    fun convertPlateInputs(selected: String) {
+        val from = unitId(plateUnit)
+        val to = unitId(selected)
+        targetWeight = targetWeight.toWhipDoubleOrNull()?.let { editableNumber(convertPracticalMassValue(it, from, to)) } ?: targetWeight
+        barWeight = barWeight.toWhipDoubleOrNull()?.let { editableNumber(convertPracticalMassValue(it, from, to)) } ?: barWeight
+        collarWeight = collarWeight.toWhipDoubleOrNull()?.let { editableNumber(convertPracticalMassValue(it, from, to)) } ?: collarWeight
+        plates = plates.split(',').joinToString(",") { raw ->
+            raw.trim().toWhipDoubleOrNull()?.let { editableNumber(convertPracticalMassValue(it, from, to)) } ?: raw.trim()
+        }
+        plateQuantities = parsePlateQuantities(plateQuantities)?.entries?.joinToString(",") { (plate, quantity) ->
+            "${editableNumber(convertPracticalMassValue(plate, from, to))}:$quantity"
+        } ?: plateQuantities
+        plateUnit = selected
+    }
+    fun resetPlateInputs(selected: String) {
+        plateUnit = selected
+        targetWeight = if (selected == "lb") "225" else "100"
+        barWeight = if (selected == "lb") "45" else "20"
+        plates = if (selected == "lb") "45,35,25,10,5,2.5" else "20,15,10,5,2.5,1.25"
+        collarWeight = "0"
+        plateQuantities = ""
+    }
     val estimate = calculateRepMaxTable(weight.toWhipDoubleOrNull() ?: -1.0, if (knownOneRepMax) 1 else reps.toIntOrNull() ?: -1, formula, increment.toWhipDoubleOrNull() ?: 2.5)
     val parsedPlateQuantities = parsePlateQuantities(plateQuantities)
-    val loading = calculatePlateLoading(
-        targetWeight.toWhipDoubleOrNull() ?: 0.0,
-        barWeight.toWhipDoubleOrNull() ?: 0.0,
-        plates.split(',').mapNotNull { it.trim().toWhipDoubleOrNull() },
-        parsedPlateQuantities.orEmpty(),
-        collarWeight.toWhipDoubleOrNull() ?: 0.0,
-        perSideLoading,
-    )
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item { Text("Workout tools", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold); Text("Estimates are planning aids, not medical or safety advice.") }
-        item { Text("1RM and percentage calculator", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
+    val parsedPlates = parsePositiveNumberList(plates, "plate")
+    val targetValue = targetWeight.toWhipDoubleOrNull()
+    val barValue = barWeight.toWhipDoubleOrNull()
+    val collarValue = collarWeight.toWhipDoubleOrNull()
+    val plateInputError = when {
+        targetValue == null || targetValue <= 0.0 -> "Enter a positive target weight"
+        barValue == null || barValue < 0.0 -> "Enter a non-negative bar, sled, or base weight"
+        collarValue == null || collarValue < 0.0 -> "Enter a non-negative collar or fixed add-on weight"
+        parsedPlates.error != null -> parsedPlates.error
+        parsedPlateQuantities == null -> "Use plate:quantity pairs such as 45:4, 25:2"
+        else -> null
+    }
+    val loading = if (plateInputError == null) {
+        calculatePlateLoading(
+            requireNotNull(targetValue),
+            requireNotNull(barValue),
+            parsedPlates.values,
+            requireNotNull(parsedPlateQuantities),
+            requireNotNull(collarValue),
+            perSideLoading,
+        )
+    } else {
+        null
+    }
+    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item {
+            WhipPageHeader(
+                title = "Workout Tools",
+                supportingText = "Estimates are planning aids, not medical or safety advice.",
+            )
+        }
+        item {
+            SegmentedChoiceBar(
+                selected = activeTool,
+                choices = listOf("1RM", "Plate"),
+                onSelect = { activeTool = it },
+                label = { if (it == "1RM") "1RM Calculator" else "Plate Calculator" },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (activeTool == "1RM") {
+        item { Text("1RM and Percentage Calculator", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
         item { ToggleRow("Weight is a known 1RM", knownOneRepMax) { knownOneRepMax = it } }
         item { ResponsiveFieldPair(
             first = { field -> NumberField(weight, { weight = it }, "Weight ($weightSymbol)", modifier = field) },
-            second = { field -> NumberField(reps, { reps = it }, "Reps", integer = true, modifier = field) },
+            second = { field ->
+                if (knownOneRepMax) {
+                    Text("Repetitions are not used when the weight is a known 1RM.", modifier = field, style = MaterialTheme.typography.bodySmall)
+                } else {
+                    NumberField(reps, { reps = it }, "Reps", integer = true, modifier = field)
+                }
+            },
         ) }
         item { ResponsiveFieldPair(
             first = { field -> Column(field) { GymEnumDropdown("Formula", EstimatedOneRepMaxFormula.entries, formula, { it.name }) { formula = it } } },
@@ -3010,13 +3840,15 @@ private fun GymToolsContent(
                 Text(estimate.percentages.joinToString(" · ") { "${it.first}% ${formatNumber(it.second, state.appSettings.numberPrecision)} $weightSymbol" }, style = MaterialTheme.typography.bodySmall)
             }
         }
-        item { HorizontalDivider(); Text("Plate calculator", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
+        }
+        if (activeTool == "Plate") {
+        item { Text("Plate Calculator", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
         if (state.appSettings.platePresets.isNotEmpty()) {
             item {
-                Text("Saved plate presets", fontWeight = FontWeight.Bold)
+                Text("Saved Plate Presets", fontWeight = FontWeight.Bold)
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     state.appSettings.platePresets.forEach { preset ->
-                        FilterChip(
+                        WhipFilterChip(
                             selected = selectedPreset == preset.name,
                             onClick = {
                                 selectedPreset = preset.name
@@ -3032,18 +3864,13 @@ private fun GymToolsContent(
                     }
                 }
                 selectedPreset?.let { name ->
-                    TextButton(onClick = { onDeletePreset(name); selectedPreset = null }) { Text("Delete selected preset") }
+                    WhipTextButton(onClick = { onDeletePreset(name); selectedPreset = null }) { Text("Delete Selected Preset") }
                 }
             }
         }
         item {
-            GymEnumDropdown("Plate unit", listOf("kg", "lb"), plateUnit, { it }) { selected ->
-                plateUnit = selected
-                if (selected == "lb") {
-                    barWeight = "45"; plates = "45,35,25,10,5,2.5"
-                } else {
-                    barWeight = "20"; plates = "20,15,10,5,2.5,1.25"
-                }
+            GymEnumDropdown("Plate unit", listOf("kg", "lb"), plateUnit, { it }, titleCaseValues = false) { selected ->
+                if (selected != plateUnit) pendingPlateUnit = selected
             }
         }
         item { ResponsiveFieldPair(
@@ -3052,7 +3879,16 @@ private fun GymToolsContent(
         ) }
         item { NumberField(collarWeight, { collarWeight = it }, "Total collars / fixed add-on ($plateUnit)") }
         item { ToggleRow("Load matching plates on each side", perSideLoading) { perSideLoading = it } }
-        item { OutlinedTextField(plates, { plates = it }, label = { Text("Available plates ($plateUnit), comma-separated") }, modifier = Modifier.fillMaxWidth()) }
+        item {
+            OutlinedTextField(
+                plates,
+                { plates = it },
+                label = { Text("Available plates ($plateUnit), comma-separated") },
+                supportingText = { Text(parsedPlates.error ?: "Every entry must be a positive number.") },
+                isError = parsedPlates.error != null,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         item {
             OutlinedTextField(
                 plateQuantities,
@@ -3066,17 +3902,17 @@ private fun GymToolsContent(
         item {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(presetName, { presetName = it }, label = { Text("Preset name") }, modifier = Modifier.weight(1f), singleLine = true)
-                TextButton(
-                    enabled = presetName.isNotBlank() && barWeight.toWhipDoubleOrNull() != null && plates.split(',').any { it.trim().toWhipDoubleOrNull() != null },
+                WhipTextButton(
+                    enabled = presetName.isNotBlank() && plateInputError == null,
                     onClick = {
                         onSavePreset(
                             PlatePreset(
                                 name = presetName.trim(),
                                 unitId = if (plateUnit == "lb") "pound" else "kilogram",
-                                barWeight = requireNotNull(barWeight.toWhipDoubleOrNull()),
-                                plates = plates.split(',').mapNotNull { it.trim().toWhipDoubleOrNull() }.filter { it > 0 }.distinct().sortedDescending(),
-                                plateQuantities = parsedPlateQuantities.orEmpty(),
-                                collarWeight = collarWeight.toWhipDoubleOrNull() ?: 0.0,
+                                barWeight = requireNotNull(barValue),
+                                plates = parsedPlates.values.distinct().sortedDescending(),
+                                plateQuantities = requireNotNull(parsedPlateQuantities),
+                                collarWeight = requireNotNull(collarValue),
                                 perSideLoading = perSideLoading,
                             ),
                         )
@@ -3087,20 +3923,44 @@ private fun GymToolsContent(
             }
         }
         item {
-            Text("${if (loading.perSideLoading) "Per side" else "Loaded plates"}: ${loading.platesPerSide.joinToString(" + ").ifBlank { "no plates" }} $plateUnit")
-            Text("${if (loading.exact) "Exact" else "Closest available"}: ${formatNumber(loading.achievedWeight, state.appSettings.numberPrecision)} $plateUnit · difference ${formatNumber(loading.remainder, state.appSettings.numberPrecision)} $plateUnit")
+            if (loading == null) {
+                Text(requireNotNull(plateInputError), color = MaterialTheme.colorScheme.error)
+            } else {
+                Text("${if (loading.perSideLoading) "Per side" else "Loaded plates"}: ${loading.platesPerSide.joinToString(" + ").ifBlank { "no plates" }} $plateUnit")
+                Text("${if (loading.exact) "Exact" else "Closest available"}: ${formatNumber(loading.achievedWeight, state.appSettings.numberPrecision)} $plateUnit · difference ${formatNumber(loading.remainder, state.appSettings.numberPrecision)} $plateUnit")
+            }
         }
+        }
+    }
+    pendingPlateUnit?.let { selected ->
+        DefaultsMeaningChangeDialog(
+            modifier = dialogModifier,
+            title = "Change Plate Calculator to $selected?",
+            explanation = "Convert preserves the approximate physical weights. Keep changes only the unit label. Reset replaces the target, bar, plates, collars, and inventory with standard $selected defaults.",
+            onConvert = { convertPlateInputs(selected); pendingPlateUnit = null },
+            onKeep = { plateUnit = selected; pendingPlateUnit = null },
+            onReset = { resetPlateInputs(selected); pendingPlateUnit = null },
+            onCancel = { pendingPlateUnit = null },
+        )
     }
 }
 
 @Composable
-private fun <T> GymEnumDropdown(label: String, values: List<T>, selected: T, text: (T) -> String, onSelect: (T) -> Unit) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    Text(label, style = MaterialTheme.typography.labelMedium)
-    OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(text(selected)) }
-    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-        values.forEach { value -> DropdownMenuItem(text = { Text(text(value)) }, onClick = { onSelect(value); expanded = false }) }
-    }
+private fun <T> GymEnumDropdown(
+    label: String,
+    values: List<T>,
+    selected: T,
+    text: (T) -> String,
+    titleCaseValues: Boolean = true,
+    onSelect: (T) -> Unit,
+) {
+    SelectionField(
+        label = label,
+        values = values,
+        selected = selected,
+        valueText = { value -> text(value).let { if (titleCaseValues) it.uiTitleCase() else it } },
+        onSelect = onSelect,
+    )
 }
 
 @Composable
@@ -3109,24 +3969,23 @@ private fun RoutineContent(
     viewModel: GymViewModel,
     focusedRoutineId: Long? = null,
     onDeleteRequest: (GymRoutine) -> Unit,
+    onOpenActiveWorkout: () -> Unit,
     dialogModifier: Modifier = Modifier,
     onEditorStateChange: (Boolean) -> Unit = {},
 ) {
     var showEditor by rememberSaveable { mutableStateOf(false) }
     var editingRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
     val editing = editingRoutineId?.let { id -> (state.routines + state.archivedRoutines).firstOrNull { it.id == id } }
-    var query by rememberSaveable { mutableStateOf("") }
     var showArchived by rememberSaveable { mutableStateOf(false) }
     var actionMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
     LaunchedEffect(focusedRoutineId, state.archivedRoutines) {
         if (focusedRoutineId != null) {
             showArchived = state.archivedRoutines.any { it.id == focusedRoutineId }
-            query = ""
         }
     }
     val source = if (showArchived) state.archivedRoutines else state.routines
     val visible = source.filter {
-        (focusedRoutineId == null || it.id == focusedRoutineId) && it.name.contains(query, true)
+        focusedRoutineId == null || it.id == focusedRoutineId
     }
     if (showEditor || editing != null) {
         val initial = editing?.let { routine ->
@@ -3180,18 +4039,36 @@ private fun RoutineContent(
     }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp),
+        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            Text("Routines", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text("Reusable multi-day templates. Starting one copies it into a new workout without changing the template.")
+            WhipPageHeader(
+                title = "Routines",
+                supportingText = if (focusedRoutineId == null) {
+                    "Reusable multi-day templates. Starting one copies it into a new workout without changing the template."
+                } else "Showing the routine opened from search.",
+            ) {
+                if (focusedRoutineId == null) WhipButton(onClick = {
+                    showEditor = true
+                    onEditorStateChange(true)
+                }) { Text("Create Routine") }
+            }
         }
-        item {
-            OutlinedTextField(query, { query = it }, label = { Text("Search routines") }, modifier = Modifier.fillMaxWidth())
-        }
+        if (focusedRoutineId == null) {
         item { ToggleRow("Show archived", showArchived) { showArchived = it } }
-        if (visible.isEmpty()) item { Text("No routines yet. Build one or save a workout from History.") }
+        }
+        if (visible.isEmpty()) item {
+            WhipEmptyState(
+                title = if (showArchived) "No Archived Routines" else "No Routines Yet",
+                supportingText = "Build a routine here or save a completed workout from History.",
+                primaryActionLabel = "Create Routine".takeUnless { showArchived },
+                onPrimaryAction = {
+                    showEditor = true
+                    onEditorStateChange(true)
+                }.takeUnless { showArchived },
+            )
+        }
         items(visible.size, key = { visible[it].id }) { routineIndex ->
             val routine = visible[routineIndex]
             val days = state.routineDays.filter { it.routineId == routine.id }
@@ -3208,9 +4085,9 @@ private fun RoutineContent(
                                 Icon(Icons.Outlined.MoreVert, contentDescription = "More options for routine ${routine.name}", modifier = Modifier.size(28.dp))
                             }
                             DropdownMenu(expanded = actionMenuId == routine.id, onDismissRequest = { actionMenuId = null }) {
-                                if (!showArchived && query.isBlank()) {
+                                if (!showArchived) {
                                     DropdownMenuItem(
-                                        text = { Text("Move up") }, enabled = routineIndex > 0,
+                                        text = { Text("Move Up") }, enabled = routineIndex > 0,
                                         leadingIcon = { Icon(Icons.Outlined.ArrowUpward, contentDescription = null) },
                                         onClick = {
                                             actionMenuId = null
@@ -3220,7 +4097,7 @@ private fun RoutineContent(
                                         },
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Move down") }, enabled = routineIndex < visible.lastIndex,
+                                        text = { Text("Move Down") }, enabled = routineIndex < visible.lastIndex,
                                         leadingIcon = { Icon(Icons.Outlined.ArrowDownward, contentDescription = null) },
                                         onClick = {
                                             actionMenuId = null
@@ -3234,7 +4111,7 @@ private fun RoutineContent(
                                 DropdownMenuItem(text = { Text(if (routine.pinned) "Unpin from Home" else "Pin to Home") }, onClick = { actionMenuId = null; viewModel.setRoutinePinned(routine.id, !routine.pinned) })
                                 DropdownMenuItem(text = { Text(if (routine.archived) "Restore" else "Archive") }, onClick = { actionMenuId = null; viewModel.setRoutineArchived(routine.id, !routine.archived) })
                                 DropdownMenuItem(
-                                    text = { Text("Delete permanently", color = MaterialTheme.colorScheme.error) },
+                                    text = { Text("Delete Permanently", color = MaterialTheme.colorScheme.error) },
                                     onClick = { actionMenuId = null; onDeleteRequest(routine) },
                                 )
                             }
@@ -3271,29 +4148,28 @@ private fun RoutineContent(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
-                        TextButton(
-                            enabled = needsEquipment.isNotEmpty() || state.activeSession == null,
-                            onClick = {
-                                if (needsEquipment.isNotEmpty()) {
+                        WhipTextButton(onClick = {
+                            when {
+                                needsEquipment.isNotEmpty() -> {
                                     editingRoutineId = routine.id
                                     onEditorStateChange(true)
                                 }
-                                else viewModel.startRoutine(routine.id, day.id)
-                            },
-                        ) {
+                                state.activeSession != null -> onOpenActiveWorkout()
+                                else -> viewModel.startRoutine(routine.id, day.id)
+                            }
+                        }) {
                             Text(
-                                if (needsEquipment.isNotEmpty()) "Resolve equipment for ${day.name}"
-                                else "Start ${day.name} · $count exercises",
+                                when {
+                                    needsEquipment.isNotEmpty() -> "Resolve Equipment for ${day.name}"
+                                    state.activeSession != null -> "Open Active Workout"
+                                    else -> "Start ${day.name} · ${quantityLabel(count, "exercise")}"
+                                },
                             )
                         }
                     }
                 }
             }
         }
-        item { Button(onClick = {
-            showEditor = true
-            onEditorStateChange(true)
-        }, modifier = Modifier.fillMaxWidth()) { Text("Create routine") } }
     }
 }
 
@@ -3324,6 +4200,7 @@ private data class EditableRoutineDay(
 
 @Composable
 private fun RoutineEditorDialog(
+    modifier: Modifier = Modifier,
     exercises: List<Exercise>,
     machines: List<GymMachine>,
     initial: RoutineDraft?,
@@ -3389,9 +4266,11 @@ private fun RoutineEditorDialog(
     var showDiscardConfirmation by rememberSaveable(editorKey) { mutableStateOf(false) }
     val requestDismiss = { if (editorFingerprint != initialFingerprint) showDiscardConfirmation = true else onDismiss() }
     BackHandler(enabled = !showDiscardConfirmation, onBack = requestDismiss)
-    AlertDialog(
+    ProductivityEditorDialog(
+        modifier = modifier,
+        testTag = "legacy-routine-editor",
         onDismissRequest = requestDismiss,
-        title = { Text("Create routine") },
+        title = { Text("Create Routine") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 item { OutlinedTextField(name, { name = it }, label = { Text("Routine name *") }, modifier = Modifier.fillMaxWidth().testTag("routine-editor-name")) }
@@ -3410,7 +4289,7 @@ private fun RoutineEditorDialog(
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             val visibleExercises = exercises.filter { exercise ->
-                                exercise.name.contains(exerciseQuery, ignoreCase = true) && (!selectedOnly || exercise.id in day.exercises)
+                                exerciseMatchesQuery(exercise, exerciseQuery) && (!selectedOnly || exercise.id in day.exercises)
                             }.sortedWith(compareBy<Exercise> { day.exerciseOrder.indexOf(it.id).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE }.thenBy { it.name.lowercase() })
                             visibleExercises.forEach { exercise ->
                                 val selectedExercise = day.exercises[exercise.id]
@@ -3435,20 +4314,20 @@ private fun RoutineEditorDialog(
                                 if (selectedExercise != null) {
                                     val orderIndex = day.exerciseOrder.indexOf(exercise.id)
                                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        TextButton(enabled = orderIndex > 0, onClick = {
+                                        WhipTextButton(enabled = orderIndex > 0, onClick = {
                                             updateDay(dayIndex) { current ->
                                                 val order = current.exerciseOrder.toMutableList()
                                                 java.util.Collections.swap(order, orderIndex, orderIndex - 1)
                                                 current.copy(exerciseOrder = order)
                                             }
-                                        }) { Text("Move up") }
-                                        TextButton(enabled = orderIndex in 0 until day.exerciseOrder.lastIndex, onClick = {
+                                        }) { Text("Move Up") }
+                                        WhipTextButton(enabled = orderIndex in 0 until day.exerciseOrder.lastIndex, onClick = {
                                             updateDay(dayIndex) { current ->
                                                 val order = current.exerciseOrder.toMutableList()
                                                 java.util.Collections.swap(order, orderIndex, orderIndex + 1)
                                                 current.copy(exerciseOrder = order)
                                             }
-                                        }) { Text("Move down") }
+                                        }) { Text("Move Down") }
                                     }
                                     val compatibleMachines = machines.filter { candidate ->
                                         candidate.exerciseId == exercise.id &&
@@ -3472,15 +4351,17 @@ private fun RoutineEditorDialog(
                                         )
                                     }
                                     if (compatibleMachines.isNotEmpty()) {
-                                        OutlinedButton(
+                                        WhipOutlinedButton(
                                             onClick = { machineMenuExerciseId = exercise.id },
                                             modifier = Modifier.fillMaxWidth(),
                                         ) {
                                             Text(
                                                 compatibleMachines.firstOrNull { it.id == selectedExercise.machineId }?.displayName
                                                     ?: if (selectedExercise.equipmentBindingState == RoutineEquipmentBindingState.NeedsEquipment) "Choose replacement equipment"
-                                                    else "No machine / free weights",
+                                                    else "No Machine / Free Weights",
+                                                modifier = Modifier.weight(1f),
                                             )
+                                            Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)
                                         }
                                         DropdownMenu(
                                             expanded = machineMenuExerciseId == exercise.id,
@@ -3488,7 +4369,7 @@ private fun RoutineEditorDialog(
                                         ) {
                                             if (selectedExercise.equipmentBindingState != RoutineEquipmentBindingState.NeedsEquipment) {
                                                 DropdownMenuItem(
-                                                    text = { Text("No machine / free weights") },
+                                                    text = { Text("No Machine / Free Weights") },
                                                     onClick = {
                                                         updateDay(dayIndex) {
                                                             it.copy(exercises = it.exercises + (exercise.id to selectedExercise.copy(
@@ -3554,7 +4435,7 @@ private fun RoutineEditorDialog(
                         }
                     }
                     item(key = "duplicate-${day.key}") {
-                        TextButton(onClick = {
+                        WhipTextButton(onClick = {
                             val key = (days.maxOfOrNull { it.key } ?: -1) + 1
                             days = days.toMutableList().also { list ->
                                 list.add(dayIndex + 1, day.copy(key = key, name = "${day.name} copy"))
@@ -3563,19 +4444,19 @@ private fun RoutineEditorDialog(
                     }
                 }
                 item {
-                    TextButton(onClick = {
+                    WhipTextButton(onClick = {
                         val key = (days.maxOfOrNull { it.key } ?: -1) + 1
                         days = days + EditableRoutineDay(key, "Day ${('A'.code + key).toChar()}", emptyMap())
                     }) {
                         Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(22.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Add day / section")
+                        Text("Add Day / Section")
                     }
                 }
             }
         },
         confirmButton = {
-            TextButton(
+            WhipTextButton(
                 enabled = name.isNotBlank() && days.all { it.name.isNotBlank() },
                 onClick = {
                     onSave(
@@ -3626,38 +4507,121 @@ private fun RoutineEditorDialog(
                 },
             ) { Text("Save") }
         },
-        dismissButton = { TextButton(onClick = requestDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = requestDismiss) { Text("Cancel") } },
     )
     if (showDiscardConfirmation) {
-        UnsavedChangesDialog("routine", { showDiscardConfirmation = false }, onDismiss)
+        UnsavedChangesDialog("routine", { showDiscardConfirmation = false }, onDismiss, modifier)
     }
 }
 
+private data class GymChartSeries(
+    val name: String,
+    val points: List<GymGraphPoint>,
+)
+
 @Composable
-private fun SimpleLineChart(values: List<Double>, description: String) {
-    val lineColor = MaterialTheme.colorScheme.primary
-    val minimum = values.minOrNull()
-    val maximum = values.maxOrNull()
-    Column(Modifier.fillMaxWidth().semantics { contentDescription = description }) {
-        if (maximum != null) Text("High ${formatNumber(maximum, 2)}", style = MaterialTheme.typography.labelSmall)
+private fun SharedGymLineChart(
+    series: List<GymChartSeries>,
+    unit: String,
+    precision: Int,
+    description: String,
+    onPointSelected: (String, GymGraphPoint) -> Unit,
+) {
+    val allPoints = series.flatMap(GymChartSeries::points)
+    if (allPoints.isEmpty()) return
+    val minimum = allPoints.minOf { it.value }
+    val maximum = allPoints.maxOf { it.value }
+    val valueRange = (maximum - minimum).takeIf { it > 0.0 } ?: 1.0
+    val firstDate = allPoints.minOf { it.date }
+    val lastDate = allPoints.maxOf { it.date }
+    val totalDays = java.time.temporal.ChronoUnit.DAYS.between(firstDate, lastDate).coerceAtLeast(1)
+    val colors = listOf(
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.tertiary,
+        MaterialTheme.colorScheme.secondary,
+        MaterialTheme.colorScheme.error,
+    )
+    val gridColor = MaterialTheme.colorScheme.outlineVariant
+    val density = LocalDensity.current
+    val leftInsetPx = with(density) { 20.dp.toPx() }
+    val rightInsetPx = with(density) { 12.dp.toPx() }
+    val topInsetPx = with(density) { 12.dp.toPx() }
+    val bottomInsetPx = with(density) { 16.dp.toPx() }
+    val chartWidth = maxOf(360, allPoints.map { it.date }.distinct().size * 58).dp
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = description },
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("High ${formatNumber(maximum, precision)} $unit", style = MaterialTheme.typography.labelSmall)
+            Text("Low ${formatNumber(minimum, precision)} $unit", style = MaterialTheme.typography.labelSmall)
+        }
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-            Canvas(modifier = Modifier.width(maxOf(320, values.size * 48).dp).height(180.dp)) {
-                if (values.isEmpty()) return@Canvas
-                val min = values.min()
-                val max = values.max()
-                val range = (max - min).takeIf { it > 0.0 } ?: 1.0
-                val stepX = if (values.size == 1) 0f else size.width / (values.size - 1)
-                val points = values.mapIndexed { index, value ->
-                    Offset(index * stepX, size.height - ((value - min) / range * size.height).toFloat())
+            Canvas(
+                modifier = Modifier
+                    .width(chartWidth)
+                    .height(220.dp)
+                    .pointerInput(series, firstDate, lastDate) {
+                        detectTapGestures { tap ->
+                            val usableWidth = (size.width - leftInsetPx - rightInsetPx).coerceAtLeast(1f)
+                            val usableHeight = (size.height - topInsetPx - bottomInsetPx).coerceAtLeast(1f)
+                            val nearest = series.flatMap { chartSeries ->
+                                chartSeries.points.map { point ->
+                                    val day = java.time.temporal.ChronoUnit.DAYS.between(firstDate, point.date)
+                                    val x = leftInsetPx + usableWidth * (day.toFloat() / totalDays.toFloat())
+                                    val y = topInsetPx + usableHeight * (1f - ((point.value - minimum) / valueRange).toFloat())
+                                    Triple(chartSeries.name, point, kotlin.math.hypot(tap.x - x, tap.y - y))
+                                }
+                            }.minByOrNull { it.third }
+                            nearest?.takeIf { it.third <= with(density) { 32.dp.toPx() } }?.let {
+                                onPointSelected(it.first, it.second)
+                            }
+                        }
+                    },
+            ) {
+                val usableWidth = size.width - leftInsetPx - rightInsetPx
+                val usableHeight = size.height - topInsetPx - bottomInsetPx
+                repeat(5) { index ->
+                    val y = topInsetPx + usableHeight * index / 4f
+                    drawLine(gridColor, Offset(leftInsetPx, y), Offset(size.width - rightInsetPx, y), strokeWidth = 1.dp.toPx())
                 }
-                points.zipWithNext().forEach { (start, end) ->
-                    drawLine(lineColor, start, end, strokeWidth = 5f)
+                series.forEachIndexed { seriesIndex, chartSeries ->
+                    val plotted = chartSeries.points.sortedBy { it.date }.map { point ->
+                        val day = java.time.temporal.ChronoUnit.DAYS.between(firstDate, point.date)
+                        Offset(
+                            x = leftInsetPx + usableWidth * (day.toFloat() / totalDays.toFloat()),
+                            y = topInsetPx + usableHeight * (1f - ((point.value - minimum) / valueRange).toFloat()),
+                        )
+                    }
+                    plotted.zipWithNext().forEach { (start, end) ->
+                        drawLine(colors[seriesIndex % colors.size], start, end, strokeWidth = 3.dp.toPx())
+                    }
+                    plotted.forEach { drawCircle(colors[seriesIndex % colors.size], 5.dp.toPx(), it) }
                 }
-                points.forEach { drawCircle(lineColor, 7f, it) }
             }
         }
-        if (minimum != null) Text("Low ${formatNumber(minimum, 2)}", style = MaterialTheme.typography.labelSmall)
-        Text("Earlier → Later", style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.End))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(firstDate.toString(), style = MaterialTheme.typography.labelSmall)
+            Text(lastDate.toString(), style = MaterialTheme.typography.labelSmall)
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            series.forEachIndexed { index, item ->
+                Text("● ${item.name}", color = colors[index % colors.size], style = MaterialTheme.typography.labelMedium)
+            }
+        }
+        Text("Chart Points", style = MaterialTheme.typography.labelMedium)
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            series.flatMap { chartSeries -> chartSeries.points.takeLast(12).map { chartSeries.name to it } }.forEach { (name, point) ->
+                WhipFilterChip(
+                    selected = false,
+                    onClick = { onPointSelected(name, point) },
+                    label = { Text("$name · ${point.date} · ${formatNumber(point.value, precision)} $unit") },
+                )
+            }
+        }
     }
 }
 
@@ -3742,7 +4706,6 @@ internal fun ExerciseEditorDialog(
     var includeVolume by rememberSaveable(editorKey) { mutableStateOf(exercise?.includeInVolume ?: true) }
     var includePr by rememberSaveable(editorKey) { mutableStateOf(exercise?.includeInPersonalRecords ?: true) }
     var showAdvanced by rememberSaveable(editorKey) { mutableStateOf(powerMode) }
-    var typeMenu by rememberSaveable(editorKey) { mutableStateOf(false) }
     var pendingWeightUnit by rememberSaveable(editorKey) { mutableStateOf<String?>(null) }
     var pendingLoadInterpretation by rememberSaveable(editorKey) { mutableStateOf<LoadInterpretation?>(null) }
     fun convertDefaultsToUnit(selected: String) {
@@ -3777,10 +4740,11 @@ internal fun ExerciseEditorDialog(
     var showDiscardConfirmation by rememberSaveable(editorKey) { mutableStateOf(false) }
     val requestDismiss = { if (editorFingerprint != initialFingerprint) showDiscardConfirmation = true else onDismiss() }
     BackHandler(enabled = !showDiscardConfirmation, onBack = requestDismiss)
-    AlertDialog(
+    ProductivityEditorDialog(
         modifier = modifier,
+        testTag = "exercise-editor-surface",
         onDismissRequest = { if (!saving) requestDismiss() },
-        title = { Text(if (exercise == null) "Create exercise" else "Edit exercise") },
+        title = { Text(if (exercise == null) "Create Exercise" else "Edit Exercise") },
         text = {
             LazyColumn(
                 modifier = Modifier.testTag("exercise-editor-list"),
@@ -3790,26 +4754,48 @@ internal fun ExerciseEditorDialog(
                     OutlinedTextField(name, { name = it }, label = { Text("Name *") }, modifier = Modifier.fillMaxWidth().testTag("exercise-editor-name"))
                 }
                 item {
-                    OutlinedButton(onClick = { typeMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(trackingType.label)
+                    GymEnumDropdown("Tracking type", ExerciseTrackingType.entries, trackingType, ExerciseTrackingType::label) {
+                        trackingType = it
                     }
-                    DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {
-                        ExerciseTrackingType.entries.forEach { type ->
-                            DropdownMenuItem(
-                                text = { Text(type.label) },
-                                onClick = { trackingType = type; typeMenu = false },
-                            )
+                    DependentSettingsNotice(
+                        message = when (trackingType) {
+                            ExerciseTrackingType.WeightReps -> "Workout sets will ask for weight and repetitions."
+                            ExerciseTrackingType.BodyweightReps -> "Workout sets will ask for repetitions and use the bodyweight rule below."
+                            ExerciseTrackingType.AssistedBodyweightReps -> "Workout sets will ask for assistance and repetitions; Bodyweight Load controls how assistance is interpreted."
+                            ExerciseTrackingType.DistanceDuration -> "Workout sets will ask for distance and duration."
+                            ExerciseTrackingType.RepsOnly -> "Workout sets will ask for repetitions only."
+                            ExerciseTrackingType.WeightOnly -> "Workout sets will ask for weight only."
+                            ExerciseTrackingType.WeightDuration -> "Workout sets will ask for weight and duration."
+                            ExerciseTrackingType.RepsDuration -> "Workout sets will ask for repetitions and duration."
+                            ExerciseTrackingType.DistanceOnly -> "Workout sets will ask for distance only."
+                            ExerciseTrackingType.DurationOnly -> "Workout sets will ask for duration only."
+                        },
+                        testTag = "exercise-tracking-consequence",
+                    )
+                }
+                if (trackingType in setOf(ExerciseTrackingType.BodyweightReps, ExerciseTrackingType.AssistedBodyweightReps)) {
+                    item {
+                        GymEnumDropdown("Bodyweight load", BodyweightLoadPolicy.entries, bodyweightPolicy, { it.name.replace(Regex("([a-z])([A-Z])"), "$1 $2") }) { bodyweightPolicy = it }
+                        if (bodyweightPolicy == BodyweightLoadPolicy.EffectiveBodyweightPercentage || trackingType == ExerciseTrackingType.AssistedBodyweightReps) {
+                            NumberField(effectiveBodyweight, { effectiveBodyweight = it }, "Effective bodyweight percent")
                         }
                     }
                 }
                 item { OutlinedTextField(notes, { notes = it }, label = { Text("Notes / form cues") }, modifier = Modifier.fillMaxWidth()) }
-                item { TextButton(onClick = { showAdvanced = !showAdvanced }) { Text(if (showAdvanced) "Hide advanced" else "Show advanced") } }
+                item {
+                    DisclosureButton(
+                        label = "Advanced options",
+                        expanded = showAdvanced,
+                        onClick = { showAdvanced = !showAdvanced },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 if (showAdvanced) {
                     item { OutlinedTextField(equipment, { equipment = it }, label = { Text("Equipment") }, modifier = Modifier.fillMaxWidth()) }
                     item { OutlinedTextField(primaryMuscles, { primaryMuscles = it }, label = { Text("Primary muscles / tags") }, modifier = Modifier.fillMaxWidth()) }
                     item { OutlinedTextField(secondaryMuscles, { secondaryMuscles = it }, label = { Text("Secondary muscles / tags") }, modifier = Modifier.fillMaxWidth()) }
                     if (categories.isNotEmpty()) item {
-                        Text("User categories", style = MaterialTheme.typography.labelMedium)
+                        Text("User Categories", style = MaterialTheme.typography.labelMedium)
                         categories.forEach { category ->
                             Row(Modifier.fillMaxWidth().clickable(onClickLabel = "Toggle ${category.name}") { categoryIds = if (category.id in categoryIds) categoryIds - category.id else categoryIds + category.id }, verticalAlignment = Alignment.CenterVertically) {
                                 Checkbox(checked = category.id in categoryIds, onCheckedChange = { checked -> categoryIds = if (checked) categoryIds + category.id else categoryIds - category.id })
@@ -3819,8 +4805,8 @@ internal fun ExerciseEditorDialog(
                     }
                     item {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(selected = weightUnit == "kilogram", onClick = { if (weightUnit != "kilogram") pendingWeightUnit = "kilogram" }, label = { Text("kg") })
-                            FilterChip(selected = weightUnit == "pound", onClick = { if (weightUnit != "pound") pendingWeightUnit = "pound" }, label = { Text("lb") })
+                            WhipFilterChip(selected = weightUnit == "kilogram", onClick = { if (weightUnit != "kilogram") pendingWeightUnit = "kilogram" }, label = { Text("kg") })
+                            WhipFilterChip(selected = weightUnit == "pound", onClick = { if (weightUnit != "pound") pendingWeightUnit = "pound" }, label = { Text("lb") })
                         }
                         Text(
                             "Exercise-specific unit. Switching applies common equipment defaults (45 lb bar and standard lb plates, or 20 kg and standard metric plates); saved history is not rewritten.",
@@ -3869,14 +4855,14 @@ internal fun ExerciseEditorDialog(
                         second = { field -> OutlinedTextField(plates, { plates = it }, label = { Text("Plates (${unitSymbol(weightUnit)})") }, modifier = field.testTag("exercise-plates")) },
                     ) }
                     if (platePresets.isNotEmpty()) item {
-                        Text("Apply plate preset", style = MaterialTheme.typography.labelMedium)
+                        Text("Apply Plate Preset", style = MaterialTheme.typography.labelMedium)
                         FlowRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             platePresets.forEach { preset ->
-                                FilterChip(
+                                WhipFilterChip(
                                     selected = false,
                                     onClick = {
                                         weightUnit = preset.unitId
@@ -3888,13 +4874,26 @@ internal fun ExerciseEditorDialog(
                             }
                         }
                     }
-                    if (trackingType in setOf(ExerciseTrackingType.BodyweightReps, ExerciseTrackingType.AssistedBodyweightReps)) {
-                        item { GymEnumDropdown("Bodyweight load", BodyweightLoadPolicy.entries, bodyweightPolicy, { it.name.replace(Regex("([a-z])([A-Z])"), "$1 $2") }) { bodyweightPolicy = it } }
-                        if (bodyweightPolicy == BodyweightLoadPolicy.EffectiveBodyweightPercentage || trackingType == ExerciseTrackingType.AssistedBodyweightReps) item { NumberField(effectiveBodyweight, { effectiveBodyweight = it }, "Effective bodyweight percent") }
-                    }
                     item {
-                        GymEnumDropdown("RPE field", listOf<Boolean?>(null, true, false), showRpe, ::fieldVisibilityLabel) { showRpe = it }
-                        GymEnumDropdown("RIR field", listOf<Boolean?>(null, true, false), showRir, ::fieldVisibilityLabel) { showRir = it }
+                        val effortField = when {
+                            showRpe == true -> "RPE"
+                            showRir == true -> "RIR"
+                            showRpe == null && showRir == null -> "Use Global Setting"
+                            else -> "Off"
+                        }
+                        GymEnumDropdown(
+                            "Effort field",
+                            listOf("Use Global Setting", "Off", "RPE", "RIR"),
+                            effortField,
+                            { it },
+                        ) { selected ->
+                            when (selected) {
+                                "RPE" -> { showRpe = true; showRir = false }
+                                "RIR" -> { showRpe = false; showRir = true }
+                                "Off" -> { showRpe = false; showRir = false }
+                                else -> { showRpe = null; showRir = null }
+                            }
+                        }
                         GymEnumDropdown("Tempo field", listOf<Boolean?>(null, true, false), showTempo, ::fieldVisibilityLabel) { showTempo = it }
                     }
                     item { ToggleRow("Include in volume", includeVolume) { includeVolume = it } }
@@ -3903,7 +4902,7 @@ internal fun ExerciseEditorDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            WhipTextButton(
                 enabled = name.isNotBlank() && !saving,
                 onClick = {
                     onSave(
@@ -3936,7 +4935,7 @@ internal fun ExerciseEditorDialog(
                 },
             ) { Text(if (saving) "Saving…" else "Save") }
         },
-        dismissButton = { TextButton(onClick = requestDismiss, enabled = !saving) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = requestDismiss, enabled = !saving) { Text("Cancel") } },
     )
     pendingWeightUnit?.let { selected ->
         val currentSetup = WeightEquipmentSetup(
@@ -3946,7 +4945,8 @@ internal fun ExerciseEditorDialog(
         )
         val convertedSetup = convertWeightEquipmentSetup(currentSetup, weightUnit, selected)
         DefaultsMeaningChangeDialog(
-            title = "Change exercise unit to ${unitSymbol(selected)}?",
+            modifier = modifier,
+            title = "Change Exercise Unit to ${unitSymbol(selected)}?",
             explanation = "This affects future set entry only. Convert changes increment ${editableNumber(currentSetup.increment)} ${unitSymbol(weightUnit)} → ${editableNumber(convertedSetup.increment)} ${unitSymbol(selected)} and bar ${editableNumber(currentSetup.barWeight)} → ${editableNumber(convertedSetup.barWeight)}; plate defaults are converted too. Keep changes only the unit label. Reset uses the standard ${unitSymbol(selected)} bar and plates. Logged sets keep exactly what you entered.",
             onConvert = { convertDefaultsToUnit(selected); pendingWeightUnit = null },
             onKeep = { keepDefaultsInUnit(selected); pendingWeightUnit = null },
@@ -3956,7 +4956,8 @@ internal fun ExerciseEditorDialog(
     }
     pendingLoadInterpretation?.let { selected ->
         DefaultsMeaningChangeDialog(
-            title = "Change entry meaning to ${selected.label}?",
+            modifier = modifier,
+            title = "Change Entry Meaning to ${selected.label.uiTitleCase()}?",
             explanation = "This changes future sets only. Existing workout placements keep the old meaning. Convert scales the numeric equipment defaults to preserve approximately the same bilateral resistance.",
             onConvert = {
                 val oldMultiplier = com.whip.app.domain.loadInterpretationMultiplier(loadInterpretation)
@@ -3974,12 +4975,13 @@ internal fun ExerciseEditorDialog(
         )
     }
     if (showDiscardConfirmation) {
-        UnsavedChangesDialog("exercise", { showDiscardConfirmation = false }, onDismiss)
+        UnsavedChangesDialog("exercise", { showDiscardConfirmation = false }, onDismiss, modifier)
     }
 }
 
 @Composable
 private fun DefaultsMeaningChangeDialog(
+    modifier: Modifier = Modifier,
     title: String,
     explanation: String,
     onConvert: () -> Unit,
@@ -3987,24 +4989,26 @@ private fun DefaultsMeaningChangeDialog(
     onReset: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    AlertDialog(
+    PaneAwareAlertDialog(
+        modifier = modifier,
         onDismissRequest = onCancel,
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(explanation)
-                Button(onClick = onConvert, modifier = Modifier.fillMaxWidth()) { Text("Convert default values") }
-                OutlinedButton(onClick = onKeep, modifier = Modifier.fillMaxWidth()) { Text("Keep entered numbers") }
-                OutlinedButton(onClick = onReset, modifier = Modifier.fillMaxWidth()) { Text("Reset to equipment standard") }
+                WhipButton(onClick = onConvert, modifier = Modifier.fillMaxWidth()) { Text("Convert Default Values") }
+                WhipOutlinedButton(onClick = onKeep, modifier = Modifier.fillMaxWidth()) { Text("Keep Entered Numbers") }
+                WhipOutlinedButton(onClick = onReset, modifier = Modifier.fillMaxWidth()) { Text("Reset to Equipment Standard") }
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onCancel) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = onCancel) { Text("Cancel") } },
     )
 }
 
 @Composable
 private fun WorkoutSetEditorDialog(
+    modifier: Modifier = Modifier,
     set: WorkoutSet,
     exercise: Exercise,
     workoutExercise: WorkoutExercise,
@@ -4058,7 +5062,6 @@ private fun WorkoutSetEditorDialog(
     var planned by rememberSaveable(editorKey) { mutableStateOf(set.planned) }
     var classification by rememberSaveable(editorKey) { mutableStateOf(set.classification) }
     var unilateral by rememberSaveable(editorKey) { mutableStateOf(set.unilateral) }
-    var classMenu by rememberSaveable(editorKey) { mutableStateOf(false) }
     val needsWeight = policyExercise.trackingType in setOf(
         ExerciseTrackingType.WeightReps,
         ExerciseTrackingType.BodyweightReps,
@@ -4124,9 +5127,11 @@ private fun WorkoutSetEditorDialog(
         pulleyRatio = workoutExercise.machinePulleyRatioSnapshot,
         unilateral = unilateral,
     )
-    AlertDialog(
+    ProductivityEditorDialog(
+        modifier = modifier,
+        testTag = "workout-set-editor",
         onDismissRequest = onDismiss,
-        title = { Text("Edit set · ${exercise.name}") },
+        title = { Text("Edit Set · ${exercise.name}") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (needsWeight && machineType != MachineLoadType.Level) item {
@@ -4179,7 +5184,7 @@ private fun WorkoutSetEditorDialog(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         machine.availableLoads.sorted().forEach { load ->
-                            FilterChip(
+                            WhipFilterChip(
                                 selected = (if (machineType == MachineLoadType.Level) machineSetting else weight).toWhipDoubleOrNull() == load,
                                 onClick = {
                                     val value = editableNumber(load)
@@ -4208,12 +5213,12 @@ private fun WorkoutSetEditorDialog(
                     item { NumberField(bodyweight, { bodyweight = it }, "Bodyweight ($weightSymbol)") }
                 }
                 item {
-                    OutlinedButton(onClick = { classMenu = true }, modifier = Modifier.fillMaxWidth()) { Text(classification.name) }
-                    DropdownMenu(expanded = classMenu, onDismissRequest = { classMenu = false }) {
-                        WorkoutSetClassification.entries.forEach { option ->
-                            DropdownMenuItem(text = { Text(option.name) }, onClick = { classification = option; classMenu = false })
-                        }
-                    }
+                    GymEnumDropdown(
+                        "Set classification",
+                        WorkoutSetClassification.entries,
+                        classification,
+                        WorkoutSetClassification::uiLabel,
+                    ) { classification = it }
                 }
                 item { ToggleRow("Planned set", planned) { planned = it } }
                 item { ToggleRow("Completed", completed) { completed = it } }
@@ -4228,9 +5233,9 @@ private fun WorkoutSetEditorDialog(
             }
         },
         confirmButton = {
-            TextButton(enabled = validationMessage == null, onClick = { onSave(pendingDraft) }) { Text("Save") }
+            WhipTextButton(enabled = validationMessage == null, onClick = { onSave(pendingDraft) }) { Text("Save") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -4256,34 +5261,49 @@ private fun SteppedNumberField(
     modifier: Modifier = Modifier,
     allowedValues: List<Double> = emptyList(),
     integer: Boolean = false,
+    actionSubject: String = label,
+    isError: Boolean = false,
+    supportingText: String? = null,
 ) {
-    Row(
+    val decrementDescription = if (allowedValues.isEmpty()) "by ${editableNumber(increment)}" else "to the previous allowed value"
+    val incrementDescription = if (allowedValues.isEmpty()) "by ${editableNumber(increment)}" else "to the next allowed value"
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        singleLine = true,
+        isError = isError,
+        supportingText = supportingText?.let { message -> { Text(message) } },
+        keyboardOptions = KeyboardOptions(
+            keyboardType = if (integer) KeyboardType.Number else KeyboardType.Decimal,
+        ),
+        leadingIcon = {
+            IconButton(
+                onClick = {
+                    onValueChange(editableNumber(steppedNumericValue(value, -1, increment, allowedValues)))
+                },
+                modifier = Modifier.size(48.dp).semantics { contentDescription = "Decrease $actionSubject $decrementDescription" },
+            ) {
+                Icon(Icons.Outlined.Remove, contentDescription = null)
+            }
+        },
+        trailingIcon = {
+            IconButton(
+                onClick = {
+                    onValueChange(editableNumber(steppedNumericValue(value, 1, increment, allowedValues)))
+                },
+                modifier = Modifier.size(48.dp).semantics { contentDescription = "Increase $actionSubject $incrementDescription" },
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = null)
+            }
+        },
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(
-            onClick = {
-                onValueChange(editableNumber(steppedNumericValue(value, -1, increment, allowedValues)))
-            },
-            modifier = Modifier.size(52.dp).semantics { contentDescription = "Decrease $label" },
-        ) {
-            Icon(Icons.Outlined.Remove, contentDescription = null, modifier = Modifier.size(28.dp))
-        }
-        NumberField(value, onValueChange, label, Modifier.weight(1f), integer)
-        IconButton(
-            onClick = {
-                onValueChange(editableNumber(steppedNumericValue(value, 1, increment, allowedValues)))
-            },
-            modifier = Modifier.size(52.dp).semantics { contentDescription = "Increase $label" },
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(28.dp))
-        }
-    }
+    )
 }
 
 @Composable
 private fun ExercisePickerDialog(
+    modifier: Modifier = Modifier,
     exercises: List<Exercise>,
     preferredIds: List<Long> = emptyList(),
     onDismiss: () -> Unit,
@@ -4291,19 +5311,20 @@ private fun ExercisePickerDialog(
     onCreate: () -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    AlertDialog(
+    PaneAwareAlertDialog(
+        modifier = modifier,
         onDismissRequest = onDismiss,
-        title = { Text("Add exercise") },
+        title = { Text("Add Exercise") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 item { OutlinedTextField(query, { query = it }, label = { Text("Search") }, modifier = Modifier.fillMaxWidth()) }
-                val visible = exercises.filter { it.name.contains(query, true) }
+                val visible = exercises.filter { exerciseMatchesQuery(it, query) }
                     .sortedWith(compareByDescending<Exercise> { it.id in preferredIds }.thenBy { it.name.lowercase() })
                 if (preferredIds.isNotEmpty()) item {
                     Text("Routine alternatives are shown first", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 }
                 items(visible, key = Exercise::id) { exercise ->
-                    TextButton(onClick = { onPick(exercise) }, modifier = Modifier.fillMaxWidth()) {
+                    WhipTextButton(onClick = { onPick(exercise) }, modifier = Modifier.fillMaxWidth()) {
                         Text(
                             exercise.name + if (exercise.id in preferredIds) " · Planned alternative" else "",
                             modifier = Modifier.fillMaxWidth(),
@@ -4313,13 +5334,14 @@ private fun ExercisePickerDialog(
                 if (exercises.isEmpty()) item { Text("Your library is empty.") }
             }
         },
-        confirmButton = { TextButton(onClick = onCreate) { Text("Create new") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { WhipTextButton(onClick = onCreate) { Text("Create New") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
 @Composable
 private fun ExerciseActionsDialog(
+    modifier: Modifier = Modifier,
     exercise: Exercise,
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
@@ -4328,26 +5350,28 @@ private fun ExerciseActionsDialog(
     onArchive: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    AlertDialog(
+    PaneAwareAlertDialog(
+        modifier = modifier,
         onDismissRequest = onDismiss,
         title = { Text(exercise.name) },
         text = {
             Column {
-                TextButton(onClick = onFavorite, modifier = Modifier.fillMaxWidth()) { Text(if (exercise.favorite) "Remove favorite" else "Favorite", modifier = Modifier.fillMaxWidth()) }
-                TextButton(onClick = onDuplicate, modifier = Modifier.fillMaxWidth()) { Text("Duplicate", modifier = Modifier.fillMaxWidth()) }
-                TextButton(onClick = onArchive, modifier = Modifier.fillMaxWidth()) { Text(if (exercise.archived) "Restore" else "Archive", modifier = Modifier.fillMaxWidth()) }
-                TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
-                    Text("Delete permanently", modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.error)
+                WhipTextButton(onClick = onFavorite, modifier = Modifier.fillMaxWidth()) { Text(if (exercise.favorite) "Remove Favorite" else "Favorite") }
+                WhipTextButton(onClick = onDuplicate, modifier = Modifier.fillMaxWidth()) { Text("Duplicate") }
+                WhipTextButton(onClick = onArchive, modifier = Modifier.fillMaxWidth()) { Text(if (exercise.archived) "Restore" else "Archive") }
+                WhipTextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
+                    Text("Delete Permanently", color = MaterialTheme.colorScheme.error)
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        confirmButton = { WhipTextButton(onClick = onDismiss) { Text("Close") } },
         dismissButton = { DetailEditButton("Edit exercise", onEdit) },
     )
 }
 
 @Composable
 private fun WorkoutEditorDialog(
+    modifier: Modifier = Modifier,
     session: WorkoutSession?,
     initialDate: LocalDate,
     initialKeepAwake: Boolean = false,
@@ -4360,23 +5384,24 @@ private fun WorkoutEditorDialog(
     var date by rememberSaveable(editorKey) { mutableStateOf(initialDate) }
     var keepAwake by rememberSaveable(editorKey) { mutableStateOf(session?.keepScreenAwake ?: initialKeepAwake) }
     var showDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
-    AlertDialog(
+    PaneAwareAlertDialog(
+        modifier = modifier,
         onDismissRequest = onDismiss,
-        title = { Text(if (session == null) "Start workout" else "Workout details") },
+        title = { Text(if (session == null) "Start Workout" else "Workout Details") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text("Optional name") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth())
                 if (session == null) {
-                    OutlinedButton(onClick = { showDatePicker = true }) {
+                    WhipOutlinedButton(onClick = { showDatePicker = true }) {
                         Text(date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
                     }
                 }
                 ToggleRow("Keep screen awake on workout screen", keepAwake) { keepAwake = it }
             }
         },
-        confirmButton = { TextButton(onClick = { onStart(name, notes, date, keepAwake) }) { Text(if (session == null) "Start" else "Save") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { WhipTextButton(onClick = { onStart(name, notes, date, keepAwake) }) { Text(if (session == null) "Start" else "Save") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
     if (showDatePicker) {
         WhipDatePickerDialog(
@@ -4389,37 +5414,41 @@ private fun WorkoutEditorDialog(
 
 @Composable
 private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    val displayLabel = label.uiTitleCase()
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClickLabel = "Toggle $label", role = Role.Switch) { onCheckedChange(!checked) }
+            .clickable(onClickLabel = "Toggle $displayLabel", role = Role.Switch) { onCheckedChange(!checked) }
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, modifier = Modifier.weight(1f))
+        Text(displayLabel, modifier = Modifier.weight(1f))
         Switch(checked = checked, onCheckedChange = null)
     }
 }
 
 @Composable
 private fun ConfirmationDialog(
+    modifier: Modifier = Modifier,
     title: String,
     message: String,
     confirmLabel: String,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    AlertDialog(
+    PaneAwareAlertDialog(
+        modifier = modifier,
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(message) },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(confirmLabel) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { WhipTextButton(onClick = onConfirm) { Text(confirmLabel) } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
 @Composable
 private fun WorkoutGroupDialog(
+    modifier: Modifier = Modifier,
     exercises: List<WorkoutExerciseUi>,
     onDismiss: () -> Unit,
     onCreate: (String, WorkoutGroupType, List<Long>) -> Unit,
@@ -4429,9 +5458,11 @@ private fun WorkoutGroupDialog(
     var selectedIds by rememberSaveable {
         mutableStateOf<Set<Long>>(exercises.take(2).mapTo(linkedSetOf()) { it.workoutExercise.id })
     }
-    AlertDialog(
+    ProductivityEditorDialog(
+        modifier = modifier,
+        testTag = "workout-group-editor",
         onDismissRequest = onDismiss,
-        title = { Text("Group workout exercises") },
+        title = { Text("Group Workout Exercises") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text("Group name") })
@@ -4441,7 +5472,7 @@ private fun WorkoutGroupDialog(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     WorkoutGroupType.entries.forEach { option ->
-                        FilterChip(
+                        WhipFilterChip(
                             selected = type == option,
                             onClick = { type = option },
                             label = { Text(option.name) },
@@ -4464,12 +5495,12 @@ private fun WorkoutGroupDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            WhipTextButton(
                 enabled = name.isNotBlank() && selectedIds.size >= 2,
                 onClick = { onCreate(name.trim(), type, selectedIds.toList()) },
             ) { Text("Create") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -4649,6 +5680,75 @@ private fun parsePlateQuantities(text: String): Map<Double, Int>? {
     return result
 }
 
+internal data class ParsedPositiveNumbers(
+    val values: List<Double>,
+    val error: String? = null,
+)
+
+internal fun quantityLabel(count: Int, singular: String, plural: String = "${singular}s"): String =
+    "$count ${if (count == 1) singular else plural}"
+
+internal fun exerciseMatchesQuery(
+    exercise: Exercise,
+    query: String,
+    machineNames: String = "",
+): Boolean {
+    val terms = query.trim().split(Regex("\\s+")).filter(String::isNotBlank)
+    if (terms.isEmpty()) return true
+    val searchable = listOf(
+        exercise.name,
+        exercise.equipment,
+        exercise.primaryMuscles,
+        exercise.secondaryMuscles,
+        exercise.trackingType.label,
+        machineNames,
+    ).joinToString(" ")
+    return terms.all { searchable.contains(it, ignoreCase = true) }
+}
+
+internal fun parsePositiveNumberList(text: String, itemLabel: String): ParsedPositiveNumbers {
+    if (text.isBlank()) return ParsedPositiveNumbers(emptyList(), "Enter at least one $itemLabel")
+    val values = mutableListOf<Double>()
+    text.split(',').forEachIndexed { index, raw ->
+        val token = raw.trim()
+        val value = token.toWhipDoubleOrNull()
+        if (token.isBlank() || value == null || !value.isFinite() || value <= 0.0) {
+            return ParsedPositiveNumbers(
+                emptyList(),
+                "${itemLabel.uiTitleCase()} ${index + 1} (“${token.ifBlank { "blank" }}”) must be a positive number",
+            )
+        }
+        values += value
+    }
+    return ParsedPositiveNumbers(values)
+}
+
+internal data class ValidatedGymGraphRange(
+    val from: LocalDate?,
+    val to: LocalDate,
+    val error: String? = null,
+)
+
+internal fun validateGymGraphRange(
+    range: GymGraphRange,
+    customFrom: String,
+    customTo: String,
+    today: LocalDate,
+): ValidatedGymGraphRange {
+    if (range != GymGraphRange.Custom) {
+        return ValidatedGymGraphRange(graphRangeStart(range, today), today)
+    }
+    if (customFrom.isBlank() || customTo.isBlank()) {
+        return ValidatedGymGraphRange(null, today, "Enter both From and To dates")
+    }
+    val from = runCatching { LocalDate.parse(customFrom) }.getOrNull()
+        ?: return ValidatedGymGraphRange(null, today, "From must use YYYY-MM-DD")
+    val to = runCatching { LocalDate.parse(customTo) }.getOrNull()
+        ?: return ValidatedGymGraphRange(null, today, "To must use YYYY-MM-DD")
+    if (from > to) return ValidatedGymGraphRange(null, to, "From must be on or before To")
+    return ValidatedGymGraphRange(from, to)
+}
+
 private fun machineLoadSummary(values: List<Double>): String {
     val compact = compactNumericSequence(values)
     if (compact.isRange) return "${compact.specification} by ${editableNumber(requireNotNull(compact.increment))}"
@@ -4697,7 +5797,7 @@ private fun shareWorkout(context: android.content.Context, session: WorkoutSessi
                 .sortedBy { it.position }
                 .forEachIndexed { index, set ->
                     append("${index + 1}. ${set.shortLabel(state.appSettings.gymWeightUnitId, state.appSettings.distanceUnitId, state.appSettings.numberPrecision, workoutExercise, sourceExercise?.weightUnitId ?: state.appSettings.gymWeightUnitId)}")
-                    if (set.classification != WorkoutSetClassification.Working) append(" · ${set.classification.name}")
+                    if (set.classification != WorkoutSetClassification.Working) append(" · ${set.classification.uiLabel()}")
                     set.rpe?.let { append(" · RPE $it") }
                     if (set.note.isNotBlank()) append(" · ${set.note}")
                     appendLine()

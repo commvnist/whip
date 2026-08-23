@@ -1,6 +1,7 @@
 package com.whip.app
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasAnyAncestor
@@ -8,6 +9,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -36,6 +38,28 @@ import org.junit.runner.RunWith
 class RoutineBuilderUiTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun singleDayRoutineHidesActionsThatCannotApply() {
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                RoutineBuilderScreen(
+                    routineId = null,
+                    gymState = GymUiState(loading = false),
+                    initial = null,
+                    onDismiss = {},
+                    onSave = { _, complete -> complete(true) },
+                    onCreateExercise = { _, _ -> },
+                    onCreateMachine = { _, _ -> },
+                )
+            }
+        }
+
+        compose.onAllNodesWithContentDescription("Move Day 1 earlier").assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("Move Day 1 later").assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("Delete Day 1").assertCountEquals(0)
+        compose.onNodeWithContentDescription("Duplicate Day 1").assertIsDisplayed()
+    }
 
     @Test
     fun twoHundredExerciseLibraryIsSearchableAndOnlySelectionsEnterOutline() {
@@ -146,7 +170,7 @@ class RoutineBuilderUiTest {
 
         compose.onNodeWithText("Machine bench", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("routine-equipment-picker").performClick()
-        compose.onNodeWithText("Quick-create machine for this exercise").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Quick-Create Machine for This Exercise").assertIsDisplayed().performClick()
         compose.onNodeWithTag("routine-quick-machine-name").performTextInput("Home stack")
         compose.onNodeWithTag("routine-quick-machine-create").performClick()
 
@@ -267,7 +291,7 @@ class RoutineBuilderUiTest {
         compose.onNodeWithTag("routine-reps-min-1").assertTextContains("8")
         compose.onNodeWithTag("routine-reps-max-1").assertTextContains("12")
 
-        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasText("Rep prescription schemes"))
+        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasText("Rep Prescription Schemes"))
         compose.onNodeWithContentDescription("Edit Volume · 3 × 8–12").performClick()
         compose.onNodeWithTag("rep-scheme-name").performTextReplacement("Backoff")
         compose.onNodeWithTag("rep-scheme-reps-max").performTextReplacement("10")
@@ -279,7 +303,7 @@ class RoutineBuilderUiTest {
         }
 
         compose.onNodeWithContentDescription("Delete Volume · 3 × 8–12").performClick()
-        compose.onNodeWithText("Delete scheme").performClick()
+        compose.onNodeWithText("Delete Scheme").performClick()
         compose.runOnIdle { assertEquals("custom", deletedId) }
     }
 

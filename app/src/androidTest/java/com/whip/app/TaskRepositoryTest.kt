@@ -18,8 +18,6 @@ import com.whip.app.domain.TaskDraft
 import com.whip.app.domain.TaskStepDraft
 import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskEffort
-import com.whip.app.domain.TaskLocationReminder
-import com.whip.app.domain.LocationTrigger
 import com.whip.app.domain.MissedOccurrencePolicy
 import com.whip.app.domain.RecurrenceAnchor
 import java.time.Instant
@@ -132,31 +130,6 @@ class TaskRepositoryTest {
 
         assertEquals(listOf(enabledId), database.taskDao().getReminderTaskIds())
 
-        val location = TaskLocationReminder(
-            name = "Gym",
-            latitude = 43.65,
-            longitude = -79.38,
-            trigger = LocationTrigger.Arrive,
-        )
-        val locationId = repository.create(
-            TaskDraft(
-                title = "At the gym",
-                scheduleKind = ScheduleKind.Once,
-                date = monday,
-                locationReminder = location,
-            ),
-        )
-        val archivedLocationId = repository.create(
-            TaskDraft(
-                title = "Old location",
-                scheduleKind = ScheduleKind.Once,
-                date = monday,
-                locationReminder = location,
-            ),
-        )
-        repository.archive(archivedLocationId)
-
-        assertEquals(listOf(locationId), database.taskDao().getLocationReminderTaskIds())
     }
 
     @Test
@@ -308,13 +281,6 @@ class TaskRepositoryTest {
             area = "Work",
             tags = setOf("launch", "client"),
             deadline = monday.plusDays(10),
-            locationReminder = TaskLocationReminder(
-                name = "Office",
-                latitude = 43.6532,
-                longitude = -79.3832,
-                radiusMeters = 200f,
-                trigger = LocationTrigger.Arrive,
-            ),
         )
 
         val task = requireNotNull(repository.getTask(repository.create(draft)))
@@ -323,7 +289,6 @@ class TaskRepositoryTest {
         assertEquals(setOf("launch", "client"), task.tags)
         assertEquals(listOf(1_440, 30, 0), task.reminderOffsetsMinutes)
         assertEquals(RecurrenceAnchor.Completion, task.recurrence?.anchor)
-        assertEquals("Office", task.locationReminder?.name)
         assertEquals(monday.plusDays(10), task.deadline)
     }
 

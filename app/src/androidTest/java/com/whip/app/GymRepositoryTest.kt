@@ -40,7 +40,9 @@ class GymRepositoryTest {
         database = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
             WhipDatabase::class.java,
-        ).build()
+        )
+            .addCallback(WhipDatabase.singleActiveWorkoutCallback)
+            .build()
         repository = RoomGymRepository(database, FixedClock, SequentialIds())
     }
 
@@ -129,6 +131,31 @@ class GymRepositoryTest {
 
         repository.stopRestTimer(sessionId)
         assertEquals(null, repository.sessions.first().single().restTimerDeadlineMillis)
+    }
+
+    @Test
+    fun workoutRestOverrideControlsAutomaticRestWithoutChangingExerciseDefault() = runBlocking {
+        val exerciseId = repository.createExercise(
+            ExerciseDraft(name = "Bench press", defaultRestSeconds = 180),
+        )
+        val sessionId = repository.startWorkout()
+        val placementId = repository.addExerciseToWorkout(sessionId, exerciseId)
+        val setId = repository.addSet(
+            placementId,
+            WorkoutSetDraft(weight = 80.0, reps = 5),
+        )
+
+        repository.setSetCompleted(
+            id = setId,
+            completed = true,
+            autoStartRest = true,
+            restOverrideSeconds = 75,
+        )
+
+        val session = repository.sessions.first().single()
+        assertEquals(75, session.restTimerDurationSeconds)
+        assertEquals(FixedClock.now().toEpochMilli() + 75_000L, session.restTimerDeadlineMillis)
+        assertEquals(180, repository.exercises.first().single().defaultRestSeconds)
     }
 
     @Test
@@ -364,6 +391,21 @@ class GymRepositoryTest {
         val finishedAgain = repository.sessions.first().single()
         assertEquals(WorkoutSessionState.Finished, finishedAgain.state)
         assertNotNull(finishedAgain.endedAt)
+    }
+
+    @Test
+    fun databaseRejectsASecondActiveWorkoutEvenWhenRepositoryChecksAreBypassed() = runBlocking {
+        val finishedId = repository.startWorkout("Finished")
+        repository.finishWorkout(finishedId)
+        val activeId = repository.startWorkout("Active")
+
+        assertThrows(android.database.sqlite.SQLiteException::class.java) {
+            database.openHelper.writableDatabase.execSQL(
+                "UPDATE workout_sessions SET state = 'Active' WHERE id = ?",
+                arrayOf(finishedId),
+            )
+        }
+        assertEquals(activeId, repository.sessions.first().single { it.state == WorkoutSessionState.Active }.id)
     }
 
     @Test

@@ -33,8 +33,8 @@ android {
         applicationId = "commvne.com.whip.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 11
-        versionName = "0.3.7"
+        versionCode = 15
+        versionName = "0.3.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -117,7 +117,6 @@ dependencies {
     implementation(libs.androidx.health.connect.client)
     implementation(libs.androidx.window)
     implementation(libs.androidx.profileinstaller)
-    implementation(libs.play.services.location)
     ksp(libs.androidx.room.compiler)
 
     val composeBom = platform(libs.androidx.compose.bom)

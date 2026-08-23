@@ -10,8 +10,6 @@ import java.util.Base64
 data class SavedTaskFilter(
     val name: String,
     val priorities: Set<TaskPriority> = emptySet(),
-    val area: String = "",
-    val tag: String = "",
     val pinnedOnly: Boolean = false,
     val tags: Set<String> = emptySet(),
     val requireAllTags: Boolean = true,
@@ -28,7 +26,6 @@ data class SavedTaskFilter(
     val sortMode: String = "Smart",
     /** None, Date, Area, Priority. */
     val groupMode: String = "None",
-    /** Canonical Area identity. `area` is retained to decode pre-v27 filters. */
     val areaId: String? = null,
 )
 
@@ -37,15 +34,27 @@ data class SavedReviewFilter(
     val sections: Set<HomeSection> = HomeSection.entries.toSet(),
 )
 
-internal fun AppSettings.withoutAreaReferences(areaId: String, areaName: String): AppSettings = copy(
+/** Keeps saved navigation values within the routes supported by the current workspace. */
+internal fun SavedTaskFilter.normalizedNavigation(): SavedTaskFilter {
+    val knownDestinations = setOf("Inbox", "Today", "Upcoming", "Anytime", "Completed", "Archived")
+    val safeDestination = when {
+        destination.isBlank() -> ""
+        destination in knownDestinations -> destination
+        else -> "Today"
+    }
+    val requestedView = planningView.takeIf { it in setOf("List", "Agenda", "Calendar") } ?: "List"
+    return copy(
+        destination = safeDestination,
+        planningView = requestedView.takeIf { safeDestination == "Upcoming" } ?: "List",
+    )
+}
+
+internal fun AppSettings.withoutAreaReferences(areaId: String): AppSettings = copy(
     activeAreaScope = activeAreaScope.takeUnless { it == AreaScope.One(areaId).storageKey }
         ?: AreaScope.All.storageKey,
     savedTaskFilters = savedTaskFilters.map { filter ->
-        if (
-            filter.areaId == areaId ||
-            (filter.areaId == null && filter.area.equals(areaName, ignoreCase = true))
-        ) {
-            filter.copy(area = "", areaId = null)
+        if (filter.areaId == areaId) {
+            filter.copy(areaId = null)
         } else {
             filter
         }
@@ -87,8 +96,6 @@ internal fun List<SavedTaskFilter>.encodeTaskFilters(): String = joinToString("\
     listOf(
         filter.name.encoded(),
         filter.priorities.joinToString(",", transform = TaskPriority::name),
-        filter.area.encoded(),
-        filter.tag.encoded(),
         filter.pinnedOnly.toString(),
         filter.tags.sortedBy(String::lowercase).joinToString(",") { it.encoded() },
         filter.requireAllTags.toString(),
@@ -109,31 +116,29 @@ internal fun List<SavedTaskFilter>.encodeTaskFilters(): String = joinToString("\
 internal fun String?.decodeTaskFilters(): List<SavedTaskFilter> = this.orEmpty().lineSequence()
     .mapNotNull { line ->
         val parts = line.split('|')
-        if (parts.size !in setOf(5, 12, 16, 17, 18)) return@mapNotNull null
+        if (parts.size != 16) return@mapNotNull null
         SavedTaskFilter(
             name = parts[0].decoded().takeIf(String::isNotBlank) ?: return@mapNotNull null,
             priorities = parts[1].split(',').mapNotNullTo(linkedSetOf()) {
                 runCatching { TaskPriority.valueOf(it) }.getOrNull()
             },
-            area = parts[2].decoded(),
-            tag = parts[3].decoded(),
-            pinnedOnly = parts[4].toBooleanStrictOrNull() ?: false,
-            tags = parts.getOrNull(5).orEmpty().split(',').map(String::decoded).filterTo(linkedSetOf(), String::isNotBlank),
-            requireAllTags = parts.getOrNull(6)?.toBooleanStrictOrNull() ?: true,
-            dateMode = parts.getOrNull(7)?.takeIf { it in setOf("Any", "Today", "Overdue", "Next7Days", "NoDate") } ?: "Any",
-            deadlineOnly = parts.getOrNull(8)?.toBooleanStrictOrNull() ?: false,
-            inboxOnly = parts.getOrNull(9)?.toBooleanStrictOrNull() ?: false,
-            efforts = parts.getOrNull(10).orEmpty().split(',').mapNotNullTo(linkedSetOf()) {
+            pinnedOnly = parts[2].toBooleanStrictOrNull() ?: false,
+            tags = parts[3].split(',').map(String::decoded).filterTo(linkedSetOf(), String::isNotBlank),
+            requireAllTags = parts[4].toBooleanStrictOrNull() ?: true,
+            dateMode = parts[5].takeIf { it in setOf("Any", "Today", "Overdue", "Next7Days", "NoDate") } ?: "Any",
+            deadlineOnly = parts[6].toBooleanStrictOrNull() ?: false,
+            inboxOnly = parts[7].toBooleanStrictOrNull() ?: false,
+            efforts = parts[8].split(',').mapNotNullTo(linkedSetOf()) {
                 runCatching { TaskEffort.valueOf(it) }.getOrNull()
             },
-            maximumDurationMinutes = parts.getOrNull(11)?.toIntOrNull()?.takeIf { it > 0 },
-            textQuery = parts.getOrNull(12)?.decoded().orEmpty(),
-            destination = parts.getOrNull(13).orEmpty(),
-            planningView = parts.getOrNull(14)?.takeIf { it in setOf("List", "Agenda", "Calendar") } ?: "List",
-            sortMode = parts.getOrNull(15)?.takeIf { it in setOf("Smart", "Manual", "Title", "Date", "Priority") } ?: "Smart",
-            groupMode = parts.getOrNull(16)?.takeIf { it in setOf("None", "Date", "Area", "Priority") } ?: "None",
-            areaId = parts.getOrNull(17)?.decoded()?.takeIf(String::isNotBlank),
-        )
+            maximumDurationMinutes = parts[9].toIntOrNull()?.takeIf { it > 0 },
+            textQuery = parts[10].decoded(),
+            destination = parts[11],
+            planningView = parts[12].takeIf { it in setOf("List", "Agenda", "Calendar") } ?: "List",
+            sortMode = parts[13].takeIf { it in setOf("Smart", "Manual", "Title", "Date", "Priority") } ?: "Smart",
+            groupMode = parts[14].takeIf { it in setOf("None", "Date", "Area", "Priority") } ?: "None",
+            areaId = parts[15].decoded().takeIf(String::isNotBlank),
+        ).normalizedNavigation()
     }.distinctBy { it.name.lowercase() }.toList()
 
 internal fun List<SavedReviewFilter>.encodeReviewFilters(): String = joinToString("\n") { filter ->

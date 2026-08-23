@@ -22,7 +22,7 @@ back, validates its checksum and row count, then renames it to the final visible
 name and verifies it again. Interrupted staging files are cleaned on recovery,
 and corrupt or unreadable archives do not count against retention. Restore is
 previewed before it starts. Whip keeps an app-private recovery snapshot until
-the database, preferences, reminders, geofences, and background jobs have all
+the database, preferences, reminders, and background jobs have all
 been replaced successfully; failure rolls back immediately or at next launch.
 **Delete all local data** in Settings
 clears every internal Whip table after confirmation but deliberately leaves

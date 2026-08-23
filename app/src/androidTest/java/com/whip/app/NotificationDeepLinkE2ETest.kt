@@ -61,7 +61,7 @@ class NotificationDeepLinkE2ETest {
                 compose.onAllNodesWithTag("habit-detail-surface").fetchSemanticsNodes().isNotEmpty()
             }
             compose.onNodeWithTag("habit-detail-surface").assertIsDisplayed()
-            compose.onNodeWithText("Connections").assertIsDisplayed()
+            compose.onNodeWithTag("habit-detail-section-Connections").assertIsDisplayed()
         }
     }
 

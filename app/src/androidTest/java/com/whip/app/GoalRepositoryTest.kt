@@ -11,9 +11,10 @@ import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalAggregationPeriod
 import com.whip.app.domain.GoalConsistencyPeriod
+import com.whip.app.domain.GoalDirection
 import com.whip.app.domain.GoalDraft
-import com.whip.app.domain.GoalEntryMode
 import com.whip.app.domain.GoalMilestoneDraft
+import com.whip.app.domain.GoalPaceType
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.UnitDimension
@@ -26,7 +27,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -47,7 +47,7 @@ class GoalRepositoryTest {
     @After fun tearDown() = database.close()
 
     @Test fun cumulativeGoalStoresBackdatedContributions() = runBlocking {
-        val id = repository.create(GoalDraft(name = "Run 500 km", type = GoalType.AccumulateTotal, dimension = UnitDimension.Distance, unitId = "kilometre", targetMin = 500.0, startDate = FixedClock.today(), aggregation = GoalAggregation.Sum, entryMode = GoalEntryMode.AmountToAdd))
+        val id = repository.create(GoalDraft(name = "Run 500 km", type = GoalType.AccumulateTotal, dimension = UnitDimension.Distance, unitId = "kilometre", targetMin = 500.0, startDate = FixedClock.today(), aggregation = GoalAggregation.Sum))
         repository.recordMeasurement(id, 5.0, date = FixedClock.today().minusDays(1))
         repository.recordMeasurement(id, 7.0, date = FixedClock.today())
         val entries = repository.metricEntries.first()
@@ -55,14 +55,32 @@ class GoalRepositoryTest {
         assertEquals(setOf(FixedClock.today().minusDays(1), FixedClock.today()), entries.map { it.localDate }.toSet())
     }
 
-    @Test fun milestoneStateAndCompletionSnapshotPersist() = runBlocking {
+    @Test fun milestoneStateAndCompletedStatusPersist() = runBlocking {
         val id = repository.create(GoalDraft(name = "Ship", type = GoalType.WeightedMilestones, startDate = FixedClock.today(), milestones = listOf(GoalMilestoneDraft("Build", 2.0), GoalMilestoneDraft("Release", 1.0))))
         val milestone = repository.milestones.first().first()
         repository.toggleMilestone(milestone.id, true)
         assertTrue(repository.milestones.first().first { it.id == milestone.id }.completed)
         repository.setStatus(id, GoalStatus.Completed)
-        assertFalse(repository.snapshots.first().isEmpty())
         assertEquals(GoalStatus.Completed, repository.goals.first().single().status)
+    }
+
+    @Test fun goalTypeOwnsCalculationDirectionAndDeadlinePace() = runBlocking {
+        repository.create(
+            GoalDraft(
+                name = "Distance",
+                type = GoalType.AccumulateTotal,
+                targetMin = 100.0,
+                startDate = FixedClock.today(),
+                aggregation = GoalAggregation.Latest,
+                direction = GoalDirection.Decrease,
+                paceType = GoalPaceType.Linear,
+            ),
+        )
+
+        val saved = repository.goals.first().single()
+        assertEquals(GoalAggregation.Sum, saved.aggregation)
+        assertEquals(GoalDirection.Increase, saved.direction)
+        assertEquals(GoalPaceType.None, saved.paceType)
     }
 
     @Test fun milestoneInsertReorderAndRemovalPreserveStableIdentity() = runBlocking {

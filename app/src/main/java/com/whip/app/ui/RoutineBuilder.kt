@@ -33,24 +33,20 @@ import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -540,14 +536,14 @@ private fun RoutineBuilderHeader(
                 RoutineBuilderPage.Outline -> if (editing) "Edit routine" else "New routine"
                 RoutineBuilderPage.ExercisePicker -> "Add exercises"
                 RoutineBuilderPage.WorkoutPicker -> "Add from workout"
-            },
+            }.uiTitleCase(),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.weight(1f).semantics { heading() },
         )
         if (page == RoutineBuilderPage.Outline) {
-            TextButton(onClick = onCancel) { Text("Cancel") }
-            Button(enabled = canSave, onClick = onSave, modifier = Modifier.testTag("routine-builder-save")) { Text("Save") }
+            WhipTextButton(onClick = onCancel) { Text("Cancel") }
+            WhipButton(enabled = canSave, onClick = onSave, modifier = Modifier.testTag("routine-builder-save")) { Text("Save") }
         }
     }
     HorizontalDivider()
@@ -558,7 +554,7 @@ private fun UndoRow(message: String, onUndo: () -> Unit) {
     Surface(color = MaterialTheme.colorScheme.inverseSurface, modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(message, color = MaterialTheme.colorScheme.inverseOnSurface, modifier = Modifier.weight(1f))
-            TextButton(onClick = onUndo) { Text("Undo") }
+            WhipTextButton(onClick = onUndo) { Text("Undo") }
         }
     }
 }
@@ -596,7 +592,7 @@ private fun RoutineOutlinePane(
             maxLines = 2,
         )
         if (builder.days.all { it.placements.isEmpty() }) {
-            Text("Start with a split", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+            Text("Start with a Split", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
             FlowRow(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -607,7 +603,7 @@ private fun RoutineOutlinePane(
                     "Upper / lower" to listOf("Upper", "Lower"),
                     "Push / pull / legs" to listOf("Push", "Pull", "Legs"),
                 ).forEach { (label, names) ->
-                    FilterChip(
+                    WhipFilterChip(
                         selected = builder.days.map { it.name } == names,
                         onClick = { onBuilderChange { current -> current.withDayTemplate(names) } },
                         label = { Text(label) },
@@ -620,14 +616,14 @@ private fun RoutineOutlinePane(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             builder.days.forEach { day ->
-                FilterChip(
+                WhipFilterChip(
                     selected = day.key == selectedDay.key,
                     onClick = { onBuilderChange { it.copy(selectedDayKey = day.key, selectedPlacementKey = null) } },
                     label = { Text("${day.name} · ${day.placements.size}") },
                     modifier = Modifier.testTag("routine-day-${day.key}"),
                 )
             }
-            FilterChip(
+            WhipFilterChip(
                 selected = false,
                 onClick = {
                     onBuilderChange { current ->
@@ -655,23 +651,28 @@ private fun RoutineOutlinePane(
                 modifier = Modifier.weight(1f),
                 singleLine = true,
             )
-            IconButton(
-                enabled = builder.days.indexOfFirst { it.key == selectedDay.key } > 0,
-                onClick = { onBuilderChange { it.moveDay(selectedDay.key, -1) } },
-            ) { Text("←") }
-            IconButton(
-                enabled = builder.days.indexOfFirst { it.key == selectedDay.key } < builder.days.lastIndex,
-                onClick = { onBuilderChange { it.moveDay(selectedDay.key, 1) } },
-            ) { Text("→") }
+            if (builder.days.size > 1) {
+                IconButton(
+                    enabled = builder.days.indexOfFirst { it.key == selectedDay.key } > 0,
+                    onClick = { onBuilderChange { it.moveDay(selectedDay.key, -1) } },
+                    modifier = Modifier.semantics { contentDescription = "Move ${selectedDay.name} earlier" },
+                ) { Text("←") }
+                IconButton(
+                    enabled = builder.days.indexOfFirst { it.key == selectedDay.key } < builder.days.lastIndex,
+                    onClick = { onBuilderChange { it.moveDay(selectedDay.key, 1) } },
+                    modifier = Modifier.semantics { contentDescription = "Move ${selectedDay.name} later" },
+                ) { Text("→") }
+            }
             IconButton(
                 onClick = { onBuilderChange { it.duplicateDay(selectedDay.key) } },
                 modifier = Modifier.semantics { contentDescription = "Duplicate ${selectedDay.name}" },
             ) { Icon(Icons.Outlined.ContentCopy, contentDescription = null) }
-            IconButton(
-                enabled = builder.days.size > 1,
-                onClick = { onDeleteDay(selectedDay) },
-                modifier = Modifier.semantics { contentDescription = "Delete ${selectedDay.name}" },
-            ) { Icon(Icons.Outlined.Delete, contentDescription = null) }
+            if (builder.days.size > 1) {
+                IconButton(
+                    onClick = { onDeleteDay(selectedDay) },
+                    modifier = Modifier.semantics { contentDescription = "Delete ${selectedDay.name}" },
+                ) { Icon(Icons.Outlined.Delete, contentDescription = null) }
+            }
         }
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth().testTag("routine-selected-exercises"),
@@ -701,13 +702,13 @@ private fun RoutineOutlinePane(
                 )
             }
             item {
-                Button(onClick = onAddExercises, modifier = Modifier.fillMaxWidth().testTag("routine-add-exercises")) {
+                WhipButton(onClick = onAddExercises, modifier = Modifier.fillMaxWidth().testTag("routine-add-exercises")) {
                     Icon(Icons.Filled.Add, contentDescription = null)
                     Spacer(Modifier.width(6.dp))
-                    Text("Add exercises")
+                    Text("Add Exercises")
                 }
             }
-            item { OutlinedButton(onClick = onAddFromWorkout, modifier = Modifier.fillMaxWidth()) { Text("Add from a previous workout") } }
+            item { WhipOutlinedButton(onClick = onAddFromWorkout, modifier = Modifier.fillMaxWidth()) { Text("Add from a Previous Workout") } }
         }
     }
 }
@@ -760,7 +761,7 @@ private fun RoutinePlacementCard(
                 Text(exercise?.name ?: placement.exerciseNameSnapshot, fontWeight = FontWeight.Bold)
                 Text(
                     listOfNotNull(
-                        machine?.displayName ?: placement.machineNameSnapshot.takeIf(String::isNotBlank) ?: "No machine / free weights",
+                        machine?.displayName ?: placement.machineNameSnapshot.takeIf(String::isNotBlank) ?: "No Machine / Free Weights",
                         placement.sets.takeIf(List<*>::isNotEmpty)?.let { routineSetSummary(placement.sets) },
                     ).joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,
@@ -779,8 +780,8 @@ private fun RoutinePlacementCard(
                     Icon(Icons.Outlined.MoreVert, contentDescription = null)
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(text = { Text("Move up") }, onClick = { menu = false; onMove(-1) })
-                    DropdownMenuItem(text = { Text("Move down") }, onClick = { menu = false; onMove(1) })
+                    DropdownMenuItem(text = { Text("Move Up") }, onClick = { menu = false; onMove(-1) })
+                    DropdownMenuItem(text = { Text("Move Down") }, onClick = { menu = false; onMove(1) })
                     DropdownMenuItem(text = { Text("Duplicate") }, onClick = { menu = false; onDuplicate() }, leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) })
                     DropdownMenuItem(text = { Text("Remove") }, onClick = { menu = false; onRemove() }, leadingIcon = { Icon(Icons.Outlined.Delete, null) })
                 }
@@ -824,8 +825,8 @@ private fun RoutinePlacementEditor(
             Text(exercise?.trackingType?.label.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         item {
-            OutlinedButton(onClick = onChooseEquipment, modifier = Modifier.fillMaxWidth().testTag("routine-equipment-picker")) {
-                Text("Equipment · ${machine?.displayName ?: placement.machineNameSnapshot.takeIf(String::isNotBlank) ?: "No machine / free weights"}")
+            WhipOutlinedButton(onClick = onChooseEquipment, modifier = Modifier.fillMaxWidth().testTag("routine-equipment-picker")) {
+                Text("Equipment · ${machine?.displayName ?: placement.machineNameSnapshot.takeIf(String::isNotBlank) ?: "No Machine / Free Weights"}")
             }
             if (placement.equipmentBindingState == RoutineEquipmentBindingState.NeedsEquipment.name) {
                 Text("This placement needs compatible equipment before the routine can start.", color = MaterialTheme.colorScheme.error)
@@ -842,7 +843,7 @@ private fun RoutinePlacementEditor(
         }
         if (exercise?.supportsRepPrescription() != false) item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Rep prescription schemes", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                Text("Rep Prescription Schemes", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 IconButton(
                     onClick = { editingSchemeId = null; showSchemeEditor = true },
                     modifier = Modifier.testTag("routine-add-rep-scheme").semantics { contentDescription = "Add rep prescription scheme" },
@@ -877,7 +878,7 @@ private fun RoutinePlacementEditor(
             item {
                 val workingLoad = placement.sets.firstOrNull { it.classification != WorkoutSetClassification.WarmUp.name }
                     ?.load?.toWhipDoubleOrNull()
-                OutlinedButton(
+                WhipOutlinedButton(
                     enabled = workingLoad != null && workingLoad > 0.0,
                     onClick = {
                         onUpdate { current ->
@@ -885,10 +886,33 @@ private fun RoutinePlacementEditor(
                         }
                     },
                     modifier = Modifier.fillMaxWidth().testTag("routine-generate-warmups"),
-                ) { Text("Generate equipment-aware warm-ups") }
+                ) { Text("Generate Equipment-Aware Warm-Ups") }
                 Text(
                     if (workingLoad == null) "Enter the first working load, then Whip can add 40%, 60%, and 80% ramp sets."
                     else "Loads snap to this exercise's increment or the selected machine's available settings.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        item {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Show Advanced Prescription Fields", modifier = Modifier.weight(1f))
+                Switch(checked = showAdvanced, onCheckedChange = onShowAdvanced)
+            }
+            if (showAdvanced) {
+                DependentSettingsNotice(
+                    message = "RPE, RIR, rest, tempo, notes, and unilateral controls are shown inside every set below.",
+                    testTag = "routine-advanced-consequence",
+                )
+            }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Copy Previous Values When No Plan", modifier = Modifier.weight(1f))
+                Switch(checked = placement.copyPreviousWorkout, onCheckedChange = { checked -> onUpdate { it.copy(copyPreviousWorkout = checked) } })
+            }
+            if (placement.copyPreviousWorkout) {
+                Text(
+                    "Unplanned fields start with values from the previous workout.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -906,24 +930,14 @@ private fun RoutinePlacementEditor(
             )
         }
         item {
-            OutlinedButton(
+            WhipOutlinedButton(
                 onClick = { onUpdate { current -> current.copy(sets = current.sets + RoutineBuilderSetState(nextLocalSetKey(current.sets))) } },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Add set") }
-        }
-        item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Show advanced prescription fields", modifier = Modifier.weight(1f))
-                Switch(checked = showAdvanced, onCheckedChange = onShowAdvanced)
-            }
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Copy previous values when no plan", modifier = Modifier.weight(1f))
-                Switch(checked = placement.copyPreviousWorkout, onCheckedChange = { checked -> onUpdate { it.copy(copyPreviousWorkout = checked) } })
-            }
+            ) { Text("Add Set") }
         }
         if (showAdvanced && exercise?.trackingType in setOf(ExerciseTrackingType.WeightReps, ExerciseTrackingType.WeightOnly, ExerciseTrackingType.WeightDuration)) {
             item {
-                Text("Training cycle", fontWeight = FontWeight.SemiBold)
+                Text("Training Cycle", fontWeight = FontWeight.SemiBold)
                 OutlinedTextField(
                     placement.trainingMaxPercent,
                     { value -> onUpdate { it.copy(trainingMaxPercent = value.numericInput()) } },
@@ -942,7 +956,7 @@ private fun RoutinePlacementEditor(
             }
         }
         if (showAdvanced) item {
-            Text("Planned alternatives", fontWeight = FontWeight.SemiBold)
+            Text("Planned Alternatives", fontWeight = FontWeight.SemiBold)
             Text(
                 "These stay attached to the routine and are offered first when substituting during a workout.",
                 style = MaterialTheme.typography.bodySmall,
@@ -962,7 +976,7 @@ private fun RoutinePlacementEditor(
                     .sortedWith(compareByDescending<Exercise> { it.id in placement.alternativeExerciseIds }.thenBy { it.name.lowercase() })
                     .take(24)
                     .forEach { candidate ->
-                        FilterChip(
+                        WhipFilterChip(
                             selected = candidate.id in placement.alternativeExerciseIds,
                             onClick = {
                                 onUpdate { current ->
@@ -979,12 +993,12 @@ private fun RoutinePlacementEditor(
             }
         }
         item {
-            Text("Superset or circuit", fontWeight = FontWeight.SemiBold)
+            Text("Superset or Circuit", fontWeight = FontWeight.SemiBold)
             placement.groupKey?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 selectedDay.placements.filterNot { it.key == placement.key }.forEach { other ->
                     val otherExercise = gymState.exercises.firstOrNull { it.id == other.exerciseId }
-                    FilterChip(
+                    WhipFilterChip(
                         selected = placement.groupKey != null && placement.groupKey == other.groupKey,
                         onClick = {
                             onUpdateDay { day ->
@@ -998,16 +1012,16 @@ private fun RoutinePlacementEditor(
                         label = { Text(otherExercise?.name ?: other.exerciseNameSnapshot) },
                     )
                 }
-                if (placement.groupKey != null) FilterChip(selected = false, onClick = {
+                if (placement.groupKey != null) WhipFilterChip(selected = false, onClick = {
                     onUpdateDay { day -> day.removePlacementFromGroup(placement.key) }
                 }, label = { Text("Remove from group") })
             }
         }
         if (allDays.size > 1) item {
-            Text("Move or copy", fontWeight = FontWeight.SemiBold)
+            Text("Move or Copy", fontWeight = FontWeight.SemiBold)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box {
-                    OutlinedButton(onClick = { dayMenu = true }) { Text("Move to day") }
+                    WhipOutlinedButton(onClick = { dayMenu = true }) { Text("Move to Day") }
                     DropdownMenu(expanded = dayMenu, onDismissRequest = { dayMenu = false }) {
                         allDays.filterNot { it.key == selectedDay.key }.forEach { day ->
                             DropdownMenuItem(text = { Text(day.name) }, onClick = { dayMenu = false; onMoveToDay(day.key, false) })
@@ -1015,7 +1029,7 @@ private fun RoutinePlacementEditor(
                     }
                 }
                 Box {
-                    OutlinedButton(onClick = { copyDayMenu = true }) { Text("Copy to day") }
+                    WhipOutlinedButton(onClick = { copyDayMenu = true }) { Text("Copy to Day") }
                     DropdownMenu(expanded = copyDayMenu, onDismissRequest = { copyDayMenu = false }) {
                         allDays.filterNot { it.key == selectedDay.key }.forEach { day ->
                             DropdownMenuItem(text = { Text(day.name) }, onClick = { copyDayMenu = false; onMoveToDay(day.key, true) })
@@ -1047,11 +1061,11 @@ private fun RoutinePlacementEditor(
                 title = { Text("Delete ${scheme.displayLabel}?") },
                 text = { Text("This removes the saved shortcut. Existing routine prescriptions stay unchanged.") },
                 confirmButton = {
-                    TextButton(onClick = { onDeletePrescriptionScheme(scheme.id); pendingDeleteSchemeId = null }) {
-                        Text("Delete scheme", color = MaterialTheme.colorScheme.error)
+                    WhipTextButton(onClick = { onDeletePrescriptionScheme(scheme.id); pendingDeleteSchemeId = null }) {
+                        Text("Delete Scheme", color = MaterialTheme.colorScheme.error)
                     }
                 },
-                dismissButton = { TextButton(onClick = { pendingDeleteSchemeId = null }) { Text("Cancel") } },
+                dismissButton = { WhipTextButton(onClick = { pendingDeleteSchemeId = null }) { Text("Cancel") } },
             )
         }
     }
@@ -1069,7 +1083,7 @@ private fun RepPrescriptionSchemeRow(
             Modifier.fillMaxWidth().padding(start = 4.dp, end = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(
+            WhipTextButton(
                 onClick = onApply,
                 modifier = Modifier.weight(1f).semantics { contentDescription = "Apply ${scheme.displayLabel}" },
             ) {
@@ -1077,7 +1091,7 @@ private fun RepPrescriptionSchemeRow(
                     Text(scheme.displayLabel, fontWeight = FontWeight.SemiBold)
                     Text(
                         buildString {
-                            append(scheme.classification.name.humanizeEnum())
+                            append(scheme.classification.uiLabel())
                             scheme.restSeconds?.let { append(" · ${it}s rest") }
                         },
                         style = MaterialTheme.typography.labelSmall,
@@ -1131,7 +1145,7 @@ private fun RepPrescriptionSchemeDialog(
     PaneAwareAlertDialog(
         modifier = modifier.testTag("rep-scheme-editor"),
         onDismissRequest = onDismiss,
-        title = { Text(if (scheme == null) "Add rep prescription scheme" else "Edit rep prescription scheme") },
+        title = { Text(if (scheme == null) "Add Rep Prescription Scheme" else "Edit Rep Prescription Scheme") },
         text = {
             Column(
                 Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -1179,14 +1193,14 @@ private fun RepPrescriptionSchemeDialog(
                     ),
                 )
                 Box(Modifier.fillMaxWidth()) {
-                    OutlinedButton(
+                    WhipOutlinedButton(
                         onClick = { classificationMenu = true },
                         modifier = Modifier.fillMaxWidth().testTag("rep-scheme-classification"),
-                    ) { Text("Set type · ${classification.name.humanizeEnum()}") }
+                    ) { Text("Set Type · ${classification.uiLabel()}") }
                     DropdownMenu(expanded = classificationMenu, onDismissRequest = { classificationMenu = false }) {
                         WorkoutSetClassification.entries.forEach { value ->
                             DropdownMenuItem(
-                                text = { Text(value.name.humanizeEnum()) },
+                                text = { Text(value.uiLabel()) },
                                 onClick = { classificationName = value.name; classificationMenu = false },
                             )
                         }
@@ -1203,13 +1217,13 @@ private fun RepPrescriptionSchemeDialog(
             }
         },
         confirmButton = {
-            Button(
+            WhipButton(
                 onClick = { onSave(candidate) },
                 enabled = canSave,
                 modifier = Modifier.testTag("rep-scheme-save"),
-            ) { Text(if (scheme == null) "Add scheme" else "Save changes") }
+            ) { Text(if (scheme == null) "Add Scheme" else "Save Changes") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -1228,10 +1242,12 @@ private fun RoutineSetEditorCard(
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box {
-                    TextButton(onClick = { classificationMenu = true }) { Text(set.classification.humanizeEnum()) }
+                    WhipTextButton(onClick = { classificationMenu = true }) {
+                        Text(set.classification.workoutSetClassificationLabel())
+                    }
                     DropdownMenu(expanded = classificationMenu, onDismissRequest = { classificationMenu = false }) {
                         WorkoutSetClassification.entries.forEach { value ->
-                            DropdownMenuItem(text = { Text(value.name.humanizeEnum()) }, onClick = { classificationMenu = false; onUpdate { it.copy(classification = value.name) } })
+                            DropdownMenuItem(text = { Text(value.uiLabel()) }, onClick = { classificationMenu = false; onUpdate { it.copy(classification = value.name) } })
                         }
                     }
                 }
@@ -1249,13 +1265,13 @@ private fun RoutineSetEditorCard(
                 val prescriptionType = runCatching { RoutineLoadPrescriptionType.valueOf(set.loadPrescriptionType) }
                     .getOrDefault(RoutineLoadPrescriptionType.Absolute)
                 if (machine?.loadType != MachineLoadType.Level) {
-                    Text("Load prescription", style = MaterialTheme.typography.labelMedium)
+                    Text("Load Prescription", style = MaterialTheme.typography.labelMedium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         RoutineLoadPrescriptionType.entries.forEach { type ->
-                            FilterChip(
+                            WhipFilterChip(
                                 selected = prescriptionType == type,
                                 onClick = { onUpdate { it.copy(loadPrescriptionType = type.name) } },
-                                label = { Text(type.label) },
+                                label = { Text(type.label.uiTitleCase()) },
                             )
                         }
                     }
@@ -1302,7 +1318,7 @@ private fun RoutineSetEditorCard(
                 )
                 OutlinedTextField(set.note, { value -> onUpdate { it.copy(note = value) } }, label = { Text("Set note") }, modifier = Modifier.fillMaxWidth(), maxLines = 2)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Unilateral set", modifier = Modifier.weight(1f))
+                    Text("Unilateral Set", modifier = Modifier.weight(1f))
                     Switch(set.unilateral, { checked -> onUpdate { it.copy(unilateral = checked) } })
                 }
             }
@@ -1332,7 +1348,13 @@ private fun ExercisePickerPage(
             .split(',', ';').map(String::trim).filter(String::isNotBlank)
     }.distinct().sorted()
     val visible = gymState.exercises.asSequence()
-        .filter { it.name.contains(query.trim(), true) }
+        .filter { exercise ->
+            exerciseMatchesQuery(
+                exercise,
+                query,
+                gymState.machines.filter { it.exerciseId == exercise.id }.joinToString(" ") { it.displayName },
+            )
+        }
         .filter { !favouritesOnly || it.favorite }
         .filter { !recentOnly || it.id in recentIds }
         .filter { selected -> categoryId == null || gymState.categoryLinks.any { it.exerciseId == selected.id && it.categoryId == categoryId } }
@@ -1343,23 +1365,23 @@ private fun ExercisePickerPage(
     Column(modifier) {
         OutlinedTextField(query, { query = it }, label = { Text("Search exercises") }, modifier = Modifier.fillMaxWidth().padding(16.dp).testTag("routine-exercise-search"), singleLine = true)
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            FilterChip(favouritesOnly, { favouritesOnly = !favouritesOnly }, { Text("Favourites") })
-            FilterChip(recentOnly, { recentOnly = !recentOnly }, { Text("Recent") })
-            gymState.categories.forEach { category -> FilterChip(categoryId == category.id, { categoryId = if (categoryId == category.id) null else category.id }, { Text(category.name) }) }
-            equipmentOptions.forEach { option -> FilterChip(equipment == option, { equipment = option.takeUnless { it == equipment } }, { Text(option) }) }
-            muscleOptions.forEach { option -> FilterChip(muscle == option, { muscle = option.takeUnless { it == muscle } }, { Text(option) }) }
+            WhipFilterChip(favouritesOnly, { favouritesOnly = !favouritesOnly }, { Text("Favourites") })
+            WhipFilterChip(recentOnly, { recentOnly = !recentOnly }, { Text("Recent") })
+            gymState.categories.forEach { category -> WhipFilterChip(categoryId == category.id, { categoryId = if (categoryId == category.id) null else category.id }, { Text(category.name) }) }
+            equipmentOptions.forEach { option -> WhipFilterChip(equipment == option, { equipment = option.takeUnless { it == equipment } }, { Text(option) }) }
+            muscleOptions.forEach { option -> WhipFilterChip(muscle == option, { muscle = option.takeUnless { it == muscle } }, { Text(option) }) }
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("${visible.size} exercises", modifier = Modifier.weight(1f))
-            TextButton(onClick = { onCreateExercise(query.trim()) }) { Text(if (query.isBlank()) "Create exercise" else "Create “${query.trim()}”") }
+            Text(quantityLabel(visible.size, "exercise"), modifier = Modifier.weight(1f))
+            WhipTextButton(onClick = { onCreateExercise(query.trim()) }) { Text(if (query.isBlank()) "Create Exercise" else "Create “${query.trim()}”") }
         }
         LazyColumn(Modifier.weight(1f).testTag("routine-exercise-picker-list"), contentPadding = PaddingValues(12.dp, 0.dp, 12.dp, 96.dp)) {
             if (visible.isEmpty()) item {
                 OutlinedCard(Modifier.fillMaxWidth().padding(4.dp)) {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("No matching exercise", fontWeight = FontWeight.Bold)
+                        Text("No Matching Exercise", fontWeight = FontWeight.Bold)
                         Text("Create it without leaving this routine. It will be added to your library and selected here.")
-                        Button(onClick = { onCreateExercise(query.trim()) }) { Text("Create exercise") }
+                        WhipButton(onClick = { onCreateExercise(query.trim()) }) { Text("Create Exercise") }
                     }
                 }
             }
@@ -1374,15 +1396,15 @@ private fun ExercisePickerPage(
                     Checkbox(checked, { value -> onSelectionChange(if (value) selectedIds + exercise.id else selectedIds - exercise.id) })
                     Column(Modifier.weight(1f)) {
                         Text(exercise.name, fontWeight = FontWeight.SemiBold)
-                        Text(listOfNotNull(exercise.equipment.takeIf(String::isNotBlank), exercise.primaryMuscles.takeIf(String::isNotBlank)).joinToString(" · ").ifBlank { exercise.trackingType.label }, style = MaterialTheme.typography.bodySmall)
+                        Text(listOfNotNull(exercise.equipment.takeIf(String::isNotBlank), exercise.primaryMuscles.takeIf(String::isNotBlank)).joinToString(" · ").ifBlank { exercise.trackingType.label.uiTitleCase() }, style = MaterialTheme.typography.bodySmall)
                     }
                     if (exercise.favorite) Text("★", color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
         Surface(tonalElevation = 4.dp) {
-            Button(enabled = selectedIds.isNotEmpty(), onClick = onAdd, modifier = Modifier.fillMaxWidth().padding(12.dp).testTag("routine-add-selected")) {
-                Text("Add ${selectedIds.size} exercise${if (selectedIds.size == 1) "" else "s"}")
+            WhipButton(enabled = selectedIds.isNotEmpty(), onClick = onAdd, modifier = Modifier.fillMaxWidth().padding(12.dp).testTag("routine-add-selected")) {
+                Text("Add ${selectedIds.size} Exercise${if (selectedIds.size == 1) "" else "s"}")
             }
         }
     }
@@ -1392,7 +1414,7 @@ private fun ExercisePickerPage(
 private fun WorkoutPickerPage(modifier: Modifier, gymState: GymUiState, onChoose: (WorkoutSession) -> Unit) {
     LazyColumn(modifier, contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
-            Text("Reuse a performed workout", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Reuse a Performed Workout", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text("Exercises, equipment, set types, loads, repetitions, effort, rest, and notes are copied as editable prescriptions.")
         }
         if (gymState.history.isEmpty()) item { Text("No completed workouts are available yet.") }
@@ -1424,22 +1446,22 @@ private fun EquipmentPickerPane(
     }.sortedWith(compareBy<GymMachine> { it.archived }.thenBy { it.location.lowercase() }.thenBy { it.name.lowercase() })
     LazyColumn(modifier, contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
-            Text("Choose equipment", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text("Choose Equipment", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text("Equipment is scoped to this exercise so its history and progression remain comparable.")
         }
         item { OutlinedTextField(query, { query = it }, label = { Text("Search machine or location") }, modifier = Modifier.fillMaxWidth()) }
-        item { OutlinedButton(onClick = onNoMachine, modifier = Modifier.fillMaxWidth()) { Text("No machine / free weights") } }
+        item { WhipOutlinedButton(onClick = onNoMachine, modifier = Modifier.fillMaxWidth()) { Text("No Machine / Free Weights") } }
         items(machines, key = GymMachine::id) { machine ->
             OutlinedCard(Modifier.fillMaxWidth().clickable(onClickLabel = "Use ${machine.displayName}") { onChoose(machine) }) {
                 Column(Modifier.padding(14.dp)) {
                     Text(machine.displayName, fontWeight = FontWeight.Bold)
-                    Text("${machine.loadType.label} · ${machine.availableLoads.size} saved values${if (machine.archived) " · Archived" else ""}")
+                    Text("${machine.loadType.label.uiTitleCase()} · ${machine.availableLoads.size} saved values${if (machine.archived) " · Archived" else ""}")
                 }
             }
         }
         item {
-            Button(onClick = onQuickCreate, modifier = Modifier.fillMaxWidth()) { Text("Quick-create machine for this exercise") }
-            OutlinedButton(onClick = onAdvancedCreate, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) { Text("Create advanced machine profile") }
+            WhipButton(onClick = onQuickCreate, modifier = Modifier.fillMaxWidth()) { Text("Quick-Create Machine for This Exercise") }
+            WhipOutlinedButton(onClick = onAdvancedCreate, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) { Text("Create Advanced Machine Profile") }
             Text("A new machine is saved to the library immediately and automatically selected in this routine.", style = MaterialTheme.typography.bodySmall)
         }
     }
@@ -1462,17 +1484,17 @@ private fun QuickMachineDialog(modifier: Modifier = Modifier, exercise: Exercise
     PaneAwareAlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
-        title = { Text("Quick-create machine") },
+        title = { Text("Quick-Create Machine") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("For ${exercise.name}. Add advanced setup details later from the machine library.")
                 OutlinedTextField(name, { name = it }, label = { Text("Machine name *") }, modifier = Modifier.fillMaxWidth().testTag("routine-quick-machine-name"))
                 OutlinedTextField(location, { location = it }, label = { Text("Location") }, modifier = Modifier.fillMaxWidth())
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    MachineLoadType.entries.forEach { type -> FilterChip(loadType == type, { loadType = type; minimum = if (type == MachineLoadType.Level) "1" else "5"; maximum = if (type == MachineLoadType.Level) "10" else "100"; increment = if (type == MachineLoadType.Level) "1" else "5" }, { Text(type.label) }) }
+                    MachineLoadType.entries.forEach { type -> WhipFilterChip(loadType == type, { loadType = type; minimum = if (type == MachineLoadType.Level) "1" else "5"; maximum = if (type == MachineLoadType.Level) "10" else "100"; increment = if (type == MachineLoadType.Level) "1" else "5" }, { Text(type.label.uiTitleCase()) }) }
                 }
                 if (loadType == MachineLoadType.Mass) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("kilogram", "pound").forEach { unit -> FilterChip(unitId == unit, { unitId = unit }, { Text(unitSymbol(unit)) }) }
+                    listOf("kilogram", "pound").forEach { unit -> WhipFilterChip(unitId == unit, { unitId = unit }, { Text(unitSymbol(unit)) }) }
                 } else OutlinedTextField(levelLabel, { levelLabel = it }, label = { Text("Setting label") }, modifier = Modifier.fillMaxWidth())
                 ResponsiveFieldPair(
                     first = { field -> OutlinedTextField(minimum, { minimum = it.numericInput() }, label = { Text("Minimum") }, modifier = field) },
@@ -1482,7 +1504,7 @@ private fun QuickMachineDialog(modifier: Modifier = Modifier, exercise: Exercise
             }
         },
         confirmButton = {
-            TextButton(enabled = name.isNotBlank() && validRange, onClick = {
+            WhipTextButton(enabled = name.isNotBlank() && validRange, onClick = {
                 onSave(
                     GymMachineDraft(
                         exerciseId = exercise.id,
@@ -1495,9 +1517,9 @@ private fun QuickMachineDialog(modifier: Modifier = Modifier, exercise: Exercise
                         loadInterpretation = if (loadType == MachineLoadType.Level) LoadInterpretation.OrdinalSetting else LoadInterpretation.MachineDisplayedMass,
                     ),
                 )
-            }, modifier = Modifier.testTag("routine-quick-machine-create")) { Text("Create and select") }
+            }, modifier = Modifier.testTag("routine-quick-machine-create")) { Text("Create and Select") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 

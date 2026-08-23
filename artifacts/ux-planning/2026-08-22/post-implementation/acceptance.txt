@@ -1,0 +1,15 @@
+Package: commvne.com.whip.app
+Version: 0.3.9 (15)
+Core UX acceptance installed: 2026-08-22 16:12:56 America/Toronto
+Device: Samsung Galaxy Fold SM-F976W
+Core UX acceptance APK SHA-256: 4ae0b9f5a9747ce9a7d128bdb5887a84124d07a8eb42996bf4f485319af9333e
+Current follow-up installed: 2026-08-22 16:38:40 America/Toronto
+Current release APK SHA-256: 68faca40ae7f49ffd3e30322b716fbdc075bb90fd170b91b0ef5e28a3cbd7a54
+Current installed base APK SHA-256: 68faca40ae7f49ffd3e30322b716fbdc075bb90fd170b91b0ef5e28a3cbd7a54
+Current signed release AAB SHA-256: f640ec03bfd937216810e8e6c61da61abaa1a2ece1fcf897391413f28cd299dc
+Automated gate: 167 JVM tests, 222 Android instrumentation tests compiled, debug lint, debug APK, signed/minified release APK, signed release AAB, Play asset dimensions, and forbidden-location-permission scan across source plus current merged/packaged manifests
+Compact live gate: 17 verified screenshots; native 1080x2520; retained crop 1080x2263; no status/notification or navigation bar
+Open-fold live gate: 1 verified exact-build split-layout screenshot; native 2256x2504; retained crop 2256x2133; no status/notification or Samsung task/navigation bar
+Runtime log gate: no Whip fatal exception or ANR found during the compact acceptance journey
+Physical-device instrumentation: not run (personal Fold is manual-acceptance only)
+Follow-up live gate: status-bar-inclusive Areas and Review & Trends before/after captures in ../status-bar-regression; current release has one continuous status-bar background and no residual Fold divider

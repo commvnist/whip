@@ -55,6 +55,16 @@ fi
 java scripts/RenderBrandIcon.java --verify
 ./gradlew "${tasks[@]}"
 
+merged_manifest="$(find app/build/intermediates/merged_manifests/debug -name AndroidManifest.xml -print -quit)"
+if [[ -z "$merged_manifest" ]]; then
+    printf 'error: debug merged manifest was not produced\n' >&2
+    exit 1
+fi
+if rg -q 'android\.permission\.ACCESS_(BACKGROUND_LOCATION|COARSE_LOCATION|FINE_LOCATION)' "$merged_manifest"; then
+    printf 'error: retired location permission found in merged manifest: %s\n' "$merged_manifest" >&2
+    exit 1
+fi
+
 if [[ "$run_device_tests" == true ]]; then
     command -v adb >/dev/null 2>&1 || {
         printf 'error: adb is required for --device\n' >&2

@@ -2,6 +2,7 @@ package com.whip.app.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -16,17 +17,17 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -38,6 +39,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -79,6 +82,34 @@ internal fun AvailabilityNotice(
 }
 
 /**
+ * Keeps the consequence of a choice next to the control that caused it.
+ * Use this before conditionally revealed settings when the relationship is not
+ * already obvious from a single adjacent field label.
+ */
+@Composable
+internal fun DependentSettingsNotice(
+    message: String,
+    modifier: Modifier = Modifier,
+    testTag: String? = null,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (testTag == null) Modifier else Modifier.testTag(testTag))
+            .semantics { contentDescription = "Dependent settings. $message" },
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Text(
+            message,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
  * A full-window dialog whose card can be positioned wholly inside the active fold pane.
  * Material's AlertDialog sizes its platform window around the card, which prevents an
  * offset applied to the card from moving it out of the hinge area.
@@ -104,7 +135,8 @@ internal fun ProductivityEditorDialog(
             Surface(
                 modifier = modifier
                     .heightIn(max = maxHeight * 0.92f)
-                    .then(if (testTag == null) Modifier else Modifier.testTag(testTag)),
+                    .then(if (testTag == null) Modifier else Modifier.testTag(testTag))
+                    .semantics { paneTitle = "Editor" },
                 shape = MaterialTheme.shapes.extraLarge,
                 tonalElevation = 6.dp,
             ) {
@@ -112,7 +144,7 @@ internal fun ProductivityEditorDialog(
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    title()
+                    androidx.compose.foundation.layout.Box(Modifier.semantics { heading() }) { title() }
                     androidx.compose.foundation.layout.Box(Modifier.weight(1f, fill = false)) { text() }
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
@@ -142,7 +174,7 @@ internal fun PaneAwareAlertDialog(
     dismissButton: @Composable () -> Unit = {},
 ) {
     ProductivityEditorDialog(
-        modifier = modifier.widthIn(min = 280.dp, max = 560.dp),
+        modifier = Modifier.widthIn(min = 280.dp, max = 560.dp).then(modifier),
         testTag = null,
         onDismissRequest = onDismissRequest,
         title = title,
@@ -150,6 +182,77 @@ internal fun PaneAwareAlertDialog(
         confirmButton = confirmButton,
         dismissButton = dismissButton,
     )
+}
+
+/** Compact identity picker shared by Habits and Goals; custom glyphs remain supported. */
+@Composable
+internal fun WhipIconPicker(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String = "Icon",
+) {
+    val choices = listOf(
+        "○" to "Circle",
+        "✓" to "Check",
+        "◆" to "Diamond",
+        "◎" to "Target",
+        "⚑" to "Flag",
+        "✚" to "Health",
+        "◉" to "Focus",
+        "▤" to "List",
+        "★" to "Star",
+        "⏱" to "Timer",
+    )
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var customOpen by rememberSaveable { mutableStateOf(value.isNotBlank() && choices.none { it.first == value }) }
+    val selectedName = if (customOpen) {
+        "Custom Icon"
+    } else {
+        choices.firstOrNull { it.first == value }?.second ?: "Custom Icon"
+    }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(label, style = MaterialTheme.typography.labelMedium)
+        Box(Modifier.fillMaxWidth()) {
+            WhipOutlinedButton(
+                onClick = { expanded = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("icon-picker-trigger")
+                    .semantics { contentDescription = "$label: $selectedName" },
+            ) {
+                Text(if (customOpen) value.ifBlank { "…" } else value.ifBlank { "○" }, style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.width(8.dp))
+                Text(selectedName, modifier = Modifier.weight(1f))
+                Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                choices.forEach { (glyph, name) ->
+                    DropdownMenuItem(
+                        text = { Text("$glyph  $name") },
+                        onClick = { onValueChange(glyph); customOpen = false; expanded = false },
+                    )
+                }
+                DropdownMenuItem(
+                    text = { Text("Custom Icon…") },
+                    onClick = {
+                        if (!customOpen) onValueChange("")
+                        customOpen = true
+                        expanded = false
+                    },
+                    modifier = Modifier.testTag("icon-picker-custom-option"),
+                )
+            }
+        }
+        if (customOpen) OutlinedTextField(
+            value = value,
+            onValueChange = { onValueChange(it.take(2)) },
+            label = { Text("Custom Icon") },
+            supportingText = { Text("Enter one symbol or emoji.") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().testTag("icon-picker-custom-input"),
+        )
+    }
 }
 
 internal fun formatClockMinutes(minutes: Int): String = "%02d:%02d".format(minutes / 60, minutes % 60)
@@ -163,7 +266,7 @@ internal fun ClockPickerButton(
     modifier: Modifier = Modifier,
 ) {
     var pickerOpen by rememberSaveable(label) { mutableStateOf(false) }
-    OutlinedButton(onClick = { pickerOpen = true }, modifier = modifier.fillMaxWidth()) {
+    WhipOutlinedButton(onClick = { pickerOpen = true }, modifier = modifier.fillMaxWidth()) {
         Text(if (minutes == null) "$label · Not set" else "$label · ${formatClockMinutes(minutes)}")
     }
     if (pickerOpen) {
@@ -177,15 +280,15 @@ internal fun ClockPickerButton(
             title = { Text(label) },
             text = { TimePicker(state = picker) },
             confirmButton = {
-                TextButton(onClick = {
+                WhipTextButton(onClick = {
                     onChange(picker.hour * 60 + picker.minute)
                     pickerOpen = false
-                }) { Text("Set time") }
+                }) { Text("Set Time") }
             },
             dismissButton = {
                 Row {
-                    if (minutes != null) TextButton(onClick = { onChange(null); pickerOpen = false }) { Text("Clear") }
-                    TextButton(onClick = { pickerOpen = false }) { Text("Cancel") }
+                    if (minutes != null) WhipTextButton(onClick = { onChange(null); pickerOpen = false }) { Text("Clear") }
+                    WhipTextButton(onClick = { pickerOpen = false }) { Text("Cancel") }
                 }
             },
         )
@@ -206,7 +309,7 @@ internal fun ReminderTimesEditor(
         } else {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 values.sorted().forEach { value ->
-                    FilterChip(
+                    WhipFilterChip(
                         selected = true,
                         onClick = { onChange(values - value) },
                         label = { Text(formatClockMinutes(value)) },
@@ -216,15 +319,15 @@ internal fun ReminderTimesEditor(
                 }
             }
         }
-        OutlinedButton(onClick = { adding = true }, modifier = Modifier.fillMaxWidth()) {
+        WhipOutlinedButton(onClick = { adding = true }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Filled.Add, contentDescription = null)
             Spacer(Modifier.width(6.dp))
-            Text("Add reminder time")
+            Text("Add Reminder Time")
         }
     }
     if (adding) {
         ClockPickerDialog(
-            title = "Add reminder time",
+            title = "Add Reminder Time",
             initialMinutes = values.lastOrNull() ?: 8 * 60,
             onDismiss = { adding = false },
             onSet = { value -> onChange((values + value).distinct().sorted()); adding = false },
@@ -243,7 +346,7 @@ internal fun WeekdayReminderEditor(
     val activeValues = values.mapValues { (_, times) -> times.distinct().sorted() }
         .filterValues { it.isNotEmpty() }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Weekday-specific reminders", style = MaterialTheme.typography.labelLarge)
+        Text("Weekday-Specific Reminders", style = MaterialTheme.typography.labelLarge)
         Text(
             if (activeValues.isEmpty()) {
                 "No weekday-specific reminders. Days without one use Default reminders."
@@ -257,7 +360,7 @@ internal fun WeekdayReminderEditor(
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text("${day.weekdayLabel()} reminders", style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    times.sorted().forEach { value -> FilterChip(
+                    times.sorted().forEach { value -> WhipFilterChip(
                         selected = true,
                         onClick = {
                             val remaining = times - value
@@ -269,16 +372,16 @@ internal fun WeekdayReminderEditor(
                 }
             }
         }
-        OutlinedButton(onClick = { choosingDay = true }, modifier = Modifier.fillMaxWidth()) {
+        WhipOutlinedButton(onClick = { choosingDay = true }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Filled.Add, contentDescription = null)
             Spacer(Modifier.width(4.dp))
-            Text("Add weekday reminder")
+            Text("Add Weekday Reminder")
         }
     }
     if (choosingDay) {
         AlertDialog(
             onDismissRequest = { choosingDay = false },
-            title = { Text("Choose weekday") },
+            title = { Text("Choose Weekday") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
@@ -291,7 +394,7 @@ internal fun WeekdayReminderEditor(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        orderedWeekdays(firstDayOfWeek).forEach { day -> FilterChip(
+                        orderedWeekdays(firstDayOfWeek).forEach { day -> WhipFilterChip(
                             selected = false,
                             onClick = {
                                 addingDayName = day.name
@@ -303,13 +406,13 @@ internal fun WeekdayReminderEditor(
                 }
             },
             confirmButton = {},
-            dismissButton = { TextButton(onClick = { choosingDay = false }) { Text("Cancel") } },
+            dismissButton = { WhipTextButton(onClick = { choosingDay = false }) { Text("Cancel") } },
         )
     }
     addingDayName?.let { dayName ->
         val selectedDay = DayOfWeek.valueOf(dayName)
         ClockPickerDialog(
-            title = "${selectedDay.weekdayLabel()} reminder",
+            title = "${selectedDay.weekdayLabel()} Reminder",
             initialMinutes = activeValues[selectedDay]?.lastOrNull() ?: 8 * 60,
             onDismiss = { addingDayName = null },
             onSet = { value ->
@@ -342,8 +445,8 @@ private fun ClockPickerDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { TimePicker(state = picker) },
-        confirmButton = { TextButton(onClick = { onSet(picker.hour * 60 + picker.minute) }) { Text("Add") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { WhipTextButton(onClick = { onSet(picker.hour * 60 + picker.minute) }) { Text("Add") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -362,11 +465,11 @@ internal fun NumericQuickActionBuilder(
         onSpecificationChange(newValues.filter(Double::isFinite).distinct().sorted().joinToString(",") { editableNumericValue(it) })
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Quick buttons", style = MaterialTheme.typography.labelLarge)
+        Text("Quick Buttons", style = MaterialTheme.typography.labelLarge)
         Text("Add the values you use most often. They are amounts to add, not units of measurement.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (values.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             values.forEach { value ->
-                FilterChip(
+                WhipFilterChip(
                     selected = true,
                     onClick = { write(values - value) },
                     label = { Text(editableNumericValue(value)) },
@@ -376,31 +479,31 @@ internal fun NumericQuickActionBuilder(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(nextValue, { nextValue = it }, label = { Text("Value") }, singleLine = true, modifier = Modifier.weight(1f))
-            OutlinedButton(
+            WhipOutlinedButton(
                 enabled = nextValue.toDoubleOrNull()?.let { it.isFinite() && it > 0.0 } == true,
                 onClick = { nextValue.toDoubleOrNull()?.let { write(values + it) }; nextValue = "" },
             ) { Text("Add") }
         }
-        Text("Build a range", style = MaterialTheme.typography.labelMedium)
+        Text("Build a Range", style = MaterialTheme.typography.labelMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(rangeStart, { rangeStart = it }, label = { Text("From") }, singleLine = true, modifier = Modifier.weight(1f))
             OutlinedTextField(rangeEnd, { rangeEnd = it }, label = { Text("To") }, singleLine = true, modifier = Modifier.weight(1f))
         }
-        OutlinedButton(
+        WhipOutlinedButton(
             enabled = rangeStart.toDoubleOrNull() != null && rangeEnd.toDoubleOrNull() != null && increment.toDoubleOrNull()?.let { it > 0.0 } == true,
             onClick = {
-                val start = rangeStart.toDoubleOrNull() ?: return@OutlinedButton
-                val end = rangeEnd.toDoubleOrNull() ?: return@OutlinedButton
-                val step = increment.toDoubleOrNull() ?: return@OutlinedButton
+                val start = rangeStart.toDoubleOrNull() ?: return@WhipOutlinedButton
+                val end = rangeEnd.toDoubleOrNull() ?: return@WhipOutlinedButton
+                val step = increment.toDoubleOrNull() ?: return@WhipOutlinedButton
                 if (end >= start && step > 0.0) {
                     val generated = generateSequence(start) { previous -> (previous + step).takeIf { it <= end + step / 1000.0 } }.take(24).toList()
                     write(generated)
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-        ) { Text("Use range with increment $increment") }
-        TextButton(onClick = { showExpertEntry = !showExpertEntry }, modifier = Modifier.fillMaxWidth()) {
-            Text(if (showExpertEntry) "Hide expert text entry" else "Expert text entry")
+        ) { Text("Use Range with Increment $increment") }
+        WhipTextButton(onClick = { showExpertEntry = !showExpertEntry }, modifier = Modifier.fillMaxWidth()) {
+            Text(if (showExpertEntry) "Hide Expert Text Entry" else "Expert Text Entry")
         }
         if (showExpertEntry) {
             OutlinedTextField(

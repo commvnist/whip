@@ -163,9 +163,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 runCatching { app.goalReminderScheduler.syncAll() }
             }
         }
-        if (before.locationRemindersEnabled != after.locationRemindersEnabled) {
-            viewModelScope.launch { runCatching { app.locationReminderScheduler.syncAll() } }
-        }
     }
 
     fun markNotificationPermissionRequested() = update {
@@ -275,9 +272,16 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             repository.update { it.copy(activeAreaScope = AreaScope.One(targetId).storageKey) }
         }
     }
-    fun deleteAreaAndKeepItems(id: String) = runIo("Area deleted; assigned items moved to No area") {
+    fun moveAllAreaItems(sourceId: String, targetId: String) = runIo("Area items moved") {
+        app.areaRepository.moveAssignments(sourceId, targetId)
+        val currentSourceScope = AreaScope.One(sourceId)
+        if (repository.current().activeAreaScope == currentSourceScope.storageKey) {
+            repository.update { it.copy(activeAreaScope = AreaScope.One(targetId).storageKey) }
+        }
+    }
+    fun deleteAreaAndKeepItems(id: String, replacementAreaId: String) = runIo("Area deleted; assigned items moved") {
         val area = requireNotNull(uiState.value.areas.firstOrNull { it.id == id }) { "Area no longer exists" }
-        app.areaRepository.deletePermanently(id)
+        app.areaRepository.deletePermanently(id, replacementAreaId)
         clearAreaReferences(id, area.name)
     }
     fun deleteAreaAndItems(id: String) = runIo("Area and assigned items permanently deleted") {
@@ -285,7 +289,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         val summary = app.areaDeletionCoordinator.deleteAreaAndItems(id)
         summary.taskIds.forEach { taskId ->
             app.reminderScheduler.syncTask(taskId)
-            app.locationReminderScheduler.syncTask(taskId)
         }
         summary.habitIds.forEach { app.habitReminderScheduler.syncHabit(it) }
         summary.goalIds.forEach { app.goalReminderScheduler.syncGoal(it) }
@@ -306,7 +309,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private fun clearAreaReferences(id: String, name: String, deletedTaskIds: Set<Long> = emptySet()) {
         repository.update { settings ->
-            settings.withoutAreaReferences(id, name).let { cleaned ->
+            settings.withoutAreaReferences(id).let { cleaned ->
                 if (cleaned.focusTimerTaskId in deletedTaskIds) {
                     cleaned.copy(focusTimerDeadlineMillis = null, focusTimerTaskId = null)
                 } else {
@@ -473,14 +476,31 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun deleteAllData() = runIo("All Whip data deleted") {
-        app.locationReminderScheduler.clearAll()
         backups.deleteAllData()
         WorkManager.getInstance(app).cancelAllWorkByTag(ALL_WHIP_WORK_TAG).result.get()
     }
-    fun createCustomUnit(name: String, symbol: String, dimension: UnitDimension, factor: Double) =
-        runIo("Custom unit created") {
-            app.measurementRepository.createCustomUnit(name, symbol, dimension, factor)
+    fun createCustomUnit(
+        name: String,
+        symbol: String,
+        dimension: UnitDimension,
+        factor: Double,
+        onResult: (Result<String>) -> Unit = {},
+    ) {
+        viewModelScope.launch {
+            runtime.value = runtime.value.copy(busy = true, message = null)
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    app.measurementRepository.createCustomUnit(name, symbol, dimension, factor)
+                }
+            }.onSuccess { id ->
+                runtime.value = runtime.value.copy(busy = false, message = "Custom unit created")
+                onResult(Result.success(id))
+            }.onFailure { error ->
+                runtime.value = runtime.value.copy(busy = false, message = error.message ?: "Could not create custom unit")
+                onResult(Result.failure(error))
+            }
         }
+    }
     fun renameCustomUnit(id: String, name: String, symbol: String) = runIo("Custom unit renamed") {
         app.measurementRepository.renameCustomUnit(id, name, symbol)
     }

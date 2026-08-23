@@ -12,14 +12,16 @@ import kotlinx.coroutines.flow.map
 interface AreaRepository {
     val areas: Flow<List<Area>>
 
+    suspend fun ensureDefaultArea(): String
     suspend fun create(name: String, colorArgb: Long? = null): String
     suspend fun rename(id: String, name: String)
     suspend fun merge(sourceId: String, targetId: String)
-    suspend fun deletePermanently(id: String)
+    suspend fun moveAssignments(sourceId: String?, targetId: String)
+    suspend fun deletePermanently(id: String, replacementAreaId: String? = null)
     suspend fun setColor(id: String, colorArgb: Long?)
     suspend fun setArchived(id: String, archived: Boolean)
     suspend fun move(id: String, direction: Int)
-    suspend fun resolve(areaId: String?, legacyName: String = ""): AreaSelection
+    suspend fun resolve(areaId: String?, requestedName: String = ""): AreaSelection
 }
 
 data class AreaSelection(val id: String?, val name: String)
@@ -32,6 +34,14 @@ class RoomAreaRepository(
     private val dao = database.measurementDao()
 
     override val areas: Flow<List<Area>> = dao.observeAreas().map { rows -> rows.map(AreaEntity::toArea) }
+
+    override suspend fun ensureDefaultArea(): String = database.withTransaction {
+        val area = ensureActiveArea()
+        dao.reassignAllTaskAreas(null, area.id, area.name)
+        dao.reassignAllHabitAreas(null, area.id, area.name)
+        dao.reassignAllGoalAreas(null, area.id, area.name)
+        area.id
+    }
 
     override suspend fun create(name: String, colorArgb: Long?): String = database.withTransaction {
         val displayName = normalizeAreaName(name)
@@ -77,14 +87,42 @@ class RoomAreaRepository(
         require(sourceId != targetId) { "Choose two different Areas" }
         val source = requireNotNull(dao.getArea(sourceId)) { "Source Area no longer exists" }
         val target = requireNotNull(dao.getArea(targetId)) { "Destination Area no longer exists" }
+        require(!target.archived) { "Choose an active destination Area" }
         mergeRows(source, target)
     }
 
-    override suspend fun deletePermanently(id: String) = database.withTransaction {
-        requireNotNull(dao.getArea(id)) { "Area no longer exists" }
-        dao.clearTaskAreaReferences(id)
-        dao.clearHabitAreaReferences(id)
-        dao.clearGoalAreaReferences(id)
+    override suspend fun moveAssignments(sourceId: String?, targetId: String) = database.withTransaction {
+        require(sourceId != targetId) { "Choose a different destination" }
+        sourceId?.let { requireNotNull(dao.getArea(it)) { "Source Area no longer exists" } }
+        val target = requireNotNull(dao.getArea(targetId)) { "Destination Area no longer exists" }
+        require(!target.archived) { "Choose an active destination Area" }
+        val targetName = target.name
+        dao.reassignAllTaskAreas(sourceId, targetId, targetName)
+        dao.reassignAllHabitAreas(sourceId, targetId, targetName)
+        dao.reassignAllGoalAreas(sourceId, targetId, targetName)
+        Unit
+    }
+
+    override suspend fun deletePermanently(id: String, replacementAreaId: String?) = database.withTransaction {
+        val area = requireNotNull(dao.getArea(id)) { "Area no longer exists" }
+        val active = dao.observeAreasSnapshot().filterNot(AreaEntity::archived)
+        if (!area.archived) {
+            require(active.any { it.id != id }) { "Create another Area before deleting ${area.name}." }
+        }
+        val assignmentCount = dao.countAreaAssignments(id)
+        val replacement = replacementAreaId?.let { targetId ->
+            require(targetId != id) { "Choose a different destination" }
+            requireNotNull(dao.getArea(targetId)) { "Destination Area no longer exists" }
+                .also { require(!it.archived) { "Choose an active destination Area" } }
+        }
+        require(assignmentCount == 0 || replacement != null) {
+            "Choose another Area for ${area.name}'s items before deleting it."
+        }
+        replacement?.let { target ->
+            dao.reassignAllTaskAreas(id, target.id, target.name)
+            dao.reassignAllHabitAreas(id, target.id, target.name)
+            dao.reassignAllGoalAreas(id, target.id, target.name)
+        }
         check(dao.deleteArea(id) == 1) { "Area could not be deleted" }
     }
 
@@ -93,8 +131,12 @@ class RoomAreaRepository(
         dao.updateArea(current.copy(colorArgb = colorArgb, updatedAtMillis = clock.now().toEpochMilli()))
     }
 
-    override suspend fun setArchived(id: String, archived: Boolean) {
+    override suspend fun setArchived(id: String, archived: Boolean) = database.withTransaction {
         val current = requireNotNull(dao.getArea(id)) { "Area no longer exists" }
+        if (archived && !current.archived) {
+            val active = dao.observeAreasSnapshot().count { !it.archived }
+            require(active > 1) { "Create another Area before archiving ${current.name}." }
+        }
         dao.updateArea(current.copy(archived = archived, updatedAtMillis = clock.now().toEpochMilli()))
     }
 
@@ -110,13 +152,16 @@ class RoomAreaRepository(
         }
     }
 
-    override suspend fun resolve(areaId: String?, legacyName: String): AreaSelection = database.withTransaction {
+    override suspend fun resolve(areaId: String?, requestedName: String): AreaSelection = database.withTransaction {
         if (!areaId.isNullOrBlank()) {
             val area = requireNotNull(dao.getArea(areaId)) { "Selected Area no longer exists" }
             return@withTransaction AreaSelection(area.id, area.name)
         }
-        if (legacyName.isBlank()) return@withTransaction AreaSelection(null, "")
-        val id = create(legacyName)
+        if (requestedName.isBlank()) {
+            val area = ensureActiveArea()
+            return@withTransaction AreaSelection(area.id, area.name)
+        }
+        val id = create(requestedName)
         val area = requireNotNull(dao.getArea(id))
         AreaSelection(area.id, area.name)
     }
@@ -133,7 +178,33 @@ class RoomAreaRepository(
         dao.updateHabitAreaNames(id, name)
         dao.updateGoalAreaNames(id, name)
     }
+
+    private suspend fun ensureActiveArea(): AreaEntity {
+        dao.observeAreasSnapshot().firstOrNull { !it.archived }?.let { return it }
+        val now = clock.now().toEpochMilli()
+        dao.getAreaByNameKey(areaNameKey(DEFAULT_AREA_NAME))?.let { existing ->
+            val restored = existing.copy(archived = false, updatedAtMillis = now)
+            dao.updateArea(restored)
+            return restored
+        }
+        val id = DEFAULT_AREA_ID.takeIf { dao.getArea(it) == null } ?: ids.nextId()
+        val area = AreaEntity(
+            id = id,
+            name = DEFAULT_AREA_NAME,
+            nameKey = areaNameKey(DEFAULT_AREA_NAME),
+            colorArgb = null,
+            position = dao.nextAreaPosition(),
+            archived = false,
+            createdAtMillis = now,
+            updatedAtMillis = now,
+        )
+        dao.upsertArea(area)
+        return area
+    }
 }
+
+internal const val DEFAULT_AREA_NAME = "Main"
+internal const val DEFAULT_AREA_ID = "whip-default-main"
 
 internal fun normalizeAreaName(value: String): String = value.trim().replace(Regex("\\s+"), " ")
     .also {

@@ -396,7 +396,6 @@ class RoomTaskRepository(
             recurrence = null,
             reminderEnabled = false,
             reminderOffsetsMinutes = emptyList(),
-            locationReminder = null,
         )
         val newId = dao.insertTask(duplicateDraft.toEntity(createdAtMillis = now, manualPosition = dao.nextManualPosition()))
         syncSteps(newId, duplicateDraft, now)
@@ -560,7 +559,6 @@ class RoomTaskRepository(
                             title = step.title.trim(),
                             position = index,
                             notes = step.notes.trim(),
-                            weight = 1.0,
                             archived = false,
                             createdAtMillis = now,
                             updatedAtMillis = now,
@@ -573,7 +571,6 @@ class RoomTaskRepository(
                             title = step.title.trim(),
                             position = index,
                             notes = step.notes.trim(),
-                            weight = 1.0,
                             archived = false,
                             updatedAtMillis = now,
                         ),
@@ -673,7 +670,6 @@ class RoomTaskRepository(
                     title = state?.titleSnapshot ?: step.title,
                     position = step.position,
                     notes = step.notes,
-                    weight = 1.0,
                     completed = state?.completed == true,
                     completedAtMillis = state?.completedAtMillis,
                 ),

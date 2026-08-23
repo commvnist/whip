@@ -3,7 +3,6 @@ package com.whip.app
 import android.app.Activity
 import android.os.Bundle
 import android.widget.TextView
-import com.whip.app.domain.LocationTrigger
 import com.whip.app.domain.MissedOccurrencePolicy
 import com.whip.app.domain.RecurrenceAnchor
 import com.whip.app.domain.RepeatStepPolicy
@@ -62,12 +61,12 @@ class BenchmarkDataActivity : Activity() {
 
     private fun seedDenseHome(db: androidx.sqlite.db.SupportSQLiteDatabase, now: Long, today: Long) {
         db.execSQL(
-            "$FIVE_DIGIT_SEQUENCE INSERT INTO tasks (uuid,title,notes,scheduleKind,dateEpochDay,recurrenceUnit,recurrenceInterval,weekdaysMask,recurrenceEnd,recurrenceEndEpochDay,recurrenceCount,timeMinutes,reminderEnabled,archived,completedAtMillis,createdAtMillis,updatedAtMillis,showSubtaskProgress,progressDisplay,autoCompleteFromSteps,repeatStepPolicy,pinned,priority,area,tagsCsv,deadlineEpochDay,recurrenceAnchor,reminderOffsetsMinutesCsv,locationReminderEnabled,locationName,locationLatitude,locationLongitude,locationRadiusMeters,locationTrigger,missedOccurrencePolicy,inbox,durationMinutes,effort,manualPosition) " +
-                "SELECT 'benchmark-task-'||x,'Benchmark task '||x,'','${ScheduleKind.Once.name}',$today,NULL,1,0,NULL,NULL,NULL,NULL,0,0,NULL,$now,$now,0,'${TaskProgressDisplay.Percent.name}',0,'${RepeatStepPolicy.Reset.name}',0,'${TaskPriority.Medium.name}','Benchmark','dense',NULL,'${RecurrenceAnchor.Schedule.name}','',0,'',NULL,NULL,100,'${LocationTrigger.Arrive.name}','${MissedOccurrencePolicy.KeepLatest.name}',0,30,'${TaskEffort.Moderate.name}',x FROM seq WHERE x < 10000",
+            "$FIVE_DIGIT_SEQUENCE INSERT INTO tasks (uuid,title,notes,scheduleKind,dateEpochDay,recurrenceUnit,recurrenceInterval,weekdaysMask,recurrenceEnd,recurrenceEndEpochDay,recurrenceCount,timeMinutes,reminderEnabled,archived,completedAtMillis,createdAtMillis,updatedAtMillis,showSubtaskProgress,progressDisplay,autoCompleteFromSteps,repeatStepPolicy,pinned,priority,area,tagsCsv,deadlineEpochDay,recurrenceAnchor,reminderOffsetsMinutesCsv,missedOccurrencePolicy,inbox,durationMinutes,effort,manualPosition) " +
+                "SELECT 'benchmark-task-'||x,'Benchmark task '||x,'','${ScheduleKind.Once.name}',$today,NULL,1,0,NULL,NULL,NULL,NULL,0,0,NULL,$now,$now,0,'${TaskProgressDisplay.Percent.name}',0,'${RepeatStepPolicy.Reset.name}',0,'${TaskPriority.Medium.name}','Benchmark','dense',NULL,'${RecurrenceAnchor.Schedule.name}','','${MissedOccurrencePolicy.KeepLatest.name}',0,30,'${TaskEffort.Moderate.name}',x FROM seq WHERE x < 10000",
         )
         db.execSQL("INSERT INTO metric_definitions VALUES ('benchmark-habit-metric','Benchmark check-ins','Integer','Count','count',0,1,0,$now,$now)")
         db.execSQL(
-            "INSERT INTO habits (id,uuid,metricId,name,notes,area,tagsCsv,icon,colorArgb,intent,trackingMode,dimension,unitId,precision,comparison,targetMin,targetMax,targetPeriod,rollingDays,scheduleType,scheduleInterval,weekdaysMask,flexibleTimesPerWeek,startEpochDay,endType,endEpochDay,endValue,timeWindowStartMinutes,timeWindowEndMinutes,quickIncrement,quickActionsCsv,reminderMinutesCsv,weekdayReminderMinutesCsv,weekStart,avoidMissingPolicy,timerStartedAtMillis,pinned,position,archived,paused,createdAtMillis,updatedAtMillis,sourceMetricId) VALUES (1,'benchmark-habit','benchmark-habit-metric','Benchmark habit','','Benchmark','dense','✓',NULL,'Build','Count','Count','count',0,'AtLeast',10000,NULL,'Day',NULL,'Daily',1,0,NULL,$today,'Never',NULL,NULL,NULL,NULL,1,'','','','MONDAY','Unknown',NULL,0,0,0,0,$now,$now,NULL)",
+            "INSERT INTO habits (id,uuid,metricId,name,notes,area,tagsCsv,icon,trackingMode,dimension,unitId,precision,comparison,targetMin,targetMax,targetPeriod,rollingDays,scheduleType,scheduleInterval,weekdaysMask,flexibleTimesPerWeek,startEpochDay,endType,endEpochDay,endValue,quickIncrement,quickActionsCsv,reminderMinutesCsv,weekdayReminderMinutesCsv,weekStart,timerStartedAtMillis,pinned,position,archived,paused,createdAtMillis,updatedAtMillis,sourceMetricId) VALUES (1,'benchmark-habit','benchmark-habit-metric','Benchmark habit','','Benchmark','dense','✓','Count','Count','count',0,'AtLeast',10000,NULL,'Day',NULL,'Daily',1,0,NULL,$today,'Never',NULL,NULL,1,'','','','MONDAY',NULL,0,0,0,0,$now,$now,NULL)",
         )
         db.execSQL(
             "$FIVE_DIGIT_SEQUENCE INSERT INTO metric_entries (id,metricId,canonicalValue,enteredValue,enteredUnitId,status,timestampMillis,localEpochDay,zoneId,offsetSeconds,sourceType,sourceId,note,createdAtMillis,updatedAtMillis) " +
@@ -81,7 +80,7 @@ class BenchmarkDataActivity : Activity() {
 
     private fun seedLargeGraphs(db: androidx.sqlite.db.SupportSQLiteDatabase, now: Long, today: Long) {
         db.execSQL("INSERT INTO metric_definitions VALUES ('benchmark-goal-metric','Benchmark trend','Decimal','Unitless','unitless',1,1,0,$now,$now)")
-        db.execSQL("INSERT INTO goals (id,uuid,metricId,name,description,area,tagsCsv,icon,colorArgb,type,dimension,unitId,precision,baseline,targetMin,targetMax,direction,startEpochDay,deadlineEpochDay,aggregation,aggregationPeriod,rollingDays,entryMode,paceType,consistencyPeriod,consistencyRequiredPeriods,reminderMinutes,status,pinned,position,createdAtMillis,updatedAtMillis) VALUES (1,'benchmark-goal','benchmark-goal-metric','100k point goal','','Benchmark','dense','◎',NULL,'OpenEndedTrend','Unitless','unitless',1,NULL,NULL,NULL,'Neutral',$today,NULL,'Latest','All',NULL,'CurrentTotal','None','Week',NULL,NULL,'Active',0,0,$now,$now)")
+        db.execSQL("INSERT INTO goals (id,uuid,metricId,name,description,area,tagsCsv,icon,type,dimension,unitId,precision,baseline,targetMin,targetMax,direction,startEpochDay,deadlineEpochDay,aggregation,aggregationPeriod,rollingDays,paceType,consistencyPeriod,consistencyRequiredPeriods,reminderMinutes,status,pinned,position,createdAtMillis,updatedAtMillis) VALUES (1,'benchmark-goal','benchmark-goal-metric','100k point goal','','Benchmark','dense','◎','OpenEndedTrend','Unitless','unitless',1,NULL,NULL,NULL,'Neutral',$today,NULL,'Latest','All',NULL,'None','Week',NULL,NULL,'Active',0,0,$now,$now)")
         db.execSQL(
             "$FIVE_DIGIT_SEQUENCE INSERT INTO metric_entries (id,metricId,canonicalValue,enteredValue,enteredUnitId,status,timestampMillis,localEpochDay,zoneId,offsetSeconds,sourceType,sourceId,note,createdAtMillis,updatedAtMillis) " +
                 "SELECT 'benchmark-goal-entry-'||x,'benchmark-goal-metric',x%1000,x%1000,'unitless','Recorded',$now-(x*60000),$today-(x/10),'UTC',0,'Manual',NULL,'',$now,$now FROM seq WHERE x < 100000",

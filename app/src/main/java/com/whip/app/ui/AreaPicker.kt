@@ -1,26 +1,22 @@
 package com.whip.app.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,11 +30,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowDropDown
 import com.whip.app.domain.Area
-
-internal val AreaColorPalette = listOf<Long?>(
-    null, 0xFF6750A4L, 0xFF1565C0L, 0xFF00897BL, 0xFF2E7D32L, 0xFFF57C00L, 0xFFC62828L, 0xFF6D4C41L,
-)
 
 internal data class AreaUiContext(
     val areas: List<Area> = emptyList(),
@@ -56,7 +50,7 @@ internal fun AreaBadge(areaId: String?, areaName: String, modifier: Modifier = M
     val label = areaName + if (archived) " · Archived" else ""
     Surface(
         color = area?.colorArgb?.let { Color(it).copy(alpha = 0.18f) } ?: MaterialTheme.colorScheme.secondaryContainer,
-        shape = CircleShape,
+        shape = MaterialTheme.shapes.small,
         modifier = modifier.semantics {
             contentDescription = if (archived) "Area $areaName, archived" else "Area $areaName. Show only this area."
         },
@@ -121,14 +115,17 @@ internal fun AreaSelectionDropdown(
     onSelect: (String?, String) -> Unit,
     modifier: Modifier = Modifier,
     onCreate: (() -> Unit)? = null,
-    nullLabel: String = "No area",
+    nullLabel: String = "Main",
+    allowNullSelection: Boolean = false,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     val selected = areas.firstOrNull { it.id == selectedAreaId }
+        ?: areas.firstOrNull { !allowNullSelection && !it.archived }
+    val effectiveSelectedAreaId = selected?.id ?: selectedAreaId
     val label = selected?.name ?: selectedAreaName.takeIf(String::isNotBlank) ?: nullLabel
     Box(modifier.fillMaxWidth()) {
-        OutlinedButton(
+        WhipOutlinedButton(
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Area selection: $label" },
         ) {
@@ -139,7 +136,7 @@ internal fun AreaSelectionDropdown(
             ) {
                 selected?.colorArgb?.let { Box(Modifier.size(10.dp).clip(CircleShape).background(Color(it))) }
                 Text(label, modifier = Modifier.weight(1f))
-                Text("▾")
+                Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)
             }
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -152,17 +149,19 @@ internal fun AreaSelectionDropdown(
                     modifier = Modifier.padding(horizontal = 12.dp),
                 )
             }
-            DropdownMenuItem(
-                text = { Text((if (selectedAreaId == null) "✓  " else "") + nullLabel) },
-                onClick = { onSelect(null, ""); expanded = false },
-            )
+            if (allowNullSelection) {
+                DropdownMenuItem(
+                    text = { Text((if (selectedAreaId == null) "✓  " else "") + nullLabel) },
+                    onClick = { onSelect(null, ""); expanded = false },
+                )
+            }
             areas.filter { (!it.archived || it.id == selectedAreaId) && (query.isBlank() || it.name.contains(query, true)) }
                 .forEach { area ->
                     DropdownMenuItem(
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 area.colorArgb?.let { Box(Modifier.size(9.dp).clip(CircleShape).background(Color(it))) }
-                                Text((if (selectedAreaId == area.id) "✓  " else "") + area.name + if (area.archived) " · Archived" else "")
+                                Text((if (effectiveSelectedAreaId == area.id) "✓  " else "") + area.name + if (area.archived) " · Archived" else "")
                             }
                         },
                         onClick = { onSelect(area.id, area.name); expanded = false },
@@ -171,7 +170,7 @@ internal fun AreaSelectionDropdown(
                 }
             onCreate?.let {
                 HorizontalDivider()
-                DropdownMenuItem(text = { Text("Create area…") }, onClick = { expanded = false; it() })
+                DropdownMenuItem(text = { Text("Create Area…") }, onClick = { expanded = false; it() })
             }
         }
     }
@@ -193,7 +192,7 @@ internal fun CreateAreaDialog(
     PaneAwareAlertDialog(
         modifier = modifier,
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("Create area") },
+        title = { Text("Create Area") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
@@ -207,34 +206,22 @@ internal fun CreateAreaDialog(
                     enabled = !saving,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Text("Color", style = MaterialTheme.typography.labelLarge)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AreaColorPalette.forEach { choice ->
-                        Surface(
-                            onClick = { color = choice },
-                            enabled = !saving,
-                            color = choice?.let(::Color) ?: MaterialTheme.colorScheme.surfaceVariant,
-                            border = BorderStroke(if (color == choice) 3.dp else 1.dp, if (color == choice) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline),
-                            shape = CircleShape,
-                            modifier = Modifier.size(48.dp).semantics {
-                                contentDescription = if (choice == null) "No color${if (color == null) ", selected" else ""}" else "Area color${if (color == choice) ", selected" else ""}"
-                            },
-                        ) {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                if (choice == null) Text("—")
-                            }
-                        }
-                    }
-                }
+                WhipColorField(
+                    value = color,
+                    onValueChange = { color = it },
+                    enabled = !saving,
+                    dialogModifier = modifier,
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 duplicate?.let { Text("${it.name} already exists. Select it instead.", color = MaterialTheme.colorScheme.primary) }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         },
         confirmButton = {
             if (duplicate != null) {
-                TextButton(onClick = { onSelected(duplicate.id, duplicate.name) }) { Text("Select existing") }
+                WhipTextButton(onClick = { onSelected(duplicate.id, duplicate.name) }) { Text("Select Existing") }
             } else {
-                TextButton(
+                WhipTextButton(
                     enabled = name.isNotBlank() && !saving,
                     onClick = {
                         saving = true
@@ -248,6 +235,6 @@ internal fun CreateAreaDialog(
                 ) { Text(if (saving) "Saving…" else "Create") }
             }
         },
-        dismissButton = { TextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )
 }

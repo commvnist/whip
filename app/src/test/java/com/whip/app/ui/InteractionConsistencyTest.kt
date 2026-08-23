@@ -1,5 +1,12 @@
 package com.whip.app.ui
 
+import com.whip.app.domain.TaskEffort
+import com.whip.app.domain.GymGraphRange
+import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.LinkSourceMetric
+import com.whip.app.domain.RepeatStepPolicy
+import com.whip.app.domain.UnitDimension
+import com.whip.app.domain.WorkoutSetClassification
 import java.time.DayOfWeek
 import java.util.Locale
 import org.junit.Assert.assertEquals
@@ -8,6 +15,43 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class InteractionConsistencyTest {
+    @Test
+    fun interfaceChromeUsesTitleCaseWithoutDamagingAcronymsOrApostrophes() {
+        assertEquals("Review & Trends", "review & trends".uiTitleCase())
+        assertEquals("Search Goals", "search goals".uiTitleCase())
+        assertEquals("Start from a Goal Template", "start from a goal template".uiTitleCase())
+        assertEquals("Preview and Restore Backup", "preview and restore backup".uiTitleCase())
+        assertEquals("Today's Habits", "today's habits".uiTitleCase())
+        assertEquals("Estimated 1RM", "estimated 1RM".uiTitleCase())
+    }
+
+    @Test
+    fun taskEffortChoicesUseParallelPlainLanguageLabels() {
+        assertEquals(listOf("Light", "Medium", "High"), TaskEffort.entries.map(TaskEffort::label))
+    }
+
+    @Test
+    fun storedIdentifiersHaveCanonicalUserFacingNames() {
+        assertEquals(
+            listOf("Check Off", "Count", "Measurement", "Timer", "Checklist", "Rating", "Log Only"),
+            HabitTrackingMode.entries.map(HabitTrackingMode::uiLabel),
+        )
+        assertEquals(
+            listOf("Reset Subtasks", "Carry Unfinished Subtasks"),
+            RepeatStepPolicy.entries.map(RepeatStepPolicy::uiLabel),
+        )
+        assertEquals(
+            listOf("Warm-up", "Working", "Back-off", "Drop", "AMRAP", "Failure"),
+            WorkoutSetClassification.entries.map(WorkoutSetClassification::uiLabel),
+        )
+        assertEquals(
+            listOf("1 Month", "3 Months", "6 Months", "1 Year", "All Time", "Custom"),
+            GymGraphRange.entries.map(GymGraphRange::uiLabel),
+        )
+        assertEquals("Estimated 1RM", LinkSourceMetric.EstimatedOneRepMax.uiLabel())
+        assertEquals("No Unit", UnitDimension.Unitless.uiLabel())
+    }
+
     @Test
     fun emptyOrMalformedWeekdayRemindersNeverBecomePhantomDays() {
         assertEquals(emptyMap<DayOfWeek, List<Int>>(), parseWeekdayReminderMap(""))
@@ -41,9 +85,9 @@ class InteractionConsistencyTest {
     }
 
     @Test
-    fun gymNavigationHasThreePrimaryDestinationsAndAnExhaustiveLibrary() {
+    fun gymNavigationHasFourPrimaryDestinationsAndAnExhaustiveLibrary() {
         assertEquals(
-            listOf(GymDestination.Workout, GymDestination.History, GymDestination.Progress),
+            listOf(GymDestination.Workout, GymDestination.History, GymDestination.Progress, GymDestination.Library),
             primaryGymDestinations,
         )
         assertEquals(

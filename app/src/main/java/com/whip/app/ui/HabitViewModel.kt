@@ -7,7 +7,6 @@ import com.whip.app.WhipApplication
 import com.whip.app.core.OperationStatus
 import com.whip.app.core.WhipClock
 import com.whip.app.data.HabitRepository
-import com.whip.app.domain.AvoidMissingPolicy
 import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitChecklistItem
 import com.whip.app.domain.HabitChecklistState
@@ -168,8 +167,7 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
     fun setPeriodValue(item: HabitDayProgress, value: Double, note: String = "") {
         if (!value.isFinite()) return
         val loggedValue = when (item.habit.trackingMode) {
-            HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.LimitAvoid,
-            HabitTrackingMode.Duration -> value - item.value
+            HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.Duration -> value - item.value
             else -> value
         }
         if (loggedValue != 0.0 || note.isNotBlank()) log(item.habit.id, loggedValue, date = item.date, note = note)

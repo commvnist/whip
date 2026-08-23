@@ -14,9 +14,6 @@ interface GoalDao {
     @Query("SELECT * FROM goal_milestones ORDER BY goalId, position, id")
     fun observeMilestones(): Flow<List<GoalMilestoneEntity>>
 
-    @Query("SELECT * FROM goal_completion_snapshots ORDER BY completedAtMillis DESC")
-    fun observeSnapshots(): Flow<List<GoalCompletionSnapshotEntity>>
-
     @Query("SELECT * FROM goals WHERE id = :id")
     suspend fun getGoal(id: Long): GoalEntity?
 
@@ -37,7 +34,6 @@ interface GoalDao {
 
     @Insert suspend fun insertGoal(entity: GoalEntity): Long
     @Insert suspend fun insertMilestone(entity: GoalMilestoneEntity): Long
-    @Insert suspend fun insertSnapshot(entity: GoalCompletionSnapshotEntity): Long
     @Update suspend fun updateGoal(entity: GoalEntity)
     @Update suspend fun updateMilestone(entity: GoalMilestoneEntity)
 

@@ -11,10 +11,35 @@ enum class GoalType { ReachValue, ReduceValue, AccumulateTotal, MaintainRange, M
 enum class GoalAggregation { Latest, Sum, Average, Minimum, Maximum, CompletionCount, TimeInRange }
 enum class GoalAggregationPeriod { All, Day, Week, Month, RollingDays }
 enum class GoalConsistencyPeriod { Day, Week, Month }
-enum class GoalEntryMode { CurrentTotal, AmountToAdd }
-enum class GoalPaceType { Linear, Milestone, None }
+enum class GoalPaceType { Linear, None }
 enum class GoalDirection { Increase, Decrease, Neutral }
 enum class GoalStatus { Active, Paused, Completed, Abandoned, Archived }
+
+/** The goal type is the user-facing promise; storage and calculation choices
+ * must not be allowed to contradict it. */
+fun GoalType.defaultAggregation(): GoalAggregation = when (this) {
+    GoalType.ReachValue, GoalType.ReduceValue, GoalType.MaintainRange, GoalType.OpenEndedTrend -> GoalAggregation.Latest
+    GoalType.AccumulateTotal -> GoalAggregation.Sum
+    GoalType.MeetAverage -> GoalAggregation.Average
+    GoalType.Consistency, GoalType.WeightedMilestones -> GoalAggregation.CompletionCount
+}
+
+fun GoalType.compatibleAggregations(): List<GoalAggregation> = when (this) {
+    GoalType.MaintainRange -> listOf(GoalAggregation.Latest, GoalAggregation.TimeInRange)
+    GoalType.OpenEndedTrend -> listOf(
+        GoalAggregation.Latest,
+        GoalAggregation.Average,
+        GoalAggregation.Minimum,
+        GoalAggregation.Maximum,
+    )
+    else -> listOf(defaultAggregation())
+}
+
+fun GoalType.defaultDirection(): GoalDirection = when (this) {
+    GoalType.ReduceValue -> GoalDirection.Decrease
+    GoalType.MaintainRange, GoalType.OpenEndedTrend -> GoalDirection.Neutral
+    else -> GoalDirection.Increase
+}
 
 data class GoalDraft(
     val name: String,
@@ -23,7 +48,6 @@ data class GoalDraft(
     val area: String = "",
     val tags: List<String> = emptyList(),
     val icon: String = "◎",
-    val colorArgb: Long? = null,
     val type: GoalType,
     val dimension: UnitDimension = UnitDimension.Unitless,
     val unitId: String = "unitless",
@@ -35,7 +59,6 @@ data class GoalDraft(
     val startDate: LocalDate,
     val deadline: LocalDate? = null,
     val aggregation: GoalAggregation = GoalAggregation.Latest,
-    val entryMode: GoalEntryMode = GoalEntryMode.CurrentTotal,
     val paceType: GoalPaceType = GoalPaceType.Linear,
     val reminderMinutes: Int? = null,
     val milestones: List<GoalMilestoneDraft> = emptyList(),
@@ -44,6 +67,12 @@ data class GoalDraft(
     val consistencyPeriod: GoalConsistencyPeriod = GoalConsistencyPeriod.Week,
     val consistencyRequiredPeriods: Int? = null,
 ) : Serializable
+
+fun GoalDraft.withTypeSemantics(): GoalDraft = copy(
+    aggregation = aggregation.takeIf { it in type.compatibleAggregations() } ?: type.defaultAggregation(),
+    direction = type.defaultDirection(),
+    paceType = paceType.takeIf { deadline != null && type != GoalType.OpenEndedTrend } ?: GoalPaceType.None,
+)
 
 data class Goal(
     val id: Long,
@@ -55,7 +84,6 @@ data class Goal(
     val area: String,
     val tags: List<String>,
     val icon: String,
-    val colorArgb: Long?,
     val type: GoalType,
     val dimension: UnitDimension,
     val unitId: String,
@@ -67,7 +95,6 @@ data class Goal(
     val startDate: LocalDate,
     val deadline: LocalDate?,
     val aggregation: GoalAggregation,
-    val entryMode: GoalEntryMode,
     val paceType: GoalPaceType,
     val reminderMinutes: Int?,
     val status: GoalStatus,
@@ -84,10 +111,9 @@ data class Goal(
 data class GoalMilestoneDraft(
     val name: String,
     val weight: Double = 1.0,
-    val targetValue: Double? = null,
     val reward: String = "",
     /** Existing identity is carried through editors so reorder/insert never
-     * reassigns completion or linked-task state by list position. */
+     * reassigns completion state by list position. */
     val id: Long? = null,
     val uuid: String? = null,
 ) : Serializable
@@ -99,22 +125,11 @@ data class GoalMilestone(
     val name: String,
     val position: Int,
     val weight: Double,
-    val targetValue: Double?,
     val completed: Boolean,
     val completedAtMillis: Long?,
-    val linkedTaskId: Long?,
     val reward: String,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
-)
-
-data class GoalCompletionSnapshot(
-    val id: Long,
-    val goalId: Long,
-    val completedAtMillis: Long,
-    val value: Double?,
-    val progress: Double?,
-    val status: GoalStatus,
 )
 
 data class GoalProjection(

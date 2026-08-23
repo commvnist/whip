@@ -83,6 +83,51 @@ class TaskDeletionUiTest {
     }
 
     @Test
+    fun anytimeTaskScheduleSectionCanAssignItsFirstDateWithoutCrashing() {
+        val reschedules = AtomicInteger()
+        val item = ScheduledTask(
+            task = WhipTask(
+                id = 2,
+                title = "Unscheduled errand",
+                notes = "",
+                scheduleKind = ScheduleKind.Anytime,
+                date = null,
+                recurrence = null,
+                timeMinutes = null,
+                reminderEnabled = false,
+                archived = false,
+                completedAtMillis = null,
+                createdAtMillis = 1,
+                updatedAtMillis = 1,
+            ),
+            originalDate = null,
+            scheduledDate = null,
+        )
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                TaskActionsDialog(
+                    item = item,
+                    onDismiss = {},
+                    onComplete = {},
+                    onEdit = {},
+                    onReschedule = { reschedules.incrementAndGet() },
+                    onSkip = {},
+                    onArchive = {},
+                    onDeletePermanently = {},
+                    onPin = {},
+                    onToggleSubtask = { _, _ -> },
+                    onPromoteSubtask = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Schedule").performClick()
+        compose.onNodeWithText("This task has no date.", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Choose a Date").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(1, reschedules.get()) }
+    }
+
+    @Test
     fun permanentDeleteRequiresExplicitSecondConfirmation() {
         val confirmations = AtomicInteger()
         val item = ScheduledTask(
@@ -139,9 +184,9 @@ class TaskDeletionUiTest {
             }
         }
 
-        compose.onNodeWithText("More").performClick()
-        compose.onNodeWithText("Delete permanently").assertIsDisplayed().performClick()
-        compose.onNodeWithText("Delete “Private task” permanently?").assertIsDisplayed()
+        compose.onNodeWithText("Options").performClick()
+        compose.onNodeWithText("Delete Permanently").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Delete “Private task” Permanently?").assertIsDisplayed()
         compose.onNodeWithText("0 recorded occurrences", substring = true).assertIsDisplayed()
         compose.onNodeWithText("0 steps").assertIsDisplayed()
         compose.onNodeWithText("0 goal links").assertIsDisplayed()
@@ -150,9 +195,9 @@ class TaskDeletionUiTest {
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithText("Private task").assertIsDisplayed()
 
-        compose.onNodeWithText("More").performClick()
-        compose.onNodeWithText("Delete permanently").performClick()
-        compose.onNodeWithText("Delete permanently").performClick()
+        compose.onNodeWithText("Options").performClick()
+        compose.onNodeWithText("Delete Permanently").performClick()
+        compose.onNodeWithText("Delete Permanently").performClick()
         compose.runOnIdle { assertEquals(1, confirmations.get()) }
     }
 
@@ -195,9 +240,9 @@ class TaskDeletionUiTest {
             }
         }
 
-        compose.onNodeWithText("Edit this and future").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Edit This and Future").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, edits.get()) }
-        compose.onNodeWithText("Reopen occurrence").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Reopen Occurrence").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, reopens.get()) }
     }
 
@@ -241,11 +286,11 @@ class TaskDeletionUiTest {
             }
         }
 
-        compose.onNodeWithText("Edit this and future").assertIsDisplayed()
+        compose.onNodeWithText("Edit This and Future").assertIsDisplayed()
         compose.onNodeWithText("Schedule").performClick()
-        compose.onNodeWithText("Edit this and future").assertIsDisplayed()
-        compose.onNodeWithText("More").performClick()
-        compose.onNodeWithText("Edit this and future").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Edit This and Future").assertIsDisplayed()
+        compose.onNodeWithText("Options").performClick()
+        compose.onNodeWithText("Edit This and Future").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, edits.get()) }
     }
 
@@ -278,11 +323,11 @@ class TaskDeletionUiTest {
         }
 
         compose.onNodeWithText("Schedule").performClick()
-        compose.onNodeWithText("Series history").assertIsDisplayed()
+        compose.onNodeWithText("Series History").assertIsDisplayed()
         compose.onNodeWithText("Moved to", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Skipped", substring = true).assertIsDisplayed()
         compose.onNodeWithText("The next date is", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("Undo skip").performClick()
+        compose.onNodeWithText("Undo Skip").performClick()
         compose.runOnIdle { assertEquals(1, resets.get()) }
     }
 

@@ -70,13 +70,14 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as WhipApplication
     private val repository: TaskRepository = app.taskRepository
     private val reminders = app.reminderScheduler
-    private val locationReminders = app.locationReminderScheduler
     private val clock = app.clock
 
     private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
     val operationStatus: StateFlow<OperationStatus> = _operationStatus.asStateFlow()
     private val _pendingUndoMessage = MutableStateFlow<String?>(null)
     val pendingUndoMessage: StateFlow<String?> = _pendingUndoMessage.asStateFlow()
+    private val _pendingQuickAddTaskId = MutableStateFlow<Long?>(null)
+    val pendingQuickAddTaskId: StateFlow<Long?> = _pendingQuickAddTaskId.asStateFlow()
     private var pendingUndoAction: TaskUndoAction? = null
     private val _taskDeletionImpact = MutableStateFlow<TaskDeletionImpact?>(null)
     val taskDeletionImpact: StateFlow<TaskDeletionImpact?> = _taskDeletionImpact.asStateFlow()
@@ -141,12 +142,24 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                 repository.update(taskId, draft, fromOccurrence)
             }
             reminders.syncTask(savedId)
-            locationReminders.syncTask(savedId)
             if (taskId != null && savedId != taskId) {
                 reminders.syncTask(taskId)
-                locationReminders.syncTask(taskId)
             }
             draft.tags.forEach { app.measurementRepository.ensureTag(it) }
+        }
+    }
+
+    fun quickAddTask(
+        capture: String,
+        defaultDate: LocalDate?,
+        inbox: Boolean,
+        areaId: String?,
+    ) {
+        val draft = buildQuickAddTaskDraft(capture, clock.today(), defaultDate, inbox, areaId) ?: return
+        runOperation("Adding task…", "Task added") {
+            val taskId = repository.create(draft)
+            reminders.syncTask(taskId)
+            offerUndo("Quick Add can be undone", TaskUndoAction.DeleteCreated(taskId))
         }
     }
 
@@ -154,7 +167,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         runOperation("Completing task…", "Task completed") {
             repository.complete(item)
             reminders.syncTask(item.task.id)
-            locationReminders.syncTask(item.task.id)
             offerUndo("Completion can be undone", TaskUndoAction.Complete(listOf(item)))
         }
     }
@@ -195,7 +207,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         runOperation("Archiving task…", "Task archived") {
             repository.archive(taskId)
             reminders.syncTask(taskId)
-            locationReminders.syncTask(taskId)
             offerUndo("Archive can be undone", TaskUndoAction.Restore(listOf(taskId)))
         }
     }
@@ -204,7 +215,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         runOperation("Restoring task…", "Task restored") {
             repository.restore(taskId)
             reminders.syncTask(taskId)
-            locationReminders.syncTask(taskId)
         }
     }
 
@@ -216,7 +226,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             // syncTask cancels every scheduled reminder carrying this task's tag before it
             // observes that the task no longer exists.
             reminders.syncTask(taskId)
-            locationReminders.syncTask(taskId)
         }
     }
 
@@ -242,7 +251,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         runOperation("Reopening task…", "Task reopened") {
             repository.reopen(taskId)
             reminders.syncTask(taskId)
-            locationReminders.syncTask(taskId)
         }
     }
 
@@ -297,7 +305,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             repository.completeAll(items)
             items.map { it.task.id }.distinct().forEach { taskId ->
                 reminders.syncTask(taskId)
-                locationReminders.syncTask(taskId)
             }
             offerUndo("Bulk completion can be undone", TaskUndoAction.Complete(items.distinctBy(ScheduledTask::stableKey)))
         }
@@ -309,7 +316,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             repository.archiveAll(ids)
             ids.forEach { taskId ->
                 reminders.syncTask(taskId)
-                locationReminders.syncTask(taskId)
             }
             offerUndo("Bulk archive can be undone", TaskUndoAction.Restore(items.map { it.task.id }.distinct()))
         }
@@ -321,7 +327,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             repository.restoreAll(ids)
             ids.forEach { taskId ->
                 reminders.syncTask(taskId)
-                locationReminders.syncTask(taskId)
             }
         }
     }
@@ -338,7 +343,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             repository.updateMetadataAll(ids, edit)
             ids.forEach { taskId ->
                 reminders.syncTask(taskId)
-                locationReminders.syncTask(taskId)
             }
         }
     }
@@ -352,6 +356,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     fun clearPendingUndo() {
         pendingUndoAction = null
         _pendingUndoMessage.value = null
+        _pendingQuickAddTaskId.value = null
     }
 
     fun undoLastTaskAction() {
@@ -369,6 +374,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                 is TaskUndoAction.Reschedule -> repository.restoreSchedules(listOf(action.item))
                 is TaskUndoAction.RescheduleMany -> repository.restoreSchedules(action.items)
                 is TaskUndoAction.Restore -> action.taskIds.forEach { repository.restore(it) }
+                is TaskUndoAction.DeleteCreated -> repository.deletePermanently(action.taskId)
             }
             val taskIds = when (action) {
                 is TaskUndoAction.Complete -> action.items.map { it.task.id }
@@ -376,14 +382,16 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                 is TaskUndoAction.Reschedule -> listOf(action.item.task.id)
                 is TaskUndoAction.RescheduleMany -> action.items.map { it.task.id }
                 is TaskUndoAction.Restore -> action.taskIds
+                is TaskUndoAction.DeleteCreated -> listOf(action.taskId)
             }.distinct()
-            taskIds.forEach { id -> reminders.syncTask(id); locationReminders.syncTask(id) }
+            taskIds.forEach { id -> reminders.syncTask(id) }
         }
     }
 
     private fun offerUndo(message: String, action: TaskUndoAction) {
         pendingUndoAction = action
         _pendingUndoMessage.value = message
+        _pendingQuickAddTaskId.value = (action as? TaskUndoAction.DeleteCreated)?.taskId
     }
 
     private fun runOperation(
@@ -414,6 +422,7 @@ private sealed interface TaskUndoAction {
     data class Reschedule(val item: ScheduledTask) : TaskUndoAction
     data class RescheduleMany(val items: List<ScheduledTask>) : TaskUndoAction
     data class Restore(val taskIds: List<Long>) : TaskUndoAction
+    data class DeleteCreated(val taskId: Long) : TaskUndoAction
 }
 
 private data class TaskData(

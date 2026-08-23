@@ -41,8 +41,8 @@ class ProductivityTemplateSafetyTest {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Add task, habit, goal, exercise, workout, or measurement").performClick()
             compose.onNodeWithText("Task").performClick()
-            compose.onNodeWithText("Start from a plain-language recipe").performClick()
-            compose.onNodeWithText("Repeat on chosen weekdays").performClick()
+            compose.onNodeWithText("Start from a Plain-Language Recipe").performClick()
+            compose.onNodeWithText("Repeat on Chosen Weekdays").performClick()
 
             compose.onNodeWithTag("task-editor-title").assertIsDisplayed()
             compose.onNodeWithText("Weekly task").assertIsDisplayed()
@@ -51,7 +51,7 @@ class ProductivityTemplateSafetyTest {
             }
 
             compose.onNodeWithText("Cancel").performClick()
-            compose.onNodeWithText("Discard changes").performClick()
+            compose.onNodeWithText("Discard Changes").performClick()
             check(runBlocking { app.taskRepository.tasks.first().isEmpty() })
         }
     }

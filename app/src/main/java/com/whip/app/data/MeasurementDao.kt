@@ -62,8 +62,6 @@ interface MeasurementDao {
     @Upsert suspend fun upsertArea(entity: AreaEntity)
     @Update suspend fun updateArea(entity: AreaEntity)
     @Upsert suspend fun upsertTag(entity: TagEntity)
-    @Upsert suspend fun upsertTagLink(entity: EntityTagLinkEntity)
-
     @Query("DELETE FROM metric_entries WHERE id = :id")
     suspend fun deleteEntry(id: String)
 
@@ -72,6 +70,13 @@ interface MeasurementDao {
 
     @Query("DELETE FROM areas WHERE id = :id")
     suspend fun deleteArea(id: String): Int
+
+    @Query(
+        "SELECT (SELECT COUNT(*) FROM tasks WHERE areaId = :areaId) + " +
+            "(SELECT COUNT(*) FROM habits WHERE areaId = :areaId) + " +
+            "(SELECT COUNT(*) FROM goals WHERE areaId = :areaId)",
+    )
+    suspend fun countAreaAssignments(areaId: String): Int
 
     @Query("UPDATE tasks SET areaId = NULL, area = '' WHERE areaId = :areaId")
     suspend fun clearTaskAreaReferences(areaId: String): Int
@@ -90,6 +95,15 @@ interface MeasurementDao {
 
     @Query("UPDATE goals SET areaId = :targetId, area = :targetName WHERE areaId = :sourceId")
     suspend fun moveGoalAreaReferences(sourceId: String, targetId: String, targetName: String)
+
+    @Query("UPDATE tasks SET areaId = :targetId, area = :targetName WHERE (:sourceId IS NULL AND areaId IS NULL) OR areaId = :sourceId")
+    suspend fun reassignAllTaskAreas(sourceId: String?, targetId: String?, targetName: String): Int
+
+    @Query("UPDATE habits SET areaId = :targetId, area = :targetName WHERE (:sourceId IS NULL AND areaId IS NULL) OR areaId = :sourceId")
+    suspend fun reassignAllHabitAreas(sourceId: String?, targetId: String?, targetName: String): Int
+
+    @Query("UPDATE goals SET areaId = :targetId, area = :targetName WHERE (:sourceId IS NULL AND areaId IS NULL) OR areaId = :sourceId")
+    suspend fun reassignAllGoalAreas(sourceId: String?, targetId: String?, targetName: String): Int
 
     @Query("UPDATE tasks SET area = :name WHERE areaId = :areaId")
     suspend fun updateTaskAreaNames(areaId: String, name: String)

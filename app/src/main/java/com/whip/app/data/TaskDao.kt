@@ -55,12 +55,6 @@ interface TaskDao {
     )
     suspend fun getReminderTaskIds(): List<Long>
 
-    @Query(
-        "SELECT id FROM tasks " +
-            "WHERE archived = 0 AND completedAtMillis IS NULL AND locationReminderEnabled = 1",
-    )
-    suspend fun getLocationReminderTaskIds(): List<Long>
-
     @Query("SELECT * FROM task_occurrences WHERE taskId = :taskId")
     suspend fun getOccurrences(taskId: Long): List<TaskOccurrenceEntity>
 

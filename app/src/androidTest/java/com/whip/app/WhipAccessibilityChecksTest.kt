@@ -33,7 +33,7 @@ class WhipAccessibilityChecksTest {
             compose.onNodeWithContentDescription(tab).performClick()
             compose.onRoot().tryPerformAccessibilityChecks()
         }
-        compose.onNodeWithContentDescription("Open settings").performClick()
+        compose.onNodeWithContentDescription("Open Settings").performClick()
         compose.onRoot().tryPerformAccessibilityChecks()
         compose.onNodeWithContentDescription("Close settings").performClick()
         compose.onNodeWithContentDescription("Home tab").performClick()

@@ -163,31 +163,5 @@ object ReminderNotifications {
         return true
     }
 
-    fun showLocation(context: Context, task: WhipTask) {
-        if (
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
-        ) return
-        val location = task.locationReminder ?: return
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            (task.id * 17L).hashCode(),
-            Intent(context, MainActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        val verb = if (location.trigger == com.whip.app.domain.LocationTrigger.Arrive) "arrived at" else "left"
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(task.title)
-            .setContentText("You $verb ${location.name}")
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-            .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .build()
-        NotificationManagerCompat.from(context).notify((task.id * 37L + 7L).hashCode(), notification)
-    }
-
     private const val TEST_NOTIFICATION_ID = 0x57484950
 }

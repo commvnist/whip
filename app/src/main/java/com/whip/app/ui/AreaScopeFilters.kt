@@ -11,6 +11,7 @@ internal fun AreaScope.validFor(areas: List<Area>): AreaScope {
     val active = areas.filterNot(Area::archived)
     return when {
         active.isEmpty() -> AreaScope.All
+        this == AreaScope.Unassigned -> AreaScope.One(active.first().id)
         this is AreaScope.One && active.none { it.id == areaId } -> AreaScope.All
         else -> this
     }

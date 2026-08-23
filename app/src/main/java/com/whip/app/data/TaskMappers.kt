@@ -13,9 +13,7 @@ import com.whip.app.domain.TaskStepState
 import com.whip.app.domain.TaskStepSnapshot
 import com.whip.app.domain.WhipTask
 import com.whip.app.domain.RepeatStepPolicy
-import com.whip.app.domain.LocationTrigger
 import com.whip.app.domain.RecurrenceAnchor
-import com.whip.app.domain.TaskLocationReminder
 import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.MissedOccurrencePolicy
 import com.whip.app.domain.TaskEffort
@@ -68,18 +66,6 @@ fun TaskEntity.toDomain(): WhipTask {
         deadline = deadlineEpochDay?.let(LocalDate::ofEpochDay),
         reminderOffsetsMinutes = reminderOffsetsMinutesCsv.split(',')
             .mapNotNull(String::toIntOrNull).distinct().sortedDescending(),
-        locationReminder = if (
-            locationReminderEnabled && locationLatitude != null && locationLongitude != null
-        ) {
-            TaskLocationReminder(
-                name = locationName,
-                latitude = locationLatitude,
-                longitude = locationLongitude,
-                radiusMeters = locationRadiusMeters,
-                trigger = runCatching { LocationTrigger.valueOf(locationTrigger) }
-                    .getOrDefault(LocationTrigger.Arrive),
-            )
-        } else null,
         missedOccurrencePolicy = runCatching { MissedOccurrencePolicy.valueOf(missedOccurrencePolicy) }
             .getOrDefault(MissedOccurrencePolicy.KeepLatest),
         inbox = inbox && kind == ScheduleKind.Anytime,
@@ -137,12 +123,6 @@ fun TaskDraft.toEntity(
         recurrenceAnchor = rule?.anchor?.name ?: RecurrenceAnchor.Schedule.name,
         reminderOffsetsMinutesCsv = reminderOffsetsMinutes.filter { it >= 0 }.distinct()
             .sortedDescending().joinToString(","),
-        locationReminderEnabled = locationReminder != null,
-        locationName = locationReminder?.name?.trim().orEmpty(),
-        locationLatitude = locationReminder?.latitude,
-        locationLongitude = locationReminder?.longitude,
-        locationRadiusMeters = locationReminder?.radiusMeters ?: 150f,
-        locationTrigger = locationReminder?.trigger?.name ?: LocationTrigger.Arrive.name,
         missedOccurrencePolicy = missedOccurrencePolicy.name,
         inbox = inbox && scheduleKind == ScheduleKind.Anytime,
         durationMinutes = durationMinutes?.coerceIn(1, 1_440),

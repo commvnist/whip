@@ -18,7 +18,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.lifecycleScope
 import androidx.window.layout.FoldingFeature
 import androidx.window.layout.WindowInfoTracker
 import androidx.window.layout.WindowLayoutInfo
@@ -30,7 +29,6 @@ import com.whip.app.ui.WhipFoldInfo
 import com.whip.app.ui.WhipFoldOrientation
 import com.whip.app.ui.theme.WhipTheme
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private data class LaunchRequest(
@@ -44,13 +42,6 @@ class MainActivity : ComponentActivity() {
     private var deliveryCounter = 0L
     private val launchRequest = mutableStateOf(LaunchRequest(null, null, null, null, 0L))
 
-    override fun onResume() {
-        super.onResume()
-        lifecycleScope.launch {
-            runCatching { (application as WhipApplication).locationReminderScheduler.syncAll() }
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         applyWidgetAreaScope(intent)
@@ -62,7 +53,7 @@ class MainActivity : ComponentActivity() {
                 setShowWhenLocked(true)
                 setTurnScreenOn(true)
             } else {
-                enableLegacyTestLockScreenFlags()
+                enableApi26TestLockScreenFlags()
             }
         }
         enableEdgeToEdge()
@@ -91,9 +82,6 @@ class MainActivity : ComponentActivity() {
             val notificationPermission = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission(),
             ) { }
-            val locationPermission = rememberLauncherForActivityResult(
-                ActivityResultContracts.RequestMultiplePermissions(),
-            ) { }
             val darkTheme = when (settingsState.settings.themeMode) {
                 AppThemeMode.System -> isSystemInDarkTheme()
                 AppThemeMode.Light -> false
@@ -120,21 +108,6 @@ class MainActivity : ComponentActivity() {
                             settingsViewModel.markNotificationPermissionRequested()
                             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
-                    },
-                    onRequestLocationPermission = {
-                        val permissions = buildList {
-                            if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                                add(Manifest.permission.ACCESS_FINE_LOCATION)
-                                add(Manifest.permission.ACCESS_COARSE_LOCATION)
-                            }
-                            if (
-                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                                ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-                            ) {
-                                add(Manifest.permission.POST_NOTIFICATIONS)
-                            }
-                        }
-                        if (permissions.isNotEmpty()) locationPermission.launch(permissions.toTypedArray())
                     },
                 )
             }
@@ -179,7 +152,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Suppress("DEPRECATION")
-    private fun enableLegacyTestLockScreenFlags() {
+    private fun enableApi26TestLockScreenFlags() {
         window.addFlags(
             WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
                 WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON,

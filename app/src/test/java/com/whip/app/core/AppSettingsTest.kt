@@ -15,6 +15,13 @@ class AppSettingsTest {
         assertEquals(false, AppSettings().showHabitsInTaskPlanning)
         assertEquals(emptyList<RepPrescriptionScheme>(), AppSettings().repPrescriptionSchemes)
         assertEquals(AreaScope.All.storageKey, AppSettings().activeAreaScope)
+        assertEquals(listOf(60, 90, 120, 150, 180, 300), AppSettings().restTimerPresetSeconds)
+    }
+
+    @Test
+    fun restTimerPresetsAreValidatedSortedAndNeverEmpty() {
+        assertEquals(listOf(45, 90, 300), normalizeRestTimerPresets(listOf(300, 90, 45, 90, -1, 4_000)))
+        assertEquals(DEFAULT_REST_TIMER_PRESET_SECONDS, normalizeRestTimerPresets(emptyList()))
     }
 
     @Test

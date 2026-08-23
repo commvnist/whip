@@ -2,21 +2,22 @@ package com.whip.app.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun PermanentDeleteDialog(
+    modifier: Modifier = Modifier,
     title: String,
     impacts: List<String>,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    AlertDialog(
+    PaneAwareAlertDialog(
+        modifier = modifier,
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
@@ -31,10 +32,10 @@ fun PermanentDeleteDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("Delete permanently", color = MaterialTheme.colorScheme.error)
+            WhipTextButton(onClick = onConfirm) {
+                Text("Delete Permanently", color = MaterialTheme.colorScheme.error)
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }

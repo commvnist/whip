@@ -23,6 +23,13 @@ class HabitRulesTest {
     }
 
     @Test
+    fun missingCheckInNeverInventsSuccessOrFailure() {
+        val limit = habit(TargetComparison.AtMost, 0.0)
+
+        assertNull(limit.outcomeForPeriod(emptyList(), monday))
+    }
+
+    @Test
     fun dailyEveryNDaysAndWeekdaysScheduleCorrectly() {
         assertTrue(habit().isScheduledOn(monday.plusDays(1)))
         assertTrue(habit(schedule = HabitScheduleType.EveryNDays, interval = 3).isScheduledOn(monday.plusDays(3)))
@@ -226,16 +233,16 @@ class HabitRulesTest {
         flexible: Int? = null,
     ) = Habit(
         id = 1, uuid = "habit", metricId = "metric", name = "Habit", notes = "", area = "", tags = emptyList(), icon = "✓",
-        colorArgb = null, intent = HabitIntent.Build, trackingMode = HabitTrackingMode.Count,
+        trackingMode = HabitTrackingMode.Count,
         dimension = UnitDimension.Count, unitId = "count", precision = 0,
         comparison = comparison, targetMin = min, targetMax = max, targetPeriod = TargetPeriod.Day,
         rollingDays = null, scheduleType = schedule, scheduleInterval = interval, weekdays = weekdays,
         flexibleTimesPerWeek = flexible, startDate = monday, endType = HabitEndType.Never,
-        endDate = null, endValue = null, timeWindowStartMinutes = null, timeWindowEndMinutes = null,
+        endDate = null, endValue = null,
         quickIncrement = 1.0, quickActions = emptyList(), reminderMinutes = emptyList(),
         weekdayReminderMinutes = emptyMap(),
-        weekStart = DayOfWeek.MONDAY, avoidMissingPolicy = AvoidMissingPolicy.Unknown,
-        timerStartedAtMillis = null, pinned = false, position = 0, archived = false, paused = false,
+        weekStart = DayOfWeek.MONDAY, timerStartedAtMillis = null, pinned = false,
+        position = 0, archived = false, paused = false,
         createdAtMillis = 1, updatedAtMillis = 1,
     )
 

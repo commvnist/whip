@@ -7,11 +7,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.whip.app.ui.WhipButton
 import com.whip.app.ui.theme.WhipTheme
 
 class HealthPermissionsRationaleActivity : ComponentActivity() {
@@ -31,7 +31,7 @@ class HealthPermissionsRationaleActivity : ComponentActivity() {
                             "Health Connect.",
                     )
                     Text("You can revoke access in Health Connect or turn syncing off in Whip Settings at any time.")
-                    Button(onClick = ::finish) { Text("Close") }
+                    WhipButton(onClick = ::finish) { Text("Close") }
                 }
             }
         }

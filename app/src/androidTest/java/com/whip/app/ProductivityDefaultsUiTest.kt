@@ -180,10 +180,10 @@ class ProductivityDefaultsUiTest {
         }
 
         compose.onAllNodesWithText("Portable backup privacy").assertCountEquals(0)
-        compose.onNodeWithText("More preferences").performClick()
-        compose.onNodeWithText("Portable backup privacy").assertIsDisplayed()
+        compose.onNodeWithText("More Preferences").performClick()
+        compose.onNodeWithText("Portable Backup Privacy").assertIsDisplayed()
         compose.onNodeWithContentDescription("I want reminder notifications").assertHasClickAction().performClick()
-        compose.onNodeWithText("Finish setup").performClick()
+        compose.onNodeWithText("Finish Setup").performClick()
         compose.runOnIdle { assertEquals(true, completedNotifications.get()) }
     }
 
@@ -203,7 +203,7 @@ class ProductivityDefaultsUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Open settings").performClick()
+        compose.onNodeWithContentDescription("Open Settings").performClick()
         compose.onRoot().performKeyInput {
             keyDown(Key.CtrlLeft)
             keyDown(Key.N)

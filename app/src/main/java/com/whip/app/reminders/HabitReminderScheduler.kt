@@ -199,7 +199,7 @@ object HabitReminderNotifications {
                             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                         ),
                     )
-                } else if (habit.trackingMode in setOf("Count", "Decimal", "LimitAvoid")) {
+                } else if (habit.trackingMode in setOf("Count", "Decimal")) {
                     addAction(
                         R.drawable.ic_notification,
                         "+${habit.quickIncrement}",

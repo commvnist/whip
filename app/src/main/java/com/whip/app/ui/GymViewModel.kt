@@ -34,6 +34,7 @@ import com.whip.app.data.MachineDeletionImpact
 import com.whip.app.core.AppSettings
 import com.whip.app.core.PlatePreset
 import com.whip.app.core.RepPrescriptionScheme
+import com.whip.app.core.normalizeRestTimerPresets
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -394,12 +395,12 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         repository.reorderExercises(ids)
     }
 
-    fun saveCategory(id: Long?, name: String, kind: String, colorArgb: Long?) = runOperation(
+    fun saveCategory(id: Long?, name: String, kind: String) = runOperation(
         if (id == null) "Creating category…" else "Saving category…",
         "Category saved",
     ) {
-        if (id == null) repository.createCategory(name, kind, colorArgb)
-        else repository.updateCategory(id, name, kind, colorArgb)
+        if (id == null) repository.createCategory(name, kind)
+        else repository.updateCategory(id, name, kind)
     }
 
     fun setCategoryArchived(id: Long, archived: Boolean) = runOperation("Updating category…", "Category updated") {
@@ -519,6 +520,7 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         workoutExerciseId: Long,
         draft: WorkoutSetDraft,
         addNext: Boolean,
+        restOverrideSeconds: Int? = null,
     ) {
         if (!savingQuickSetIds.add(id)) return
         runOperation(
@@ -543,7 +545,12 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
                 val appendAfterSave = addNext && shouldAppendAfterQuickSave(id, activePlacementIds, setStates)
 
                 repository.updateSet(id, draft.copy(completed = false, planned = false))
-                repository.setSetCompleted(id, true, app.settingsRepository.current().restTimerAutoStart)
+                repository.setSetCompleted(
+                    id,
+                    true,
+                    app.settingsRepository.current().restTimerAutoStart,
+                    restOverrideSeconds,
+                )
                 rebuildRecordsForSet(id)
                 schedulePersistedRestTimer()
                 if (appendAfterSave) {
@@ -605,6 +612,12 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
     fun stopRestTimer(sessionId: Long) = runOperation("Stopping timer…", "Timer stopped") {
         repository.stopRestTimer(sessionId)
         restTimerScheduler.cancel(sessionId)
+    }
+
+    fun updateRestTimerPresets(seconds: List<Int>) {
+        app.settingsRepository.update { settings ->
+            settings.copy(restTimerPresetSeconds = normalizeRestTimerPresets(seconds))
+        }
     }
 
     fun saveRoutine(id: Long?, draft: RoutineDraft) = runOperation(

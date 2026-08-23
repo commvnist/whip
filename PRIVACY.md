@@ -18,12 +18,10 @@ information locally:
 - Health Connect data types you explicitly authorize, to power a habit, goal,
   or measurement you configure. Resulting records may be stored in Whip's local
   database, but are not sent to the developer or another service by Whip.
-- Device location for an optional task location cue. Android geofencing handles
-  these cues on the device; Whip does not upload or retain a location history.
 - Notification settings and schedules needed to deliver reminders locally.
 
 You can deny or revoke optional permissions in Android Settings. Core tracking
-features continue to work without Health Connect or location access.
+features continue to work without Health Connect access.
 
 ## Backups and exports
 

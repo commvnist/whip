@@ -86,27 +86,7 @@ data class AreaEntity(
 data class TagEntity(
     @androidx.room.PrimaryKey val id: String,
     val name: String,
-    val colorArgb: Long?,
     val archived: Boolean,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
-)
-
-@Entity(
-    tableName = "entity_tag_links",
-    primaryKeys = ["entityType", "entityId", "tagId"],
-    foreignKeys = [
-        ForeignKey(
-            entity = TagEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["tagId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-    indices = [Index("tagId"), Index(value = ["entityType", "entityId"])],
-)
-data class EntityTagLinkEntity(
-    val entityType: String,
-    val entityId: String,
-    val tagId: String,
 )

@@ -22,6 +22,7 @@ class AreaScopeFilterRelationshipsTest {
         assertEquals(AreaScope.All, AreaScope.One("missing").validFor(listOf(work)))
         assertEquals(AreaScope.All, AreaScope.One("work").validFor(listOf(archived)))
         assertEquals(AreaScope.All, AreaScope.Unassigned.validFor(emptyList()))
+        assertEquals(AreaScope.One("work"), AreaScope.Unassigned.validFor(listOf(work)))
     }
 
     @Test

@@ -11,11 +11,13 @@ import com.whip.app.core.HealthDataType
 import com.whip.app.core.HomeSection
 import com.whip.app.core.ReviewPeriod
 import com.whip.app.core.SavedTaskFilter
+import com.whip.app.core.normalizedNavigation
 import com.whip.app.core.SavedReviewFilter
 import com.whip.app.core.PlatePreset
 import com.whip.app.core.RepPrescriptionScheme
 import com.whip.app.core.SettingsRepository
-import com.whip.app.domain.AvoidMissingPolicy
+import com.whip.app.core.DEFAULT_REST_TIMER_PRESET_SECONDS
+import com.whip.app.core.normalizeRestTimerPresets
 import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskEffort
@@ -34,7 +36,7 @@ data class BackupPreview(
     val duplicateStableIds: Int,
     val checksumValid: Boolean,
     val settingsIncluded: Boolean,
-    val restoreCompatible: Boolean = databaseVersion in 1..DATABASE_VERSION,
+    val restoreCompatible: Boolean = databaseVersion == DATABASE_VERSION,
     val compatibilityMessage: String? = null,
 )
 
@@ -59,6 +61,7 @@ interface BackupRepository {
 class RoomBackupRepository(
     private val database: WhipDatabase,
     private val settingsRepository: SettingsRepository? = null,
+    private val areaRepository: AreaRepository? = null,
 ) : BackupRepository {
     override suspend fun exportBackup(): String = database.withTransaction {
         val db = database.openHelper.readableDatabase
@@ -71,7 +74,7 @@ class RoomBackupRepository(
             tables.put(table, rows)
         }
         val settings = settingsRepository?.current()?.toJson()
-        val payload = checksumPayload(tables, settings, ENVELOPE_VERSION)
+        val payload = checksumPayload(tables, settings)
         JSONObject()
             .put("format", BACKUP_FORMAT)
             .put("envelopeVersion", ENVELOPE_VERSION)
@@ -84,7 +87,7 @@ class RoomBackupRepository(
     }
 
     override suspend fun previewBackup(json: String): BackupPreview {
-        val root = parseAndValidate(json, requireCurrentDatabaseVersion = false)
+        val root = parseAndValidate(json)
         val tables = root.getJSONObject("tables")
         val counts = EXPORT_TABLES.associateWith { table -> tables.optJSONArray(table)?.length() ?: 0 }
         var duplicates = 0
@@ -105,7 +108,7 @@ class RoomBackupRepository(
         }
         val settings = root.optJSONObject("settings")
         val envelopeVersion = root.getInt("envelopeVersion")
-        val payload = checksumPayload(tables, settings, envelopeVersion)
+        val payload = checksumPayload(tables, settings)
         val databaseVersion = root.getInt("databaseVersion")
         return BackupPreview(
             envelopeVersion = envelopeVersion,
@@ -116,69 +119,52 @@ class RoomBackupRepository(
             duplicateStableIds = duplicates,
             checksumValid = root.getString("checksumSha256") == sha256(payload),
             settingsIncluded = settings != null,
-            restoreCompatible = databaseVersion in 1..DATABASE_VERSION,
-            compatibilityMessage = if (databaseVersion > DATABASE_VERSION) {
-                "Created by a newer Whip data format (version $databaseVersion). Update Whip before restoring."
-            } else if (databaseVersion < 1) {
-                "This backup's data format is not supported."
-            } else null,
+            restoreCompatible = true,
         )
     }
 
     override suspend fun restoreBackup(json: String) {
-        val root = parseAndValidate(json, requireCurrentDatabaseVersion = true)
+        val root = parseAndValidate(json)
         val tables = root.getJSONObject("tables")
         val settings = root.optJSONObject("settings")
         require(
             root.getString("checksumSha256") == sha256(
-                checksumPayload(tables, settings, root.getInt("envelopeVersion")),
+                checksumPayload(tables, settings),
             ),
         ) { "Backup checksum does not match" }
         database.withTransaction {
             val db = database.openHelper.writableDatabase
-            val sourceVersion = root.getInt("databaseVersion")
             EXPORT_TABLES.asReversed().forEach { table -> db.execSQL("DELETE FROM ${safeIdentifier(table)}") }
             EXPORT_TABLES.forEach { table ->
-                val rows = tables.optJSONArray(table) ?: JSONArray()
+                val rows = tables.getJSONArray(table)
                 for (index in 0 until rows.length()) {
                     val values = rows.getJSONObject(index).toContentValues()
-                        .withLegacyDefaults(table, sourceVersion)
                     val result = db.insert(safeIdentifier(table), SQLiteDatabase.CONFLICT_ABORT, values)
                     require(result != -1L) { "Could not restore $table row ${index + 1}" }
                 }
             }
-            if (sourceVersion < 22) normalizeLegacyMachineScopes(db)
-            if (sourceVersion < 27) backfillLegacyAreas(db)
         }
         settings?.let { restored -> settingsRepository?.update { restored.toAppSettings() } }
+        areaRepository?.ensureDefaultArea()
     }
 
     override suspend fun mergeBackup(json: String): BackupMergeSummary {
-        val root = parseAndValidate(json, requireCurrentDatabaseVersion = true)
+        val root = parseAndValidate(json)
         val tables = root.getJSONObject("tables")
         val settings = root.optJSONObject("settings")
         require(
             root.getString("checksumSha256") == sha256(
-                checksumPayload(tables, settings, root.getInt("envelopeVersion")),
+                checksumPayload(tables, settings),
             ),
         ) { "Backup checksum does not match" }
-        val sourceVersion = root.getInt("databaseVersion")
-        // Pre-v26 tasks and steps only had device-local integer IDs. Namespace
-        // those identities by backup content so one legacy file is idempotent,
-        // while task 1 from two devices cannot collide.
-        val legacyTaskIdentityNamespace = if (sourceVersion < 26) {
-            sha256(tables.toString()).take(24)
-        } else {
-            null
-        }
-        return database.withTransaction {
+        val summary = database.withTransaction {
             val db = database.openHelper.writableDatabase
             val idMaps = mutableMapOf<String, MutableMap<Long, Long>>()
             val areaIdMap = mutableMapOf<String, String>()
             var imported = 0
             var skipped = 0
             EXPORT_TABLES.forEach { table ->
-                val rows = tables.optJSONArray(table) ?: JSONArray()
+                val rows = tables.getJSONArray(table)
                 val metadata = mergeTableMetadata(db, table)
                 for (index in 0 until rows.length()) {
                     val row = rows.getJSONObject(index)
@@ -197,13 +183,7 @@ class RoomBackupRepository(
                         }
                     }
                     val sourceNumericId = row.optLongOrNull("id")
-                    val legacyStableUuid = when {
-                        legacyTaskIdentityNamespace == null || sourceNumericId == null -> null
-                        table == "tasks" -> "legacy-import-$legacyTaskIdentityNamespace-task-$sourceNumericId"
-                        table == "task_steps" -> "legacy-import-$legacyTaskIdentityNamespace-task-step-$sourceNumericId"
-                        else -> null
-                    }
-                    val stable = legacyStableUuid?.let { "uuid" to it } ?: row.stableMergeKey(metadata)
+                    val stable = row.stableMergeKey(metadata)
                     val existing = stable?.let { (column, value) ->
                         db.query(
                             "SELECT ${if (metadata.autoNumericId) "id" else safeIdentifier(column)} FROM ${safeIdentifier(table)} WHERE ${safeIdentifier(column)} = ? LIMIT 1",
@@ -218,9 +198,7 @@ class RoomBackupRepository(
                         skipped++
                         continue
                     }
-                    val values = row.toContentValues().withLegacyDefaults(table, sourceVersion).apply {
-                        legacyStableUuid?.let { put("uuid", it) }
-                    }
+                    val values = row.toContentValues()
                     if (table in setOf("tasks", "habits", "goals")) {
                         values.getAsString("areaId")?.let { sourceId -> values.put("areaId", areaIdMap[sourceId] ?: sourceId) }
                     }
@@ -239,10 +217,10 @@ class RoomBackupRepository(
                     }
                 }
             }
-            if (sourceVersion < 22) normalizeLegacyMachineScopes(db)
-            if (sourceVersion < 27) backfillLegacyAreas(db)
             BackupMergeSummary(imported, skipped)
         }
+        areaRepository?.ensureDefaultArea()
+        return summary
     }
 
     override suspend fun exportTasksCsv(): String = queryCsv(
@@ -263,6 +241,7 @@ class RoomBackupRepository(
 
     override suspend fun deleteAllData() {
         database.clearAllTables()
+        areaRepository?.ensureDefaultArea()
         settingsRepository?.update { AppSettings() }
     }
 
@@ -283,264 +262,21 @@ class RoomBackupRepository(
         }
     }
 
-    private fun parseAndValidate(json: String, requireCurrentDatabaseVersion: Boolean): JSONObject {
+    private fun parseAndValidate(json: String): JSONObject {
         val root = runCatching { JSONObject(json) }.getOrElse { error("This is not valid JSON") }
         require(root.optString("format") == BACKUP_FORMAT) { "This is not a Whip backup" }
-        require(root.optInt("envelopeVersion") in 1..ENVELOPE_VERSION) { "Unsupported backup envelope version" }
+        require(root.optInt("envelopeVersion") == ENVELOPE_VERSION) {
+            "This backup uses unsupported envelope version ${root.optInt("envelopeVersion")}; this build requires version $ENVELOPE_VERSION"
+        }
         val dbVersion = root.optInt("databaseVersion")
-        if (requireCurrentDatabaseVersion) require(dbVersion in 1..DATABASE_VERSION) {
-            "This backup uses unsupported database version $dbVersion; this build supports versions 1–$DATABASE_VERSION"
+        require(dbVersion == DATABASE_VERSION) {
+            "This backup uses unsupported database version $dbVersion; this build requires version $DATABASE_VERSION"
         }
-        require(root.has("tables")) { "Backup has no table data" }
+        val tables = root.optJSONObject("tables") ?: error("Backup has no table data")
+        val tableNames = tables.keys().asSequence().toSet()
+        require(tableNames == EXPORT_TABLES.toSet()) { "Backup table set does not match this build" }
+        require(EXPORT_TABLES.all { tables.optJSONArray(it) != null }) { "Backup contains invalid table data" }
         return root
-    }
-}
-
-internal fun ContentValues.withLegacyDefaults(table: String, sourceVersion: Int): ContentValues = apply {
-    fun default(column: String, value: Any?) {
-        if (containsKey(column)) return
-        when (value) {
-            null -> putNull(column)
-            is String -> put(column, value)
-            is Int -> put(column, value)
-            is Long -> put(column, value)
-            is Double -> put(column, value)
-            is Float -> put(column, value)
-            else -> error("Unsupported legacy default for $table.$column")
-        }
-    }
-
-    if (table == "tasks" && sourceVersion < 2) {
-        default("updatedAtMillis", getAsLong("createdAtMillis") ?: 0L)
-        default("showSubtaskProgress", 0)
-        default("progressDisplay", "Percent")
-        default("autoCompleteFromSteps", 1)
-        default("repeatStepPolicy", "Reset")
-    }
-    if (table == "habits" && sourceVersion < 10) default("weekdayReminderMinutesCsv", "")
-    if (sourceVersion < 11) when (table) {
-        "tasks" -> default("pinned", 0)
-        "gym_routines" -> default("pinned", 0)
-        "workout_sessions" -> default("sourceRoutineId", null)
-        "habits", "goals" -> {
-            default("area", "")
-            default("tagsCsv", "")
-        }
-    }
-    if (table == "goals" && sourceVersion < 12) {
-        default("aggregationPeriod", "All")
-        default("rollingDays", null)
-        default("consistencyPeriod", "Week")
-        default("consistencyRequiredPeriods", null)
-    }
-    if (sourceVersion < 13 && table in setOf("task_steps", "task_step_snapshots")) {
-        default("notes", "")
-        // Weight existed in the historical schema, but tolerate hand-edited or
-        // partially exported legacy rows that omitted it. Whip no longer exposes
-        // weighted subtasks, so every restored value is normalized to equal weight.
-        default("weight", 1.0)
-        put("weight", 1.0)
-    }
-    if (table == "tasks" && sourceVersion < 14) {
-        default("priority", "None")
-        default("area", "")
-        default("tagsCsv", "")
-        default("deadlineEpochDay", null)
-        default("recurrenceAnchor", "Schedule")
-        default("reminderOffsetsMinutesCsv", if (getAsInteger("reminderEnabled") == 1) "0" else "")
-        default("locationReminderEnabled", 0)
-        default("locationName", "")
-        default("locationLatitude", null)
-        default("locationLongitude", null)
-        default("locationRadiusMeters", 150f)
-        default("locationTrigger", "Arrive")
-    }
-    if (sourceVersion < 15) when (table) {
-        "workout_exercises" -> {
-            default("machineId", null)
-            default("machineNameSnapshot", "")
-            default("machineLoadTypeSnapshot", "")
-            default("machineUnitIdSnapshot", "")
-            default("machineLevelLabelSnapshot", "")
-        }
-        "workout_sets", "routine_sets" -> default("machineLoadValue", null)
-        "routine_exercises", "personal_records" -> default("machineId", null)
-    }
-    if (sourceVersion < 16) when (table) {
-        "exercises" -> default("loadInterpretation", "Total")
-        "gym_machines" -> {
-            default("loadInterpretation", "Total")
-            default("baseLoadKg", null)
-        }
-        "workout_exercises" -> {
-            default("loadInterpretationSnapshot", "Total")
-            default("baseLoadKgSnapshot", null)
-        }
-    }
-    if (table == "tasks" && sourceVersion < 17) default("missedOccurrencePolicy", "KeepLatest")
-    if (table == "workout_exercises" && sourceVersion < 18) {
-        default("trackingTypeSnapshot", "WeightReps")
-        default("bodyweightLoadPolicySnapshot", "ExternalWeightOnly")
-        default("effectiveBodyweightPercentSnapshot", 100.0)
-        default("oneRepMaxFormulaSnapshot", "Epley")
-        default("includeInVolumeSnapshot", 1)
-        default("includeInPersonalRecordsSnapshot", 1)
-    }
-    if (sourceVersion < 19) when (table) {
-        "gym_machines" -> {
-            default("configurationGroupId", getAsString("uuid") ?: "")
-            default("configurationVersion", 1)
-            default("seatPosition", "")
-            default("backPosition", "")
-            default("attachment", "")
-            default("pulleyRatio", 1.0)
-            default("stackMode", "Single")
-            default("addOnPlateKg", null)
-            default("stackLabelsCsv", "")
-            default("massMappingCsv", "")
-            default("compatibleForComparison", 0)
-        }
-        "workout_exercises" -> {
-            default("exerciseWeightUnitSnapshot", "kilogram")
-            default("loadMultiplierSnapshot", if (getAsString("loadInterpretationSnapshot") in setOf("PerHand", "PerSide")) 2.0 else 1.0)
-            default("machineConfigurationGroupSnapshot", "")
-            default("machineConfigurationVersionSnapshot", 1)
-            default("machineConfigurationSnapshot", "")
-            default("machinePulleyRatioSnapshot", 1.0)
-            default("machineStackModeSnapshot", "Single")
-            default("machineAddOnPlateKgSnapshot", null)
-            default("machineMassMappingCsvSnapshot", "")
-        }
-        "workout_sets" -> {
-            default("unilateral", 0)
-            val prescribed = getAsInteger("planned") == 1
-            default("prescribedCanonicalWeightKg", getAsDouble("canonicalWeightKg").takeIf { prescribed })
-            default("prescribedEnteredWeight", getAsDouble("enteredWeight").takeIf { prescribed })
-            default("prescribedWeightUnitId", getAsString("enteredWeightUnitId").takeIf { prescribed })
-            default("prescribedRepetitions", getAsInteger("repetitions").takeIf { prescribed })
-            default("prescribedRpe", getAsDouble("rpe").takeIf { prescribed })
-            default("prescribedRir", getAsDouble("rir").takeIf { prescribed })
-            default("prescribedDurationSeconds", getAsLong("durationSeconds").takeIf { prescribed })
-            default("prescribedMachineLoadValue", getAsDouble("machineLoadValue").takeIf { prescribed })
-            default("prescribedRepetitionsMax", null)
-        }
-        "routine_sets" -> {
-            default("unilateral", 0)
-            default("repetitionsMax", null)
-        }
-    }
-    if (table == "tasks" && sourceVersion < 20) {
-        default("inbox", 0)
-        default("durationMinutes", null)
-        default("effort", "Moderate")
-    }
-    if (table == "habits" && sourceVersion < 21) default("sourceMetricId", null)
-    if (sourceVersion < 22) when (table) {
-        "workout_exercises" -> default("machineProfileUuidSnapshot", null)
-        "routine_exercises" -> {
-            default("equipmentBindingState", if (getAsLong("machineId") == null) "None" else "Resolved")
-            default("machineProfileUuidSnapshot", null)
-            default("machineNameSnapshot", "")
-            default("machineLoadTypeSnapshot", "")
-            default("machineUnitIdSnapshot", "")
-            default("machineLevelLabelSnapshot", "")
-            default("machineLoadInterpretationSnapshot", "Total")
-            default("machineConfigurationGroupSnapshot", "")
-            default("machineConfigurationVersionSnapshot", 1)
-            default("machineConfigurationSnapshot", "")
-        }
-        "personal_records" -> default("machineProfileUuidSnapshot", null)
-    }
-    if (sourceVersion < 25) when (table) {
-        "routine_exercises" -> {
-            default("trainingMaxPercent", 90.0)
-            default("progressionPercentagesCsv", "")
-            default("alternativeExerciseIdsCsv", "")
-        }
-        "routine_sets" -> {
-            default("loadPrescriptionType", "Absolute")
-            default("loadPercentage", null)
-        }
-        "workout_exercises" -> default("alternativeExerciseIdsCsvSnapshot", "")
-        "workout_sets" -> default("prescriptionSourceLabel", "")
-    }
-    if (sourceVersion < 26) when (table) {
-        "tasks" -> {
-            default("uuid", "legacy-task-${getAsLong("id") ?: 0L}")
-            default("manualPosition", (getAsLong("id") ?: 0L).toInt())
-        }
-        "task_steps" -> default("uuid", "legacy-task-step-${getAsLong("id") ?: 0L}")
-    }
-    if (sourceVersion < 27) when (table) {
-        "areas" -> default("nameKey", getAsString("name").orEmpty().trim().lowercase())
-        "tasks", "habits", "goals" -> default("areaId", null)
-    }
-}
-
-private fun backfillLegacyAreas(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-    listOf("tasks", "habits", "goals").forEach { table ->
-        db.execSQL(
-            "INSERT OR IGNORE INTO areas " +
-                "(id, name, nameKey, colorArgb, position, archived, createdAtMillis, updatedAtMillis) " +
-                "SELECT 'legacy-area-' || lower(hex(randomblob(16))), trim(area), lower(trim(area)), " +
-                "NULL, 100000, 0, 0, 0 FROM $table WHERE trim(area) <> '' GROUP BY lower(trim(area))",
-        )
-        db.execSQL(
-            "UPDATE $table SET areaId = " +
-                "(SELECT id FROM areas WHERE nameKey = lower(trim($table.area)) LIMIT 1) " +
-                "WHERE areaId IS NULL AND trim(area) <> ''",
-        )
-        db.execSQL(
-            "UPDATE $table SET area = COALESCE((SELECT name FROM areas WHERE id = $table.areaId), '')",
-        )
-    }
-}
-
-private fun normalizeLegacyMachineScopes(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-    db.execSQL(
-        """
-        UPDATE workout_exercises SET machineProfileUuidSnapshot = CASE
-            WHEN machineId IS NULL THEN NULL
-            ELSE COALESCE((SELECT uuid FROM gym_machines WHERE gym_machines.id = workout_exercises.machineId),
-                'legacy-machine-id:' || machineId)
-        END
-        """.trimIndent(),
-    )
-    db.execSQL(
-        """
-        UPDATE routine_exercises SET
-            equipmentBindingState = CASE
-                WHEN machineId IS NULL THEN 'None'
-                WHEN EXISTS(SELECT 1 FROM gym_machines WHERE gym_machines.id = routine_exercises.machineId) THEN 'Resolved'
-                ELSE 'NeedsEquipment'
-            END,
-            machineProfileUuidSnapshot = COALESCE((SELECT uuid FROM gym_machines WHERE gym_machines.id = routine_exercises.machineId),
-                CASE WHEN machineId IS NULL THEN NULL ELSE 'legacy-machine-id:' || machineId END),
-            machineNameSnapshot = COALESCE((SELECT CASE WHEN location = '' THEN name ELSE name || ' · ' || location END FROM gym_machines WHERE gym_machines.id = routine_exercises.machineId), machineNameSnapshot),
-            machineLoadTypeSnapshot = COALESCE((SELECT loadType FROM gym_machines WHERE gym_machines.id = routine_exercises.machineId), machineLoadTypeSnapshot),
-            machineUnitIdSnapshot = COALESCE((SELECT unitId FROM gym_machines WHERE gym_machines.id = routine_exercises.machineId), machineUnitIdSnapshot),
-            machineLevelLabelSnapshot = COALESCE((SELECT levelLabel FROM gym_machines WHERE gym_machines.id = routine_exercises.machineId), machineLevelLabelSnapshot),
-            machineLoadInterpretationSnapshot = COALESCE((SELECT loadInterpretation FROM gym_machines WHERE gym_machines.id = routine_exercises.machineId), machineLoadInterpretationSnapshot),
-            machineConfigurationGroupSnapshot = COALESCE((SELECT configurationGroupId FROM gym_machines WHERE gym_machines.id = routine_exercises.machineId), machineConfigurationGroupSnapshot),
-            machineConfigurationVersionSnapshot = COALESCE((SELECT configurationVersion FROM gym_machines WHERE gym_machines.id = routine_exercises.machineId), machineConfigurationVersionSnapshot)
-        """.trimIndent(),
-    )
-    db.execSQL(
-        """
-        UPDATE personal_records SET machineProfileUuidSnapshot = COALESCE(
-            (SELECT uuid FROM gym_machines WHERE gym_machines.id = personal_records.machineId),
-            (SELECT we.machineProfileUuidSnapshot FROM workout_sets ws
-                JOIN workout_exercises we ON we.id = ws.workoutExerciseId
-                WHERE ws.id = personal_records.sourceSetId),
-            CASE WHEN machineId IS NULL THEN NULL ELSE 'legacy-machine-id:' || machineId END
-        )
-        """.trimIndent(),
-    )
-    listOf("workout_exercises", "routine_exercises", "personal_records").forEach { table ->
-        db.execSQL(
-            "UPDATE $table SET machineId = NULL WHERE machineId IS NOT NULL " +
-                "AND NOT EXISTS(SELECT 1 FROM gym_machines WHERE gym_machines.id = $table.machineId)",
-        )
     }
 }
 
@@ -703,22 +439,22 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 
 private const val BACKUP_FORMAT = "whip-backup"
 private const val ENVELOPE_VERSION = 2
-private const val DATABASE_VERSION = 27
+private const val DATABASE_VERSION = 1
 
 private val EXPORT_TABLES = listOf(
     "areas",
     "tasks", "task_occurrences", "task_steps", "task_step_states", "task_step_snapshots",
-    "unit_definitions", "metric_definitions", "metric_entries", "tags", "entity_tag_links",
+    "unit_definitions", "metric_definitions", "metric_entries", "tags",
     "exercises", "exercise_categories", "exercise_category_joins", "gym_machines",
     "gym_routines", "routine_days", "routine_exercises", "routine_sets",
     "workout_sessions", "workout_groups", "workout_exercises", "workout_sets",
     "personal_records", "graph_presets", "habits", "habit_checklist_items", "habit_logs",
-    "habit_checklist_states", "habit_pauses", "goals", "goal_milestones", "goal_completion_snapshots",
+    "habit_checklist_states", "habit_pauses", "goals", "goal_milestones",
     "link_rules", "contributions", "trigger_rules", "trigger_occurrences",
 )
 
-private fun checksumPayload(tables: JSONObject, settings: JSONObject?, envelopeVersion: Int): String =
-    if (envelopeVersion == 1) tables.toString() else tables.toString() + "\n" + settings?.toString().orEmpty()
+private fun checksumPayload(tables: JSONObject, settings: JSONObject?): String =
+    tables.toString() + "\n" + settings?.toString().orEmpty()
 
 private fun AppSettings.toJson(): JSONObject = JSONObject()
     .put("setupCompleted", setupCompleted)
@@ -745,6 +481,7 @@ private fun AppSettings.toJson(): JSONObject = JSONObject()
     .put("oneRepMaxFormula", oneRepMaxFormula)
     .put("oneRepMaxRepCutoff", oneRepMaxRepCutoff)
     .put("defaultRestSeconds", defaultRestSeconds)
+    .put("restTimerPresetSeconds", JSONArray(restTimerPresetSeconds))
     .put("timerSound", timerSound)
     .put("timerVibration", timerVibration)
     .put("keepScreenAwake", keepScreenAwake)
@@ -766,15 +503,12 @@ private fun AppSettings.toJson(): JSONObject = JSONObject()
     .put("showAllUpcomingTaskOccurrences", showAllUpcomingTaskOccurrences)
     .put("showHabitsInTaskPlanning", showHabitsInTaskPlanning)
     .put("defaultHabitWeekStart", defaultHabitWeekStart.name)
-    .put("defaultAvoidMissingPolicy", defaultAvoidMissingPolicy.name)
     .put("naturalLanguageTaskCapture", naturalLanguageTaskCapture)
     .put("savedTaskFilters", JSONArray(savedTaskFilters.map { filter ->
         JSONObject()
             .put("name", filter.name)
             .put("priorities", JSONArray(filter.priorities.map(TaskPriority::name)))
-            .put("area", filter.area)
             .put("areaId", filter.areaId ?: JSONObject.NULL)
-            .put("tag", filter.tag)
             .put("pinnedOnly", filter.pinnedOnly)
             .put("tags", JSONArray(filter.tags.toList()))
             .put("requireAllTags", filter.requireAllTags)
@@ -811,7 +545,6 @@ private fun AppSettings.toJson(): JSONObject = JSONObject()
             .put("classification", scheme.classification.name)
             .putNullable("restSeconds", scheme.restSeconds)
     }))
-    .put("locationRemindersEnabled", locationRemindersEnabled)
     .putNullableLong("focusTimerDeadlineMillis", focusTimerDeadlineMillis)
     .putNullableLong("focusTimerTaskId", focusTimerTaskId)
 
@@ -843,12 +576,17 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     oneRepMaxFormula = optString("oneRepMaxFormula", "Epley"),
     oneRepMaxRepCutoff = optInt("oneRepMaxRepCutoff", 10).coerceIn(1, 36),
     defaultRestSeconds = optInt("defaultRestSeconds", 120).coerceAtLeast(0),
+    restTimerPresetSeconds = normalizeRestTimerPresets(
+        optJSONArray("restTimerPresetSeconds")?.let { array ->
+            (0 until array.length()).map { index -> array.optInt(index, -1) }
+        } ?: DEFAULT_REST_TIMER_PRESET_SECONDS,
+    ),
     timerSound = optBoolean("timerSound", true),
     timerVibration = optBoolean("timerVibration", true),
     keepScreenAwake = optBoolean("keepScreenAwake", false),
     restTimerAutoStart = optBoolean("restTimerAutoStart", true),
-    showGymRpe = optBoolean("showGymRpe", true),
-    showGymRir = optBoolean("showGymRir", true),
+    showGymRpe = optBoolean("showGymRpe", false),
+    showGymRir = optBoolean("showGymRir", false),
     showGymTempo = optBoolean("showGymTempo", true),
     includeWarmupsInGymStats = optBoolean("includeWarmupsInGymStats", false),
     quietStartMinutes = nullableInt("quietStartMinutes"),
@@ -865,16 +603,13 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     showAllUpcomingTaskOccurrences = optBoolean("showAllUpcomingTaskOccurrences", false),
     showHabitsInTaskPlanning = optBoolean("showHabitsInTaskPlanning", false),
     defaultHabitWeekStart = enumValue("defaultHabitWeekStart", DayOfWeek.MONDAY),
-    defaultAvoidMissingPolicy = enumValue("defaultAvoidMissingPolicy", AvoidMissingPolicy.Unknown),
     naturalLanguageTaskCapture = optBoolean("naturalLanguageTaskCapture", false),
     savedTaskFilters = optJSONArray("savedTaskFilters").objects().mapNotNull { value ->
         value.optString("name").takeIf(String::isNotBlank)?.let { name ->
             SavedTaskFilter(
                 name = name,
                 priorities = value.optJSONArray("priorities").enumNames<TaskPriority>(),
-                area = value.optString("area"),
                 areaId = value.nullableString("areaId"),
-                tag = value.optString("tag"),
                 pinnedOnly = value.optBoolean("pinnedOnly", false),
                 tags = value.optJSONArray("tags")?.let { array ->
                     (0 until array.length()).mapNotNullTo(linkedSetOf()) { index -> array.optString(index).takeIf(String::isNotBlank) }
@@ -890,7 +625,7 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
                 planningView = value.optString("planningView", "List"),
                 sortMode = value.optString("sortMode", "Smart"),
                 groupMode = value.optString("groupMode", "None"),
-            )
+            ).normalizedNavigation()
         }
     },
     homeTaskFilterName = nullableString("homeTaskFilterName"),
@@ -921,7 +656,6 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
             restSeconds = value.nullableInt("restSeconds"),
         ).takeIf(RepPrescriptionScheme::isValid)
     }.distinctBy(RepPrescriptionScheme::id),
-    locationRemindersEnabled = optBoolean("locationRemindersEnabled", true),
     focusTimerDeadlineMillis = nullableLong("focusTimerDeadlineMillis"),
     focusTimerTaskId = nullableLong("focusTimerTaskId"),
 )

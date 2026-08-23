@@ -8,24 +8,34 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import java.time.LocalDate
 import com.whip.app.domain.AreaScope
 import com.whip.app.domain.matches
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -45,7 +55,7 @@ data class WhipSearchResult(
 )
 
 @Composable
-fun UnifiedSearchDialog(
+internal fun UnifiedSearchDialog(
     taskState: TaskUiState,
     habitState: HabitUiState,
     goalState: GoalUiState,
@@ -55,12 +65,16 @@ fun UnifiedSearchDialog(
     areaScope: AreaScope = AreaScope.All,
     areaScopeLabel: String? = null,
     onSearchAllAreas: () -> Unit = {},
+    initialScope: WhipSearchScope = WhipSearchEntryContext.AllWhip.defaultSearchScope(),
     onSelect: (WhipSearchResult) -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    var domains by rememberSaveable { mutableStateOf(SearchDomain.entries.toSet()) }
+    var domains by rememberSaveable(initialScope.label) { mutableStateOf(initialScope.domains) }
     var requireAllTerms by rememberSaveable { mutableStateOf(true) }
+    var filtersExpanded by rememberSaveable { mutableStateOf(false) }
+    var advancedExpanded by rememberSaveable { mutableStateOf(false) }
     var visibleResults by rememberSaveable { mutableIntStateOf(50) }
+    val queryFocusRequester = remember { FocusRequester() }
     val all = remember(taskState, habitState, goalState, gymState) {
         buildList {
             (taskState.inbox + taskState.today + taskState.upcoming + taskState.planning + taskState.anytime + taskState.completed + taskState.archived)
@@ -142,48 +156,102 @@ fun UnifiedSearchDialog(
             .thenBy { it.domain.ordinal },
     )
     val results = matchingResults.take(visibleResults)
+    LaunchedEffect(initialScope.label) { queryFocusRequester.requestFocus() }
 
     PaneAwareAlertDialog(
         modifier = dialogModifier,
         onDismissRequest = onDismiss,
-        title = { Text("Search Whip") },
+        title = { Text(if (initialScope.isAllWhip) "Search Whip" else "Search ${initialScope.label}") },
         text = {
-            Column {
+            Column(
+                modifier = Modifier.onPreviewKeyEvent { event ->
+                    if (event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
+                        onDismiss()
+                        true
+                    } else if (event.type == KeyEventType.KeyDown && event.key == Key.Enter && results.isNotEmpty()) {
+                        onSelect(results.first())
+                        true
+                    } else false
+                },
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                androidx.compose.foundation.layout.Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        "Scope: ${if (domains == SearchDomain.entries.toSet()) "All Whip" else domains.joinToString { it.name }}",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    if (domains != SearchDomain.entries.toSet()) {
+                        WhipTextButton(onClick = { domains = SearchDomain.entries.toSet() }) { Text("Search All Whip") }
+                    }
+                }
                 areaScopeLabel?.let { label ->
                     androidx.compose.foundation.layout.Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text("Productivity: $label · Gym: All data", style = MaterialTheme.typography.labelMedium)
-                        TextButton(onClick = onSearchAllAreas) { Text("All areas") }
+                        WhipTextButton(onClick = onSearchAllAreas) { Text("All Areas") }
                     }
                 }
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it; visibleResults = 50 },
-                    label = { Text("Tasks, habits, goals, exercises…") },
+                    label = { Text("Search ${if (domains == SearchDomain.entries.toSet()) "Whip" else domains.joinToString { it.name }}") },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { results.firstOrNull()?.let(onSelect) }),
+                    modifier = Modifier.fillMaxWidth().focusRequester(queryFocusRequester).testTag("unified-search-query"),
+                )
+                DisclosureButton(
+                    label = "Search Filters",
+                    expanded = filtersExpanded,
+                    onClick = { filtersExpanded = !filtersExpanded },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    SearchDomain.entries.forEach { domain ->
-                        FilterChip(
-                            selected = domain in domains,
-                            onClick = { domains = if (domain in domains) domains - domain else domains + domain },
-                            label = { Text(domain.name) },
+                if (filtersExpanded) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        WhipFilterChip(
+                            selected = domains == SearchDomain.entries.toSet(),
+                            onClick = { domains = SearchDomain.entries.toSet() },
+                            label = { Text("All Types") },
                         )
+                        SearchDomain.entries.forEach { domain ->
+                            WhipFilterChip(
+                                selected = domains != SearchDomain.entries.toSet() && domain in domains,
+                                onClick = {
+                                    domains = when {
+                                        domains == SearchDomain.entries.toSet() -> setOf(domain)
+                                        domain !in domains -> domains + domain
+                                        domains.size > 1 -> domains - domain
+                                        else -> SearchDomain.entries.toSet()
+                                    }
+                                },
+                                label = { Text(domain.name) },
+                            )
+                        }
                     }
-                    FilterChip(
+                }
+                DisclosureButton(
+                    label = "Advanced Search",
+                    expanded = advancedExpanded,
+                    onClick = { advancedExpanded = !advancedExpanded },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (advancedExpanded) {
+                    WhipFilterChip(
                         selected = requireAllTerms,
                         onClick = { requireAllTerms = !requireAllTerms },
-                        label = { Text(if (requireAllTerms) "Match all" else "Match any") },
+                        label = { Text(if (requireAllTerms) "Match All Terms" else "Match Any Term") },
+                    )
+                    Text(
+                        "Use tag:work, area:home, status:completed, before:2026-09-01, after:2026-08-01, or deadline:true.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Text(
-                    "Power search: tag:work area:home status:completed before:2026-09-01 after:2026-08-01 deadline:true",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 LazyColumn(Modifier.fillMaxWidth().padding(top = 10.dp)) {
                     if (query.isNotBlank() && results.isEmpty()) item { Text("No matching items", modifier = Modifier.padding(16.dp)) }
                     items(results, key = { "${it.domain}-${it.id}" }) { result ->
@@ -203,15 +271,15 @@ fun UnifiedSearchDialog(
                         }
                     }
                     if (visibleResults < matchingResults.size) item {
-                        TextButton(
+                        WhipTextButton(
                             onClick = { visibleResults = (visibleResults + 50).coerceAtMost(matchingResults.size) },
                             modifier = Modifier.fillMaxWidth(),
-                        ) { Text("Show 50 more · ${matchingResults.size - visibleResults} remaining") }
+                        ) { Text("Show 50 More · ${matchingResults.size - visibleResults} Remaining") }
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        confirmButton = { WhipTextButton(onClick = onDismiss) { Text("Close") } },
     )
 }
 

@@ -8,7 +8,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import com.whip.app.domain.RepeatStepPolicy
-import com.whip.app.domain.AvoidMissingPolicy
 import com.whip.app.domain.AreaScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -19,6 +18,15 @@ enum class AppThemeMode { System, Light, Dark }
 enum class HomeSection { Tasks, Habits, Goals, Gym }
 enum class HealthDataType { Weight, Steps, Distance, Hydration, Sleep, Exercise }
 enum class ReviewPeriod { Weekly, Monthly }
+
+val DEFAULT_REST_TIMER_PRESET_SECONDS: List<Int> = listOf(60, 90, 120, 150, 180, 300)
+
+fun normalizeRestTimerPresets(values: Iterable<Int>): List<Int> = values
+    .filter { it in 15..3_600 }
+    .distinct()
+    .sorted()
+    .take(12)
+    .ifEmpty { DEFAULT_REST_TIMER_PRESET_SECONDS }
 
 data class AppSettings(
     val setupCompleted: Boolean = false,
@@ -42,12 +50,13 @@ data class AppSettings(
     val oneRepMaxFormula: String = "Epley",
     val oneRepMaxRepCutoff: Int = 10,
     val defaultRestSeconds: Int = 120,
+    val restTimerPresetSeconds: List<Int> = DEFAULT_REST_TIMER_PRESET_SECONDS,
     val timerSound: Boolean = true,
     val timerVibration: Boolean = true,
     val keepScreenAwake: Boolean = false,
     val restTimerAutoStart: Boolean = true,
-    val showGymRpe: Boolean = true,
-    val showGymRir: Boolean = true,
+    val showGymRpe: Boolean = false,
+    val showGymRir: Boolean = false,
     val showGymTempo: Boolean = true,
     val includeWarmupsInGymStats: Boolean = false,
     val hardSetClassifications: Set<String> = setOf("Working", "BackOff", "Drop", "Amrap", "Failure"),
@@ -67,7 +76,6 @@ data class AppSettings(
     val showAllUpcomingTaskOccurrences: Boolean = false,
     val showHabitsInTaskPlanning: Boolean = false,
     val defaultHabitWeekStart: DayOfWeek = DayOfWeek.MONDAY,
-    val defaultAvoidMissingPolicy: AvoidMissingPolicy = AvoidMissingPolicy.Unknown,
     val naturalLanguageTaskCapture: Boolean = false,
     val savedTaskFilters: List<SavedTaskFilter> = emptyList(),
     val homeTaskFilterName: String? = null,
@@ -77,7 +85,6 @@ data class AppSettings(
     val gymCompactSetRows: Boolean = false,
     val platePresets: List<PlatePreset> = emptyList(),
     val repPrescriptionSchemes: List<RepPrescriptionScheme> = emptyList(),
-    val locationRemindersEnabled: Boolean = true,
     val focusTimerDeadlineMillis: Long? = null,
     val focusTimerTaskId: Long? = null,
 )
@@ -120,12 +127,19 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         oneRepMaxFormula = preferences.getString("e1rmFormula", "Epley") ?: "Epley",
         oneRepMaxRepCutoff = preferences.getInt("e1rmCutoff", 10).coerceIn(1, 36),
         defaultRestSeconds = preferences.getInt("defaultRest", 120).coerceAtLeast(0),
+        restTimerPresetSeconds = normalizeRestTimerPresets(
+            preferences.getString("restTimerPresets", null)
+                ?.split(',')
+                ?.mapNotNull { it.toIntOrNull() }
+                .orEmpty()
+                .ifEmpty { DEFAULT_REST_TIMER_PRESET_SECONDS },
+        ),
         timerSound = preferences.getBoolean("timerSound", true),
         timerVibration = preferences.getBoolean("timerVibration", true),
         keepScreenAwake = preferences.getBoolean("keepAwake", false),
         restTimerAutoStart = preferences.getBoolean("restAutoStart", true),
-        showGymRpe = preferences.getBoolean("gymShowRpe", true),
-        showGymRir = preferences.getBoolean("gymShowRir", true),
+        showGymRpe = preferences.getBoolean("gymShowRpe", false),
+        showGymRir = preferences.getBoolean("gymShowRir", false),
         showGymTempo = preferences.getBoolean("gymShowTempo", true),
         includeWarmupsInGymStats = preferences.getBoolean("gymIncludeWarmups", false),
         hardSetClassifications = preferences.getStringSet("gymHardSetClassifications", null)
@@ -152,7 +166,6 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         showAllUpcomingTaskOccurrences = preferences.getBoolean("showAllUpcomingTaskOccurrences", false),
         showHabitsInTaskPlanning = preferences.getBoolean("showHabitsInTaskPlanning", false),
         defaultHabitWeekStart = preferences.enum("habitWeekStart", DayOfWeek.MONDAY),
-        defaultAvoidMissingPolicy = preferences.enum("avoidMissingPolicy", AvoidMissingPolicy.Unknown),
         naturalLanguageTaskCapture = preferences.getBoolean("naturalLanguageTaskCapture", false),
         savedTaskFilters = preferences.getString("savedTaskFilters", null).decodeTaskFilters(),
         homeTaskFilterName = preferences.getString("homeTaskFilterName", null),
@@ -163,7 +176,6 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         gymCompactSetRows = preferences.getBoolean("gymCompactSetRows", false),
         platePresets = preferences.getString("platePresets", null).decodePlatePresets(),
         repPrescriptionSchemes = preferences.getString("repPrescriptionSchemes", null).decodeRepPrescriptionSchemes(),
-        locationRemindersEnabled = preferences.getBoolean("locationRemindersEnabled", true),
         focusTimerDeadlineMillis = preferences.nullableLong("focusTimerDeadlineMillis")
             ?.takeIf { it > System.currentTimeMillis() },
         focusTimerTaskId = preferences.nullableLong("focusTimerTaskId"),
@@ -193,6 +205,7 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .putString("e1rmFormula", value.oneRepMaxFormula)
             .putInt("e1rmCutoff", value.oneRepMaxRepCutoff)
             .putInt("defaultRest", value.defaultRestSeconds)
+            .putString("restTimerPresets", normalizeRestTimerPresets(value.restTimerPresetSeconds).joinToString(","))
             .putBoolean("timerSound", value.timerSound)
             .putBoolean("timerVibration", value.timerVibration)
             .putBoolean("keepAwake", value.keepScreenAwake)
@@ -218,7 +231,6 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .putBoolean("showAllUpcomingTaskOccurrences", value.showAllUpcomingTaskOccurrences)
             .putBoolean("showHabitsInTaskPlanning", value.showHabitsInTaskPlanning)
             .putString("habitWeekStart", value.defaultHabitWeekStart.name)
-            .putString("avoidMissingPolicy", value.defaultAvoidMissingPolicy.name)
             .putBoolean("naturalLanguageTaskCapture", value.naturalLanguageTaskCapture)
             .putString("savedTaskFilters", value.savedTaskFilters.encodeTaskFilters())
             .putNullableString("homeTaskFilterName", value.homeTaskFilterName)
@@ -228,7 +240,6 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .putBoolean("gymCompactSetRows", value.gymCompactSetRows)
             .putString("platePresets", value.platePresets.encodePlatePresets())
             .putString("repPrescriptionSchemes", value.repPrescriptionSchemes.encodeRepPrescriptionSchemes())
-            .putBoolean("locationRemindersEnabled", value.locationRemindersEnabled)
             .putNullableLong("focusTimerDeadlineMillis", value.focusTimerDeadlineMillis)
             .putNullableLong("focusTimerTaskId", value.focusTimerTaskId)
             .apply()

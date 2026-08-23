@@ -11,9 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +23,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.whip.app.WhipApplication
 import com.whip.app.domain.AreaScope
 import com.whip.app.ui.AreaSelectionDropdown
+import com.whip.app.ui.WhipButton
+import com.whip.app.ui.WhipOutlinedButton
 import com.whip.app.ui.theme.WhipTheme
 
 class WhipWidgetConfigureActivity : ComponentActivity() {
@@ -56,15 +56,16 @@ class WhipWidgetConfigureActivity : ComponentActivity() {
                         selectedAreaName = if (selectedAreaId == null) "All areas" else "",
                         onSelect = { id, _ -> selectedAreaId = id },
                         nullLabel = "All areas",
+                        allowNullSelection = true,
                     )
                     Text("Choose “All areas” by leaving the widget unscoped.", style = MaterialTheme.typography.bodySmall)
-                    Button(onClick = {
+                    WhipButton(onClick = {
                         WhipWidgetProvider.saveScope(this@WhipWidgetConfigureActivity, widgetId, selectedAreaId?.let { AreaScope.One(it) } ?: AreaScope.All)
                         WhipWidgetProvider.update(this@WhipWidgetConfigureActivity, widgetId)
                         setResult(Activity.RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
                         finish()
                     }, modifier = Modifier.fillMaxWidth()) { Text("Add widget") }
-                    OutlinedButton(onClick = ::finish, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+                    WhipOutlinedButton(onClick = ::finish, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
                 }
             }
         }

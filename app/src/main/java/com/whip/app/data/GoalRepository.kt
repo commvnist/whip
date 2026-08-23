@@ -7,15 +7,12 @@ import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.Goal
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalAggregationPeriod
-import com.whip.app.domain.GoalCompletionSnapshot
 import com.whip.app.domain.GoalConsistencyPeriod
 import com.whip.app.domain.GoalDirection
 import com.whip.app.domain.GoalDraft
-import com.whip.app.domain.GoalEntryMode
 import com.whip.app.domain.GoalMilestone
 import com.whip.app.domain.GoalMilestoneDraft
 import com.whip.app.domain.GoalPaceType
-import com.whip.app.domain.GoalProjection
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.MetricEntry
@@ -23,18 +20,18 @@ import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.MetricValueKind
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.UnitDefinition
-import com.whip.app.domain.projectGoal
+import com.whip.app.domain.compatibleAggregations
+import com.whip.app.domain.defaultDirection
+import com.whip.app.domain.withTypeSemantics
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 interface GoalRepository {
     val goals: Flow<List<Goal>>
     val milestones: Flow<List<GoalMilestone>>
-    val snapshots: Flow<List<GoalCompletionSnapshot>>
     val metricEntries: Flow<List<MetricEntry>>
 
     suspend fun create(draft: GoalDraft): Long
@@ -66,38 +63,39 @@ class RoomGoalRepository(
     private val areaRepository = RoomAreaRepository(database, clock, ids)
     override val goals = dao.observeGoals().map { it.map(GoalEntity::toDomain) }
     override val milestones = dao.observeMilestones().map { it.map(GoalMilestoneEntity::toDomain) }
-    override val snapshots = dao.observeSnapshots().map { it.map(GoalCompletionSnapshotEntity::toDomain) }
     override val metricEntries = measurementRepository.entries
 
     override suspend fun create(draft: GoalDraft): Long = database.withTransaction {
-        validateGoal(draft)
-        val area = areaRepository.resolve(draft.areaId, draft.area)
-        val resolvedDraft = draft.copy(areaId = area.id, area = area.name)
-        measurementRepository.ensureCustomUnit(draft.unitId, draft.unitId, draft.unitId, draft.dimension)
-        val unit = requireNotNull(resolveUnit(draft.unitId)) { "Unknown goal unit" }
+        val semanticDraft = draft.withTypeSemantics()
+        validateGoal(semanticDraft)
+        val area = areaRepository.resolve(semanticDraft.areaId, semanticDraft.area)
+        val resolvedDraft = semanticDraft.copy(areaId = area.id, area = area.name)
+        measurementRepository.ensureCustomUnit(semanticDraft.unitId, semanticDraft.unitId, semanticDraft.unitId, semanticDraft.dimension)
+        val unit = requireNotNull(resolveUnit(semanticDraft.unitId)) { "Unknown goal unit" }
         val metricId = measurementRepository.createMetric(
-            name = draft.name,
+            name = semanticDraft.name,
             valueKind = MetricValueKind.Decimal,
-            dimension = draft.dimension,
-            defaultUnitId = draft.unitId,
-            precision = draft.precision,
+            dimension = semanticDraft.dimension,
+            defaultUnitId = semanticDraft.unitId,
+            precision = semanticDraft.precision,
         )
         val now = clock.now().toEpochMilli()
         val goalId = dao.insertGoal(
             resolvedDraft.toEntity(ids.nextId(), metricId, dao.nextPosition(), now, unit = unit),
         )
-        syncMilestones(goalId, draft.milestones, now)
+        syncMilestones(goalId, semanticDraft.milestones, now)
         goalId
     }
 
     override suspend fun update(id: Long, draft: GoalDraft) = database.withTransaction {
-        validateGoal(draft)
-        val area = areaRepository.resolve(draft.areaId, draft.area)
-        val resolvedDraft = draft.copy(areaId = area.id, area = area.name)
-        measurementRepository.ensureCustomUnit(draft.unitId, draft.unitId, draft.unitId, draft.dimension)
-        val unit = requireNotNull(resolveUnit(draft.unitId)) { "Unknown goal unit" }
+        val semanticDraft = draft.withTypeSemantics()
+        validateGoal(semanticDraft)
+        val area = areaRepository.resolve(semanticDraft.areaId, semanticDraft.area)
+        val resolvedDraft = semanticDraft.copy(areaId = area.id, area = area.name)
+        measurementRepository.ensureCustomUnit(semanticDraft.unitId, semanticDraft.unitId, semanticDraft.unitId, semanticDraft.dimension)
+        val unit = requireNotNull(resolveUnit(semanticDraft.unitId)) { "Unknown goal unit" }
         val existing = dao.getGoal(id) ?: error("Goal no longer exists")
-        require(existing.dimension == draft.dimension.name) {
+        require(existing.dimension == semanticDraft.dimension.name) {
             "A goal's measurement dimension cannot change; create a new goal instead"
         }
         val now = clock.now().toEpochMilli()
@@ -114,13 +112,13 @@ class RoomGoalRepository(
                 unit = unit,
             ),
         )
-        syncMilestones(id, draft.milestones, now)
+        syncMilestones(id, semanticDraft.milestones, now)
     }
 
     override suspend fun duplicate(id: Long): Long {
         val goal = dao.getGoal(id)?.toDomain() ?: error("Goal no longer exists")
         val milestones = dao.getMilestones(id).map {
-            GoalMilestoneDraft(it.name, it.weight, it.targetValue, it.reward)
+            GoalMilestoneDraft(name = it.name, weight = it.weight, reward = it.reward)
         }
         return create(goal.toDraft(milestones, resolveUnit(goal.unitId)).copy(name = "${goal.name} copy"))
     }
@@ -128,21 +126,6 @@ class RoomGoalRepository(
     override suspend fun setStatus(id: Long, status: GoalStatus) = database.withTransaction {
         val current = dao.getGoal(id) ?: return@withTransaction
         val now = clock.now().toEpochMilli()
-        val goal = current.toDomain()
-        if (status in setOf(GoalStatus.Completed, GoalStatus.Abandoned)) {
-            val entries = measurementRepository.entries.first().filter { it.metricId == goal.metricId }
-            val milestones = dao.getMilestones(id).map(GoalMilestoneEntity::toDomain)
-            val projection = projectGoal(goal, entries, milestones, clock.today())
-            dao.insertSnapshot(
-                GoalCompletionSnapshotEntity(
-                    goalId = id,
-                    completedAtMillis = now,
-                    value = projection.currentValue,
-                    progress = projection.progress,
-                    status = status.name,
-                ),
-            )
-        }
         dao.updateGoal(current.copy(status = status.name, updatedAtMillis = now))
     }
 
@@ -237,8 +220,7 @@ class RoomGoalRepository(
                     GoalMilestoneEntity(
                         uuid = ids.nextId(), goalId = goalId, name = draft.name.trim(),
                         position = index, weight = draft.weight.coerceAtLeast(0.0),
-                        targetValue = draft.targetValue, completed = false,
-                        completedAtMillis = null, linkedTaskId = null, reward = draft.reward.trim(),
+                        completed = false, completedAtMillis = null, reward = draft.reward.trim(),
                         createdAtMillis = now, updatedAtMillis = now,
                     ),
                 )
@@ -247,7 +229,7 @@ class RoomGoalRepository(
                 dao.updateMilestone(
                     current.copy(
                         name = draft.name.trim(), position = index,
-                        weight = draft.weight.coerceAtLeast(0.0), targetValue = draft.targetValue,
+                        weight = draft.weight.coerceAtLeast(0.0),
                         reward = draft.reward.trim(), updatedAtMillis = now,
                     ),
                 )
@@ -276,6 +258,9 @@ private fun validateGoal(draft: GoalDraft) {
     require(draft.name.isNotBlank()) { "Goal name is required" }
     require(draft.deadline == null || !draft.deadline.isBefore(draft.startDate)) { "Deadline cannot precede the start date" }
     require(listOfNotNull(draft.baseline, draft.targetMin, draft.targetMax).all(Double::isFinite)) { "Goal values must be finite numbers" }
+    require(draft.aggregation in draft.type.compatibleAggregations()) { "Goal calculation does not match its type" }
+    require(draft.direction == draft.type.defaultDirection()) { "Goal direction does not match its type" }
+    require(draft.paceType == GoalPaceType.None || draft.deadline != null) { "Pace guidance requires a deadline" }
     when (draft.type) {
         GoalType.ReachValue, GoalType.ReduceValue, GoalType.AccumulateTotal, GoalType.MeetAverage ->
             require(draft.targetMin?.isFinite() == true) { "Enter a target" }
@@ -306,12 +291,12 @@ private fun GoalDraft.toEntity(
     return GoalEntity(
         id = id, uuid = uuid, metricId = metricId, name = name.trim(), description = description.trim(),
         areaId = areaId, area = area.trim(), tagsCsv = tags.map(String::trim).filter(String::isNotBlank).distinct().joinToString(","),
-        icon = icon, colorArgb = colorArgb, type = type.name, dimension = dimension.name,
+        icon = icon, type = type.name, dimension = dimension.name,
         unitId = unitId, precision = precision, baseline = canonical(baseline),
         targetMin = canonical(targetMin), targetMax = canonical(targetMax), direction = direction.name,
         startEpochDay = startDate.toEpochDay(), deadlineEpochDay = deadline?.toEpochDay(),
         aggregation = aggregation.name, aggregationPeriod = aggregationPeriod.name,
-        rollingDays = rollingDays, entryMode = entryMode.name, paceType = paceType.name,
+        rollingDays = rollingDays, paceType = paceType.name,
         consistencyPeriod = consistencyPeriod.name,
         consistencyRequiredPeriods = consistencyRequiredPeriods, reminderMinutes = reminderMinutes,
         status = status.name, pinned = pinned, position = position,
@@ -322,29 +307,28 @@ private fun GoalDraft.toEntity(
 private fun GoalEntity.toDomain() = Goal(
     id = id, uuid = uuid, metricId = metricId, name = name, description = description,
     areaId = areaId, area = area, tags = tagsCsv.split(',').map(String::trim).filter(String::isNotBlank),
-    icon = icon, colorArgb = colorArgb, type = GoalType.valueOf(type),
+    icon = icon, type = GoalType.valueOf(type),
     dimension = UnitDimension.valueOf(dimension), unitId = unitId, precision = precision,
     baseline = baseline, targetMin = targetMin, targetMax = targetMax,
     direction = GoalDirection.valueOf(direction), startDate = LocalDate.ofEpochDay(startEpochDay),
     deadline = deadlineEpochDay?.let(LocalDate::ofEpochDay), aggregation = GoalAggregation.valueOf(aggregation),
-    entryMode = GoalEntryMode.valueOf(entryMode), paceType = GoalPaceType.valueOf(paceType),
+    paceType = GoalPaceType.valueOf(paceType),
     reminderMinutes = reminderMinutes, status = GoalStatus.valueOf(status), pinned = pinned,
     position = position, createdAtMillis = createdAtMillis, updatedAtMillis = updatedAtMillis,
     aggregationPeriod = GoalAggregationPeriod.valueOf(aggregationPeriod), rollingDays = rollingDays,
     consistencyPeriod = GoalConsistencyPeriod.valueOf(consistencyPeriod),
     consistencyRequiredPeriods = consistencyRequiredPeriods,
 )
-private fun GoalMilestoneEntity.toDomain() = GoalMilestone(id, uuid, goalId, name, position, weight, targetValue, completed, completedAtMillis, linkedTaskId, reward, createdAtMillis, updatedAtMillis)
-private fun GoalCompletionSnapshotEntity.toDomain() = GoalCompletionSnapshot(id, goalId, completedAtMillis, value, progress, GoalStatus.valueOf(status))
+private fun GoalMilestoneEntity.toDomain() = GoalMilestone(id, uuid, goalId, name, position, weight, completed, completedAtMillis, reward, createdAtMillis, updatedAtMillis)
 
 private fun Goal.toDraft(milestones: List<GoalMilestoneDraft>, unit: UnitDefinition?): GoalDraft {
     fun display(value: Double?) = value?.let { unit?.fromCanonical(it) ?: it }
     return GoalDraft(
         name = name, description = description, areaId = areaId, area = area, tags = tags, icon = icon,
-        colorArgb = colorArgb, type = type, dimension = dimension, unitId = unitId,
+        type = type, dimension = dimension, unitId = unitId,
         precision = precision, baseline = display(baseline), targetMin = display(targetMin),
         targetMax = display(targetMax), direction = direction, startDate = startDate,
-        deadline = deadline, aggregation = aggregation, entryMode = entryMode,
+        deadline = deadline, aggregation = aggregation,
         paceType = paceType, reminderMinutes = reminderMinutes, milestones = milestones,
         aggregationPeriod = aggregationPeriod, rollingDays = rollingDays,
         consistencyPeriod = consistencyPeriod,

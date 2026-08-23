@@ -6,6 +6,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,21 +22,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,16 +54,16 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Search
 import com.whip.app.core.AppSettings
 import com.whip.app.core.OperationStatus
-import com.whip.app.domain.AvoidMissingPolicy
 import com.whip.app.domain.Habit
 import com.whip.app.domain.Area
 import com.whip.app.domain.HabitChecklistItemDraft
 import com.whip.app.domain.HabitDayProgress
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitEndType
-import com.whip.app.domain.HabitIntent
 import com.whip.app.domain.HabitLog
 import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.HabitScheduleType
@@ -122,15 +119,19 @@ fun HabitAreaContent(
     areas: List<Area> = emptyList(),
     defaultAreaId: String? = null,
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
+    onCreateCustomUnit: CreateCustomUnitAction = { _, _, _, _, result ->
+        result(Result.failure(IllegalStateException("Custom-unit creation is unavailable")))
+    },
     areaScopeLabel: String? = null,
     onAreaChanged: (String?) -> Unit = {},
+    onOpenSearch: () -> Unit = {},
+    searchActionModifier: Modifier = Modifier,
 ) {
     if (state.loading || state.errorMessage != null) {
         DomainLoadContent("habits", innerPadding, state.errorMessage, viewModel::retryLoading)
         return
     }
     var destination by rememberSaveable { mutableStateOf(HabitDestination.Today) }
-    var moreDestinationsOpen by rememberSaveable { mutableStateOf(false) }
     var creating by rememberSaveable { mutableStateOf(false) }
     var editingHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var actionsHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -175,6 +176,7 @@ fun HabitAreaContent(
         when (operationStatus) {
             is OperationStatus.Running -> editorSaveStarted = true
             is OperationStatus.Succeeded -> {
+                if (!editorSaveStarted) return@LaunchedEffect
                 creating = false
                 editingHabitId = null
                 templateDraft = null
@@ -182,6 +184,7 @@ fun HabitAreaContent(
                 editorSaveStarted = false
             }
             is OperationStatus.Failed -> {
+                if (!editorSaveStarted) return@LaunchedEffect
                 editorSavePending = false
                 editorSaveStarted = false
             }
@@ -217,17 +220,11 @@ fun HabitAreaContent(
         }
     }
     Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-        val primaryDestinations = listOf(HabitDestination.Today, HabitDestination.All, HabitDestination.Insights)
-        ProgressiveDestinationBar(
+        DestinationTabBar(
             selected = destination,
-            primary = primaryDestinations,
-            secondary = listOf(HabitDestination.Connections, HabitDestination.Archived),
-            expanded = moreDestinationsOpen,
-            onExpandedChange = { moreDestinationsOpen = it },
+            destinations = HabitDestination.entries,
             onSelect = { destination = it; focusedArchivedHabitId = null },
             label = HabitDestination::name,
-            modifier = Modifier.fillMaxWidth()
-                .padding(start = 20.dp, end = 52.dp, top = 8.dp, bottom = 8.dp),
             testTagPrefix = "habit-destination",
         )
         when (destination) {
@@ -236,7 +233,6 @@ fun HabitAreaContent(
                 subtitle = "Check in, log a value, or continue a timer for habits due today.",
                 progress = state.today,
                 empty = areaScopeLabel?.let { "No habits are due today in $it." } ?: "No habits are due today.",
-                onCreate = { creating = true },
                 onTemplates = { templatesOpen = true },
                 onOpen = { actionsHabitId = it.habit.id },
                 onEdit = { editingHabitId = it.habit.id },
@@ -249,13 +245,14 @@ fun HabitAreaContent(
                 onChecklist = viewModel::toggleChecklist,
                 onReorder = null,
                 lowPressureMode = lowPressureMode,
+                onOpenSearch = onOpenSearch,
+                searchActionModifier = searchActionModifier,
             )
             HabitDestination.All -> HabitList(
-                title = "All habits",
+                title = "All Habits",
                 subtitle = "Build, limit, avoid, or simply observe anything you define.",
                 progress = state.all,
-                empty = areaScopeLabel?.let { "No habits in $it. Create one in this area with +." } ?: "Your habit list is empty. Create one from scratch or use a setup template later.",
-                onCreate = { creating = true },
+                empty = areaScopeLabel?.let { "No habits in $it." } ?: "Your habit list is empty.",
                 onTemplates = { templatesOpen = true },
                 onOpen = { actionsHabitId = it.habit.id },
                 onEdit = { editingHabitId = it.habit.id },
@@ -268,6 +265,8 @@ fun HabitAreaContent(
                 onChecklist = viewModel::toggleChecklist,
                 onReorder = viewModel::reorder,
                 lowPressureMode = lowPressureMode,
+                onOpenSearch = onOpenSearch,
+                searchActionModifier = searchActionModifier,
             )
             HabitDestination.Insights -> HabitInsights(state, lowPressureMode)
             HabitDestination.Connections -> HabitAutomationContent(
@@ -296,13 +295,13 @@ fun HabitAreaContent(
             }.orEmpty(),
             today = state.currentDate,
             defaultWeekStart = viewModel.defaultSettings().defaultHabitWeekStart,
-            defaultAvoidPolicy = viewModel.defaultSettings().defaultAvoidMissingPolicy,
             defaults = viewModel.defaultSettings(),
             customUnits = state.customUnits,
             sourceMetrics = state.sourceMetrics,
             areas = areas,
             defaultAreaId = defaultAreaId,
             onCreateArea = onCreateArea,
+            onCreateCustomUnit = onCreateCustomUnit,
             saving = editorSavePending,
             onRequestNotificationPermission = onRequestNotificationPermission,
             onDismiss = {
@@ -351,7 +350,7 @@ fun HabitAreaContent(
         }
         val automationCount = state.triggerRules.count { it.targetType == TriggerTargetType.Habit && it.targetEntityId == habit.id }
         PermanentDeleteDialog(
-            title = "Delete ${habit.name} permanently?",
+            title = "Delete ${habit.name} Permanently?",
             impacts = listOf(
                 "$logCount check-in${if (logCount == 1) "" else "s"}, checklist state, and streak history will be removed",
                 "$linkCount goal link${if (linkCount == 1) "" else "s"} and their generated measurements will be removed",
@@ -447,15 +446,32 @@ private fun HabitAutomationContent(
         when (operationStatus) {
             is OperationStatus.Running -> saveStarted = true
             is OperationStatus.Succeeded -> {
+                if (!saveStarted) return@LaunchedEffect
                 creating = false; editingRuleId = null; savePending = false; saveStarted = false
             }
-            is OperationStatus.Failed -> { savePending = false; saveStarted = false }
+            is OperationStatus.Failed -> {
+                if (!saveStarted) return@LaunchedEffect
+                savePending = false; saveStarted = false
+            }
             OperationStatus.Idle -> Unit
         }
     }
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item { Text("Connections", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold); Text("Connect outcomes across Tasks, Habits, Goals, and completed workouts without merging their histories.") }
-        if (pending.isNotEmpty()) item { Text("Ready now", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
+    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item {
+            WhipPageHeader(
+                title = "Connections",
+                supportingText = "Connect outcomes across Tasks, Habits, Goals, and completed workouts without merging their histories.",
+            ) {
+                WhipPageIconAction(Icons.Filled.Add, "Create Connection", onClick = { creating = true })
+            }
+        }
+        if (pending.isEmpty() && state.triggerRules.isEmpty()) item {
+            WhipEmptyState(
+                title = "No Connections Yet",
+                supportingText = "Create a rule when one outcome should make another action available.",
+            )
+        }
+        if (pending.isNotEmpty()) item { Text("Ready Now", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
         items(pending, key = { "occurrence-${it.id}" }) { occurrence ->
             val rule = state.triggerRules.firstOrNull { it.id == occurrence.triggerRuleId }
             Card(Modifier.fillMaxWidth()) {
@@ -467,21 +483,20 @@ private fun HabitAutomationContent(
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         if (rule != null) {
-                            TextButton(onClick = {
+                            WhipTextButton(onClick = {
                                 if (rule.targetType == TriggerTargetType.Habit) onOpenHabit(rule.targetEntityId)
                                 else onOpenTask(rule.targetEntityId)
                             }) { Text("Open") }
                             if (rule.targetType == TriggerTargetType.Habit) {
-                                TextButton(onClick = { viewModel.doTriggerNow(occurrence.id, rule) }) { Text("Do now") }
+                                WhipTextButton(onClick = { viewModel.doTriggerNow(occurrence.id, rule) }) { Text("Do Now") }
                             }
                         }
-                        TextButton(onClick = { viewModel.dismissTriggerOccurrence(occurrence.id) }) { Text("Dismiss") }
+                        WhipTextButton(onClick = { viewModel.dismissTriggerOccurrence(occurrence.id) }) { Text("Dismiss") }
                     }
                 }
             }
         }
-        item { Text("Rules", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
-        if (state.triggerRules.isEmpty()) item { Text("No automatic connections yet.") }
+        if (state.triggerRules.isNotEmpty()) item { Text("Rules", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
         items(state.triggerRules, key = { "trigger-${it.id}" }) { rule ->
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(14.dp)) {
@@ -495,14 +510,13 @@ private fun HabitAutomationContent(
                         style = MaterialTheme.typography.labelSmall,
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { viewModel.setTriggerEnabled(rule, !rule.enabled) }) { Text(if (rule.enabled) "Pause" else "Resume") }
-                        TextButton(onClick = { editingRuleId = rule.id }) { Text("Edit") }
-                        TextButton(onClick = { viewModel.deleteTrigger(rule.id) }) { Text("Remove") }
+                        WhipTextButton(onClick = { viewModel.setTriggerEnabled(rule, !rule.enabled) }) { Text(if (rule.enabled) "Pause" else "Resume") }
+                        WhipTextButton(onClick = { editingRuleId = rule.id }) { Text("Edit") }
+                        WhipTextButton(onClick = { viewModel.deleteTrigger(rule.id) }) { Text("Remove") }
                     }
                 }
             }
         }
-        item { Button(onClick = { creating = true }, modifier = Modifier.fillMaxWidth()) { Text("Create connection") } }
     }
     if (creating || editingRule != null) HabitAutomationDialog(
         state = state,
@@ -556,16 +570,16 @@ private fun HabitAutomationDialog(
     val targetId = if (targetType == TriggerTargetType.Habit) targetHabitId else targetTaskId
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text(if (initialRule == null) "Create connection" else "Edit connection") },
+        title = { Text(if (initialRule == null) "Create Connection" else "Edit Connection") },
         text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item { OutlinedTextField(name, { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth()) }
             item { EnumDropdown("Source type", listOf(LinkSourceType.Habit, LinkSourceType.Task, LinkSourceType.Workout), sourceType, { it.name }) { selected -> sourceType = selected; if (selected == LinkSourceType.Workout) outcome = TriggerOutcome.Completed } }
-            if (sourceType == LinkSourceType.Habit && habits.isNotEmpty()) item { EnumDropdown("Source habit", habits, habits.first { it.id == sourceHabitId }, { it.name }) { sourceHabitId = it.id } }
-            if (sourceType == LinkSourceType.Task && state.sourceTasks.isNotEmpty()) item { EnumDropdown("Source task", state.sourceTasks, state.sourceTasks.first { it.id == sourceTaskId }, { it.title }) { sourceTaskId = it.id } }
+            if (sourceType == LinkSourceType.Habit && habits.isNotEmpty()) item { EnumDropdown("Source habit", habits, habits.first { it.id == sourceHabitId }, { it.name }, titleCaseValues = false) { sourceHabitId = it.id } }
+            if (sourceType == LinkSourceType.Task && state.sourceTasks.isNotEmpty()) item { EnumDropdown("Source task", state.sourceTasks, state.sourceTasks.first { it.id == sourceTaskId }, { it.title }, titleCaseValues = false) { sourceTaskId = it.id } }
             item { EnumDropdown("Outcome", if (sourceType == LinkSourceType.Workout) listOf(TriggerOutcome.Completed) else TriggerOutcome.entries, outcome, { it.name }) { outcome = it } }
             item { EnumDropdown("Target type", TriggerTargetType.entries, targetType, { it.name }) { targetType = it } }
-            if (targetType == TriggerTargetType.Habit && habits.isNotEmpty()) item { EnumDropdown("Target habit", habits, habits.first { it.id == targetHabitId }, { it.name }) { targetHabitId = it.id } }
-            if (targetType == TriggerTargetType.Task && state.sourceTasks.isNotEmpty()) item { EnumDropdown("Target task", state.sourceTasks, state.sourceTasks.first { it.id == targetTaskId }, { it.title }) { targetTaskId = it.id } }
+            if (targetType == TriggerTargetType.Habit && habits.isNotEmpty()) item { EnumDropdown("Target habit", habits, habits.first { it.id == targetHabitId }, { it.name }, titleCaseValues = false) { targetHabitId = it.id } }
+            if (targetType == TriggerTargetType.Task && state.sourceTasks.isNotEmpty()) item { EnumDropdown("Target task", state.sourceTasks, state.sourceTasks.first { it.id == targetTaskId }, { it.title }, titleCaseValues = false) { targetTaskId = it.id } }
             item { NumberTextField(delay, { delay = it }, "Delay minutes") }
             item { ResponsiveFieldPair(
                 first = { field -> ClockPickerButton("Quiet hours start", parseClockMinutes(quietStart), { quietStart = it?.let(::formatClockMinutes).orEmpty() }, field) },
@@ -575,8 +589,8 @@ private fun HabitAutomationDialog(
                 item { Text("Each completed workout automatically adds one completion to the target habit.") }
             }
         } },
-        confirmButton = { TextButton(enabled = !saving && name.isNotBlank() && sourceId != null && targetId != null, onClick = { onSave(TriggerRuleDraft(name, sourceType, requireNotNull(sourceId), outcome, targetType, requireNotNull(targetId), delay.toIntOrNull() ?: 0, parseClockMinutes(quietStart), parseClockMinutes(quietEnd), sourceType == LinkSourceType.Workout && targetType == TriggerTargetType.Habit, initialRule?.enabled ?: true)) }) { Text(if (saving) "Saving…" else if (initialRule == null) "Create" else "Save") } },
-        dismissButton = { TextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { WhipTextButton(enabled = !saving && name.isNotBlank() && sourceId != null && targetId != null, onClick = { onSave(TriggerRuleDraft(name, sourceType, requireNotNull(sourceId), outcome, targetType, requireNotNull(targetId), delay.toIntOrNull() ?: 0, parseClockMinutes(quietStart), parseClockMinutes(quietEnd), sourceType == LinkSourceType.Workout && targetType == TriggerTargetType.Habit, initialRule?.enabled ?: true)) }) { Text(if (saving) "Saving…" else if (initialRule == null) "Create" else "Save") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -622,9 +636,9 @@ fun HabitProgressCard(
                     ) "recent periods" else "30d"
                     Text(
                         if (lowPressureMode) {
-                            "${habit.trackingMode.label()} · ${(item.completionRate * 100).toInt()}% / $rateWindow"
+                            "${habit.trackingMode.uiLabel()} · ${(item.completionRate * 100).toInt()}% / $rateWindow"
                         } else {
-                            "${habit.trackingMode.label()} · ${item.streak} $streakUnit streak · ${(item.completionRate * 100).toInt()}% / $rateWindow"
+                            "${habit.trackingMode.uiLabel()} · ${item.streak} $streakUnit streak · ${(item.completionRate * 100).toInt()}% / $rateWindow"
                         },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -633,18 +647,25 @@ fun HabitProgressCard(
                 if (habit.sourceMetricId != null) {
                     Text("Synced", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                 } else when (habit.trackingMode) {
-                    HabitTrackingMode.CheckOff -> Checkbox(checked = item.successful == true, onCheckedChange = { onQuick() })
-                    HabitTrackingMode.Duration -> Button(onClick = onQuick) { Text(if (habit.timerStartedAtMillis == null) "Start" else "Stop") }
-                    HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.LimitAvoid ->
-                        OutlinedButton(onClick = onSetValue) { Text("Set") }
-                    else -> Button(onClick = onQuick) {
+                    HabitTrackingMode.CheckOff -> Checkbox(
+                        checked = item.successful == true,
+                        onCheckedChange = { onQuick() },
+                        modifier = Modifier.semantics {
+                            contentDescription = if (item.successful == true) {
+                                "Mark habit ${habit.name} incomplete"
+                            } else "Check off habit ${habit.name}"
+                        },
+                    )
+                    HabitTrackingMode.Duration -> WhipButton(onClick = onQuick) { Text(if (habit.timerStartedAtMillis == null) "Start" else "Stop") }
+                    HabitTrackingMode.Count, HabitTrackingMode.Decimal -> Unit
+                    else -> WhipButton(onClick = onQuick) {
                         if (habit.trackingMode == HabitTrackingMode.Rating) Text("Rate")
                         else Icon(Icons.Filled.Add, contentDescription = "Log ${habit.name}", modifier = Modifier.size(24.dp))
                     }
                 }
                 ItemEditButton("habit", habit.name, onEdit)
             }
-            if (habit.sourceMetricId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.LimitAvoid)) {
+            if (habit.sourceMetricId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
                 val quickValues = (listOf(habit.quickIncrement) + habit.quickActions)
                     .filter { it.isFinite() && it > 0.0 }
                     .distinct()
@@ -654,18 +675,20 @@ fun HabitProgressCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     (if (showAllQuickValues) quickValues else quickValues.take(3)).forEach { value ->
-                        Button(onClick = { onQuickValue(value) }) { Text("+${editableNumericValue(value)}") }
+                        WhipButton(onClick = { onQuickValue(value) }) { Text("+${editableNumericValue(value)}") }
                     }
                     if (quickValues.size > 3) {
-                        TextButton(onClick = { showAllQuickValues = !showAllQuickValues }) {
-                            Text(if (showAllQuickValues) "Fewer" else "More values")
-                        }
+                        DisclosureButton(
+                            label = "Quick values",
+                            expanded = showAllQuickValues,
+                            onClick = { showAllQuickValues = !showAllQuickValues },
+                        )
                     }
-                    OutlinedButton(enabled = item.value > 0.0, onClick = onDecrement) {
+                    WhipOutlinedButton(enabled = item.value > 0.0, onClick = onDecrement) {
                         Text("−${editableNumericValue(minOf(habit.quickIncrement, item.value.coerceAtLeast(0.0)))}")
                     }
-                    OutlinedButton(onClick = onSetValue) { Text("Set") }
-                    TextButton(enabled = canUndo, onClick = onUndo) { Text("Undo") }
+                    WhipOutlinedButton(onClick = onSetValue) { Text("Set") }
+                    WhipTextButton(enabled = canUndo, onClick = onUndo) { Text("Undo") }
                 }
             }
             if (habit.trackingMode == HabitTrackingMode.Checklist) {
@@ -711,7 +734,7 @@ fun quickHabitAction(item: HabitDayProgress, vm: HabitViewModel, openNumeric: ()
     if (item.habit.sourceMetricId != null) return
     when (item.habit.trackingMode) {
         HabitTrackingMode.CheckOff -> vm.setCheckOff(item.habit.id, item.date, item.successful != true)
-        HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.LimitAvoid -> vm.log(item.habit.id, item.habit.quickIncrement)
+        HabitTrackingMode.Count, HabitTrackingMode.Decimal -> vm.log(item.habit.id, item.habit.quickIncrement)
         HabitTrackingMode.Duration -> if (item.habit.timerStartedAtMillis == null) vm.startTimer(item.habit.id) else vm.stopTimer(item.habit.id)
         HabitTrackingMode.Checklist -> Unit
         HabitTrackingMode.Rating, HabitTrackingMode.LogOnly -> openNumeric()
@@ -724,7 +747,6 @@ private fun HabitList(
     subtitle: String,
     progress: List<HabitDayProgress>,
     empty: String,
-    onCreate: () -> Unit,
     onTemplates: () -> Unit,
     onOpen: (HabitDayProgress) -> Unit,
     onEdit: (HabitDayProgress) -> Unit,
@@ -737,41 +759,56 @@ private fun HabitList(
     onChecklist: (Long, Long, LocalDate, Boolean) -> Unit,
     onReorder: ((List<Long>) -> Unit)?,
     lowPressureMode: Boolean,
+    onOpenSearch: () -> Unit,
+    searchActionModifier: Modifier,
 ) {
-    var query by rememberSaveable { mutableStateOf("") }
-    var searchOpen by rememberSaveable { mutableStateOf(false) }
     var manageOrder by rememberSaveable { mutableStateOf(false) }
-    val visible = progress.filter { item ->
-        query.isBlank() || listOf(
-            item.habit.name,
-            item.habit.notes,
-            item.habit.area,
-            item.habit.tags.joinToString(" "),
-        ).any { it.contains(query, ignoreCase = true) }
-    }
+    var toolsExpanded by rememberSaveable { mutableStateOf(false) }
+    BackHandler(enabled = manageOrder) { manageOrder = false }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp),
+        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        item { Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold); Text(subtitle) }
         item {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                OutlinedButton(onClick = { searchOpen = !searchOpen }) { Text(if (searchOpen) "Hide search" else "Search") }
-                OutlinedButton(onClick = onTemplates) { Text("Templates") }
-                if (onReorder != null && progress.size > 1) {
-                    OutlinedButton(onClick = { manageOrder = !manageOrder }) { Text(if (manageOrder) "Finish ordering" else "Manage order") }
+            WhipPageHeader(title = title, supportingText = subtitle) {
+                WhipPageIconAction(Icons.Outlined.Search, "Search Habits", onOpenSearch, modifier = searchActionModifier)
+                Box {
+                    WhipPageIconAction(
+                        icon = Icons.Outlined.MoreVert,
+                        label = "More Habit Actions",
+                        onClick = { toolsExpanded = true },
+                    )
+                    DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Browse Templates") },
+                            onClick = { toolsExpanded = false; onTemplates() },
+                        )
+                        if (onReorder != null && progress.size > 1) DropdownMenuItem(
+                            text = { Text("Reorder Habits") },
+                            onClick = { toolsExpanded = false; manageOrder = true },
+                        )
+                    }
                 }
             }
         }
-        if (searchOpen || query.isNotBlank()) item { OutlinedTextField(query, { query = it }, label = { Text("Search habits, areas, or tags") }, modifier = Modifier.fillMaxWidth()) }
-        if (visible.isEmpty()) item {
-            Column(Modifier.padding(vertical = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(if (progress.isEmpty()) empty else "No habits match this search.")
-                if (progress.isEmpty()) Text("Use the + button to create one, or start with a template.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        if (manageOrder) item {
+            ModeButton(
+                label = "Reorder Habits",
+                active = true,
+                onClick = { manageOrder = false },
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
-        items(visible, key = { it.habit.id }) { item ->
+        if (progress.isEmpty()) item {
+            WhipEmptyState(
+                title = "No Habits Here",
+                supportingText = empty,
+                primaryActionLabel = "Browse Templates",
+                onPrimaryAction = onTemplates,
+            )
+        }
+        items(progress, key = { it.habit.id }) { item ->
             val index = progress.indexOfFirst { it.habit.id == item.habit.id }
             Column {
                 HabitProgressCard(
@@ -787,14 +824,14 @@ private fun HabitList(
                     onChecklist = onChecklist,
                     lowPressureMode = lowPressureMode,
                 )
-                if (manageOrder && onReorder != null && query.isBlank()) {
+                if (manageOrder && onReorder != null) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(enabled = index > 0, onClick = {
+                        WhipTextButton(enabled = index > 0, onClick = {
                             val ids = progress.map { it.habit.id }.toMutableList()
                             java.util.Collections.swap(ids, index, index - 1)
                             onReorder(ids)
                         }) { Icon(Icons.Outlined.ArrowUpward, contentDescription = null, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(4.dp)); Text("Earlier") }
-                        TextButton(enabled = index in 0 until progress.lastIndex, onClick = {
+                        WhipTextButton(enabled = index in 0 until progress.lastIndex, onClick = {
                             val ids = progress.map { it.habit.id }.toMutableList()
                             java.util.Collections.swap(ids, index, index + 1)
                             onReorder(ids)
@@ -810,72 +847,90 @@ private fun HabitList(
 private fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp),
+        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        item { Text("Habit insights", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }
+        item {
+            WhipPageHeader(
+                title = "Habit Insights",
+                supportingText = "Consistency, streaks, and logged activity for each habit.",
+            )
+        }
+        if (state.all.isEmpty()) item {
+            WhipEmptyState(
+                title = "No Habit Insights Yet",
+                supportingText = "Create and check in to a habit to build insight over time.",
+            )
+        }
         items(state.all, key = { it.habit.id }) { item ->
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
                     Text(item.habit.name, fontWeight = FontWeight.Bold)
-                    if (!lowPressureMode) Text("Current streak: ${item.streak}")
-                    Text("30-day completion: ${(item.completionRate * 100).toInt()}%")
-                    val total = state.logs.asSequence()
-                        .filter { it.habitId == item.habit.id }
-                        .mapNotNull { it.valueInUnit(item.habit.unitId, state.customUnits) }
-                        .sum()
-                    Text(
-                        "All-time logged total: ${formatHabitValue(total, item.habit.precision)} ${item.habit.unitId.unitLabel()}",
-                    )
                     val habitLogs = state.logs.filter { it.habitId == item.habit.id }
-                    val weeklyRates = (7L downTo 0L).map { weeksAgo ->
-                        val start = state.currentDate.minusWeeks(weeksAgo)
-                            .with(TemporalAdjusters.previousOrSame(item.habit.weekStart))
-                        val end = minOf(start.plusDays(6), state.currentDate)
-                        val scheduled = generateSequence(start) { it.plusDays(1) }
-                            .takeWhile { !it.isAfter(end) }
-                            .filter(item.habit::isScheduledOn)
-                            .toList()
-                        val outcomes = scheduled.mapNotNull { day -> item.habit.outcomeForPeriod(habitLogs, day, state.customUnits) }
-                        if (outcomes.isEmpty()) null else outcomes.count { it }.toDouble() / outcomes.size
-                    }
-                    Text("Eight-week consistency", style = MaterialTheme.typography.labelMedium)
-                    HabitRateChart(item.habit.name, weeklyRates)
-                    val recent = weeklyRates.lastOrNull()
-                    val previous = weeklyRates.dropLast(1).lastOrNull()
-                    Text(
-                        when {
-                            recent == null -> "No completed target periods this week yet."
-                            previous == null -> "This week: ${(recent * 100).toInt()}%"
-                            else -> "This week: ${(recent * 100).toInt()}% · ${if (recent >= previous) "up" else "down"} ${kotlin.math.abs((recent - previous) * 100).toInt()} points"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    val recorded = habitLogs.groupBy { it.localDate }
-                    val days = (27L downTo 0L).map { state.currentDate.minusDays(it) }
-                    Text("Recent activity", style = MaterialTheme.typography.labelMedium)
-                    val calendarDescription = days.joinToString("; ") { day ->
-                        val logs = recorded[day].orEmpty()
-                        "$day: " + when {
-                            logs.any { it.status == HabitLogStatus.Excused || it.status == HabitLogStatus.Skipped } -> "skipped or excused"
-                            logs.any { (it.value ?: 0.0) > 0.0 || it.status == HabitLogStatus.Success } -> "positive or successful"
-                            logs.isNotEmpty() -> "zero logged"
-                            else -> "no entry"
+                    if (habitLogs.isEmpty()) {
+                        Text(
+                            "No activity yet. Check off or log this habit to build consistency and recent-activity insights.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    } else {
+                        if (!lowPressureMode) Text("Current streak: ${item.streak}")
+                        Text("30-day completion: ${(item.completionRate * 100).toInt()}%")
+                        val total = habitLogs.asSequence()
+                            .mapNotNull { it.valueInUnit(item.habit.unitId, state.customUnits) }
+                            .sum()
+                        Text(
+                            "All-time logged total: ${formatHabitValue(total, item.habit.precision)} ${item.habit.unitId.unitLabel()}",
+                        )
+                        val weeklyRates = (7L downTo 0L).map { weeksAgo ->
+                            val start = state.currentDate.minusWeeks(weeksAgo)
+                                .with(TemporalAdjusters.previousOrSame(item.habit.weekStart))
+                            val end = minOf(start.plusDays(6), state.currentDate)
+                            val scheduled = generateSequence(start) { it.plusDays(1) }
+                                .takeWhile { !it.isAfter(end) }
+                                .filter(item.habit::isScheduledOn)
+                                .toList()
+                            val outcomes = scheduled.mapNotNull { day -> item.habit.outcomeForPeriod(habitLogs, day, state.customUnits) }
+                            if (outcomes.isEmpty()) null else outcomes.count { it }.toDouble() / outcomes.size
                         }
-                    }
-                    Text(
-                        days.chunked(7).joinToString(" ") { week -> week.joinToString("") { day ->
-                            val logs = recorded[day].orEmpty()
+                        Text("Eight-Week Consistency", style = MaterialTheme.typography.labelMedium)
+                        HabitRateChart(item.habit.name, weeklyRates)
+                        val recent = weeklyRates.lastOrNull()
+                        val previous = weeklyRates.dropLast(1).lastOrNull()
+                        Text(
                             when {
-                                logs.any { it.status == HabitLogStatus.Excused || it.status == HabitLogStatus.Skipped } -> "○"
-                                logs.any { (it.value ?: 0.0) > 0.0 || it.status == HabitLogStatus.Success } -> "■"
-                                logs.isNotEmpty() -> "□"
-                                else -> "·"
+                                recent == null -> "No completed target periods this week yet."
+                                previous == null -> "This week: ${(recent * 100).toInt()}%"
+                                else -> "This week: ${(recent * 100).toInt()}% · ${if (recent >= previous) "up" else "down"} ${kotlin.math.abs((recent - previous) * 100).toInt()} points"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        val recorded = habitLogs.groupBy { it.localDate }
+                        val days = (27L downTo 0L).map { state.currentDate.minusDays(it) }
+                        Text("Recent Activity", style = MaterialTheme.typography.labelMedium)
+                        val calendarDescription = days.joinToString("; ") { day ->
+                            val logs = recorded[day].orEmpty()
+                            "$day: " + when {
+                                logs.any { it.status == HabitLogStatus.Excused || it.status == HabitLogStatus.Skipped } -> "skipped or excused"
+                                logs.any { (it.value ?: 0.0) > 0.0 || it.status == HabitLogStatus.Success } -> "positive or successful"
+                                logs.isNotEmpty() -> "zero logged"
+                                else -> "no entry"
                             }
-                        } },
-                        modifier = Modifier.semantics { contentDescription = calendarDescription },
-                    )
-                    Text("■ success · □ recorded below target · ○ skipped/excused · · no entry", style = MaterialTheme.typography.labelSmall)
+                        }
+                        Text(
+                            days.chunked(7).joinToString(" ") { week -> week.joinToString("") { day ->
+                                val logs = recorded[day].orEmpty()
+                                when {
+                                    logs.any { it.status == HabitLogStatus.Excused || it.status == HabitLogStatus.Skipped } -> "○"
+                                    logs.any { (it.value ?: 0.0) > 0.0 || it.status == HabitLogStatus.Success } -> "■"
+                                    logs.isNotEmpty() -> "□"
+                                    else -> "·"
+                                }
+                            } },
+                            modifier = Modifier.semantics { contentDescription = calendarDescription },
+                        )
+                        Text("■ success · □ recorded below target · ○ skipped/excused · · no entry", style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
         }
@@ -917,9 +972,23 @@ private fun ArchivedHabitList(
     onEdit: (Habit) -> Unit,
 ) {
     val visible = habits.filter { focusedHabitId == null || it.id == focusedHabitId }
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp)) {
-        item { Text("Archived habits", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }
-        if (visible.isEmpty()) item { Text("No archived habits.") }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item {
+            WhipPageHeader(
+                title = "Archived Habits",
+                supportingText = "Habits kept for history but removed from active check-ins.",
+            )
+        }
+        if (visible.isEmpty()) item {
+            WhipEmptyState(
+                title = "No Archived Habits",
+                supportingText = "Archived habits will appear here and can be restored or edited.",
+            )
+        }
         items(visible, key = Habit::id) { habit ->
             Card(
                 modifier = Modifier.fillMaxWidth()
@@ -963,9 +1032,8 @@ private fun HabitTemplateDialog(
             quickIncrement = 5.0, startDate = today,
         ),
         "No-spend day" to HabitDraft(
-            name = "No-spend day", icon = "\$", intent = HabitIntent.Avoid,
-            trackingMode = HabitTrackingMode.LimitAvoid, comparison = TargetComparison.AtMost,
-            targetMin = 0.0, avoidMissingPolicy = AvoidMissingPolicy.Success, startDate = today,
+            name = "No-spend day", icon = "\$", trackingMode = HabitTrackingMode.CheckOff,
+            targetPeriod = TargetPeriod.Occurrence, startDate = today,
         ),
         "Exercise 3× weekly" to HabitDraft(
             name = "Exercise", icon = "◆", trackingMode = HabitTrackingMode.CheckOff,
@@ -973,20 +1041,20 @@ private fun HabitTemplateDialog(
             targetPeriod = TargetPeriod.Week, targetMin = 3.0, startDate = today,
         ),
         "Daily rating" to HabitDraft(
-            name = "Daily rating", icon = "★", intent = HabitIntent.Observe,
-            trackingMode = HabitTrackingMode.Rating, comparison = TargetComparison.None,
+            name = "Daily rating", icon = "★", trackingMode = HabitTrackingMode.Rating,
+            comparison = TargetComparison.None,
             dimension = UnitDimension.Unitless, unitId = "unitless", targetMin = null,
             precision = 0, startDate = today,
         ),
     )
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Habit templates") },
+        title = { Text("Habit Templates") },
         text = {
             LazyColumn {
                 item { Text("Templates create ordinary habits that you can fully edit afterward.") }
                 items(templates, key = { it.first }) { (label, draft) ->
-                    TextButton(onClick = { onChoose(draft) }, modifier = Modifier.fillMaxWidth()) {
+                    WhipTextButton(onClick = { onChoose(draft) }, modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Text(label, fontWeight = FontWeight.SemiBold)
                             Text(habitTemplateDescription(label), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -995,7 +1063,7 @@ private fun HabitTemplateDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -1004,7 +1072,7 @@ private fun habitTemplateDescription(label: String): String = when (label) {
     "Medication" -> "A simple daily done/not-done check-in."
     "Reading" -> "Add pages toward a daily target of 20."
     "Meditation" -> "Track minutes toward a daily duration target."
-    "No-spend day" -> "Succeed when spending stays at zero."
+    "No-spend day" -> "Check it off after a day without spending."
     "Exercise 3× weekly" -> "Complete any three sessions during the week."
     "Daily rating" -> "Record a value without success, failure, or streak pressure."
     else -> "Prefills an editable habit; nothing is saved until you confirm."
@@ -1017,8 +1085,6 @@ private fun Habit.toEditorDraft(checklist: List<HabitChecklistItemDraft>) = Habi
     area = area,
     tags = tags,
     icon = icon,
-    colorArgb = colorArgb,
-    intent = intent,
     trackingMode = trackingMode,
     dimension = dimension,
     unitId = unitId,
@@ -1036,14 +1102,11 @@ private fun Habit.toEditorDraft(checklist: List<HabitChecklistItemDraft>) = Habi
     endType = endType,
     endDate = endDate,
     endValue = endValue,
-    timeWindowStartMinutes = timeWindowStartMinutes,
-    timeWindowEndMinutes = timeWindowEndMinutes,
     quickIncrement = quickIncrement,
     quickActions = quickActions,
     reminderMinutes = reminderMinutes,
     weekdayReminderMinutes = weekdayReminderMinutes,
     weekStart = weekStart,
-    avoidMissingPolicy = avoidMissingPolicy,
     checklistItems = checklist,
     sourceMetricId = sourceMetricId,
 )
@@ -1057,7 +1120,6 @@ private fun HabitEditorDialog(
     onDismiss: () -> Unit,
     onSave: (HabitDraft) -> Unit,
     defaultWeekStart: DayOfWeek = DayOfWeek.MONDAY,
-    defaultAvoidPolicy: AvoidMissingPolicy = AvoidMissingPolicy.Unknown,
     defaults: AppSettings = AppSettings(),
     customUnits: List<UnitDefinition> = emptyList(),
     sourceMetrics: List<MetricDefinition> = emptyList(),
@@ -1067,12 +1129,14 @@ private fun HabitEditorDialog(
     areas: List<Area> = emptyList(),
     defaultAreaId: String? = null,
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
+    onCreateCustomUnit: CreateCustomUnitAction = { _, _, _, _, result ->
+        result(Result.failure(IllegalStateException("Custom-unit creation is unavailable")))
+    },
 ) {
     val baseInitial = initialDraft ?: habit?.toEditorDraft(initialChecklist) ?: HabitDraft(
         name = "",
         startDate = today,
         weekStart = defaultWeekStart,
-        avoidMissingPolicy = defaultAvoidPolicy,
         precision = 0,
         targetPeriod = TargetPeriod.Occurrence,
         areaId = defaultAreaId,
@@ -1091,8 +1155,6 @@ private fun HabitEditorDialog(
     var area by rememberSaveable(editorKey) { mutableStateOf(initial.area) }
     var tags by rememberSaveable(editorKey) { mutableStateOf(initial.tags.joinToString(",")) }
     var icon by rememberSaveable(editorKey) { mutableStateOf(initial.icon) }
-    var colorHex by rememberSaveable(editorKey) { mutableStateOf(colorArgbToHex(initial.colorArgb)) }
-    var intent by rememberSaveable(editorKey) { mutableStateOf(initial.intent) }
     var mode by rememberSaveable(editorKey) { mutableStateOf(initial.trackingMode) }
     var comparison by rememberSaveable(editorKey) { mutableStateOf(initial.comparison) }
     var targetMin by rememberSaveable(editorKey) { mutableStateOf(initial.targetMin?.let(::editableNumericValue) ?: "1") }
@@ -1121,8 +1183,6 @@ private fun HabitEditorDialog(
             },
         )
     }
-    var windowStart by rememberSaveable(editorKey) { mutableStateOf(initial.timeWindowStartMinutes?.let { "%02d:%02d".format(it / 60, it % 60) }.orEmpty()) }
-    var windowEnd by rememberSaveable(editorKey) { mutableStateOf(initial.timeWindowEndMinutes?.let { "%02d:%02d".format(it / 60, it % 60) }.orEmpty()) }
     var endType by rememberSaveable(editorKey) { mutableStateOf(initial.endType) }
     var endDate by rememberSaveable(editorKey) { mutableStateOf(initial.endDate) }
     var endValue by rememberSaveable(editorKey) { mutableStateOf(initial.endValue?.let(::editableNumericValue).orEmpty()) }
@@ -1131,7 +1191,6 @@ private fun HabitEditorDialog(
     var unitId by rememberSaveable(editorKey) { mutableStateOf(initial.unitId) }
     var dimension by rememberSaveable(editorKey) { mutableStateOf(initial.dimension) }
     var precision by rememberSaveable(editorKey) { mutableStateOf(initial.precision.toString()) }
-    var avoidPolicy by rememberSaveable(editorKey) { mutableStateOf(initial.avoidMissingPolicy) }
     var sourceMetricId by rememberSaveable(editorKey) { mutableStateOf(initial.sourceMetricId) }
     var checklistDrafts by rememberSaveable(editorKey) {
         mutableStateOf(ArrayList(initial.checklistItems))
@@ -1145,17 +1204,16 @@ private fun HabitEditorDialog(
     var showAdvanced by rememberSaveable(editorKey) {
         mutableStateOf(
             defaults.powerMode || initial.notes.isNotBlank() || initial.tags.isNotEmpty() ||
-                initial.colorArgb != null || initial.quickActions.isNotEmpty() ||
+                initial.quickActions.isNotEmpty() ||
                 initial.reminderMinutes.isNotEmpty() || initial.weekdayReminderMinutes.isNotEmpty() ||
-                initial.timeWindowStartMinutes != null || initial.timeWindowEndMinutes != null ||
                 initial.endType != HabitEndType.Never,
         )
     }
     val editorFingerprint = listOf(
-        name, notes, areaId, area, tags, icon, colorHex, intent, mode, comparison, targetMin, targetMax,
+        name, notes, areaId, area, tags, icon, mode, comparison, targetMin, targetMax,
         targetPeriod, schedule, interval, weekdays.sortedBy { it.value }, flexible, rollingDays,
-        quickIncrement, quickActions, reminders, weekdayReminders, windowStart, windowEnd, endType,
-        endDate, endValue, weekStart, unitId, dimension, precision, avoidPolicy, sourceMetricId,
+        quickIncrement, quickActions, reminders, weekdayReminders, endType,
+        endDate, endValue, weekStart, unitId, dimension, precision, sourceMetricId,
         checklistDrafts.map { "${it.id}:${it.uuid}:${it.position}:${it.name}" },
     ).joinToString("\u001f")
     val initialFingerprint by rememberSaveable(editorKey) { mutableStateOf(editorFingerprint) }
@@ -1166,22 +1224,38 @@ private fun HabitEditorDialog(
         modifier = dialogModifier,
         testTag = "habit-editor-surface",
         onDismissRequest = requestDismiss,
-        title = { Text(if (habit == null) "Create habit" else "Edit habit") },
+        title = { Text(if (habit == null) "Create Habit" else "Edit Habit") },
         text = {
             LazyColumn(
                 modifier = Modifier.testTag("habit-editor-fields"),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                item {
-                    ResponsiveFieldPair(
-                        first = { field -> OutlinedTextField(icon, { icon = it.take(2) }, label = { Text("Icon") }, modifier = field) },
-                        second = { field -> OutlinedTextField(name, { name = it }, label = { Text("Name *") }, modifier = field.testTag("habit-editor-name")) },
+                item { OutlinedTextField(name, { name = it }, label = { Text("Name *") }, modifier = Modifier.fillMaxWidth().testTag("habit-editor-name")) }
+                item { WhipIconPicker(icon, { icon = it }, modifier = Modifier.fillMaxWidth()) }
+                if (sourceMetrics.isNotEmpty()) item {
+                    EnumDropdown(
+                        "Data source",
+                        listOf<MetricDefinition?>(null) + sourceMetrics,
+                        sourceMetrics.firstOrNull { it.id == sourceMetricId },
+                        { metric -> metric?.let { "Health Connect · ${it.name}" } ?: "Manual Check-Ins" },
+                        titleCaseValues = false,
+                    ) { selected ->
+                        sourceMetricId = selected?.id
+                        if (selected != null) {
+                            dimension = selected.dimension
+                            unitId = selected.defaultUnitId
+                            precision = selected.precision.toString()
+                            mode = when (selected.valueKind) {
+                                MetricValueKind.Integer -> HabitTrackingMode.Count
+                                MetricValueKind.Duration -> HabitTrackingMode.Duration
+                                else -> HabitTrackingMode.Decimal
+                            }
+                        }
+                    }
+                    Text(
+                        "Health Connect determines tracking mode and units. Imported records are read-only and reconcile by source ID without double counting.",
+                        style = MaterialTheme.typography.bodySmall,
                     )
-                }
-                if (showAdvanced) item { OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth()) }
-                if (showAdvanced) item {
-                    EnumChips("Intent", HabitIntent.entries, intent, HabitIntent::displayLabel) { intent = it }
-                    Text(intent.explanation(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 item {
                     Text("How do you want to track it?", fontWeight = FontWeight.Bold)
@@ -1192,29 +1266,36 @@ private fun HabitEditorDialog(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         HabitTrackingMode.entries.forEach { selected ->
-                            FilterChip(
+                            WhipFilterChip(
                                 selected = mode == selected,
+                                enabled = sourceMetricId == null,
                                 onClick = {
                                     mode = selected
                                     when (selected) {
-                                        HabitTrackingMode.Duration -> { unitId = "second"; dimension = UnitDimension.Duration; precision = "0"; intent = HabitIntent.Build; comparison = TargetComparison.AtLeast }
-                                        HabitTrackingMode.Rating -> { unitId = "unitless"; dimension = UnitDimension.Unitless; precision = defaults.numberPrecision.toString(); intent = HabitIntent.Observe; comparison = TargetComparison.None }
-                                        HabitTrackingMode.Decimal -> { unitId = "unitless"; dimension = UnitDimension.Unitless; precision = defaults.numberPrecision.toString(); intent = HabitIntent.Build; comparison = TargetComparison.AtLeast }
-                                        HabitTrackingMode.LogOnly -> { unitId = "unitless"; dimension = UnitDimension.Unitless; precision = defaults.numberPrecision.toString(); intent = HabitIntent.Observe; comparison = TargetComparison.None }
-                                        HabitTrackingMode.LimitAvoid -> { unitId = "count"; dimension = UnitDimension.Count; precision = "0"; intent = HabitIntent.Avoid; comparison = TargetComparison.AtMost }
-                                        HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist -> { unitId = "count"; dimension = UnitDimension.Count; precision = "0"; intent = HabitIntent.Build; comparison = TargetComparison.AtLeast; targetMin = "1"; targetPeriod = TargetPeriod.Occurrence }
-                                        HabitTrackingMode.Count -> { unitId = "count"; dimension = UnitDimension.Count; precision = "0"; intent = HabitIntent.Build; comparison = TargetComparison.AtLeast }
+                                        HabitTrackingMode.Duration -> { unitId = "second"; dimension = UnitDimension.Duration; precision = "0"; comparison = TargetComparison.AtLeast }
+                                        HabitTrackingMode.Rating -> { unitId = "unitless"; dimension = UnitDimension.Unitless; precision = defaults.numberPrecision.toString(); comparison = TargetComparison.None }
+                                        HabitTrackingMode.Decimal -> { unitId = "unitless"; dimension = UnitDimension.Unitless; precision = defaults.numberPrecision.toString(); comparison = TargetComparison.AtLeast }
+                                        HabitTrackingMode.LogOnly -> { unitId = "unitless"; dimension = UnitDimension.Unitless; precision = defaults.numberPrecision.toString(); comparison = TargetComparison.None }
+                                        HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist -> { unitId = "count"; dimension = UnitDimension.Count; precision = "0"; comparison = TargetComparison.AtLeast; targetMin = "1"; targetPeriod = TargetPeriod.Occurrence }
+                                        HabitTrackingMode.Count -> { unitId = "count"; dimension = UnitDimension.Count; precision = "0"; comparison = TargetComparison.AtLeast }
                                     }
                                 },
-                                label = { Text(selected.setupLabel()) },
+                                label = { Text(selected.uiLabel()) },
                             )
                         }
                     }
+                    AvailabilityNotice(
+                        label = "Tracking mode",
+                        availability = ControlAvailability(
+                            enabled = sourceMetricId == null,
+                            unavailableExplanation = "Health Connect determines this value. Set Data Source to Manual Check-Ins to change it.",
+                        ),
+                    )
                 }
                 if (mode == HabitTrackingMode.Checklist) {
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Checklist items", fontWeight = FontWeight.Bold)
+                            Text("Checklist Items", fontWeight = FontWeight.Bold)
                             checklistDrafts.forEachIndexed { index, draft ->
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     OutlinedTextField(
@@ -1252,7 +1333,7 @@ private fun HabitEditorDialog(
                                     ) { Icon(Icons.Outlined.DeleteOutline, contentDescription = "Remove ${draft.name.ifBlank { "item ${index + 1}" }}") }
                                 }
                             }
-                            OutlinedButton(
+                            WhipOutlinedButton(
                                 onClick = {
                                     checklistDrafts = ArrayList(checklistDrafts).also {
                                         it += HabitChecklistItemDraft("", it.size, uuid = java.util.UUID.randomUUID().toString())
@@ -1262,37 +1343,109 @@ private fun HabitEditorDialog(
                             ) {
                                 Icon(Icons.Filled.Add, contentDescription = null)
                                 Spacer(Modifier.width(6.dp))
-                                Text("Add checklist item")
+                                Text("Add Checklist Item")
                             }
                         }
                     }
                 }
-                if (showAdvanced) item { EnumDropdown("Target rule", TargetComparison.entries, comparison, TargetComparison::displayLabel) { comparison = it } }
-                if (comparison != TargetComparison.None) {
-                    if (mode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)) item {
-                        if (comparison == TargetComparison.WithinRange) {
-                            ResponsiveFieldPair(
-                                first = { field -> NumberTextField(targetMin, { targetMin = it }, "Minimum", field) },
-                                second = { field -> NumberTextField(targetMax, { targetMax = it }, "Maximum", field) },
-                            )
-                        } else NumberTextField(
-                            targetMin,
-                            { targetMin = it },
-                            if (showAdvanced) "Target" else when (targetPeriod) {
-                                TargetPeriod.Week -> "Target per week"
-                                TargetPeriod.Month -> "Target per month"
-                                TargetPeriod.Occurrence -> "Target each time"
-                                else -> "Target per day"
-                            },
+                if (sourceMetricId == null && mode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
+                    item {
+                        NumberTextField(quickIncrement, { quickIncrement = it }, "Quick increment")
+                        Text(
+                            "This is the amount added by the habit's one-tap logging action.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    if (showAdvanced) item {
-                        EnumChips("Target period", TargetPeriod.entries, targetPeriod, TargetPeriod::displayLabel) { targetPeriod = it }
-                        Text(targetPeriod.explanation(schedule), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (!quickIncrementValid) item {
+                        Text("Quick increment must be a positive number.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     }
-                    if (targetPeriod == TargetPeriod.RollingDays) item { NumberTextField(rollingDays, { rollingDays = it }, "Rolling-day window") }
                 }
-                item { EnumDropdown("Schedule", HabitScheduleType.entries, schedule, { it.scheduleLabel() }) { schedule = it } }
+                if (mode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)) {
+                    item {
+                        DependentSettingsNotice(
+                            message = if (mode == HabitTrackingMode.CheckOff) {
+                                "One check completes each scheduled occurrence. No numeric value is required."
+                            } else {
+                                "Completing every checklist item completes the scheduled occurrence. No numeric target is required."
+                            },
+                            testTag = "habit-checkoff-consequence",
+                        )
+                    }
+                } else {
+                    if (sourceMetricId == null && mode != HabitTrackingMode.Rating) {
+                        item {
+                            Text("Measurement Unit", fontWeight = FontWeight.Bold)
+                            Text(
+                                "This unit is used by targets, check-ins, and history.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        item {
+                            EnumDropdown("Measurement type", UnitDimension.entries, dimension, UnitDimension::uiLabel) { selected ->
+                                dimension = selected
+                                val units = BuiltInUnits.all + customUnits.filter { !it.archived || it.id == unitId }
+                                val preferred = defaults.preferredUnitId(selected)
+                                if (preferred != null && units.any { it.id == preferred && it.dimension == selected }) {
+                                    unitId = preferred
+                                }
+                                if (units.none { it.id == unitId && it.dimension == selected }) {
+                                    unitId = units.firstOrNull { it.dimension == selected }?.id ?: unitId
+                                }
+                            }
+                        }
+                        item {
+                            UnitSelectionField(
+                                units = BuiltInUnits.all + customUnits,
+                                selectedUnitId = unitId,
+                                dimension = dimension,
+                                onSelect = { unitId = it },
+                                onCreateUnit = onCreateCustomUnit,
+                                dialogModifier = dialogModifier,
+                            )
+                        }
+                        item { NumberTextField(precision, { precision = it }, "Decimal places (0–6)") }
+                    }
+                    item { EnumDropdown("Target rule", TargetComparison.entries, comparison, TargetComparison::displayLabel) { comparison = it } }
+                    if (comparison != TargetComparison.None) {
+                        item {
+                            if (comparison == TargetComparison.WithinRange) {
+                                ResponsiveFieldPair(
+                                    first = { field -> NumberTextField(targetMin, { targetMin = it }, "Minimum", field) },
+                                    second = { field -> NumberTextField(targetMax, { targetMax = it }, "Maximum", field) },
+                                )
+                            } else NumberTextField(
+                                targetMin,
+                                { targetMin = it },
+                                when (targetPeriod) {
+                                    TargetPeriod.Week -> "Target per week"
+                                    TargetPeriod.Month -> "Target per month"
+                                    TargetPeriod.Occurrence -> "Target each time"
+                                    else -> "Target per day"
+                                },
+                            )
+                        }
+                        item {
+                            EnumChips("Target period", TargetPeriod.entries, targetPeriod, TargetPeriod::displayLabel) { targetPeriod = it }
+                            Text(targetPeriod.explanation(schedule), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (targetPeriod == TargetPeriod.RollingDays) item { NumberTextField(rollingDays, { rollingDays = it }, "Rolling-day window") }
+                    }
+                }
+                item {
+                    EnumDropdown("Schedule", HabitScheduleType.entries, schedule, { it.scheduleLabel() }) { schedule = it }
+                    DependentSettingsNotice(
+                        message = when (schedule) {
+                            HabitScheduleType.EveryNDays -> "The interval that controls this schedule appears next."
+                            HabitScheduleType.SelectedWeekdays -> "Only the weekdays you select next create scheduled check-ins."
+                            HabitScheduleType.FlexibleTimesPerWeek -> "Set the allowed check-ins in Times per Week next."
+                            HabitScheduleType.FlexibleTimesPerMonth -> "Set the allowed check-ins in Times per Month next."
+                            else -> "This cadence controls when the habit is expected and when reminders can apply."
+                        },
+                        testTag = "habit-schedule-consequence",
+                    )
+                }
                 if (schedule == HabitScheduleType.EveryNDays) item { NumberTextField(interval, { interval = it }, "Every how many days?") }
                 if (schedule in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)) {
                     item { NumberTextField(flexible, { flexible = it }, if (schedule == HabitScheduleType.FlexibleTimesPerWeek) "Times per week" else "Times per month") }
@@ -1305,18 +1458,11 @@ private fun HabitEditorDialog(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             orderedHabitWeekdays(weekStart).forEach { day ->
-                                FilterChip(selected = day in weekdays, onClick = { weekdays = if (day in weekdays) weekdays - day else weekdays + day }, label = { Text(day.name.take(2)) })
+                                WhipFilterChip(selected = day in weekdays, onClick = { weekdays = if (day in weekdays) weekdays - day else weekdays + day }, label = { Text(day.name.take(2)) })
                             }
                         }
                     }
                 }
-                if (showAdvanced && mode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.LimitAvoid)) {
-                    item { NumberTextField(quickIncrement, { quickIncrement = it }, "Quick increment") }
-                    if (!quickIncrementValid) item {
-                        Text("Quick increment must be a positive number.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-                if (intent == HabitIntent.Avoid) item { EnumDropdown("Missing-data policy", AvoidMissingPolicy.entries, avoidPolicy, { it.name }) { avoidPolicy = it } }
                 item {
                     AreaPicker(
                         areas = areas,
@@ -1330,66 +1476,16 @@ private fun HabitEditorDialog(
                     )
                 }
                 item {
-                    TextButton(onClick = { showAdvanced = !showAdvanced }, modifier = Modifier.fillMaxWidth()) {
-                        Text(if (showAdvanced) "Hide advanced options" else "Show advanced options", modifier = Modifier.fillMaxWidth())
-                    }
+                    DisclosureButton(
+                        label = "Advanced options",
+                        expanded = showAdvanced,
+                        onClick = { showAdvanced = !showAdvanced },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
                 if (showAdvanced) {
-                    if (sourceMetrics.isNotEmpty()) item {
-                        EnumDropdown(
-                            "Data source",
-                            listOf<MetricDefinition?>(null) + sourceMetrics,
-                            sourceMetrics.firstOrNull { it.id == sourceMetricId },
-                            { metric -> metric?.let { "Health Connect · ${it.name}" } ?: "Manual check-ins" },
-                        ) { selected ->
-                            sourceMetricId = selected?.id
-                            if (selected != null) {
-                                dimension = selected.dimension
-                                unitId = selected.defaultUnitId
-                                precision = selected.precision.toString()
-                                mode = when (selected.valueKind) {
-                                    MetricValueKind.Integer -> HabitTrackingMode.Count
-                                    MetricValueKind.Duration -> HabitTrackingMode.Duration
-                                    else -> HabitTrackingMode.Decimal
-                                }
-                            }
-                        }
-                        Text(
-                            "Imported records are read-only here. Updates and deletions from Health Connect reconcile by source ID without double counting.",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                    item { Text("Choose a built-in unit or one created under Settings > Custom units.") }
                     item { OutlinedTextField(tags, { tags = it }, label = { Text("Tags, comma-separated") }, modifier = Modifier.fillMaxWidth()) }
-                    item { OutlinedTextField(colorHex, { colorHex = it }, label = { Text("Color, #RRGGBB or #AARRGGBB") }, modifier = Modifier.fillMaxWidth()) }
-                    item {
-                        EnumDropdown("Unit dimension", UnitDimension.entries, dimension, { it.name }) { selected ->
-                            dimension = selected
-                            val units = BuiltInUnits.all + customUnits.filter { !it.archived || it.id == unitId }
-                            val preferred = defaults.preferredUnitId(selected)
-                            if (preferred != null && units.any { it.id == preferred && it.dimension == selected }) {
-                                unitId = preferred
-                            }
-                            if (units.none { it.id == unitId && it.dimension == selected }) {
-                                unitId = units.firstOrNull { it.dimension == selected }?.id ?: unitId
-                            }
-                        }
-                    }
-                    val compatibleUnits = (BuiltInUnits.all + customUnits).filter {
-                        it.dimension == dimension && (!it.archived || it.id == unitId)
-                    }
-                    if (compatibleUnits.isNotEmpty()) {
-                        item {
-                            EnumDropdown(
-                                "Saved unit",
-                                compatibleUnits,
-                                compatibleUnits.firstOrNull { it.id == unitId } ?: compatibleUnits.first(),
-                                ::unitDefinitionLabel,
-                            ) { unitId = it.id }
-                        }
-                    }
-                    item { NumberTextField(precision, { precision = it }, "Decimal places (0–6)") }
-                    item {
+                    if (sourceMetricId == null) item {
                         NumericQuickActionBuilder(
                             values = quickActionResult.values,
                             increment = quickIncrement,
@@ -1416,21 +1512,16 @@ private fun HabitEditorDialog(
                             weekdayReminders = formatWeekdayReminderMap(updated)
                         }
                     }
-                    item {
-                        ResponsiveFieldPair(
-                            first = { field -> ClockPickerButton("Earliest check-in", parseClockMinutes(windowStart), { windowStart = it?.let(::formatClockMinutes).orEmpty() }, field) },
-                            second = { field -> ClockPickerButton("Latest check-in", parseClockMinutes(windowEnd), { windowEnd = it?.let(::formatClockMinutes).orEmpty() }, field) },
-                        )
-                    }
                     item { EnumDropdown("End condition", HabitEndType.entries, endType, { it.scheduleLabel() }) { endType = it } }
-                    if (endType == HabitEndType.OnDate) item { OutlinedButton(onClick = { showEndDatePicker = true }, modifier = Modifier.fillMaxWidth()) { Text(endDate?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "Choose end date") } }
+                    if (endType == HabitEndType.OnDate) item { WhipOutlinedButton(onClick = { showEndDatePicker = true }, modifier = Modifier.fillMaxWidth()) { Text(endDate?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "Choose End Date") } }
                     if (endType in setOf(HabitEndType.AfterStreak, HabitEndType.AfterCompletions, HabitEndType.AfterTotal)) item { NumberTextField(endValue, { endValue = it }, when (endType) { HabitEndType.AfterStreak -> "End after streak"; HabitEndType.AfterCompletions -> "End after completions"; else -> "End after total" }) }
                     item { EnumDropdown("First day of week", DayOfWeek.entries, weekStart, { it.name.lowercase().replaceFirstChar(Char::uppercase) }) { weekStart = it } }
+                    item { OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth()) }
                 }
             }
         },
         confirmButton = {
-            TextButton(
+            WhipTextButton(
                 enabled = name.isNotBlank() && quickActionResult.error == null && quickIncrementValid && !saving,
                 onClick = {
                     val draft = HabitDraft(
@@ -1439,9 +1530,7 @@ private fun HabitEditorDialog(
                             areaId = areaId,
                             area = area,
                             tags = tags.split(',').map(String::trim).filter(String::isNotBlank),
-                            icon = icon.ifBlank { "✓" },
-                            colorArgb = parseColorArgb(colorHex),
-                            intent = intent,
+                            icon = icon.ifBlank { "○" },
                             trackingMode = mode,
                             dimension = dimension,
                             unitId = unitId,
@@ -1459,14 +1548,11 @@ private fun HabitEditorDialog(
                             endType = endType,
                             endDate = endDate,
                             endValue = endValue.toWhipDoubleOrNull(),
-                            timeWindowStartMinutes = parseClockMinutes(windowStart),
-                            timeWindowEndMinutes = parseClockMinutes(windowEnd),
                             quickIncrement = quickIncrement.toWhipDoubleOrNull() ?: 1.0,
                             quickActions = quickActionResult.values,
                             reminderMinutes = reminders.split(',').mapNotNull { parseClockMinutes(it.trim()) },
                             weekdayReminderMinutes = parseWeekdayReminderMap(weekdayReminders),
                             weekStart = weekStart,
-                            avoidMissingPolicy = avoidPolicy,
                             checklistItems = checklistDrafts.filter { it.name.isNotBlank() }
                                 .mapIndexed { index, item -> item.copy(name = item.name.trim(), position = index) },
                             sourceMetricId = sourceMetricId,
@@ -1475,7 +1561,7 @@ private fun HabitEditorDialog(
                 },
             ) { Text(if (saving) "Saving…" else "Save") }
         },
-        dismissButton = { TextButton(onClick = requestDismiss, enabled = !saving) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = requestDismiss, enabled = !saving) { Text("Cancel") } },
     )
     if (showEndDatePicker) WhipDatePickerDialog(endDate ?: today, { showEndDatePicker = false }, { endDate = it; showEndDatePicker = false })
     if (showDiscardConfirmation) {
@@ -1506,14 +1592,14 @@ internal fun HabitValueDialog(item: HabitDayProgress, onDismiss: () -> Unit, onL
                     ) {
                         item.habit.quickActions.forEach { quick ->
                             val label = editableNumericValue(quick)
-                            TextButton(onClick = { value = label }) { Text(label) }
+                            WhipTextButton(onClick = { value = label }) { Text(label) }
                         }
                     }
                 }
             }
         },
-        confirmButton = { TextButton(enabled = value.toWhipDoubleOrNull()?.isFinite() == true, onClick = { onLog(requireNotNull(value.toWhipDoubleOrNull()), note) }) { Text("Set") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { WhipTextButton(enabled = value.toWhipDoubleOrNull()?.isFinite() == true, onClick = { onLog(requireNotNull(value.toWhipDoubleOrNull()), note) }) { Text("Set") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -1536,7 +1622,7 @@ private fun HabitHistoryLogDialog(
         item.habit.trackingMode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (log == null) "Add past ${item.habit.name} entry" else "Edit ${item.habit.name} entry") },
+        title = { Text(if (log == null) "Add Past ${item.habit.name} Entry" else "Edit ${item.habit.name} Entry") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 EnumDropdown("State", HabitLogStatus.entries, status, { it.name }) { selected ->
@@ -1550,14 +1636,14 @@ private fun HabitHistoryLogDialog(
                         "Value (${(log?.enteredUnitId ?: item.habit.unitId).unitLabel()})",
                     )
                 }
-                OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
+                WhipOutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
                 }
                 OutlinedTextField(note, { note = it }, label = { Text("Optional note") }, modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
-            TextButton(
+            WhipTextButton(
                 enabled = !requiresValue || value.toWhipDoubleOrNull() != null,
                 onClick = {
                     val effective = value.toWhipDoubleOrNull()
@@ -1568,8 +1654,8 @@ private fun HabitHistoryLogDialog(
         },
         dismissButton = {
             Row {
-                if (onDelete != null) TextButton(onClick = onDelete) { Text("Delete") }
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                if (onDelete != null) WhipTextButton(onClick = onDelete) { Text("Delete") }
+                WhipTextButton(onClick = onDismiss) { Text("Cancel") }
             }
         },
     )
@@ -1629,50 +1715,50 @@ private fun HabitActionsDialog(
                             "Skip today" to onSkip,
                             "Excuse today" to onExcuse,
                             "Mark today missing" to onMissing,
-                        ).forEach { (label, action) -> TextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text(label, modifier = Modifier.fillMaxWidth()) } }
+                        ).forEach { (label, action) -> WhipTextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text(label) } }
                     }
                     HabitDetailSection.History -> {
-                        TextButton(onClick = onAddHistoricalLog, modifier = Modifier.fillMaxWidth()) { Text("Add backdated entry", modifier = Modifier.fillMaxWidth()) }
+                        WhipTextButton(onClick = onAddHistoricalLog, modifier = Modifier.fillMaxWidth()) { Text("Add Backdated Entry") }
                         if (logs.isEmpty()) Text("No entries yet.") else {
-                            Text("Recent entries", style = MaterialTheme.typography.labelMedium)
+                            Text("Recent Entries", style = MaterialTheme.typography.labelMedium)
                             val orderedLogs = logs.sortedByDescending(HabitLog::timestamp)
                             orderedLogs.take(visibleLogs).forEach { log ->
-                                TextButton(onClick = { onEditLog(log) }, modifier = Modifier.fillMaxWidth()) {
+                                WhipTextButton(onClick = { onEditLog(log) }, modifier = Modifier.fillMaxWidth()) {
                                     Text(
                                         "${log.localDate}: ${log.value?.let { formatHabitValue(it, item.habit.precision) } ?: log.status.name}${if (log.note.isBlank()) "" else " · ${log.note}"}",
                                         modifier = Modifier.fillMaxWidth(),
                                     )
                                 }
                             }
-                            if (visibleLogs < orderedLogs.size) TextButton(
+                            if (visibleLogs < orderedLogs.size) WhipTextButton(
                                 onClick = { visibleLogs = (visibleLogs + 25).coerceAtMost(orderedLogs.size) },
                                 modifier = Modifier.fillMaxWidth(),
-                            ) { Text("Show 25 more · ${orderedLogs.size - visibleLogs} remaining") }
+                            ) { Text("Show 25 More · ${orderedLogs.size - visibleLogs} Remaining") }
                         }
                     }
                     HabitDetailSection.Connections -> {
                         if (linkedGoals.isEmpty()) Text("This habit does not feed any goals yet.")
                         else Text("Feeds: ${linkedGoals.distinct().joinToString()}", style = MaterialTheme.typography.bodyMedium)
-                        if (!item.habit.archived) TextButton(onClick = onLinkGoal, modifier = Modifier.fillMaxWidth()) { Text("Link to a goal", modifier = Modifier.fillMaxWidth()) }
+                        if (!item.habit.archived) WhipTextButton(onClick = onLinkGoal, modifier = Modifier.fillMaxWidth()) { Text("Link to a Goal") }
                     }
                     HabitDetailSection.More -> {
                         if (!item.habit.archived) {
                             listOf(
                                 "Duplicate" to onDuplicate,
                                 (if (item.habit.pinned) "Unpin" else "Pin") to onPin,
-                            ).forEach { (label, action) -> TextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text(label, modifier = Modifier.fillMaxWidth()) } }
+                            ).forEach { (label, action) -> WhipTextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text(label) } }
                         }
-                        TextButton(onClick = onArchive, modifier = Modifier.fillMaxWidth()) {
-                            Text(if (item.habit.archived) "Restore" else "Archive", modifier = Modifier.fillMaxWidth())
+                        WhipTextButton(onClick = onArchive, modifier = Modifier.fillMaxWidth()) {
+                            Text(if (item.habit.archived) "Restore" else "Archive")
                         }
-                        TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
-                            Text("Delete permanently", modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.error)
+                        WhipTextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
+                            Text("Delete Permanently", color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        confirmButton = { WhipTextButton(onClick = onDismiss) { Text("Close") } },
         dismissButton = { DetailEditButton("Edit habit", onEdit) },
     )
 }
@@ -1681,7 +1767,7 @@ private enum class HabitDetailSection(val label: String) {
     Today("Today"),
     History("History"),
     Connections("Connections"),
-    More("More"),
+    More("Options"),
 }
 
 @Composable
@@ -1697,11 +1783,11 @@ private fun HabitGoalLinkDialog(
     var includeHistory by rememberSaveable(habit.id) { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Link ${habit.name} to a goal") },
+        title = { Text("Link ${habit.name} to a Goal") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (goals.isEmpty()) Text("Create an active goal first.") else {
-                    EnumDropdown("Goal", goals, selected ?: goals.first(), { it.goal.name }) { selectedGoalId = it.goal.id }
+                    EnumDropdown("Goal", goals, selected ?: goals.first(), { it.goal.name }, titleCaseValues = false) { selectedGoalId = it.goal.id }
                     EnumDropdown("Contribution", listOf(LinkSourceMetric.NumericValue, LinkSourceMetric.Success), metric, {
                         if (it == LinkSourceMetric.Success) "Add one when successful" else "Use logged numeric value"
                     }) { metric = it }
@@ -1713,8 +1799,8 @@ private fun HabitGoalLinkDialog(
                 }
             }
         },
-        confirmButton = { TextButton(enabled = selected != null, onClick = { onSave(requireNotNull(selected), metric, includeHistory) }) { Text("Create link") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { WhipTextButton(enabled = selected != null, onClick = { onSave(requireNotNull(selected), metric, includeHistory) }) { Text("Create Link") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -1727,14 +1813,14 @@ private fun HabitPauseDialog(today: LocalDate, onDismiss: () -> Unit, onSave: (L
     var pickingEnd by rememberSaveable { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Schedule habit pause") },
+        title = { Text("Schedule Habit Pause") },
         text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { pickingStart = true }) { Text("Start ${start.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}") }
-            OutlinedButton(onClick = { pickingEnd = true }) { Text(end?.let { "End ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" } ?: "No end date") }
+            WhipOutlinedButton(onClick = { pickingStart = true }) { Text("Start ${start.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}") }
+            WhipOutlinedButton(onClick = { pickingEnd = true }) { Text(end?.let { "End ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" } ?: "No End Date") }
             OutlinedTextField(note, { note = it }, label = { Text("Optional note") })
         } },
-        confirmButton = { TextButton(enabled = end == null || !requireNotNull(end).isBefore(start), onClick = { onSave(start, end, note) }) { Text("Save pause") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { WhipTextButton(enabled = end == null || !requireNotNull(end).isBefore(start), onClick = { onSave(start, end, note) }) { Text("Save Pause") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
     if (pickingStart) WhipDatePickerDialog(start, { pickingStart = false }, { start = it; pickingStart = false })
     if (pickingEnd) WhipDatePickerDialog(end ?: start, { pickingEnd = false }, { end = it; pickingEnd = false })
@@ -1757,15 +1843,23 @@ private fun TargetPeriod.displayLabel(): String = when (this) {
 }
 
 @Composable
-private fun <T> EnumDropdown(label: String, values: List<T>, selected: T, text: (T) -> String, onSelect: (T) -> Unit) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    Column {
-        Text(label, style = MaterialTheme.typography.labelMedium)
-        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(text(selected)) }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            values.forEach { value -> DropdownMenuItem(text = { Text(text(value)) }, onClick = { onSelect(value); expanded = false }) }
-        }
-    }
+private fun <T> EnumDropdown(
+    label: String,
+    values: List<T>,
+    selected: T,
+    text: (T) -> String,
+    titleCaseValues: Boolean = true,
+    enabled: Boolean = true,
+    onSelect: (T) -> Unit,
+) {
+    SelectionField(
+        label = label,
+        values = values,
+        selected = selected,
+        valueText = { value -> text(value).let { if (titleCaseValues) it.uiTitleCase() else it } },
+        enabled = enabled,
+        onSelect = onSelect,
+    )
 }
 
 @Composable
@@ -1777,40 +1871,20 @@ private fun <T> EnumChips(label: String, values: List<T>, selected: T, text: (T)
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            values.forEach { value -> FilterChip(selected = selected == value, onClick = { onSelect(value) }, label = { Text(text(value)) }) }
+            values.forEach { value -> WhipFilterChip(selected = selected == value, onClick = { onSelect(value) }, label = { Text(text(value).uiTitleCase()) }) }
         }
     }
 }
 
 @Composable
-private fun NumberTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier) {
-    OutlinedTextField(value, onValueChange, label = { Text(label) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = modifier.fillMaxWidth())
-}
-
-private fun HabitTrackingMode.label() = name.replace(Regex("([a-z])([A-Z])"), "$1 $2")
-private fun HabitTrackingMode.setupLabel(): String = when (this) {
-    HabitTrackingMode.CheckOff -> "Done"
-    HabitTrackingMode.Count -> "Count"
-    HabitTrackingMode.Decimal -> "Measurement"
-    HabitTrackingMode.Duration -> "Timer"
-    HabitTrackingMode.Checklist -> "Checklist"
-    HabitTrackingMode.Rating -> "Rating"
-    HabitTrackingMode.LimitAvoid -> "Limit"
-    HabitTrackingMode.LogOnly -> "Log only"
-}
-
-private fun HabitIntent.displayLabel(): String = when (this) {
-    HabitIntent.Build -> "Build"
-    HabitIntent.Limit -> "Limit"
-    HabitIntent.Avoid -> "Avoid"
-    HabitIntent.Observe -> "Observe"
-}
-
-private fun HabitIntent.explanation(): String = when (this) {
-    HabitIntent.Build -> "Practice or increase this behavior."
-    HabitIntent.Limit -> "Stay at or below a chosen amount."
-    HabitIntent.Avoid -> "Treat the behavior as something to avoid."
-    HabitIntent.Observe -> "Record it without judging success or failure."
+private fun NumberTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    OutlinedTextField(value, onValueChange, label = { Text(label) }, enabled = enabled, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = modifier.fillMaxWidth())
 }
 
 private fun TargetPeriod.explanation(schedule: HabitScheduleType): String = when (this) {
@@ -1827,7 +1901,13 @@ private fun HabitScheduleType.scheduleLabel(): String = when (this) {
     HabitScheduleType.FlexibleTimesPerWeek -> "Flexible times per week"
     HabitScheduleType.FlexibleTimesPerMonth -> "Flexible times per month"
 }
-private fun HabitEndType.scheduleLabel() = name.replace(Regex("([a-z])([A-Z])"), "$1 $2")
+private fun HabitEndType.scheduleLabel(): String = when (this) {
+    HabitEndType.Never -> "Never"
+    HabitEndType.OnDate -> "On date"
+    HabitEndType.AfterStreak -> "After streak"
+    HabitEndType.AfterCompletions -> "After completions"
+    HabitEndType.AfterTotal -> "After total"
+}
 private fun parseClockMinutes(value: String): Int? {
     val parts = value.split(':')
     val hours = parts.getOrNull(0)?.toIntOrNull() ?: return null
@@ -1858,6 +1938,4 @@ internal fun formatWeekdayReminderMap(value: Map<DayOfWeek, List<Int>>): String 
 private fun orderedHabitWeekdays(first: DayOfWeek): List<DayOfWeek> =
     (0..6).map { offset -> DayOfWeek.of((first.value - 1 + offset) % 7 + 1) }
 private fun String.unitLabel() = when (this) { "count" -> ""; "second" -> "sec"; "unitless" -> ""; "kilogram" -> "kg"; "pound" -> "lb"; "litre" -> "L"; "millilitre" -> "mL"; "fluid_ounce" -> "fl oz"; else -> this }
-private fun unitDefinitionLabel(unit: UnitDefinition): String =
-    "${unit.name}${unit.symbol.takeIf(String::isNotBlank)?.let { " ($it)" }.orEmpty()}"
 internal fun formatHabitValue(value: Double, precision: Int): String = String.format(Locale.getDefault(), "%.${precision.coerceIn(0, 4)}f", value)

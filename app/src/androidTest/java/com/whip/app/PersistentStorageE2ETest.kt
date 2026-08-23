@@ -15,7 +15,6 @@ import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalDraft
-import com.whip.app.domain.GoalEntryMode
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitTrackingMode
@@ -87,7 +86,6 @@ class PersistentStorageE2ETest {
                 targetMin = 100.0,
                 startDate = FixedClock.today(),
                 aggregation = GoalAggregation.Sum,
-                entryMode = GoalEntryMode.AmountToAdd,
             ),
         )
         first.goals.recordMeasurement(goalId, 12.0, note = "Local database")

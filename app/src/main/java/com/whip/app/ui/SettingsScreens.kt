@@ -10,23 +10,26 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.health.connect.client.PermissionController
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -35,12 +38,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,7 +70,6 @@ import com.whip.app.core.HealthDataType
 import com.whip.app.core.ReviewPeriod
 import com.whip.app.core.zoneId
 import com.whip.app.domain.RepeatStepPolicy
-import com.whip.app.domain.AvoidMissingPolicy
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.toWhipDoubleOrNull
@@ -88,12 +90,13 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
-private enum class SettingsSection(val label: String) {
-    General("General"),
-    Organization("Organization"),
-    Reminders("Reminders"),
-    Data("Data & backup"),
-    Health("Health & privacy"),
+private enum class SettingsSection(val label: String, val supportingText: String) {
+    Appearance("Appearance & Home", "Theme, presentation, home sections, and keyboard shortcuts"),
+    Planning("Planning & Units", "Dates, units, numbers, effort, recurring tasks, and review defaults"),
+    Organization("Organization", "Areas, tags, and naming systems"),
+    Reminders("Reminders & Integrations", "Notification health, reminder behavior, and Health Connect"),
+    DataPrivacy("Data & Privacy", "Local data, backups, restore, export, and deletion"),
+    Advanced("Advanced", "Diagnostics and less commonly changed controls"),
 }
 
 @Composable
@@ -120,7 +123,8 @@ fun SettingsContent(
     var exportPassphraseConfirmation by remember { mutableStateOf("") }
     var pendingExportPassphrase by remember { mutableStateOf<String?>(null) }
     var restorePassphrase by remember { mutableStateOf("") }
-    var section by rememberSaveable { mutableStateOf(SettingsSection.General) }
+    var section by rememberSaveable { mutableStateOf(SettingsSection.Appearance) }
+    var compactSectionOpen by rememberSaveable { mutableStateOf(false) }
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         diagnosticRefresh++
     }
@@ -167,60 +171,106 @@ fun SettingsContent(
     LaunchedEffect(firstRunBackupRequest) {
         when (firstRunBackupRequest) {
             "Encrypted" -> {
-                section = SettingsSection.Data
+                section = SettingsSection.DataPrivacy
+                compactSectionOpen = true
                 showEncryptedExport = true
                 onFirstRunBackupRequestConsumed()
             }
             "Plaintext" -> {
-                section = SettingsSection.Data
+                section = SettingsSection.DataPrivacy
+                compactSectionOpen = true
                 pendingExport = ExportKind.Backup
                 createDocument.launch("whip-${LocalDate.now(settings.zoneId())}.whip.json")
                 onFirstRunBackupRequestConsumed()
             }
         }
     }
-    Column(Modifier.fillMaxSize().padding(innerPadding)) {
+    BoxWithConstraints(Modifier.fillMaxSize().padding(innerPadding)) {
+        val wideSettingsNavigation = maxWidth >= 840.dp
+        if (!wideSettingsNavigation && !compactSectionOpen) {
+            Column(Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    WhipPageHeader(
+                        title = "Settings",
+                        supportingText = "Choose a category. Changes save automatically.",
+                    )
+                }
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().testTag("settings-category-list"),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    items(SettingsSection.entries.size) { index ->
+                        val choice = SettingsSection.entries[index]
+                        NavigationRow(
+                            title = choice.label,
+                            supportingText = choice.supportingText,
+                            onClick = { section = choice; compactSectionOpen = true },
+                            modifier = Modifier.testTag("settings-section-${choice.label}"),
+                        )
+                    }
+                }
+            }
+            return@BoxWithConstraints
+        }
+        BackHandler(enabled = !wideSettingsNavigation && compactSectionOpen) {
+            compactSectionOpen = false
+        }
+    Column(Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text("Local preferences, data controls, defaults, and export.")
-            Text(
-                "${if (BuildConfig.DEBUG) "Development" else "Release"} · ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) · ${context.packageName}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag("about-build-identity"),
+            WhipPageHeader(
+                title = if (wideSettingsNavigation) "Settings" else section.label,
+                supportingText = if (wideSettingsNavigation) {
+                    "Local preferences, data controls, defaults, and export."
+                } else {
+                    "Settings"
+                },
+                actions = {
+                    if (!wideSettingsNavigation) {
+                        WhipTextButton(onClick = { compactSectionOpen = false }) { Text("All Settings") }
+                    }
+                },
             )
-            androidx.compose.foundation.layout.FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+        }
+        Row(Modifier.fillMaxWidth().weight(1f)) {
+        if (wideSettingsNavigation) {
+            Column(
+                modifier = Modifier.width(240.dp).fillMaxHeight().padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 SettingsSection.entries.forEach { choice ->
-                    androidx.compose.material3.FilterChip(
+                    NavigationDrawerItem(
+                        label = { Text(choice.label) },
                         selected = section == choice,
                         onClick = { section = choice },
-                        label = { Text(choice.label) },
+                        modifier = Modifier.testTag("settings-section-${choice.label}"),
                     )
                 }
             }
+            VerticalDivider()
         }
         LazyColumn(
-            modifier = Modifier.fillMaxWidth().weight(1f).testTag("settings-list"),
+            modifier = Modifier.weight(1f).fillMaxHeight().testTag("settings-list"),
             contentPadding = PaddingValues(20.dp, 0.dp, 20.dp, 96.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
         if (state.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
-        state.message?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.primary); TextButton(onClick = viewModel::consumeMessage) { Text("Dismiss") } } }
+        state.message?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.primary); WhipTextButton(onClick = viewModel::consumeMessage) { Text("Dismiss") } } }
 
-        if (section == SettingsSection.General) {
+        if (section == SettingsSection.Appearance) {
         item { SettingsHeading("Appearance and Home") }
         item { SettingsToggle("Power mode (surface advanced controls sooner)", settings.powerMode) { selected -> viewModel.update { it.copy(powerMode = selected) } } }
         item { SettingsToggle("Low-pressure presentation", settings.lowPressureMode) { selected -> viewModel.update { it.copy(lowPressureMode = selected) } } }
         if (settings.powerMode) item {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Hardware keyboard", fontWeight = FontWeight.Bold)
+                    Text("Hardware Keyboard", fontWeight = FontWeight.Bold)
                     Text("Ctrl+K search · Ctrl+N contextual add · Ctrl+1–5 switch Home, Tasks, Habits, Goals, Gym", style = MaterialTheme.typography.bodySmall)
                 }
             }
@@ -234,7 +284,11 @@ fun SettingsContent(
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Switch(checked = section !in settings.hiddenHomeSections, onCheckedChange = { visible -> viewModel.update { current -> current.copy(hiddenHomeSections = if (visible) current.hiddenHomeSections - section else current.hiddenHomeSections + section) } })
                             Text(section.name, modifier = Modifier.weight(1f).padding(start = 8.dp), fontWeight = FontWeight.SemiBold)
-                            TextButton(onClick = { viewModel.update { current -> current.copy(collapsedHomeSections = if (section in current.collapsedHomeSections) current.collapsedHomeSections - section else current.collapsedHomeSections + section) } }) { Text(if (section in settings.collapsedHomeSections) "Expand" else "Collapse") }
+                            DisclosureButton(
+                                label = "Content",
+                                expanded = section !in settings.collapsedHomeSections,
+                                onClick = { viewModel.update { current -> current.copy(collapsedHomeSections = if (section in current.collapsedHomeSections) current.collapsedHomeSections - section else current.collapsedHomeSections + section) } },
+                            )
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                             IconButton(enabled = index > 0, onClick = { viewModel.moveHomeSection(section, -1) }, modifier = Modifier.size(48.dp)) {
@@ -249,7 +303,10 @@ fun SettingsContent(
             }
         }
 
-        item { SettingsHeading("Date, units, and numbers") }
+        }
+
+        if (section == SettingsSection.Planning) {
+        item { SettingsHeading("Date and Number Defaults") }
         item { SettingsDropdown("First day of week", DayOfWeek.entries, settings.firstDayOfWeek, { it.name.lowercase().replaceFirstChar(Char::uppercase) }) { selected -> viewModel.update { it.copy(firstDayOfWeek = selected) } } }
         item {
             val followDevice = settings.timeZoneId == null
@@ -264,6 +321,8 @@ fun SettingsContent(
             Text("Active time zone: ${settings.zoneId().id}. Historical entries keep their saved local date and offset.", style = MaterialTheme.typography.bodySmall)
         }
         item { ClockSetting("Late-night day cutoff", settings.dayCutoffMinutes) { minutes -> viewModel.update { it.copy(dayCutoffMinutes = minutes) } } }
+        item { NumberSetting("Default decimal precision", settings.numberPrecision) { value -> viewModel.update { it.copy(numberPrecision = value.coerceIn(0, 6)) } } }
+        item { SettingsHeading("Unit Defaults") }
         item { UnitSetting("Mass", listOf("kilogram", "pound", "gram"), settings.massUnitId) { value -> viewModel.update { it.copy(massUnitId = value) } } }
         item { UnitSetting("Distance", listOf("kilometre", "mile", "distance_m"), settings.distanceUnitId) { value -> viewModel.update { it.copy(distanceUnitId = value) } } }
         item { UnitSetting("Volume", listOf("litre", "millilitre", "cup", "fluid_ounce"), settings.volumeUnitId) { value -> viewModel.update { it.copy(volumeUnitId = value) } } }
@@ -276,11 +335,10 @@ fun SettingsContent(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        item { NumberSetting("Default decimal precision", settings.numberPrecision) { value -> viewModel.update { it.copy(numberPrecision = value.coerceIn(0, 6)) } } }
         item {
-            Text("Custom units", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Custom Units", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
-                "Custom units are not limited to drinks. Choose a dimension first—mass units convert to kilograms, volume units to millilitres, distance units to metres, and so on.",
+                "Create reusable units for Habits and Goals. Choose a measurement type and define how one custom unit converts to Whip's base unit.",
                 style = MaterialTheme.typography.bodySmall,
             )
             if (state.customUnits.isEmpty()) Text("No custom conversion units yet.", style = MaterialTheme.typography.bodySmall)
@@ -296,20 +354,24 @@ fun SettingsContent(
                             style = MaterialTheme.typography.bodySmall,
                         )
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            TextButton(onClick = { renameUnitId = unit.id }, modifier = Modifier.weight(1f)) { Text("Rename") }
-                            TextButton(onClick = { versionUnitId = unit.id }, modifier = Modifier.weight(1f)) { Text("New version") }
-                            TextButton(onClick = { viewModel.setCustomUnitArchived(unit.id, !unit.archived) }, modifier = Modifier.weight(1f)) {
+                            WhipTextButton(onClick = { renameUnitId = unit.id }, modifier = Modifier.weight(1f)) { Text("Rename") }
+                            WhipTextButton(onClick = { versionUnitId = unit.id }, modifier = Modifier.weight(1f)) { Text("New Version") }
+                            WhipTextButton(onClick = { viewModel.setCustomUnitArchived(unit.id, !unit.archived) }, modifier = Modifier.weight(1f)) {
                                 Text(if (unit.archived) "Restore" else "Archive")
                             }
                         }
                     }
                 }
             }
-            OutlinedButton(onClick = { createUnit = true }, modifier = Modifier.fillMaxWidth()) { Text("Create custom unit") }
+            WhipOutlinedButton(onClick = { createUnit = true }, modifier = Modifier.fillMaxWidth()) { Text("Create Custom Unit") }
         }
+        item { SettingsHeading("Review Defaults") }
         item { SettingsDropdown("Default review period", ReviewPeriod.entries, settings.reviewPeriod, { it.name }) { value -> viewModel.update { it.copy(reviewPeriod = value) } } }
 
-        item { SettingsHeading("Tasks") }
+        }
+
+        if (section == SettingsSection.Planning) {
+        item { SettingsHeading("Task Defaults") }
         item {
             SettingsToggle(
                 "Show every repeating occurrence in Upcoming",
@@ -334,7 +396,7 @@ fun SettingsContent(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        item { SettingsDropdown("Repeating-task subtask default", RepeatStepPolicy.entries, settings.defaultTaskStepPolicy, { it.name }) { value -> viewModel.update { it.copy(defaultTaskStepPolicy = value) } } }
+        item { SettingsDropdown("Repeating-task subtask default", RepeatStepPolicy.entries, settings.defaultTaskStepPolicy, RepeatStepPolicy::uiLabel) { value -> viewModel.update { it.copy(defaultTaskStepPolicy = value) } } }
         item {
             SettingsToggle("Enable smart task capture", settings.naturalLanguageTaskCapture) { value ->
                 viewModel.update { it.copy(naturalLanguageTaskCapture = value) }
@@ -344,13 +406,26 @@ fun SettingsContent(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
+        item { SettingsHeading("Habit Defaults") }
         item { SettingsDropdown("Habit week starts", DayOfWeek.entries, settings.defaultHabitWeekStart, { it.name.lowercase().replaceFirstChar(Char::uppercase) }) { value -> viewModel.update { it.copy(defaultHabitWeekStart = value) } } }
-        item { SettingsDropdown("Avoid-habit missing-day default", AvoidMissingPolicy.entries, settings.defaultAvoidMissingPolicy, { it.name }) { value -> viewModel.update { it.copy(defaultAvoidMissingPolicy = value) } } }
+        }
 
-        item { SettingsHeading("Gym defaults") }
+        if (section == SettingsSection.Planning) {
+        item { SettingsHeading("Gym Defaults") }
         item { SettingsDropdown("Estimated 1RM formula", listOf("Epley", "Brzycki"), settings.oneRepMaxFormula, { it }) { value -> viewModel.update { it.copy(oneRepMaxFormula = value) } } }
         item { NumberSetting("Estimated 1RM rep cutoff", settings.oneRepMaxRepCutoff) { value -> viewModel.update { it.copy(oneRepMaxRepCutoff = value.coerceIn(1, 36)) } } }
         item { NumberSetting("Default rest seconds", settings.defaultRestSeconds) { value -> viewModel.update { it.copy(defaultRestSeconds = value.coerceAtLeast(0)) } } }
+        item {
+            Text(
+                "Rest presets · ${settings.restTimerPresetSeconds.joinToString(" · ") { seconds -> "%d:%02d".format(seconds / 60, seconds % 60) }}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                "During a workout, choose Rest > Adjust > Manage Presets to add, remove, or restore shortcuts.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         item { SettingsToggle("Rest timer sound", settings.timerSound) { value -> viewModel.update { it.copy(timerSound = value) } }; SettingsToggle("Rest timer vibration", settings.timerVibration) { value -> viewModel.update { it.copy(timerVibration = value) } }; SettingsToggle("Keep workout screen awake by default", settings.keepScreenAwake) { value -> viewModel.update { it.copy(keepScreenAwake = value) } } }
         item { SettingsToggle("Use compact workout set rows", settings.gymCompactSetRows) { value -> viewModel.update { it.copy(gymCompactSetRows = value) } } }
         item {
@@ -361,16 +436,20 @@ fun SettingsContent(
                 }
                 viewModel.update { it.copy(restTimerAutoStart = value) }
             }
-            SettingsToggle("Show RPE fields", settings.showGymRpe) { value -> viewModel.update { it.copy(showGymRpe = value) } }
-            SettingsToggle("Show RIR fields", settings.showGymRir) { value -> viewModel.update { it.copy(showGymRir = value) } }
+            SettingsToggle("Use RPE for workout effort", settings.showGymRpe) { value ->
+                viewModel.update { it.copy(showGymRpe = value, showGymRir = if (value) false else it.showGymRir) }
+            }
+            SettingsToggle("Use RIR for workout effort", settings.showGymRir) { value ->
+                viewModel.update { it.copy(showGymRir = value, showGymRpe = if (value) false else it.showGymRpe) }
+            }
             SettingsToggle("Show tempo fields", settings.showGymTempo) { value -> viewModel.update { it.copy(showGymTempo = value) } }
             SettingsToggle("Include warm-ups in volume and PRs", settings.includeWarmupsInGymStats) { value -> viewModel.update { it.copy(includeWarmupsInGymStats = value) } }
         }
         item {
-            Text("Hard-set classifications", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text("Hard-Set Classifications", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("Working", "BackOff", "Drop", "Amrap", "Failure", "WarmUp").forEach { value ->
-                    androidx.compose.material3.FilterChip(
+                    WhipFilterChip(
                         selected = value in settings.hardSetClassifications,
                         onClick = {
                             viewModel.update { current ->
@@ -378,7 +457,7 @@ fun SettingsContent(
                                 current.copy(hardSetClassifications = changed.ifEmpty { setOf("Working") })
                             }
                         },
-                        label = { Text(value.replace(Regex("([a-z])([A-Z])"), "$1 $2")) },
+                        label = { Text(value.workoutSetClassificationLabel()) },
                     )
                 }
             }
@@ -397,7 +476,7 @@ fun SettingsContent(
                     Text("Areas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text("Create your own named areas to group related items across Tasks, Habits, Goals, Search, and Review.")
                     Text("${state.areas.count { !it.archived }} active · ${state.areas.count { it.archived }} archived · ${state.areaUsage.values.sumOf(AreaUsageCounts::total) + state.unassignedAreaUsage.total} items", style = MaterialTheme.typography.bodySmall)
-                    Button(onClick = onEditAreas, modifier = Modifier.fillMaxWidth()) { Text("Edit areas") }
+                    WhipButton(onClick = onEditAreas, modifier = Modifier.fillMaxWidth()) { Text("Manage Areas") }
                 }
             }
         }
@@ -409,8 +488,8 @@ fun SettingsContent(
                 Card(Modifier.fillMaxWidth().padding(top = 6.dp)) {
                     Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text("#${tag.name}${if (tag.archived) " · Archived" else ""}", modifier = Modifier.weight(1f))
-                        TextButton(onClick = { taxonomyEditKind = "Tag"; taxonomyEditId = tag.id }) { Text("Rename") }
-                        TextButton(onClick = { viewModel.setTagArchived(tag.id, !tag.archived) }) { Text(if (tag.archived) "Restore" else "Archive") }
+                        WhipTextButton(onClick = { taxonomyEditKind = "Tag"; taxonomyEditId = tag.id }) { Text("Rename") }
+                        WhipTextButton(onClick = { viewModel.setTagArchived(tag.id, !tag.archived) }) { Text(if (tag.archived) "Restore" else "Archive") }
                     }
                 }
             }
@@ -422,7 +501,7 @@ fun SettingsContent(
         item(key = "notification-diagnostics-$diagnosticRefresh") {
             Card(Modifier.fillMaxWidth().testTag("notification-diagnostics")) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Delivery diagnostics", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Delivery Diagnostics", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
                         when {
                             notificationPermissionPermanentlyDenied -> "Notification permission is blocked. Re-enable it in Android settings before relying on reminders."
@@ -454,7 +533,7 @@ fun SettingsContent(
         }
         if (!notificationPermissionGranted) {
             item {
-                OutlinedButton(
+                WhipOutlinedButton(
                     onClick = {
                         if (notificationPermissionPermanentlyDenied) {
                             context.startActivity(
@@ -467,11 +546,11 @@ fun SettingsContent(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text(if (notificationPermissionPermanentlyDenied) "Repair notification permission" else "Grant notification permission") }
+                ) { Text(if (notificationPermissionPermanentlyDenied) "Repair Notification Permission" else "Grant Notification Permission") }
             }
         }
         item {
-            OutlinedButton(
+            WhipOutlinedButton(
                 onClick = {
                     context.startActivity(
                         Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
@@ -479,12 +558,12 @@ fun SettingsContent(
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Open Android notification settings") }
+            ) { Text("Open Android Notification Settings") }
         }
         reminderChannels.forEach { (label, channelId) ->
             if (channelHealth[label] == false) {
                 item(key = "repair-channel-$channelId") {
-                    OutlinedButton(
+                    WhipOutlinedButton(
                         onClick = {
                             context.startActivity(
                                 Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
@@ -498,10 +577,10 @@ fun SettingsContent(
             }
         }
         item {
-            OutlinedButton(
+            WhipOutlinedButton(
                 onClick = { context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Open battery optimization settings") }
+            ) { Text("Open Battery Optimization Settings") }
         }
         item {
             val testNotificationAvailability = ControlAvailability(
@@ -513,7 +592,7 @@ fun SettingsContent(
                     else -> null
                 },
             )
-            Button(
+            WhipButton(
                 enabled = testNotificationAvailability.enabled,
                 onClick = {
                     notificationTestMessage = if (ReminderNotifications.showTest(context)) {
@@ -523,41 +602,10 @@ fun SettingsContent(
                     }
                 },
                 modifier = Modifier.fillMaxWidth().testTag("send-test-notification"),
-            ) { Text("Send test notification") }
+            ) { Text("Send Test Notification") }
             AvailabilityNotice("Send test notification", testNotificationAvailability)
         }
-        item { TextButton(onClick = { diagnosticRefresh++ }) { Text("Refresh notification status") } }
-        item {
-            SettingsToggle("Allow task location cues", settings.locationRemindersEnabled) { enabled ->
-                viewModel.update { it.copy(locationRemindersEnabled = enabled) }
-            }
-            val fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-            val backgroundGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
-                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
-            Text(
-                when {
-                    !fineGranted -> "Precise location is not allowed. Location cues are inactive."
-                    !backgroundGranted -> "Foreground location is allowed, but Android must be set to “Allow all the time” for background arrival/leave cues."
-                    else -> "Precise and background location are allowed. Coordinates remain local and geofencing avoids continuous tracking."
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = if (fineGranted && backgroundGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-            )
-            OutlinedButton(
-                onClick = {
-                    context.startActivity(
-                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = "package:${context.packageName}".toUri()
-                        },
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Open Android location permissions") }
-            Text(
-                "Location cues are optional and may use additional battery. Disable this switch to unregister every Whip geofence without deleting saved places.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
+        item { WhipTextButton(onClick = { diagnosticRefresh++ }) { Text("Refresh Notification Status") } }
         item {
             val enabled = settings.quietStartMinutes != null && settings.quietEndMinutes != null
             SettingsToggle("Enable notification quiet hours", enabled) { selected ->
@@ -575,7 +623,7 @@ fun SettingsContent(
         }
         }
 
-        if (section == SettingsSection.Data) {
+        if (section == SettingsSection.DataPrivacy) {
         item { SettingsHeading("Backup and export") }
         item {
             Card(Modifier.fillMaxWidth()) {
@@ -583,7 +631,7 @@ fun SettingsContent(
                     Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("Portable backup folder", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Portable Backup Folder", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
                         "Choose a folder in Files, Drive, or removable storage. Automatic portable backups are plain JSON, not encrypted. Whip keeps access after restart, verifies every backup after writing it, and never deletes unrelated files.",
                         style = MaterialTheme.typography.bodySmall,
@@ -600,11 +648,11 @@ fun SettingsContent(
                         state.portableBackup.lastError?.let { error ->
                             Text("Last backup warning or error: $error", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                         }
-                        Button(
+                        WhipButton(
                             onClick = viewModel::createPortableBackup,
                             enabled = !state.busy,
                             modifier = Modifier.fillMaxWidth(),
-                        ) { Text("Back up now") }
+                        ) { Text("Back Up Now") }
                         SettingsToggle(
                             "Automatic daily backup",
                             state.portableBackup.automaticEnabled,
@@ -616,53 +664,53 @@ fun SettingsContent(
                             viewModel::setPortableBackupRetention,
                         )
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(
+                            WhipOutlinedButton(
                                 onClick = { backupFolder.launch(state.portableBackup.folderUri?.let(android.net.Uri::parse)) },
                                 enabled = !state.busy,
                                 modifier = Modifier.weight(1f),
-                            ) { Text("Change folder") }
-                            TextButton(onClick = viewModel::clearPortableBackupFolder, enabled = !state.busy, modifier = Modifier.weight(1f)) {
-                                Text("Forget folder")
+                            ) { Text("Change Folder") }
+                            WhipTextButton(onClick = viewModel::clearPortableBackupFolder, enabled = !state.busy, modifier = Modifier.weight(1f)) {
+                                Text("Forget Folder")
                             }
                         }
                     } else {
-                        Button(
+                        WhipButton(
                             onClick = { backupFolder.launch(null) },
                             enabled = !state.busy,
                             modifier = Modifier.fillMaxWidth(),
-                        ) { Text("Choose backup folder") }
+                        ) { Text("Choose Backup Folder") }
                     }
                 }
             }
         }
         item {
-            OutlinedButton(
+            WhipOutlinedButton(
                 onClick = { pendingExport = ExportKind.Backup; createDocument.launch("whip-${LocalDate.now(settings.zoneId())}.whip.json") },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Save plain JSON backup") }
+            ) { Text("Save Plain JSON Backup") }
         }
         item {
-            OutlinedButton(
+            WhipOutlinedButton(
                 onClick = { showEncryptedExport = true },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Save passphrase-encrypted backup") }
+            ) { Text("Save Passphrase-Encrypted Backup") }
             Text(
-                "Encrypted backups are authenticated and safer for health/location history. The passphrase is never saved and cannot be recovered. Plain JSON remains available for interoperability.",
+                "Encrypted backups are authenticated and safer for health history and other sensitive data. The passphrase is never saved and cannot be recovered. Plain JSON remains available for interoperability.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        item { OutlinedButton(onClick = { openDocument.launch(arrayOf("application/json", "text/plain", "*/*")) }, modifier = Modifier.fillMaxWidth()) { Text("Preview and restore backup") } }
+        item { WhipOutlinedButton(onClick = { openDocument.launch(arrayOf("application/json", "text/plain", "*/*")) }, modifier = Modifier.fillMaxWidth()) { Text("Preview and Restore Backup") } }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf(ExportKind.TasksCsv to "Tasks", ExportKind.HabitsCsv to "Habits", ExportKind.GoalsCsv to "Goals", ExportKind.GymCsv to "Gym").forEach { (kind, label) ->
-                    TextButton(onClick = { pendingExport = kind; createDocument.launch("whip-${label.lowercase()}-${LocalDate.now(settings.zoneId())}.csv") }, modifier = Modifier.weight(1f)) { Text(label) }
+                    WhipTextButton(onClick = { pendingExport = kind; createDocument.launch("whip-${label.lowercase()}-${LocalDate.now(settings.zoneId())}.csv") }, modifier = Modifier.weight(1f)) { Text(label) }
                 }
             }
         }
-        item { OutlinedButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) { Text("Delete all local data") } }
+        item { WhipOutlinedButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) { Text("Delete All Local Data") } }
         }
 
-        if (section == SettingsSection.Health) {
+        if (section == SettingsSection.DataPrivacy) {
         item { SettingsHeading("Health and privacy") }
         item {
             Text("Whip stores data locally and does not require an account. Estimated 1RM and correlations are informational, not medical or safety advice.")
@@ -717,27 +765,27 @@ fun SettingsContent(
                 }
                 val accessAvailability = ControlAvailability(
                     enabled = settings.healthDataTypes.isNotEmpty(),
-                    unavailableExplanation = "Select at least one Health Connect category above.",
+                    unavailableExplanation = "Select at least one Health Connect category.",
                 )
                 val syncAvailability = ControlAvailability(
                     enabled = settings.healthConnectEnabled && settings.healthDataTypes.isNotEmpty(),
                     unavailableExplanation = when {
-                        !settings.healthConnectEnabled -> "Turn on Health Connect sync above."
-                        settings.healthDataTypes.isEmpty() -> "Select at least one Health Connect category above."
+                        !settings.healthConnectEnabled -> "Turn on Health Connect sync."
+                        settings.healthDataTypes.isEmpty() -> "Select at least one Health Connect category."
                         else -> null
                     },
                 )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
+                    WhipOutlinedButton(
                         onClick = { healthPermissions.launch(viewModel.requiredHealthPermissions()) },
                         enabled = accessAvailability.enabled,
                         modifier = Modifier.weight(1f),
-                    ) { Text("Review access") }
-                    Button(
+                    ) { Text("Review Access") }
+                    WhipButton(
                         onClick = viewModel::syncHealthConnect,
                         enabled = syncAvailability.enabled && !state.busy,
                         modifier = Modifier.weight(1f),
-                    ) { Text("Sync now") }
+                    ) { Text("Sync Now") }
                 }
                 AvailabilityNotice("Review access", accessAvailability)
                 AvailabilityNotice("Sync now", syncAvailability)
@@ -745,32 +793,50 @@ fun SettingsContent(
             }
         }
         }
+        if (section == SettingsSection.Advanced) {
+        item { SettingsHeading("About Whip") }
+        item {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Whip", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(
+                        "${if (BuildConfig.DEBUG) "Development" else "Release"} · ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                        modifier = Modifier.testTag("about-build-identity"),
+                    )
+                    Text(context.packageName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Your data stays on this device unless you explicitly export or sync it.")
+                }
+            }
         }
+        }
+        }
+        }
+    }
     }
 
     state.backupPreview?.let { preview ->
         AlertDialog(
             onDismissRequest = viewModel::cancelRestore,
-            title = { Text("Import this Whip backup?") },
+            title = { Text("Import This Whip Backup?") },
             text = {
                 Text(
                     "Exported ${preview.exportedAt}\n${preview.totalRecords} records in ${preview.tableCounts.count { it.value > 0 }} tables\n" +
-                        "Preferences: ${if (preview.settingsIncluded) "included" else "not included (legacy backup)"}\n" +
+                        "Preferences: ${if (preview.settingsIncluded) "included" else "not included"}\n" +
                         "${preview.duplicateStableIds} stable IDs already exist.\n\n" +
                         (preview.compatibilityMessage ?: "MERGE adds records that are not already present, remaps their relationships, keeps current settings, and commits atomically. Re-importing the same file is safe.\n\nREPLACE snapshots the current database and preferences first, then replaces all local data, settings, and scheduled work; interruption rolls back to that snapshot."),
                 )
             },
             confirmButton = {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(enabled = preview.restoreCompatible, onClick = viewModel::confirmMerge) {
-                        Text(if (preview.restoreCompatible) "Merge new data" else "Update required")
+                    WhipTextButton(enabled = preview.restoreCompatible, onClick = viewModel::confirmMerge) {
+                        Text(if (preview.restoreCompatible) "Merge New Data" else "Update Required")
                     }
-                    TextButton(enabled = preview.restoreCompatible, onClick = viewModel::confirmRestore) {
-                        Text("Replace everything", color = MaterialTheme.colorScheme.error)
+                    WhipTextButton(enabled = preview.restoreCompatible, onClick = viewModel::confirmRestore) {
+                        Text("Replace Everything", color = MaterialTheme.colorScheme.error)
                     }
                 }
             },
-            dismissButton = { TextButton(onClick = viewModel::cancelRestore) { Text("Cancel") } },
+            dismissButton = { WhipTextButton(onClick = viewModel::cancelRestore) { Text("Cancel") } },
         )
     }
     if (showEncryptedExport) {
@@ -780,7 +846,7 @@ fun SettingsContent(
                 exportPassphrase = ""
                 exportPassphraseConfirmation = ""
             },
-            title = { Text("Encrypt this backup") },
+            title = { Text("Encrypt This Backup") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Use at least 8 characters. Whip cannot recover this passphrase.")
@@ -804,7 +870,7 @@ fun SettingsContent(
                 }
             },
             confirmButton = {
-                TextButton(
+                WhipTextButton(
                     enabled = exportPassphrase.length >= 8 && exportPassphrase == exportPassphraseConfirmation,
                     onClick = {
                         pendingExport = ExportKind.EncryptedBackup
@@ -814,15 +880,15 @@ fun SettingsContent(
                         showEncryptedExport = false
                         createDocument.launch("whip-${LocalDate.now(settings.zoneId())}.whip.enc.json")
                     },
-                ) { Text("Choose location") }
+                ) { Text("Choose Location") }
             },
-            dismissButton = { TextButton(onClick = { showEncryptedExport = false; exportPassphrase = ""; exportPassphraseConfirmation = "" }) { Text("Cancel") } },
+            dismissButton = { WhipTextButton(onClick = { showEncryptedExport = false; exportPassphrase = ""; exportPassphraseConfirmation = "" }) { Text("Cancel") } },
         )
     }
     if (state.encryptedRestorePending) {
         AlertDialog(
             onDismissRequest = { restorePassphrase = ""; viewModel.cancelEncryptedRestore() },
-            title = { Text("Unlock encrypted backup") },
+            title = { Text("Unlock Encrypted Backup") },
             text = {
                 OutlinedTextField(
                     value = restorePassphrase,
@@ -834,24 +900,24 @@ fun SettingsContent(
                 )
             },
             confirmButton = {
-                TextButton(
+                WhipTextButton(
                     enabled = restorePassphrase.isNotEmpty() && !state.busy,
                     onClick = {
                         viewModel.unlockEncryptedRestore(restorePassphrase)
                         restorePassphrase = ""
                     },
-                ) { Text("Unlock and preview") }
+                ) { Text("Unlock and Preview") }
             },
-            dismissButton = { TextButton(onClick = { restorePassphrase = ""; viewModel.cancelEncryptedRestore() }) { Text("Cancel") } },
+            dismissButton = { WhipTextButton(onClick = { restorePassphrase = ""; viewModel.cancelEncryptedRestore() }) { Text("Cancel") } },
         )
     }
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete all local data?") },
+            title = { Text("Delete All Local Data?") },
             text = { Text("This cannot be undone. Create a full backup first if you may need this data again.") },
-            confirmButton = { TextButton(onClick = { viewModel.deleteAllData(); confirmDelete = false }) { Text("Delete everything") } },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+            confirmButton = { WhipTextButton(onClick = { viewModel.deleteAllData(); confirmDelete = false }) { Text("Delete Everything") } },
+            dismissButton = { WhipTextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
         )
     }
     if (createUnit) {
@@ -919,36 +985,31 @@ private fun TaxonomyRenameDialog(
     var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Rename or merge $kind") },
+        title = { Text("Rename or Merge $kind") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text("$kind name") }, singleLine = true)
                 Text("If this name already exists, Whip merges every matching record into it.", style = MaterialTheme.typography.bodySmall)
             }
         },
-        confirmButton = { TextButton(enabled = name.isNotBlank(), onClick = { onSave(name.trim()) }) { Text("Apply everywhere") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { WhipTextButton(enabled = name.isNotBlank(), onClick = { onSave(name.trim()) }) { Text("Apply Everywhere") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
-@Composable private fun SettingsHeading(text: String) { HorizontalDivider(); Text(text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
+@Composable private fun SettingsHeading(text: String) { HorizontalDivider(); Text(text.uiTitleCase(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
 
 @Composable private fun SettingsToggle(label: String, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled, onClickLabel = "Toggle $label", role = Role.Switch) { onChange(!checked) }
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, Modifier.weight(1f))
-        Switch(checked, onCheckedChange = null, enabled = enabled)
-    }
+    WhipSettingsRow(
+        title = label,
+        checked = checked,
+        onCheckedChange = onChange,
+        enabled = enabled,
+    )
 }
 
 @Composable private fun <T> SettingsDropdown(label: String, values: List<T>, selected: T, text: (T) -> String, onChange: (T) -> Unit) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    Column { Text(label, style = MaterialTheme.typography.labelMedium); OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(text(selected)) }; DropdownMenu(expanded, { expanded = false }) { values.forEach { value -> DropdownMenuItem({ Text(text(value)) }, { onChange(value); expanded = false }) } } }
+    SelectionField(label = label, values = values, selected = selected, valueText = text, onSelect = onChange)
 }
 
 @Composable private fun NumberSetting(label: String, current: Int, onChange: (Int) -> Unit) {
@@ -974,37 +1035,55 @@ private fun parseSettingsClock(value: String): Int? {
     return if (hour in 0..23 && minute in 0..59) hour * 60 + minute else null
 }
 
-private enum class CustomUnitEditMode { Create, Rename, Version }
+internal enum class CustomUnitEditMode { Create, Rename, Version }
 
-@Composable private fun CustomUnitDialog(
+@Composable internal fun CustomUnitDialog(
+    modifier: Modifier = Modifier,
     mode: CustomUnitEditMode,
     initial: com.whip.app.domain.UnitDefinition? = null,
+    initialDimension: UnitDimension? = null,
+    dimensionLocked: Boolean = false,
+    saving: Boolean = false,
+    error: String? = null,
     onDismiss: () -> Unit,
     onSave: (String, String, UnitDimension, Double) -> Unit,
 ) {
     var name by rememberSaveable(initial?.id, mode) { mutableStateOf(initial?.name.orEmpty()) }
     var symbol by rememberSaveable(initial?.id, mode) { mutableStateOf(initial?.symbol.orEmpty()) }
-    var dimension by rememberSaveable(initial?.id, mode) { mutableStateOf(initial?.dimension ?: UnitDimension.Count) }
+    var dimension by rememberSaveable(initial?.id, mode, initialDimension) { mutableStateOf(initial?.dimension ?: initialDimension ?: UnitDimension.Count) }
     var factor by rememberSaveable(initial?.id, mode) { mutableStateOf(initial?.toCanonicalFactor?.toString() ?: "1") }
     val canonicalLabel = canonicalUnitLabel(dimension)
-    AlertDialog(
-        onDismissRequest = onDismiss,
+    PaneAwareAlertDialog(
+        modifier = modifier,
+        onDismissRequest = { if (!saving) onDismiss() },
         title = {
             Text(
                 when (mode) {
-                    CustomUnitEditMode.Create -> "Create custom unit"
-                    CustomUnitEditMode.Rename -> "Rename custom unit"
-                    CustomUnitEditMode.Version -> "Create conversion version"
+                    CustomUnitEditMode.Create -> "Create Custom Unit"
+                    CustomUnitEditMode.Rename -> "Rename Custom Unit"
+                    CustomUnitEditMode.Version -> "Create Conversion Version"
                 },
             )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("Name, e.g. glass") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(symbol, { symbol = it }, label = { Text("Symbol, e.g. gl") }, modifier = Modifier.fillMaxWidth())
-                if (mode == CustomUnitEditMode.Create) {
-                    SettingsDropdown("Dimension", UnitDimension.entries, dimension, UnitDimension::name) { dimension = it }
-                } else Text("Dimension: ${dimension.name}", style = MaterialTheme.typography.bodySmall)
+                OutlinedTextField(
+                    name,
+                    { name = it },
+                    enabled = !saving,
+                    label = { Text("Name, e.g. glass") },
+                    modifier = Modifier.fillMaxWidth().testTag("custom-unit-name"),
+                )
+                OutlinedTextField(
+                    symbol,
+                    { symbol = it },
+                    enabled = !saving,
+                    label = { Text("Symbol, e.g. gl") },
+                    modifier = Modifier.fillMaxWidth().testTag("custom-unit-symbol"),
+                )
+                if (mode == CustomUnitEditMode.Create && !dimensionLocked) {
+                    SettingsDropdown("Dimension", UnitDimension.entries, dimension, UnitDimension::uiLabel) { dimension = it }
+                } else Text("Dimension: ${dimension.uiLabel()}", style = MaterialTheme.typography.bodySmall)
                 if (mode != CustomUnitEditMode.Rename) {
                     Text(
                         "Whip stores ${dimension.name.lowercase()} values in $canonicalLabel so compatible units can be compared and linked.",
@@ -1013,9 +1092,10 @@ private enum class CustomUnitEditMode { Create, Rename, Version }
                     OutlinedTextField(
                         factor,
                         { factor = it },
+                        enabled = !saving,
                         label = { Text("1 ${symbol.ifBlank { name.ifBlank { "custom unit" } }} equals how many $canonicalLabel?") },
                         supportingText = { Text(customUnitExample(dimension)) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().testTag("custom-unit-factor"),
                     )
                     if (mode == CustomUnitEditMode.Version) Text(
                         "The existing conversion is archived for old records. New entries use this version.",
@@ -1025,15 +1105,17 @@ private enum class CustomUnitEditMode { Create, Rename, Version }
                     "Renaming changes only the label; recorded values and conversion meaning stay unchanged.",
                     style = MaterialTheme.typography.bodySmall,
                 )
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             }
         },
         confirmButton = {
-            TextButton(
-                enabled = name.isNotBlank() && (mode == CustomUnitEditMode.Rename || (factor.toWhipDoubleOrNull() ?: 0.0) > 0.0),
+            WhipTextButton(
+                enabled = !saving && name.isNotBlank() && (mode == CustomUnitEditMode.Rename || (factor.toWhipDoubleOrNull() ?: 0.0) > 0.0),
                 onClick = { onSave(name, symbol, dimension, factor.toWhipDoubleOrNull() ?: requireNotNull(initial).toCanonicalFactor) },
-            ) { Text(if (mode == CustomUnitEditMode.Rename) "Save name" else "Create") }
+                modifier = Modifier.testTag("custom-unit-confirm"),
+            ) { Text(if (saving) "Creating…" else if (mode == CustomUnitEditMode.Rename) "Save Name" else "Create") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )
 }
 

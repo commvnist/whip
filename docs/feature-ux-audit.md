@@ -40,9 +40,8 @@ privacy and complexity model rather than merely fill a feature gap.
   local-first stance. [TickTick features](https://ticktick.com/features?language=en_US)
 - Habitify keeps a habit's repeat schedule separate from its numeric goal and
   supports areas, checklists, end conditions, multiple reminders, weekday
-  reminder times, and habit stacking. Whip already covers most of this model;
-  Whip now adds those optional location cues and monthly/yearly date schedules
-  behind progressive disclosure and explicit permission controls.
+  reminder times, and habit stacking. Whip already covers most of this model,
+  including monthly/yearly date schedules behind progressive disclosure.
   [Habitify habit creation](https://intercom.help/habitify-app/en/articles/11203157-add-a-new-habit-on-website-desktop-app)
   and [reminders](https://intercom.help/habitify-app/en/articles/12396874-good-habit-setting-reminders).
   Its numeric-goal guidance and progress-recording flow also validate generic
@@ -160,9 +159,9 @@ are covered by new persisted and Compose tests.
   reusable plate presets, and pinned routine-day shortcuts.
 - **Verified existing implementation:** editable templates for weight, savings,
   distance, reading, consistency, and weighted projects.
-- **Implemented with explicit cost controls:** optional arrival/leave geofences,
-  precise/background permission diagnostics, a global kill switch, local-only
-  coordinate storage, reboot restoration, and battery/privacy explanations.
+- **Retired before release:** task arrival/leave cues and their location
+  permissions were removed to reduce setup friction, battery-policy risk, and
+  control-scheme complexity.
 
 ### Machine-aware gym tracking — completed
 
@@ -204,12 +203,21 @@ placements follow the same control meanings:
   reserved for lower-frequency actions such as duplicate, reorder, archive,
   restore, and permanent delete.
 - Detail surfaces keep Edit in a persistent footer opposite Close. Changing
-  Overview/Today, History/Schedule, Connections, or More must never make Edit
+  Overview/Today, History/Schedule, Connections, or Options must never make Edit
   disappear.
-- Permanent deletion lives in More/overflow, uses error styling, and requires a
+- Permanent deletion lives in Options/overflow, uses error styling, and requires a
   consequence-aware confirmation. Archive and restore remain reversible.
-- Compact domain navigation exposes three common destinations followed by a
-  consistent More chip for lower-frequency destinations such as Archived.
+- Peer destination changes use one horizontally scrollable, underlined tab row;
+  no destination is hidden behind a More button. Filters use chips, temporary
+  list modes use a visibly selected control that becomes Done, and controls that
+  reveal content in place keep a stable label with an up/down disclosure icon.
+- A right chevron always opens a child page. A down arrow always opens a choice
+  menu. Settings categories are tabs, while Gym's Library is a landing page whose
+  chevron rows open Routines, Exercises, Machines, Categories, and Tools.
+- Settings promotes those peer categories to a persistent navigation list when
+  the content pane is at least 840 dp wide. On wide layouts, create moves into
+  the top app bar so it cannot cover list cards; compact layouts retain the
+  familiar FAB with enough trailing scroll clearance.
 - Selection or reorder modes may temporarily replace ordinary item controls,
   but the mode and its exit control must be explicit.
 

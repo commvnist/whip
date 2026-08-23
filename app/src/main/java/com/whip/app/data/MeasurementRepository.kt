@@ -205,7 +205,7 @@ class RoomMeasurementRepository(
         if (existing != null) return@withTransaction existing.id
         val now = clock.now().toEpochMilli()
         val id = ids.nextId()
-        dao.upsertTag(TagEntity(id, normalized, null, false, now, now))
+        dao.upsertTag(TagEntity(id, normalized, false, now, now))
         id
     }
 
@@ -447,5 +447,5 @@ private fun AreaEntity.toDomain() = Area(
 )
 
 private fun TagEntity.toDomain() = WhipTag(
-    id, name, colorArgb, archived, createdAtMillis, updatedAtMillis,
+    id, name, archived, createdAtMillis, updatedAtMillis,
 )

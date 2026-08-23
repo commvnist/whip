@@ -12,11 +12,9 @@ class PowerUserSettingsTest {
     fun savedFiltersAndPlatePresetsRoundTripSpecialCharacters() {
         val filters = listOf(
             SavedTaskFilter(
-                "Work | urgent",
-                setOf(TaskPriority.High, TaskPriority.Urgent),
-                "Client/A",
-                "next,up",
-                true,
+                name = "Work | urgent",
+                priorities = setOf(TaskPriority.High, TaskPriority.Urgent),
+                pinnedOnly = true,
                 tags = setOf("next,up", "@office"),
                 requireAllTags = false,
                 dateMode = "Next7Days",
@@ -71,17 +69,48 @@ class PowerUserSettingsTest {
         val settings = AppSettings(
             activeAreaScope = AreaScope.One("client-delta").storageKey,
             savedTaskFilters = listOf(
-                SavedTaskFilter("By ID", area = "Client Delta", areaId = "client-delta"),
-                SavedTaskFilter("Legacy", area = "client delta"),
-                SavedTaskFilter("Other", area = "Other", areaId = "other"),
+                SavedTaskFilter("By ID", areaId = "client-delta"),
+                SavedTaskFilter("Unscoped"),
+                SavedTaskFilter("Other", areaId = "other"),
             ),
         )
 
-        val result = settings.withoutAreaReferences("client-delta", "Client Delta")
+        val result = settings.withoutAreaReferences("client-delta")
 
         assertEquals(AreaScope.All.storageKey, result.activeAreaScope)
         assertEquals(SavedTaskFilter("By ID"), result.savedTaskFilters[0])
-        assertEquals(SavedTaskFilter("Legacy"), result.savedTaskFilters[1])
+        assertEquals(SavedTaskFilter("Unscoped"), result.savedTaskFilters[1])
         assertEquals(settings.savedTaskFilters[2], result.savedTaskFilters[2])
+    }
+
+    @Test
+    fun persistedTaskNavigationIsNormalizedWhileDecoding() {
+        val invalid = SavedTaskFilter(
+            name = "Invalid planner",
+            destination = "RemovedPlanner",
+            planningView = "Calendar",
+        )
+        val decodedInvalid = listOf(invalid).encodeTaskFilters().decodeTaskFilters().single()
+        assertEquals("Today", decodedInvalid.destination)
+        assertEquals("List", decodedInvalid.planningView)
+
+        val anytime = listOf(
+            SavedTaskFilter(
+                name = "Anytime calendar",
+                destination = "Anytime",
+                planningView = "Calendar",
+            ),
+        ).encodeTaskFilters().decodeTaskFilters().single()
+        assertEquals("Anytime", anytime.destination)
+        assertEquals("List", anytime.planningView)
+
+        val upcoming = listOf(
+            SavedTaskFilter(
+                name = "Upcoming calendar",
+                destination = "Upcoming",
+                planningView = "Calendar",
+            ),
+        ).encodeTaskFilters().decodeTaskFilters().single()
+        assertEquals("Calendar", upcoming.planningView)
     }
 }

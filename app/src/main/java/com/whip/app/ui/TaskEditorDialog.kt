@@ -1,9 +1,6 @@
 package com.whip.app.ui
 
-import android.Manifest
-import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
-import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -28,16 +25,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
@@ -53,7 +47,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.focus.FocusRequester
@@ -79,18 +72,11 @@ import com.whip.app.domain.TaskProgressDisplay
 import com.whip.app.domain.TaskStepDraft
 import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskEffort
-import com.whip.app.domain.TaskLocationReminder
-import com.whip.app.domain.LocationTrigger
 import com.whip.app.domain.MissedOccurrencePolicy
 import com.whip.app.domain.TaskQuickCaptureParser
 import com.whip.app.domain.WhipTask
 import com.whip.app.domain.Area
 import com.whip.app.domain.toDraft
-import com.whip.app.domain.toWhipDoubleOrNull
-import androidx.core.content.ContextCompat
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationTokenSource
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -123,7 +109,6 @@ private enum class DateTarget {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@SuppressLint("MissingPermission")
 @Composable
 fun TaskEditorDialog(
     request: TaskEditorRequest,
@@ -131,7 +116,6 @@ fun TaskEditorDialog(
     onSave: (Long?, TaskDraft, LocalDate?) -> Unit,
     onSaveAndNew: ((Long?, TaskDraft, LocalDate?) -> Unit)? = null,
     onRequestNotificationPermission: () -> Unit,
-    onRequestLocationPermission: () -> Unit = {},
     defaultRepeatStepPolicy: RepeatStepPolicy = RepeatStepPolicy.Reset,
     firstDayOfWeek: DayOfWeek = DayOfWeek.MONDAY,
     today: LocalDate = LocalDate.now(),
@@ -145,7 +129,6 @@ fun TaskEditorDialog(
     paneMaxWidth: Dp = 720.dp,
     saving: Boolean = false,
 ) {
-    val context = LocalContext.current
     val keyboard = LocalSoftwareKeyboardController.current
     val titleFocusRequester = remember { FocusRequester() }
     val captureLines = request.initialCapture.lines().map(String::trim).filter(String::isNotBlank)
@@ -208,13 +191,6 @@ fun TaskEditorDialog(
     var recurrenceAnchor by rememberSaveable(editorKey) {
         mutableStateOf(initialRule?.anchor ?: RecurrenceAnchor.Schedule)
     }
-    var locationEnabled by rememberSaveable(editorKey) { mutableStateOf(initial.locationReminder != null) }
-    var locationName by rememberSaveable(editorKey) { mutableStateOf(initial.locationReminder?.name.orEmpty()) }
-    var locationLatitude by rememberSaveable(editorKey) { mutableStateOf(initial.locationReminder?.latitude?.toString().orEmpty()) }
-    var locationLongitude by rememberSaveable(editorKey) { mutableStateOf(initial.locationReminder?.longitude?.toString().orEmpty()) }
-    var locationRadius by rememberSaveable(editorKey) { mutableStateOf((initial.locationReminder?.radiusMeters ?: 150f).toInt().toString()) }
-    var locationTrigger by rememberSaveable(editorKey) { mutableStateOf(initial.locationReminder?.trigger ?: LocationTrigger.Arrive) }
-    var locationStatus by rememberSaveable(editorKey) { mutableStateOf<String?>(null) }
     var smartCaptureSummary by rememberSaveable(editorKey) { mutableStateOf<String?>(null) }
     val stepDraftSaver = listSaver<List<TaskStepDraft>, Any>(
         save = { drafts -> drafts.flatMap { listOf(it.id ?: Long.MIN_VALUE, it.title, it.position, it.notes) } },
@@ -249,7 +225,7 @@ fun TaskEditorDialog(
             powerMode || initial.notes.isNotBlank() || initial.steps.isNotEmpty() ||
                 initialRule?.end != null && initialRule.end != RecurrenceEnd.Never ||
                 initial.priority != TaskPriority.None || initial.tags.isNotEmpty() ||
-                initial.deadline != null || initial.locationReminder != null ||
+                initial.deadline != null ||
                 initialRule?.anchor == RecurrenceAnchor.Completion ||
                 initial.missedOccurrencePolicy != MissedOccurrencePolicy.KeepLatest ||
                 initial.durationMinutes != null || initial.effort != TaskEffort.Moderate,
@@ -288,14 +264,6 @@ fun TaskEditorDialog(
         areaId != initial.areaId || area != initial.area || tagsText != initial.tags.joinToString(", ") ||
         hasDeadline != (initial.deadline != null) ||
         (hasDeadline && deadline != (initial.deadline ?: (editStartDate ?: initial.date ?: today).plusDays(7))) ||
-        locationEnabled != (initial.locationReminder != null) ||
-        (locationEnabled && (
-            locationName != initial.locationReminder?.name.orEmpty() ||
-                locationLatitude != initial.locationReminder?.latitude?.toString().orEmpty() ||
-                locationLongitude != initial.locationReminder?.longitude?.toString().orEmpty() ||
-                locationRadius != (initial.locationReminder?.radiusMeters ?: 150f).toInt().toString() ||
-                locationTrigger != (initial.locationReminder?.trigger ?: LocationTrigger.Arrive)
-            )) ||
         stepDrafts != initial.steps.sortedBy(TaskStepDraft::position) ||
         showSubtaskProgress != initial.showSubtaskProgress ||
         progressDisplay != initial.progressDisplay ||
@@ -314,12 +282,7 @@ fun TaskEditorDialog(
             (recurrenceEnd != RecurrenceEnd.AfterCount || (count ?: 0) > 0)
         )
     val deadlineValid = !hasDeadline || scheduleKind != ScheduleKind.Once || !deadline.isBefore(mainDate)
-    val locationValid = !locationEnabled || (
-        locationName.isNotBlank() && locationLatitude.toWhipDoubleOrNull()?.let { it in -90.0..90.0 } == true &&
-            locationLongitude.toWhipDoubleOrNull()?.let { it in -180.0..180.0 } == true &&
-            (locationRadius.toFloatOrNull() ?: 0f) in 100f..10_000f
-        )
-    val canSave = title.isNotBlank() && recurrenceValid && deadlineValid && locationValid &&
+    val canSave = title.isNotBlank() && recurrenceValid && deadlineValid &&
         (!reminderEnabled || reminderOffsets.isNotEmpty())
     val recurrence = if (scheduleKind == ScheduleKind.Recurring && recurrenceValid) {
         RecurrenceRule(
@@ -354,11 +317,6 @@ fun TaskEditorDialog(
         tags = tagsText.split(',').map(String::trim).filter(String::isNotBlank).toSet(),
         deadline = deadline.takeIf { scheduleKind == ScheduleKind.Once && hasDeadline },
         reminderOffsetsMinutes = reminderOffsets.toList(),
-        locationReminder = if (locationEnabled && locationValid) TaskLocationReminder(
-            name = locationName.trim(), latitude = requireNotNull(locationLatitude.toWhipDoubleOrNull()),
-            longitude = requireNotNull(locationLongitude.toWhipDoubleOrNull()),
-            radiusMeters = requireNotNull(locationRadius.toFloatOrNull()), trigger = locationTrigger,
-        ) else null,
         missedOccurrencePolicy = missedOccurrencePolicy,
         inbox = inbox && scheduleKind == ScheduleKind.Anytime,
         durationMinutes = durationMinutes.toIntOrNull()?.coerceIn(1, 1_440), effort = effort,
@@ -384,12 +342,12 @@ fun TaskEditorDialog(
             ) {
             Column(modifier = Modifier.padding(22.dp)) {
                 Text(
-                    text = if (request.task == null) "Create task" else "Edit task",
+                    text = if (request.task == null) "Create Task" else "Edit Task",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )
                 if (request.task == null) {
-                    TextButton(onClick = { recipesOpen = true }) { Text("Start from a plain-language recipe") }
+                    WhipTextButton(onClick = { recipesOpen = true }) { Text("Start from a Plain-Language Recipe") }
                 }
                 Spacer(Modifier.height(16.dp))
                 Column(
@@ -418,7 +376,7 @@ fun TaskEditorDialog(
                         supportingText = { Text("Paste multiple lines to turn the extra lines into steps.") },
                     )
                     if (naturalLanguageCapture && request.task == null) {
-                        TextButton(
+                        WhipTextButton(
                             enabled = title.isNotBlank(),
                             onClick = {
                                 val parsed = TaskQuickCaptureParser.parse(title, today)
@@ -439,7 +397,7 @@ fun TaskEditorDialog(
                                     ?: "No supported date or repeat phrase found"
                             },
                             modifier = Modifier.fillMaxWidth(),
-                        ) { Text("Apply smart date and repeat") }
+                        ) { Text("Apply Smart Date and Repeat") }
                         smartCaptureSummary?.let {
                             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                         }
@@ -454,24 +412,230 @@ fun TaskEditorDialog(
                         dialogModifier = Modifier.absoluteOffset(x = paneOffsetX).width(paneMaxWidth),
                         inheritedFromScope = request.task == null && defaultAreaId != null,
                     )
-                    TextButton(
-                        onClick = { showAdvanced = !showAdvanced },
-                        modifier = Modifier.fillMaxWidth(),
+                    FieldLabel("Schedule")
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(
-                            if (showAdvanced) "Hide advanced options" else "Show advanced options",
+                        ScheduleKind.entries.forEach { kind ->
+                            WhipFilterChip(
+                                selected = scheduleKind == kind,
+                                onClick = { scheduleKind = kind },
+                                label = {
+                                    Text(
+                                        when (kind) {
+                                            ScheduleKind.Anytime -> "Anytime"
+                                            ScheduleKind.Once -> "Work date"
+                                            ScheduleKind.Recurring -> "Repeat"
+                                        },
+                                    )
+                                },
+                            )
+                        }
+                    }
+                    DependentSettingsNotice(
+                        message = when (scheduleKind) {
+                            ScheduleKind.Anytime -> "Anytime keeps this task unscheduled. Inbox controls appear next."
+                            ScheduleKind.Once -> "Work date schedules one occurrence. Its date and optional deadline appear next."
+                            ScheduleKind.Recurring -> "Repeat creates future occurrences. Start date and repeat rules appear next."
+                        },
+                        testTag = "task-schedule-consequence",
+                    )
+
+                    if (scheduleKind == ScheduleKind.Anytime) {
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                FieldLabel("Inbox")
+                                Text(
+                                    if (inbox) "Untriaged capture; decide when and where it belongs later." else "Triaged anytime task.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Switch(checked = inbox, onCheckedChange = { inbox = it })
+                        }
+                    }
+
+                    if (scheduleKind != ScheduleKind.Anytime) {
+                        ValueButton(
+                            label = if (scheduleKind == ScheduleKind.Once) "Work date" else "Starts",
+                            value = mainDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
+                            onClick = { dateTarget = DateTarget.Main },
                         )
                     }
-                    if (showAdvanced) {
-                    OutlinedTextField(
-                        value = notes,
-                        onValueChange = { notes = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Notes (optional)") },
-                        minLines = 2,
-                        maxLines = 4,
-                    )
+
+                    if (scheduleKind == ScheduleKind.Once) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                FieldLabel("Separate deadline")
+                                Text(
+                                    "Plan work on one date and keep the final due date visible.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Switch(checked = hasDeadline, onCheckedChange = { hasDeadline = it })
+                        }
+                        if (hasDeadline) {
+                            ValueButton(
+                                label = "Deadline",
+                                value = deadline.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
+                                onClick = { dateTarget = DateTarget.Deadline },
+                                isError = deadline.isBefore(mainDate),
+                            )
+                        }
+                    }
+
+                    if (scheduleKind == ScheduleKind.Recurring) {
+                        FieldLabel("Repeats")
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            RepeatPreset.entries.forEach { preset ->
+                                WhipFilterChip(
+                                    selected = repeatPreset == preset,
+                                    onClick = {
+                                        repeatPreset = preset
+                                        if (preset == RepeatPreset.Weekdays && weekdays.isEmpty()) {
+                                            weekdays = setOf(mainDate.dayOfWeek)
+                                        }
+                                        if (preset == RepeatPreset.Weekdays) recurrenceAnchor = RecurrenceAnchor.Schedule
+                                    },
+                                    label = { Text(preset.label) },
+                                )
+                            }
+                        }
+
+                        if (repeatPreset !in setOf(RepeatPreset.Daily, RepeatPreset.Weekdays)) {
+                            OutlinedTextField(
+                                value = intervalText,
+                                onValueChange = { intervalText = it.filter(Char::isDigit).take(3) },
+                                modifier = Modifier.fillMaxWidth(),
+                                label = { Text("Every how many ${repeatPreset.unitLabel}?") },
+                                singleLine = true,
+                                isError = (interval ?: 0) <= 0,
+                            )
+                        }
+
+                        if (repeatPreset == RepeatPreset.Weekdays) {
+                            FieldLabel("On these days")
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                                verticalArrangement = Arrangement.spacedBy(7.dp),
+                            ) {
+                                orderedWeekdays(firstDayOfWeek).forEach { day ->
+                                    WhipFilterChip(
+                                        selected = day in weekdays,
+                                        onClick = {
+                                            weekdays = if (day in weekdays) weekdays - day else weekdays + day
+                                        },
+                                        label = { Text(day.shortLabel) },
+                                    )
+                                }
+                            }
+                        }
+
+                        RecurrenceAnchorSelector(
+                            selected = recurrenceAnchor,
+                            usesSelectedWeekdays = repeatPreset == RepeatPreset.Weekdays,
+                            onSelect = { recurrenceAnchor = it },
+                        )
+                        if (recurrenceAnchor == RecurrenceAnchor.Schedule) {
+                            FieldLabel("If occurrences are missed")
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                MissedOccurrencePolicy.entries.forEach { policy ->
+                                    WhipFilterChip(
+                                        selected = missedOccurrencePolicy == policy,
+                                        onClick = { missedOccurrencePolicy = policy },
+                                        label = {
+                                            Text(
+                                                when (policy) {
+                                                    MissedOccurrencePolicy.KeepOldest -> "Keep oldest overdue"
+                                                    MissedOccurrencePolicy.KeepLatest -> "Show latest overdue"
+                                                    MissedOccurrencePolicy.AutoSkip -> "Auto-skip past occurrences"
+                                                },
+                                            )
+                                        },
+                                    )
+                                }
+                            }
+                            Text(
+                                when (missedOccurrencePolicy) {
+                                    MissedOccurrencePolicy.KeepOldest -> "Work through the backlog in calendar order."
+                                    MissedOccurrencePolicy.KeepLatest -> "Show one current overdue occurrence without filling the screen."
+                                    MissedOccurrencePolicy.AutoSkip -> "Mark elapsed occurrences skipped and keep only today's cadence."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        FieldLabel("Ends")
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            RecurrenceEnd.entries.forEach { end ->
+                                WhipFilterChip(
+                                    selected = recurrenceEnd == end,
+                                    onClick = { recurrenceEnd = end },
+                                    label = {
+                                        Text(
+                                            when (end) {
+                                                RecurrenceEnd.Never -> "Never"
+                                                RecurrenceEnd.OnDate -> "On date"
+                                                RecurrenceEnd.AfterCount -> "After count"
+                                            },
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                        if (recurrenceEnd == RecurrenceEnd.OnDate) {
+                            ValueButton(
+                                label = "End date",
+                                value = endDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
+                                onClick = { dateTarget = DateTarget.End },
+                                isError = endDate.isBefore(mainDate),
+                            )
+                        }
+                        if (recurrenceEnd == RecurrenceEnd.AfterCount) {
+                            OutlinedTextField(
+                                value = occurrenceCountText,
+                                onValueChange = {
+                                    occurrenceCountText = it.filter(Char::isDigit).take(4)
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                label = { Text("Number of occurrences") },
+                                singleLine = true,
+                                isError = (count ?: 0) <= 0,
+                            )
+                        }
+                        if (stepDrafts.isNotEmpty()) {
+                            FieldLabel("When the task repeats")
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                RepeatStepPolicy.entries.forEach { policy ->
+                                    WhipFilterChip(
+                                        selected = repeatStepPolicy == policy,
+                                        onClick = { repeatStepPolicy = policy },
+                                        label = { Text(policy.uiLabel()) },
+                                    )
+                                }
+                            }
+                        }
+                    }
 
                     FieldLabel("Priority")
                     FlowRow(
@@ -479,38 +643,51 @@ fun TaskEditorDialog(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         TaskPriority.entries.forEach { value ->
-                            FilterChip(
+                            WhipFilterChip(
                                 selected = priority == value,
                                 onClick = { priority = value },
                                 label = { Text(value.name) },
                             )
                         }
                     }
-                    OutlinedTextField(
-                        value = tagsText,
-                        onValueChange = { tagsText = it },
+                    DisclosureButton(
+                        label = "Optional details",
+                        expanded = showAdvanced,
+                        onClick = { showAdvanced = !showAdvanced },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Tags, comma-separated") },
-                        singleLine = true,
                     )
-                    if (knownTags.isNotEmpty()) {
-                        val selectedTags = tagsText.split(',').map(String::trim).filter(String::isNotBlank)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            knownTags.forEach { value ->
-                                FilterChip(
-                                    selected = selectedTags.any { it.equals(value, true) },
-                                    onClick = {
-                                        val updated = if (selectedTags.any { it.equals(value, true) }) {
-                                            selectedTags.filterNot { it.equals(value, true) }
-                                        } else selectedTags + value
-                                        tagsText = updated.joinToString(", ")
-                                    },
-                                    label = { Text("#$value") },
+                    if (showAdvanced) {
+                        FieldLabel("Planning estimate")
+                        OutlinedTextField(
+                            value = durationMinutes,
+                            onValueChange = { durationMinutes = it.filter(Char::isDigit).take(4) },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Duration in minutes (optional)") },
+                            supportingText = { Text("Used by Plan My Day; unknown tasks use 30 minutes.") },
+                            singleLine = true,
+                        )
+                        FieldLabel("Effort")
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            TaskEffort.entries.forEach { value ->
+                                WhipFilterChip(
+                                    selected = effort == value,
+                                    onClick = { effort = value },
+                                    modifier = Modifier.testTag("task-effort-${value.name}"),
+                                    label = { Text(value.label) },
                                 )
                             }
                         }
+                        Text(
+                            "Effort helps planning when time is unknown: Light is low energy, Medium needs ordinary attention, and High is sustained physical or mental work.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
 
+                    if (showAdvanced) {
                     FieldLabel("Subtasks")
                     stepDrafts.forEachIndexed { index, step ->
                         Card(modifier = Modifier.fillMaxWidth()) {
@@ -629,7 +806,7 @@ fun TaskEditorDialog(
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 TaskProgressDisplay.entries.forEach { display ->
-                                    FilterChip(
+                                    WhipFilterChip(
                                         selected = progressDisplay == display,
                                         onClick = { progressDisplay = display },
                                         label = { Text(display.label) },
@@ -658,257 +835,6 @@ fun TaskEditorDialog(
                     }
                     }
 
-                    FieldLabel("Schedule")
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        ScheduleKind.entries.forEach { kind ->
-                            FilterChip(
-                                selected = scheduleKind == kind,
-                                onClick = { scheduleKind = kind },
-                                label = {
-                                    Text(
-                                        when (kind) {
-                                            ScheduleKind.Anytime -> "Anytime"
-                                            ScheduleKind.Once -> "Work date"
-                                            ScheduleKind.Recurring -> "Repeat"
-                                        },
-                                    )
-                                },
-                            )
-                        }
-                    }
-
-                    if (scheduleKind == ScheduleKind.Anytime) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                FieldLabel("Inbox")
-                                Text(
-                                    if (inbox) "Untriaged capture; decide when and where it belongs later." else "Triaged anytime task.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Switch(checked = inbox, onCheckedChange = { inbox = it })
-                        }
-                    }
-
-                    if (scheduleKind != ScheduleKind.Anytime) {
-                        ValueButton(
-                            label = if (scheduleKind == ScheduleKind.Once) "Work date" else "Starts",
-                            value = mainDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
-                            onClick = { dateTarget = DateTarget.Main },
-                        )
-                    }
-
-                    if (scheduleKind == ScheduleKind.Once && showAdvanced) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                FieldLabel("Separate deadline")
-                                Text(
-                                    "Plan work on one date and keep the final due date visible.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Switch(checked = hasDeadline, onCheckedChange = { hasDeadline = it })
-                        }
-                        if (hasDeadline) {
-                            ValueButton(
-                                label = "Deadline",
-                                value = deadline.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
-                                onClick = { dateTarget = DateTarget.Deadline },
-                                isError = deadline.isBefore(mainDate),
-                            )
-                        }
-                    }
-
-                    if (showAdvanced) {
-                        FieldLabel("Planning estimate")
-                        OutlinedTextField(
-                            value = durationMinutes,
-                            onValueChange = { durationMinutes = it.filter(Char::isDigit).take(4) },
-                            modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Duration in minutes (optional)") },
-                            supportingText = { Text("Used by Plan My Day; unknown tasks use 30 minutes.") },
-                            singleLine = true,
-                        )
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            TaskEffort.entries.forEach { value ->
-                                FilterChip(
-                                    selected = effort == value,
-                                    onClick = { effort = value },
-                                    label = { Text(value.label) },
-                                )
-                            }
-                        }
-                    }
-
-                    if (scheduleKind == ScheduleKind.Recurring) {
-                        FieldLabel("Repeats")
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            RepeatPreset.entries.forEach { preset ->
-                                FilterChip(
-                                    selected = repeatPreset == preset,
-                                    onClick = {
-                                        repeatPreset = preset
-                                        if (preset == RepeatPreset.Weekdays && weekdays.isEmpty()) {
-                                            weekdays = setOf(mainDate.dayOfWeek)
-                                        }
-                                        if (preset == RepeatPreset.Weekdays) recurrenceAnchor = RecurrenceAnchor.Schedule
-                                    },
-                                    label = { Text(preset.label) },
-                                )
-                            }
-                        }
-
-                        if (repeatPreset !in setOf(RepeatPreset.Daily, RepeatPreset.Weekdays)) {
-                            OutlinedTextField(
-                                value = intervalText,
-                                onValueChange = { intervalText = it.filter(Char::isDigit).take(3) },
-                                modifier = Modifier.fillMaxWidth(),
-                                label = { Text("Every how many ${repeatPreset.unitLabel}?") },
-                                singleLine = true,
-                                isError = (interval ?: 0) <= 0,
-                            )
-                        }
-
-                        if (repeatPreset == RepeatPreset.Weekdays) {
-                            FieldLabel("On these days")
-                            FlowRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(7.dp),
-                                verticalArrangement = Arrangement.spacedBy(7.dp),
-                            ) {
-                                orderedWeekdays(firstDayOfWeek).forEach { day ->
-                                    FilterChip(
-                                        selected = day in weekdays,
-                                        onClick = {
-                                            weekdays = if (day in weekdays) weekdays - day else weekdays + day
-                                        },
-                                        label = { Text(day.shortLabel) },
-                                    )
-                                }
-                            }
-                        }
-
-                        if (showAdvanced) {
-                        RecurrenceAnchorSelector(
-                            selected = recurrenceAnchor,
-                            usesSelectedWeekdays = repeatPreset == RepeatPreset.Weekdays,
-                            onSelect = { recurrenceAnchor = it },
-                        )
-                        if (recurrenceAnchor == RecurrenceAnchor.Schedule) {
-                            FieldLabel("If occurrences are missed")
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                MissedOccurrencePolicy.entries.forEach { policy ->
-                                    FilterChip(
-                                        selected = missedOccurrencePolicy == policy,
-                                        onClick = { missedOccurrencePolicy = policy },
-                                        label = {
-                                            Text(
-                                                when (policy) {
-                                                    MissedOccurrencePolicy.KeepOldest -> "Keep oldest overdue"
-                                                    MissedOccurrencePolicy.KeepLatest -> "Show latest overdue"
-                                                    MissedOccurrencePolicy.AutoSkip -> "Auto-skip past occurrences"
-                                                },
-                                            )
-                                        },
-                                    )
-                                }
-                            }
-                            Text(
-                                when (missedOccurrencePolicy) {
-                                    MissedOccurrencePolicy.KeepOldest -> "Work through the backlog in calendar order."
-                                    MissedOccurrencePolicy.KeepLatest -> "Show one current overdue occurrence without filling the screen."
-                                    MissedOccurrencePolicy.AutoSkip -> "Mark elapsed occurrences skipped and keep only today's cadence."
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        FieldLabel("Ends")
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            RecurrenceEnd.entries.forEach { end ->
-                                FilterChip(
-                                    selected = recurrenceEnd == end,
-                                    onClick = { recurrenceEnd = end },
-                                    label = {
-                                        Text(
-                                            when (end) {
-                                                RecurrenceEnd.Never -> "Never"
-                                                RecurrenceEnd.OnDate -> "On date"
-                                                RecurrenceEnd.AfterCount -> "After count"
-                                            },
-                                        )
-                                    },
-                                )
-                            }
-                        }
-                        if (recurrenceEnd == RecurrenceEnd.OnDate) {
-                            ValueButton(
-                                label = "End date",
-                                value = endDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
-                                onClick = { dateTarget = DateTarget.End },
-                                isError = endDate.isBefore(mainDate),
-                            )
-                        }
-                        if (recurrenceEnd == RecurrenceEnd.AfterCount) {
-                            OutlinedTextField(
-                                value = occurrenceCountText,
-                                onValueChange = {
-                                    occurrenceCountText = it.filter(Char::isDigit).take(4)
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                label = { Text("Number of occurrences") },
-                                singleLine = true,
-                                isError = (count ?: 0) <= 0,
-                            )
-                        }
-                        if (stepDrafts.isNotEmpty()) {
-                            FieldLabel("When the task repeats")
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                RepeatStepPolicy.entries.forEach { policy ->
-                                    FilterChip(
-                                        selected = repeatStepPolicy == policy,
-                                        onClick = { repeatStepPolicy = policy },
-                                        label = {
-                                            Text(
-                                                if (policy == RepeatStepPolicy.Reset) {
-                                                    "Reset subtasks"
-                                                } else {
-                                                    "Carry unfinished"
-                                                },
-                                            )
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                        }
-                    }
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -933,8 +859,8 @@ fun TaskEditorDialog(
                         )
                     }
                     if (hasTime) {
-                        TextButton(onClick = { showTimePicker = true }) {
-                            Text("Change time")
+                        WhipTextButton(onClick = { showTimePicker = true }) {
+                            Text("Change Time")
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -969,7 +895,7 @@ fun TaskEditorDialog(
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 reminderOffsetOptions.forEach { (minutes, label) ->
-                                    FilterChip(
+                                    WhipFilterChip(
                                         selected = minutes in reminderOffsets,
                                         onClick = {
                                             reminderOffsets = if (minutes in reminderOffsets) {
@@ -990,7 +916,7 @@ fun TaskEditorDialog(
                                     label = { Text("Custom minutes before") },
                                     singleLine = true,
                                 )
-                                TextButton(
+                                WhipTextButton(
                                     enabled = (customReminderText.toIntOrNull() ?: -1) in 0..43_200,
                                     onClick = {
                                         reminderOffsets = reminderOffsets + requireNotNull(customReminderText.toIntOrNull())
@@ -1008,82 +934,40 @@ fun TaskEditorDialog(
                     }
 
                     if (showAdvanced) {
-                        Row(
+                        OutlinedTextField(
+                            value = notes,
+                            onValueChange = { notes = it },
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                FieldLabel("Location cue")
-                                Text(
-                                    "Optional arrival/leave reminder. Coordinates stay on this device and in your backups.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Switch(
-                                checked = locationEnabled,
-                                onCheckedChange = {
-                                    locationEnabled = it
-                                    if (it) {
-                                        onRequestLocationPermission()
-                                    }
-                                },
-                            )
-                        }
-                        if (locationEnabled) {
-                            OutlinedTextField(locationName, { locationName = it }, Modifier.fillMaxWidth(), label = { Text("Place name") }, singleLine = true)
-                            OutlinedButton(
-                                onClick = {
-                                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                                        locationStatus = "Allow precise location, then tap this button again."
-                                        onRequestLocationPermission()
-                                    } else {
-                                        locationStatus = "Finding current location…"
-                                        LocationServices.getFusedLocationProviderClient(context)
-                                            .getCurrentLocation(
-                                                Priority.PRIORITY_BALANCED_POWER_ACCURACY,
-                                                CancellationTokenSource().token,
-                                            )
-                                            .addOnSuccessListener { found ->
-                                                if (found == null) {
-                                                    locationStatus = "Android could not get a location. Try again outdoors or enter coordinates."
-                                                } else {
-                                                    locationLatitude = "%.6f".format(java.util.Locale.ROOT, found.latitude)
-                                                    locationLongitude = "%.6f".format(java.util.Locale.ROOT, found.longitude)
-                                                    if (locationName.isBlank()) locationName = "Current place"
-                                                    locationStatus = "Current coordinates added. Give the place a recognizable name."
-                                                }
-                                            }
-                                            .addOnFailureListener { error ->
-                                                locationStatus = error.message ?: "Could not get the current location."
-                                            }
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) { Text("Use current location") }
-                            locationStatus?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }
-                            ResponsiveFieldPair(
-                                first = { field -> OutlinedTextField(locationLatitude, { locationLatitude = decimalInput(it) }, field, label = { Text("Latitude") }, singleLine = true) },
-                                second = { field -> OutlinedTextField(locationLongitude, { locationLongitude = decimalInput(it) }, field, label = { Text("Longitude") }, singleLine = true) },
-                            )
-                            OutlinedTextField(locationRadius, { locationRadius = it.filter(Char::isDigit).take(5) }, Modifier.fillMaxWidth(), label = { Text("Radius in metres (100–10,000)") }, singleLine = true)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                LocationTrigger.entries.forEach { trigger ->
-                                    FilterChip(
-                                        selected = locationTrigger == trigger,
-                                        onClick = { locationTrigger = trigger },
-                                        label = { Text(if (trigger == LocationTrigger.Arrive) "On arrival" else "On leaving") },
+                            label = { Text("Notes (optional)") },
+                            minLines = 2,
+                            maxLines = 4,
+                        )
+                        OutlinedTextField(
+                            value = tagsText,
+                            onValueChange = { tagsText = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Tags, comma-separated") },
+                            singleLine = true,
+                        )
+                        if (knownTags.isNotEmpty()) {
+                            val selectedTags = tagsText.split(',').map(String::trim).filter(String::isNotBlank)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                knownTags.forEach { value ->
+                                    WhipFilterChip(
+                                        selected = selectedTags.any { it.equals(value, true) },
+                                        onClick = {
+                                            val updated = if (selectedTags.any { it.equals(value, true) }) {
+                                                selectedTags.filterNot { it.equals(value, true) }
+                                            } else selectedTags + value
+                                            tagsText = updated.joinToString(", ")
+                                        },
+                                        label = { Text("#$value") },
                                     )
                                 }
                             }
-                            Text(
-                                "For reliable background cues, Android must allow precise location and “Allow all the time”. Geofencing can use additional battery.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
                         }
                     }
+
                 }
 
                 Spacer(Modifier.height(14.dp))
@@ -1091,16 +975,16 @@ fun TaskEditorDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
                 ) {
-                    TextButton(onClick = requestDismiss, enabled = !saving) { Text("Cancel") }
+                    WhipTextButton(onClick = requestDismiss, enabled = !saving) { Text("Cancel") }
                     Spacer(Modifier.width(8.dp))
                     if (request.task == null && onSaveAndNew != null) {
-                        OutlinedButton(
+                        WhipOutlinedButton(
                             enabled = canSave && !saving,
                             onClick = { onSaveAndNew(request.task?.id, currentDraft, request.fromOccurrence) },
-                        ) { Text("Save + new") }
+                        ) { Text("Save + New") }
                         Spacer(Modifier.width(8.dp))
                     }
-                    TextButton(
+                    WhipTextButton(
                         enabled = canSave && !saving,
                         onClick = { onSave(request.task?.id, currentDraft, request.fromOccurrence) },
                     ) { Text(if (saving) "Saving…" else "Save") }
@@ -1137,10 +1021,10 @@ fun TaskEditorDialog(
         )
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
-            title = { Text("Task time") },
+            title = { Text("Task Time") },
             text = { TimePicker(state = pickerState) },
             confirmButton = {
-                TextButton(
+                WhipTextButton(
                     onClick = {
                         timeMinutes = pickerState.hour * 60 + pickerState.minute
                         showTimePicker = false
@@ -1148,7 +1032,7 @@ fun TaskEditorDialog(
                 ) { Text("Set") }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
+                WhipTextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
             },
         )
     }
@@ -1184,12 +1068,6 @@ fun TaskEditorDialog(
                 tagsText = draft.tags.joinToString(", ")
                 hasDeadline = draft.deadline != null
                 deadline = draft.deadline ?: mainDate.plusDays(7)
-                locationEnabled = draft.locationReminder != null
-                locationName = draft.locationReminder?.name.orEmpty()
-                locationLatitude = draft.locationReminder?.latitude?.toString().orEmpty()
-                locationLongitude = draft.locationReminder?.longitude?.toString().orEmpty()
-                locationRadius = (draft.locationReminder?.radiusMeters ?: 150f).toInt().toString()
-                locationTrigger = draft.locationReminder?.trigger ?: LocationTrigger.Arrive
                 stepDrafts = draft.steps.sortedBy(TaskStepDraft::position)
                 showSubtaskProgress = draft.showSubtaskProgress
                 progressDisplay = draft.progressDisplay
@@ -1205,13 +1083,13 @@ fun TaskEditorDialog(
     if (confirmDiscard) {
         AlertDialog(
             onDismissRequest = { confirmDiscard = false },
-            title = { Text("Discard unsaved changes?") },
+            title = { Text("Discard Unsaved Changes?") },
             text = { Text("Your edits to this task have not been saved.") },
             confirmButton = {
-                TextButton(onClick = onDismiss) { Text("Discard changes") }
+                WhipTextButton(onClick = onDismiss) { Text("Discard Changes") }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDiscard = false }) { Text("Keep editing") }
+                WhipTextButton(onClick = { confirmDiscard = false }) { Text("Keep Editing") }
             },
         )
     }
@@ -1245,11 +1123,11 @@ internal fun RecurrenceAnchorSelector(
             } else {
                 completionAvailability
             }
-            FilterChip(
+            WhipFilterChip(
                 selected = selected == anchor,
                 enabled = availability.enabled,
                 onClick = { onSelect(anchor) },
-                label = { Text(if (anchor == RecurrenceAnchor.Schedule) "Scheduled date" else "Completion date") },
+                label = { Text(if (anchor == RecurrenceAnchor.Schedule) "Scheduled Date" else "Completion Date") },
             )
         }
     }
@@ -1302,14 +1180,14 @@ private fun TaskRecipeDialog(
     )
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Task recipes") },
+        title = { Text("Task Recipes") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Choose the closest shape. Whip fills the editor so you can review and change everything before saving.")
                 recipes.forEach { (label, draft) ->
-                    OutlinedButton(onClick = { onChoose(draft) }, modifier = Modifier.fillMaxWidth()) {
+                    WhipOutlinedButton(onClick = { onChoose(draft) }, modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(label, fontWeight = FontWeight.SemiBold)
+                            Text(label.uiTitleCase(), fontWeight = FontWeight.SemiBold)
                             Text(
                                 when (label) {
                                     "Capture something for later" -> "An unscheduled Inbox task."
@@ -1325,7 +1203,7 @@ private fun TaskRecipeDialog(
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -1345,7 +1223,7 @@ fun WhipDatePickerDialog(
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(
+            WhipTextButton(
                 onClick = {
                     state.selectedDateMillis?.let { millis ->
                         onDateSelected(
@@ -1357,7 +1235,7 @@ fun WhipDatePickerDialog(
                 },
             ) { Text("Set") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     ) {
         DatePicker(state = state)
     }
@@ -1391,7 +1269,7 @@ private fun ValueButton(
                 },
             )
         }
-        TextButton(onClick = onClick) { Text("Change") }
+        WhipTextButton(onClick = onClick) { Text("Change") }
     }
 }
 
@@ -1408,11 +1286,11 @@ private fun RecurrenceRule?.toPreset(): RepeatPreset = when {
 private val RepeatPreset.label: String
     get() = when (this) {
         RepeatPreset.Daily -> "Daily"
-        RepeatPreset.EveryDays -> "Every X days"
-        RepeatPreset.Weekdays -> "Selected days"
-        RepeatPreset.EveryWeeks -> "Every X weeks"
-        RepeatPreset.EveryMonths -> "Every X months"
-        RepeatPreset.EveryYears -> "Every X years"
+        RepeatPreset.EveryDays -> "Every X Days"
+        RepeatPreset.Weekdays -> "Selected Days"
+        RepeatPreset.EveryWeeks -> "Every X Weeks"
+        RepeatPreset.EveryMonths -> "Every X Months"
+        RepeatPreset.EveryYears -> "Every X Years"
     }
 
 private val RepeatPreset.unitLabel: String

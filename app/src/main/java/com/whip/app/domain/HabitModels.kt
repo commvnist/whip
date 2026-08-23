@@ -5,13 +5,11 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 
-enum class HabitIntent { Build, Limit, Avoid, Observe }
-enum class HabitTrackingMode { CheckOff, Count, Decimal, Duration, Checklist, Rating, LimitAvoid, LogOnly }
+enum class HabitTrackingMode { CheckOff, Count, Decimal, Duration, Checklist, Rating, LogOnly }
 enum class TargetComparison { AtLeast, AtMost, Exactly, WithinRange, None }
 enum class TargetPeriod { Occurrence, Day, Week, Month, RollingDays }
 enum class HabitScheduleType { Daily, EveryNDays, SelectedWeekdays, FlexibleTimesPerWeek, FlexibleTimesPerMonth }
 enum class HabitEndType { Never, OnDate, AfterStreak, AfterCompletions, AfterTotal }
-enum class AvoidMissingPolicy { Unknown, Success, Failure }
 enum class HabitLogStatus { Recorded, Success, Failed, Skipped, Excused, Missing }
 
 data class HabitDraft(
@@ -21,8 +19,6 @@ data class HabitDraft(
     val area: String = "",
     val tags: List<String> = emptyList(),
     val icon: String = "✓",
-    val colorArgb: Long? = null,
-    val intent: HabitIntent = HabitIntent.Build,
     val trackingMode: HabitTrackingMode = HabitTrackingMode.CheckOff,
     val dimension: UnitDimension = UnitDimension.Count,
     val unitId: String = "count",
@@ -40,14 +36,11 @@ data class HabitDraft(
     val endType: HabitEndType = HabitEndType.Never,
     val endDate: LocalDate? = null,
     val endValue: Double? = null,
-    val timeWindowStartMinutes: Int? = null,
-    val timeWindowEndMinutes: Int? = null,
     val quickIncrement: Double = 1.0,
     val quickActions: List<Double> = emptyList(),
     val reminderMinutes: List<Int> = emptyList(),
     val weekdayReminderMinutes: Map<DayOfWeek, List<Int>> = emptyMap(),
     val weekStart: DayOfWeek = DayOfWeek.MONDAY,
-    val avoidMissingPolicy: AvoidMissingPolicy = AvoidMissingPolicy.Unknown,
     val checklistItems: List<HabitChecklistItemDraft> = emptyList(),
     /** Optional external metric mirrored into this habit (for example Health Connect steps). */
     val sourceMetricId: String? = null,
@@ -63,8 +56,6 @@ data class Habit(
     val area: String,
     val tags: List<String>,
     val icon: String,
-    val colorArgb: Long?,
-    val intent: HabitIntent,
     val trackingMode: HabitTrackingMode,
     val dimension: UnitDimension,
     val unitId: String,
@@ -82,14 +73,11 @@ data class Habit(
     val endType: HabitEndType,
     val endDate: LocalDate?,
     val endValue: Double?,
-    val timeWindowStartMinutes: Int?,
-    val timeWindowEndMinutes: Int?,
     val quickIncrement: Double,
     val quickActions: List<Double>,
     val reminderMinutes: List<Int>,
     val weekdayReminderMinutes: Map<DayOfWeek, List<Int>>,
     val weekStart: DayOfWeek,
-    val avoidMissingPolicy: AvoidMissingPolicy,
     val timerStartedAtMillis: Long?,
     val pinned: Boolean,
     val position: Int,
@@ -275,13 +263,6 @@ fun Habit.outcomeForPeriod(
         it.habitId == id && it.localDate in periodBounds(date) &&
             it.status in setOf(HabitLogStatus.Recorded, HabitLogStatus.Success, HabitLogStatus.Failed) &&
             it.value != null
-    }
-    if (!hasData && intent == HabitIntent.Avoid) {
-        return when (avoidMissingPolicy) {
-            AvoidMissingPolicy.Success -> true
-            AvoidMissingPolicy.Failure -> false
-            AvoidMissingPolicy.Unknown -> null
-        }
     }
     if (!hasData) return null
     return targetSatisfied(valueForPeriod(logs, date, customUnits))

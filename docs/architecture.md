@@ -10,9 +10,10 @@ domain calculations. WorkManager, notifications, graphs, summaries, personal
 records, streaks, and goal progress are projections or side effects; none of
 them replaces the underlying source records.
 
-All schema changes use explicit, forward Room migrations. Destructive fallback
-is not permitted for a production database. Every version is exported under
-`app/schemas` and migration tests begin with the checked-in version 1 schema.
+The 2026-08-22 pre-release cleanup reset Room to one checked-in version 1
+schema and intentionally removed all earlier development migrations. Once a
+build is publicly released, every schema change uses an explicit forward Room
+migration; destructive fallback is not permitted for released user data.
 
 ## Time and identity
 
@@ -75,7 +76,7 @@ files:
 {
   "format": "whip-backup",
   "envelopeVersion": 2,
-  "databaseVersion": 21,
+  "databaseVersion": 1,
   "exportedAt": "2026-08-18T00:00:00Z",
   "checksumSha256": "...",
   "tables": {},
@@ -88,12 +89,12 @@ commit. Unknown future versions fail safely. CSV files are domain-specific
 interoperability exports, not complete backups. An optional encrypted envelope
 uses a password-based key derivation plus authenticated encryption; the
 passphrase is never stored.
-Envelope version 2 includes user preferences; legacy version 1 envelopes remain
-readable. Restore also rebuilds links and replaces Whip-owned reminder/timer
+Envelope version 2 is the only supported complete-backup format and includes
+user preferences. Restore also rebuilds links and replaces Whip-owned reminder/timer
 jobs so background state matches the restored records.
 
 Restore first stores an app-private atomic rollback envelope. That marker stays
-until Room, preferences, links, reminders, geofences, and owned WorkManager jobs
+until Room, preferences, links, reminders, and owned WorkManager jobs
 have been replaced/rebuilt; failure or process death rolls back immediately or
 on next launch.
 

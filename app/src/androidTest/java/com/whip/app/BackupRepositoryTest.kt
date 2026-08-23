@@ -22,17 +22,12 @@ import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.AreaScope
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalDraft
-import com.whip.app.domain.GoalEntryMode
 import com.whip.app.domain.GoalType
-import com.whip.app.domain.GymMachineDraft
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.LinkRuleDraft
 import com.whip.app.domain.LinkSourceMetric
 import com.whip.app.domain.LinkSourceType
-import com.whip.app.domain.LoadInterpretation
-import com.whip.app.domain.MachineLoadType
-import com.whip.app.domain.MachineStackMode
 import com.whip.app.domain.RecurrenceRule
 import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.RoutineDayDraft
@@ -40,7 +35,6 @@ import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TaskDraft
-import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskStepDraft
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WorkoutSetDraft
@@ -48,7 +42,6 @@ import com.whip.app.domain.outcomeForPeriod
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
@@ -112,9 +105,14 @@ class BackupRepositoryTest {
         habits.log(id, 2.0, note = "morning \"large\" glass")
         val json = backups.exportBackup()
         val preview = backups.previewBackup(json)
+        assertEquals(2, preview.envelopeVersion)
+        assertEquals(1, preview.databaseVersion)
         assertTrue(preview.checksumValid)
         assertTrue(preview.settingsIncluded)
         assertTrue(preview.totalRecords >= 3)
+        val exportedTables = JSONObject(json).getJSONObject("tables")
+        assertEquals(false, exportedTables.has("entity_tag_links"))
+        assertEquals(false, exportedTables.has("goal_completion_snapshots"))
 
         backups.deleteAllData()
         assertTrue(habits.habits.first().isEmpty())
@@ -198,32 +196,6 @@ class BackupRepositoryTest {
         assertEquals(countsBeforeSecondMerge, listOf(tasks.tasks.first().size, tasks.steps.first().size, habits.habits.first().size, habits.logs.first().size))
     }
 
-    @Test fun legacyTaskMergeIsIdempotentWithoutCollidingAcrossBackupContents() = runBlocking {
-        tasks.create(TaskDraft(title = "Legacy portable task"))
-        val firstLegacy = legacyTaskFixture(backups.exportBackup(), 25)
-        backups.deleteAllData()
-
-        backups.mergeBackup(firstLegacy)
-        backups.mergeBackup(firstLegacy)
-        assertEquals(listOf("Legacy portable task"), tasks.tasks.first().map { it.title })
-
-        val secondRoot = JSONObject(firstLegacy)
-        secondRoot.getJSONObject("tables").getJSONArray("tasks").getJSONObject(0)
-            .put("title", "Different device task")
-        val secondTables = secondRoot.getJSONObject("tables")
-        val secondPayload = secondTables.toString() + "\n" + secondRoot.optJSONObject("settings")?.toString().orEmpty()
-        secondRoot.put(
-            "checksumSha256",
-            MessageDigest.getInstance("SHA-256").digest(secondPayload.toByteArray()).joinToString("") { "%02x".format(it) },
-        )
-
-        backups.mergeBackup(secondRoot.toString())
-        assertEquals(
-            setOf("Legacy portable task", "Different device task"),
-            tasks.tasks.first().mapTo(mutableSetOf()) { it.title },
-        )
-    }
-
     @Test fun fullBackupRoundTripsEveryFirstClassDomainAndCrossDomainRelationship() = runBlocking {
         val taskId = tasks.create(
             TaskDraft(
@@ -257,7 +229,6 @@ class BackupRepositoryTest {
                 targetMin = 100.0,
                 startDate = FixedClock.today(),
                 aggregation = GoalAggregation.Sum,
-                entryMode = GoalEntryMode.AmountToAdd,
             ),
         )
         goals.recordMeasurement(goalId, 4.0, note = "Manual baseline")
@@ -339,14 +310,19 @@ class BackupRepositoryTest {
         assertEquals("Keep this", habits.habits.first().single().name)
     }
 
-    @Test fun newerBackupCanBeInspectedButCannotReplaceLiveData() = runBlocking {
+    @Test fun nonCurrentBackupVersionsOrTableSetsCannotBePreviewedOrRestored() = runBlocking {
         habits.create(HabitDraft(name = "Keep local", startDate = FixedClock.today()))
-        val future = JSONObject(backups.exportBackup()).put("databaseVersion", 999).toString()
+        val current = backups.exportBackup()
+        val wrongDatabase = JSONObject(current).put("databaseVersion", 2).toString()
+        val wrongEnvelope = JSONObject(current).put("envelopeVersion", 1).toString()
+        val incompleteTables = JSONObject(current).also {
+            it.getJSONObject("tables").remove("tags")
+        }.toString()
 
-        val preview = backups.previewBackup(future)
-        assertEquals(false, preview.restoreCompatible)
-        assertTrue(preview.compatibilityMessage.orEmpty().contains("newer Whip data format"))
-        assertTrue(runCatching { backups.restoreBackup(future) }.isFailure)
+        listOf(wrongDatabase, wrongEnvelope, incompleteTables).forEach { unsupported ->
+            assertTrue(runCatching { backups.previewBackup(unsupported) }.isFailure)
+            assertTrue(runCatching { backups.restoreBackup(unsupported) }.isFailure)
+        }
         assertEquals("Keep local", habits.habits.first().single().name)
     }
 
@@ -371,7 +347,6 @@ class BackupRepositoryTest {
                 targetMin = 100.0,
                 startDate = FixedClock.today(),
                 aggregation = GoalAggregation.Sum,
-                entryMode = GoalEntryMode.AmountToAdd,
             ),
         )
         links.createRule(
@@ -413,284 +388,6 @@ class BackupRepositoryTest {
         val restoredHabit = habits.habits.first().single()
         assertEquals(true, restoredHabit.outcomeForPeriod(habits.logs.first(), FixedClock.today()))
         assertEquals(8.0, links.contributions.first().sumOf { it.canonicalValue ?: 0.0 }, 0.0)
-    }
-
-    @Test fun legacyVersionOneTaskRowsReceiveEveryAdditiveDefault() = runBlocking {
-        tasks.create(TaskDraft(title = "Legacy task"))
-        val root = JSONObject(backups.exportBackup())
-        val task = root.getJSONObject("tables").getJSONArray("tasks").getJSONObject(0)
-        listOf(
-            "updatedAtMillis", "showSubtaskProgress", "progressDisplay", "autoCompleteFromSteps",
-            "repeatStepPolicy", "pinned", "priority", "area", "tagsCsv", "deadlineEpochDay",
-            "recurrenceAnchor", "reminderOffsetsMinutesCsv", "locationReminderEnabled", "locationName",
-            "locationLatitude", "locationLongitude", "locationRadiusMeters", "locationTrigger",
-            "missedOccurrencePolicy",
-        ).forEach(task::remove)
-        root.put("databaseVersion", 1)
-        val payload = root.getJSONObject("tables").toString() + "\n" + root.optJSONObject("settings")?.toString().orEmpty()
-        val checksum = MessageDigest.getInstance("SHA-256")
-            .digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
-        root.put("checksumSha256", checksum)
-
-        backups.restoreBackup(root.toString())
-
-        val restored = tasks.tasks.first().single()
-        assertEquals("Legacy task", restored.title)
-        assertEquals(TaskPriority.None, restored.priority)
-        assertEquals("KeepLatest", restored.missedOccurrencePolicy.name)
-        assertEquals(restored.createdAtMillis, restored.updatedAtMillis)
-    }
-
-    @Test fun everyAdvertisedLegacyBackupVersionRestoresAndReexportsAsCurrent() = runBlocking {
-        val taskId = tasks.create(
-            TaskDraft(
-                title = "Version matrix task",
-                scheduleKind = ScheduleKind.Recurring,
-                date = FixedClock.today(),
-                recurrence = RecurrenceRule(RecurrenceUnit.Weeks, weekdays = setOf(java.time.DayOfWeek.MONDAY), startDate = FixedClock.today()),
-                priority = TaskPriority.High,
-                area = "Migration",
-                tags = setOf("fixture"),
-                inbox = true,
-                durationMinutes = 45,
-                steps = listOf(TaskStepDraft(title = "Preserve me", notes = "Legacy note", position = 0)),
-                showSubtaskProgress = true,
-            ),
-        )
-        val customUnitId = measurements.createCustomUnit("fixture glass", "fg", UnitDimension.Volume, 240.0)
-        val habitId = habits.create(
-            HabitDraft(
-                name = "Version matrix hydration",
-                trackingMode = HabitTrackingMode.Decimal,
-                dimension = UnitDimension.Volume,
-                unitId = customUnitId,
-                targetMin = 8.0,
-                startDate = FixedClock.today(),
-            ),
-        )
-        habits.log(habitId, 2.0)
-        val goalId = goals.create(
-            GoalDraft(
-                name = "Version matrix goal",
-                type = GoalType.AccumulateTotal,
-                dimension = UnitDimension.Count,
-                unitId = "count",
-                targetMin = 20.0,
-                startDate = FixedClock.today(),
-                aggregation = GoalAggregation.Sum,
-                entryMode = GoalEntryMode.AmountToAdd,
-            ),
-        )
-        goals.recordMeasurement(goalId, 3.0)
-        links.createRule(
-            LinkRuleDraft(
-                name = "Version matrix link",
-                sourceType = LinkSourceType.Task,
-                sourceEntityId = taskId,
-                sourceMetric = LinkSourceMetric.Completion,
-                targetGoalId = goalId,
-                retroactiveFrom = FixedClock.today(),
-            ),
-            commitBackfill = true,
-        )
-        val exerciseId = gym.createExercise(
-            ExerciseDraft(name = "Version matrix press", loadInterpretation = LoadInterpretation.PerHand),
-        )
-        val machineId = gym.createMachine(
-            GymMachineDraft(
-                exerciseId = exerciseId,
-                name = "Version matrix stack",
-                location = "Home",
-                loadType = MachineLoadType.Mass,
-                unitId = "kilogram",
-                availableLoads = listOf(10.0, 15.0, 20.0),
-                loadInterpretation = LoadInterpretation.MachineDisplayedMass,
-                configurationGroupId = "matrix-stack",
-                configurationVersion = 2,
-                seatPosition = "4",
-                backPosition = "2",
-                attachment = "neutral handles",
-                pulleyRatio = 0.5,
-                stackMode = MachineStackMode.DualCombined,
-                addOnPlateKg = 2.5,
-                stackLabels = listOf("left", "right"),
-                massMappingKg = mapOf(10.0 to 8.0, 15.0 to 12.0),
-                compatibleForComparison = true,
-            ),
-        )
-        repeat(2) { index ->
-            val sessionId = gym.startWorkout("Version matrix session ${index + 1}")
-            val placementId = gym.addExerciseToWorkout(sessionId, exerciseId, machineId)
-            gym.addSet(placementId, WorkoutSetDraft(weight = 15.0 + index, reps = 8, planned = index == 0, completed = true))
-            gym.finishWorkout(sessionId)
-        }
-        routines.createRoutine(
-            RoutineDraft(
-                name = "Version matrix routine",
-                days = listOf(
-                    RoutineDayDraft(
-                        "Day A",
-                        listOf(
-                            RoutineExerciseDraft(
-                                exerciseId = exerciseId,
-                                machineId = machineId,
-                                plannedSets = listOf(WorkoutSetDraft(weight = 17.5, reps = 6, planned = true)),
-                            ),
-                        ),
-                    ),
-                ),
-            ),
-        )
-        val current = backups.exportBackup()
-
-        (1..26).forEach { version ->
-            val legacy = legacyTaskFixture(current, version)
-            backups.restoreBackup(legacy)
-
-            val restored = tasks.tasks.first().single()
-            assertEquals("v$version title", "Version matrix task", restored.title)
-            if (version >= 2) assertEquals("v$version step", "Preserve me", tasks.steps.first().single().title)
-            if (version >= 4) assertEquals("v$version custom unit", "fixture glass", measurements.customUnits.first().single().name)
-            if (version >= 5) {
-                assertEquals("v$version workout sessions", 2, gym.sessions.first().size)
-                assertEquals("v$version workout sets", 2, gym.sets.first().size)
-            }
-            if (version >= 6) assertEquals("v$version routine", "Version matrix routine", routines.routines.first().single().name)
-            if (version >= 7) assertEquals("v$version habit", "Version matrix hydration", habits.habits.first().single().name)
-            if (version >= 8) assertEquals("v$version goal", "Version matrix goal", goals.goals.first().single().name)
-            if (version >= 9) assertEquals("v$version link", "Version matrix link", links.rules.first().single().name)
-            if (version >= 15) {
-                val machine = gym.machines.first().single()
-                assertEquals("v$version machine", "Version matrix stack", machine.name)
-                assertTrue(gym.workoutExercises.first().all { it.machineProfileUuidSnapshot == machine.uuid })
-                if (version >= 6) assertTrue(routines.exercises.first().all {
-                    it.machineProfileUuidSnapshot == machine.uuid
-                })
-            }
-            assertEquals("v$version current re-export", 27, backups.previewBackup(backups.exportBackup()).databaseVersion)
-        }
-    }
-
-    private fun legacyTaskFixture(current: String, version: Int): String {
-        val root = JSONObject(current)
-        val tables = root.getJSONObject("tables")
-        mapOf(
-            "task_occurrences" to 2, "task_steps" to 2, "task_step_states" to 2,
-            "task_step_snapshots" to 3,
-            "unit_definitions" to 4, "metric_definitions" to 4, "metric_entries" to 4,
-            "areas" to 4, "tags" to 4, "entity_tag_links" to 4,
-            "exercises" to 5, "exercise_categories" to 5, "exercise_category_joins" to 5,
-            "workout_sessions" to 5, "workout_groups" to 5, "workout_exercises" to 5,
-            "workout_sets" to 5,
-            "gym_routines" to 6, "routine_days" to 6, "routine_exercises" to 6,
-            "routine_sets" to 6, "personal_records" to 6, "graph_presets" to 6,
-            "habits" to 7, "habit_checklist_items" to 7, "habit_logs" to 7,
-            "habit_checklist_states" to 7, "habit_pauses" to 7,
-            "goals" to 8, "goal_milestones" to 8, "goal_completion_snapshots" to 8,
-            "link_rules" to 9, "contributions" to 9, "trigger_rules" to 9, "trigger_occurrences" to 9,
-            "gym_machines" to 15,
-        ).forEach { (table, introduced) -> if (version < introduced) tables.remove(table) }
-        fun remove(table: String, vararg fields: String) {
-            val rows = tables.optJSONArray(table) ?: return
-            repeat(rows.length()) { index -> fields.forEach(rows.getJSONObject(index)::remove) }
-        }
-        if (version < 2) remove(
-            "tasks",
-            "updatedAtMillis", "showSubtaskProgress", "progressDisplay", "autoCompleteFromSteps", "repeatStepPolicy",
-        )
-        if (version < 10) remove("habits", "weekdayReminderMinutesCsv")
-        if (version < 11) {
-            remove("tasks", "pinned")
-            remove("gym_routines", "pinned")
-            remove("workout_sessions", "sourceRoutineId")
-            remove("habits", "area", "tagsCsv")
-            remove("goals", "area", "tagsCsv")
-        }
-        if (version < 12) remove(
-            "goals",
-            "aggregationPeriod", "rollingDays", "consistencyPeriod", "consistencyRequiredPeriods",
-        )
-        if (version < 13) {
-            remove("task_steps", "notes", "weight")
-            remove("task_step_snapshots", "notes", "weight")
-        }
-        if (version < 14) remove(
-            "tasks",
-            "priority", "area", "tagsCsv", "deadlineEpochDay", "recurrenceAnchor",
-            "reminderOffsetsMinutesCsv", "locationReminderEnabled", "locationName",
-            "locationLatitude", "locationLongitude", "locationRadiusMeters", "locationTrigger",
-        )
-        if (version < 15) {
-            remove(
-                "workout_exercises",
-                "machineId", "machineNameSnapshot", "machineLoadTypeSnapshot", "machineUnitIdSnapshot", "machineLevelLabelSnapshot",
-            )
-            remove("workout_sets", "machineLoadValue")
-            remove("routine_sets", "machineLoadValue")
-            remove("routine_exercises", "machineId")
-            remove("personal_records", "machineId")
-        }
-        if (version < 16) {
-            remove("exercises", "loadInterpretation")
-            remove("gym_machines", "loadInterpretation", "baseLoadKg")
-            remove("workout_exercises", "loadInterpretationSnapshot", "baseLoadKgSnapshot")
-        }
-        if (version < 17) remove("tasks", "missedOccurrencePolicy")
-        if (version < 18) remove(
-            "workout_exercises",
-            "trackingTypeSnapshot", "bodyweightLoadPolicySnapshot", "effectiveBodyweightPercentSnapshot",
-            "oneRepMaxFormulaSnapshot", "includeInVolumeSnapshot", "includeInPersonalRecordsSnapshot",
-        )
-        if (version < 19) {
-            remove(
-                "gym_machines",
-                "configurationGroupId", "configurationVersion", "seatPosition", "backPosition", "attachment",
-                "pulleyRatio", "stackMode", "addOnPlateKg", "stackLabelsCsv", "massMappingCsv", "compatibleForComparison",
-            )
-            remove(
-                "workout_exercises",
-                "exerciseWeightUnitSnapshot", "loadMultiplierSnapshot", "machineConfigurationGroupSnapshot",
-                "machineConfigurationVersionSnapshot", "machineConfigurationSnapshot", "machinePulleyRatioSnapshot",
-                "machineStackModeSnapshot", "machineAddOnPlateKgSnapshot", "machineMassMappingCsvSnapshot",
-            )
-            remove(
-                "workout_sets",
-                "unilateral", "prescribedCanonicalWeightKg", "prescribedEnteredWeight", "prescribedWeightUnitId",
-                "prescribedRepetitions", "prescribedRpe", "prescribedRir", "prescribedDurationSeconds",
-                "prescribedMachineLoadValue",
-            )
-            remove("routine_sets", "unilateral")
-        }
-        if (version < 20) remove("tasks", "inbox", "durationMinutes", "effort")
-        if (version < 21) remove("habits", "sourceMetricId")
-        if (version < 22) {
-            remove("workout_exercises", "machineProfileUuidSnapshot")
-            remove(
-                "routine_exercises",
-                "equipmentBindingState", "machineProfileUuidSnapshot", "machineNameSnapshot",
-                "machineLoadTypeSnapshot", "machineUnitIdSnapshot", "machineLevelLabelSnapshot",
-                "machineLoadInterpretationSnapshot", "machineConfigurationGroupSnapshot",
-                "machineConfigurationVersionSnapshot", "machineConfigurationSnapshot",
-            )
-            remove("personal_records", "machineProfileUuidSnapshot")
-        }
-        if (version < 26) {
-            remove("tasks", "uuid", "manualPosition")
-            remove("task_steps", "uuid")
-        }
-        if (version < 27) {
-            remove("areas", "nameKey")
-            remove("tasks", "areaId")
-            remove("habits", "areaId")
-            remove("goals", "areaId")
-        }
-        root.put("databaseVersion", version)
-        val payload = tables.toString() + "\n" + root.optJSONObject("settings")?.toString().orEmpty()
-        root.put(
-            "checksumSha256",
-            MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) },
-        )
-        return root.toString()
     }
 
     private object FixedClock : WhipClock {

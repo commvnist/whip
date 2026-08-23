@@ -34,12 +34,12 @@ class AreaFeatureUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Area selection: No area").performClick()
+        compose.onNodeWithContentDescription("Area selection: Work").performClick()
         compose.onNodeWithContentDescription("Area Work").assertIsDisplayed().performClick()
         assertEquals("work" to "Work", selected.get())
 
-        compose.onNodeWithContentDescription("Area selection: No area").performClick()
-        compose.onNodeWithText("Create area…").performClick()
+        compose.onNodeWithContentDescription("Area selection: Work").performClick()
+        compose.onNodeWithText("Create Area…").performClick()
         compose.onNodeWithText("Area name").performTextInput("Personal")
         compose.onNodeWithText("Create").performClick()
         assertEquals("created-personal" to "Personal", selected.get())
@@ -63,7 +63,7 @@ class AreaFeatureUiTest {
     }
 
     @Test
-    fun zeroAreaScopeOffersSetupInsteadOfDuplicateAllAndNoAreaFilters() {
+    fun emergencyZeroAreaStateCreatesMainWithoutShowingAPlaceholder() {
         val selected = AtomicReference<AreaScope>()
         compose.setContent {
             WhipTheme(dynamicColor = false) {
@@ -76,10 +76,8 @@ class AreaFeatureUiTest {
             }
         }
 
-        compose.onNodeWithText("Set up areas").performClick()
-        compose.onNodeWithText("Create area…").assertIsDisplayed().performClick()
-        compose.onNodeWithText("Area name").performTextInput("Client Delta")
-        compose.onNodeWithText("Create").performClick()
+        compose.onNodeWithText("Main").performClick()
+        compose.onNodeWithText("Create Main Area").assertIsDisplayed().performClick()
 
         assertEquals(AreaScope.One("client-delta"), selected.get())
         compose.onAllNodesWithText("Create Personal").assertCountEquals(0)
@@ -96,7 +94,6 @@ class AreaFeatureUiTest {
                     scope = AreaScope.One("work"),
                     areas = listOf(work),
                     usage = mapOf("work" to AreaUsageCounts(tasks = 2, habits = 1)),
-                    unassignedUsage = AreaUsageCounts(goals = 4),
                     onSelect = {},
                 )
             }
@@ -104,8 +101,8 @@ class AreaFeatureUiTest {
 
         compose.onNodeWithContentDescription("Area scope: Work").performClick()
         compose.onNodeWithText("✓  Work · 3 items").assertIsDisplayed()
-        compose.onNodeWithText("No area · 4 items", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("Edit areas…").assertIsDisplayed()
+        compose.onAllNodesWithText("No area", substring = true).assertCountEquals(0)
+        compose.onNodeWithText("Manage Areas").assertIsDisplayed()
     }
 
     @Test
@@ -118,7 +115,7 @@ class AreaFeatureUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Area selection: No area").performClick()
+        compose.onNodeWithContentDescription("Area selection: Area 1").performClick()
         compose.onNodeWithText("Find area").performTextInput("Area 50")
         compose.onNodeWithContentDescription("Area Area 50").performClick()
         assertEquals("area-50" to "Area 50", selected.get())
@@ -132,20 +129,65 @@ class AreaFeatureUiTest {
                 PermanentAreaDeleteDialog(
                     area = area("client-delta", "Client Delta"),
                     usage = AreaUsageCounts(tasks = 2, habits = 1, goals = 1),
+                    replacementAreas = listOf(area("personal", "Personal")),
                     onDismiss = { choice.set("cancel") },
-                    onKeepItems = { choice.set("keep") },
+                    onMoveItems = { choice.set("move-$it") },
                     onDeleteItems = { choice.set("delete") },
                 )
             }
         }
 
-        compose.onNodeWithText("Delete Client Delta permanently?").assertIsDisplayed()
+        compose.onNodeWithText("Delete Client Delta Permanently?").assertIsDisplayed()
         compose.onNodeWithText("Moving them keeps the items and their history.", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Deleting the items cannot be undone.", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("Move items to No area").assertIsDisplayed().performClick()
-        assertEquals("keep", choice.get())
-        compose.onNodeWithText("Delete area and 4 items").assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription("Move items to Personal").performClick()
+        compose.onNodeWithText("Move Items and Delete Area").assertIsDisplayed().performClick()
+        assertEquals("move-personal", choice.get())
+        compose.onNodeWithText("Delete Area and 4 Items").assertIsDisplayed().performClick()
         assertEquals("delete", choice.get())
+    }
+
+    @Test
+    fun allItemsCanBeMovedBetweenAreasInOneAction() {
+        val target = AtomicReference<String?>()
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                MoveAreaItemsDialog(
+                    sourceId = "main",
+                    sourceName = "Main",
+                    usage = AreaUsageCounts(tasks = 2, habits = 1, goals = 1),
+                    targets = listOf(area("personal", "Personal")),
+                    onDismiss = {},
+                    onMove = target::set,
+                )
+            }
+        }
+
+        compose.onNodeWithText("Move Everything from Main").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Move to Personal").performClick()
+        compose.onNodeWithText("Move 4 Items").performClick()
+        assertEquals("personal", target.get())
+    }
+
+    @Test
+    fun deletingTheOnlyAreaPromptsForAReplacementFirst() {
+        val choice = AtomicReference<String>()
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                LastAreaRequiredDialog(
+                    modifier = androidx.compose.ui.Modifier,
+                    area = area("main", "Main"),
+                    action = "delete",
+                    onDismiss = { choice.set("cancel") },
+                    onCreateArea = { choice.set("create") },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Create Another Area First").assertIsDisplayed()
+        compose.onNodeWithText("Main is your only active Area.", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Create Area").performClick()
+        assertEquals("create", choice.get())
     }
 
     private fun area(id: String, name: String) = Area(

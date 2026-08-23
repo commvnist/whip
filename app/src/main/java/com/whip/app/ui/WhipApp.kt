@@ -1,10 +1,12 @@
 package com.whip.app.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,12 +15,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.absoluteOffset
@@ -30,13 +34,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Card
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
@@ -46,16 +47,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Surface
@@ -81,6 +80,10 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -99,9 +102,9 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Autorenew
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FitnessCenter
@@ -109,8 +112,12 @@ import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Fullscreen
 import androidx.compose.material.icons.outlined.FullscreenExit
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Insights
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.whip.app.R
@@ -153,8 +160,6 @@ private enum class AppDestination {
     Settings,
 }
 
-internal enum class TaskPlanningView { List, Agenda, Calendar }
-
 @Composable
 fun WhipApp(
     modifier: Modifier = Modifier,
@@ -165,7 +170,6 @@ fun WhipApp(
     initialDeliveryId: Long = 0L,
     foldInfo: WhipFoldInfo? = null,
     onRequestNotificationPermission: () -> Unit = {},
-    onRequestLocationPermission: () -> Unit = {},
     taskViewModel: TaskViewModel = viewModel(),
     gymViewModel: GymViewModel = viewModel(),
     habitViewModel: HabitViewModel = viewModel(),
@@ -180,6 +184,7 @@ fun WhipApp(
     val operationStatus by taskViewModel.operationStatus.collectAsStateWithLifecycle()
     val taskDeletionImpact by taskViewModel.taskDeletionImpact.collectAsStateWithLifecycle()
     val pendingTaskUndoMessage by taskViewModel.pendingUndoMessage.collectAsStateWithLifecycle()
+    val pendingQuickAddTaskId by taskViewModel.pendingQuickAddTaskId.collectAsStateWithLifecycle()
     val gymOperationStatus by gymViewModel.operationStatus.collectAsStateWithLifecycle()
     val pendingMachineArchiveUndo by gymViewModel.pendingMachineArchiveUndo.collectAsStateWithLifecycle()
     val habitOperationStatus by habitViewModel.operationStatus.collectAsStateWithLifecycle()
@@ -222,7 +227,11 @@ fun WhipApp(
             else -> return@LaunchedEffect
         }
         if (!areaScope.matches(targetAreaId)) {
-            transientAreaScopeKey = (targetAreaId?.let(AreaScope::One) ?: AreaScope.Unassigned).storageKey
+            transientAreaScopeKey = (
+                targetAreaId?.let(AreaScope::One)
+                    ?: settingsState.areas.firstOrNull { !it.archived }?.id?.let(AreaScope::One)
+                    ?: AreaScope.All
+                ).storageKey
         }
         transientAreaScopeDelivery = requestedLaunchDeliveryId
     }
@@ -263,6 +272,7 @@ fun WhipApp(
             operationStatus = operationStatus,
             onOperationStatusConsumed = taskViewModel::consumeOperationStatus,
             taskUndoMessage = pendingTaskUndoMessage,
+            quickAddedTaskId = pendingQuickAddTaskId,
             onTaskUndo = taskViewModel::undoLastTaskAction,
             onTaskUndoDismissed = taskViewModel::clearPendingUndo,
             gymOperationStatus = gymOperationStatus,
@@ -275,6 +285,7 @@ fun WhipApp(
             goalOperationStatus = goalOperationStatus,
             onGoalOperationStatusConsumed = goalViewModel::consumeOperationStatus,
             onSaveTask = taskViewModel::saveTask,
+            onQuickAddTask = taskViewModel::quickAddTask,
             onComplete = taskViewModel::complete,
             onSkip = taskViewModel::skip,
             onReschedule = taskViewModel::reschedule,
@@ -301,7 +312,6 @@ fun WhipApp(
             onSetTaskInbox = taskViewModel::setInbox,
             onDuplicateTask = taskViewModel::duplicate,
             onRequestNotificationPermission = onRequestNotificationPermission,
-            onRequestLocationPermission = onRequestLocationPermission,
             initialAction = initialAction,
             initialEntityId = initialEntityId,
             initialOccurrenceEpochDay = initialOccurrenceEpochDay,
@@ -337,6 +347,7 @@ fun WhipScreen(
     operationStatus: OperationStatus = OperationStatus.Idle,
     onOperationStatusConsumed: () -> Unit = {},
     taskUndoMessage: String? = null,
+    quickAddedTaskId: Long? = null,
     onTaskUndo: () -> Unit = {},
     onTaskUndoDismissed: () -> Unit = {},
     gymOperationStatus: OperationStatus = OperationStatus.Idle,
@@ -349,6 +360,7 @@ fun WhipScreen(
     goalOperationStatus: OperationStatus = OperationStatus.Idle,
     onGoalOperationStatusConsumed: () -> Unit = {},
     onSaveTask: (Long?, TaskDraft, LocalDate?) -> Unit,
+    onQuickAddTask: (String, LocalDate?, Boolean, String?) -> Unit = { _, _, _, _ -> },
     onComplete: (ScheduledTask) -> Unit,
     onSkip: (ScheduledTask) -> Unit,
     onReschedule: (ScheduledTask, LocalDate) -> Unit,
@@ -375,7 +387,6 @@ fun WhipScreen(
     onSetTaskInbox: (Long, Boolean) -> Unit = { _, _ -> },
     onDuplicateTask: (Long) -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
-    onRequestLocationPermission: () -> Unit = {},
     initialAction: String? = null,
     initialEntityId: Long? = null,
     initialOccurrenceEpochDay: Long? = null,
@@ -385,7 +396,9 @@ fun WhipScreen(
     foldInfo: WhipFoldInfo? = null,
 ) {
     var appDestination by rememberSaveable { mutableStateOf(AppDestination.Home) }
+    var settingsCallerDestination by rememberSaveable { mutableStateOf(AppDestination.Home) }
     var taskDestination by rememberSaveable { mutableStateOf(TaskDestination.Today) }
+    var taskPlanningViewRequest by rememberSaveable { mutableStateOf<TaskPlanningView?>(null) }
     var taskEditorOpen by rememberSaveable { mutableStateOf(false) }
     var taskEditorTaskId by rememberSaveable { mutableStateOf<Long?>(null) }
     var taskEditorFromEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -401,6 +414,7 @@ fun WhipScreen(
     var pendingCompleteItemKey by rememberSaveable { mutableStateOf<String?>(null) }
     var deleteItemKey by rememberSaveable { mutableStateOf<String?>(null) }
     var globalAddExpanded by rememberSaveable { mutableStateOf(false) }
+    var secondaryAppActionsExpanded by rememberSaveable { mutableStateOf(false) }
     var globalAddPending by rememberSaveable { mutableStateOf(false) }
     var gymAddExpanded by rememberSaveable { mutableStateOf(false) }
     var createHabitRequested by rememberSaveable { mutableStateOf(false) }
@@ -408,8 +422,8 @@ fun WhipScreen(
     var createExerciseRequested by rememberSaveable { mutableStateOf(false) }
     var startWorkoutRequested by rememberSaveable { mutableStateOf(false) }
     var recordGoalIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
-    var chooseMeasurementGoal by rememberSaveable { mutableStateOf(false) }
     var searchOpen by rememberSaveable { mutableStateOf(false) }
+    var searchEntryContext by rememberSaveable { mutableStateOf(WhipSearchEntryContext.AllWhip) }
     var openHabitIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var editHabitIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var openGoalIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -425,6 +439,8 @@ fun WhipScreen(
     var firstRunBackupRequest by rememberSaveable { mutableStateOf<String?>(null) }
     var consumedLaunchDeliveryId by rememberSaveable { mutableStateOf<Long?>(null) }
     val shortcutFocusRequester = remember { FocusRequester() }
+    val searchInvokerFocusRequester = remember { FocusRequester() }
+    var searchPreviouslyOpen by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val allScheduledTasks = state.inbox + state.today + state.upcoming + state.planning + state.anytime + state.completed + state.archived
     val scheduledTaskByKey = allScheduledTasks.associateBy(ScheduledTask::stableKey)
@@ -435,6 +451,16 @@ fun WhipScreen(
     val deleteItem = deleteItemKey?.let(scheduledTaskByKey::get)
     val openGymSearchRequested = openGymSearchDomain?.let { domain ->
         openGymSearchId?.let { id -> WhipSearchResult(domain, id, "", "") }
+    }
+    fun openSettings() {
+        if (appDestination != AppDestination.Settings) settingsCallerDestination = appDestination
+        appDestination = AppDestination.Settings
+    }
+    fun closeSettings() {
+        appDestination = settingsCallerDestination.takeUnless { it == AppDestination.Settings } ?: AppDestination.Home
+    }
+    BackHandler(enabled = appDestination != AppDestination.Home && !areaManagerOpen) {
+        if (appDestination == AppDestination.Settings) closeSettings() else appDestination = AppDestination.Home
     }
     val homeHabitValueItem = homeHabitValueItemId?.let { id ->
         (habitState.today + habitState.all).firstOrNull { it.habit.id == id }
@@ -447,6 +473,13 @@ fun WhipScreen(
     }
     LaunchedEffect(shortcutFocusRequester) {
         shortcutFocusRequester.requestFocus()
+    }
+    LaunchedEffect(searchOpen) {
+        if (searchPreviouslyOpen && !searchOpen) {
+            val restored = runCatching { searchInvokerFocusRequester.requestFocus() }.getOrDefault(false)
+            if (!restored) shortcutFocusRequester.requestFocus()
+        }
+        searchPreviouslyOpen = searchOpen
     }
     val editorTask = taskEditorTaskId?.let { id -> allScheduledTasks.firstOrNull { it.task.id == id }?.task }
     val editorRequest = if (taskEditorOpen && (taskEditorTaskId == null || editorTask != null)) {
@@ -486,6 +519,7 @@ fun WhipScreen(
         when (operationStatus) {
             is OperationStatus.Running -> taskEditorSaveStarted = true
             is OperationStatus.Succeeded -> {
+                if (!taskEditorSaveStarted) return@LaunchedEffect
                 if (taskEditorSaveAndNew) {
                     taskEditorSavePending = false
                     taskEditorSaveStarted = false
@@ -495,6 +529,7 @@ fun WhipScreen(
                 } else closeTaskEditor()
             }
             is OperationStatus.Failed -> {
+                if (!taskEditorSaveStarted) return@LaunchedEffect
                 taskEditorSavePending = false
                 taskEditorSaveStarted = false
             }
@@ -510,7 +545,7 @@ fun WhipScreen(
         val settings = settingsState.settings
         if (settings.setupCompleted && !settings.backupPrivacyChoiceHandled) {
             firstRunBackupRequest = settings.backupPrivacyChoice
-            appDestination = AppDestination.Settings
+            openSettings()
         }
     }
 
@@ -571,14 +606,34 @@ fun WhipScreen(
             is OperationStatus.Failed -> operationStatus.message
         }
         if (message != null) {
+            val quickAddedId = quickAddedTaskId
             val result = snackbarHostState.showSnackbar(
                 message = message,
-                actionLabel = "Undo".takeIf { operationStatus is OperationStatus.Succeeded && taskUndoMessage != null },
+                actionLabel = when {
+                    operationStatus !is OperationStatus.Succeeded || taskUndoMessage == null -> null
+                    quickAddedId != null -> "Edit"
+                    else -> "Undo"
+                },
                 withDismissAction = taskUndoMessage != null,
             )
             onOperationStatusConsumed()
             if (taskUndoMessage != null) {
-                if (result == SnackbarResult.ActionPerformed) onTaskUndo() else onTaskUndoDismissed()
+                when {
+                    quickAddedId != null && result == SnackbarResult.ActionPerformed -> {
+                        val item = allScheduledTasks.firstOrNull { it.task.id == quickAddedId }
+                        if (item != null) openTaskEditor(item) else {
+                            taskEditorOpen = true
+                            taskEditorTaskId = quickAddedId
+                            taskEditorFromEpochDay = null
+                            taskEditorCapture = ""
+                            taskEditorInitialScheduleEpochDay = null
+                            taskEditorSessionId++
+                        }
+                        onTaskUndoDismissed()
+                    }
+                    quickAddedId == null && result == SnackbarResult.ActionPerformed -> onTaskUndo()
+                    else -> onTaskUndoDismissed()
+                }
             }
         }
     }
@@ -655,11 +710,15 @@ fun WhipScreen(
     }
 
     fun keepSavedItemVisible(areaId: String?) {
-        val target = areaId?.let(AreaScope::One) ?: AreaScope.Unassigned
+        val target = areaId?.let(AreaScope::One)
+            ?: settingsState.areas.firstOrNull { !it.archived }?.id?.let(AreaScope::One)
+            ?: AreaScope.All
         if (!areaScope.matches(areaId)) {
             areaMoveRestoreScope = areaScope.storageKey
             onSelectAreaScope(target)
-            val label = areaId?.let { id -> settingsState.areas.firstOrNull { it.id == id }?.name } ?: "No area"
+            val label = areaId?.let { id -> settingsState.areas.firstOrNull { it.id == id }?.name }
+                ?: settingsState.areas.firstOrNull { !it.archived }?.name
+                ?: "Main"
             areaMoveNotice = "Switched to $label to keep the saved item visible"
         }
     }
@@ -671,6 +730,9 @@ fun WhipScreen(
             onComplete(item)
         }
     }
+
+    var gymDestination by rememberSaveable { mutableStateOf(GymDestination.Workout) }
+    var requestedWorkoutExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
 
     val adaptiveSummary = AdaptiveSummary(
         date = state.currentDate,
@@ -686,13 +748,50 @@ fun WhipScreen(
             } ?: "log"}"
         },
         goalContext = goalState.active.take(6).map { item -> "${item.goal.name} · ${((item.progress ?: 0.0) * 100).toInt()}%" },
-        gymContext = buildList {
-            gymState.activeSession?.let { add(it.name.ifBlank { "Current workout" }) }
-            addAll(gymState.activeWorkoutExercises.take(5).map { it.exercise.name })
-            if (gymState.activeSession == null) {
-                add("${gymState.exercises.size} exercises · ${gymState.machines.size} machines")
-                add("${gymState.routines.size} routines · ${gymState.history.size} completed workouts")
+        gymContextTitle = when (gymDestination) {
+            GymDestination.Workout -> "Workout Context"
+            GymDestination.History -> "Recent Workouts"
+            GymDestination.Progress -> "Current Records"
+            GymDestination.Routines -> "Routines"
+            GymDestination.Exercises -> "Exercise Library"
+            GymDestination.Machines -> "Machine Profiles"
+            GymDestination.Categories -> "Exercise Categories"
+            GymDestination.Tools -> "Workout Tools"
+            GymDestination.Library -> "Gym Library"
+        },
+        gymContext = when (gymDestination) {
+            GymDestination.Workout -> buildList {
+                gymState.activeSession?.let { add(it.name.ifBlank { "Current Workout" }) }
+                addAll(gymState.activeWorkoutExercises.take(5).map { it.exercise.name })
+                if (gymState.activeSession == null) add("No Active Workout")
             }
+            GymDestination.History -> gymState.history.sortedByDescending { it.localDate }.take(6)
+                .map { it.name.ifBlank { "Workout · ${it.localDate}" } }
+                .ifEmpty { listOf("Completed workouts will appear here") }
+            GymDestination.Progress -> gymState.personalRecords.filter { it.current }.take(6).map { record ->
+                val exerciseName = gymState.exercises.firstOrNull { it.id == record.exerciseId }?.name ?: "Exercise"
+                "$exerciseName · ${record.type.name.replace(Regex("([a-z])([A-Z])"), "$1 $2") }"
+            }.ifEmpty {
+                listOf(
+                    quantityLabel(gymState.history.size, "completed workout"),
+                    "Records appear after eligible completed sets",
+                )
+            }
+            GymDestination.Routines -> gymState.routines.take(6).map { it.name }
+                .ifEmpty { listOf("Create a routine to reuse a training plan") }
+            GymDestination.Exercises -> gymState.exercises
+                .sortedWith(compareByDescending<com.whip.app.domain.Exercise> { it.favorite }.thenBy { it.name })
+                .take(6).map { it.name }
+                .ifEmpty { listOf("Create your first reusable exercise") }
+            GymDestination.Machines -> gymState.machines.take(6).map { it.displayName }
+                .ifEmpty { listOf("Machine profiles preserve equipment setup") }
+            GymDestination.Categories -> gymState.categories.take(6).map { it.name }
+                .ifEmpty { listOf("Categories are optional exercise filters") }
+            GymDestination.Tools -> listOf("1RM Calculator", "Plate Calculator")
+            GymDestination.Library -> listOf(
+                "${quantityLabel(gymState.exercises.size, "Exercise")} · ${quantityLabel(gymState.machines.size, "Machine")}",
+                "${quantityLabel(gymState.routines.size, "Routine")} · ${quantityLabel(gymState.history.size, "Completed Workout")}",
+            )
         },
     )
     val supportsPaneExpansion = adaptiveLayout in setOf(
@@ -700,7 +799,14 @@ fun WhipScreen(
         WhipAdaptiveLayout.BookFold,
         WhipAdaptiveLayout.TabletopFold,
     )
-    val contentPaneIsExpanded = supportsPaneExpansion && contentPaneExpanded
+    val contentPaneIsExpanded = supportsPaneExpansion && (
+        contentPaneExpanded || appDestination == AppDestination.Settings
+    )
+    val useSecondaryAppActionsMenu =
+        adaptiveLayout == WhipAdaptiveLayout.BookFold && !contentPaneIsExpanded
+    LaunchedEffect(useSecondaryAppActionsMenu) {
+        if (!useSecondaryAppActionsMenu) secondaryAppActionsExpanded = false
+    }
     val layoutDirection = LocalLayoutDirection.current
     // Match AdaptiveNavigationFrame's normalized support-pane geometry exactly. A raw
     // folding-feature bound can be narrower than our 260 dp usable support pane, so
@@ -735,16 +841,38 @@ fun WhipScreen(
         .firstOrNull()
         ?.message
     var gymRoutineEditorOpen by rememberSaveable { mutableStateOf(false) }
-    var gymDestination by rememberSaveable { mutableStateOf(GymDestination.Workout) }
-
+    val addDescription = when (appDestination) {
+        AppDestination.Home -> "Add task, habit, goal, exercise, or workout"
+        AppDestination.Tasks -> "Add task"
+        AppDestination.Habits -> "Add habit"
+        AppDestination.Goals -> "Add goal"
+        AppDestination.Gym -> "Add exercise or workout"
+        AppDestination.Settings -> "Add"
+    }
+    val triggerAdd: () -> Unit = {
+        when (appDestination) {
+            AppDestination.Home -> globalAddExpanded = true
+            AppDestination.Tasks -> openTaskEditor(
+                scheduleDate = state.currentDate.takeIf { taskDestination == TaskDestination.Today },
+            )
+            AppDestination.Habits -> createHabitRequested = true
+            AppDestination.Goals -> createGoalRequested = true
+            AppDestination.Gym -> gymAddExpanded = true
+            AppDestination.Settings -> Unit
+        }
+    }
     AdaptiveNavigationFrame(
         modifier = modifier
             .fillMaxSize()
+            .semantics { if (areaManagerOpen || reviewOpen) hideFromAccessibility() }
             .focusRequester(shortcutFocusRequester)
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown || !event.isCtrlPressed) return@onPreviewKeyEvent false
                 when (event.key) {
-                    Key.K -> searchOpen = true
+                    Key.K -> {
+                        searchEntryContext = WhipSearchEntryContext.AllWhip
+                        searchOpen = true
+                    }
                     Key.N -> when (appDestination) {
                         AppDestination.Home -> globalAddExpanded = true
                         AppDestination.Tasks -> openTaskEditor(
@@ -775,12 +903,19 @@ fun WhipScreen(
         summary = adaptiveSummary,
         contentExpanded = contentPaneIsExpanded,
         navigationEnabled = !gymRoutineEditorOpen,
-        onSelect = { if (!gymRoutineEditorOpen) appDestination = it },
-        selectedGymDestination = gymDestination,
-        onSelectGymDestination = { destination ->
+        onGymContextSelected = { index ->
+            appDestination = AppDestination.Gym
+            if (gymDestination == GymDestination.Workout) {
+                gymDestination = GymDestination.Workout
+                requestedWorkoutExerciseId = if (gymState.activeSession != null && index > 0) {
+                    gymState.activeWorkoutExercises.getOrNull(index - 1)?.workoutExercise?.id
+                } else null
+            }
+            contentPaneExpanded = true
+        },
+        onSelect = {
             if (!gymRoutineEditorOpen) {
-                appDestination = AppDestination.Gym
-                gymDestination = destination
+                if (it == AppDestination.Settings) openSettings() else appDestination = it
             }
         },
     ) { scaffoldModifier ->
@@ -793,38 +928,44 @@ fun WhipScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (
-                            adaptiveLayout == WhipAdaptiveLayout.Compact ||
-                            appDestination !in setOf(AppDestination.Home, AppDestination.Tasks, AppDestination.Habits, AppDestination.Goals)
-                        ) {
+                        if (adaptiveLayout == WhipAdaptiveLayout.Compact) {
                             WhipBrandMark(modifier = Modifier.size(38.dp))
                         }
                         if (
-                            appDestination !in setOf(AppDestination.Home, AppDestination.Tasks, AppDestination.Habits, AppDestination.Goals) &&
-                            (adaptiveLayout != WhipAdaptiveLayout.Compact || appDestination in setOf(AppDestination.Gym, AppDestination.Settings))
-                        ) Column(Modifier.semantics { heading() }) {
-                            Text(
-                                "Whip",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Black,
-                            )
-                            if (appDestination != AppDestination.Home) {
+                            appDestination == AppDestination.Gym &&
+                            adaptiveLayout == WhipAdaptiveLayout.Compact
+                        ) {
+                            Column(Modifier.semantics { heading() }) {
                                 Text(
-                                    if (
-                                        appDestination == AppDestination.Gym &&
-                                        areaScope != AreaScope.All
-                                    ) "Gym · All gym data" else appDestination.label,
+                                    "Whip",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Black,
+                                )
+                                Text(
+                                    appDestination.label,
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
+                        }
+                        if (
+                            adaptiveLayout != WhipAdaptiveLayout.Compact &&
+                            appDestination == AppDestination.Gym
+                        ) {
+                            Text(
+                                appDestination.label,
+                                modifier = Modifier.semantics { heading() },
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                         if (appDestination in setOf(AppDestination.Home, AppDestination.Tasks, AppDestination.Habits, AppDestination.Goals)) {
                             AreaScopeMenu(
                                 scope = areaScope,
                                 areas = settingsState.areas,
                                 usage = settingsState.areaUsage,
-                                unassignedUsage = settingsState.unassignedAreaUsage,
                                 onSelect = onSelectAreaScope,
                                 onManage = { areaManagerOpen = true },
                                 onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
@@ -837,7 +978,37 @@ fun WhipScreen(
                     containerColor = MaterialTheme.colorScheme.background,
                 ),
                 actions = {
-                    if (supportsPaneExpansion) {
+                    if (
+                        adaptiveLayout != WhipAdaptiveLayout.Compact &&
+                        appDestination != AppDestination.Settings &&
+                        !(appDestination == AppDestination.Gym && gymDestination in libraryGymDestinations)
+                    ) {
+                        Box {
+                            IconButton(
+                                onClick = triggerAdd,
+                                modifier = Modifier.size(52.dp).semantics { contentDescription = addDescription },
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(28.dp))
+                                    if (appDestination == AppDestination.Home || appDestination == AppDestination.Gym) {
+                                        Icon(Icons.Outlined.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+                            DropdownMenu(expanded = globalAddExpanded && appDestination == AppDestination.Home, onDismissRequest = { globalAddExpanded = false }) {
+                                DropdownMenuItem(text = { Text("Task") }, onClick = { openTaskEditor(scheduleDate = state.currentDate); globalAddExpanded = false })
+                                DropdownMenuItem(text = { Text("Habit") }, onClick = { appDestination = AppDestination.Habits; createHabitRequested = true; globalAddExpanded = false })
+                                DropdownMenuItem(text = { Text("Goal") }, onClick = { appDestination = AppDestination.Goals; createGoalRequested = true; globalAddExpanded = false })
+                                DropdownMenuItem(text = { Text("Exercise") }, onClick = { appDestination = AppDestination.Gym; createExerciseRequested = true; globalAddExpanded = false })
+                                DropdownMenuItem(text = { Text("Workout") }, onClick = { appDestination = AppDestination.Gym; startWorkoutRequested = true; globalAddExpanded = false })
+                            }
+                            DropdownMenu(expanded = gymAddExpanded && appDestination == AppDestination.Gym, onDismissRequest = { gymAddExpanded = false }) {
+                                DropdownMenuItem(text = { Text("Exercise") }, onClick = { createExerciseRequested = true; gymAddExpanded = false })
+                                DropdownMenuItem(text = { Text("Workout") }, onClick = { startWorkoutRequested = true; gymAddExpanded = false })
+                            }
+                        }
+                    }
+                    if (supportsPaneExpansion && !useSecondaryAppActionsMenu && appDestination != AppDestination.Settings) {
                         IconButton(
                             onClick = { contentPaneExpanded = !contentPaneExpanded },
                             modifier = Modifier
@@ -857,18 +1028,72 @@ fun WhipScreen(
                             )
                         }
                     }
-                    IconButton(onClick = { searchOpen = true }, modifier = Modifier.size(52.dp).semantics { contentDescription = "Search all Whip data" }) {
-                        Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(28.dp))
+                    if (useSecondaryAppActionsMenu && appDestination in setOf(AppDestination.Home, AppDestination.Gym)) {
+                        IconButton(
+                            onClick = {
+                                searchEntryContext = if (appDestination == AppDestination.Gym) gymDestination.searchEntryContext() else WhipSearchEntryContext.AllWhip
+                                searchOpen = true
+                            },
+                            modifier = Modifier.focusRequester(searchInvokerFocusRequester).size(52.dp).semantics {
+                                contentDescription = if (appDestination == AppDestination.Gym) "Search Gym" else "Search All Whip Data"
+                            },
+                        ) { Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(28.dp)) }
                     }
-                    IconButton(onClick = { reviewOpen = true }, modifier = Modifier.size(52.dp).semantics { contentDescription = "Open weekly or monthly review" }) {
-                        Icon(Icons.Outlined.CalendarMonth, contentDescription = null, modifier = Modifier.size(28.dp))
+                    if (useSecondaryAppActionsMenu) {
+                        Box {
+                            IconButton(
+                                onClick = { secondaryAppActionsExpanded = true },
+                                modifier = Modifier.size(52.dp).semantics { contentDescription = "More app actions" },
+                            ) {
+                                Icon(Icons.Outlined.MoreVert, contentDescription = null, modifier = Modifier.size(28.dp))
+                            }
+                            DropdownMenu(
+                                expanded = secondaryAppActionsExpanded,
+                                onDismissRequest = { secondaryAppActionsExpanded = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Expand Content") },
+                                    leadingIcon = { Icon(Icons.Outlined.Fullscreen, contentDescription = null) },
+                                    onClick = {
+                                        secondaryAppActionsExpanded = false
+                                        contentPaneExpanded = true
+                                    },
+                                )
+                                if (appDestination != AppDestination.Settings) {
+                                    DropdownMenuItem(
+                                        text = { Text("Open Settings") },
+                                        leadingIcon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
+                                        onClick = {
+                                            secondaryAppActionsExpanded = false
+                                            openSettings()
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    } else if (appDestination == AppDestination.Home || appDestination == AppDestination.Gym) {
+                        IconButton(
+                            onClick = {
+                                searchEntryContext = if (appDestination == AppDestination.Gym) {
+                                    gymDestination.searchEntryContext()
+                                } else WhipSearchEntryContext.AllWhip
+                                searchOpen = true
+                            },
+                            modifier = Modifier.focusRequester(searchInvokerFocusRequester).size(52.dp).semantics {
+                                contentDescription = if (appDestination == AppDestination.Gym) "Search Gym" else "Search All Whip Data"
+                            },
+                        ) {
+                            Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(28.dp))
+                        }
                     }
-                    IconButton(onClick = { appDestination = if (appDestination == AppDestination.Settings) AppDestination.Home else AppDestination.Settings }, modifier = Modifier.size(52.dp).semantics { contentDescription = if (appDestination == AppDestination.Settings) "Close settings" else "Open settings" }) {
-                        Icon(
-                            if (appDestination == AppDestination.Settings) Icons.Outlined.Close else Icons.Outlined.Settings,
-                            contentDescription = null,
-                            modifier = Modifier.size(28.dp),
-                        )
+                    if (!useSecondaryAppActionsMenu || appDestination == AppDestination.Settings) {
+                        IconButton(onClick = { if (appDestination == AppDestination.Settings) closeSettings() else openSettings() }, modifier = Modifier.size(52.dp).semantics { contentDescription = if (appDestination == AppDestination.Settings) "Close Settings" else "Open Settings" }) {
+                            Icon(
+                                if (appDestination == AppDestination.Settings) Icons.Outlined.Close else Icons.Outlined.Settings,
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
                     }
                 },
             )
@@ -877,7 +1102,7 @@ fun WhipScreen(
             if (!gymRoutineEditorOpen && (adaptiveLayout == WhipAdaptiveLayout.Compact || contentPaneIsExpanded)) {
                 NavigationBar {
                     AppDestination.entries.filter { it != AppDestination.Settings }.forEach { destination ->
-                        NavigationBarItem(
+                        WhipNavigationBarItem(
                             modifier = Modifier.semantics { contentDescription = "${destination.label} tab" },
                             selected = appDestination == destination,
                             onClick = { appDestination = destination },
@@ -894,35 +1119,44 @@ fun WhipScreen(
                 modifier = Modifier.padding(
                     bottom = if (gymState.activeSession != null && appDestination == AppDestination.Gym) 104.dp else 12.dp,
                 ),
-            )
+            ) { data ->
+                if (quickAddedTaskId != null && data.visuals.actionLabel == "Edit") {
+                    Snackbar(
+                        action = {
+                            WhipTextButton(onClick = data::performAction) { Text("Edit") }
+                        },
+                        dismissAction = {
+                            WhipTextButton(
+                                onClick = {
+                                    onTaskUndo()
+                                    data.dismiss()
+                                },
+                            ) { Text("Undo") }
+                        },
+                    ) { Text(data.visuals.message) }
+                } else {
+                    Snackbar(data)
+                }
+            }
         },
         floatingActionButton = {
-            if (!gymRoutineEditorOpen && appDestination != AppDestination.Settings) {
+            if (
+                !gymRoutineEditorOpen && adaptiveLayout == WhipAdaptiveLayout.Compact &&
+                appDestination != AppDestination.Settings &&
+                !(appDestination == AppDestination.Gym && gymDestination in libraryGymDestinations)
+            ) {
                 Box {
-                    val addDescription = when (appDestination) {
-                        AppDestination.Home -> "Add task, habit, goal, exercise, workout, or measurement"
-                        AppDestination.Tasks -> "Add task"
-                        AppDestination.Habits -> "Add habit"
-                        AppDestination.Goals -> "Add goal"
-                        AppDestination.Gym -> "Add exercise or workout"
-                        AppDestination.Settings -> "Add"
-                    }
                     FloatingActionButton(
-                        onClick = {
-                            when (appDestination) {
-                                AppDestination.Home -> globalAddExpanded = true
-                                AppDestination.Tasks -> openTaskEditor(
-                                    scheduleDate = state.currentDate.takeIf { taskDestination == TaskDestination.Today },
-                                )
-                                AppDestination.Habits -> createHabitRequested = true
-                                AppDestination.Goals -> createGoalRequested = true
-                                AppDestination.Gym -> gymAddExpanded = true
-                                AppDestination.Settings -> Unit
-                            }
-                        },
+                        onClick = triggerAdd,
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.semantics { contentDescription = addDescription },
                     ) {
-                        Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(32.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(30.dp))
+                            if (appDestination == AppDestination.Home || appDestination == AppDestination.Gym) {
+                                Icon(Icons.Outlined.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
+                            }
+                        }
                     }
                     DropdownMenu(expanded = globalAddExpanded && appDestination == AppDestination.Home, onDismissRequest = { globalAddExpanded = false }) {
                         DropdownMenuItem(text = { Text("Task") }, onClick = { openTaskEditor(scheduleDate = state.currentDate); globalAddExpanded = false })
@@ -930,7 +1164,6 @@ fun WhipScreen(
                         DropdownMenuItem(text = { Text("Goal") }, onClick = { appDestination = AppDestination.Goals; createGoalRequested = true; globalAddExpanded = false })
                         DropdownMenuItem(text = { Text("Exercise") }, onClick = { appDestination = AppDestination.Gym; createExerciseRequested = true; globalAddExpanded = false })
                         DropdownMenuItem(text = { Text("Workout") }, onClick = { appDestination = AppDestination.Gym; startWorkoutRequested = true; globalAddExpanded = false })
-                        DropdownMenuItem(text = { Text("Measurement") }, onClick = { chooseMeasurementGoal = true; globalAddExpanded = false })
                     }
                     DropdownMenu(expanded = gymAddExpanded && appDestination == AppDestination.Gym, onDismissRequest = { gymAddExpanded = false }) {
                         DropdownMenuItem(text = { Text("Exercise") }, onClick = { createExerciseRequested = true; gymAddExpanded = false })
@@ -1006,14 +1239,14 @@ fun WhipScreen(
                     onSelectHomeTaskFilter = { name ->
                         settingsViewModel?.selectHomeTaskFilter(name)
                         settingsState.settings.savedTaskFilters.firstOrNull { it.name == name }?.let { filter ->
-                            (filter.areaId ?: settingsState.areas.firstOrNull { it.name.equals(filter.area, true) }?.id)
-                                ?.let { onSelectAreaScope(AreaScope.One(it)) }
+                            filter.areaId?.let { onSelectAreaScope(AreaScope.One(it)) }
                         }
                     },
+                    onOpenReview = { reviewOpen = true },
                     showFullHeader = adaptiveLayout == WhipAdaptiveLayout.Compact || contentPaneIsExpanded,
                     areaScopeLabel = when (areaScope) {
                         AreaScope.All -> null
-                        AreaScope.Unassigned -> "No area"
+                        AreaScope.Unassigned -> "Main"
                         is AreaScope.One -> settingsState.areas.firstOrNull { it.id == areaScope.areaId }?.name
                     },
                     onShowAllAreas = { onSelectAreaScope(AreaScope.All) },
@@ -1045,10 +1278,19 @@ fun WhipScreen(
                     onPlanMyDay = onPlanMyDay,
                     onBulkTriage = { items -> items.map { it.task.id }.distinct().forEach { id -> onSetTaskInbox(id, false) } },
                     onStopFocus = { settingsViewModel?.stopFocusTimer() },
-                    onQuickCapture = { capture, date -> openTaskEditor(capture = capture, scheduleDate = date) },
+                    onQuickCapture = onQuickAddTask,
+                    onOpenSearch = {
+                        searchEntryContext = WhipSearchEntryContext.Tasks
+                        searchOpen = true
+                    },
+                    searchActionModifier = Modifier.focusRequester(searchInvokerFocusRequester),
+                    operationStatus = operationStatus,
                     areas = settingsState.areas,
                     areaScope = areaScope,
                     onSelectAreaScope = onSelectAreaScope,
+                    planningViewRequest = taskPlanningViewRequest,
+                    onPlanningViewRequestConsumed = { taskPlanningViewRequest = null },
+                    dialogModifier = paneDialogModifier,
                 )
             }
             AppDestination.Habits -> {
@@ -1074,14 +1316,24 @@ fun WhipScreen(
                                 ?.let { actionItemKey = it.stableKey }
                         },
                         areas = settingsState.areas,
-                        defaultAreaId = (areaScope as? AreaScope.One)?.areaId,
+                        defaultAreaId = (areaScope as? AreaScope.One)?.areaId
+                            ?: settingsState.areas.firstOrNull { !it.archived }?.id,
                         onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
+                        onCreateCustomUnit = { name, symbol, dimension, factor, result ->
+                            settingsViewModel?.createCustomUnit(name, symbol, dimension, factor, result)
+                                ?: result(Result.failure(IllegalStateException("Settings are unavailable")))
+                        },
                         areaScopeLabel = when (areaScope) {
                             AreaScope.All -> null
-                            AreaScope.Unassigned -> "No area"
+                            AreaScope.Unassigned -> "Main"
                             is AreaScope.One -> settingsState.areas.firstOrNull { it.id == areaScope.areaId }?.name
                         },
                         onAreaChanged = ::keepSavedItemVisible,
+                        onOpenSearch = {
+                            searchEntryContext = WhipSearchEntryContext.Habits
+                            searchOpen = true
+                        },
+                        searchActionModifier = Modifier.focusRequester(searchInvokerFocusRequester),
                     )
                 } else RoadmapEmptyArea("Habits", "Habits are loading.", innerPadding)
             }
@@ -1097,12 +1349,14 @@ fun WhipScreen(
                         openSearchRequest = openGymSearchRequested,
                         onOpenSearchRequestConsumed = { openGymSearchDomain = null; openGymSearchId = null },
                         onRequestNotificationPermission = onRequestNotificationPermission,
-                        onOpenBackupSettings = { appDestination = AppDestination.Settings },
+                        onOpenBackupSettings = ::openSettings,
                         dialogModifier = paneDialogModifier,
                         onRoutineEditorStateChange = { gymRoutineEditorOpen = it },
                         operationStatus = gymOperationStatus,
                         initialDestination = gymDestination,
                         onDestinationChange = { gymDestination = it },
+                        requestedWorkoutExerciseId = requestedWorkoutExerciseId,
+                        onRequestedWorkoutExerciseConsumed = { requestedWorkoutExerciseId = null },
                     )
                 } else {
                     RoadmapEmptyArea("Gym", "Gym is loading.", innerPadding)
@@ -1124,14 +1378,24 @@ fun WhipScreen(
                     operationStatus = goalOperationStatus,
                     dialogModifier = paneDialogModifier,
                     areas = settingsState.areas,
-                    defaultAreaId = (areaScope as? AreaScope.One)?.areaId,
+                    defaultAreaId = (areaScope as? AreaScope.One)?.areaId
+                        ?: settingsState.areas.firstOrNull { !it.archived }?.id,
                     onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
+                    onCreateCustomUnit = { name, symbol, dimension, factor, result ->
+                        settingsViewModel?.createCustomUnit(name, symbol, dimension, factor, result)
+                            ?: result(Result.failure(IllegalStateException("Settings are unavailable")))
+                    },
                     areaScopeLabel = when (areaScope) {
                         AreaScope.All -> null
-                        AreaScope.Unassigned -> "No area"
+                        AreaScope.Unassigned -> "Main"
                         is AreaScope.One -> settingsState.areas.firstOrNull { it.id == areaScope.areaId }?.name
                     },
                     onAreaChanged = ::keepSavedItemVisible,
+                    onOpenSearch = {
+                        searchEntryContext = WhipSearchEntryContext.Goals
+                        searchOpen = true
+                    },
+                    searchActionModifier = Modifier.focusRequester(searchInvokerFocusRequester),
                 )
                 else RoadmapEmptyArea("Goals", "Goals are loading.", innerPadding)
             }
@@ -1153,8 +1417,8 @@ fun WhipScreen(
             }
             if (transientAreaScope) {
                 val temporaryLabel = when (areaScope) {
-                    AreaScope.All -> "All areas"
-                    AreaScope.Unassigned -> "No area"
+                    AreaScope.All -> "All Areas"
+                    AreaScope.Unassigned -> "Main"
                     is AreaScope.One -> settingsState.areas.firstOrNull { it.id == areaScope.areaId }?.name ?: "this area"
                 }
                 Surface(
@@ -1169,7 +1433,7 @@ fun WhipScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text("Temporarily showing $temporaryLabel", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                        TextButton(onClick = onRestoreAreaScope) { Text("Restore") }
+                        WhipTextButton(onClick = onRestoreAreaScope) { Text("Restore") }
                     }
                 }
             }
@@ -1200,29 +1464,10 @@ fun WhipScreen(
       }
     }
 
-    if (chooseMeasurementGoal) {
-        PaneAwareAlertDialog(
-            modifier = paneDialogModifier,
-            onDismissRequest = { chooseMeasurementGoal = false },
-            title = { Text("Record a measurement") },
-            text = {
-                LazyColumn {
-                    if (goalState.active.none { it.goal.type != com.whip.app.domain.GoalType.WeightedMilestones }) item { Text("Create a measurable goal first.") }
-                    items(goalState.active.filter { it.goal.type != com.whip.app.domain.GoalType.WeightedMilestones }, key = { it.goal.id }) { projection ->
-                        TextButton(onClick = { recordGoalIdRequested = projection.goal.id; appDestination = AppDestination.Goals; chooseMeasurementGoal = false }, modifier = Modifier.fillMaxWidth()) { Text(projection.goal.name, modifier = Modifier.fillMaxWidth()) }
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { chooseMeasurementGoal = false }) { Text("Cancel") } },
-        )
-    }
-
     if (areaManagerOpen && settingsViewModel != null) {
         AreaManagementDialog(
             state = settingsState,
             viewModel = settingsViewModel,
-            adaptiveLayout = adaptiveLayout,
-            paneOffsetX = dialogPaneOffset,
             paneMaxWidth = dialogPaneWidth,
             onDismiss = { areaManagerOpen = false },
         )
@@ -1239,13 +1484,18 @@ fun WhipScreen(
             areaScope = areaScope,
             areaScopeLabel = when (val scope = areaScope) {
                 AreaScope.All -> null
-                AreaScope.Unassigned -> "No area"
-                is AreaScope.One -> settingsState.areas.firstOrNull { it.id == scope.areaId }?.name ?: "All areas"
+                AreaScope.Unassigned -> "Main"
+                is AreaScope.One -> settingsState.areas.firstOrNull { it.id == scope.areaId }?.name ?: "All Areas"
             },
             onSearchAllAreas = { onSelectAreaScope(AreaScope.All) },
+            initialScope = searchEntryContext.defaultSearchScope(),
         ) { result ->
             if (result.domain in setOf(SearchDomain.Task, SearchDomain.Habit, SearchDomain.Goal) && !areaScope.matches(result.areaId)) {
-                onSelectAreaScope(result.areaId?.let(AreaScope::One) ?: AreaScope.Unassigned)
+                onSelectAreaScope(
+                    result.areaId?.let(AreaScope::One)
+                        ?: settingsState.areas.firstOrNull { !it.archived }?.id?.let(AreaScope::One)
+                        ?: AreaScope.All,
+                )
             }
             when (result.domain) {
                 SearchDomain.Task -> {
@@ -1309,8 +1559,8 @@ fun WhipScreen(
             },
             productivityAreaLabel = when (areaScope) {
                 AreaScope.All -> null
-                AreaScope.Unassigned -> "No area"
-                is AreaScope.One -> settingsState.areas.firstOrNull { it.id == areaScope.areaId }?.name ?: "Selected area"
+                AreaScope.Unassigned -> "Main"
+                is AreaScope.One -> settingsState.areas.firstOrNull { it.id == areaScope.areaId }?.name ?: "Selected Area"
             },
         )
     }
@@ -1344,14 +1594,14 @@ fun WhipScreen(
                 keepSavedItemVisible(draft.areaId)
             },
             onRequestNotificationPermission = onRequestNotificationPermission,
-            onRequestLocationPermission = onRequestLocationPermission,
             defaultRepeatStepPolicy = settingsState.settings.defaultTaskStepPolicy,
             firstDayOfWeek = settingsState.settings.firstDayOfWeek,
             today = state.currentDate,
             naturalLanguageCapture = settingsState.settings.naturalLanguageTaskCapture,
             powerMode = settingsState.settings.powerMode,
             areas = settingsState.areas,
-            defaultAreaId = (areaScope as? AreaScope.One)?.areaId,
+            defaultAreaId = (areaScope as? AreaScope.One)?.areaId
+                ?: settingsState.areas.firstOrNull { !it.archived }?.id,
             onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
             knownTags = (state.inbox + state.today + state.upcoming + state.planning + state.anytime + state.completed + state.archived)
                 .flatMap { it.task.tags }.distinct().sorted(),
@@ -1438,7 +1688,7 @@ fun WhipScreen(
     pendingCompleteItem?.let { item ->
         AlertDialog(
             onDismissRequest = { pendingCompleteItemKey = null },
-            title = { Text("Complete with unfinished subtasks?") },
+            title = { Text("Complete With Unfinished Subtasks?") },
             text = {
                 Text(
                     "${item.totalSubtasks - item.completedSubtasks} subtasks remain. " +
@@ -1446,15 +1696,15 @@ fun WhipScreen(
                 )
             },
             confirmButton = {
-                TextButton(
+                WhipTextButton(
                     onClick = {
                         onComplete(item)
                         pendingCompleteItemKey = null
                     },
-                ) { Text("Complete anyway") }
+                ) { Text("Complete Anyway") }
             },
             dismissButton = {
-                TextButton(onClick = { pendingCompleteItemKey = null }) { Text("Keep working") }
+                WhipTextButton(onClick = { pendingCompleteItemKey = null }) { Text("Keep Working") }
             },
         )
     }
@@ -1546,7 +1796,6 @@ internal fun AreaScopeMenu(
     scope: AreaScope,
     areas: List<Area>,
     usage: Map<String, AreaUsageCounts> = emptyMap(),
-    unassignedUsage: AreaUsageCounts = AreaUsageCounts(),
     onSelect: (AreaScope) -> Unit,
     onManage: () -> Unit = {},
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
@@ -1558,13 +1807,13 @@ internal fun AreaScopeMenu(
     val activeAreas = areas.filterNot(Area::archived)
     val selectedArea = (scope as? AreaScope.One)?.let { selected -> areas.firstOrNull { it.id == selected.areaId } }
     val label = when (scope) {
-        AreaScope.All -> "All areas"
-        AreaScope.Unassigned -> "No area"
-        is AreaScope.One -> selectedArea?.name ?: "All areas"
+        AreaScope.All -> activeAreas.singleOrNull()?.name ?: "All Areas"
+        AreaScope.Unassigned -> activeAreas.firstOrNull()?.name ?: "Main"
+        is AreaScope.One -> selectedArea?.name ?: "All Areas"
     }
-    val displayLabel = if (activeAreas.isEmpty()) "Set up areas" else label
+    val displayLabel = if (activeAreas.isEmpty()) "Main" else label
     Box {
-        FilterChip(
+        WhipFilterChip(
             selected = scope != AreaScope.All,
             onClick = { expanded = true },
             label = {
@@ -1573,35 +1822,36 @@ internal fun AreaScopeMenu(
                         Box(Modifier.size(8.dp).clip(CircleShape).background(Color(color)))
                     }
                     Text(displayLabel, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 112.dp))
-                    Text("▾")
+                    Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)
                 }
             },
             modifier = Modifier
                 .widthIn(min = 48.dp)
-                .semantics { contentDescription = if (activeAreas.isEmpty()) "Set up areas" else "Area scope: $label" },
+                .semantics { contentDescription = "Area scope: $displayLabel" },
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             if (activeAreas.isEmpty()) {
                 DropdownMenuItem(
-                    text = { Column { Text("Create area…"); Text("Use any name that is useful to you.", style = MaterialTheme.typography.bodySmall) } },
-                    onClick = { expanded = false; creating = true },
+                    text = { Column { Text("Create Main Area"); Text("Every item belongs to an Area.", style = MaterialTheme.typography.bodySmall) } },
+                    onClick = {
+                        expanded = false
+                        onCreateArea("Main", null) { result -> result.onSuccess { onSelect(AreaScope.One(it)) } }
+                    },
                 )
                 if (areas.any(Area::archived)) {
                     DropdownMenuItem(
-                        text = { Text("Manage archived areas…") },
+                        text = { Text("Manage Archived Areas…") },
                         onClick = { expanded = false; onManage() },
                     )
                 }
                 return@DropdownMenu
             }
-            DropdownMenuItem(
-                text = { Text((if (scope == AreaScope.All) "✓  " else "") + "All areas") },
-                onClick = { onSelect(AreaScope.All); expanded = false },
-            )
-            DropdownMenuItem(
-                text = { Text((if (scope == AreaScope.Unassigned) "✓  " else "") + "No area · ${unassignedUsage.total} items") },
-                onClick = { onSelect(AreaScope.Unassigned); expanded = false },
-            )
+            if (activeAreas.size > 1) {
+                DropdownMenuItem(
+                    text = { Text((if (scope == AreaScope.All) "✓  " else "") + "All Areas") },
+                    onClick = { onSelect(AreaScope.All); expanded = false },
+                )
+            }
             if (activeAreas.size > 8) {
                 DropdownMenuItem(
                     text = { OutlinedTextField(query, { query = it.take(40) }, label = { Text("Find area") }, singleLine = true) },
@@ -1613,7 +1863,9 @@ internal fun AreaScopeMenu(
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             area.colorArgb?.let { color -> Box(Modifier.size(10.dp).clip(CircleShape).background(Color(color))) }
-                            Text((if ((scope as? AreaScope.One)?.areaId == area.id) "✓  " else "") + "${area.name} · ${usage[area.id]?.total ?: 0} items")
+                            val selected = (scope as? AreaScope.One)?.areaId == area.id ||
+                                (scope == AreaScope.All && activeAreas.size == 1)
+                            Text((if (selected) "✓  " else "") + "${area.name} · ${(usage[area.id]?.total ?: 0).itemCount("item")}")
                             if (area.archived) Text("Archived", style = MaterialTheme.typography.labelSmall)
                         }
                     },
@@ -1622,11 +1874,11 @@ internal fun AreaScopeMenu(
             }
             HorizontalDivider()
             DropdownMenuItem(
-                text = { Text("Create area…") },
+                text = { Text("Create Area…") },
                 onClick = { expanded = false; creating = true },
             )
             DropdownMenuItem(
-                text = { Text("Edit areas…") },
+                text = { Text("Manage Areas") },
                 onClick = { expanded = false; onManage() },
             )
         }
@@ -1651,6 +1903,7 @@ private data class AdaptiveSummary(
     val taskContext: List<String> = emptyList(),
     val habitContext: List<String> = emptyList(),
     val goalContext: List<String> = emptyList(),
+    val gymContextTitle: String = "Workout Context",
     val gymContext: List<String> = emptyList(),
 )
 
@@ -1663,9 +1916,8 @@ private fun AdaptiveNavigationFrame(
     summary: AdaptiveSummary,
     contentExpanded: Boolean,
     navigationEnabled: Boolean = true,
+    onGymContextSelected: (Int) -> Unit = {},
     onSelect: (AppDestination) -> Unit,
-    selectedGymDestination: GymDestination = GymDestination.Workout,
-    onSelectGymDestination: (GymDestination) -> Unit = {},
     content: @Composable (Modifier) -> Unit,
 ) {
     val frameModifier = modifier.background(MaterialTheme.colorScheme.background)
@@ -1697,9 +1949,8 @@ private fun AdaptiveNavigationFrame(
                     summary,
                     selected,
                     onSelect,
+                    onGymContextSelected = onGymContextSelected,
                     navigationEnabled = navigationEnabled,
-                    selectedGymDestination = selectedGymDestination,
-                    onSelectGymDestination = onSelectGymDestination,
                 )
             }
         }
@@ -1725,9 +1976,8 @@ private fun AdaptiveNavigationFrame(
                         selected,
                         onSelect,
                         Modifier.weight(1f),
+                        onGymContextSelected = onGymContextSelected,
                         navigationEnabled = navigationEnabled,
-                        selectedGymDestination = selectedGymDestination,
-                        onSelectGymDestination = onSelectGymDestination,
                     )
                 }
                 Surface(
@@ -1763,9 +2013,8 @@ private fun AdaptiveNavigationFrame(
                         onSelect,
                         Modifier.weight(1f),
                         horizontal = true,
+                        onGymContextSelected = onGymContextSelected,
                         navigationEnabled = navigationEnabled,
-                        selectedGymDestination = selectedGymDestination,
-                        onSelectGymDestination = onSelectGymDestination,
                     )
                 }
                 Surface(
@@ -1782,35 +2031,127 @@ private fun AdaptiveNavigationFrame(
 }
 
 @Composable
+private fun RowScope.WhipNavigationBarItem(
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: @Composable () -> Unit,
+    label: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val itemColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    Column(
+        modifier = modifier
+            .weight(1f)
+            .heightIn(min = 64.dp)
+            .selectable(
+                selected = selected,
+                enabled = enabled,
+                role = Role.Tab,
+                onClick = onClick,
+            )
+            .padding(vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+            contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else itemColor,
+        ) {
+            Box(
+                modifier = Modifier.size(width = 56.dp, height = 32.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                icon()
+            }
+        }
+        Surface(color = Color.Transparent, contentColor = itemColor) {
+            label()
+        }
+    }
+}
+
+@Composable
+private fun WhipNavigationRailItem(
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: @Composable () -> Unit,
+    label: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val itemColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    Column(
+        modifier = modifier
+            .width(80.dp)
+            .heightIn(min = 72.dp)
+            .selectable(
+                selected = selected,
+                enabled = enabled,
+                role = Role.Tab,
+                onClick = onClick,
+            )
+            .padding(vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+            contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else itemColor,
+        ) {
+            Box(
+                modifier = Modifier.size(width = 56.dp, height = 36.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                icon()
+            }
+        }
+        Surface(color = Color.Transparent, contentColor = itemColor) {
+            label()
+        }
+    }
+}
+
+@Composable
 private fun WhipNavigationRail(
     selected: AppDestination,
     onSelect: (AppDestination) -> Unit,
     enabled: Boolean = true,
 ) {
-    NavigationRail(
+    val railColor = MaterialTheme.colorScheme.surfaceContainerLow
+    Surface(
         modifier = Modifier
             .fillMaxHeight()
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .windowInsetsPadding(WindowInsets.safeDrawing)
             .testTag("adaptive-navigation-rail"),
-        header = {
-            WhipBrandMark(
-                modifier = Modifier
-                    .padding(vertical = 12.dp)
-                    .size(40.dp),
-                contentDescription = "Whip",
-            )
-        },
+        color = railColor,
     ) {
-        AppDestination.entries.filter { it != AppDestination.Settings }.forEach { destination ->
-            NavigationRailItem(
-                modifier = Modifier.semantics { contentDescription = "${destination.label} tab" },
-                selected = destination == selected,
-                enabled = enabled,
-                onClick = { onSelect(destination) },
-                icon = { Icon(destination.icon, contentDescription = null, modifier = Modifier.size(28.dp)) },
-                label = { Text(destination.label) },
-            )
+        NavigationRail(
+            modifier = Modifier
+                .fillMaxHeight()
+                .windowInsetsPadding(WindowInsets.safeDrawing),
+            containerColor = railColor,
+            windowInsets = WindowInsets(0, 0, 0, 0),
+            header = {
+                WhipBrandMark(
+                    modifier = Modifier
+                        .padding(vertical = 12.dp)
+                        .size(40.dp),
+                    contentDescription = "Whip",
+                )
+            },
+        ) {
+            AppDestination.entries.filter { it != AppDestination.Settings }.forEach { destination ->
+                WhipNavigationRailItem(
+                    modifier = Modifier.semantics { contentDescription = "${destination.label} tab" },
+                    selected = destination == selected,
+                    enabled = enabled,
+                    onClick = { onSelect(destination) },
+                    icon = { Icon(destination.icon, contentDescription = null, modifier = Modifier.size(28.dp)) },
+                    label = { Text(destination.label) },
+                )
+            }
         }
     }
 }
@@ -1833,9 +2174,12 @@ private fun TabletopNavigation(
     onSelect: (AppDestination) -> Unit,
     enabled: Boolean = true,
 ) {
-    NavigationBar(modifier = Modifier.testTag("adaptive-tabletop-navigation")) {
+    NavigationBar(
+        modifier = Modifier.testTag("adaptive-tabletop-navigation"),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
         AppDestination.entries.filter { it != AppDestination.Settings }.forEach { destination ->
-            NavigationBarItem(
+            WhipNavigationBarItem(
                 modifier = Modifier.semantics { contentDescription = "${destination.label} tab" },
                 selected = destination == selected,
                 enabled = enabled,
@@ -1854,18 +2198,13 @@ private fun FoldContextPane(
     onSelect: (AppDestination) -> Unit,
     modifier: Modifier = Modifier,
     horizontal: Boolean = false,
+    onGymContextSelected: (Int) -> Unit = {},
     navigationEnabled: Boolean = true,
-    selectedGymDestination: GymDestination = GymDestination.Workout,
-    onSelectGymDestination: (GymDestination) -> Unit = {},
 ) {
-    var gymLibraryOpen by rememberSaveable { mutableStateOf(selectedGymDestination in libraryGymDestinations) }
-    LaunchedEffect(selectedGymDestination) {
-        if (selectedGymDestination in libraryGymDestinations) gymLibraryOpen = true
-    }
     val cards = listOf(
-        Triple(AppDestination.Tasks, "Tasks due", summary.dueTasks.toString()),
-        Triple(AppDestination.Habits, "Habits remaining", summary.dueHabits.toString()),
-        Triple(AppDestination.Goals, "Active goals", summary.activeGoals.toString()),
+        Triple(AppDestination.Tasks, "Tasks Due", summary.dueTasks.toString()),
+        Triple(AppDestination.Habits, "Habits Remaining", summary.dueHabits.toString()),
+        Triple(AppDestination.Goals, "Active Goals", summary.activeGoals.toString()),
         Triple(AppDestination.Gym, "Workout", if (summary.activeWorkout) "In progress" else "Ready"),
     )
     Surface(
@@ -1880,7 +2219,7 @@ private fun FoldContextPane(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(if (selected == AppDestination.Home) "At a glance" else selected.label, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(if (selected == AppDestination.Home) "Today" else selected.label, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(
                 summary.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1893,54 +2232,16 @@ private fun FoldContextPane(
                 else -> emptyList()
             }
             if (selected == AppDestination.Gym) {
-                Text("Quick access", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    primaryGymDestinations.forEach { destination ->
-                        FilterChip(
-                            selected = selectedGymDestination == destination,
-                            enabled = navigationEnabled,
-                            onClick = { onSelectGymDestination(destination) },
-                            label = { Text(destination.name) },
-                            modifier = Modifier
-                                .testTag("fold-gym-destination-${destination.name}")
-                                .semantics {
-                                    contentDescription = "Open Gym ${destination.name}"
-                                },
-                        )
-                    }
-                    FilterChip(
-                        selected = gymLibraryOpen || selectedGymDestination in libraryGymDestinations,
-                        enabled = navigationEnabled,
-                        onClick = { gymLibraryOpen = !gymLibraryOpen },
-                        label = { Text("Library") },
-                        modifier = Modifier.testTag("fold-gym-destination-library"),
-                    )
-                    if (gymLibraryOpen || selectedGymDestination in libraryGymDestinations) {
-                        libraryGymDestinations.forEach { destination ->
-                            FilterChip(
-                                selected = selectedGymDestination == destination,
-                                enabled = navigationEnabled,
-                                onClick = { onSelectGymDestination(destination) },
-                                label = { Text(destination.name) },
-                                modifier = Modifier
-                                    .testTag("fold-gym-destination-${destination.name}")
-                                    .semantics { contentDescription = "Open Gym ${destination.name}" },
-                            )
-                        }
-                    }
-                }
                 if (contextLines.isNotEmpty()) {
-                    Text("Workout context", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(summary.gymContextTitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Column(
                         modifier = Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        contextLines.forEach { line ->
-                            Card(Modifier.fillMaxWidth()) { Text(line, Modifier.padding(12.dp), maxLines = 3) }
+                        contextLines.forEachIndexed { index, line ->
+                            Card(
+                                Modifier.fillMaxWidth().clickable(onClickLabel = "Open $line") { onGymContextSelected(index) },
+                            ) { Text(line, Modifier.padding(12.dp), maxLines = 3) }
                         }
                     }
                 }
@@ -1958,29 +2259,57 @@ private fun FoldContextPane(
                 contextLines.forEach { line ->
                     Card(Modifier.fillMaxWidth()) { Text(line, Modifier.padding(12.dp), maxLines = 2) }
                 }
-            } else if (horizontal) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                cards.forEach { (destination, label, value) ->
-                    AdaptiveSummaryCard(
-                        label = label,
-                        value = value,
-                        destination = destination,
-                        modifier = Modifier.width(180.dp),
-                        enabled = navigationEnabled,
-                    ) { onSelect(destination) }
+            } else if (selected == AppDestination.Home) {
+                val todayLines = buildList {
+                    addAll(summary.taskContext.map { "Task · $it" })
+                    addAll(summary.habitContext.map { "Habit · $it" })
                 }
-            }
-        } else {
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                cards.forEach { (destination, label, value) ->
+                if (horizontal) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        todayLines.take(8).forEach { line ->
+                            Card(Modifier.width(220.dp)) {
+                                Text(line, Modifier.padding(12.dp), maxLines = 2)
+                            }
+                        }
+                        Text(
+                            if (summary.activeWorkout) "Workout · In Progress" else "Workout · Ready When You Are",
+                            modifier = Modifier.padding(12.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier.verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        if (todayLines.isEmpty()) {
+                            Text(
+                                "No tasks or habits need attention today.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            todayLines.take(8).forEach { line ->
+                                Card(Modifier.fillMaxWidth()) {
+                                    Text(line, Modifier.padding(12.dp), maxLines = 2)
+                                }
+                            }
+                        }
+                        Text(
+                            if (summary.activeWorkout) "Workout · In Progress" else "Workout · Ready When You Are",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            } else if (selected == AppDestination.Settings) {
+                Text(
+                    "Preferences and data controls are open in the content pane.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                cards.firstOrNull { it.first == selected }?.let { (destination, label, value) ->
                     AdaptiveSummaryCard(
                         label = label,
                         value = value,
@@ -1989,7 +2318,6 @@ private fun FoldContextPane(
                         enabled = navigationEnabled,
                     ) { onSelect(destination) }
                 }
-            }
             }
         }
     }
@@ -2013,9 +2341,12 @@ private fun AdaptiveSummaryCard(
                 else "$label: $value. Navigation unavailable while editing a routine"
             },
     ) {
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(Icons.Outlined.ChevronRight, contentDescription = null)
         }
     }
 }
@@ -2050,6 +2381,7 @@ private fun HomeContent(
     onRecordGoal: (com.whip.app.domain.GoalProjection) -> Unit,
     onToggleMilestone: (Long, Boolean) -> Unit,
     onSelectHomeTaskFilter: (String?) -> Unit,
+    onOpenReview: () -> Unit,
     showFullHeader: Boolean = true,
     areaScopeLabel: String? = null,
     onShowAllAreas: () -> Unit = {},
@@ -2060,13 +2392,13 @@ private fun HomeContent(
         modifier = Modifier
             .fillMaxSize()
             .padding(innerPadding),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 96.dp),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 112.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         areaScopeLabel?.let { label -> item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Showing $label", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-                TextButton(onClick = onShowAllAreas) { Text("Show all areas") }
+                WhipTextButton(onClick = onShowAllAreas) { Text("Show All Areas") }
             }
         } }
         item {
@@ -2077,6 +2409,16 @@ private fun HomeContent(
                 onOpenHabits,
                 showFullHeader,
             )
+        }
+        item {
+            WhipOutlinedButton(
+                onClick = onOpenReview,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Outlined.Insights, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Review & Trends")
+            }
         }
         appSettings.homeSections.filter { it !in appSettings.hiddenHomeSections }.forEach { section ->
             val collapsed = section in appSettings.collapsedHomeSections
@@ -2090,14 +2432,14 @@ private fun HomeContent(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
-                                FilterChip(homeTaskFilter == null, { onSelectHomeTaskFilter(null) }, { Text("All tasks") })
+                                WhipFilterChip(homeTaskFilter == null, { onSelectHomeTaskFilter(null) }, { Text("All Tasks") })
                                 appSettings.savedTaskFilters.forEach { filter ->
-                                    FilterChip(homeTaskFilter?.name == filter.name, { onSelectHomeTaskFilter(filter.name) }, { Text(filter.name) })
+                                    WhipFilterChip(homeTaskFilter?.name == filter.name, { onSelectHomeTaskFilter(filter.name) }, { Text(filter.name) })
                                 }
                             }
                         }
                         if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
-                        else if (homeTasks.isEmpty()) item { Text(if (homeTaskFilter == null) areaScopeLabel?.let { "No tasks due today in $it. Create in $it with +, or show all areas above." } ?: "Nothing due today. Use + to create a task for today." else "No due tasks match ${homeTaskFilter.name}.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        else if (homeTasks.isEmpty()) item { Text(if (homeTaskFilter == null) areaScopeLabel?.let { "No tasks due today in $it." } ?: "Nothing due today." else "No due tasks match ${homeTaskFilter.name}.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
                         items(homeTasks, key = ScheduledTask::stableKey) { task ->
                             TaskRow(
                                 item = task,
@@ -2187,10 +2529,10 @@ private fun HomeContent(
                                     Card(Modifier.fillMaxWidth()) {
                                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                             Text("★ ${routine.name}", fontWeight = FontWeight.Bold)
-                                            Text("Start a routine day", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text("Start a Routine Day", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                                 days.forEach { day ->
-                                                    TextButton(onClick = { onStartRoutine(routine.id, day.id) }) { Text(day.name) }
+                                                    WhipTextButton(onClick = { onStartRoutine(routine.id, day.id) }) { Text(day.name) }
                                                 }
                                             }
                                         }
@@ -2231,19 +2573,27 @@ private fun TaskAreaContent(
     onPlanMyDay: (List<ScheduledTask>, Int) -> Unit,
     onBulkTriage: (List<ScheduledTask>) -> Unit,
     onStopFocus: () -> Unit,
-    onQuickCapture: (String, LocalDate?) -> Unit,
+    onQuickCapture: (String, LocalDate?, Boolean, String?) -> Unit,
+    onOpenSearch: () -> Unit,
+    searchActionModifier: Modifier = Modifier,
+    operationStatus: OperationStatus = OperationStatus.Idle,
     areas: List<Area> = emptyList(),
     areaScope: AreaScope = AreaScope.All,
     onSelectAreaScope: (AreaScope) -> Unit = {},
+    planningViewRequest: TaskPlanningView? = null,
+    onPlanningViewRequestConsumed: () -> Unit = {},
+    dialogModifier: Modifier = Modifier,
 ) {
     var planningView by rememberSaveable { mutableStateOf(TaskPlanningView.List) }
+    var historySection by rememberSaveable {
+        mutableStateOf(destination.toWorkspaceRoute().historySection)
+    }
     var focusClockMillis by remember { mutableStateOf(System.currentTimeMillis()) }
     var textQuery by rememberSaveable { mutableStateOf("") }
     var sortMode by rememberSaveable { mutableStateOf("Smart") }
     var groupMode by rememberSaveable { mutableStateOf("None") }
     var showFilters by rememberSaveable { mutableStateOf(false) }
     var priorities by rememberSaveable { mutableStateOf(emptySet<TaskPriority>()) }
-    var tag by rememberSaveable { mutableStateOf("") }
     var pinnedOnly by rememberSaveable { mutableStateOf(false) }
     var selectedTags by rememberSaveable { mutableStateOf(emptySet<String>()) }
     var requireAllTags by rememberSaveable { mutableStateOf(true) }
@@ -2254,6 +2604,7 @@ private fun TaskAreaContent(
     var saveFilterOpen by rememberSaveable { mutableStateOf(false) }
     var filterName by rememberSaveable { mutableStateOf("") }
     var selectionMode by rememberSaveable { mutableStateOf(false) }
+    var selectionActionsOpen by rememberSaveable { mutableStateOf(false) }
     var selectedKeys by rememberSaveable { mutableStateOf(emptySet<String>()) }
     var archivePreviewKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
     var bulkEditOpen by rememberSaveable { mutableStateOf(false) }
@@ -2263,10 +2614,51 @@ private fun TaskAreaContent(
     var dayCapacityText by rememberSaveable { mutableStateOf("240") }
     var showDayPlanner by rememberSaveable { mutableStateOf(false) }
     var dayPlanCandidateKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
-    var workspaceOpen by rememberSaveable { mutableStateOf(false) }
-    var extendedDestinationsOpen by rememberSaveable { mutableStateOf(false) }
-    var taskSearchOpen by rememberSaveable { mutableStateOf(false) }
+    var taskToolsExpanded by rememberSaveable { mutableStateOf(false) }
     var quickCapture by rememberSaveable { mutableStateOf("") }
+    var quickCaptureSubmitting by rememberSaveable { mutableStateOf(false) }
+    var quickCaptureSaveStarted by rememberSaveable { mutableStateOf(false) }
+    var submittedQuickCapture by rememberSaveable { mutableStateOf("") }
+    val workspaceDestination = destination.toWorkspaceRoute().destination
+    LaunchedEffect(destination) {
+        destination.toWorkspaceRoute().takeIf { it.destination == TaskWorkspaceDestination.History }
+            ?.let { historySection = it.historySection }
+        planningView = workspaceDestination.normalizePlanningView(planningView)
+        selectionMode = false
+        selectionActionsOpen = false
+        selectedKeys = emptySet()
+    }
+    LaunchedEffect(planningViewRequest, workspaceDestination) {
+        planningViewRequest?.let {
+            planningView = workspaceDestination.normalizePlanningView(it)
+            onPlanningViewRequestConsumed()
+        }
+    }
+    LaunchedEffect(operationStatus, quickCaptureSubmitting) {
+        if (!quickCaptureSubmitting) return@LaunchedEffect
+        when (operationStatus) {
+            is OperationStatus.Running -> quickCaptureSaveStarted = true
+            is OperationStatus.Succeeded -> {
+                if (!quickCaptureSaveStarted) return@LaunchedEffect
+                if (quickCapture == submittedQuickCapture) quickCapture = ""
+                quickCaptureSubmitting = false
+                quickCaptureSaveStarted = false
+                submittedQuickCapture = ""
+            }
+            is OperationStatus.Failed -> {
+                if (!quickCaptureSaveStarted) return@LaunchedEffect
+                quickCaptureSubmitting = false
+                quickCaptureSaveStarted = false
+                submittedQuickCapture = ""
+            }
+            else -> Unit
+        }
+    }
+    BackHandler(enabled = selectionMode) {
+        selectionMode = false
+        selectedKeys = emptySet()
+        selectionActionsOpen = false
+    }
     LaunchedEffect(areaScope) {
         if (areaScope != AreaScope.All && groupMode == "Area") groupMode = "None"
     }
@@ -2284,8 +2676,6 @@ private fun TaskAreaContent(
         name = "Current",
         priorities = priorities,
         areaId = (areaScope as? AreaScope.One)?.areaId,
-        area = (areaScope as? AreaScope.One)?.let { selected -> availableAreas.firstOrNull { it.id == selected.areaId }?.name }.orEmpty(),
-        tag = tag,
         pinnedOnly = pinnedOnly,
         tags = selectedTags,
         requireAllTags = requireAllTags,
@@ -2318,7 +2708,8 @@ private fun TaskAreaContent(
         }
     }
     val visibleTasks = filtered.forPlanningView(planningView, selectedDate, appSettings.zoneId())
-    val selectedItems = filtered.filter { it.stableKey in selectedKeys }
+    val selectedItems = visibleTasks.filter { it.stableKey in selectedKeys }
+    val hiddenSelectedCount = (selectedKeys - visibleTasks.mapTo(mutableSetOf(), ScheduledTask::stableKey)).size
     val habitPlanningDates = when (planningView) {
         TaskPlanningView.List -> emptyList()
         TaskPlanningView.Agenda -> (0L..30L).map(state.currentDate::plusDays)
@@ -2327,35 +2718,250 @@ private fun TaskAreaContent(
     val plannedHabitsByDate = if (appSettings.showHabitsInTaskPlanning) {
         habitPlanningDates.associateWith { date -> habitState.plannedOn(date) }.filterValues { it.isNotEmpty() }
     } else emptyMap()
+    val activeFilters = buildList {
+        if (priorities.isNotEmpty()) add(
+            WhipActiveFilter("priority", "Priority: ${priorities.joinToString { it.name }}") {
+                priorities = emptySet()
+            },
+        )
+        if (selectedTags.isNotEmpty()) add(
+            WhipActiveFilter(
+                "tags",
+                "Tags: ${selectedTags.joinToString()}",
+            ) {
+                selectedTags = emptySet()
+            },
+        )
+        if (pinnedOnly) add(WhipActiveFilter("pinned", "Pinned") { pinnedOnly = false })
+        if (dateMode != "Any") add(WhipActiveFilter("date", dateMode.taskDateModeLabel()) { dateMode = "Any" })
+        if (deadlineOnly) add(WhipActiveFilter("deadline", "Has Deadline") { deadlineOnly = false })
+        if (efforts.isNotEmpty()) add(
+            WhipActiveFilter("effort", "Effort: ${efforts.joinToString { it.label }}") { efforts = emptySet() },
+        )
+        if (maximumDuration.isNotBlank()) add(
+            WhipActiveFilter("duration", "Up to $maximumDuration min") { maximumDuration = "" },
+        )
+        if (textQuery.isNotBlank()) add(
+            WhipActiveFilter("saved-query", "Query: $textQuery") { textQuery = "" },
+        )
+    }
+    val activeFilterCount = activeFilters.count { it.key != "saved-query" }
 
     fun applyFilter(filter: SavedTaskFilter) {
-        priorities = filter.priorities
-        (filter.areaId ?: availableAreas.firstOrNull { it.name.equals(filter.area, true) }?.id)?.let {
+        val normalized = filter.normalizedForWorkspace()
+        priorities = normalized.priorities
+        normalized.areaId?.let {
             onSelectAreaScope(AreaScope.One(it))
         }
-        tag = filter.tag
-        pinnedOnly = filter.pinnedOnly
-        selectedTags = filter.tags
-        requireAllTags = filter.requireAllTags
-        dateMode = filter.dateMode
-        deadlineOnly = filter.deadlineOnly
-        efforts = filter.efforts
-        maximumDuration = filter.maximumDurationMinutes?.toString().orEmpty()
-        textQuery = filter.textQuery
-        sortMode = filter.sortMode
-        groupMode = filter.groupMode
-        runCatching { TaskPlanningView.valueOf(filter.planningView) }.getOrNull()?.let { planningView = it }
-        runCatching { TaskDestination.valueOf(filter.destination) }.getOrNull()?.let(onDestinationChange)
-        showFilters = true
+        pinnedOnly = normalized.pinnedOnly
+        selectedTags = normalized.tags
+        requireAllTags = normalized.requireAllTags
+        dateMode = normalized.dateMode
+        deadlineOnly = normalized.deadlineOnly
+        efforts = normalized.efforts
+        maximumDuration = normalized.maximumDurationMinutes?.toString().orEmpty()
+        textQuery = normalized.textQuery
+        sortMode = normalized.sortMode
+        groupMode = normalized.groupMode
+        runCatching { TaskDestination.valueOf(normalized.destination) }.getOrNull()?.let(onDestinationChange)
+        planningView = runCatching { TaskPlanningView.valueOf(normalized.planningView) }
+            .getOrDefault(TaskPlanningView.List)
+        showFilters = false
     }
 
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(innerPadding),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        DestinationTabBar(
+            selected = workspaceDestination,
+            destinations = TaskWorkspaceDestination.entries,
+            onSelect = { selected ->
+                textQuery = ""
+                val nextRoute = TaskWorkspaceRoute(selected, historySection)
+                onDestinationChange(nextRoute.dataDestination())
+            },
+            label = TaskWorkspaceDestination::label,
+            testTagPrefix = "task-destination",
+        )
+        if (workspaceDestination == TaskWorkspaceDestination.History) {
+            SegmentedChoiceBar(
+                selected = historySection,
+                choices = TaskHistorySection.entries,
+                onSelect = { selected ->
+                    historySection = selected
+                    onDestinationChange(TaskWorkspaceRoute(TaskWorkspaceDestination.History, selected).dataDestination())
+                },
+                label = TaskHistorySection::label,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+        }
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            WhipPageHeader(
+                title = destination.label,
+                supportingText = taskDestinationSupportingText(destination, visibleTasks.size),
+            ) {
+                WhipPageIconAction(
+                    icon = Icons.Outlined.Search,
+                    label = "Search Tasks & Steps",
+                    onClick = onOpenSearch,
+                    modifier = searchActionModifier,
+                )
+                Box {
+                    IconButton(
+                        onClick = { taskToolsExpanded = true },
+                        modifier = Modifier.size(48.dp).semantics { contentDescription = "More task list actions" },
+                    ) {
+                        Icon(Icons.Outlined.MoreVert, contentDescription = null)
+                    }
+                    DropdownMenu(
+                        expanded = taskToolsExpanded,
+                        onDismissRequest = { taskToolsExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Select Tasks") },
+                            onClick = {
+                                selectionMode = true
+                                selectedKeys = emptySet()
+                                taskToolsExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
+            if (selectionMode) {
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("${selectedItems.size} selected", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                            WhipTextButton(onClick = { selectionMode = false; selectedKeys = emptySet() }) { Text("Done") }
+                        }
+                        if (hiddenSelectedCount > 0) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "$hiddenSelectedCount selected item${if (hiddenSelectedCount == 1) " is" else "s are"} hidden by the current view or filters.",
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                WhipTextButton(onClick = {
+                                    val visibleKeys = visibleTasks.mapTo(mutableSetOf(), ScheduledTask::stableKey)
+                                    selectedKeys = selectedKeys.intersect(visibleKeys)
+                                }) { Text("Clear Hidden") }
+                            }
+                        }
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (activeFilterCount > 0) {
+                                WhipTextButton(onClick = { showFilters = true }) { Text("Filter & Sort · $activeFilterCount") }
+                            }
+                            WhipTextButton(onClick = {
+                                selectedKeys = if (selectedItems.size == visibleTasks.size) emptySet() else visibleTasks.mapTo(linkedSetOf(), ScheduledTask::stableKey)
+                            }) { Text(if (selectedItems.size == visibleTasks.size && visibleTasks.isNotEmpty()) "Clear All" else "Select All") }
+                            if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
+                                WhipButton(
+                                    enabled = selectedItems.isNotEmpty(),
+                                    onClick = { onBulkComplete(selectedItems); selectedKeys = emptySet() },
+                                ) { Text("Complete") }
+                                WhipOutlinedButton(
+                                    enabled = selectedItems.isNotEmpty(),
+                                    onClick = { archivePreviewKeys = selectedItems.mapTo(linkedSetOf(), ScheduledTask::stableKey) },
+                                ) { Text("Archive") }
+                                WhipOutlinedButton(
+                                    enabled = selectedItems.isNotEmpty(),
+                                    onClick = { bulkEditOpen = true },
+                                ) { Text("Edit") }
+                                Box {
+                                    WhipOutlinedButton(
+                                        enabled = selectedItems.isNotEmpty(),
+                                        onClick = { selectionActionsOpen = true },
+                                    ) {
+                                        Icon(Icons.Outlined.MoreVert, contentDescription = null)
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("More")
+                                    }
+                                    DropdownMenu(
+                                        expanded = selectionActionsOpen,
+                                        onDismissRequest = { selectionActionsOpen = false },
+                                    ) {
+                                        DropdownMenuItem(text = { Text("Pin") }, onClick = {
+                                            onBulkPin(selectedItems, true); selectedKeys = emptySet(); selectionActionsOpen = false
+                                        })
+                                        DropdownMenuItem(text = { Text("Unpin") }, onClick = {
+                                            onBulkPin(selectedItems, false); selectedKeys = emptySet(); selectionActionsOpen = false
+                                        })
+                                        DropdownMenuItem(text = { Text("Move to Tomorrow") }, onClick = {
+                                            onBulkPostpone(selectedItems, state.currentDate.plusDays(1)); selectedKeys = emptySet(); selectionActionsOpen = false
+                                        })
+                                        DropdownMenuItem(text = { Text("Move to Next Week") }, onClick = {
+                                            onBulkPostpone(selectedItems, state.currentDate.plusWeeks(1)); selectedKeys = emptySet(); selectionActionsOpen = false
+                                        })
+                                        DropdownMenuItem(text = { Text("Choose Date") }, onClick = {
+                                            bulkDatePickerOpen = true; selectionActionsOpen = false
+                                        })
+                                        if (destination == TaskDestination.Inbox) DropdownMenuItem(text = { Text("Mark Triaged") }, onClick = {
+                                            onBulkTriage(selectedItems); selectedKeys = emptySet(); selectionActionsOpen = false
+                                        })
+                                    }
+                                }
+                            } else if (destination == TaskDestination.Archived) {
+                                WhipButton(
+                                    enabled = selectedItems.isNotEmpty(),
+                                    onClick = { onBulkRestore(selectedItems); selectedKeys = emptySet() },
+                                ) { Text("Restore") }
+                            }
+                        }
+                    }
+                }
+            } else {
+                WhipViewAndFilterRow(
+                    selectedView = planningView,
+                    views = workspaceDestination.allowedPlanningViews(),
+                    viewLabel = TaskPlanningView::name,
+                    onSelectView = { planningView = workspaceDestination.normalizePlanningView(it) },
+                    filterCount = activeFilterCount,
+                    onOpenFilters = { showFilters = true },
+                )
+                WhipActiveFilterRow(
+                    filters = activeFilters,
+                    onClearAll = {
+                        priorities = emptySet()
+                        selectedTags = emptySet()
+                        pinnedOnly = false
+                        dateMode = "Any"
+                        deadlineOnly = false
+                        efforts = emptySet()
+                        maximumDuration = ""
+                        textQuery = ""
+                    },
+                )
+                if (sortMode != "Smart" || groupMode != "None") {
+                    Text(
+                        listOfNotNull(
+                            sortMode.takeIf { it != "Smart" }?.let { "Sorted by $it" },
+                            groupMode.takeIf { it != "None" }?.let { "Grouped by $it" },
+                        ).joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (planningView != TaskPlanningView.List) {
+                    WhipFilterChip(
+                        selected = appSettings.showHabitsInTaskPlanning,
+                        onClick = { onSetHabitPlanningOverlay(!appSettings.showHabitsInTaskPlanning) },
+                        label = { Text("Include Habits") },
+                    )
+                }
+            }
+        }
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 112.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
         appSettings.focusTimerDeadlineMillis?.takeIf { it > focusClockMillis }?.let { deadline ->
             item {
                 val taskName = allTasks.firstOrNull { it.task.id == appSettings.focusTimerTaskId }?.task?.title ?: "Focus session"
@@ -2372,87 +2978,84 @@ private fun TaskAreaContent(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
-                        TextButton(onClick = onStopFocus) { Text("Stop") }
+                        WhipTextButton(onClick = onStopFocus) { Text("Stop") }
                     }
                 }
             }
         }
-        item { DestinationHeader(destination, visibleTasks.size) }
-        item {
-            ProgressiveDestinationBar(
-                selected = destination,
-                primary = listOf(TaskDestination.Today, TaskDestination.Inbox, TaskDestination.Upcoming),
-                secondary = listOf(TaskDestination.Anytime, TaskDestination.Completed, TaskDestination.Archived),
-                expanded = extendedDestinationsOpen,
-                onExpandedChange = { extendedDestinationsOpen = it },
-                onSelect = onDestinationChange,
-                label = TaskDestination::label,
-                modifier = Modifier.fillMaxWidth(),
-                testTagPrefix = "task-destination",
-            )
-        }
         if (destination in setOf(TaskDestination.Today, TaskDestination.Inbox)) {
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     OutlinedTextField(
                         value = quickCapture,
                         onValueChange = { quickCapture = it },
-                        label = { Text(if (destination == TaskDestination.Inbox) "Capture to Inbox" else "Capture a task") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f).testTag("task-quick-capture"),
-                    )
-                    Button(
-                        enabled = quickCapture.isNotBlank(),
-                        onClick = {
-                            onQuickCapture(quickCapture.trim(), state.currentDate.takeIf { destination == TaskDestination.Today })
-                            quickCapture = ""
+                        label = { Text(if (destination == TaskDestination.Inbox) "Quick Add to Inbox" else "Quick Add") },
+                        trailingIcon = {
+                            IconButton(
+                                enabled = quickCapture.isNotBlank() && !quickCaptureSubmitting,
+                                onClick = {
+                                    submittedQuickCapture = quickCapture.trim()
+                                    quickCaptureSubmitting = true
+                                    quickCaptureSaveStarted = false
+                                    onQuickCapture(
+                                        submittedQuickCapture,
+                                        state.currentDate.takeIf { destination == TaskDestination.Today },
+                                        destination == TaskDestination.Inbox,
+                                        (areaScope as? AreaScope.One)?.areaId
+                                            ?: availableAreas.firstOrNull()?.id,
+                                    )
+                                },
+                            ) {
+                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = "Add task now")
+                            }
                         },
-                    ) { Text("Review") }
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("task-quick-capture"),
+                    )
+                    Text(
+                        if (quickCaptureSubmitting) "Saving…" else "Saves immediately. Use Edit or Undo in the confirmation.",
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-                Text(
-                    "Review opens the editor before anything is saved.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
-        if (workspaceOpen && destination in setOf(TaskDestination.Inbox, TaskDestination.Anytime)) {
+        if (destination in setOf(TaskDestination.Inbox, TaskDestination.Anytime)) {
             item {
-                Card(Modifier.fillMaxWidth()) {
+                DisclosureRow(
+                    title = "Plan My Day",
+                    supportingText = "Build a realistic plan from your available time.",
+                    expanded = showDayPlanner,
+                    onClick = {
+                        showDayPlanner = !showDayPlanner
+                        if (!showDayPlanner) dayPlanCandidateKeys = null
+                    },
+                )
+                if (showDayPlanner) Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Plan My Day", fontWeight = FontWeight.Bold)
                         Text(
-                            "Choose a realistic capacity. Whip prioritizes urgent and deep-work items without overfilling the day; tasks without an estimate count as 30 minutes.",
+                            "Choose a realistic capacity. Whip prioritizes urgent and high-effort items without overfilling the day; tasks without an estimate count as 30 minutes.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        if (showDayPlanner) {
-                            OutlinedTextField(
-                                dayCapacityText,
-                                { dayCapacityText = it.filter(Char::isDigit).take(4) },
-                                label = { Text("Capacity in minutes") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { showDayPlanner = !showDayPlanner }) {
-                                Text(if (showDayPlanner) "Hide planner" else "Set capacity")
-                            }
-                            Button(
-                                enabled = (dayCapacityText.toIntOrNull() ?: 0) > 0 && filtered.isNotEmpty(),
-                                onClick = {
-                                    dayPlanCandidateKeys = selectTasksForCapacity(
-                                        filtered,
-                                        dayCapacityText.toIntOrNull() ?: 240,
-                                    ).mapTo(linkedSetOf(), ScheduledTask::stableKey)
-                                },
-                            ) { Text("Preview plan") }
-                        }
+                        OutlinedTextField(
+                            dayCapacityText,
+                            { dayCapacityText = it.filter(Char::isDigit).take(4) },
+                            label = { Text("Available minutes") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        WhipButton(
+                            enabled = (dayCapacityText.toIntOrNull() ?: 0) > 0 && filtered.isNotEmpty(),
+                            onClick = {
+                                dayPlanCandidateKeys = selectTasksForCapacity(
+                                    filtered,
+                                    dayCapacityText.toIntOrNull() ?: 240,
+                                ).mapTo(linkedSetOf(), ScheduledTask::stableKey)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text("Preview Plan") }
                         dayPlanCandidateKeys?.let { selected ->
                             val capacity = dayCapacityText.toIntOrNull() ?: 240
                             val selectedMinutes = filtered.filter { it.stableKey in selected }
@@ -2489,194 +3092,20 @@ private fun TaskAreaContent(
                                 }
                             }
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextButton(onClick = { dayPlanCandidateKeys = null }) { Text("Cancel") }
-                                Button(
+                                WhipTextButton(onClick = { dayPlanCandidateKeys = null }) { Text("Cancel") }
+                                WhipButton(
                                     enabled = selected.isNotEmpty() && selectedMinutes <= capacity,
                                     onClick = {
                                         onPlanMyDay(filtered.filter { it.stableKey in selected }, capacity)
                                         dayPlanCandidateKeys = null
                                     },
-                                ) { Text("Apply plan") }
+                                ) { Text("Apply Plan") }
                             }
                             if (selectedMinutes > capacity) Text(
                                 "Remove ${selectedMinutes - capacity} minutes before applying.",
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall,
                             )
-                        }
-                    }
-                }
-            }
-        }
-        item {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                OutlinedButton(onClick = { taskSearchOpen = !taskSearchOpen }) {
-                    Icon(Icons.Outlined.Search, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text(if (taskSearchOpen) "Hide search" else "Search")
-                }
-                OutlinedButton(onClick = { workspaceOpen = !workspaceOpen }) {
-                    Text(if (workspaceOpen) "Hide workspace tools" else "Workspace tools")
-                }
-            }
-        }
-        if (taskSearchOpen || textQuery.isNotBlank()) item {
-            OutlinedTextField(
-                textQuery,
-                { textQuery = it },
-                label = { Text("Filter tasks and steps") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        if (workspaceOpen) item {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                TaskPlanningView.entries.forEach { view ->
-                    FilterChip(
-                        selected = planningView == view,
-                        onClick = { planningView = view },
-                        label = { Text(view.name) },
-                    )
-                }
-                if (planningView != TaskPlanningView.List) FilterChip(
-                    selected = appSettings.showHabitsInTaskPlanning,
-                    onClick = { onSetHabitPlanningOverlay(!appSettings.showHabitsInTaskPlanning) },
-                    label = { Text("Show habits") },
-                )
-                FilterChip(selected = showFilters, onClick = { showFilters = !showFilters }, label = { Text("Filters") })
-                FilterChip(
-                    selected = selectionMode,
-                    onClick = {
-                        selectionMode = !selectionMode
-                        if (!selectionMode) selectedKeys = emptySet()
-                    },
-                    label = { Text(if (selectionMode) "Cancel selection" else "Select") },
-                )
-            }
-        }
-        if (showFilters) {
-            item {
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Sort", fontWeight = FontWeight.Bold)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf("Smart", "Manual", "Date", "Priority", "Title").forEach { value ->
-                                FilterChip(sortMode == value, { sortMode = value }, { Text(value) })
-                            }
-                        }
-                        Text("Group", fontWeight = FontWeight.Bold)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            (if (areaScope == AreaScope.All) listOf("None", "Date", "Area", "Priority") else listOf("None", "Date", "Priority")).forEach { value ->
-                                FilterChip(groupMode == value, { groupMode = value }, { Text(value) })
-                            }
-                        }
-                        Text("Priority", fontWeight = FontWeight.Bold)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            TaskPriority.entries.filter { it != TaskPriority.None }.forEach { value ->
-                                FilterChip(
-                                    selected = value in priorities,
-                                    onClick = { priorities = if (value in priorities) priorities - value else priorities + value },
-                                    label = { Text(value.name) },
-                                )
-                            }
-                        }
-                        if (availableTags.isNotEmpty()) {
-                            Text("Tags", fontWeight = FontWeight.Bold)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                availableTags.forEach { value ->
-                                    FilterChip(
-                                        selected = value in selectedTags,
-                                        onClick = { selectedTags = if (value in selectedTags) selectedTags - value else selectedTags + value },
-                                        label = { Text("#$value") },
-                                    )
-                                }
-                                if (selectedTags.size > 1) FilterChip(
-                                    selected = requireAllTags,
-                                    onClick = { requireAllTags = !requireAllTags },
-                                    label = { Text(if (requireAllTags) "Match all" else "Match any") },
-                                )
-                            }
-                        }
-                        Text("Date / status", fontWeight = FontWeight.Bold)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf("Any" to "Any date", "Today" to "Today", "Overdue" to "Overdue", "Next7Days" to "Next 7 days", "NoDate" to "No date").forEach { (value, label) ->
-                                FilterChip(dateMode == value, { dateMode = value }, { Text(label) })
-                            }
-                        }
-                        FilterChip(selected = deadlineOnly, onClick = { deadlineOnly = !deadlineOnly }, label = { Text("Has deadline") })
-                        Text("Effort / capacity", fontWeight = FontWeight.Bold)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            TaskEffort.entries.forEach { value ->
-                                FilterChip(value in efforts, { efforts = if (value in efforts) efforts - value else efforts + value }, { Text(value.label) })
-                            }
-                        }
-                        OutlinedTextField(maximumDuration, { maximumDuration = it.filter(Char::isDigit).take(4) }, label = { Text("Maximum minutes") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                        FilterChip(selected = pinnedOnly, onClick = { pinnedOnly = !pinnedOnly }, label = { Text("Pinned only") })
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(onClick = {
-                                priorities = emptySet(); tag = ""; pinnedOnly = false
-                                selectedTags = emptySet(); requireAllTags = true; dateMode = "Any"; deadlineOnly = false
-                                efforts = emptySet(); maximumDuration = ""
-                            }) { Text("Clear") }
-                            Button(onClick = { saveFilterOpen = true }) { Text("Save filter") }
-                        }
-                    }
-                }
-            }
-        }
-        if (appSettings.savedTaskFilters.isNotEmpty()) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    FlowRow(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        appSettings.savedTaskFilters.forEach { filter ->
-                            FilterChip(
-                                selected = filter.copy(name = "Current") == currentFilter,
-                                onClick = { applyFilter(filter) },
-                                label = { Text(filter.name) },
-                            )
-                        }
-                    }
-                    appSettings.savedTaskFilters.firstOrNull { it.copy(name = "Current") == currentFilter }?.let { selected ->
-                        TextButton(onClick = { onDeleteFilter(selected.name) }) { Text("Delete saved filter “${selected.name}”") }
-                    }
-                }
-            }
-        }
-        if (selectionMode) {
-            item {
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("${selectedItems.size} selected", fontWeight = FontWeight.Bold)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
-                                Button(enabled = selectedItems.isNotEmpty(), onClick = { onBulkComplete(selectedItems); selectedKeys = emptySet() }) { Text("Complete") }
-                                OutlinedButton(
-                                    enabled = selectedItems.isNotEmpty(),
-                                    onClick = { archivePreviewKeys = selectedItems.mapTo(linkedSetOf(), ScheduledTask::stableKey) },
-                                ) { Text("Archive") }
-                                TextButton(enabled = selectedItems.isNotEmpty(), onClick = { onBulkPin(selectedItems, true); selectedKeys = emptySet() }) { Text("Pin") }
-                                TextButton(enabled = selectedItems.isNotEmpty(), onClick = { onBulkPin(selectedItems, false); selectedKeys = emptySet() }) { Text("Unpin") }
-                                TextButton(enabled = selectedItems.isNotEmpty(), onClick = { onBulkPostpone(selectedItems, state.currentDate.plusDays(1)); selectedKeys = emptySet() }) { Text("Tomorrow") }
-                                TextButton(enabled = selectedItems.isNotEmpty(), onClick = { onBulkPostpone(selectedItems, state.currentDate.plusWeeks(1)); selectedKeys = emptySet() }) { Text("Next week") }
-                                TextButton(enabled = selectedItems.isNotEmpty(), onClick = { bulkDatePickerOpen = true }) { Text("Choose date") }
-                                TextButton(enabled = selectedItems.isNotEmpty(), onClick = { bulkEditOpen = true }) { Text("Edit fields") }
-                                if (destination == TaskDestination.Inbox) {
-                                    TextButton(enabled = selectedItems.isNotEmpty(), onClick = { onBulkTriage(selectedItems); selectedKeys = emptySet() }) { Text("Mark triaged") }
-                                }
-                            } else if (destination == TaskDestination.Archived) {
-                                Button(enabled = selectedItems.isNotEmpty(), onClick = { onBulkRestore(selectedItems); selectedKeys = emptySet() }) { Text("Restore") }
-                            }
-                            TextButton(onClick = {
-                                selectedKeys = if (selectedKeys.size == filtered.size) emptySet() else filtered.mapTo(linkedSetOf(), ScheduledTask::stableKey)
-                            }) { Text(if (selectedKeys.size == filtered.size) "Clear all" else "Select all") }
                         }
                     }
                 }
@@ -2724,11 +3153,11 @@ private fun TaskAreaContent(
                 EmptyTasks(destination, areaScope.takeUnless { it == AreaScope.All }?.let {
                     when (it) {
                         AreaScope.All -> null
-                        AreaScope.Unassigned -> "No area"
+                        AreaScope.Unassigned -> availableAreas.firstOrNull { !it.archived }?.name ?: "Main"
                         is AreaScope.One -> availableAreas.firstOrNull { area -> area.id == it.areaId }?.name
                     }
-                })
-                if (areaScope != AreaScope.All) TextButton(onClick = { onSelectAreaScope(AreaScope.All) }) { Text("Show all areas") }
+                }, constrained = sourceTasks.isNotEmpty())
+                if (areaScope != AreaScope.All) WhipTextButton(onClick = { onSelectAreaScope(AreaScope.All) }) { Text("Show All Areas") }
             }
         }
         if (planningView == TaskPlanningView.Agenda) {
@@ -2766,7 +3195,7 @@ private fun TaskAreaContent(
                         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text(habit.habit.name, fontWeight = FontWeight.SemiBold)
-                                Text("Habit · ${habit.habit.trackingMode.name.replace(Regex("([a-z])([A-Z])"), "$1 $2")}", style = MaterialTheme.typography.bodySmall)
+                                Text("Habit · ${habit.habit.trackingMode.uiLabel()}", style = MaterialTheme.typography.bodySmall)
                             }
                             Text(if (habit.successful == true && date == habitState.currentDate) "Done" else "Scheduled")
                         }
@@ -2807,15 +3236,126 @@ private fun TaskAreaContent(
                 onReorder = onReorder,
             )
         }
+        }
+    }
+
+    if (showFilters) {
+        PaneAwareAlertDialog(
+            modifier = dialogModifier,
+            onDismissRequest = { showFilters = false },
+            title = { Text("Filter & Sort Tasks") },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    SelectionField(
+                        label = "Sort by",
+                        values = listOf("Smart", "Manual", "Date", "Priority", "Title"),
+                        selected = sortMode,
+                        valueText = { it },
+                        onSelect = { sortMode = it },
+                    )
+                    val groupOptions = if (areaScope == AreaScope.All) {
+                        listOf("None", "Date", "Area", "Priority")
+                    } else {
+                        listOf("None", "Date", "Priority")
+                    }
+                    SelectionField(
+                        label = "Group by",
+                        values = groupOptions,
+                        selected = groupMode.takeIf { it in groupOptions } ?: "None",
+                        valueText = { it },
+                        onSelect = { groupMode = it },
+                    )
+                    Text("Priority", fontWeight = FontWeight.Bold)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        TaskPriority.entries.filter { it != TaskPriority.None }.forEach { value ->
+                            WhipFilterChip(
+                                selected = value in priorities,
+                                onClick = { priorities = if (value in priorities) priorities - value else priorities + value },
+                                label = { Text(value.name) },
+                            )
+                        }
+                    }
+                    if (availableTags.isNotEmpty()) {
+                        Text("Tags", fontWeight = FontWeight.Bold)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            availableTags.forEach { value ->
+                                WhipFilterChip(
+                                    selected = value in selectedTags,
+                                    onClick = { selectedTags = if (value in selectedTags) selectedTags - value else selectedTags + value },
+                                    label = { Text("#$value") },
+                                )
+                            }
+                            if (selectedTags.size > 1) WhipFilterChip(
+                                selected = requireAllTags,
+                                onClick = { requireAllTags = !requireAllTags },
+                                label = { Text(if (requireAllTags) "Match All" else "Match Any") },
+                            )
+                        }
+                    }
+                    Text("Date and Status", fontWeight = FontWeight.Bold)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("Any" to "Any date", "Today" to "Today", "Overdue" to "Overdue", "Next7Days" to "Next 7 days", "NoDate" to "No date").forEach { (value, filterLabel) ->
+                            WhipFilterChip(dateMode == value, { dateMode = value }, { Text(filterLabel) })
+                        }
+                        WhipFilterChip(selected = deadlineOnly, onClick = { deadlineOnly = !deadlineOnly }, label = { Text("Has Deadline") })
+                        WhipFilterChip(selected = pinnedOnly, onClick = { pinnedOnly = !pinnedOnly }, label = { Text("Pinned Only") })
+                    }
+                    Text("Effort and Duration", fontWeight = FontWeight.Bold)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        TaskEffort.entries.forEach { value ->
+                            WhipFilterChip(value in efforts, { efforts = if (value in efforts) efforts - value else efforts + value }, { Text(value.label) })
+                        }
+                    }
+                    OutlinedTextField(
+                        maximumDuration,
+                        { maximumDuration = it.filter(Char::isDigit).take(4) },
+                        label = { Text("Maximum minutes") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (appSettings.savedTaskFilters.isNotEmpty()) {
+                        Text("Saved Filters", fontWeight = FontWeight.Bold)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            appSettings.savedTaskFilters.forEach { filter ->
+                                WhipFilterChip(
+                                    selected = filter.copy(name = "Current") == currentFilter,
+                                    onClick = { applyFilter(filter) },
+                                    label = { Text(filter.name) },
+                                )
+                            }
+                        }
+                        appSettings.savedTaskFilters.firstOrNull { it.copy(name = "Current") == currentFilter }?.let { selected ->
+                            WhipTextButton(onClick = { onDeleteFilter(selected.name) }) { Text("Delete “${selected.name}”") }
+                        }
+                    }
+                    WhipTextButton(onClick = {
+                        showFilters = false
+                        saveFilterOpen = true
+                    }) { Text("Save These Filters") }
+                }
+            },
+            confirmButton = { WhipTextButton(onClick = { showFilters = false }) { Text("Done") } },
+            dismissButton = {
+                WhipTextButton(onClick = {
+                    sortMode = "Smart"; groupMode = "None"
+                    priorities = emptySet(); pinnedOnly = false
+                    selectedTags = emptySet(); requireAllTags = true; dateMode = "Any"; deadlineOnly = false
+                    efforts = emptySet(); maximumDuration = ""
+                }) { Text("Clear All") }
+            },
+        )
     }
 
     if (saveFilterOpen) {
         AlertDialog(
             onDismissRequest = { saveFilterOpen = false },
-            title = { Text("Save task filter") },
+            title = { Text("Save Task Filter") },
             text = { OutlinedTextField(filterName, { filterName = it }, label = { Text("Filter name") }, singleLine = true) },
             confirmButton = {
-                TextButton(
+                WhipTextButton(
                     enabled = filterName.isNotBlank(),
                     onClick = {
                         onSaveFilter(currentFilter.copy(name = filterName.trim()))
@@ -2824,7 +3364,7 @@ private fun TaskAreaContent(
                     },
                 ) { Text("Save") }
             },
-            dismissButton = { TextButton(onClick = { saveFilterOpen = false }) { Text("Cancel") } },
+            dismissButton = { WhipTextButton(onClick = { saveFilterOpen = false }) { Text("Cancel") } },
         )
     }
     archivePreviewKeys?.let { keys ->
@@ -2833,7 +3373,7 @@ private fun TaskAreaContent(
         val recurringSeries = series.count { it.task.scheduleKind == ScheduleKind.Recurring }
         AlertDialog(
             onDismissRequest = { archivePreviewKeys = null },
-            title = { Text("Archive ${series.size} ${if (series.size == 1) "task" else "tasks"}?") },
+            title = { Text("Archive ${series.size} ${if (series.size == 1) "Task" else "Tasks"}?") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -2846,7 +3386,7 @@ private fun TaskAreaContent(
                 }
             },
             confirmButton = {
-                Button(
+                WhipButton(
                     enabled = affected.isNotEmpty(),
                     onClick = {
                         onBulkArchive(affected)
@@ -2855,7 +3395,7 @@ private fun TaskAreaContent(
                     },
                 ) { Text("Archive ${series.size}") }
             },
-            dismissButton = { TextButton(onClick = { archivePreviewKeys = null }) { Text("Cancel") } },
+            dismissButton = { WhipTextButton(onClick = { archivePreviewKeys = null }) { Text("Cancel") } },
         )
     }
     if (bulkDatePickerOpen) {
@@ -2903,7 +3443,7 @@ private fun TaskBulkEditDialog(
     val canApply = applyArea || applyTags || priority.isNotBlank() || effort.isNotBlank() || inbox.isNotBlank()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit $count ${if (count == 1) "task" else "tasks"}") },
+        title = { Text("Edit $count ${if (count == 1) "Task" else "Tasks"}") },
         text = {
             Column(
                 Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -2912,7 +3452,7 @@ private fun TaskBulkEditDialog(
                 Text("Only enabled fields change. Tags replace the selected tasks’ complete tag set.", style = MaterialTheme.typography.bodySmall)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(applyArea, { applyArea = it })
-                    Text("Change area", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                    Text("Change Area", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
                 }
                 if (applyArea) {
                     AreaSelectionDropdown(
@@ -2929,7 +3469,7 @@ private fun TaskBulkEditDialog(
                 if (applyTags && knownTags.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     knownTags.forEach { value ->
                         val current = tags.split(',').map(String::trim).filter(String::isNotBlank)
-                        FilterChip(current.any { it.equals(value, true) }, {
+                        WhipFilterChip(current.any { it.equals(value, true) }, {
                             tags = if (current.any { it.equals(value, true) }) current.filterNot { it.equals(value, true) }.joinToString(", ")
                             else (current + value).joinToString(", ")
                         }, { Text("#$value") })
@@ -2937,24 +3477,27 @@ private fun TaskBulkEditDialog(
                 }
                 Text("Priority · ${priority.ifBlank { "Keep existing" }}", fontWeight = FontWeight.SemiBold)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FilterChip(priority.isBlank(), { priority = "" }, { Text("Keep") })
-                    TaskPriority.entries.forEach { value -> FilterChip(priority == value.name, { priority = value.name }, { Text(value.name) }) }
+                    WhipFilterChip(priority.isBlank(), { priority = "" }, { Text("Keep") })
+                    TaskPriority.entries.forEach { value -> WhipFilterChip(priority == value.name, { priority = value.name }, { Text(value.name) }) }
                 }
-                Text("Effort · ${effort.ifBlank { "Keep existing" }}", fontWeight = FontWeight.SemiBold)
+                val selectedEffortLabel = effort.takeIf(String::isNotBlank)
+                    ?.let { stored -> TaskEffort.entries.firstOrNull { it.name == stored }?.label }
+                    ?: "Keep existing"
+                Text("Effort · $selectedEffortLabel", fontWeight = FontWeight.SemiBold)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FilterChip(effort.isBlank(), { effort = "" }, { Text("Keep") })
-                    TaskEffort.entries.forEach { value -> FilterChip(effort == value.name, { effort = value.name }, { Text(value.label) }) }
+                    WhipFilterChip(effort.isBlank(), { effort = "" }, { Text("Keep") })
+                    TaskEffort.entries.forEach { value -> WhipFilterChip(effort == value.name, { effort = value.name }, { Text(value.label) }) }
                 }
-                Text("Inbox · ${when (inbox) { "true" -> "Move to Inbox where possible"; "false" -> "Mark triaged"; else -> "Keep existing" }}", fontWeight = FontWeight.SemiBold)
+                Text("Inbox · ${when (inbox) { "true" -> "Move to Inbox Where Possible"; "false" -> "Mark Triaged"; else -> "Keep Existing" }}", fontWeight = FontWeight.SemiBold)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FilterChip(inbox.isBlank(), { inbox = "" }, { Text("Keep") })
-                    FilterChip(inbox == "true", { inbox = "true" }, { Text("Move to Inbox") })
-                    FilterChip(inbox == "false", { inbox = "false" }, { Text("Mark triaged") })
+                    WhipFilterChip(inbox.isBlank(), { inbox = "" }, { Text("Keep") })
+                    WhipFilterChip(inbox == "true", { inbox = "true" }, { Text("Move to Inbox") })
+                    WhipFilterChip(inbox == "false", { inbox = "false" }, { Text("Mark Triaged") })
                 }
             }
         },
         confirmButton = {
-            Button(
+            WhipButton(
                 enabled = canApply,
                 onClick = {
                     onApply(
@@ -2969,9 +3512,9 @@ private fun TaskBulkEditDialog(
                         ),
                     )
                 },
-            ) { Text("Apply changes") }
+            ) { Text("Apply Changes") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -2981,8 +3524,7 @@ private fun ScheduledTask.matches(filter: SavedTaskFilter, today: LocalDate, zon
         task.steps.forEach { append(it.title).append(' ').append(it.notes).append(' ') }
     }.contains(filter.textQuery.trim(), ignoreCase = true)) &&
         (filter.priorities.isEmpty() || task.priority in filter.priorities) &&
-        (filter.areaId?.let { task.areaId == it } ?: (filter.area.isBlank() || task.area.equals(filter.area, true))) &&
-        (filter.tag.isBlank() || task.tags.any { it.equals(filter.tag, true) }) &&
+        (filter.areaId == null || task.areaId == filter.areaId) &&
         (!filter.pinnedOnly || task.pinned) &&
         (!filter.deadlineOnly || task.deadline != null) &&
         (!filter.inboxOnly || task.inbox) &&
@@ -3008,7 +3550,7 @@ private fun ScheduledTask.planningDate(zoneId: java.time.ZoneId = java.time.Zone
 
 private fun ScheduledTask.groupingLabel(mode: String, zoneId: java.time.ZoneId): String = when (mode) {
     "Date" -> planningDate(zoneId)?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "No date"
-    "Area" -> task.area.ifBlank { "No area" }
+    "Area" -> task.area.ifBlank { "Main" }
     "Priority" -> "${task.priority.name} priority"
     else -> "Tasks"
 }
@@ -3105,11 +3647,11 @@ private fun TaskPlanningListRow(
             val index = unique.indexOfFirst { it.task.id == item.task.id }
             if (index >= 0 && manualOrder.indexOfFirst { it.task.id == item.task.id } == manualOrder.indexOf(item)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(enabled = index > 0, onClick = {
+                    WhipTextButton(enabled = index > 0, onClick = {
                         val reordered = unique.toMutableList().also { java.util.Collections.swap(it, index, index - 1) }
                         onReorder(reordered)
                     }) { Text("Earlier") }
-                    TextButton(enabled = index < unique.lastIndex, onClick = {
+                    WhipTextButton(enabled = index < unique.lastIndex, onClick = {
                         val reordered = unique.toMutableList().also { java.util.Collections.swap(it, index, index + 1) }
                         onReorder(reordered)
                     }) { Text("Later") }
@@ -3139,29 +3681,45 @@ private fun TaskMonthPlanner(
     Card(Modifier.fillMaxWidth().testTag("task-calendar")) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onPrevious) { Text("Previous") }
+                WhipTextButton(onClick = onPrevious) { Text("Previous") }
                 Text(month.format(DateTimeFormatter.ofPattern("MMMM yyyy")), fontWeight = FontWeight.Bold)
-                TextButton(onClick = onNext) { Text("Next") }
+                WhipTextButton(onClick = onNext) { Text("Next") }
             }
             Row(Modifier.fillMaxWidth()) {
-                orderedDays.forEach { day -> Text(day.name.take(1), Modifier.weight(1f), style = MaterialTheme.typography.labelSmall) }
+                orderedDays.forEach { day ->
+                    Text(
+                        day.name.take(1),
+                        Modifier.weight(1f),
+                        style = MaterialTheme.typography.labelSmall,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                }
             }
             cells.chunked(7).forEach { week ->
                 Row(Modifier.fillMaxWidth()) {
                     (week + List(7 - week.size) { null }).forEach { date ->
                         if (date == null) Spacer(Modifier.weight(1f).height(48.dp))
-                        else TextButton(
-                            onClick = { onSelect(date) },
-                            modifier = Modifier.weight(1f).height(48.dp),
-                        ) {
+                        else {
+                            val taskCount = counts[date] ?: 0
+                            val habitCount = habitCounts[date] ?: 0
+                            WhipTextButton(
+                                onClick = { onSelect(date) },
+                                modifier = Modifier.weight(1f).height(48.dp).semantics {
+                                    selected = date == selectedDate
+                                    stateDescription = if (date == selectedDate) "Selected" else "Not selected"
+                                    contentDescription = buildString {
+                                        append(date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)))
+                                        append(", ${taskCount.itemCount("task")}")
+                                        if (habitCount > 0) append(", ${habitCount.itemCount("habit")}")
+                                    }
+                                },
+                            ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     date.dayOfMonth.toString(),
                                     color = if (date == selectedDate) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                     fontWeight = if (date == selectedDate) FontWeight.Bold else FontWeight.Normal,
                                 )
-                                val taskCount = counts[date] ?: 0
-                                val habitCount = habitCounts[date] ?: 0
                                 if (taskCount + habitCount > 0) Text(
                                     buildString {
                                         if (taskCount > 0) append("$taskCount T")
@@ -3172,6 +3730,7 @@ private fun TaskMonthPlanner(
                                     color = MaterialTheme.colorScheme.tertiary,
                                 )
                             }
+                        }
                         }
                     }
                 }
@@ -3202,9 +3761,12 @@ private fun HomeStatusCard(title: String, detail: String, onClick: (() -> Unit)?
             .fillMaxWidth()
             .then(if (onClick == null) Modifier else Modifier.clickable(onClickLabel = "Open $title", onClick = onClick)),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, fontWeight = FontWeight.SemiBold)
-            Text(detail, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(title, fontWeight = FontWeight.SemiBold)
+                Text(detail, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (onClick != null) Icon(Icons.Outlined.ChevronRight, contentDescription = null)
         }
     }
 }
@@ -3229,13 +3791,15 @@ private fun TodayHeader(
             Text("Home", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(16.dp))
         }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Habit progress", style = MaterialTheme.typography.titleSmall)
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Habit Progress", style = MaterialTheme.typography.titleSmall)
             Text(
                 "$completed of $total",
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f).padding(start = 8.dp),
             )
+            Icon(Icons.Outlined.ChevronRight, contentDescription = null)
         }
         Spacer(Modifier.height(8.dp))
         LinearProgressIndicator(
@@ -3249,39 +3813,44 @@ private fun TodayHeader(
     }
 }
 
-@Composable
-private fun DestinationHeader(destination: TaskDestination, count: Int) {
-    Column(modifier = Modifier.padding(top = 12.dp, bottom = 8.dp)) {
-        Text(destination.label, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            when (destination) {
-                TaskDestination.Inbox -> "Captured and waiting for a decision · $count tasks"
-                TaskDestination.Today -> "What needs your attention now · $count tasks"
-                TaskDestination.Upcoming -> "The next 30 days · $count tasks"
-                TaskDestination.Anytime -> "Unscheduled tasks · $count tasks"
-                TaskDestination.Completed -> "Your latest completed tasks"
-                TaskDestination.Archived -> "Stored safely until you restore them · $count tasks"
-            },
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+private fun taskDestinationSupportingText(destination: TaskDestination, count: Int): String = when (destination) {
+    TaskDestination.Inbox -> "Captured and waiting for a decision · ${count.itemCount("task")}"
+    TaskDestination.Today -> "What needs your attention now · ${count.itemCount("task")}"
+    TaskDestination.Upcoming -> "The next 30 days · ${count.itemCount("task")}"
+    TaskDestination.Anytime -> "Unscheduled tasks · ${count.itemCount("task")}"
+    TaskDestination.Completed -> "Your latest completed tasks · ${count.itemCount("task")}"
+    TaskDestination.Archived -> "Stored safely until you restore them · ${count.itemCount("task")}"
+}
+
+private fun Int.itemCount(noun: String): String = "$this $noun${if (this == 1) "" else "s"}"
+
+private fun String.taskDateModeLabel(): String = when (this) {
+    "Today" -> "Due Today"
+    "Overdue" -> "Overdue"
+    "Next7Days" -> "Next 7 Days"
+    "NoDate" -> "No Date"
+    else -> this
 }
 
 @Composable
-private fun EmptyTasks(destination: TaskDestination, areaLabel: String? = null) {
-    Text(
-        text = when (destination) {
+private fun EmptyTasks(destination: TaskDestination, areaLabel: String? = null, constrained: Boolean = false) {
+    val supportingText = if (constrained) {
+        "No tasks match the current view or filters. Change the view or remove a filter to see more."
+    } else when (destination) {
             TaskDestination.Inbox -> areaLabel?.let { "No Inbox tasks in $it." } ?: "No tasks in Inbox. Quick captures can wait here until you triage them."
-            TaskDestination.Today -> areaLabel?.let { "Nothing due today in $it. Create in $it with +." } ?: "Nothing due today. Capture a task above or use + for full details."
+            TaskDestination.Today -> areaLabel?.let { "Nothing due today in $it." } ?: "Nothing due today."
             TaskDestination.Upcoming -> areaLabel?.let { "No tasks in $it over the next 30 days." } ?: "No tasks in the next 30 days."
             TaskDestination.Anytime -> areaLabel?.let { "No anytime tasks in $it." } ?: "No anytime tasks yet."
             TaskDestination.Completed -> areaLabel?.let { "No completed tasks in $it." } ?: "Completed tasks will appear here."
             TaskDestination.Archived -> areaLabel?.let { "No archived tasks in $it." } ?: "Archived tasks will appear here and can be restored."
+        }
+    WhipEmptyState(
+        title = if (constrained) "No Matching Tasks" else when (destination) {
+            TaskDestination.Today -> "Today Is Clear"
+            TaskDestination.Inbox -> "Inbox Is Clear"
+            else -> "No ${destination.label} Tasks"
         },
-        modifier = Modifier.padding(vertical = 24.dp),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        style = MaterialTheme.typography.bodyLarge,
+        supportingText = supportingText,
     )
 }
 

@@ -137,7 +137,7 @@ class CoreFeatureJourneyE2ETest {
                 compose.onAllNodesWithText("Unsaved fold draft").fetchSemanticsNodes().isNotEmpty()
             }
             compose.onNodeWithTag("task-editor-title").assertIsDisplayed()
-            compose.onNodeWithText("Edit task").assertIsDisplayed()
+            compose.onNodeWithText("Edit Task").assertIsDisplayed()
         }
     }
 }

@@ -1,12 +1,15 @@
 package com.whip.app
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.runner.RunWith
 import org.junit.Test
@@ -20,6 +23,13 @@ class BrandIdentityTest {
 
         assertEquals("commvne.com.whip.app.debug", context.packageName)
         assertEquals("Whip Dev", context.applicationInfo.loadLabel(context.packageManager).toString())
+        val requestedPermissions = context.packageManager.getPackageInfo(
+            context.packageName,
+            PackageManager.GET_PERMISSIONS,
+        ).requestedPermissions.orEmpty().toSet()
+        assertFalse(Manifest.permission.ACCESS_COARSE_LOCATION in requestedPermissions)
+        assertFalse(Manifest.permission.ACCESS_FINE_LOCATION in requestedPermissions)
+        assertFalse(Manifest.permission.ACCESS_BACKGROUND_LOCATION in requestedPermissions)
     }
 
     @Test

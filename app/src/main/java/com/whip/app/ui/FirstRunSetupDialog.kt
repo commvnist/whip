@@ -11,11 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,17 +47,17 @@ fun FirstRunSetupDialog(
     var showOptionalPreferences by rememberSaveable { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = {},
-        title = { Text("Set up Whip") },
+        title = { Text("Set Up Whip") },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text("Choose what belongs at Home. Every section remains available from navigation and Settings, and no account is required.")
-                Text("Home sections", style = MaterialTheme.typography.titleSmall)
+                Text("Choose what belongs at Home. Tasks, Habits, Goals, and Gym remain available from main navigation; this only changes the Home overview.")
+                Text("Home Sections", style = MaterialTheme.typography.titleSmall)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     HomeSection.entries.forEach { area ->
-                        FilterChip(
+                        WhipFilterChip(
                             selected = area in selectedAreas,
                             onClick = {
                                 selectedAreas = if (area in selectedAreas) selectedAreas - area else selectedAreas + area
@@ -70,29 +68,29 @@ fun FirstRunSetupDialog(
                 }
                 Text("Experience", style = MaterialTheme.typography.titleSmall)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(!powerMode, { powerMode = false }, { Text("Simple start") })
-                    FilterChip(powerMode, { powerMode = true }, { Text("Power mode") })
+                    WhipFilterChip(!powerMode, { powerMode = false }, { Text("Simple Start") })
+                    WhipFilterChip(powerMode, { powerMode = true }, { Text("Power Mode") })
                 }
                 Text(
                     if (powerMode) "Show advanced choices by default where useful." else "Keep advanced choices folded until requested.",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(!usePounds, { usePounds = false }, { Text("kg") })
-                    FilterChip(usePounds, { usePounds = true }, { Text("lb") })
+                    WhipFilterChip(!usePounds, { usePounds = false }, { Text("kg") })
+                    WhipFilterChip(usePounds, { usePounds = true }, { Text("lb") })
                 }
-                TextButton(
+                WhipTextButton(
                     onClick = { showOptionalPreferences = !showOptionalPreferences },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(if (showOptionalPreferences) "Hide optional preferences" else "More preferences")
+                    Text(if (showOptionalPreferences) "Hide Optional Preferences" else "More Preferences")
                 }
                 if (showOptionalPreferences) {
                     SetupToggle("Low-pressure presentation (less streak emphasis)", lowPressureMode) { lowPressureMode = it }
                     SetupToggle("I want reminder notifications", notifications) { notifications = it }
-                    Text("Portable backup privacy", style = MaterialTheme.typography.titleSmall)
+                    Text("Portable Backup Privacy", style = MaterialTheme.typography.titleSmall)
                     BackupChoice.entries.forEach { choice ->
-                        FilterChip(backupChoice == choice, { backupChoice = choice }, { Text(choice.label) })
+                        WhipFilterChip(backupChoice == choice, { backupChoice = choice }, { Text(choice.label.uiTitleCase()) })
                     }
                     Text(
                         "Encrypted backups use a passphrase Whip cannot recover. Plain JSON is readable by other tools and is not encrypted.",
@@ -107,12 +105,12 @@ fun FirstRunSetupDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            WhipTextButton(
                 enabled = selectedAreas.isNotEmpty(),
                 onClick = { onComplete(selectedAreas, powerMode, usePounds, lowPressureMode, backupChoice.name, notifications) },
-            ) { Text("Finish setup") }
+            ) { Text("Finish Setup") }
         },
-        dismissButton = { TextButton(onClick = onSkip) { Text("Skip · simple mode") } },
+        dismissButton = { WhipTextButton(onClick = onSkip) { Text("Skip · Simple Mode") } },
     )
 }
 

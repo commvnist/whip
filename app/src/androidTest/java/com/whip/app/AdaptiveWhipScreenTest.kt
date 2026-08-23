@@ -5,11 +5,13 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.runtime.CompositionLocalProvider
@@ -78,6 +80,10 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithTag("fold-support-pane").assertIsDisplayed()
         compose.onNodeWithTag("adaptive-navigation-rail").assertIsDisplayed()
         compose.onNodeWithContentDescription("Device hinge separator").assertIsDisplayed()
+        compose.onNodeWithText("Main").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Search All Whip Data").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Search Whip").assertIsDisplayed()
+        compose.onNodeWithText("Close").performClick()
         compose.onAllNodesWithText("Home").assertCountEquals(1)
         val navigationTops = listOf("Tasks tab", "Habits tab", "Goals tab", "Gym tab").map { description ->
             compose.onNodeWithContentDescription(description).fetchSemanticsNode().boundsInRoot.top
@@ -92,9 +98,9 @@ class AdaptiveWhipScreenTest {
             "Dark fold top inset exposed a light/transparent background: rail=$topRailBackground overview=$topOverviewBackground"
         }
         val summaryWidths = listOf(
-            "Tasks due: 0. Open Tasks",
-            "Habits remaining: 0. Open Habits",
-            "Active goals: 0. Open Goals",
+            "Tasks Due: 0. Open Tasks",
+            "Habits Remaining: 0. Open Habits",
+            "Active Goals: 0. Open Goals",
             "Workout: Ready. Open Gym",
         ).map { description ->
             compose.onNodeWithContentDescription(description).fetchSemanticsNode().boundsInRoot.width
@@ -102,14 +108,28 @@ class AdaptiveWhipScreenTest {
         check(summaryWidths.max() - summaryWidths.min() <= 1f) {
             "Fold overview cards must share one width: $summaryWidths"
         }
-        compose.onNodeWithContentDescription("Expand content pane").assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription("More app actions").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Expand Content").assertIsDisplayed().performClick()
         compose.onNodeWithTag("expanded-content-pane").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Search All Whip Data").assertIsDisplayed()
         check(compose.onAllNodesWithTag("fold-support-pane").fetchSemanticsNodes().isEmpty())
         check(compose.onAllNodesWithTag("adaptive-navigation-rail").fetchSemanticsNodes().isEmpty())
         compose.onNodeWithContentDescription("Restore split view").assertIsDisplayed().performClick()
         compose.onNodeWithTag("fold-support-pane").assertIsDisplayed()
         compose.onNodeWithContentDescription("Tasks tab").performClick()
         compose.onNodeWithContentDescription("Tasks tab").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Tasks Due: 0. Open Tasks").assertIsDisplayed()
+        // A scrollable destination bar must stay content-height in a narrow fold
+        // pane. Its edge fades previously expanded to the viewport height and
+        // silently pushed the page header and task content below the screen.
+        compose.onNodeWithTag("page-title").assertIsDisplayed()
+        compose.onNodeWithTag("task-quick-capture").assertIsDisplayed()
+        compose.onAllNodesWithContentDescription("Habits Remaining: 0. Open Habits").assertCountEquals(0)
+        compose.onNodeWithContentDescription("Gym tab").performClick()
+        compose.onAllNodesWithText("Whip").assertCountEquals(0)
+        compose.onNodeWithContentDescription("More app actions").performClick()
+        compose.onNodeWithText("Open Settings").performClick()
+        compose.onAllNodesWithText("Settings").assertCountEquals(2)
     }
 
     @Test
@@ -181,12 +201,12 @@ class AdaptiveWhipScreenTest {
             check(editor.left >= hinge.right - 1f) { "$tag crossed the hinge: editor=$editor hinge=$hinge" }
         }
 
-        compose.onNodeWithContentDescription("Add task, habit, goal, exercise, workout, or measurement").performClick()
+        compose.onNodeWithContentDescription("Add task, habit, goal, exercise, or workout").performClick()
         compose.onNodeWithText("Task").performClick()
         assertEditorInsideContentPane("task-editor-surface")
         compose.onNodeWithText("Cancel").performClick()
 
-        compose.onNodeWithContentDescription("Add task, habit, goal, exercise, workout, or measurement").performClick()
+        compose.onNodeWithContentDescription("Add task, habit, goal, exercise, or workout").performClick()
         compose.onNodeWithText("Habit").performClick()
         assertEditorInsideContentPane("habit-editor-surface")
         compose.onNodeWithText("Cancel").performClick()
@@ -195,6 +215,13 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithContentDescription("Add goal").performClick()
         assertEditorInsideContentPane("goal-editor-surface")
         compose.onNodeWithText("Cancel").performClick()
+
+        compose.onNodeWithContentDescription("Gym tab").performClick()
+        compose.onNodeWithContentDescription("Add exercise or workout").performClick()
+        compose.onNodeWithText("Exercise").performClick()
+        assertEditorInsideContentPane("exercise-editor-surface")
+        compose.onNodeWithText("Save").assertIsDisplayed()
+        compose.onNodeWithText("Cancel").assertIsDisplayed().performClick()
     }
 
     @Test
@@ -299,8 +326,14 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithContentDescription("Add task, habit, goal, exercise, workout, or measurement").assertIsDisplayed().performClick()
         compose.onNodeWithText("Task").assertIsDisplayed().performClick()
         compose.onNodeWithTag("task-editor-title").assertIsDisplayed()
-        compose.onNodeWithText("Show advanced options").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Advanced Options").assertIsDisplayed().performClick()
         compose.onNodeWithText("Notes (optional)").assertIsDisplayed()
+        compose.onNodeWithText("Effort").performScrollTo().assertIsDisplayed()
+        listOf("Light", "Moderate", "Deep").forEach { storedName ->
+            compose.onNodeWithTag("task-effort-$storedName").performScrollTo().assertIsDisplayed()
+        }
+        compose.onAllNodesWithText("Moderate").assertCountEquals(0)
+        compose.onAllNodesWithText("High effort").assertCountEquals(0)
         compose.onNodeWithText("Cancel").assertIsDisplayed()
         compose.onNodeWithText("Cancel").performClick()
     }

@@ -96,7 +96,6 @@ data class ExerciseCategoryEntity(
     val uuid: String,
     val name: String,
     val kind: String,
-    val colorArgb: Long?,
     val position: Int,
     val archived: Boolean,
     val createdAtMillis: Long,

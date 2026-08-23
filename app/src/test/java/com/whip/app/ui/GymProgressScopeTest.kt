@@ -12,7 +12,7 @@ class GymProgressScopeTest {
     }
 
     @Test
-    fun anyExplicitMachineHistoryEnablesEquipmentScoping() {
+    fun anyMachineProfileSnapshotEnablesEquipmentScoping() {
         assertTrue(listOf(placement(1, null), placement(2, 42)).requiresMachineScope())
     }
 
@@ -35,6 +35,7 @@ class GymProgressScopeTest {
         notes = "",
         groupId = null,
         machineId = machineId,
+        machineProfileUuidSnapshot = machineId?.let { "machine-profile-$it" },
         createdAtMillis = 1,
         updatedAtMillis = 1,
     )

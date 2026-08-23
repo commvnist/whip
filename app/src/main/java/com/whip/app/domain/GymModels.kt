@@ -197,7 +197,6 @@ data class ExerciseCategory(
     val uuid: String,
     val name: String,
     val kind: String,
-    val colorArgb: Long?,
     val position: Int,
     val archived: Boolean,
     val createdAtMillis: Long,
@@ -272,9 +271,9 @@ data class WorkoutExercise(
     val alternativeExerciseIdsSnapshot: List<Long> = emptyList(),
 )
 
-/** Stable equipment partition. Numeric IDs are retained only as live-profile links. */
+/** Stable equipment partition captured when the workout placement is created. */
 val WorkoutExercise.equipmentScopeKey: String?
-    get() = machineProfileUuidSnapshot ?: machineId?.let { "legacy-machine-id:$it" }
+    get() = machineProfileUuidSnapshot
 
 fun WorkoutExercise.applyPolicySnapshot(exercise: Exercise): Exercise = exercise.copy(
     trackingType = trackingTypeSnapshot,

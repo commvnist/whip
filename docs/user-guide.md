@@ -1,6 +1,6 @@
 # Whip user guide
 
-## The four areas
+## Four core sections
 
 - **Tasks** are finite work. They can be anytime, one-shot, daily, every N
   days/weeks/months/years, or scheduled on selected weekdays. Recurrence can
@@ -23,39 +23,59 @@
   library intentionally starts empty. Tracking types include weights/reps,
   bodyweight and assisted movements, durations, and distances.
 
-Home keeps these areas visibly separate while supporting quick logging. Use
+Home keeps these sections visibly separate while supporting quick logging. Use
 Settings to reorder, collapse, or hide Home sections. Pin important tasks,
 habits, goals, and routines to surface them first.
 
-The skippable first-run setup chooses the Home areas you want emphasized,
+The skippable first-run setup chooses the Home sections you want emphasized,
 simple or power defaults, kg or lb, notification intent, low-pressure display,
-and a backup privacy preference. Hiding an area changes presentation only: its
+and a backup privacy preference. Hiding a section changes presentation only: its
 data and navigation remain available in Settings and global add/search.
 Low-pressure mode removes streak pressure from Habit cards and Insights while
 keeping the underlying history intact.
 
-Task, habit, and goal editors open in a shorter basic mode. **Show advanced
-options** reveals notes, metadata, units, aggregation details, and other power
-settings without discarding hidden values. Goal templates provide editable
+Task, habit, and goal editors open in a shorter basic mode. **Advanced Options**
+expands to reveal notes, metadata, units, aggregation details, and other power
+settings without discarding hidden values. Choices that reveal more settings
+keep those settings immediately below the choice and explain any non-obvious
+effect; unavailable controls state how to unlock them. Goal templates provide editable
 starting points for weight, savings, distance, reading, consistency, and
 weighted projects. Global search opens or focuses the exact matching record,
 including archived records and discarded workouts.
 
-Advanced task setup adds priority, an area/project, comma-separated tags, a
-work date distinct from its final deadline, multiple notification offsets, and
-optional arrival/leave cues. The Tasks area supports named filters,
+Advanced task setup adds priority, comma-separated tags, a
+work date distinct from its final deadline, and multiple notification offsets.
+Areas group tasks, habits, and goals under any names you choose. Whip creates
+**Main** automatically, assigns new items to an Area, and always
+keeps at least one active Area. **Edit Areas** can move every item from one Area
+to another in one action while retaining both the records and their history.
+Before deleting the only active Area, create its replacement first.
+The Tasks screen supports named filters,
 multi-select complete/archive/restore/pin actions, an agenda, and a navigable
 month calendar. A saved task filter can also constrain the Tasks section on
-Home. Review supports named combinations of Tasks, Habits, Goals, and Gym;
+Home. The calendar action in the top bar opens the Upcoming agenda, while
+**Review & Trends** is available as a named action on Home. Review supports
+named combinations of Tasks, Habits, Goals, and Gym;
 summary counts on Home, the Fold pane, and Review open the owning area.
+
+Tasks, Habits, Goals, Gym, and Settings keep all peer destinations in one
+horizontally scrollable tab row. In Tasks, List/Agenda/Calendar is a separate
+persistent view control. Search, Filters, and Select tasks have distinct roles;
+habit overlays only apply to Agenda and Calendar. Gym's Library is a child-page
+landing screen rather than a show-more control. On wide screens Settings uses a
+persistent category list, and create moves to the top app bar so it does not
+cover content.
 
 Quick captures can enter a real **Inbox** for later triage. **Plan My Day**
 selects work within a user-entered time capacity using duration, urgency, and
 effort; missing estimates count as 30 minutes. Tasks can be duplicated back to
-Inbox, gently deferred, bulk-postponed, and filtered by area, tags, dates,
+Inbox, gently deferred, bulk-postponed, and filtered by Area, tags, dates,
 status, deadline, Inbox, effort, and duration. A local focus timer can be
 attached to the current task. Completion date, rather than the original due
 date, places finished work on the completed calendar.
+
+The task editor labels planning intensity as **Effort**, with the parallel
+choices **Light**, **Medium**, and **High**.
 
 The Home add menu creates tasks for today so they remain visible after saving.
 Capture from the Inbox tab, the share target, or the widget when the task should
@@ -100,17 +120,26 @@ data row opens its exact value and source-workout details.
 Workout history provides both a chronological list and a navigable month
 calendar with per-day workout counts and filters.
 During a workout, Whip marks the next incomplete set and offers an explicit
-**Jump to next set** control. Settings can use denser set rows. Workout Tools
+**Jump to Next Set** control. Settings can use denser set rows. Workout Tools
 can save named bar/plate inventories; those presets are reusable in both the
 plate calculator and exercise setup. Every day in a pinned multi-day routine
 is directly startable from Home.
 
+The workout execution lane shows the current rest duration. Choose **Adjust**
+to use a preset, enter seconds directly, or step by 15 seconds, then choose
+**Use for This Workout**. This overrides automatic and manually started rest
+timers for the current workout without changing the default in Settings. While
+a timer is running, **−15** and **+15** adjust that timer immediately. The
+initial presets are 1:00, 1:30, 2:00, 2:30, 3:00, and 5:00. Choose **Manage
+Presets** in the same dialog to add or remove persistent shortcuts, or restore
+that default set.
+
 Gym keeps Workout, History, and Progress in the primary destination row. Open
 **Library** for Routines, Exercises, Machines, Categories, and Tools. In an
-active workout, enter set values before using **Save + next** or **Save set**;
-the checkbox shown on a completed set is only for reopening it. Long-press and
-drag the reorder handle, or use its accessibility actions, to move exercises
-and sets.
+active workout, one focused composer owns the next incomplete set. Enter its
+required values and choose **Complete Set**. Completed and future sets stay as
+compact rows; structural movement remains available from overflow menus rather
+than permanent drag handles during workout execution.
 
 Each exercise declares what an entered load means: total system, per hand, per
 side, added external load, bodyweight plus load, bodyweight percentage,
@@ -121,8 +150,8 @@ snapshots load meaning, unit, calculation policy, and equipment version into
 performed history, so editing an exercise later cannot silently reinterpret an
 old set. Excluded or incompatible data is explained in Progress.
 
-Active workouts use inline validated entry with previous-value fill,
-deterministic equipment increments, **Save + next**, repeat/copy, and immediate
+Active workouts use inline validated entry with **Use Previous**, deterministic
+equipment increments, one explicit **Complete Set** action, and immediate
 persistence. Routine prescriptions remain separate from performed values: an
 actual set may differ in weight, reps, RPE, RIR, duration, or machine setting
 without changing the reusable routine.
@@ -130,8 +159,8 @@ without changing the reusable routine.
 ### Machines and resistance scales
 
 Open **Gym > Machines** to create a profile for each physical machine and
-exercise combination. Use **Weight stack / mass** when its markings are actual
-kg or lb, or **Numbered stack / level** for scales such as pin 1–10. Enter a
+exercise combination. Use **Weight Stack / Mass** when its markings are actual
+kg or lb, or **Numbered Stack / Level** for scales such as pin 1–10. Enter a
 compact range such as `50-500` or `1-10` and its increment, or enter an
 irregular list such as `1,2,4,7,10`. The resulting exact values drive the −/+
 controls and optional one-tap choices during set entry. New machine profiles
@@ -159,9 +188,10 @@ reinterpreted. Routines remember the selected machine.
 ## Units, dates, and time zones
 
 Built-in units cover counts, durations, distance, volume, mass, length, money,
-energy, percentages, and unitless values. Settings can create a custom unit
-with a symbol, dimension, and canonical conversion factor; compatible custom
-units then appear in habit and goal editors. For example, a volume unit named
+energy, percentages, and unitless values. Create a custom unit directly from a
+compatible Habit or Goal unit chooser, or manage all custom units under
+**Settings → Planning & Units → Unit Defaults**. A custom unit has a symbol,
+dimension, and canonical conversion factor. For example, a volume unit named
 `glass` can use factor `250`, meaning one glass is stored as 250 millilitres.
 Custom units also cover mass and every other listed dimension: a mass unit
 named `stone` uses factor `6.35029318`, meaning one stone is stored as
@@ -202,12 +232,7 @@ the current notification path but does not guarantee that Android will never
 delay future background work.
 
 Task reminders can select several offsets, including custom minutes before the
-task time. Optional location cues use Android geofencing for arrival or leave
-events rather than continuously recording a route. Coordinates remain in the
-local database and full backups. Reliable background cues require precise
-location and Android's **Allow all the time** access; Settings reports both,
-links to the permission page, explains the battery/privacy cost, and includes
-a global switch that unregisters Whip geofences without erasing saved places.
+task time.
 
 Explicitly adding a reminder, enabling automatic rest-timer alerts in Settings,
 or manually starting a rest timer requests notification permission in context.
@@ -224,7 +249,7 @@ All live records are stored in the app's on-device Room database and remain
 available offline and after app/device restarts. Settings offers two complete
 backup paths:
 
-- **Portable backup folder** asks Android's folder picker for a location in
+- **Portable Backup Folder** asks Android's folder picker for a location in
   Files, a cloud-backed document provider, or removable storage. **Back up
   now** writes an `INCOMPLETE` staging document, closes and reads it back,
   validates its checksum and record count, atomically commits the visible
@@ -233,24 +258,24 @@ backup paths:
   verified Whip backups; unrelated files are never pruned. Automatic backup
   skips an empty database so deleting local data cannot gradually rotate away
   the last useful archives.
-- **Save one-off backup elsewhere** creates the same complete archive without
+- **Save One-Off Backup Elsewhere** creates the same complete archive without
   remembering a folder. It can remain interoperable plaintext JSON or use a
   passphrase-encrypted, authenticated Whip envelope. The passphrase is required
   for restore and is never retained by the app.
 
 The selected-folder permission survives app and device restarts. If the folder
 is moved, deleted, disconnected, or its provider revokes access, Settings shows
-the last error and the user can choose it again. **Forget folder** revokes
+the last error and the user can choose it again. **Forget Folder** revokes
 Whip's remembered access and cancels its periodic job; it does not delete files
 already written there.
 
 To move to another device, install the same or a compatible Whip build, copy or
 sync a `.whip.json` to a location visible in that device's Files picker, then
-use **Preview and restore backup**. Keep plaintext backups private. Restore
+use **Preview and Restore Backup**. Keep plaintext backups private. Restore
 validates the envelope, authentication/checksum, database version, row counts,
 preferences, and duplicates before asking for confirmation. Whip then stores a
 private recovery snapshot while it replaces local data and preferences and
-rebuilds derived data, reminders, geofences, and scheduled work. Failure rolls
+rebuilds derived data, reminders, and scheduled work. Failure rolls
 back immediately; process interruption recovers on next launch.
 
 Tasks, habits, goals, and gym data also have CSV exports. CSV is intended for
@@ -262,7 +287,7 @@ backup.
 Archive keeps history and permits restore. This applies to tasks, habits,
 goals, exercises, routines, and discarded workouts. Set removal during an
 active workout is soft-deleted and undoable. Each first-class record also has
-an advanced **Delete permanently** action with a confirmation that previews
+an advanced **Delete Permanently** action with a confirmation that previews
 the affected history, measurements, routine/workout references, links, and
 automations. Cross-feature cleanup is transactional; workout-derived goal
 values and records are recalculated. Deleting a routine preserves completed
@@ -272,7 +297,7 @@ exercise's sets from workout history and routine templates.
 Recurring task history combines completed, skipped, and moved occurrences.
 Completed occurrences can be reopened, skips undone, and moved dates reset;
 the series cadence explains how the next scheduled slot is chosen.
-**Delete all local data** is the broad destructive action and explicitly
+**Delete All Local Data** is the broad destructive action and explicitly
 suggests creating a backup first. It clears the internal database and app
 settings, but does not delete portable backup files stored through Android's
 document picker.

@@ -22,7 +22,6 @@ import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.GymMachineDraft
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalDraft
-import com.whip.app.domain.GoalEntryMode
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.LinkRuleDraft
@@ -138,6 +137,7 @@ class DomainDeletionCoordinatorTest {
     }
 
     @Test fun areaDeleteWithItemsRemovesEveryDomainAndItsDependentHistory() = runBlocking {
+        val mainId = areas.ensureDefaultArea()
         val areaId = areas.create("Client Delta")
         val taskId = tasks.create(TaskDraft(title = "Prompt source", areaId = areaId, area = "Client Delta"))
         val habitId = habits.create(
@@ -172,7 +172,7 @@ class DomainDeletionCoordinatorTest {
         assertEquals(listOf(habitId), summary.habitIds)
         assertEquals(listOf(goalId), summary.goalIds)
         assertEquals(3, summary.total)
-        assertTrue(areas.areas.first().isEmpty())
+        assertEquals(listOf(mainId), areas.areas.first().map { it.id })
         assertTrue(tasks.tasks.first().isEmpty())
         assertTrue(habits.habits.first().isEmpty())
         assertTrue(habits.logs.first().isEmpty())
@@ -325,7 +325,6 @@ class DomainDeletionCoordinatorTest {
         targetMin = 100.0,
         startDate = FixedClock.today(),
         aggregation = GoalAggregation.Sum,
-        entryMode = GoalEntryMode.AmountToAdd,
     )
 
     private object FixedClock : WhipClock {

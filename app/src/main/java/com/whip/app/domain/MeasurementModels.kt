@@ -107,7 +107,6 @@ data class Area(
 data class WhipTag(
     val id: String,
     val name: String,
-    val colorArgb: Long?,
     val archived: Boolean,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,

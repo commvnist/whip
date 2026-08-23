@@ -28,7 +28,6 @@ import com.whip.app.reminders.HabitReminderScheduler
 import com.whip.app.reminders.HabitReminderNotifications
 import com.whip.app.reminders.GoalReminderScheduler
 import com.whip.app.reminders.GoalReminderNotifications
-import com.whip.app.reminders.LocationReminderScheduler
 import com.whip.app.reminders.AutomationPromptNotifications
 import com.whip.app.reminders.AutomationPromptScheduler
 import com.whip.app.reminders.FocusTimerNotifications
@@ -86,7 +85,7 @@ class WhipApplication : Application() {
     val areaDeletionCoordinator by lazy {
         AreaDeletionCoordinator(database, areaRepository, taskDeletionCoordinator, domainDeletionCoordinator)
     }
-    val backupRepository by lazy { RoomBackupRepository(database, settingsRepository) }
+    val backupRepository by lazy { RoomBackupRepository(database, settingsRepository, areaRepository) }
     val restoreRecoveryManager by lazy { RestoreRecoveryManager(this, backupRepository) }
     val portableBackupManager by lazy {
         PortableBackupManager(
@@ -100,7 +99,6 @@ class WhipApplication : Application() {
     val restTimerScheduler by lazy { RestTimerScheduler(this) }
     val habitReminderScheduler by lazy { HabitReminderScheduler(this, settingsRepository) }
     val goalReminderScheduler by lazy { GoalReminderScheduler(this, settingsRepository) }
-    val locationReminderScheduler by lazy { LocationReminderScheduler(this) }
     val automationPromptScheduler by lazy { AutomationPromptScheduler(this) }
     val focusTimerScheduler by lazy { FocusTimerScheduler(this) }
     val healthConnectManager by lazy { HealthConnectManager(this, measurementRepository, settingsRepository) }
@@ -117,6 +115,7 @@ class WhipApplication : Application() {
         // database/settings state left by an interrupted restore.
         runBlocking(Dispatchers.IO) {
             runCatching { restoreRecoveryManager.recoverIfNeeded(::rebuildBackgroundState) }
+            areaRepository.ensureDefaultArea()
         }
         portableBackupScheduler.sync(portableBackupManager.state.value)
         applicationScope.launch { runCatching { portableBackupManager.recoverInterruptedWrites() } }
@@ -126,7 +125,6 @@ class WhipApplication : Application() {
                 runCatching { healthConnectManager.sync(settings.healthDataTypes, settings.healthSyncDays) }
             }
         }
-        applicationScope.launch { runCatching { locationReminderScheduler.syncAll() } }
         settingsRepository.current().let { settings ->
             val deadline = settings.focusTimerDeadlineMillis
             val taskId = settings.focusTimerTaskId
@@ -177,6 +175,7 @@ class WhipApplication : Application() {
     }
 
     suspend fun rebuildBackgroundState() {
+        areaRepository.ensureDefaultArea()
         WorkManager.getInstance(this).cancelAllWorkByTag(ALL_WHIP_WORK_TAG).result.get()
         linkRepository.rebuildAll()
         automationPromptScheduler.syncAll()
@@ -188,8 +187,6 @@ class WhipApplication : Application() {
             val taskId = settings.focusTimerTaskId
             if (deadline != null && taskId != null && deadline > System.currentTimeMillis()) focusTimerScheduler.schedule(taskId, deadline)
         }
-        locationReminderScheduler.clearAll()
-        locationReminderScheduler.syncAll()
         val session = gymRepository.sessions.first().firstOrNull { it.state == WorkoutSessionState.Active }
         val seconds = session?.restTimerDeadlineMillis?.minus(System.currentTimeMillis())?.div(1_000L)?.toInt()
         if (session != null && seconds != null && seconds > 0) restTimerScheduler.schedule(session.id, seconds, null)

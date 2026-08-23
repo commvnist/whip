@@ -7,8 +7,11 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -60,7 +63,7 @@ class GlobalSearchRoutingTest {
             compose.waitUntil(10_000) { compose.onAllNodesWithText("Home").fetchSemanticsNodes().isNotEmpty() }
 
             searchFor("Searchable archived habit")
-            compose.onNodeWithText("Archived habits").assertIsDisplayed()
+            compose.onNodeWithText("Archived Habits").assertIsDisplayed()
             compose.onNodeWithText("Restore").assertIsDisplayed()
 
             searchFor("Searchable archived goal")
@@ -72,8 +75,8 @@ class GlobalSearchRoutingTest {
             compose.onNodeWithText("Close").performClick()
 
             searchFor("Searchable discarded workout")
-            compose.onNodeWithText("Workout history").assertIsDisplayed()
-            compose.onNodeWithText("Restore to history").assertIsDisplayed()
+            compose.onNodeWithText("Workout History").assertIsDisplayed()
+            compose.onNodeWithText("Restore to History").performScrollTo().assertIsDisplayed()
 
             searchFor("Searchable archived routine")
             compose.waitUntil(10_000) {
@@ -85,11 +88,11 @@ class GlobalSearchRoutingTest {
     }
 
     private fun searchFor(title: String) {
-        compose.onNodeWithContentDescription("Search all Whip data").performClick()
-        compose.onNodeWithText("Tasks, habits, goals, exercises…").performTextInput(title.removePrefix("Searchable "))
+        compose.onNodeWithContentDescription("Search All Whip Data").performClick()
+        compose.onNodeWithTag("unified-search-query").performTextInput(title.removePrefix("Searchable "))
         compose.onNodeWithText(title).assertIsDisplayed().performClick()
         compose.waitUntil(10_000) {
-            compose.onAllNodesWithText("Tasks, habits, goals, exercises…").fetchSemanticsNodes().isEmpty()
+            compose.onAllNodesWithText("Search Whip").fetchSemanticsNodes().isEmpty()
         }
         compose.waitForIdle()
     }

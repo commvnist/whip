@@ -108,23 +108,23 @@ class LargeHistoryRegressionTest {
 
     private fun dailyHabit() = Habit(
         id = 1, uuid = "habit", metricId = "habit-metric", name = "Daily", notes = "", area = "", tags = emptyList(),
-        icon = "✓", colorArgb = null, intent = HabitIntent.Build, trackingMode = HabitTrackingMode.CheckOff,
+        icon = "✓", trackingMode = HabitTrackingMode.CheckOff,
         dimension = UnitDimension.Count, unitId = "count", precision = 0, comparison = TargetComparison.AtLeast,
         targetMin = 1.0, targetMax = null, targetPeriod = TargetPeriod.Day, rollingDays = null,
         scheduleType = HabitScheduleType.Daily, scheduleInterval = 1, weekdays = DayOfWeek.entries.toSet(),
         flexibleTimesPerWeek = null, startDate = start, endType = HabitEndType.Never, endDate = null, endValue = null,
-        timeWindowStartMinutes = null, timeWindowEndMinutes = null, quickIncrement = 1.0, quickActions = emptyList(),
+        quickIncrement = 1.0, quickActions = emptyList(),
         reminderMinutes = emptyList(), weekdayReminderMinutes = emptyMap(), weekStart = DayOfWeek.MONDAY,
-        avoidMissingPolicy = AvoidMissingPolicy.Unknown, timerStartedAtMillis = null, pinned = false, position = 0,
+        timerStartedAtMillis = null, pinned = false, position = 0,
         archived = false, paused = false, createdAtMillis = 1, updatedAtMillis = 1,
     )
 
     private fun latestGoal() = Goal(
         id = 1, uuid = "goal", metricId = "goal-metric", name = "Trend", description = "", area = "", tags = emptyList(),
-        icon = "◎", colorArgb = null, type = GoalType.OpenEndedTrend, dimension = UnitDimension.Unitless,
+        icon = "◎", type = GoalType.OpenEndedTrend, dimension = UnitDimension.Unitless,
         unitId = "unitless", precision = 1, baseline = null, targetMin = null, targetMax = null,
         direction = GoalDirection.Neutral, startDate = start, deadline = null, aggregation = GoalAggregation.Latest,
-        entryMode = GoalEntryMode.CurrentTotal, paceType = GoalPaceType.None, reminderMinutes = null,
+        paceType = GoalPaceType.None, reminderMinutes = null,
         status = GoalStatus.Active, pinned = false, position = 0, createdAtMillis = 1, updatedAtMillis = 1,
     )
 

@@ -57,8 +57,8 @@ interface GymRepository {
     suspend fun setExerciseArchived(id: Long, archived: Boolean)
     suspend fun setExerciseFavorite(id: Long, favorite: Boolean)
     suspend fun reorderExercises(idsInOrder: List<Long>)
-    suspend fun createCategory(name: String, kind: String = "Category", colorArgb: Long? = null): Long
-    suspend fun updateCategory(id: Long, name: String, kind: String, colorArgb: Long? = null)
+    suspend fun createCategory(name: String, kind: String = "Category"): Long
+    suspend fun updateCategory(id: Long, name: String, kind: String)
     suspend fun setCategoryArchived(id: Long, archived: Boolean)
     suspend fun reorderCategories(idsInOrder: List<Long>)
 
@@ -93,7 +93,12 @@ interface GymRepository {
 
     suspend fun addSet(workoutExerciseId: Long, draft: WorkoutSetDraft? = null): Long
     suspend fun updateSet(id: Long, draft: WorkoutSetDraft)
-    suspend fun setSetCompleted(id: Long, completed: Boolean, autoStartRest: Boolean = true)
+    suspend fun setSetCompleted(
+        id: Long,
+        completed: Boolean,
+        autoStartRest: Boolean = true,
+        restOverrideSeconds: Int? = null,
+    )
     suspend fun duplicateSet(id: Long): Long
     suspend fun deleteSet(id: Long)
     suspend fun undoDeleteSet(id: Long)
@@ -234,16 +239,16 @@ class RoomGymRepository(
         }
     }
 
-    override suspend fun createCategory(name: String, kind: String, colorArgb: Long?): Long {
+    override suspend fun createCategory(name: String, kind: String): Long {
         require(name.isNotBlank()) { "Category name is required" }
         val now = nowMillis()
-        return dao.insertCategory(ExerciseCategoryEntity(uuid = ids.nextId(), name = name.trim(), kind = kind.trim().ifBlank { "Category" }, colorArgb = colorArgb, position = dao.nextCategoryPosition(), archived = false, createdAtMillis = now, updatedAtMillis = now))
+        return dao.insertCategory(ExerciseCategoryEntity(uuid = ids.nextId(), name = name.trim(), kind = kind.trim().ifBlank { "Category" }, position = dao.nextCategoryPosition(), archived = false, createdAtMillis = now, updatedAtMillis = now))
     }
 
-    override suspend fun updateCategory(id: Long, name: String, kind: String, colorArgb: Long?) {
+    override suspend fun updateCategory(id: Long, name: String, kind: String) {
         require(name.isNotBlank()) { "Category name is required" }
         val current = dao.getCategory(id) ?: error("Category no longer exists")
-        dao.updateCategory(current.copy(name = name.trim(), kind = kind.trim().ifBlank { "Category" }, colorArgb = colorArgb, updatedAtMillis = nowMillis()))
+        dao.updateCategory(current.copy(name = name.trim(), kind = kind.trim().ifBlank { "Category" }, updatedAtMillis = nowMillis()))
     }
 
     override suspend fun setCategoryArchived(id: Long, archived: Boolean) {
@@ -705,7 +710,12 @@ class RoomGymRepository(
         )
     }
 
-    override suspend fun setSetCompleted(id: Long, completed: Boolean, autoStartRest: Boolean) =
+    override suspend fun setSetCompleted(
+        id: Long,
+        completed: Boolean,
+        autoStartRest: Boolean,
+        restOverrideSeconds: Int?,
+    ) =
         database.withTransaction {
             val set = dao.getWorkoutSet(id) ?: return@withTransaction
             if (completed) {
@@ -734,7 +744,7 @@ class RoomGymRepository(
             if (completed && autoStartRest) {
                 val workoutExercise = dao.getWorkoutExercise(set.workoutExerciseId)
                 val exercise = workoutExercise?.let { dao.getExercise(it.exerciseId) }
-                val seconds = set.restSeconds ?: exercise?.defaultRestSeconds
+                val seconds = restOverrideSeconds ?: set.restSeconds ?: exercise?.defaultRestSeconds
                     ?: settingsRepository?.current()?.defaultRestSeconds ?: 120
                 if (workoutExercise != null && seconds > 0) {
                     startRestTimer(workoutExercise.sessionId, seconds)
@@ -1016,7 +1026,7 @@ private fun Exercise.toDraft() = ExerciseDraft(
 )
 
 private fun ExerciseCategoryEntity.toDomain() = ExerciseCategory(
-    id, uuid, name, kind, colorArgb, position, archived, createdAtMillis, updatedAtMillis,
+    id, uuid, name, kind, position, archived, createdAtMillis, updatedAtMillis,
 )
 
 private fun WorkoutSessionEntity.toDomain() = WorkoutSession(

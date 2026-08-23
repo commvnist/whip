@@ -1,10 +1,8 @@
 package com.whip.app.ui
 
-import com.whip.app.domain.AvoidMissingPolicy
 import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitDayProgress
 import com.whip.app.domain.HabitEndType
-import com.whip.app.domain.HabitIntent
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.TargetComparison
@@ -48,15 +46,15 @@ class HabitPlanningOverlayTest {
 
     private fun habit() = Habit(
         id = 1, uuid = "habit", metricId = "metric", name = "Habit", notes = "", area = "", tags = emptyList(), icon = "✓",
-        colorArgb = null, intent = HabitIntent.Build, trackingMode = HabitTrackingMode.Count,
+        trackingMode = HabitTrackingMode.Count,
         dimension = UnitDimension.Count, unitId = "count", precision = 0,
         comparison = TargetComparison.AtLeast, targetMin = 1.0, targetMax = null, targetPeriod = TargetPeriod.Day,
         rollingDays = null, scheduleType = HabitScheduleType.Daily, scheduleInterval = 1, weekdays = emptySet(),
         flexibleTimesPerWeek = null, startDate = monday, endType = HabitEndType.Never,
-        endDate = null, endValue = null, timeWindowStartMinutes = null, timeWindowEndMinutes = null,
+        endDate = null, endValue = null,
         quickIncrement = 1.0, quickActions = emptyList(), reminderMinutes = emptyList(), weekdayReminderMinutes = emptyMap(),
-        weekStart = DayOfWeek.MONDAY, avoidMissingPolicy = AvoidMissingPolicy.Unknown,
-        timerStartedAtMillis = null, pinned = false, position = 0, archived = false, paused = false,
+        weekStart = DayOfWeek.MONDAY, timerStartedAtMillis = null, pinned = false,
+        position = 0, archived = false, paused = false,
         createdAtMillis = 1, updatedAtMillis = 1,
     )
 }
