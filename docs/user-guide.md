@@ -1,6 +1,6 @@
 # Whip user guide
 
-## Four core sections
+## Five core sections
 
 - **Tasks** are finite work. They can be anytime, one-shot, daily, every N
   days/weeks/months/years, or scheduled on selected weekdays. Recurrence can
@@ -19,20 +19,30 @@
 - **Goals** are long-term outcomes. They support latest-value, reduction,
   accumulation, range, average, consistency, weighted milestone, and open-ended
   trend modes. Measurements can be backdated and edited.
+- **Tracks** are structured logs with user-defined fields. They preserve the
+  evidence behind an outcome—such as books read, chess openings studied, or
+  symptoms observed—and can automate progress into Goals or connect entries to
+  Tasks and Habits. Scale Fields use a user-defined increment, so a 1–5 movie
+  rating can allow half points such as 3.5 instead of forcing whole numbers.
+  Entry sorting always separates the chosen **Sort By** field from its
+  **Ascending / Descending** order; Tasks and the Exercise Library use the same
+  control pattern.
 - **Gym** stores user-created exercises and set-level workouts. The exercise
   library intentionally starts empty. Tracking types include weights/reps,
   bodyweight and assisted movements, durations, and distances.
 
 Home keeps these sections visibly separate while supporting quick logging. Use
-Settings to reorder, collapse, or hide Home sections. Pin important tasks,
-habits, goals, and routines to surface them first.
+**Settings → Appearance & Home → Home Overview** to reorder, collapse, or hide
+Home sections. Pin important tasks, Habits, Goals, Tracks, and routines to
+surface them first.
 
 The first-run setup chooses the Home sections you want emphasized, simple or
 power defaults, kg or lb, notification intent, and low-pressure display. **Use
 Defaults** starts with Tasks and Habits on Home, simple presentation, kg, and no
 notification request. Backups stay out of onboarding and can be configured when
-needed in **Settings → Data & Privacy**. Hiding a section changes presentation
-only: its data and navigation remain available in Settings and global add/search.
+needed in **Settings → Data & Privacy**. Hiding a section removes its Home
+summary and empty-day shortcut only: its data and peer destination remain
+available in main navigation and global add/search.
 Low-pressure mode removes streak pressure from Habit cards and Insights while
 keeping the underlying history intact.
 
@@ -52,17 +62,27 @@ Areas group tasks, habits, and goals under any names you choose. Whip creates
 keeps at least one active Area. **Edit Areas** can move every item from one Area
 to another in one action while retaining both the records and their history.
 Before deleting the only active Area, create its replacement first.
+Habits, Goals, and Tracks share the same 100 common identity emojis. Those
+defaults are always available and read-only. Choose **Add Custom Emoji** in an
+emoji picker to save a reusable named choice, or open **Settings → Organization
+→ Custom Emojis** to add, rename, replace, or remove your own choices. Custom
+names are searchable in every picker. Removing a choice from **My Emojis** does
+not alter items that already use its glyph.
 The Tasks screen supports named filters,
 multi-select complete/archive/restore/pin actions, an agenda, and a navigable
 month calendar. A saved task filter can also constrain the Tasks section on
 Home. The calendar action in the top bar opens the Upcoming agenda, while
 **Review & Trends** is available as a named action on Home. Review supports
-named combinations of Tasks, Habits, Goals, and Gym;
-summary counts on Home, the Fold pane, and Review open the owning area.
+named combinations of Tasks, Habits, Goals, and Gym; Tracks remains neutral
+evidence rather than a productivity score. Summary counts on Home, the Fold
+pane, and Review open the owning area.
 
-Tasks, Habits, Goals, Gym, and Settings keep all peer destinations in one
-horizontally scrollable tab row. In Tasks, List/Agenda/Calendar is a separate
-persistent view control. Search, Filters, and Select tasks have distinct roles;
+The Whip mark opens Home, and Tasks, Habits, Goals, Tracks, and Gym are five
+direct peer modules. Each workspace keeps its highest-frequency pages visible;
+secondary pages use the labeled **Pages** menu instead of hidden horizontal
+scrolling. In Tasks, List/Agenda/Calendar is a separate persistent view control.
+Search is global and starts scoped to the current module; Filters and selection
+remain contextual controls with distinct roles;
 habit overlays only apply to Agenda and Calendar. Gym's Library is a child-page
 landing screen rather than a show-more control. On wide screens Settings uses a
 persistent category list, and create moves to the top app bar so it does not
@@ -88,7 +108,8 @@ and Undo directly. A value such as 6 of 8 remains partial until the period total
 reaches 8; Review, reminder suppression, linked Goals, and streaks use that
 single period outcome rather than counting six entries as six successes.
 
-Smart task capture is disabled by default. When enabled in Settings, **Apply
+Smart task capture is disabled by default. When enabled in **Settings →
+Planning & Units → Task Defaults**, **Apply
 smart date and repeat** recognizes explicit local phrases such as `tomorrow`,
 `next Friday`, `every 2 months`, `on 2026-09-01`, and `deadline 2026-09-05`.
 The parser is deterministic, only runs when tapped, and never sends title text
@@ -122,7 +143,8 @@ data row opens its exact value and source-workout details.
 Workout history provides both a chronological list and a navigable month
 calendar with per-day workout counts and filters.
 During a workout, Whip marks the next incomplete set and offers an explicit
-**Jump to Next Set** control. Settings can use denser set rows. Workout Tools
+**Jump to Next Set** control. **Settings → Planning & Units → Gym Defaults**
+can use denser set rows. Workout Tools
 can save named bar/plate inventories; those presets are reusable in both the
 plate calculator and exercise setup. Every day in a pinned multi-day routine
 is directly startable from Home.
@@ -130,7 +152,8 @@ is directly startable from Home.
 The workout execution lane shows the current rest duration. Choose **Adjust**
 to use a preset, enter seconds directly, or step by 15 seconds, then choose
 **Use for This Workout**. This overrides automatic and manually started rest
-timers for the current workout without changing the default in Settings. While
+timers for the current workout without changing the default in **Settings →
+Planning & Units → Gym Defaults**. While
 a timer is running, **−15** and **+15** adjust that timer immediately. The
 initial presets are 1:00, 1:30, 2:00, 2:30, 3:00, and 5:00. Choose **Manage
 Presets** in the same dialog to add or remove persistent shortcuts, or restore
@@ -190,7 +213,10 @@ reinterpreted. Routines remember the selected machine.
 ## Units, dates, and time zones
 
 Built-in units cover counts, durations, distance, volume, mass, length, money,
-energy, percentages, and unitless values. Create a custom unit directly from a
+energy, temperature, speed, pace, frequency, percentages, and unitless values.
+Common choices include days and weeks; metric and imperial mass and length;
+Celsius, Fahrenheit, and Kelvin; km/h, mph, and m/s; min/km and min/mi; and
+per-minute rates. Create a custom unit directly from a
 compatible Habit or Goal unit chooser, or manage all custom units under
 **Settings → Planning & Units → Unit Defaults**. A custom unit has a symbol,
 dimension, and canonical conversion factor. For example, a volume unit named
@@ -207,7 +233,8 @@ unit. Cross-exercise summaries and comparison charts use the global gym unit
 so they retain a coherent common scale. Values remain stored canonically, so
 none of these display choices rewrite history.
 
-Whip follows the device time zone unless Settings pins an IANA region such as
+Whip follows the device time zone unless **Settings → Planning & Units → Date
+and Number Defaults** pins an IANA region such as
 `America/Toronto`. Existing entries keep the date, zone, and offset recorded at
 the time; the selected zone controls new entries, reminders, imports, and what
 counts as today. The late-night cutoff can treat early-morning entries as part
@@ -225,7 +252,7 @@ and rate limiting.
 
 ## Notification delivery
 
-Settings shows whether Android notification permission, each Task, Habit,
+**Settings → Reminders** shows whether Android notification permission, each Task, Habit,
 Goal, and rest-timer channel, and battery optimization may affect delivery. It
 links directly to
 Android's notification and battery screens and can send a real test
@@ -236,7 +263,8 @@ delay future background work.
 Task reminders can select several offsets, including custom minutes before the
 task time.
 
-Explicitly adding a reminder, enabling automatic rest-timer alerts in Settings,
+Explicitly adding a reminder, enabling automatic rest-timer alerts in
+**Settings → Planning & Units → Gym Defaults**,
 or manually starting a rest timer requests notification permission in context.
 Saving an item or completing a set does not open a permission prompt.
 Notifications deep-link to the exact record and support applicable
@@ -248,7 +276,8 @@ is satisfied.
 ## Backup, restore, and CSV
 
 All live records are stored in the app's on-device Room database and remain
-available offline and after app/device restarts. Settings offers two complete
+available offline and after app/device restarts. **Settings → Data & Privacy**
+offers two complete
 backup paths:
 
 - **Portable Backup Folder** asks Android's folder picker for a location in
@@ -260,13 +289,14 @@ backup paths:
   verified Whip backups; unrelated files are never pruned. Automatic backup
   skips an empty database so deleting local data cannot gradually rotate away
   the last useful archives.
-- **Save One-Off Backup Elsewhere** creates the same complete archive without
-  remembering a folder. It can remain interoperable plaintext JSON or use a
-  passphrase-encrypted, authenticated Whip envelope. The passphrase is required
-  for restore and is never retained by the app.
+- **Save Plain JSON Backup** and **Save Passphrase-Encrypted Backup** create a
+  complete archive without remembering a folder. The encrypted option uses an
+  authenticated Whip envelope; its passphrase is required for restore and is
+  never retained by the app.
 
 The selected-folder permission survives app and device restarts. If the folder
-is moved, deleted, disconnected, or its provider revokes access, Settings shows
+is moved, deleted, disconnected, or its provider revokes access, **Settings →
+Data & Privacy → Backup & Export** shows
 the last error and the user can choose it again. **Forget Folder** revokes
 Whip's remembered access and cancels its periodic job; it does not delete files
 already written there.
@@ -280,7 +310,7 @@ private recovery snapshot while it replaces local data and preferences and
 rebuilds derived data, reminders, and scheduled work. Failure rolls
 back immediately; process interruption recovers on next launch.
 
-Tasks, habits, goals, and gym data also have CSV exports. CSV is intended for
+Tasks, Habits, Goals, Tracks, and Gym data also have CSV exports. CSV is intended for
 analysis and interoperability; only the complete JSON envelope is a full-fidelity
 backup.
 
@@ -299,7 +329,8 @@ exercise's sets from workout history and routine templates.
 Recurring task history combines completed, skipped, and moved occurrences.
 Completed occurrences can be reopened, skips undone, and moved dates reset;
 the series cadence explains how the next scheduled slot is chosen.
-**Delete All Local Data** is the broad destructive action and explicitly
-suggests creating a backup first. It clears the internal database and app
-settings, but does not delete portable backup files stored through Android's
+**Reset Whip and Delete All Data** is the broad destructive action and
+explicitly suggests creating a backup first. It clears the internal database
+and app settings, disconnects the remembered portable backup folder, and
+returns to setup, but does not delete backup files stored through Android's
 document picker.

@@ -32,6 +32,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -52,6 +53,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -725,7 +727,7 @@ private fun RoutinePlacementCard(
     onRemove: () -> Unit,
 ) {
     var menu by rememberSaveable(placement.key) { mutableStateOf(false) }
-    var dragDistance by rememberSaveable(placement.key) { mutableStateOf(0f) }
+    var dragDistance by rememberSaveable(placement.key) { mutableFloatStateOf(0f) }
     val exercise = gymState.exercises.firstOrNull { it.id == placement.exerciseId }
     val machine = (gymState.machines + gymState.archivedMachines).firstOrNull { it.id == placement.machineId }
     val border = when {
@@ -1398,7 +1400,11 @@ private fun ExercisePickerPage(
                         Text(exercise.name, fontWeight = FontWeight.SemiBold)
                         Text(listOfNotNull(exercise.equipment.takeIf(String::isNotBlank), exercise.primaryMuscles.takeIf(String::isNotBlank)).joinToString(" · ").ifBlank { exercise.trackingType.label.uiTitleCase() }, style = MaterialTheme.typography.bodySmall)
                     }
-                    if (exercise.favorite) Text("★", color = MaterialTheme.colorScheme.primary)
+                    if (exercise.favorite) Icon(
+                        Icons.Outlined.Star,
+                        contentDescription = "Favorite",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
                 }
             }
         }

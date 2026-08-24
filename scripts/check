@@ -5,7 +5,7 @@ set -euo pipefail
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
-run_device_tests=false
+run_emulator_tests=false
 build_release=false
 
 usage() {
@@ -14,16 +14,17 @@ usage() {
         '' \
         'Usage:' \
         '  scripts/check             Unit tests, Android-test compilation, lint, debug APK' \
-        '  scripts/check --device    Also run instrumentation tests on the selected device' \
+        '  scripts/check --emulator  Also run instrumentation tests on one disposable emulator' \
+        '  scripts/check --device    Backwards-compatible alias for --emulator' \
         '  scripts/check --full      Also build release and the optimized benchmark harness' \
         '' \
-        'Instrumentation reinstalls/clears the debug app. Select among multiple devices with:' \
-        '  ANDROID_SERIAL=serial scripts/check --device'
+        'Instrumentation reinstalls/clears the debug app. Physical devices are refused.' \
+        'Start exactly one API 34+ disposable emulator, then run scripts/check --emulator.'
 }
 
 while (($#)); do
     case "$1" in
-        --device) run_device_tests=true ;;
+        --device|--emulator) run_emulator_tests=true ;;
         --full) build_release=true ;;
         -h|--help) usage; exit 0 ;;
         *) usage >&2; printf 'error: unknown option %s\n' "$1" >&2; exit 2 ;;
@@ -38,7 +39,7 @@ tasks=(
     :app:assembleDebug
 )
 if [[ "$build_release" == true ]]; then
-    tasks+=(:app:assembleRelease :benchmark:assembleBenchmark)
+    tasks+=(:app:assembleRelease :app:bundleRelease :benchmark:assembleBenchmark)
 fi
 
 cd "$PROJECT_ROOT"
@@ -53,6 +54,12 @@ if ! grep -Fq "$documented_baseline" docs/testing.md; then
 fi
 
 java scripts/RenderBrandIcon.java --verify
+
+if rg -n 'fallbackToDestructiveMigration' app/src/main; then
+    printf 'error: destructive Room migration fallback is forbidden\n' >&2
+    exit 1
+fi
+
 ./gradlew "${tasks[@]}"
 
 merged_manifest="$(find app/build/intermediates/merged_manifests/debug -name AndroidManifest.xml -print -quit)"
@@ -65,10 +72,105 @@ if grep -Eq 'android\.permission\.ACCESS_(BACKGROUND_LOCATION|COARSE_LOCATION|FI
     exit 1
 fi
 
-if [[ "$run_device_tests" == true ]]; then
-    command -v adb >/dev/null 2>&1 || {
-        printf 'error: adb is required for --device\n' >&2
+if [[ "$build_release" == true ]]; then
+    release_apk="$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' -print -quit)"
+    release_bundle="app/build/outputs/bundle/release/app-release.aab"
+    readonly release_apk release_bundle
+    readonly release_metadata="app/build/outputs/apk/release/output-metadata.json"
+    for artifact in "$release_apk" "$release_bundle" "$release_metadata"; do
+        if [[ ! -s "$artifact" ]]; then
+            printf 'error: expected release artifact is missing or empty: %s\n' "$artifact" >&2
+            exit 1
+        fi
+    done
+    grep -Fq '"applicationId": "commvne.com.whip.app"' "$release_metadata" || {
+        printf 'error: release artifact has the wrong application ID\n' >&2
         exit 1
     }
-    ./gradlew :app:connectedDebugAndroidTest
+    grep -Fq '"versionCode": 15' "$release_metadata" || {
+        printf 'error: release artifact has the wrong version code\n' >&2
+        exit 1
+    }
+fi
+
+if [[ "$run_emulator_tests" == true ]]; then
+    command -v adb >/dev/null 2>&1 || {
+        printf 'error: adb is required for --emulator\n' >&2
+        exit 1
+    }
+
+    mapfile -t connected_serials < <(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }')
+    if [[ "${#connected_serials[@]}" -ne 1 ]]; then
+        printf 'error: instrumentation requires exactly one connected disposable emulator; found %s\n' "${#connected_serials[@]}" >&2
+        printf 'Disconnect physical devices and extra emulators before rerunning.\n' >&2
+        exit 1
+    fi
+
+    readonly test_serial="${connected_serials[0]}"
+    if [[ "$(adb -s "$test_serial" shell getprop ro.boot.qemu | tr -d '\r')" != "1" ]]; then
+        printf 'error: refusing to run destructive instrumentation on physical device %s\n' "$test_serial" >&2
+        exit 1
+    fi
+
+    emulator_api="$(adb -s "$test_serial" shell getprop ro.build.version.sdk | tr -d '\r')"
+    if [[ ! "$emulator_api" =~ ^[0-9]+$ ]] || ((emulator_api < 34)); then
+        printf 'error: instrumentation requires an API 34+ emulator; %s reports API %s\n' "$test_serial" "$emulator_api" >&2
+        exit 1
+    fi
+
+    mapfile -t instrumentation_test_files < <(find app/src/androidTest -name '*Test.kt' -type f | sort)
+    instrumentation_classes=()
+    for test_file in "${instrumentation_test_files[@]}"; do
+        test_package="$(sed -nE 's/^package[[:space:]]+([^[:space:]]+).*/\1/p' "$test_file" | head -n 1)"
+        test_class="$(basename "$test_file" .kt)"
+        if [[ -z "$test_package" ]] || ! grep -Eq "^(internal[[:space:]]+)?class[[:space:]]+${test_class}([[:space:]:<{]|$)" "$test_file"; then
+            printf 'error: instrumentation test file must declare its filename as a top-level class: %s\n' "$test_file" >&2
+            exit 1
+        fi
+        instrumentation_classes+=("${test_package}.${test_class}")
+    done
+    if [[ "${#instrumentation_classes[@]}" -eq 0 ]]; then
+        printf 'error: no instrumentation test classes found\n' >&2
+        exit 1
+    fi
+
+    # Long Compose runs can exhaust host-emulator graphics state even when every
+    # assertion is healthy. Run the canvas/color interaction suite first on the
+    # fresh AVD, then use class batches so the runner and app process get clean
+    # lifecycles without turning every test into a separate install cycle.
+    readonly graphics_test_class='com.whip.app.ui.InteractionControlUiTest'
+    remaining_instrumentation_classes=()
+    graphics_test_found=false
+    for test_class in "${instrumentation_classes[@]}"; do
+        if [[ "$test_class" == "$graphics_test_class" ]]; then
+            graphics_test_found=true
+        else
+            remaining_instrumentation_classes+=("$test_class")
+        fi
+    done
+    readonly instrumentation_batch_size=10
+    batch_total="$(((${#remaining_instrumentation_classes[@]} + instrumentation_batch_size - 1) / instrumentation_batch_size))"
+    if [[ "$graphics_test_found" == true ]]; then
+        batch_total="$((batch_total + 1))"
+        printf 'Instrumentation batch 1/%s (graphics interaction class)\n' "$batch_total"
+        ANDROID_SERIAL="$test_serial" ./gradlew :app:connectedDebugAndroidTest \
+            "-Pandroid.testInstrumentationRunnerArguments.class=${graphics_test_class}"
+        adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug >/dev/null
+        adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug.test >/dev/null
+    fi
+
+    for ((batch_start = 0; batch_start < ${#remaining_instrumentation_classes[@]}; batch_start += instrumentation_batch_size)); do
+        batch=("${remaining_instrumentation_classes[@]:batch_start:instrumentation_batch_size}")
+        batch_classes="$(IFS=,; printf '%s' "${batch[*]}")"
+        batch_number="$((batch_start / instrumentation_batch_size + 1))"
+        if [[ "$graphics_test_found" == true ]]; then
+            batch_number="$((batch_number + 1))"
+        fi
+        printf 'Instrumentation batch %s/%s (%s classes)\n' "$batch_number" "$batch_total" "${#batch[@]}"
+        ANDROID_SERIAL="$test_serial" ./gradlew :app:connectedDebugAndroidTest \
+            "-Pandroid.testInstrumentationRunnerArguments.class=${batch_classes}"
+        adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug >/dev/null
+        adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug.test >/dev/null
+    done
+    printf 'All %s Android instrumentation tests passed across %s batches.\n' "$android_test_count" "$batch_total"
 fi

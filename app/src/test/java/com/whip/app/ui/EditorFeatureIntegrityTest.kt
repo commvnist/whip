@@ -11,6 +11,10 @@ class EditorFeatureIntegrityTest {
         File("src/main/java/com/whip/app/ui"),
         File("app/src/main/java/com/whip/app/ui"),
     ).firstOrNull(File::isDirectory) ?: error("Unable to locate UI source root")
+    private val docsRoot: File = sequenceOf(
+        File("docs"),
+        File("../docs"),
+    ).firstOrNull(File::isDirectory) ?: error("Unable to locate documentation root")
 
     @Test
     fun colorControlsExistOnlyForAFeatureThatRendersItsColor() {
@@ -30,14 +34,46 @@ class EditorFeatureIntegrityTest {
         val settings = File(uiRoot, "SettingsScreens.kt").readText()
         val habit = File(uiRoot, "HabitScreens.kt").readText()
         val goal = File(uiRoot, "GoalScreens.kt").readText()
-        val combined = listOf(settings, habit, goal).joinToString("\n")
+        val track = File(uiRoot, "TrackScreens.kt").readText()
+        val combined = listOf(settings, habit, goal, track).joinToString("\n")
 
         assertTrue(settings.contains("Planning & Units"))
         assertTrue(settings.contains("Habit Defaults"))
-        assertTrue(settings.contains("Create reusable units for Habits and Goals"))
+        assertTrue(settings.contains("Habit measurements, Goal values, and number fields in Tracks"))
         assertTrue(habit.contains("UnitSelectionField("))
         assertTrue(goal.contains("UnitSelectionField("))
+        assertTrue(track.contains("UnitSelectionField("))
         assertFalse(combined.contains("Settings > Custom Units"))
+    }
+
+    @Test
+    fun instructionalSettingsPathsMatchTheCurrentInformationArchitecture() {
+        val settings = File(uiRoot, "SettingsScreens.kt").readText()
+        val firstRun = File(uiRoot, "FirstRunSetupDialog.kt").readText()
+        val gym = File(uiRoot, "GymScreens.kt").readText()
+        val rationale = File(uiRoot.parentFile, "health/HealthPermissionsRationaleActivity.kt").readText()
+        val reminder = File(uiRoot.parentFile, "reminders/ReminderNotifications.kt").readText()
+        val userGuide = File(docsRoot, "user-guide.md").readText()
+        val privacy = File(docsRoot, "privacy.md").readText()
+        val combined = listOf(settings, firstRun, gym, rationale, reminder, userGuide, privacy).joinToString("\n")
+
+        listOf("Appearance & Home", "Planning & Units", "Organization", "Reminders", "Data & Privacy", "About Whip")
+            .forEach { label -> assertTrue("Missing current Settings category: $label", settings.contains(label)) }
+        assertTrue(firstRun.contains("Settings → Reminders"))
+        assertTrue(firstRun.contains("Settings → Appearance & Home"))
+        assertTrue(gym.contains("Settings → Planning & Units → Gym Defaults"))
+        assertTrue(rationale.contains("Settings → Data & Privacy → Health & Privacy"))
+        assertTrue(reminder.contains("Settings → Reminders"))
+        assertTrue(userGuide.contains("Settings → Appearance & Home → Home Overview"))
+        assertTrue(userGuide.contains("Settings → Planning & Units → Gym Defaults"))
+        assertTrue(userGuide.contains("Data & Privacy → Backup & Export"))
+        assertTrue(privacy.contains("Settings → Data & Privacy → Reset Whip and Delete All Data"))
+        listOf("Home Overview", "Gym Defaults", "Backup & Export", "Health & Privacy")
+            .forEach { heading -> assertTrue("Missing Settings heading: $heading", settings.contains(heading)) }
+        assertFalse(combined.contains("Reminders & Integrations"))
+        assertFalse(combined.contains("About & Diagnostics"))
+        assertFalse(combined.contains("Delete all local data"))
+        assertFalse(settings.contains("selected && settings.healthConnectEnabled"))
     }
 
     @Test
@@ -68,5 +104,35 @@ class EditorFeatureIntegrityTest {
         assertTrue(goal.contains("Enter the amount to add. Whip adds each entry"))
         assertTrue(goal.contains("Log Goal Value"))
         assertTrue(goal.contains("No measurable active goals"))
+    }
+
+    @Test
+    fun tracksExposeTheCompleteTypedFeatureWithoutLegacyCapsOrCosmeticColor() {
+        val trackUi = File(uiRoot, "TrackScreens.kt").readText()
+        val automationUx = File(uiRoot, "AutomationUxPolicy.kt").readText()
+        val trackDomain = File(uiRoot.parentFile, "domain/TrackModels.kt").readText()
+        val trackExperience = trackUi + automationUx
+
+        assertFalse(trackUi.contains("colorArgb"))
+        assertFalse(trackDomain.contains("fields.take(7)"))
+        assertFalse(trackDomain.contains("fields.size <= 7"))
+        listOf(
+            "Count Entries",
+            "Add Values From a Number or Scale Field",
+            "Average a Number or Scale Field",
+            "Use the Latest Number or Scale Value",
+            "Use the Lowest Field Value",
+            "Use the Highest Field Value",
+            "Add a Fixed Amount per Entry",
+            "Stay Consistent",
+            "Import Entries From CSV",
+        ).forEach { copy -> assertTrue("Missing Track UX: $copy", trackExperience.contains(copy)) }
+        assertTrue(trackUi.contains("TRACK_ENTRY_PAGE_SIZE = 100"))
+        assertTrue(trackUi.contains("Possible Existing"))
+        assertTrue(trackUi.contains("Replace With"))
+        assertTrue(trackUi.contains("TriggerOutcome.Recorded"))
+        val appUi = File(uiRoot, "WhipApp.kt").readText()
+        assertTrue(appUi.contains("Add Another"))
+        assertTrue(appUi.contains("onCancelTrackOperation"))
     }
 }

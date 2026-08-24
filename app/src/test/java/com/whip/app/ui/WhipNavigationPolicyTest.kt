@@ -1,9 +1,47 @@
 package com.whip.app.ui
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WhipNavigationPolicyTest {
+    @Test
+    fun globalAddIsRemovedFromTaskSelectionModeOnEveryLayout() {
+        assertTrue(
+            globalAddAvailable(
+                appDestination = AppDestination.Tasks,
+                gymDestination = GymDestination.Workout,
+                gymRoutineEditorOpen = false,
+                taskSelectionMode = false,
+            ),
+        )
+        assertFalse(
+            globalAddAvailable(
+                appDestination = AppDestination.Tasks,
+                gymDestination = GymDestination.Workout,
+                gymRoutineEditorOpen = false,
+                taskSelectionMode = true,
+            ),
+        )
+        assertFalse(
+            globalAddAvailable(
+                appDestination = AppDestination.Settings,
+                gymDestination = GymDestination.Workout,
+                gymRoutineEditorOpen = false,
+                taskSelectionMode = false,
+            ),
+        )
+        assertFalse(
+            globalAddAvailable(
+                appDestination = AppDestination.Gym,
+                gymDestination = GymDestination.Routines,
+                gymRoutineEditorOpen = false,
+                taskSelectionMode = false,
+            ),
+        )
+    }
+
     @Test
     fun searchEntryContextAlwaysProducesNamedScope() {
         WhipSearchEntryContext.entries.forEach { context ->

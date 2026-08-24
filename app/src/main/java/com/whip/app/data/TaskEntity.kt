@@ -52,6 +52,6 @@ data class TaskEntity(
     val missedOccurrencePolicy: String = "KeepLatest",
     val inbox: Boolean = false,
     val durationMinutes: Int? = null,
-    val effort: String = "Moderate",
+    val effort: String = "Unspecified",
     val manualPosition: Int = 0,
 )

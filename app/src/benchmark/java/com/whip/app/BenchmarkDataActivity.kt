@@ -62,7 +62,7 @@ class BenchmarkDataActivity : Activity() {
     private fun seedDenseHome(db: androidx.sqlite.db.SupportSQLiteDatabase, now: Long, today: Long) {
         db.execSQL(
             "$FIVE_DIGIT_SEQUENCE INSERT INTO tasks (uuid,title,notes,scheduleKind,dateEpochDay,recurrenceUnit,recurrenceInterval,weekdaysMask,recurrenceEnd,recurrenceEndEpochDay,recurrenceCount,timeMinutes,reminderEnabled,archived,completedAtMillis,createdAtMillis,updatedAtMillis,showSubtaskProgress,progressDisplay,autoCompleteFromSteps,repeatStepPolicy,pinned,priority,area,tagsCsv,deadlineEpochDay,recurrenceAnchor,reminderOffsetsMinutesCsv,missedOccurrencePolicy,inbox,durationMinutes,effort,manualPosition) " +
-                "SELECT 'benchmark-task-'||x,'Benchmark task '||x,'','${ScheduleKind.Once.name}',$today,NULL,1,0,NULL,NULL,NULL,NULL,0,0,NULL,$now,$now,0,'${TaskProgressDisplay.Percent.name}',0,'${RepeatStepPolicy.Reset.name}',0,'${TaskPriority.Medium.name}','Benchmark','dense',NULL,'${RecurrenceAnchor.Schedule.name}','','${MissedOccurrencePolicy.KeepLatest.name}',0,30,'${TaskEffort.Moderate.name}',x FROM seq WHERE x < 10000",
+                "SELECT 'benchmark-task-'||x,'Benchmark task '||x,'','${ScheduleKind.Once.name}',$today,NULL,1,0,NULL,NULL,NULL,NULL,0,0,NULL,$now,$now,0,'${TaskProgressDisplay.Percent.name}',0,'${RepeatStepPolicy.Reset.name}',0,'${TaskPriority.Medium.name}','Benchmark','dense',NULL,'${RecurrenceAnchor.Schedule.name}','','${MissedOccurrencePolicy.KeepLatest.name}',0,30,'${TaskEffort.Medium.name}',x FROM seq WHERE x < 10000",
         )
         db.execSQL("INSERT INTO metric_definitions VALUES ('benchmark-habit-metric','Benchmark check-ins','Integer','Count','count',0,1,0,$now,$now)")
         db.execSQL(

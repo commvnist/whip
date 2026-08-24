@@ -122,7 +122,7 @@ class TaskDeletionUiTest {
         }
 
         compose.onNodeWithText("Schedule").performClick()
-        compose.onNodeWithText("This task has no date.", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("This task has no scheduled date.", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Choose a Date").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, reschedules.get()) }
     }
@@ -188,8 +188,8 @@ class TaskDeletionUiTest {
         compose.onNodeWithText("Delete Permanently").assertIsDisplayed().performClick()
         compose.onNodeWithText("Delete “Private task” Permanently?").assertIsDisplayed()
         compose.onNodeWithText("0 recorded occurrences", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("0 steps").assertIsDisplayed()
-        compose.onNodeWithText("0 goal links").assertIsDisplayed()
+        compose.onNodeWithText("0 subtasks").assertIsDisplayed()
+        compose.onNodeWithText("0 goal progress sources").assertIsDisplayed()
         compose.onNodeWithText("0 automations").assertIsDisplayed()
         compose.runOnIdle { assertEquals(0, confirmations.get()) }
         compose.onNodeWithText("Cancel").performClick()

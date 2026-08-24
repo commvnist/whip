@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -54,8 +55,10 @@ internal fun UnitSelectionField(
     enabled: Boolean = true,
     label: String = "Unit",
     supportingText: String = "Create or choose the unit used for targets, check-ins, and history.",
+    allowAnyDimension: Boolean = false,
+    onDimensionSelect: (UnitDimension) -> Unit = {},
 ) {
-    val available = units.filter { it.dimension == dimension && (!it.archived || it.id == selectedUnitId) }
+    val available = units.filter { (allowAnyDimension || it.dimension == dimension) && (!it.archived || it.id == selectedUnitId) }
     val selected = available.firstOrNull { it.id == selectedUnitId } ?: available.firstOrNull()
     var expanded by rememberSaveable(label) { mutableStateOf(false) }
     var creating by rememberSaveable(label) { mutableStateOf(false) }
@@ -77,7 +80,7 @@ internal fun UnitSelectionField(
                     },
             ) {
                 Text(
-                    selected?.let(::unitDefinitionDisplayLabel) ?: "No compatible units",
+                    selected?.let { if (it.id == "unitless") "No Unit" else unitDefinitionDisplayLabel(it) } ?: "No compatible units",
                     modifier = Modifier.weight(1f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -87,8 +90,9 @@ internal fun UnitSelectionField(
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 available.forEach { unit ->
                     DropdownMenuItem(
-                        text = { Text((if (unit.id == selectedUnitId) "✓  " else "") + unitDefinitionDisplayLabel(unit)) },
-                        onClick = { onSelect(unit.id); expanded = false },
+                        text = { Text(if (unit.id == "unitless") "No Unit" else unitDefinitionDisplayLabel(unit)) },
+                        leadingIcon = if (unit.id == selectedUnitId) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
+                        onClick = { onDimensionSelect(unit.dimension); onSelect(unit.id); expanded = false },
                     )
                 }
                 HorizontalDivider()
@@ -97,7 +101,7 @@ internal fun UnitSelectionField(
                         Column {
                             Text("Create Custom Unit…")
                             Text(
-                                "For ${dimension.uiLabel().lowercase()} values",
+                                if (allowAnyDimension) "Choose its measurement type while creating it" else "For ${dimension.uiLabel().lowercase()} values",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -119,7 +123,7 @@ internal fun UnitSelectionField(
             modifier = dialogModifier,
             mode = CustomUnitEditMode.Create,
             initialDimension = dimension,
-            dimensionLocked = true,
+            dimensionLocked = !allowAnyDimension,
             saving = saving,
             error = error,
             onDismiss = { if (!saving) creating = false },
@@ -129,6 +133,7 @@ internal fun UnitSelectionField(
                 onCreateUnit(name, symbol, selectedDimension, factor) { result ->
                     saving = false
                     result.onSuccess { id ->
+                        onDimensionSelect(selectedDimension)
                         onSelect(id)
                         creating = false
                     }.onFailure { failure ->

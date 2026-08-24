@@ -17,12 +17,15 @@ import com.whip.app.data.RoomLinkRepository
 import com.whip.app.data.RoomMeasurementRepository
 import com.whip.app.data.RoomRoutineRepository
 import com.whip.app.data.RoomTaskRepository
+import com.whip.app.data.RoomTrackRepository
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.ExerciseDraft
+import com.whip.app.domain.CustomIdentityEmoji
 import com.whip.app.domain.AreaScope
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalType
+import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.LinkRuleDraft
@@ -37,11 +40,22 @@ import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TaskDraft
 import com.whip.app.domain.TaskStepDraft
 import com.whip.app.domain.UnitDimension
+import com.whip.app.domain.TrackDraft
+import com.whip.app.domain.TrackEntryDraft
+import com.whip.app.domain.TrackFieldDraft
+import com.whip.app.domain.TrackFieldType
+import com.whip.app.domain.TrackValueDraft
+import com.whip.app.domain.TriggerAction
+import com.whip.app.domain.TriggerFieldMapping
+import com.whip.app.domain.TriggerRuleDraft
+import com.whip.app.domain.TriggerSourceProperty
+import com.whip.app.domain.TriggerTargetType
 import com.whip.app.domain.WorkoutSetDraft
 import com.whip.app.domain.outcomeForPeriod
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
@@ -65,13 +79,17 @@ class BackupRepositoryTest {
     private lateinit var routines: RoomRoutineRepository
     private lateinit var links: RoomLinkRepository
     private lateinit var measurements: RoomMeasurementRepository
+    private lateinit var tracks: RoomTrackRepository
     private lateinit var backups: RoomBackupRepository
     private lateinit var settings: FakeSettingsRepository
 
     @Before fun setUp() {
-        database = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), WhipDatabase::class.java).build()
+        database = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), WhipDatabase::class.java)
+            .addCallback(WhipDatabase.integrityGuardCallback)
+            .build()
         val ids = SequentialIds()
         measurements = RoomMeasurementRepository(database, FixedClock, ids)
+        tracks = RoomTrackRepository(database, FixedClock, ids)
         tasks = RoomTaskRepository(database, FixedClock)
         habits = RoomHabitRepository(database, measurements, FixedClock, ids)
         goals = RoomGoalRepository(database, measurements, FixedClock, ids)
@@ -84,6 +102,10 @@ class BackupRepositoryTest {
                 timeZoneId = "America/Toronto",
                 dayCutoffMinutes = 180,
                 showAllUpcomingTaskOccurrences = true,
+                customIdentityEmojis = listOf(
+                    CustomIdentityEmoji("🦊", "Fox"),
+                    CustomIdentityEmoji("🦄", "Unicorn"),
+                ),
                 repPrescriptionSchemes = listOf(
                     RepPrescriptionScheme(
                         id = "backup-hypertrophy",
@@ -106,7 +128,7 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val preview = backups.previewBackup(json)
         assertEquals(2, preview.envelopeVersion)
-        assertEquals(1, preview.databaseVersion)
+        assertEquals(6, preview.databaseVersion)
         assertTrue(preview.checksumValid)
         assertTrue(preview.settingsIncluded)
         assertTrue(preview.totalRecords >= 3)
@@ -125,6 +147,10 @@ class BackupRepositoryTest {
         assertEquals("America/Toronto", settings.current().timeZoneId)
         assertEquals(180, settings.current().dayCutoffMinutes)
         assertEquals(true, settings.current().showAllUpcomingTaskOccurrences)
+        assertEquals(
+            listOf(CustomIdentityEmoji("🦊", "Fox"), CustomIdentityEmoji("🦄", "Unicorn")),
+            settings.current().customIdentityEmojis,
+        )
         assertEquals("Hypertrophy", settings.current().repPrescriptionSchemes.single().name)
         assertEquals(8, settings.current().repPrescriptionSchemes.single().repetitionsMin)
         assertEquals(12, settings.current().repPrescriptionSchemes.single().repetitionsMax)
@@ -150,6 +176,31 @@ class BackupRepositoryTest {
         assertTrue(backups.exportTasksCsv().contains("\"Work\""))
         assertTrue(backups.exportHabitsCsv().contains("\"Work\""))
         assertTrue(backups.exportGoalsCsv().contains("\"Work\""))
+    }
+
+    @Test fun elapsedGoalBackupAndCsvPreserveItsAuthoritativeStartAndView() = runBlocking {
+        val started = FixedClock.now().minusSeconds(12_345)
+        goals.create(
+            GoalDraft(
+                name = "Time Since",
+                type = GoalType.ElapsedSince,
+                startDate = FixedClock.today(),
+                elapsedStartMillis = started.toEpochMilli(),
+                elapsedDisplayUnit = ElapsedDisplayUnit.Hours,
+            ),
+        )
+
+        val backup = backups.exportBackup()
+        backups.deleteAllData()
+        backups.restoreBackup(backup)
+
+        val restored = goals.goals.first().single()
+        assertEquals(started.toEpochMilli(), restored.elapsedStartMillis)
+        assertEquals(ElapsedDisplayUnit.Hours, restored.elapsedDisplayUnit)
+        val csv = backups.exportGoalsCsv()
+        assertTrue(csv.lineSequence().first().contains("elapsedStartMillis"))
+        assertTrue(csv.contains(started.toEpochMilli().toString()))
+        assertTrue(csv.contains("Hours"))
     }
 
     @Test fun mergeReconcilesSameNameAreasAndRemapsAssignments() = runBlocking {
@@ -194,6 +245,45 @@ class BackupRepositoryTest {
         val second = backups.mergeBackup(portable)
         assertTrue(second.skippedExistingRecords > 0)
         assertEquals(countsBeforeSecondMerge, listOf(tasks.tasks.first().size, tasks.steps.first().size, habits.habits.first().size, habits.logs.first().size))
+    }
+
+    @Test fun mergeRemapsBothSidesOfFulfilledTrackPromptRelationship() = runBlocking {
+        val trackId = tracks.create(
+            TrackDraft("Imported Books", fields = listOf(TrackFieldDraft("Title", TrackFieldType.ShortText, required = true, primary = true))),
+        )
+        val track = requireNotNull(tracks.projection(trackId))
+        val habitId = habits.create(HabitDraft("Imported Reading Habit", trackingMode = HabitTrackingMode.CheckOff, startDate = FixedClock.today()))
+        links.createTrigger(
+            TriggerRuleDraft(
+                name = "Imported Capture",
+                sourceType = LinkSourceType.Habit,
+                sourceEntityId = habitId,
+                targetType = TriggerTargetType.Track,
+                targetEntityId = trackId,
+                action = TriggerAction.PromptTrackEntry,
+                mappings = listOf(TriggerFieldMapping(track.primaryField.id, TriggerSourceProperty.Name)),
+            ),
+        )
+        habits.setCheckOff(habitId, FixedClock.today(), true)
+        links.rebuildAll()
+        val sourceOccurrence = links.triggerOccurrences.first().single()
+        links.fulfillTrackPrompt(sourceOccurrence.id, links.trackPromptDraft(sourceOccurrence.id))
+        val portable = backups.exportBackup()
+
+        backups.deleteAllData()
+        tracks.create(TrackDraft("Local Track", fields = listOf(TrackFieldDraft("Name", TrackFieldType.ShortText, required = true, primary = true))))
+        habits.create(HabitDraft("Local Habit", startDate = FixedClock.today()))
+        backups.mergeBackup(portable)
+
+        val importedTrack = tracks.tracks.first().first { it.name == "Imported Books" }
+        val importedEntry = requireNotNull(tracks.projection(importedTrack.id)).entries.single().entry
+        val importedOccurrence = links.triggerOccurrences.first().single()
+        assertEquals(importedOccurrence.id, importedEntry.sourceOccurrenceId)
+        assertEquals(importedEntry.id, importedOccurrence.fulfilledEntryId)
+
+        val counts = listOf(tracks.tracks.first().size, tracks.entries.first().size, links.triggerRules.first().size, links.triggerOccurrences.first().size)
+        backups.mergeBackup(portable)
+        assertEquals(counts, listOf(tracks.tracks.first().size, tracks.entries.first().size, links.triggerRules.first().size, links.triggerOccurrences.first().size))
     }
 
     @Test fun fullBackupRoundTripsEveryFirstClassDomainAndCrossDomainRelationship() = runBlocking {
@@ -271,6 +361,10 @@ class BackupRepositoryTest {
         routines.rebuildPersonalRecords(exerciseId)
         routines.saveGraphPreset("Bench e1RM", listOf(exerciseId), "EstimatedOneRepMax", "All", "Workout")
 
+        val trackId = tracks.create(TrackDraft("Books Read", fields = listOf(TrackFieldDraft("Title", TrackFieldType.ShortText, required = true, primary = true))))
+        val track = requireNotNull(tracks.projection(trackId))
+        tracks.addEntry(trackId, TrackEntryDraft(FixedClock.today(), mapOf(track.primaryField.uuid to TrackValueDraft(textValue = "The Dispossessed"))))
+
         val json = backups.exportBackup()
         val preview = backups.previewBackup(json)
         assertTrue(preview.checksumValid)
@@ -279,6 +373,7 @@ class BackupRepositoryTest {
             "metric_entries", "link_rules", "contributions", "exercises", "exercise_categories",
             "workout_sessions", "workout_exercises", "workout_sets", "gym_routines", "routine_days",
             "routine_exercises", "routine_sets", "personal_records", "graph_presets",
+            "tracks", "track_fields", "track_entries", "track_values",
         ).forEach { table -> assertTrue("Expected $table in backup", preview.tableCounts.getValue(table) > 0) }
 
         backups.deleteAllData()
@@ -298,6 +393,9 @@ class BackupRepositoryTest {
         assertEquals(1, routines.sets.first().size)
         assertTrue(routines.personalRecords.first().isNotEmpty())
         assertEquals("Bench e1RM", routines.graphPresets.first().single().name)
+        val restoredTrack = requireNotNull(tracks.projection(tracks.tracks.first().single().id))
+        assertEquals("The Dispossessed", restoredTrack.primaryText(restoredTrack.entries.single()))
+        assertEquals(setOf(restoredTrack.entries.single().entry.id), tracks.searchEntryIds(restoredTrack.track.id, "Dispossessed"))
     }
 
     @Test fun tamperedBackupIsRejectedBeforeItCanReplaceLiveData() = runBlocking {
@@ -310,10 +408,58 @@ class BackupRepositoryTest {
         assertEquals("Keep this", habits.habits.first().single().name)
     }
 
+    @Test fun versionFiveBackupWithoutScaleIncrementUpgradesDuringRestore() = runBlocking {
+        tracks.create(
+            TrackDraft(
+                "Legacy Ratings",
+                fields = listOf(
+                    TrackFieldDraft("Title", TrackFieldType.ShortText, required = true, primary = true),
+                    TrackFieldDraft("Rating", TrackFieldType.Scale, scaleMin = 1, scaleMax = 5),
+                ),
+            ),
+        )
+        val root = JSONObject(backups.exportBackup()).put("databaseVersion", 5)
+        val tables = root.getJSONObject("tables")
+        val fields = tables.getJSONArray("track_fields")
+        for (index in 0 until fields.length()) fields.getJSONObject(index).remove("scaleStep")
+        val payload = tables.toString() + "\n" + root.optJSONObject("settings")?.toString().orEmpty()
+        root.put(
+            "checksumSha256",
+            MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) },
+        )
+
+        val preview = backups.previewBackup(root.toString())
+        assertEquals(5, preview.databaseVersion)
+        assertTrue(preview.restoreCompatible)
+        assertTrue(preview.compatibilityMessage.orEmpty().contains("upgraded"))
+
+        backups.deleteAllData()
+        backups.restoreBackup(root.toString())
+
+        val restored = requireNotNull(tracks.projection(tracks.tracks.first().single().id))
+        assertEquals(1.0, restored.fields.single { it.name == "Rating" }.scaleStep, 0.0)
+    }
+
+    @Test fun duplicateStableIdentityIsRejectedEvenWithAValidChecksum() = runBlocking {
+        tracks.create(TrackDraft("Unique Track", fields = listOf(TrackFieldDraft("Name", TrackFieldType.ShortText, required = true, primary = true))))
+        val root = JSONObject(backups.exportBackup())
+        val tables = root.getJSONObject("tables")
+        val trackRows = tables.getJSONArray("tracks")
+        trackRows.put(JSONObject(trackRows.getJSONObject(0).toString()))
+        val payload = tables.toString() + "\n" + root.optJSONObject("settings")?.toString().orEmpty()
+        root.put(
+            "checksumSha256",
+            MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) },
+        )
+
+        assertTrue(runCatching { backups.previewBackup(root.toString()) }.isFailure)
+        assertTrue(runCatching { backups.mergeBackup(root.toString()) }.isFailure)
+    }
+
     @Test fun nonCurrentBackupVersionsOrTableSetsCannotBePreviewedOrRestored() = runBlocking {
         habits.create(HabitDraft(name = "Keep local", startDate = FixedClock.today()))
         val current = backups.exportBackup()
-        val wrongDatabase = JSONObject(current).put("databaseVersion", 2).toString()
+        val wrongDatabase = JSONObject(current).put("databaseVersion", 7).toString()
         val wrongEnvelope = JSONObject(current).put("envelopeVersion", 1).toString()
         val incompleteTables = JSONObject(current).also {
             it.getJSONObject("tables").remove("tags")

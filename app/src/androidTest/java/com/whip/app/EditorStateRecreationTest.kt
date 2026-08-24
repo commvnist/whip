@@ -6,6 +6,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -13,6 +15,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -52,7 +55,7 @@ class EditorStateRecreationTest {
         openGlobal("Task")
         compose.onNodeWithTag("task-editor-title").performTextInput("Keep task draft")
         it.recreate()
-        compose.waitForIdle()
+        waitForTag("task-editor-title")
         compose.onNodeWithTag("task-editor-title").assertTextContains("Keep task draft")
     }
 
@@ -76,7 +79,7 @@ class EditorStateRecreationTest {
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         // UiDevice coordinates are physical-screen coordinates. Compose boundsInRoot
         // are local to the dialog window and diverge on edge-to-edge/fold layouts.
-        device.wait(Until.findObject(By.text("Cancel")), 3_000).click()
+        requireNotNull(device.wait(Until.findObject(By.desc("Cancel Task editing")), 5_000)).click()
 
         compose.waitUntil(3_000) {
             compose.onAllNodesWithText("Discard Unsaved Changes?").fetchSemanticsNodes().isNotEmpty()
@@ -100,7 +103,7 @@ class EditorStateRecreationTest {
         verify("Exercise", "exercise-editor-name", "Protected exercise")
 
         openGymDestination("Machines")
-        compose.onNodeWithText("Create Machine Profile").performScrollTo().performClick()
+        compose.onAllNodesWithText("Create Machine")[0].performScrollTo().performClick()
         compose.onNodeWithTag("machine-editor-name").performTextInput("Protected machine")
         compose.waitForIdle()
         pressSystemBack()
@@ -108,7 +111,7 @@ class EditorStateRecreationTest {
         compose.onNodeWithText("Discard Changes").performClick()
 
         openGymDestination("Routines")
-        compose.onNodeWithText("Create Routine").performScrollTo().performClick()
+        compose.onAllNodesWithText("Create Routine")[0].performScrollTo().performClick()
         compose.onNodeWithTag("routine-editor-name").performTextInput("Protected routine")
         compose.waitForIdle()
         pressSystemBack()
@@ -119,7 +122,7 @@ class EditorStateRecreationTest {
         openGlobal("Habit")
         compose.onNodeWithTag("habit-editor-name").performTextInput("Keep habit draft")
         it.recreate()
-        compose.waitForIdle()
+        waitForTag("habit-editor-name")
         compose.onNodeWithTag("habit-editor-name").assertTextContains("Keep habit draft")
     }
 
@@ -127,15 +130,31 @@ class EditorStateRecreationTest {
         openGlobal("Goal")
         compose.onNodeWithTag("goal-editor-name").performTextInput("Keep goal draft")
         it.recreate()
-        compose.waitForIdle()
+        waitForTag("goal-editor-name")
         compose.onNodeWithTag("goal-editor-name").assertTextContains("Keep goal draft")
+    }
+
+    @Test fun dirtyTrackEditorIsRootOwnedAndSurvivesActivityRecreation() = withActivity {
+        openGlobal("Track")
+        compose.onNodeWithTag("track-editor-name").performTextInput("Keep Track draft")
+        check(
+            compose.onNodeWithTag("app-background-shell").fetchSemanticsNode().config
+                .contains(SemanticsProperties.HideFromAccessibility),
+        ) { "The background shell must be hidden from accessibility while the Track editor owns the foreground" }
+        it.recreate()
+        waitForTag("track-editor-name")
+        compose.onNodeWithTag("track-editor-name").assertTextContains("Keep Track draft")
+        check(
+            compose.onNodeWithTag("app-background-shell").fetchSemanticsNode().config
+                .contains(SemanticsProperties.HideFromAccessibility),
+        )
     }
 
     @Test fun dirtyExerciseEditorSurvivesActivityRecreation() = withActivity {
         openGlobal("Exercise")
         compose.onNodeWithTag("exercise-editor-name").performTextInput("Keep exercise draft")
         it.recreate()
-        compose.waitForIdle()
+        waitForTag("exercise-editor-name")
         compose.onNodeWithTag("exercise-editor-name").assertTextContains("Keep exercise draft")
     }
 
@@ -150,19 +169,19 @@ class EditorStateRecreationTest {
 
     @Test fun dirtyMachineEditorSurvivesActivityRecreation() = withActivity {
         openGymDestination("Machines")
-        compose.onNodeWithText("Create Machine Profile").performScrollTo().performClick()
+        compose.onAllNodesWithText("Create Machine")[0].performScrollTo().performClick()
         compose.onNodeWithTag("machine-editor-name").performTextInput("Keep machine draft")
         it.recreate()
-        compose.waitForIdle()
+        waitForTag("machine-editor-name")
         compose.onNodeWithTag("machine-editor-name").assertTextContains("Keep machine draft")
     }
 
     @Test fun dirtyRoutineEditorSurvivesActivityRecreation() = withActivity {
         openGymDestination("Routines")
-        compose.onNodeWithText("Create Routine").performScrollTo().performClick()
+        compose.onAllNodesWithText("Create Routine")[0].performScrollTo().performClick()
         compose.onNodeWithTag("routine-editor-name").performTextInput("Keep routine draft")
         it.recreate()
-        compose.waitForIdle()
+        waitForTag("routine-editor-name")
         compose.onNodeWithTag("routine-editor-name").assertTextContains("Keep routine draft")
     }
 
@@ -171,30 +190,40 @@ class EditorStateRecreationTest {
         compose.onNodeWithTag("quick-set-load-$workoutSetId").performTextClearance()
         compose.onNodeWithTag("quick-set-load-$workoutSetId").performTextInput("72.5")
         it.recreate()
-        compose.waitForIdle()
+        waitForTag("quick-set-load-$workoutSetId")
         compose.onNodeWithTag("quick-set-load-$workoutSetId").assertTextContains("72.5")
+    }
+
+    private fun waitForTag(tag: String) {
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     private fun openGlobal(label: String) {
         compose.waitForIdle()
-        compose.onNodeWithContentDescription("Home tab").performClick()
-        compose.onNodeWithContentDescription("Add task, habit, goal, exercise, workout, or measurement").performClick()
+        if (compose.onAllNodesWithContentDescription("Go to Home").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithContentDescription("Go to Home").performClick()
+        } else {
+            compose.onNodeWithContentDescription("Home").performClick()
+        }
+        compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
         compose.onNodeWithText(label).performClick()
     }
 
     private fun pressSystemBack() {
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         // Android may consume Back while the IME is hiding, especially for a platform
-        // AlertDialog. Wait for that asynchronous window transition before one retry.
-        device.pressBack()
-        device.waitForIdle(2_000)
-        compose.waitForIdle()
-        if (compose.onAllNodesWithText("Discard Unsaved Changes?").fetchSemanticsNodes().isEmpty()) {
+        // AlertDialog. Retry the physical action, but never treat an IME-only Back
+        // as evidence that the editor accepted a destructive dismissal.
+        repeat(3) {
             device.pressBack()
             device.waitForIdle(2_000)
-            compose.waitUntil(3_000) {
-                compose.onAllNodesWithText("Discard Unsaved Changes?").fetchSemanticsNodes().isNotEmpty()
-            }
+            compose.waitForIdle()
+            if (compose.onAllNodesWithText("Discard Unsaved Changes?").fetchSemanticsNodes().isNotEmpty()) return
+        }
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("Discard Unsaved Changes?").fetchSemanticsNodes().isNotEmpty()
         }
     }
 
@@ -202,6 +231,9 @@ class EditorStateRecreationTest {
         compose.onNodeWithContentDescription("Gym tab").performClick()
         if (label in setOf("Routines", "Exercises", "Machines", "Categories", "Tools")) {
             compose.onNodeWithTag("gym-destination-Library").performClick()
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithTag("gym-library-$label").fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNodeWithTag("gym-library-$label").performClick()
             compose.onNodeWithTag("gym-destination-Library").assertIsSelected()
         } else {
@@ -209,12 +241,12 @@ class EditorStateRecreationTest {
         }
         compose.waitForIdle()
         val readyText = when (label) {
-            "Machines" -> "Create Machine Profile"
+            "Machines" -> "Create Machine"
             "Routines" -> "Create Routine"
             else -> null
         }
         readyText?.let { expected ->
-            compose.waitUntil(5_000) {
+            compose.waitUntil(10_000) {
                 compose.onAllNodesWithText(expected).fetchSemanticsNodes().isNotEmpty()
             }
         }

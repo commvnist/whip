@@ -45,6 +45,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -80,6 +81,7 @@ import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import com.whip.app.domain.Exercise
 import com.whip.app.core.zoneId
 import com.whip.app.domain.ExerciseDraft
@@ -176,11 +178,38 @@ internal val libraryGymDestinations = GymDestination.entries.filterNot(primaryGy
 
 private enum class WorkoutHistoryRange { Month, ThreeMonths, Year, All }
 
-private enum class ExerciseLibrarySort(val label: String) {
+internal enum class ExerciseLibrarySort(val label: String) {
     Name("Name"),
-    RecentlyUsed("Recently Used"),
-    RecentlyAdded("Recently Added"),
-    FavoritesFirst("Favorites First"),
+    RecentlyUsed("Last Used"),
+    RecentlyAdded("Date Added"),
+    FavoritesFirst("Favorite Status"),
+}
+
+internal fun List<Exercise>.sortedForLibrary(
+    sort: ExerciseLibrarySort,
+    direction: SortDirection,
+    lastUsedAtByExercise: Map<Long, Long> = emptyMap(),
+): List<Exercise> {
+    val ascending = direction == SortDirection.Ascending
+    return when (sort) {
+        ExerciseLibrarySort.Name -> sortedWith(
+            if (ascending) compareBy { it.name.lowercase() } else compareByDescending { it.name.lowercase() },
+        )
+        ExerciseLibrarySort.RecentlyUsed -> sortedWith(
+            compareBy<Exercise, Long?>(nullsLast(if (ascending) naturalOrder() else reverseOrder())) {
+                lastUsedAtByExercise[it.id]?.takeIf { usedAt -> usedAt > 0L }
+            }.thenBy { it.name.lowercase() },
+        )
+        ExerciseLibrarySort.RecentlyAdded -> sortedWith(
+            (if (ascending) compareBy<Exercise>(Exercise::createdAtMillis) else compareByDescending(Exercise::createdAtMillis))
+                .thenBy(Exercise::id)
+                .thenBy { it.name.lowercase() },
+        )
+        ExerciseLibrarySort.FavoritesFirst -> sortedWith(
+            (if (ascending) compareBy<Exercise>(Exercise::favorite) else compareByDescending(Exercise::favorite))
+                .thenBy { it.name.lowercase() },
+        )
+    }
 }
 
 private const val MACHINE_EQUIPMENT_FILTER = "__machine__"
@@ -197,6 +226,7 @@ fun GymAreaContent(
     state: GymUiState,
     innerPadding: PaddingValues,
     viewModel: GymViewModel,
+    modifier: Modifier = Modifier,
     createExerciseRequested: Boolean = false,
     startWorkoutRequested: Boolean = false,
     onExternalRequestConsumed: () -> Unit = {},
@@ -204,7 +234,6 @@ fun GymAreaContent(
     onOpenSearchRequestConsumed: () -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     onOpenBackupSettings: () -> Unit = {},
-    dialogModifier: Modifier = Modifier,
     onRoutineEditorStateChange: (Boolean) -> Unit = {},
     operationStatus: OperationStatus = OperationStatus.Idle,
     initialDestination: GymDestination = GymDestination.Workout,
@@ -212,6 +241,7 @@ fun GymAreaContent(
     requestedWorkoutExerciseId: Long? = null,
     onRequestedWorkoutExerciseConsumed: () -> Unit = {},
 ) {
+    val dialogModifier = modifier
     if (state.loading || state.errorMessage != null) {
         DomainLoadContent("gym data", innerPadding, state.errorMessage, viewModel::retryLoading)
         return
@@ -249,7 +279,6 @@ fun GymAreaContent(
     var createForSubstitutionId by rememberSaveable { mutableStateOf<Long?>(null) }
     var routineEditorOpen by rememberSaveable { mutableStateOf(false) }
     var catalogSavePending by rememberSaveable { mutableStateOf(false) }
-    var catalogSaveStarted by rememberSaveable { mutableStateOf(false) }
     val allExercises = state.exercises + state.archivedExercises
     val exerciseEditor = exerciseEditorId?.let { id -> allExercises.firstOrNull { it.id == id } }
     val exerciseActions = exerciseActionsId?.let { id -> allExercises.firstOrNull { it.id == id } }
@@ -277,16 +306,14 @@ fun GymAreaContent(
         createForSubstitutionId = null
         substituteWorkoutExerciseId = null
         catalogSavePending = false
-        catalogSaveStarted = false
     }
     LaunchedEffect(operationStatus, catalogSavePending) {
         if (!catalogSavePending) return@LaunchedEffect
         when (operationStatus) {
-            is OperationStatus.Running -> catalogSaveStarted = true
+            is OperationStatus.Running -> Unit
             is OperationStatus.Succeeded -> closeCatalogEditors()
             is OperationStatus.Failed -> {
                 catalogSavePending = false
-                catalogSaveStarted = false
             }
             OperationStatus.Idle -> Unit
         }
@@ -445,14 +472,14 @@ fun GymAreaContent(
                 onRestore = viewModel::restoreWorkout,
                 onDelete = { workoutDeleteCandidateId = it.id },
                 focusedWorkoutId = focusedWorkoutId,
-                dialogModifier = dialogModifier,
+                modifier = dialogModifier,
             )
             GymDestination.Progress -> GymProgressContent(
                 state,
                 viewModel,
                 onOpenExercises = { destination = GymDestination.Exercises },
                 onOpenWorkout = { destination = GymDestination.Workout },
-                dialogModifier = dialogModifier,
+                modifier = dialogModifier,
             )
             GymDestination.Routines -> RoutineContent(
                 state = state,
@@ -460,7 +487,7 @@ fun GymAreaContent(
                 focusedRoutineId = focusedRoutineId,
                 onDeleteRequest = { routineDeleteCandidateId = it.id },
                 onOpenActiveWorkout = { destination = GymDestination.Workout },
-                dialogModifier = dialogModifier,
+                modifier = dialogModifier,
                 onEditorStateChange = { open ->
                     routineEditorOpen = open
                     onRoutineEditorStateChange(open)
@@ -470,7 +497,7 @@ fun GymAreaContent(
                 state,
                 onSavePreset = viewModel::savePlatePreset,
                 onDeletePreset = viewModel::deletePlatePreset,
-                dialogModifier = dialogModifier,
+                modifier = dialogModifier,
             )
         }
     }
@@ -495,7 +522,6 @@ fun GymAreaContent(
             },
             onSave = { draft ->
                 catalogSavePending = true
-                catalogSaveStarted = false
                 when {
                     machineVersionSource != null -> viewModel.createMachineVersion(machineVersionSource.id, draft)
                     inlineMachineWorkoutExerciseId != null -> viewModel.createMachineAndAssign(requireNotNull(inlineMachineWorkoutExerciseId), draft)
@@ -524,7 +550,6 @@ fun GymAreaContent(
             },
             onSave = { draft ->
                 catalogSavePending = true
-                catalogSaveStarted = false
                 val sessionId = addCreatedExerciseToSession
                 val substitutionId = createForSubstitutionId
                 if (substitutionId != null) {
@@ -601,7 +626,7 @@ fun GymAreaContent(
             impacts = listOf(
                 "${placements.size} workout entr${if (placements.size == 1) "y" else "ies"} and $setCount set${if (setCount == 1) "" else "s"} will be removed from history",
                 "$routineCount routine placement${if (routineCount == 1) "" else "s"} and affected graph presets will be updated",
-                "Personal records and goal links sourced from this exercise will be removed or recalculated",
+                "Personal records and Goal Automations from this exercise will be removed or recalculated",
             ),
             onDismiss = { exerciseDeleteCandidateId = null },
             onConfirm = { viewModel.deleteExercisePermanently(exercise.id); exerciseDeleteCandidateId = null },
@@ -1332,7 +1357,7 @@ internal fun WorkoutExerciseCard(
                                     .semantics { contentDescription = "Incomplete set ${index + 1}; enter its required values to save" },
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Text("○", style = MaterialTheme.typography.titleLarge)
+                                Icon(Icons.Outlined.RadioButtonUnchecked, contentDescription = null)
                             }
                         }
                         Column(modifier = Modifier.weight(1f)) {
@@ -1471,7 +1496,7 @@ private fun ReorderHandle(
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
 ) {
-    var accumulatedDrag by remember { mutableStateOf(0f) }
+    var accumulatedDrag by remember { mutableFloatStateOf(0f) }
     val thresholdPx = with(LocalDensity.current) { 40.dp.toPx() }
     Icon(
         imageVector = Icons.Outlined.DragHandle,
@@ -1955,7 +1980,7 @@ private fun RestDurationDialog(
                     ) { Text("Restore Defaults") }
                 } else {
                     Text(
-                        "This changes rest timers started during the current workout. It does not change your default in Settings.",
+                        "This changes rest timers started during the current workout. Your default remains in Settings → Planning & Units → Gym Defaults.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
@@ -2034,6 +2059,7 @@ private fun ExerciseLibraryContent(
     var selectedTrackingType by rememberSaveable { mutableStateOf<ExerciseTrackingType?>(null) }
     var selectedEquipment by rememberSaveable { mutableStateOf<String?>(null) }
     var sort by rememberSaveable { mutableStateOf(ExerciseLibrarySort.Name) }
+    var sortDirection by rememberSaveable { mutableStateOf(SortDirection.Ascending) }
     val source = if (showArchived) state.archivedExercises else state.exercises
     val machineNamesByExercise = (state.machines + state.archivedMachines).groupBy(GymMachine::exerciseId)
         .mapValues { (_, machines) -> machines.joinToString(" ") { it.displayName } }
@@ -2048,17 +2074,7 @@ private fun ExerciseLibraryContent(
                 machineNamesByExercise.containsKey(exercise.id)
             } else exercise.equipment.equals(selectedEquipment, ignoreCase = true)) &&
             (selectedCategoryId == null || state.categoryLinks.any { it.exerciseId == exercise.id && it.categoryId == selectedCategoryId })
-    }.let { matches ->
-        when (sort) {
-            ExerciseLibrarySort.Name -> matches.sortedBy { it.name.lowercase() }
-            ExerciseLibrarySort.RecentlyUsed -> matches.sortedWith(
-                compareByDescending<Exercise> { lastUsedAtByExercise[it.id] ?: Long.MIN_VALUE }
-                    .thenBy { it.name.lowercase() },
-            )
-            ExerciseLibrarySort.RecentlyAdded -> matches.sortedByDescending(Exercise::id)
-            ExerciseLibrarySort.FavoritesFirst -> matches.sortedWith(compareByDescending<Exercise> { it.favorite }.thenBy { it.name.lowercase() })
-        }
-    }
+    }.sortedForLibrary(sort, sortDirection, lastUsedAtByExercise)
     val activeFilterCount = listOf(favoritesOnly, showArchived, selectedCategoryId != null, selectedTrackingType != null, selectedEquipment != null).count { it }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -2085,7 +2101,11 @@ private fun ExerciseLibraryContent(
         item {
             DisclosureRow(
                 title = "Filters and Sort",
-                supportingText = if (activeFilterCount == 0) sort.label else "$activeFilterCount active · ${sort.label}",
+                supportingText = listOfNotNull(
+                    "$activeFilterCount active".takeIf { activeFilterCount > 0 },
+                    sort.label,
+                    sortDirection.label,
+                ).joinToString(" · "),
                 expanded = filtersExpanded,
                 onClick = { filtersExpanded = !filtersExpanded },
             )
@@ -2119,7 +2139,8 @@ private fun ExerciseLibraryContent(
                     } },
                     titleCaseValues = false,
                 ) { selectedEquipment = it }
-                GymEnumDropdown("Sort", ExerciseLibrarySort.entries, sort, ExerciseLibrarySort::label) { sort = it }
+                GymEnumDropdown("Sort By", ExerciseLibrarySort.entries, sort, ExerciseLibrarySort::label) { sort = it }
+                GymEnumDropdown("Order", SortDirection.entries, sortDirection, SortDirection::label) { sortDirection = it }
             }
         }
         if (activeFilterCount > 0) item {
@@ -2770,8 +2791,9 @@ private fun MachineChoiceDialog(
 private fun ExerciseCategoryContent(
     state: GymUiState,
     viewModel: GymViewModel,
-    dialogModifier: Modifier = Modifier,
+    modifier: Modifier = Modifier,
 ) {
+    val dialogModifier = modifier
     var editingCategoryId by rememberSaveable { mutableStateOf<Long?>(null) }
     val editing = editingCategoryId?.let { id -> (state.categories + state.archivedCategories).firstOrNull { it.id == id } }
     var creating by rememberSaveable { mutableStateOf(false) }
@@ -2846,9 +2868,10 @@ private fun WorkoutHistoryContent(
     onShare: (WorkoutSession) -> Unit,
     onRestore: (Long) -> Unit,
     onDelete: (WorkoutSession) -> Unit,
+    modifier: Modifier = Modifier,
     focusedWorkoutId: Long? = null,
-    dialogModifier: Modifier = Modifier,
 ) {
+    val dialogModifier = modifier
     var query by rememberSaveable { mutableStateOf("") }
     var calendarView by rememberSaveable { mutableStateOf(false) }
     var selectedExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -3223,8 +3246,9 @@ private fun GymProgressContent(
     viewModel: GymViewModel,
     onOpenExercises: () -> Unit,
     onOpenWorkout: () -> Unit,
-    dialogModifier: Modifier = Modifier,
+    modifier: Modifier = Modifier,
 ) {
+    val dialogModifier = modifier
     var selectedExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
     LaunchedEffect(state.exercises) {
         if (state.exercises.none { it.id == selectedExerciseId }) selectedExerciseId = state.exercises.firstOrNull()?.id
@@ -3470,7 +3494,7 @@ private fun GymProgressContent(
         }
         item {
             DisclosureRow(
-                title = "Graph options",
+                title = "Graph Options",
                 supportingText = "${range.uiLabel()} · ${aggregation.name}",
                 expanded = graphOptionsExpanded,
                 onClick = { graphOptionsExpanded = !graphOptionsExpanded },
@@ -3571,7 +3595,7 @@ private fun GymProgressContent(
         }
         item {
             DisclosureRow(
-                title = "Graph presets",
+                title = "Graph Presets",
                 supportingText = if (state.graphPresets.isEmpty()) "Save this graph setup for reuse." else "${state.graphPresets.size} saved",
                 expanded = graphPresetsExpanded || selectedPresetId != null,
                 onClick = { graphPresetsExpanded = !graphPresetsExpanded },
@@ -3724,12 +3748,13 @@ private fun GymToolsContent(
     state: GymUiState,
     onSavePreset: (PlatePreset) -> Unit,
     onDeletePreset: (String) -> Unit,
-    dialogModifier: Modifier = Modifier,
+    modifier: Modifier = Modifier,
 ) {
+    val dialogModifier = modifier
     val weightUnit = state.appSettings.gymWeightUnitId
     val weightSymbol = unitSymbol(weightUnit)
-    var weight by rememberSaveable(weightUnit) { mutableStateOf(if (weightUnit == "pound") "175" else "80") }
-    var reps by rememberSaveable { mutableStateOf("8") }
+    var weight by rememberSaveable(weightUnit) { mutableStateOf("") }
+    var reps by rememberSaveable { mutableStateOf("") }
     var increment by rememberSaveable(weightUnit) { mutableStateOf(if (weightUnit == "pound") "5" else "2.5") }
     var knownOneRepMax by rememberSaveable { mutableStateOf(false) }
     var formula by rememberSaveable {
@@ -3749,6 +3774,9 @@ private fun GymToolsContent(
     var selectedPreset by rememberSaveable { mutableStateOf<String?>(null) }
     var activeTool by rememberSaveable { mutableStateOf("1RM") }
     var pendingPlateUnit by rememberSaveable { mutableStateOf<String?>(null) }
+    val lastEligibleSet = state.allSets.asSequence()
+        .filter { it.completed && it.deletedAtMillis == null && it.canonicalWeightKg != null && it.repetitions != null }
+        .maxByOrNull { it.completedAtMillis ?: it.updatedAtMillis }
     fun unitId(label: String): String = if (label == "lb") "pound" else "kilogram"
     fun convertPlateInputs(selected: String) {
         val from = unitId(plateUnit)
@@ -3817,6 +3845,24 @@ private fun GymToolsContent(
         if (activeTool == "1RM") {
         item { Text("1RM and Percentage Calculator", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
         item { ToggleRow("Weight is a known 1RM", knownOneRepMax) { knownOneRepMax = it } }
+        item {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                lastEligibleSet?.let { set ->
+                    val lastWeight = massFromKilograms(requireNotNull(set.canonicalWeightKg), weightUnit)
+                    WhipOutlinedButton(onClick = {
+                        weight = editableNumber(lastWeight)
+                        reps = requireNotNull(set.repetitions).toString()
+                        knownOneRepMax = false
+                    }) { Text("Use Last Set · ${formatNumber(lastWeight, state.appSettings.numberPrecision)} $weightSymbol × ${set.repetitions}") }
+                }
+                WhipTextButton(onClick = {
+                    weight = if (weightUnit == "pound") "175" else "80"
+                    reps = "8"
+                    knownOneRepMax = false
+                }) { Text("Use Example") }
+            }
+            Text("Example values are never inserted until you choose Use Example.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         item { ResponsiveFieldPair(
             first = { field -> NumberField(weight, { weight = it }, "Weight ($weightSymbol)", modifier = field) },
             second = { field ->
@@ -3832,7 +3878,7 @@ private fun GymToolsContent(
             second = { field -> NumberField(increment, { increment = it }, "Round to ($weightSymbol)", modifier = field) },
         ) }
         item {
-            if (estimate == null) Text("Enter a positive weight and 1–36 repetitions.") else {
+            if (estimate == null) Text("Enter a positive weight and 1–36 repetitions to calculate an estimate.") else {
                 Text("Estimated 1RM: ${formatNumber(estimate.oneRepMax, state.appSettings.numberPrecision)} $weightSymbol", fontWeight = FontWeight.Bold)
                 if (!knownOneRepMax && (reps.toIntOrNull() ?: 0) > state.appSettings.oneRepMaxRepCutoff) {
                     Text("High-repetition estimates are less reliable; your workout cutoff is ${state.appSettings.oneRepMaxRepCutoff} reps.", style = MaterialTheme.typography.bodySmall)
@@ -3967,12 +4013,13 @@ private fun <T> GymEnumDropdown(
 private fun RoutineContent(
     state: GymUiState,
     viewModel: GymViewModel,
+    modifier: Modifier = Modifier,
     focusedRoutineId: Long? = null,
     onDeleteRequest: (GymRoutine) -> Unit,
     onOpenActiveWorkout: () -> Unit,
-    dialogModifier: Modifier = Modifier,
     onEditorStateChange: (Boolean) -> Unit = {},
 ) {
+    val dialogModifier = modifier
     var showEditor by rememberSaveable { mutableStateOf(false) }
     var editingRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
     val editing = editingRoutineId?.let { id -> (state.routines + state.archivedRoutines).firstOrNull { it.id == id } }
@@ -5685,8 +5732,17 @@ internal data class ParsedPositiveNumbers(
     val error: String? = null,
 )
 
-internal fun quantityLabel(count: Int, singular: String, plural: String = "${singular}s"): String =
+internal fun quantityLabel(count: Int, singular: String, plural: String = defaultPlural(singular)): String =
     "$count ${if (count == 1) singular else plural}"
+
+internal fun defaultPlural(singular: String): String {
+    val lower = singular.lowercase()
+    return when {
+        lower.endsWith("y") && lower.length > 1 && lower[lower.lastIndex - 1] !in "aeiou" -> singular.dropLast(1) + "ies"
+        lower.endsWith("s") || lower.endsWith("x") || lower.endsWith("z") || lower.endsWith("ch") || lower.endsWith("sh") -> singular + "es"
+        else -> singular + "s"
+    }
+}
 
 internal fun exerciseMatchesQuery(
     exercise: Exercise,

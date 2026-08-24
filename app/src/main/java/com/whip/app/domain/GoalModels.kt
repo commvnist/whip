@@ -7,24 +7,28 @@ import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 import kotlin.math.abs
 
-enum class GoalType { ReachValue, ReduceValue, AccumulateTotal, MaintainRange, MeetAverage, Consistency, WeightedMilestones, OpenEndedTrend }
+enum class GoalType { ReachValue, ReduceValue, AccumulateTotal, MaintainRange, MeetAverage, Consistency, WeightedMilestones, OpenEndedTrend, ElapsedSince }
 enum class GoalAggregation { Latest, Sum, Average, Minimum, Maximum, CompletionCount, TimeInRange }
 enum class GoalAggregationPeriod { All, Day, Week, Month, RollingDays }
 enum class GoalConsistencyPeriod { Day, Week, Month }
 enum class GoalPaceType { Linear, None }
 enum class GoalDirection { Increase, Decrease, Neutral }
 enum class GoalStatus { Active, Paused, Completed, Abandoned, Archived }
+enum class ElapsedDisplayUnit { Auto, Minutes, Hours, Days, Weeks, Years }
 
 /** The goal type is the user-facing promise; storage and calculation choices
  * must not be allowed to contradict it. */
 fun GoalType.defaultAggregation(): GoalAggregation = when (this) {
-    GoalType.ReachValue, GoalType.ReduceValue, GoalType.MaintainRange, GoalType.OpenEndedTrend -> GoalAggregation.Latest
+    GoalType.ReachValue, GoalType.ReduceValue, GoalType.MaintainRange, GoalType.OpenEndedTrend, GoalType.ElapsedSince -> GoalAggregation.Latest
     GoalType.AccumulateTotal -> GoalAggregation.Sum
     GoalType.MeetAverage -> GoalAggregation.Average
     GoalType.Consistency, GoalType.WeightedMilestones -> GoalAggregation.CompletionCount
 }
 
 fun GoalType.compatibleAggregations(): List<GoalAggregation> = when (this) {
+    // A Reach goal may represent a cumulative target (for example, read 50
+    // books). The source editor makes Latest versus Sum explicit.
+    GoalType.ReachValue -> listOf(GoalAggregation.Latest, GoalAggregation.Sum)
     GoalType.MaintainRange -> listOf(GoalAggregation.Latest, GoalAggregation.TimeInRange)
     GoalType.OpenEndedTrend -> listOf(
         GoalAggregation.Latest,
@@ -37,7 +41,7 @@ fun GoalType.compatibleAggregations(): List<GoalAggregation> = when (this) {
 
 fun GoalType.defaultDirection(): GoalDirection = when (this) {
     GoalType.ReduceValue -> GoalDirection.Decrease
-    GoalType.MaintainRange, GoalType.OpenEndedTrend -> GoalDirection.Neutral
+    GoalType.MaintainRange, GoalType.OpenEndedTrend, GoalType.ElapsedSince -> GoalDirection.Neutral
     else -> GoalDirection.Increase
 }
 
@@ -47,7 +51,7 @@ data class GoalDraft(
     val areaId: String? = null,
     val area: String = "",
     val tags: List<String> = emptyList(),
-    val icon: String = "◎",
+    val icon: String = DEFAULT_GOAL_EMOJI,
     val type: GoalType,
     val dimension: UnitDimension = UnitDimension.Unitless,
     val unitId: String = "unitless",
@@ -66,12 +70,14 @@ data class GoalDraft(
     val rollingDays: Int? = null,
     val consistencyPeriod: GoalConsistencyPeriod = GoalConsistencyPeriod.Week,
     val consistencyRequiredPeriods: Int? = null,
+    val elapsedStartMillis: Long? = null,
+    val elapsedDisplayUnit: ElapsedDisplayUnit = ElapsedDisplayUnit.Auto,
 ) : Serializable
 
 fun GoalDraft.withTypeSemantics(): GoalDraft = copy(
     aggregation = aggregation.takeIf { it in type.compatibleAggregations() } ?: type.defaultAggregation(),
     direction = type.defaultDirection(),
-    paceType = paceType.takeIf { deadline != null && type != GoalType.OpenEndedTrend } ?: GoalPaceType.None,
+    paceType = paceType.takeIf { deadline != null && type !in setOf(GoalType.OpenEndedTrend, GoalType.ElapsedSince) } ?: GoalPaceType.None,
 )
 
 data class Goal(
@@ -106,7 +112,39 @@ data class Goal(
     val rollingDays: Int? = null,
     val consistencyPeriod: GoalConsistencyPeriod = GoalConsistencyPeriod.Week,
     val consistencyRequiredPeriods: Int? = null,
+    val elapsedStartMillis: Long? = null,
+    val elapsedDisplayUnit: ElapsedDisplayUnit = ElapsedDisplayUnit.Auto,
 )
+
+data class ElapsedCounter(val value: Long, val unit: ElapsedDisplayUnit) {
+    fun label(): String {
+        val noun = unit.name.lowercase().removeSuffix("s")
+        return "$value $noun${if (value == 1L) "" else "s"}"
+    }
+}
+
+/** Formats an elapsed-time goal from instants, independent of calendar/time-zone presentation. */
+fun elapsedCounter(startMillis: Long, nowMillis: Long, requested: ElapsedDisplayUnit): ElapsedCounter {
+    val elapsedMillis = (nowMillis - startMillis).coerceAtLeast(0L)
+    val minute = 60_000L
+    val hour = 60L * minute
+    val day = 24L * hour
+    val selected = if (requested != ElapsedDisplayUnit.Auto) requested else when {
+        elapsedMillis >= 365L * day -> ElapsedDisplayUnit.Years
+        elapsedMillis >= 14L * day -> ElapsedDisplayUnit.Weeks
+        elapsedMillis >= 2L * day -> ElapsedDisplayUnit.Days
+        elapsedMillis >= 2L * hour -> ElapsedDisplayUnit.Hours
+        else -> ElapsedDisplayUnit.Minutes
+    }
+    val divisor = when (selected) {
+        ElapsedDisplayUnit.Auto, ElapsedDisplayUnit.Minutes -> minute
+        ElapsedDisplayUnit.Hours -> hour
+        ElapsedDisplayUnit.Days -> day
+        ElapsedDisplayUnit.Weeks -> 7L * day
+        ElapsedDisplayUnit.Years -> 365L * day
+    }
+    return ElapsedCounter(elapsedMillis / divisor, selected)
+}
 
 data class GoalMilestoneDraft(
     val name: String,
@@ -285,7 +323,7 @@ fun calculateGoalProgress(
     current: Double?,
     milestones: List<GoalMilestone> = emptyList(),
 ): Double? {
-    if (goal.type == GoalType.OpenEndedTrend) return null
+    if (goal.type in setOf(GoalType.OpenEndedTrend, GoalType.ElapsedSince)) return null
     if (goal.type == GoalType.WeightedMilestones) {
         val total = milestones.sumOf { it.weight.coerceAtLeast(0.0) }
         if (total <= 0.0) return 0.0
@@ -330,7 +368,7 @@ fun projectGoal(
     } else {
         null
     }
-    val current = consistency?.successfulPeriods?.toDouble() ?: aggregateGoalValue(goal, entries, today)
+    val current = if (goal.type == GoalType.ElapsedSince) null else consistency?.successfulPeriods?.toDouble() ?: aggregateGoalValue(goal, entries, today)
     val progress = consistency?.let {
         it.successfulPeriods.toDouble().div(it.requiredPeriods).coerceIn(0.0, 1.0)
     } ?: calculateGoalProgress(goal, current, milestones)
@@ -368,6 +406,7 @@ fun goalOutcomeScoreOnDate(
 ): Double {
     val relevant = entries.filter { it.metricId == goal.metricId && it.status == MetricEntryStatus.Recorded }
     if (relevant.none { it.localDate == date }) return 0.0
+    if (goal.type == GoalType.ElapsedSince) return 0.0
     if (goal.type == GoalType.OpenEndedTrend) return 1.0
     if (goal.type == GoalType.MaintainRange) {
         val value = aggregateGoalValue(goal, relevant, date) ?: return 0.0

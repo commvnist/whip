@@ -27,7 +27,7 @@ class InteractionConsistencyTest {
 
     @Test
     fun taskEffortChoicesUseParallelPlainLanguageLabels() {
-        assertEquals(listOf("Light", "Medium", "High"), TaskEffort.entries.map(TaskEffort::label))
+        assertEquals(listOf("Unspecified", "Light", "Medium", "High"), TaskEffort.entries.map(TaskEffort::label))
     }
 
     @Test
@@ -79,6 +79,8 @@ class InteractionConsistencyTest {
             assertEquals("0", formatHabitValue(0.0, 0))
             assertEquals("1", formatHabitValue(1.0, 0))
             assertEquals("2.50", formatHabitValue(2.5, 2))
+            assertEquals("1.234568", formatHabitValue(1.2345678, 6))
+            assertEquals("1.234568", 1.2345678.formatForField(6))
         } finally {
             Locale.setDefault(previous)
         }

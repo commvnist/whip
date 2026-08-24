@@ -5,6 +5,7 @@ internal enum class WhipSearchEntryContext {
     Tasks,
     Habits,
     Goals,
+    Tracks,
     Gym,
     Exercises,
     Machines,
@@ -24,6 +25,7 @@ internal fun WhipSearchEntryContext.defaultSearchScope(): WhipSearchScope = when
     WhipSearchEntryContext.Tasks -> WhipSearchScope("Tasks & Steps", setOf(SearchDomain.Task))
     WhipSearchEntryContext.Habits -> WhipSearchScope("Habits", setOf(SearchDomain.Habit))
     WhipSearchEntryContext.Goals -> WhipSearchScope("Goals", setOf(SearchDomain.Goal))
+    WhipSearchEntryContext.Tracks -> WhipSearchScope("Tracks & Entries", setOf(SearchDomain.Track, SearchDomain.TrackEntry))
     WhipSearchEntryContext.Gym -> WhipSearchScope(
         "Gym",
         setOf(SearchDomain.Exercise, SearchDomain.Machine, SearchDomain.Workout, SearchDomain.Routine),
@@ -40,6 +42,16 @@ internal fun GymDestination.searchEntryContext(): WhipSearchEntryContext = when 
     GymDestination.Workout, GymDestination.History -> WhipSearchEntryContext.Workouts
     GymDestination.Routines -> WhipSearchEntryContext.Routines
     GymDestination.Library, GymDestination.Tools -> WhipSearchEntryContext.Gym
+}
+
+internal fun AppDestination.searchEntryContext(gymDestination: GymDestination): WhipSearchEntryContext = when (this) {
+    AppDestination.Home -> WhipSearchEntryContext.AllWhip
+    AppDestination.Tasks -> WhipSearchEntryContext.Tasks
+    AppDestination.Habits -> WhipSearchEntryContext.Habits
+    AppDestination.Goals -> WhipSearchEntryContext.Goals
+    AppDestination.Tracks -> WhipSearchEntryContext.Tracks
+    AppDestination.Gym -> gymDestination.searchEntryContext()
+    AppDestination.Settings -> WhipSearchEntryContext.AllWhip
 }
 
 internal enum class WhipBackAction {

@@ -7,6 +7,11 @@ import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WorkoutSetClassification
 
+internal enum class SortDirection(val label: String) {
+    Ascending("Ascending"),
+    Descending("Descending"),
+}
+
 /**
  * Title Case for interface chrome only: page names, tabs, buttons, menus, and
  * disclosures. Callers must not apply this to user-authored names or prose.
@@ -84,6 +89,8 @@ internal fun LinkSourceMetric.uiLabel(): String = when (this) {
     LinkSourceMetric.MaxWeight -> "Maximum Weight"
     LinkSourceMetric.Distance -> "Distance"
     LinkSourceMetric.Repetitions -> "Repetitions"
+    LinkSourceMetric.EntryCount -> "Entry Count"
+    LinkSourceMetric.FieldValue -> "Field Value"
 }
 
 internal fun UnitDimension.uiLabel(): String = when (this) {
@@ -95,6 +102,10 @@ internal fun UnitDimension.uiLabel(): String = when (this) {
     UnitDimension.Length -> "Length"
     UnitDimension.Money -> "Money"
     UnitDimension.Energy -> "Energy"
+    UnitDimension.Temperature -> "Temperature"
+    UnitDimension.Speed -> "Speed"
+    UnitDimension.Pace -> "Pace"
+    UnitDimension.Frequency -> "Frequency"
     UnitDimension.Percentage -> "Percentage"
     UnitDimension.Unitless -> "No Unit"
     UnitDimension.Custom -> "Custom"

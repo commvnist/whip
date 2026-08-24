@@ -17,6 +17,7 @@ import com.whip.app.domain.GoalMilestoneDraft
 import com.whip.app.domain.GoalPaceType
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.GoalType
+import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.displayValue
 import java.time.Instant
@@ -204,6 +205,28 @@ class GoalRepositoryTest {
         assertEquals(2_000.0, goal.targetMin ?: -1.0, 0.0)
         assertEquals(500.0, repository.metricEntries.first().single().canonicalValue ?: -1.0, 0.0)
         assertEquals(8.0, goal.displayValue(goal.targetMin, listOf(unit)) ?: -1.0, 0.0)
+    }
+
+    @Test fun elapsedGoalPersistsDisplayRejectsMeasurementsAndResetsExactStart() = runBlocking {
+        val initial = FixedClock.now().minusSeconds(10 * 86_400)
+        val id = repository.create(
+            GoalDraft(
+                name = "Recovery",
+                type = GoalType.ElapsedSince,
+                startDate = initial.atZone(ZoneId.of("UTC")).toLocalDate(),
+                elapsedStartMillis = initial.toEpochMilli(),
+                elapsedDisplayUnit = ElapsedDisplayUnit.Days,
+            ),
+        )
+        val saved = repository.goals.first().single()
+        assertEquals(initial.toEpochMilli(), saved.elapsedStartMillis)
+        assertEquals(ElapsedDisplayUnit.Days, saved.elapsedDisplayUnit)
+        assertTrue(runCatching { repository.recordMeasurement(id, 1.0) }.isFailure)
+
+        val reset = FixedClock.now().minusSeconds(3_600)
+        repository.resetElapsedStart(id, reset)
+        assertEquals(reset.toEpochMilli(), repository.goals.first().single().elapsedStartMillis)
+        assertTrue(runCatching { repository.resetElapsedStart(id, FixedClock.now().plusSeconds(1)) }.isFailure)
     }
 
     @Test fun changingGoalDisplayUnitDoesNotRelabelOrResaveHistoricalEntry() = runBlocking {

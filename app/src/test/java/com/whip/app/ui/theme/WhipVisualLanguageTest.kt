@@ -69,4 +69,44 @@ class WhipVisualLanguageTest {
 
         assertTrue("Screens bypass shared controls:\n${violations.joinToString("\n")}", violations.isEmpty())
     }
+
+    @Test
+    fun scrollingDestinationNavigationDoesNotDrawEdgeFadesOrShadows() {
+        val sourceRoot = sequenceOf(File("src/main/java"), File("app/src/main/java"))
+            .firstOrNull(File::isDirectory)
+            ?: error("Unable to locate app source root")
+        val controls = File(sourceRoot, "com/whip/app/ui/ItemControlPatterns.kt").readText()
+        val destinationBar = controls.substringAfter("internal fun <T> DestinationTabBar(")
+            .substringBefore("internal fun <T> SegmentedChoiceBar(")
+        val forbiddenTreatments = listOf(
+            "Brush.",
+            "canScrollBackward",
+            "canScrollForward",
+            ".shadow(",
+        ).filter(destinationBar::contains)
+
+        assertTrue(
+            "Scrollable destination navigation draws edge treatments: $forbiddenTreatments",
+            forbiddenTreatments.isEmpty(),
+        )
+    }
+
+    @Test
+    fun workflowDestinationsStayTogetherAndInsightsAlwaysEndsTheVisibleNavigation() {
+        val sourceRoot = sequenceOf(File("src/main/java"), File("app/src/main/java"))
+            .firstOrNull(File::isDirectory)
+            ?: error("Unable to locate app source root")
+        val habit = File(sourceRoot, "com/whip/app/ui/HabitScreens.kt").readText()
+        val goal = File(sourceRoot, "com/whip/app/ui/GoalScreens.kt").readText()
+        val track = File(sourceRoot, "com/whip/app/ui/TrackScreens.kt").readText()
+
+        assertTrue(habit.contains("enum class HabitDestination { Today, All, Connections, Archived, Insights }"))
+        assertTrue(habit.contains("listOf(HabitDestination.Today, HabitDestination.All, HabitDestination.Insights)"))
+        assertTrue(goal.contains("enum class GoalDestination { Active, Completed, Archived, Insights }"))
+        assertTrue(goal.contains("listOf(GoalDestination.Active, GoalDestination.Completed, GoalDestination.Insights)"))
+        assertTrue(track.contains("Entries(\"Entries\"),\n    Automations(\"Automations\"),\n    Options(\"Options\"),\n    Insights(\"Insights\")"))
+        assertTrue(track.contains("listOf(TrackDetailDestination.Entries, TrackDetailDestination.Automations, TrackDetailDestination.Insights)"))
+        assertTrue(goal.contains("GoalDestination.Completed) \"Done\""))
+        assertTrue(track.contains("TrackDetailDestination.Automations) \"Auto\""))
+    }
 }

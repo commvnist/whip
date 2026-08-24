@@ -34,8 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -271,13 +271,7 @@ private fun ColorSlider(
             Text(valueText, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(CircleShape)
-                    .background(Brush.horizontalGradient(gradient)),
-            )
+            SegmentedColorTrack(gradient)
             Slider(
                 value = value,
                 onValueChange = onValueChange,
@@ -292,6 +286,40 @@ private fun ColorSlider(
                 modifier = Modifier.fillMaxWidth().testTag(testTag).semantics {
                     contentDescription = "$label: $valueText"
                 },
+            )
+        }
+    }
+}
+
+/**
+ * Draws the color scale without a runtime shader. A small number of solid
+ * segments is visually continuous at this height and avoids GPU-specific
+ * shader failures observed on software-rendered Android devices.
+ */
+@Composable
+private fun SegmentedColorTrack(colors: List<Color>) {
+    val segmentCount = ((colors.size - 1).coerceAtLeast(1) * 8)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(8.dp)
+            .clip(CircleShape),
+    ) {
+        repeat(segmentCount) { index ->
+            val position = if (segmentCount == 1) 0f else index.toFloat() / (segmentCount - 1)
+            val scaledPosition = position * colors.lastIndex
+            val startIndex = scaledPosition.toInt().coerceAtMost(colors.lastIndex)
+            val endIndex = (startIndex + 1).coerceAtMost(colors.lastIndex)
+            val segmentColor = lerp(
+                colors[startIndex],
+                colors[endIndex],
+                scaledPosition - startIndex,
+            )
+            Box(
+                Modifier
+                    .weight(1f)
+                    .fillMaxSize()
+                    .background(segmentColor),
             )
         }
     }

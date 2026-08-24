@@ -98,14 +98,16 @@ build_release_apk() {
     local release_password
     IFS= read -r release_password < "$RELEASE_PASSWORD_FILE"
     [[ -n "$release_password" ]] || die "release password file is empty"
-    printf 'Building signed release APK...\n'
+    printf 'Running the required local release quality gate...\n'
+    (cd "$PROJECT_ROOT" && scripts/check --full)
+    printf 'Building signed release APK and Play bundle...\n'
     (
         cd "$PROJECT_ROOT"
         WHIP_KEYSTORE_FILE="$RELEASE_KEYSTORE" \
         WHIP_KEYSTORE_PASSWORD="$release_password" \
         WHIP_KEY_ALIAS="$RELEASE_KEY_ALIAS" \
         WHIP_KEY_PASSWORD="$release_password" \
-            ./gradlew assembleRelease
+            ./gradlew assembleRelease bundleRelease
     )
 }
 

@@ -15,6 +15,9 @@ import com.whip.app.domain.GoalMilestoneDraft
 import com.whip.app.domain.GoalPaceType
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.GoalType
+import com.whip.app.domain.ElapsedDisplayUnit
+import com.whip.app.domain.DEFAULT_GOAL_EMOJI
+import com.whip.app.domain.normalizedIdentityEmoji
 import com.whip.app.domain.MetricEntry
 import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.MetricValueKind
@@ -51,6 +54,7 @@ interface GoalRepository {
     )
     suspend fun deleteMeasurement(id: Long, entryId: String)
     suspend fun toggleMilestone(id: Long, completed: Boolean)
+    suspend fun resetElapsedStart(id: Long, start: Instant)
 }
 
 class RoomGoalRepository(
@@ -67,7 +71,7 @@ class RoomGoalRepository(
 
     override suspend fun create(draft: GoalDraft): Long = database.withTransaction {
         val semanticDraft = draft.withTypeSemantics()
-        validateGoal(semanticDraft)
+        validateGoal(semanticDraft, clock.now().toEpochMilli())
         val area = areaRepository.resolve(semanticDraft.areaId, semanticDraft.area)
         val resolvedDraft = semanticDraft.copy(areaId = area.id, area = area.name)
         measurementRepository.ensureCustomUnit(semanticDraft.unitId, semanticDraft.unitId, semanticDraft.unitId, semanticDraft.dimension)
@@ -89,7 +93,7 @@ class RoomGoalRepository(
 
     override suspend fun update(id: Long, draft: GoalDraft) = database.withTransaction {
         val semanticDraft = draft.withTypeSemantics()
-        validateGoal(semanticDraft)
+        validateGoal(semanticDraft, clock.now().toEpochMilli())
         val area = areaRepository.resolve(semanticDraft.areaId, semanticDraft.area)
         val resolvedDraft = semanticDraft.copy(areaId = area.id, area = area.name)
         measurementRepository.ensureCustomUnit(semanticDraft.unitId, semanticDraft.unitId, semanticDraft.unitId, semanticDraft.dimension)
@@ -148,6 +152,7 @@ class RoomGoalRepository(
         note: String,
     ): String {
         val goal = dao.getGoal(id)?.toDomain() ?: error("Goal no longer exists")
+        require(goal.type != GoalType.ElapsedSince) { "Elapsed-time Goals do not accept measurements" }
         return measurementRepository.record(
             metricId = goal.metricId,
             value = value,
@@ -207,6 +212,19 @@ class RoomGoalRepository(
         )
     }
 
+    override suspend fun resetElapsedStart(id: Long, start: Instant) {
+        val current = dao.getGoal(id) ?: error("Goal no longer exists")
+        require(GoalType.valueOf(current.type) == GoalType.ElapsedSince) { "Only elapsed-time Goals can reset their start" }
+        require(!start.isAfter(clock.now())) { "Start time cannot be in the future" }
+        dao.updateGoal(
+            current.copy(
+                startEpochDay = start.atZone(clock.zoneId()).toLocalDate().toEpochDay(),
+                elapsedStartMillis = start.toEpochMilli(),
+                updatedAtMillis = clock.now().toEpochMilli(),
+            ),
+        )
+    }
+
     private suspend fun syncMilestones(goalId: Long, drafts: List<GoalMilestoneDraft>, now: Long) {
         val existing = dao.getMilestones(goalId)
         val existingById = existing.associateBy(GoalMilestoneEntity::id)
@@ -254,7 +272,7 @@ class RoomGoalRepository(
         }
 }
 
-private fun validateGoal(draft: GoalDraft) {
+private fun validateGoal(draft: GoalDraft, nowMillis: Long) {
     require(draft.name.isNotBlank()) { "Goal name is required" }
     require(draft.deadline == null || !draft.deadline.isBefore(draft.startDate)) { "Deadline cannot precede the start date" }
     require(listOfNotNull(draft.baseline, draft.targetMin, draft.targetMax).all(Double::isFinite)) { "Goal values must be finite numbers" }
@@ -271,6 +289,11 @@ private fun validateGoal(draft: GoalDraft) {
             require(draft.milestones.any { it.name.isNotBlank() }) { "Add at least one milestone" }
             require(draft.milestones.all { it.weight.isFinite() && it.weight >= 0.0 }) { "Milestone weights must be non-negative numbers" }
             require(draft.milestones.any { it.weight > 0.0 }) { "At least one milestone must have a positive weight" }
+        }
+        GoalType.ElapsedSince -> {
+            require(draft.elapsedStartMillis != null) { "Choose when the timer started" }
+            require(draft.elapsedStartMillis <= nowMillis) { "Start time cannot be in the future" }
+            require(draft.deadline == null) { "Elapsed-time Goals do not use a deadline" }
         }
         GoalType.Consistency, GoalType.OpenEndedTrend -> Unit
     }
@@ -291,7 +314,7 @@ private fun GoalDraft.toEntity(
     return GoalEntity(
         id = id, uuid = uuid, metricId = metricId, name = name.trim(), description = description.trim(),
         areaId = areaId, area = area.trim(), tagsCsv = tags.map(String::trim).filter(String::isNotBlank).distinct().joinToString(","),
-        icon = icon, type = type.name, dimension = dimension.name,
+        icon = icon.normalizedIdentityEmoji(DEFAULT_GOAL_EMOJI), type = type.name, dimension = dimension.name,
         unitId = unitId, precision = precision, baseline = canonical(baseline),
         targetMin = canonical(targetMin), targetMax = canonical(targetMax), direction = direction.name,
         startEpochDay = startDate.toEpochDay(), deadlineEpochDay = deadline?.toEpochDay(),
@@ -299,6 +322,8 @@ private fun GoalDraft.toEntity(
         rollingDays = rollingDays, paceType = paceType.name,
         consistencyPeriod = consistencyPeriod.name,
         consistencyRequiredPeriods = consistencyRequiredPeriods, reminderMinutes = reminderMinutes,
+        elapsedStartMillis = elapsedStartMillis,
+        elapsedDisplayUnit = elapsedDisplayUnit.name,
         status = status.name, pinned = pinned, position = position,
         createdAtMillis = createdAtMillis, updatedAtMillis = updatedAtMillis,
     )
@@ -318,6 +343,8 @@ private fun GoalEntity.toDomain() = Goal(
     aggregationPeriod = GoalAggregationPeriod.valueOf(aggregationPeriod), rollingDays = rollingDays,
     consistencyPeriod = GoalConsistencyPeriod.valueOf(consistencyPeriod),
     consistencyRequiredPeriods = consistencyRequiredPeriods,
+    elapsedStartMillis = elapsedStartMillis,
+    elapsedDisplayUnit = ElapsedDisplayUnit.valueOf(elapsedDisplayUnit),
 )
 private fun GoalMilestoneEntity.toDomain() = GoalMilestone(id, uuid, goalId, name, position, weight, completed, completedAtMillis, reward, createdAtMillis, updatedAtMillis)
 
@@ -333,5 +360,7 @@ private fun Goal.toDraft(milestones: List<GoalMilestoneDraft>, unit: UnitDefinit
         aggregationPeriod = aggregationPeriod, rollingDays = rollingDays,
         consistencyPeriod = consistencyPeriod,
         consistencyRequiredPeriods = consistencyRequiredPeriods,
+        elapsedStartMillis = elapsedStartMillis,
+        elapsedDisplayUnit = elapsedDisplayUnit,
     )
 }

@@ -154,7 +154,7 @@ object ReminderNotifications {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Whip notifications are working")
-            .setContentText("This is a test notification from Settings.")
+            .setContentText("This is a test notification from Settings → Reminders.")
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)

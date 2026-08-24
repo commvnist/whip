@@ -24,9 +24,10 @@ and corrupt or unreadable archives do not count against retention. Restore is
 previewed before it starts. Whip keeps an app-private recovery snapshot until
 the database, preferences, reminders, and background jobs have all
 been replaced successfully; failure rolls back immediately or at next launch.
-**Delete all local data** in Settings
-clears every internal Whip table after confirmation but deliberately leaves
-external backup files untouched.
+**Settings → Data & Privacy → Reset Whip and Delete All Data** clears every
+internal Whip table and app setting after confirmation, disconnects the
+remembered portable-backup folder, and deliberately leaves external backup
+files untouched.
 
 Health Connect is optional. When enabled, Whip requests read-only access only
 for the categories selected in Settings: weight, steps, distance, hydration,

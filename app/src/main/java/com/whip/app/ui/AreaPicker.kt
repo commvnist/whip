@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.Check
 import com.whip.app.domain.Area
 
 internal data class AreaUiContext(
@@ -83,11 +84,17 @@ internal fun AreaPicker(
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Area", style = MaterialTheme.typography.labelLarge)
         Text(
-            "Group this item with related tasks, habits, and goals.",
+            "Group this item with related tasks, habits, goals, and tracks.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        AreaSelectionDropdown(areas, selectedAreaId, selectedAreaName, onSelect, onCreate = { creating = true })
+        AreaSelectionDropdown(
+            areas = areas,
+            selectedAreaId = selectedAreaId,
+            selectedAreaName = selectedAreaName,
+            onSelect = onSelect,
+            onCreate = { creating = true },
+        )
         if (inheritedFromScope && selectedAreaId != null) {
             Text(
                 "Defaulted from the current area view.",
@@ -111,9 +118,9 @@ internal fun AreaPicker(
 internal fun AreaSelectionDropdown(
     areas: List<Area>,
     selectedAreaId: String?,
-    selectedAreaName: String = "",
     onSelect: (String?, String) -> Unit,
     modifier: Modifier = Modifier,
+    selectedAreaName: String = "",
     onCreate: (() -> Unit)? = null,
     nullLabel: String = "Main",
     allowNullSelection: Boolean = false,
@@ -151,7 +158,8 @@ internal fun AreaSelectionDropdown(
             }
             if (allowNullSelection) {
                 DropdownMenuItem(
-                    text = { Text((if (selectedAreaId == null) "✓  " else "") + nullLabel) },
+                    text = { Text(nullLabel) },
+                    leadingIcon = if (selectedAreaId == null) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
                     onClick = { onSelect(null, ""); expanded = false },
                 )
             }
@@ -160,8 +168,11 @@ internal fun AreaSelectionDropdown(
                     DropdownMenuItem(
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                    if (effectiveSelectedAreaId == area.id) Icon(Icons.Outlined.Check, contentDescription = "Selected", modifier = Modifier.size(18.dp))
+                                }
                                 area.colorArgb?.let { Box(Modifier.size(9.dp).clip(CircleShape).background(Color(it))) }
-                                Text((if (effectiveSelectedAreaId == area.id) "✓  " else "") + area.name + if (area.archived) " · Archived" else "")
+                                Text(area.name + if (area.archived) " · Archived" else "")
                             }
                         },
                         onClick = { onSelect(area.id, area.name); expanded = false },

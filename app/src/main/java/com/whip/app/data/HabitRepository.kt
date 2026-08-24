@@ -14,6 +14,8 @@ import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.DEFAULT_HABIT_EMOJI
+import com.whip.app.domain.normalizedIdentityEmoji
 import com.whip.app.domain.MetricEntryStatus
 import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.MetricValueKind
@@ -392,7 +394,7 @@ private fun HabitDraft.toEntity(
     pinned: Boolean = false, position: Int, archived: Boolean = false, paused: Boolean = false,
     createdAtMillis: Long, updatedAtMillis: Long = createdAtMillis,
 ) = HabitEntity(
-    id, uuid, metricId, name.trim(), notes.trim(), areaId, area.trim(), tags.map(String::trim).filter(String::isNotBlank).distinct().joinToString(","), icon,
+    id, uuid, metricId, name.trim(), notes.trim(), areaId, area.trim(), tags.map(String::trim).filter(String::isNotBlank).distinct().joinToString(","), icon.normalizedIdentityEmoji(DEFAULT_HABIT_EMOJI),
     trackingMode.name, dimension.name, unitId, precision, comparison.name, targetMin,
     targetMax, targetPeriod.name, rollingDays, scheduleType.name, scheduleInterval,
     weekdays.toWeekdayMask(), flexibleTimesPerWeek, startDate.toEpochDay(), endType.name,

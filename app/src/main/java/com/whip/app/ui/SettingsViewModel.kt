@@ -8,6 +8,7 @@ import androidx.work.WorkManager
 import com.whip.app.WhipApplication
 import com.whip.app.core.AppSettings
 import com.whip.app.core.HomeSection
+import com.whip.app.core.ReviewSection
 import com.whip.app.core.HealthDataType
 import com.whip.app.core.SavedTaskFilter
 import com.whip.app.core.SavedReviewFilter
@@ -25,6 +26,8 @@ import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.Area
 import com.whip.app.domain.AreaScope
 import com.whip.app.domain.WhipTag
+import com.whip.app.domain.CustomIdentityEmoji
+import com.whip.app.domain.normalizeCustomIdentityEmojis
 import com.whip.app.widget.WhipWidgetProvider
 import java.time.DayOfWeek
 import kotlinx.coroutines.Dispatchers
@@ -37,7 +40,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class ExportKind { Backup, EncryptedBackup, TasksCsv, HabitsCsv, GoalsCsv, GymCsv }
+enum class ExportKind { Backup, EncryptedBackup, TasksCsv, HabitsCsv, GoalsCsv, GymCsv, TracksCsv }
 
 data class SettingsUiState(
     val settings: AppSettings = AppSettings(),
@@ -55,8 +58,14 @@ data class SettingsUiState(
     val encryptedRestorePending: Boolean = false,
 )
 
-data class AreaUsageCounts(val tasks: Int = 0, val habits: Int = 0, val goals: Int = 0) {
-    val total: Int get() = tasks + habits + goals
+data class AreaUsageCounts(
+    val tasks: Int = 0,
+    val habits: Int = 0,
+    val goals: Int = 0,
+    val tracks: Int = 0,
+    val trackEntries: Int = 0,
+) {
+    val total: Int get() = tasks + habits + goals + tracks
 }
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
@@ -79,14 +88,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         app.taskRepository.tasks,
         app.habitRepository.habits,
         app.goalRepository.goals,
-    ) { tasks, habits, goals ->
-        val assigned = (tasks.mapNotNull { it.areaId } + habits.mapNotNull { it.areaId } + goals.mapNotNull { it.areaId })
+        app.trackRepository.tracks,
+        app.trackRepository.entries,
+    ) { tasks, habits, goals, tracks, trackEntries ->
+        val trackAreaIds = tracks.associate { it.id to it.areaId }
+        val assigned = (tasks.mapNotNull { it.areaId } + habits.mapNotNull { it.areaId } + goals.mapNotNull { it.areaId } + tracks.map { it.areaId })
             .distinct()
             .associateWith { id ->
                 AreaUsageCounts(
                     tasks = tasks.count { it.areaId == id },
                     habits = habits.count { it.areaId == id },
                     goals = goals.count { it.areaId == id },
+                    tracks = tracks.count { it.areaId == id },
+                    trackEntries = trackEntries.count { trackAreaIds[it.trackId] == id },
                 )
             }
         AreaUsageState(
@@ -95,6 +109,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 tasks = tasks.count { it.areaId == null },
                 habits = habits.count { it.areaId == null },
                 goals = goals.count { it.areaId == null },
+                tracks = 0,
             ),
         )
     }
@@ -138,10 +153,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 val tasks = app.taskRepository.tasks.first()
                 val habits = app.habitRepository.habits.first()
                 val goals = app.goalRepository.goals.first()
-                (tasks.map { it.area } + habits.map { it.area } + goals.map { it.area })
+                val tracks = app.trackRepository.tracks.first()
+                (tasks.map { it.area } + habits.map { it.area } + goals.map { it.area } + tracks.map { it.area })
                     .filter(String::isNotBlank).distinctBy(String::lowercase)
                     .forEach { app.measurementRepository.ensureArea(it) }
-                (tasks.flatMap { it.tags } + habits.flatMap { it.tags } + goals.flatMap { it.tags })
+                (tasks.flatMap { it.tags } + habits.flatMap { it.tags } + goals.flatMap { it.tags } + tracks.flatMap { it.tags })
                     .filter(String::isNotBlank).distinctBy(String::lowercase)
                     .forEach { app.measurementRepository.ensureTag(it) }
             }
@@ -167,6 +183,25 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun markNotificationPermissionRequested() = update {
         it.copy(notificationPermissionRequested = true)
+    }
+
+    fun upsertCustomIdentityEmoji(originalEmoji: String? = null, choice: CustomIdentityEmoji) = update { current ->
+        val replaceEmoji = originalEmoji ?: choice.emoji
+        val existingIndex = current.customIdentityEmojis.indexOfFirst { it.emoji == replaceEmoji }
+        val updatedChoices = if (existingIndex >= 0) {
+            current.customIdentityEmojis.mapIndexed { index, existing ->
+                if (index == existingIndex) choice else existing
+            }
+        } else {
+            current.customIdentityEmojis + choice
+        }
+        current.copy(
+            customIdentityEmojis = normalizeCustomIdentityEmojis(updatedChoices),
+        )
+    }
+
+    fun removeCustomIdentityEmoji(emoji: String) = update { current ->
+        current.copy(customIdentityEmojis = current.customIdentityEmojis.filterNot { it.emoji == emoji })
     }
 
     fun setAreaScope(scope: AreaScope) = update { it.copy(activeAreaScope = scope.storageKey) }
@@ -329,7 +364,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         val selected = current.savedReviewFilters.firstOrNull { it.name == name }
         current.copy(
             selectedReviewFilterName = selected?.name,
-            reviewSections = selected?.sections ?: HomeSection.entries.toSet(),
+            reviewSections = selected?.sections ?: ReviewSection.entries.toSet(),
         )
     }
 
@@ -340,7 +375,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         )
     }
 
-    fun setReviewSections(sections: Set<HomeSection>) = update { current ->
+    fun setReviewSections(sections: Set<ReviewSection>) = update { current ->
         current.copy(reviewSections = sections, selectedReviewFilterName = null)
     }
 
@@ -368,6 +403,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             ExportKind.HabitsCsv -> backups.exportHabitsCsv()
             ExportKind.GoalsCsv -> backups.exportGoalsCsv()
             ExportKind.GymCsv -> backups.exportGymCsv()
+            ExportKind.TracksCsv -> backups.exportTracksCsv()
         }
         app.contentResolver.openOutputStream(uri, "w")?.bufferedWriter()?.use { it.write(content) }
             ?: error("Could not open the selected file")
@@ -468,7 +504,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         app.portableBackupScheduler.sync(app.portableBackupManager.state.value)
     }
 
-    fun deleteAllData() = runIo("All Whip data deleted") {
+    fun deleteAllData(onSuccess: () -> Unit = {}) = runIo(
+        success = "Whip reset; local data deleted",
+        onSuccess = onSuccess,
+    ) {
+        app.portableBackupManager.clearFolder()
         backups.deleteAllData()
         WorkManager.getInstance(app).cancelAllWorkByTag(ALL_WHIP_WORK_TAG).result.get()
     }
@@ -557,12 +597,17 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    private fun runIo(success: String, block: suspend () -> Unit) {
+    private fun runIo(
+        success: String,
+        onSuccess: () -> Unit = {},
+        block: suspend () -> Unit,
+    ) {
         viewModelScope.launch {
             runtime.value = runtime.value.copy(busy = true, message = null)
             try {
                 withContext(Dispatchers.IO) { block() }
                 runtime.value = runtime.value.copy(busy = false, message = success)
+                onSuccess()
             } catch (error: Throwable) {
                 runtime.value = runtime.value.copy(busy = false, message = error.message ?: "Operation failed")
             }

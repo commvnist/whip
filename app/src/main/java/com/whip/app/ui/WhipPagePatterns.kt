@@ -35,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -93,26 +94,54 @@ internal fun WhipFullScreenSurface(
 internal fun WhipPageHeader(
     title: String,
     supportingText: String? = null,
-    modifier: Modifier = Modifier,
+    actions: @Composable RowScope.() -> Unit = {},
+) = WhipPageHeader(title, Modifier, supportingText, actions)
+
+@Composable
+internal fun WhipPageHeader(
+    title: String,
+    modifier: Modifier,
+    supportingText: String? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        val titleContent: @Composable () -> Unit = {
             Text(
                 title,
-                modifier = Modifier.weight(1f).semantics { heading() }.testTag("page-title"),
+                modifier = Modifier.semantics { heading() }.testTag("page-title"),
                 style = MaterialTheme.typography.headlineLarge,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            actions()
+        }
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 2f)
+            if (maxWidth < 300.dp * fontScale) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+                ) {
+                    titleContent()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                        content = actions,
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.weight(1f)) { titleContent() }
+                    actions()
+                }
+            }
         }
         supportingText?.takeIf(String::isNotBlank)?.let { supporting ->
             Text(
@@ -317,7 +346,16 @@ internal fun WhipSettingsRow(
     supportingText: String? = null,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) = WhipSettingsRow(title, Modifier, supportingText, checked, onCheckedChange, enabled)
+
+@Composable
+internal fun WhipSettingsRow(
+    title: String,
+    modifier: Modifier,
+    supportingText: String? = null,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
     enabled: Boolean = true,
 ) {
     Row(
@@ -347,7 +385,13 @@ internal fun WhipSettingsRow(
 @Composable
 internal fun WhipDangerZone(
     title: String = "Danger Zone",
-    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) = WhipDangerZone(Modifier, title, content)
+
+@Composable
+internal fun WhipDangerZone(
+    modifier: Modifier,
+    title: String = "Danger Zone",
     content: @Composable () -> Unit,
 ) {
     Surface(

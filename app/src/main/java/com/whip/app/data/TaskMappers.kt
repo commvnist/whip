@@ -70,7 +70,7 @@ fun TaskEntity.toDomain(): WhipTask {
             .getOrDefault(MissedOccurrencePolicy.KeepLatest),
         inbox = inbox && kind == ScheduleKind.Anytime,
         durationMinutes = durationMinutes,
-        effort = runCatching { TaskEffort.valueOf(effort) }.getOrDefault(TaskEffort.Moderate),
+        effort = runCatching { TaskEffort.valueOf(effort) }.getOrDefault(TaskEffort.Unspecified),
         manualPosition = manualPosition,
     )
 }

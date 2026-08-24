@@ -20,7 +20,7 @@ The resolved feature-scope review is in `docs/UNUSED_FEATURE_INVENTORY_2026-08-2
 ## Current implementation contract
 
 - Package ID: `commvne.com.whip.app`; product name: **Whip**.
-- Room has one current, checked-in version-1 schema. Earlier development schemas and migrations were intentionally removed before release with owner-approved data wiping.
+- Room is currently schema 7. Every checked-in schema from 1 through 7 has an explicit forward migration, and migration tests preserve existing Links, Contributions, Automations, Track Entries, identity values, elapsed Goals, fractional Scales, and automation windows across upgrades.
 - Complete backups accept only the current database and envelope versions. CSV remains an interoperability export, not a complete restore format.
 - Task location reminders and Android location permissions do not exist.
 - At least one active Area always exists. Area move/delete operations handle Tasks, Habits, and Goals explicitly.

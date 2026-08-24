@@ -43,6 +43,8 @@ data class GoalEntity(
     val paceType: String,
     val consistencyPeriod: String,
     val consistencyRequiredPeriods: Int?,
+    val elapsedStartMillis: Long?,
+    val elapsedDisplayUnit: String,
     val reminderMinutes: Int?,
     val status: String,
     val pinned: Boolean,

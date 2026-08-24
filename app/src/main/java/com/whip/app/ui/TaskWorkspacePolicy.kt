@@ -3,8 +3,8 @@ package com.whip.app.ui
 import com.whip.app.core.SavedTaskFilter
 import com.whip.app.core.normalizedNavigation
 import com.whip.app.domain.ScheduleKind
+import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.TaskDraft
-import com.whip.app.domain.TaskQuickCaptureParser
 import com.whip.app.domain.TaskStepDraft
 import java.time.LocalDate
 
@@ -16,6 +16,15 @@ internal enum class TaskWorkspaceDestination(val label: String) {
     Anytime("Anytime"),
     History("History"),
 }
+
+internal val primaryTaskWorkspaceDestinations = listOf(
+    TaskWorkspaceDestination.Today,
+    TaskWorkspaceDestination.Inbox,
+    TaskWorkspaceDestination.Upcoming,
+    TaskWorkspaceDestination.Anytime,
+)
+
+internal val allTaskWorkspaceDestinations = primaryTaskWorkspaceDestinations + TaskWorkspaceDestination.History
 
 /** History keeps completion and archival behavior distinct inside one route. */
 internal enum class TaskHistorySection(val label: String) {
@@ -71,24 +80,63 @@ internal fun SavedTaskFilter.normalizedForWorkspace(): SavedTaskFilter {
     return normalizedNavigation()
 }
 
+/** User-selected task sorting. Missing dates remain last in either direction. */
+internal fun List<ScheduledTask>.sortedForWorkspace(
+    sortMode: String,
+    direction: SortDirection,
+): List<ScheduledTask> {
+    val ascending = direction == SortDirection.Ascending
+    return when (sortMode) {
+        "Title" -> sortedWith(
+            (if (ascending) compareBy<ScheduledTask> { it.task.title.lowercase() }
+            else compareByDescending { it.task.title.lowercase() })
+                .thenBy { it.task.createdAtMillis },
+        )
+        "Scheduled Date" -> sortedWith(
+            compareBy<ScheduledTask, LocalDate?>(nullsLast(if (ascending) naturalOrder() else reverseOrder())) { it.scheduledDate }
+                .thenBy { it.task.title.lowercase() },
+        )
+        "Deadline" -> sortedWith(
+            compareBy<ScheduledTask, LocalDate?>(nullsLast(if (ascending) naturalOrder() else reverseOrder())) { it.task.deadline }
+                .thenBy { it.task.title.lowercase() },
+        )
+        "Completion Date" -> sortedWith(
+            compareBy<ScheduledTask, Long?>(nullsLast(if (ascending) naturalOrder() else reverseOrder())) { it.completedAtMillis }
+                .thenBy { it.task.title.lowercase() },
+        )
+        "Archived Date" -> sortedWith(
+            (if (ascending) compareBy<ScheduledTask> { it.task.updatedAtMillis }
+            else compareByDescending { it.task.updatedAtMillis })
+                .thenBy { it.task.title.lowercase() },
+        )
+        "Priority" -> sortedWith(
+            (if (ascending) compareBy<ScheduledTask> { it.task.priority.ordinal }
+            else compareByDescending { it.task.priority.ordinal })
+                .thenBy { it.task.title.lowercase() },
+        )
+        // Manual is an authored sequence, not a scalar field. Reversing it while
+        // drag-reordering would make every move appear to undo itself.
+        "Manual" -> sortedWith(compareBy<ScheduledTask> { it.task.manualPosition }.thenBy { it.task.createdAtMillis })
+        else -> this
+    }
+}
+
 internal fun buildQuickAddTaskDraft(
     capture: String,
-    today: LocalDate,
     defaultDate: LocalDate?,
     inbox: Boolean,
     areaId: String?,
 ): TaskDraft? {
     val lines = capture.lineSequence().map(String::trim).filter(String::isNotBlank).toList()
     if (lines.isEmpty()) return null
-    val parsed = TaskQuickCaptureParser.parse(lines.first(), today)
-    val usesDestinationDate = parsed.scheduleKind == ScheduleKind.Anytime && defaultDate != null
-    val scheduleKind = if (usesDestinationDate) ScheduleKind.Once else parsed.scheduleKind
+    // Quick Capture is deliberately literal. Natural-language parsing is an explicit,
+    // previewed action in the full editor so saving never changes the user's words or dates
+    // behind their back.
+    val scheduleKind = if (defaultDate == null) ScheduleKind.Anytime else ScheduleKind.Once
     return TaskDraft(
-        title = parsed.title,
+        title = lines.first(),
         scheduleKind = scheduleKind,
-        date = if (usesDestinationDate) defaultDate else parsed.date,
-        recurrence = parsed.recurrence,
-        deadline = parsed.deadline,
+        date = defaultDate,
         areaId = areaId,
         inbox = inbox && scheduleKind == ScheduleKind.Anytime,
         steps = lines.drop(1).mapIndexed { index, title ->

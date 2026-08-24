@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.whip.app.WhipApplication
 import com.whip.app.core.OperationStatus
+import com.whip.app.core.currentDateFlow
 import com.whip.app.data.GoalRepository
 import com.whip.app.data.LinkRepository
 import com.whip.app.domain.Goal
@@ -21,13 +22,14 @@ import com.whip.app.domain.LinkRuleDraft
 import com.whip.app.domain.MetricEntry
 import com.whip.app.domain.MetricDefinition
 import com.whip.app.domain.TaskStep
+import com.whip.app.domain.TrackProjection
+import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.WhipTask
 import com.whip.app.domain.projectGoal
 import java.time.LocalDate
+import java.time.Instant
 import java.util.concurrent.CancellationException
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -36,9 +38,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 data class GoalUiState(
@@ -57,6 +58,7 @@ data class GoalUiState(
     val backfillPreview: LinkBackfillPreview? = null,
     val customUnits: List<UnitDefinition> = emptyList(),
     val sourceMetrics: List<MetricDefinition> = emptyList(),
+    val sourceTracks: List<TrackProjection> = emptyList(),
 )
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -79,7 +81,7 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         repository.goals,
         repository.milestones,
         repository.metricEntries,
-        currentDateFlow(),
+        app.settingsRepository.currentDateFlow(clock),
     ) { goals, milestones, entries, today -> buildState(goals, milestones, entries, today) }
 
     private val linkData = combine(
@@ -97,8 +99,11 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         app.measurementRepository.metrics,
     ) { units, metrics -> units to metrics }
 
+    private val linkAndTracks = combine(linkData, app.trackRepository.projections) { links, tracks -> links to tracks }
+
     val uiState = reloadKey.flatMapLatest {
-        combine(goalCore, linkData, app.taskRepository.steps, _backfillPreview, measurementMetadata) { core, links, steps, preview, metadata ->
+        combine(goalCore, linkAndTracks, app.taskRepository.steps, _backfillPreview, measurementMetadata) { core, linkAndTrackData, steps, preview, metadata ->
+            val (links, tracks) = linkAndTrackData
             val (units, metrics) = metadata
             core.copy(
                 linkRules = links.rules,
@@ -110,6 +115,7 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
                 backfillPreview = preview,
                 customUnits = units,
                 sourceMetrics = metrics.filterNot { it.archived },
+                sourceTracks = tracks.filterNot { it.track.archived },
             )
         }.catch { error ->
             emit(GoalUiState(currentDate = clock.today(), loading = false, errorMessage = error.message ?: "Could not load goals"))
@@ -145,25 +151,42 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteMeasurement(id: Long, entryId: String) =
         runOperation("Removing measurement…", "Measurement removed") { repository.deleteMeasurement(id, entryId) }
     fun toggleMilestone(id: Long, completed: Boolean) = runOperation("Updating milestone…", "Milestone updated") { repository.toggleMilestone(id, completed) }
+    fun resetElapsedStart(id: Long, start: Instant) = runOperation("Resetting timer…", "Timer reset") {
+        repository.resetElapsedStart(id, start)
+    }
     fun previewLink(draft: LinkRuleDraft) = runOperation("Previewing history…", "Backfill preview ready") {
         _backfillPreview.value = linkRepository.previewBackfill(draft)
     }
     fun clearLinkPreview() { _backfillPreview.value = null }
-    fun createLink(draft: LinkRuleDraft, includeHistory: Boolean) = runOperation("Creating link…", "Link created") {
+    fun createLink(draft: LinkRuleDraft, includeHistory: Boolean) = runOperation("Creating Goal Automation…", "Goal Automation created") {
+        alignGoalCalculation(draft)
         linkRepository.createRule(draft, includeHistory)
         _backfillPreview.value = null
     }
-    fun updateLink(id: Long, draft: LinkRuleDraft) = runOperation("Saving link…", "Link saved") {
+    fun updateLink(id: Long, draft: LinkRuleDraft) = runOperation("Saving Goal Automation…", "Goal Automation saved") {
+        alignGoalCalculation(draft)
         linkRepository.updateRule(id, draft)
         _backfillPreview.value = null
     }
-    fun setLinkEnabled(id: Long, enabled: Boolean) = runOperation("Updating link…", "Link updated") { linkRepository.setRuleEnabled(id, enabled) }
-    fun deleteLink(id: Long) = runOperation("Removing link…", "Link removed") { linkRepository.deleteRule(id) }
+    fun setLinkEnabled(id: Long, enabled: Boolean) = runOperation("Updating Goal Automation…", "Goal Automation updated") { linkRepository.setRuleEnabled(id, enabled) }
+    fun deleteLink(id: Long) = runOperation("Removing Goal Automation…", "Goal Automation removed") { linkRepository.deleteRule(id) }
     fun setContributionExcluded(id: Long, excluded: Boolean) = runOperation("Updating contribution…", "Contribution updated") {
         linkRepository.setContributionExcluded(id, excluded)
     }
     fun setContributionOverride(id: Long, canonicalValue: Double?) = runOperation("Updating contribution…", "Contribution updated") {
         linkRepository.setContributionOverride(id, canonicalValue)
+    }
+
+    private suspend fun alignGoalCalculation(draft: LinkRuleDraft) {
+        if (draft.sourceType != LinkSourceType.Track || draft.targetMilestoneId != null) return
+        val measure = draft.trackAggregation ?: return
+        val goal = repository.goals.first().firstOrNull { it.id == draft.targetGoalId }
+            ?: error("Goal no longer exists")
+        val required = goal.requiredAggregationForTrack(measure)
+        val aligned = goal.toTrackAutomationDraft(required, draft.retroactiveFrom)
+        if (goal.aggregation != aligned.aggregation || goal.startDate != aligned.startDate) {
+            repository.update(goal.id, aligned)
+        }
     }
 
     private fun runOperation(running: String, success: String, block: suspend () -> Unit) {
@@ -180,12 +203,6 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun currentDateFlow(): Flow<LocalDate> = flow {
-        while (currentCoroutineContext().isActive) {
-            emit(clock.today())
-            delay(60_000)
-        }
-    }
 }
 
 private data class GoalLinkData(

@@ -41,7 +41,7 @@ class GymRepositoryTest {
             ApplicationProvider.getApplicationContext(),
             WhipDatabase::class.java,
         )
-            .addCallback(WhipDatabase.singleActiveWorkoutCallback)
+            .addCallback(WhipDatabase.integrityGuardCallback)
             .build()
         repository = RoomGymRepository(database, FixedClock, SequentialIds())
     }

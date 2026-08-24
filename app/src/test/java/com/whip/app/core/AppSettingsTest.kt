@@ -4,9 +4,17 @@ import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import com.whip.app.domain.AreaScope
+import com.whip.app.domain.CustomIdentityEmoji
 
 class AppSettingsTest {
     @Test
@@ -42,6 +50,56 @@ class AppSettingsTest {
         assertEquals("kilometre", normalizeDistanceUnit("km"))
         assertEquals("fluid_ounce", normalizeVolumeUnit("fl oz"))
         assertEquals("kilogram", normalizeMassUnit("not a unit"))
+    }
+
+    @Test
+    fun normalizationKeepsAtLeastOneHomeSectionVisibleAndRepairsNumericDefaults() {
+        val normalized = AppSettings(
+            homeSections = listOf(HomeSection.Goals, HomeSection.Tasks),
+            hiddenHomeSections = HomeSection.entries.toSet(),
+            collapsedHomeSections = HomeSection.entries.toSet() + HomeSection.Goals,
+            defaultRestSeconds = 0,
+            numberPrecision = 20,
+            healthSyncDays = 0,
+            customIdentityEmojis = listOf(
+                CustomIdentityEmoji("🦊", "Fox"),
+                CustomIdentityEmoji("✅", "Built-In"),
+                CustomIdentityEmoji("text", "Invalid"),
+                CustomIdentityEmoji("🦊", "Duplicate Fox"),
+                CustomIdentityEmoji("🦄", "Unicorn"),
+            ),
+        ).normalized()
+
+        assertEquals(HomeSection.Goals, normalized.visibleHomeSections().single())
+        assertFalse(HomeSection.Goals in normalized.hiddenHomeSections)
+        assertTrue(HomeSection.entries.all { it in normalized.homeSections })
+        assertEquals(15, normalized.defaultRestSeconds)
+        assertEquals(6, normalized.numberPrecision)
+        assertEquals(1, normalized.healthSyncDays)
+        assertEquals(
+            listOf(CustomIdentityEmoji("🦊", "Fox"), CustomIdentityEmoji("🦄", "Unicorn")),
+            normalized.customIdentityEmojis,
+        )
+    }
+
+    @Test
+    fun changingTimeZoneRecomputesTodayWithoutWaitingForTheMinuteTicker() = runBlocking {
+        val settings = FakeSettingsRepository(AppSettings(timeZoneId = "UTC"))
+        val clock = SettingsWhipClock(settings) { Instant.parse("2026-08-23T02:00:00Z") }
+        val dates = mutableListOf<LocalDate>()
+        val firstEmission = CompletableDeferred<Unit>()
+        val collection = launch {
+            settings.currentDateFlow(clock).take(2).collect { date ->
+                dates += date
+                firstEmission.complete(Unit)
+            }
+        }
+        withTimeout(5_000) { firstEmission.await() }
+
+        settings.update { it.copy(timeZoneId = "America/Toronto") }
+        withTimeout(5_000) { collection.join() }
+
+        assertEquals(listOf(LocalDate.of(2026, 8, 23), LocalDate.of(2026, 8, 22)), dates)
     }
 
     private class FakeSettingsRepository(initial: AppSettings) : SettingsRepository {

@@ -27,6 +27,28 @@ class GoalRulesTest {
         assertNull(calculateGoalProgress(goal(type = GoalType.OpenEndedTrend), 10.0))
     }
 
+    @Test fun elapsedCounterSupportsEveryRequestedViewAndAutomaticScale() {
+        val day = 86_400_000L
+        assertEquals("90 minutes", elapsedCounter(0, 90 * 60_000L, ElapsedDisplayUnit.Minutes).label())
+        assertEquals("36 hours", elapsedCounter(0, 36 * 3_600_000L, ElapsedDisplayUnit.Hours).label())
+        assertEquals("10 days", elapsedCounter(0, 10 * day, ElapsedDisplayUnit.Days).label())
+        assertEquals("8 weeks", elapsedCounter(0, 56 * day, ElapsedDisplayUnit.Weeks).label())
+        assertEquals("2 years", elapsedCounter(0, 730 * day, ElapsedDisplayUnit.Years).label())
+        assertEquals(ElapsedDisplayUnit.Years, elapsedCounter(0, 400 * day, ElapsedDisplayUnit.Auto).unit)
+        assertEquals(0, elapsedCounter(100, 0, ElapsedDisplayUnit.Minutes).value)
+    }
+
+    @Test fun elapsedGoalHasNoSyntheticProgressOrOutcome() {
+        val elapsed = goal(type = GoalType.ElapsedSince).copy(
+            elapsedStartMillis = 1_000,
+            elapsedDisplayUnit = ElapsedDisplayUnit.Days,
+        )
+        val projection = projectGoal(elapsed, emptyList(), emptyList(), today)
+        assertNull(projection.currentValue)
+        assertNull(projection.progress)
+        assertEquals(0.0, goalOutcomeScoreOnDate(elapsed, emptyList(), emptyList(), today), 0.0)
+    }
+
     @Test fun paceAndForecastAreDeterministic() {
         val projection = projectGoal(
             goal(baseline = 0.0, target = 100.0).copy(

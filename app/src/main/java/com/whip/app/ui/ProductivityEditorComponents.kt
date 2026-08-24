@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
@@ -17,13 +18,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -45,6 +44,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.graphics.RectangleShape
 import com.whip.app.domain.editableNumericValue
 import java.time.DayOfWeek
 
@@ -123,6 +123,7 @@ internal fun ProductivityEditorDialog(
     text: @Composable () -> Unit,
     confirmButton: @Composable () -> Unit,
     dismissButton: @Composable () -> Unit,
+    primary: Boolean = false,
 ) {
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -134,25 +135,43 @@ internal fun ProductivityEditorDialog(
         ) {
             Surface(
                 modifier = modifier
-                    .heightIn(max = maxHeight * 0.92f)
+                    .then(if (primary) Modifier.fillMaxHeight() else Modifier.heightIn(max = maxHeight * 0.92f))
                     .then(if (testTag == null) Modifier else Modifier.testTag(testTag))
                     .semantics { paneTitle = "Editor" },
-                shape = MaterialTheme.shapes.extraLarge,
-                tonalElevation = 6.dp,
+                shape = if (primary) RectangleShape else MaterialTheme.shapes.extraLarge,
+                tonalElevation = if (primary) 0.dp else 6.dp,
             ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    androidx.compose.foundation.layout.Box(Modifier.semantics { heading() }) { title() }
-                    androidx.compose.foundation.layout.Box(Modifier.weight(1f, fill = false)) { text() }
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                if (primary) {
+                    Column(Modifier.fillMaxSize()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            dismissButton()
+                            Box(Modifier.weight(1f).semantics { heading() }) { title() }
+                            confirmButton()
+                        }
+                        HorizontalDivider()
+                        Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
+                            text()
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        dismissButton()
-                        confirmButton()
+                        Box(Modifier.semantics { heading() }) { title() }
+                        Box(Modifier.weight(1f, fill = false)) { text() }
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            dismissButton()
+                            confirmButton()
+                        }
                     }
                 }
             }
@@ -182,77 +201,6 @@ internal fun PaneAwareAlertDialog(
         confirmButton = confirmButton,
         dismissButton = dismissButton,
     )
-}
-
-/** Compact identity picker shared by Habits and Goals; custom glyphs remain supported. */
-@Composable
-internal fun WhipIconPicker(
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    label: String = "Icon",
-) {
-    val choices = listOf(
-        "○" to "Circle",
-        "✓" to "Check",
-        "◆" to "Diamond",
-        "◎" to "Target",
-        "⚑" to "Flag",
-        "✚" to "Health",
-        "◉" to "Focus",
-        "▤" to "List",
-        "★" to "Star",
-        "⏱" to "Timer",
-    )
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    var customOpen by rememberSaveable { mutableStateOf(value.isNotBlank() && choices.none { it.first == value }) }
-    val selectedName = if (customOpen) {
-        "Custom Icon"
-    } else {
-        choices.firstOrNull { it.first == value }?.second ?: "Custom Icon"
-    }
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(label, style = MaterialTheme.typography.labelMedium)
-        Box(Modifier.fillMaxWidth()) {
-            WhipOutlinedButton(
-                onClick = { expanded = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("icon-picker-trigger")
-                    .semantics { contentDescription = "$label: $selectedName" },
-            ) {
-                Text(if (customOpen) value.ifBlank { "…" } else value.ifBlank { "○" }, style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.width(8.dp))
-                Text(selectedName, modifier = Modifier.weight(1f))
-                Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)
-            }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                choices.forEach { (glyph, name) ->
-                    DropdownMenuItem(
-                        text = { Text("$glyph  $name") },
-                        onClick = { onValueChange(glyph); customOpen = false; expanded = false },
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text("Custom Icon…") },
-                    onClick = {
-                        if (!customOpen) onValueChange("")
-                        customOpen = true
-                        expanded = false
-                    },
-                    modifier = Modifier.testTag("icon-picker-custom-option"),
-                )
-            }
-        }
-        if (customOpen) OutlinedTextField(
-            value = value,
-            onValueChange = { onValueChange(it.take(2)) },
-            label = { Text("Custom Icon") },
-            supportingText = { Text("Enter one symbol or emoji.") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().testTag("icon-picker-custom-input"),
-        )
-    }
 }
 
 internal fun formatClockMinutes(minutes: Int): String = "%02d:%02d".format(minutes / 60, minutes % 60)

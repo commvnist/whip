@@ -231,7 +231,9 @@ class TaskRepositoryTest {
                 delayMinutes = 0,
                 quietStartMinutes = null,
                 quietEndMinutes = null,
-                autoCompleteTargetHabit = false,
+                action = "PromptHabit",
+                notificationEnabled = false,
+                conditionMode = "MatchAll",
                 enabled = true,
                 createdAtMillis = 1,
                 updatedAtMillis = 1,
@@ -293,41 +295,26 @@ class TaskRepositoryTest {
     }
 
     @Test
-    fun autoSkipClosesOnlyElapsedScheduleAnchoredOccurrences() = runBlocking {
+    fun currentOnlyPolicyDoesNotManufactureOccurrenceHistory() = runBlocking {
         val taskId = repository.create(
             recurringDraft(autoComplete = false).copy(
-                missedOccurrencePolicy = MissedOccurrencePolicy.AutoSkip,
+                missedOccurrencePolicy = MissedOccurrencePolicy.CurrentOnly,
             ),
         )
-        val task = requireNotNull(repository.getTask(taskId))
-        repository.complete(item(task, monday.plusDays(1)))
-        repository.reschedule(item(task, monday.plusDays(2)), monday.plusDays(5))
-
-        repository.applyMissedOccurrencePolicies(monday.plusDays(4))
-
-        val records = repository.getOccurrences(taskId).associateBy { it.originalDate }
-        assertEquals(OccurrenceState.Skipped, records[monday]?.state)
-        assertEquals(OccurrenceState.Completed, records[monday.plusDays(1)]?.state)
-        assertEquals(OccurrenceState.Open, records[monday.plusDays(2)]?.state)
-        assertEquals(monday.plusDays(5), records[monday.plusDays(2)]?.scheduledDate)
-        assertEquals(OccurrenceState.Skipped, records[monday.plusDays(3)]?.state)
-        assertNull(records[monday.plusDays(4)])
+        assertTrue(repository.getOccurrences(taskId).isEmpty())
     }
 
     @Test
-    fun autoSkipDoesNotRewriteCompletionAnchoredCadence() = runBlocking {
-        val taskId = repository.create(
-            recurringDraft(autoComplete = false).copy(
-                recurrence = requireNotNull(recurringDraft(false).recurrence).copy(
-                    anchor = RecurrenceAnchor.Completion,
-                ),
-                missedOccurrencePolicy = MissedOccurrencePolicy.AutoSkip,
-            ),
-        )
+    fun explicitSkipRecordsTheRealClosureTime() = runBlocking {
+        val taskId = repository.create(recurringDraft(autoComplete = false))
+        val task = requireNotNull(repository.getTask(taskId))
+        val expected = FixedClock.now().toEpochMilli()
 
-        repository.applyMissedOccurrencePolicies(monday.plusDays(30))
+        repository.skip(item(task, monday))
 
-        assertTrue(repository.getOccurrences(taskId).isEmpty())
+        val skipped = repository.getOccurrences(taskId).single()
+        assertEquals(OccurrenceState.Skipped, skipped.state)
+        assertEquals(expected, skipped.completedAtMillis)
     }
 
     @Test
@@ -402,6 +389,31 @@ class TaskRepositoryTest {
     }
 
     @Test
+    fun planMyDayAndItsUndoRestorePlacementAndInboxTogether() = runBlocking {
+        val inboxId = repository.create(TaskDraft(title = "Inbox", inbox = true))
+        val anytimeId = repository.create(TaskDraft(title = "Anytime", inbox = false))
+        val inbox = requireNotNull(repository.getTask(inboxId))
+        val anytime = requireNotNull(repository.getTask(anytimeId))
+        val originals = listOf(
+            ScheduledTask(inbox, originalDate = null, scheduledDate = null),
+            ScheduledTask(anytime, originalDate = null, scheduledDate = null),
+        )
+
+        repository.planAll(originals, monday)
+
+        assertEquals(ScheduleKind.Once, requireNotNull(repository.getTask(inboxId)).scheduleKind)
+        assertEquals(false, requireNotNull(repository.getTask(inboxId)).inbox)
+        assertEquals(ScheduleKind.Once, requireNotNull(repository.getTask(anytimeId)).scheduleKind)
+
+        repository.restorePlan(originals, setOf(inboxId))
+
+        assertEquals(ScheduleKind.Anytime, requireNotNull(repository.getTask(inboxId)).scheduleKind)
+        assertEquals(true, requireNotNull(repository.getTask(inboxId)).inbox)
+        assertEquals(ScheduleKind.Anytime, requireNotNull(repository.getTask(anytimeId)).scheduleKind)
+        assertEquals(false, requireNotNull(repository.getTask(anytimeId)).inbox)
+    }
+
+    @Test
     fun bulkMoveUndoRestoresAnAlreadyMovedRecurringOccurrence() = runBlocking {
         val recurringId = repository.create(recurringDraft(autoComplete = false))
         val recurring = requireNotNull(repository.getTask(recurringId))
@@ -426,7 +438,7 @@ class TaskRepositoryTest {
                 areaName = "Work",
                 tags = setOf("Deep", "deep", "Today"),
                 priority = TaskPriority.High,
-                effort = TaskEffort.Deep,
+                effort = TaskEffort.High,
                 inbox = true,
             ),
         )
@@ -436,7 +448,7 @@ class TaskRepositoryTest {
         assertEquals("Work", anytime.area)
         assertEquals(setOf("Deep", "Today"), anytime.tags)
         assertEquals(TaskPriority.High, anytime.priority)
-        assertEquals(TaskEffort.Deep, anytime.effort)
+        assertEquals(TaskEffort.High, anytime.effort)
         assertTrue(anytime.inbox)
         assertFalse(dated.inbox)
     }

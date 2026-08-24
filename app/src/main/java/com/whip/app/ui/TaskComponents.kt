@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -50,6 +49,7 @@ import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.TaskOccurrence
 import com.whip.app.domain.TaskProgressDisplay
+import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.WhipTask
 import com.whip.app.data.TaskDeletionImpact
 import java.time.format.DateTimeFormatter
@@ -97,7 +97,7 @@ fun TaskRow(
         colors = CardDefaults.cardColors(
             containerColor = when {
                 completed -> MaterialTheme.colorScheme.surfaceContainerLow
-                item.isOverdue -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
+                item.isDeadlineOverdue -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
                 else -> MaterialTheme.colorScheme.surfaceContainer
             },
         ),
@@ -144,16 +144,24 @@ fun TaskRow(
                         fontWeight = FontWeight.SemiBold,
                         textDecoration = TextDecoration.LineThrough.takeIf { completed },
                     )
-                    if (item.isOverdue) {
+                    if (item.isDeadlineOverdue || item.isPastScheduledDate) {
                         Surface(
                             shape = MaterialTheme.shapes.small,
-                            color = MaterialTheme.colorScheme.errorContainer,
+                            color = if (item.isDeadlineOverdue) {
+                                MaterialTheme.colorScheme.errorContainer
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainerHighest
+                            },
                         ) {
                             Text(
-                                "Overdue",
+                                if (item.isDeadlineOverdue) "Deadline Overdue" else "Past Scheduled Date",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                color = if (item.isDeadlineOverdue) {
+                                    MaterialTheme.colorScheme.onErrorContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                             )
                         }
                     }
@@ -210,6 +218,7 @@ fun TaskActionsDialog(
     onArchive: () -> Unit,
     onDeletePermanently: () -> Unit,
     onPin: () -> Unit,
+    modifier: Modifier = Modifier,
     onDuplicate: () -> Unit = {},
     onToggleInbox: () -> Unit = {},
     onStartFocus: (Int) -> Unit = {},
@@ -218,11 +227,11 @@ fun TaskActionsDialog(
     occurrenceHistory: List<TaskOccurrence> = emptyList(),
     onReopenOccurrence: (TaskOccurrence) -> Unit = {},
     onResetOccurrence: (TaskOccurrence) -> Unit = {},
-    dialogModifier: Modifier = Modifier,
 ) {
     var section by rememberSaveable(item.stableKey) { mutableStateOf(TaskDetailSection.Overview) }
+    var pendingMoveStepId by rememberSaveable(item.stableKey) { mutableStateOf<Long?>(null) }
     ProductivityEditorDialog(
-        modifier = dialogModifier.widthIn(min = 280.dp, max = 560.dp),
+        modifier = modifier.widthIn(min = 280.dp, max = 560.dp),
         testTag = "task-actions-surface",
         onDismissRequest = onDismiss,
         title = { Text(item.task.title) },
@@ -238,7 +247,7 @@ fun TaskActionsDialog(
                     testTagPrefix = "task-detail-section",
                 )
                 if (section == TaskDetailSection.Overview) {
-                    if (item.subtasks.isEmpty()) Text("No subtasks. Edit this task to add steps.")
+                    if (item.subtasks.isEmpty()) Text("No subtasks. Edit this task to add them.")
                     else {
                     Text(
                         "Subtasks · ${item.completedSubtasks}/${item.totalSubtasks}",
@@ -264,8 +273,8 @@ fun TaskActionsDialog(
                                 },
                                 modifier = Modifier.semantics {
                                     contentDescription = if (subtask.completed) {
-                                        "Mark subtask ${subtask.step.title} incomplete"
-                                    } else "Complete subtask ${subtask.step.title}"
+                                        "Mark Subtask ${subtask.step.title} incomplete"
+                                    } else "Complete Subtask ${subtask.step.title}"
                                 },
                             )
                             Column(modifier = Modifier.weight(1f)) {
@@ -284,15 +293,15 @@ fun TaskActionsDialog(
                                     )
                                 }
                             }
-                            WhipTextButton(enabled = !item.task.archived, onClick = { onPromoteSubtask(subtask.step.id) }) {
-                                Text("Promote")
+                            WhipTextButton(enabled = !item.task.archived, onClick = { pendingMoveStepId = subtask.step.id }) {
+                                Text("Move to New Task")
                             }
                         }
                     }
                     Spacer(Modifier.height(6.dp))
                     }
                     if (!item.task.archived) {
-                    WhipTextButton(onClick = onComplete, modifier = Modifier.fillMaxWidth()) {
+                    WhipButton(onClick = onComplete, modifier = Modifier.fillMaxWidth()) {
                         Text("Complete")
                     }
                     }
@@ -312,7 +321,7 @@ fun TaskActionsDialog(
                             Text(
                                 when (item.task.scheduleKind) {
                                     ScheduleKind.Anytime -> "Choose a Date"
-                                    ScheduleKind.Once -> "Change Due Date"
+                                    ScheduleKind.Once -> "Change Scheduled Date"
                                     ScheduleKind.Recurring -> "Move This Occurrence"
                                 },
                                 modifier = Modifier.fillMaxWidth(),
@@ -335,7 +344,7 @@ fun TaskActionsDialog(
                         }
                         if (item.task.scheduleKind == ScheduleKind.Anytime) {
                             WhipTextButton(onClick = onToggleInbox, modifier = Modifier.fillMaxWidth()) {
-                                Text(if (item.task.inbox) "Mark Triaged" else "Move to Inbox")
+                                Text(if (item.task.inbox) "Move to Anytime" else "Move to Inbox")
                             }
                         }
                         Text("Focus Timer", style = MaterialTheme.typography.labelMedium)
@@ -347,7 +356,7 @@ fun TaskActionsDialog(
                     }
                     WhipTextButton(onClick = onArchive, modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            if (item.task.archived) "Restore task" else if (item.task.scheduleKind == ScheduleKind.Recurring) "Stop series (archive)" else "Archive task",
+                            if (item.task.archived) "Restore Task" else if (item.task.scheduleKind == ScheduleKind.Recurring) "Stop Series (Archive)" else "Archive Task",
                             modifier = Modifier.fillMaxWidth(),
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -355,7 +364,7 @@ fun TaskActionsDialog(
                     HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
                     WhipTextButton(onClick = onDeletePermanently, modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            if (item.task.scheduleKind == ScheduleKind.Recurring) "Delete entire series permanently" else "Delete permanently",
+                            if (item.task.scheduleKind == ScheduleKind.Recurring) "Delete Entire Series Permanently" else "Delete Permanently",
                             modifier = Modifier.fillMaxWidth(),
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -366,11 +375,36 @@ fun TaskActionsDialog(
         confirmButton = { WhipTextButton(onClick = onDismiss) { Text("Close") } },
         dismissButton = {
             DetailEditButton(
-                if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit this and future" else "Edit task",
+                if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit This and Future" else "Edit Task",
                 onEdit,
             )
         },
     )
+    pendingMoveStepId?.let { stepId ->
+        val step = item.subtasks.firstOrNull { it.step.id == stepId }
+        PaneAwareAlertDialog(
+            modifier = modifier,
+            onDismissRequest = { pendingMoveStepId = null },
+            title = { Text("Move Subtask to a New Task?") },
+            text = {
+                Text(
+                    "“${step?.title.orEmpty()}” will become a new Inbox task and will be removed from “${item.task.title}”. You can undo this from the confirmation.",
+                )
+            },
+            confirmButton = {
+                WhipButton(
+                    enabled = step != null,
+                    onClick = {
+                        pendingMoveStepId = null
+                        onPromoteSubtask(stepId)
+                    },
+                ) { Text("Move to New Task") }
+            },
+            dismissButton = {
+                WhipTextButton(onClick = { pendingMoveStepId = null }) { Text("Cancel") }
+            },
+        )
+    }
 }
 
 private enum class TaskDetailSection(val label: String) {
@@ -386,13 +420,13 @@ fun CompletedTaskDialog(
     onEdit: () -> Unit,
     onReopen: () -> Unit,
     onDeletePermanently: () -> Unit,
+    modifier: Modifier = Modifier,
     occurrenceHistory: List<TaskOccurrence> = emptyList(),
     onReopenOccurrence: (TaskOccurrence) -> Unit = {},
     onResetOccurrence: (TaskOccurrence) -> Unit = {},
-    dialogModifier: Modifier = Modifier,
 ) {
     ProductivityEditorDialog(
-        modifier = dialogModifier.widthIn(min = 280.dp, max = 560.dp),
+        modifier = modifier.widthIn(min = 280.dp, max = 560.dp),
         testTag = "completed-task-surface",
         onDismissRequest = onDismiss,
         title = { Text(item.task.title) },
@@ -410,7 +444,7 @@ fun CompletedTaskDialog(
                 )
                 WhipTextButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit this and future" else "Edit task",
+                        if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit This and Future" else "Edit Task",
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -533,10 +567,12 @@ fun PermanentTaskDeleteDialog(
     item: ScheduledTask,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
+    modifier: Modifier = Modifier,
     impact: TaskDeletionImpact? = null,
 ) {
     val recurring = item.task.scheduleKind == ScheduleKind.Recurring
-    AlertDialog(
+    PaneAwareAlertDialog(
+        modifier = modifier,
         onDismissRequest = onDismiss,
         title = {
             Text(
@@ -554,8 +590,8 @@ fun PermanentTaskDeleteDialog(
                         "${impact.recordedOccurrenceCount} recorded occurrence${if (impact.recordedOccurrenceCount == 1) "" else "s"} " +
                             "(${impact.completedOccurrenceCount} completed, ${impact.skippedOccurrenceCount} skipped, ${impact.openOccurrenceCount} open)",
                     )
-                    Text("${impact.stepCount} step${if (impact.stepCount == 1) "" else "s"}")
-                    Text("${impact.linkRuleCount} goal link${if (impact.linkRuleCount == 1) "" else "s"}")
+                    Text("${impact.stepCount} subtask${if (impact.stepCount == 1) "" else "s"}")
+                    Text("${impact.linkRuleCount} goal progress source${if (impact.linkRuleCount == 1) "" else "s"}")
                     Text("${impact.automationRuleCount} automation${if (impact.automationRuleCount == 1) "" else "s"}")
                     Text(
                         "This cannot be undone. Export a backup first if you may need this history.",
@@ -582,10 +618,14 @@ private fun ScheduledTask.detailLabel(completed: Boolean): String {
     val parts = mutableListOf<String>()
     if (completed) {
         parts += "Completed"
-    } else if (isOverdue) {
-        parts += "Due ${(task.deadline ?: scheduledDate)?.format(shortDateFormatter)}"
     } else {
-        scheduledDate?.let { parts += it.format(shortDateFormatter) }
+        scheduledDate?.let {
+            parts += if (isPastScheduledDate) {
+                "Past Scheduled Date ${it.format(shortDateFormatter)}"
+            } else {
+                "Scheduled ${it.format(shortDateFormatter)}"
+            }
+        }
     }
     task.timeMinutes?.let { total ->
         val hour = total / 60
@@ -594,10 +634,16 @@ private fun ScheduledTask.detailLabel(completed: Boolean): String {
             .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
     }
     if (task.reminderEnabled && !completed) parts += "Reminder"
-    if (!completed && task.deadline != null) parts += "Deadline ${task.deadline.format(shortDateFormatter)}"
+    if (!completed && task.deadline != null) {
+        parts += if (isDeadlineOverdue) {
+            "Deadline Overdue ${task.deadline.format(shortDateFormatter)}"
+        } else {
+            "Deadline ${task.deadline.format(shortDateFormatter)}"
+        }
+    }
     if (task.priority != TaskPriority.None) parts += task.priority.name
     task.durationMinutes?.let { parts += "$it min" }
-    if (task.durationMinutes != null) parts += task.effort.label
+    if (task.effort != TaskEffort.Unspecified) parts += "${task.effort.label} Effort"
     if (task.tags.isNotEmpty()) parts += task.tags.joinToString(prefix = "#", separator = " #")
     if (task.scheduleKind == ScheduleKind.Recurring) parts += task.repeatLabel()
     if (task.inbox) parts += "Inbox"
@@ -635,11 +681,11 @@ private fun WhipTask.repeatLabel(): String {
 
 private fun WhipTask.scheduleExplanation(): String {
     if (scheduleKind == ScheduleKind.Anytime) {
-        return "This task has no date. Choose a date when you are ready to schedule it."
+        return "This task has no scheduled date. Choose one when you are ready to schedule it."
     }
     if (scheduleKind == ScheduleKind.Once) {
-        return date?.let { "Due ${it.format(shortDateFormatter)}." }
-            ?: "This task does not currently have a due date."
+        return date?.let { "Scheduled for ${it.format(shortDateFormatter)}." }
+            ?: "This task does not currently have a scheduled date."
     }
     val rule = requireNotNull(recurrence) { "Recurring tasks require a recurrence rule" }
     val cadence = when {

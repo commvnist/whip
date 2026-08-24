@@ -49,7 +49,7 @@ fun FirstRunSetupDialog(
                 modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text("Choose what belongs at Home. Tasks, Habits, Goals, and Gym remain available from main navigation; this only changes the Home overview.")
+                Text("Choose what belongs at Home. Tasks, Habits, Goals, Tracks, and Gym always remain available from main navigation; this only changes the Home overview.")
                 Text("Home Sections", style = MaterialTheme.typography.titleSmall)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     HomeSection.entries.forEach { section ->
@@ -68,8 +68,8 @@ fun FirstRunSetupDialog(
                 }
                 Text("Experience", style = MaterialTheme.typography.titleSmall)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    WhipFilterChip(!powerMode, { powerMode = false }, { Text("Simple Start") })
-                    WhipFilterChip(powerMode, { powerMode = true }, { Text("Power Mode") })
+                    WhipFilterChip(!powerMode, { powerMode = false }, { Text("Keep Advanced Controls Folded") })
+                    WhipFilterChip(powerMode, { powerMode = true }, { Text("Show Advanced Controls by Default") })
                 }
                 Text(
                     if (powerMode) "Show advanced choices by default where useful." else "Keep advanced choices folded until requested.",
@@ -91,7 +91,7 @@ fun FirstRunSetupDialog(
                     SetupToggle("I want reminder notifications", notifications) { notifications = it }
                 } else {
                     Text(
-                        "Reminder and low-pressure preferences can be configured later in Settings.",
+                        "Configure reminders later in Settings → Reminders and low-pressure presentation in Settings → Appearance & Home.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }

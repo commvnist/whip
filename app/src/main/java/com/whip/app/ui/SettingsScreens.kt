@@ -15,7 +15,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.health.connect.client.PermissionController
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -28,7 +27,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.clickable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -40,9 +38,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.Surface
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -53,11 +49,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
@@ -69,6 +66,10 @@ import com.whip.app.core.HealthDataType
 import com.whip.app.core.ReviewPeriod
 import com.whip.app.core.zoneId
 import com.whip.app.domain.RepeatStepPolicy
+import com.whip.app.domain.CustomIdentityEmoji
+import com.whip.app.domain.IDENTITY_EMOJI_PRESETS
+import com.whip.app.domain.isDefaultIdentityEmoji
+import com.whip.app.domain.isIdentityEmoji
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.toWhipDoubleOrNull
@@ -93,9 +94,9 @@ private enum class SettingsSection(val label: String, val supportingText: String
     Appearance("Appearance & Home", "Theme, presentation, home sections, and keyboard shortcuts"),
     Planning("Planning & Units", "Dates, units, numbers, effort, recurring tasks, and review defaults"),
     Organization("Organization", "Areas, tags, and naming systems"),
-    Reminders("Reminders & Integrations", "Notification health, reminder behavior, and Health Connect"),
-    DataPrivacy("Data & Privacy", "Local data, backups, restore, export, and deletion"),
-    Advanced("Advanced", "Diagnostics and less commonly changed controls"),
+    Reminders("Reminders", "Notification access, delivery status, testing, and quiet hours"),
+    DataPrivacy("Data & Privacy", "Local data, backups, restore, export, health access, and deletion"),
+    AboutDiagnostics("About Whip", "App identity, version, package, and data-handling summary"),
 }
 
 @Composable
@@ -104,6 +105,7 @@ fun SettingsContent(
     innerPadding: PaddingValues,
     viewModel: SettingsViewModel,
     onEditAreas: () -> Unit = {},
+    onDataReset: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var pendingExport by rememberSaveable { mutableStateOf(ExportKind.Backup) }
@@ -113,8 +115,12 @@ fun SettingsContent(
     var versionUnitId by rememberSaveable { mutableStateOf<String?>(null) }
     var taxonomyEditKind by rememberSaveable { mutableStateOf<String?>(null) }
     var taxonomyEditId by rememberSaveable { mutableStateOf<String?>(null) }
+    var customEmojiEditorOpen by rememberSaveable { mutableStateOf(false) }
+    var customEmojiEditorOriginal by rememberSaveable { mutableStateOf<String?>(null) }
     var diagnosticRefresh by rememberSaveable { mutableIntStateOf(0) }
     var notificationTestMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var deliveryDetailsExpanded by rememberSaveable { mutableStateOf(false) }
+    var notificationTroubleshootingExpanded by rememberSaveable { mutableStateOf(false) }
     var showEncryptedExport by rememberSaveable { mutableStateOf(false) }
     var exportPassphrase by remember { mutableStateOf("") }
     var exportPassphraseConfirmation by remember { mutableStateOf("") }
@@ -158,11 +164,22 @@ fun SettingsContent(
         "Automation prompts" to AutomationPromptNotifications.CHANNEL_ID,
         "Focus timer" to FocusTimerNotifications.channelId,
     )
-    val channelHealth = reminderChannels.associate { (label, id) ->
-        label to (notificationManager.getNotificationChannel(id)?.importance?.let { it != NotificationManager.IMPORTANCE_NONE } == true)
+    val channelStates = reminderChannels.associate { (label, id) ->
+        val channel = notificationManager.getNotificationChannel(id)
+        label to notificationDeliveryState(
+            permissionGranted = notificationPermissionGranted,
+            appNotificationsEnabled = appNotificationsEnabled,
+            configuredInWhip = channel != null,
+            androidChannelEnabled = channel?.importance?.let { it != NotificationManager.IMPORTANCE_NONE } == true,
+        )
     }
-    val taskNotificationChannelEnabled = channelHealth["Task reminders"] == true
-    val allReminderChannelsEnabled = channelHealth.values.all { it }
+    val overallNotificationState = overallNotificationDeliveryState(
+        notificationPermissionGranted,
+        appNotificationsEnabled,
+        channelStates.values,
+    )
+    val taskNotificationChannel = notificationManager.getNotificationChannel(ReminderNotifications.CHANNEL_ID)
+    val taskNotificationChannelBlocked = taskNotificationChannel?.importance == NotificationManager.IMPORTANCE_NONE
     val batteryUnrestricted = context.getSystemService(PowerManager::class.java)
         .isIgnoringBatteryOptimizations(context.packageName)
     BoxWithConstraints(Modifier.fillMaxSize().padding(innerPadding)) {
@@ -244,38 +261,94 @@ fun SettingsContent(
         state.message?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.primary); WhipTextButton(onClick = viewModel::consumeMessage) { Text("Dismiss") } } }
 
         if (section == SettingsSection.Appearance) {
-        item { SettingsHeading("Appearance and Home") }
-        item { SettingsToggle("Power mode (surface advanced controls sooner)", settings.powerMode) { selected -> viewModel.update { it.copy(powerMode = selected) } } }
-        item { SettingsToggle("Low-pressure presentation", settings.lowPressureMode) { selected -> viewModel.update { it.copy(lowPressureMode = selected) } } }
+        item { SettingsHeading("Appearance & Home") }
+        item {
+            SettingsToggle(
+                "Show advanced controls by default",
+                settings.powerMode,
+                supportingText = "Opens optional planning and configuration groups automatically. It does not add or remove capabilities.",
+            ) { selected -> viewModel.update { it.copy(powerMode = selected) } }
+        }
+        item {
+            SettingsToggle(
+                "Low-pressure Habit presentation",
+                settings.lowPressureMode,
+                supportingText = "De-emphasizes streaks and success/failure language in Habit views without changing history.",
+            ) { selected -> viewModel.update { it.copy(lowPressureMode = selected) } }
+        }
         if (settings.powerMode) item {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Hardware Keyboard", fontWeight = FontWeight.Bold)
-                    Text("Ctrl+K search · Ctrl+N contextual add · Ctrl+1–5 switch Home, Tasks, Habits, Goals, Gym", style = MaterialTheme.typography.bodySmall)
+                    Text("Ctrl+H Home · Ctrl+K Search · Ctrl+N contextual add · Ctrl+1–5 switch Tasks, Habits, Goals, Tracks, Gym", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
         item { SettingsDropdown("Theme", AppThemeMode.entries, settings.themeMode, { it.name }) { selected -> viewModel.update { it.copy(themeMode = selected) } } }
-        item { SettingsToggle("Use Android dynamic colors", settings.dynamicColor) { selected -> viewModel.update { it.copy(dynamicColor = selected) } } }
+        item {
+            SettingsToggle(
+                "Use Android dynamic colors",
+                settings.dynamicColor,
+                supportingText = "Uses the device wallpaper palette on supported Android versions.",
+            ) { selected -> viewModel.update { it.copy(dynamicColor = selected) } }
+        }
+        item {
+            SettingsHeading("Home Overview")
+            Text(
+                "Choose which sections and empty-day shortcuts appear on Home. Main navigation and saved data remain unchanged. Home Details controls whether a visible section starts expanded.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        val visibleHomeSectionCount = settings.homeSections.count { it !in settings.hiddenHomeSections }
         settings.homeSections.forEachIndexed { index, section ->
             item(key = "home-${section.name}") {
+                val visible = section !in settings.hiddenHomeSections
+                val expanded = section !in settings.collapsedHomeSections
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Switch(checked = section !in settings.hiddenHomeSections, onCheckedChange = { visible -> viewModel.update { current -> current.copy(hiddenHomeSections = if (visible) current.hiddenHomeSections - section else current.hiddenHomeSections + section) } })
-                            Text(section.name, modifier = Modifier.weight(1f).padding(start = 8.dp), fontWeight = FontWeight.SemiBold)
-                            DisclosureButton(
-                                label = "Content",
-                                expanded = section !in settings.collapsedHomeSections,
-                                onClick = { viewModel.update { current -> current.copy(collapsedHomeSections = if (section in current.collapsedHomeSections) current.collapsedHomeSections - section else current.collapsedHomeSections + section) } },
+                        WhipSettingsRow(
+                            title = "Show ${section.name} on Home",
+                            supportingText = when {
+                                !visible -> "Hidden from the Home overview and its empty-day shortcuts."
+                                expanded -> "Visible with its Home details expanded."
+                                else -> "Visible as a collapsed Home heading."
+                            },
+                            checked = visible,
+                            onCheckedChange = { show ->
+                                viewModel.update { current ->
+                                    current.copy(
+                                        hiddenHomeSections = if (show) {
+                                            current.hiddenHomeSections - section
+                                        } else {
+                                            current.hiddenHomeSections + section
+                                        },
+                                    )
+                                }
+                            },
+                            enabled = !visible || visibleHomeSectionCount > 1,
+                            modifier = Modifier.testTag("home-section-${section.name}"),
+                        )
+                        if (visible && visibleHomeSectionCount == 1) {
+                            Text(
+                                "At least one Home section must remain visible.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            DisclosureButton(
+                                label = "Home Details",
+                                expanded = expanded,
+                                onClick = { viewModel.update { current -> current.copy(collapsedHomeSections = if (section in current.collapsedHomeSections) current.collapsedHomeSections - section else current.collapsedHomeSections + section) } },
+                                enabled = visible,
+                            )
+                            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
                             IconButton(enabled = index > 0, onClick = { viewModel.moveHomeSection(section, -1) }, modifier = Modifier.size(48.dp)) {
                                 Icon(Icons.Outlined.ArrowUpward, contentDescription = "Move ${section.name} up", modifier = Modifier.size(26.dp))
                             }
                             IconButton(enabled = index < settings.homeSections.lastIndex, onClick = { viewModel.moveHomeSection(section, 1) }, modifier = Modifier.size(48.dp)) {
                                 Icon(Icons.Outlined.ArrowDownward, contentDescription = "Move ${section.name} down", modifier = Modifier.size(26.dp))
+                            }
                             }
                         }
                     }
@@ -287,7 +360,10 @@ fun SettingsContent(
 
         if (section == SettingsSection.Planning) {
         item { SettingsHeading("Date and Number Defaults") }
-        item { SettingsDropdown("First day of week", DayOfWeek.entries, settings.firstDayOfWeek, { it.name.lowercase().replaceFirstChar(Char::uppercase) }) { selected -> viewModel.update { it.copy(firstDayOfWeek = selected) } } }
+        item {
+            SettingsDropdown("First day of week", DayOfWeek.entries, settings.firstDayOfWeek, { it.name.lowercase().replaceFirstChar(Char::uppercase) }) { selected -> viewModel.update { it.copy(firstDayOfWeek = selected) } }
+            Text("Sets weekday order in calendars and editors, and groups weekly Review and Gym analytics. Existing Habit schedules keep their own week start.", style = MaterialTheme.typography.bodySmall)
+        }
         item {
             val followDevice = settings.timeZoneId == null
             SettingsToggle("Follow device time zone", followDevice) { enabled ->
@@ -300,8 +376,18 @@ fun SettingsContent(
             }
             Text("Active time zone: ${settings.zoneId().id}. Historical entries keep their saved local date and offset.", style = MaterialTheme.typography.bodySmall)
         }
-        item { ClockSetting("Late-night day cutoff", settings.dayCutoffMinutes) { minutes -> viewModel.update { it.copy(dayCutoffMinutes = minutes) } } }
-        item { NumberSetting("Default decimal precision", settings.numberPrecision) { value -> viewModel.update { it.copy(numberPrecision = value.coerceIn(0, 6)) } } }
+        item {
+            ClockSetting("Late-night day cutoff", settings.dayCutoffMinutes) { minutes -> viewModel.update { it.copy(dayCutoffMinutes = minutes) } }
+            Text("Before this time, Today still uses the previous calendar date. Use 00:00 for the standard midnight boundary.", style = MaterialTheme.typography.bodySmall)
+        }
+        item {
+            NumberSetting(
+                "Default decimal precision",
+                settings.numberPrecision,
+                { value -> viewModel.update { it.copy(numberPrecision = value) } },
+                validRange = 0..6,
+            )
+        }
         item { SettingsHeading("Unit Defaults") }
         item { UnitSetting("Mass", listOf("kilogram", "pound", "gram"), settings.massUnitId) { value -> viewModel.update { it.copy(massUnitId = value) } } }
         item { UnitSetting("Distance", listOf("kilometre", "mile", "distance_m"), settings.distanceUnitId) { value -> viewModel.update { it.copy(distanceUnitId = value) } } }
@@ -318,7 +404,7 @@ fun SettingsContent(
         item {
             Text("Custom Units", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
-                "Create reusable units for Habits and Goals. Choose a measurement type and define how one custom unit converts to Whip's base unit.",
+                "Create reusable units for Habit measurements, Goal values, and number fields in Tracks. Units can also be created beside the Unit control while editing a supported item.",
                 style = MaterialTheme.typography.bodySmall,
             )
             if (state.customUnits.isEmpty()) Text("No custom conversion units yet.", style = MaterialTheme.typography.bodySmall)
@@ -387,21 +473,40 @@ fun SettingsContent(
             )
         }
         item { SettingsHeading("Habit Defaults") }
-        item { SettingsDropdown("Habit week starts", DayOfWeek.entries, settings.defaultHabitWeekStart, { it.name.lowercase().replaceFirstChar(Char::uppercase) }) { value -> viewModel.update { it.copy(defaultHabitWeekStart = value) } } }
+        item {
+            SettingsDropdown("Default week start for new Habits", DayOfWeek.entries, settings.defaultHabitWeekStart, { it.name.lowercase().replaceFirstChar(Char::uppercase) }) { value -> viewModel.update { it.copy(defaultHabitWeekStart = value) } }
+            Text("Existing Habits keep their own saved week start.", style = MaterialTheme.typography.bodySmall)
+        }
         }
 
         if (section == SettingsSection.Planning) {
         item { SettingsHeading("Gym Defaults") }
         item { SettingsDropdown("Estimated 1RM formula", listOf("Epley", "Brzycki"), settings.oneRepMaxFormula, { it }) { value -> viewModel.update { it.copy(oneRepMaxFormula = value) } } }
-        item { NumberSetting("Estimated 1RM rep cutoff", settings.oneRepMaxRepCutoff) { value -> viewModel.update { it.copy(oneRepMaxRepCutoff = value.coerceIn(1, 36)) } } }
-        item { NumberSetting("Default rest seconds", settings.defaultRestSeconds) { value -> viewModel.update { it.copy(defaultRestSeconds = value.coerceAtLeast(0)) } } }
+        item {
+            NumberSetting(
+                "Estimated 1RM rep cutoff",
+                settings.oneRepMaxRepCutoff,
+                { value -> viewModel.update { it.copy(oneRepMaxRepCutoff = value) } },
+                validRange = 1..36,
+                supportingText = "Sets above this repetition count are excluded from estimated 1RM records.",
+            )
+        }
+        item {
+            NumberSetting(
+                "Default rest time (seconds)",
+                settings.defaultRestSeconds,
+                { value -> viewModel.update { it.copy(defaultRestSeconds = value) } },
+                validRange = 15..3_600,
+                supportingText = "Used when a workout has no temporary rest-time override.",
+            )
+        }
         item {
             Text(
                 "Rest presets · ${settings.restTimerPresetSeconds.joinToString(" · ") { seconds -> "%d:%02d".format(seconds / 60, seconds % 60) }}",
                 style = MaterialTheme.typography.bodySmall,
             )
             Text(
-                "During a workout, choose Rest > Adjust > Manage Presets to add, remove, or restore shortcuts.",
+                "To edit these shortcuts, open an active workout and choose Rest → Adjust → Manage Presets.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -409,19 +514,26 @@ fun SettingsContent(
         item { SettingsToggle("Rest timer sound", settings.timerSound) { value -> viewModel.update { it.copy(timerSound = value) } }; SettingsToggle("Rest timer vibration", settings.timerVibration) { value -> viewModel.update { it.copy(timerVibration = value) } }; SettingsToggle("Keep workout screen awake by default", settings.keepScreenAwake) { value -> viewModel.update { it.copy(keepScreenAwake = value) } } }
         item { SettingsToggle("Use compact workout set rows", settings.gymCompactSetRows) { value -> viewModel.update { it.copy(gymCompactSetRows = value) } } }
         item {
-            SettingsToggle("Start rest timer when a set completes", settings.restTimerAutoStart) { value ->
+            SettingsToggle(
+                "Start rest timer when a set completes",
+                settings.restTimerAutoStart,
+                supportingText = "Starts the in-app timer automatically. Android notification access is needed only for background alerts.",
+            ) { value ->
                 if (value && !settings.restTimerAutoStart && !notificationPermissionGranted) {
                     viewModel.markNotificationPermissionRequested()
                     notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
                 viewModel.update { it.copy(restTimerAutoStart = value) }
             }
-            SettingsToggle("Use RPE for workout effort", settings.showGymRpe) { value ->
-                viewModel.update { it.copy(showGymRpe = value, showGymRir = if (value) false else it.showGymRir) }
+            val effortField = when {
+                settings.showGymRpe -> "RPE"
+                settings.showGymRir -> "RIR"
+                else -> "None"
             }
-            SettingsToggle("Use RIR for workout effort", settings.showGymRir) { value ->
-                viewModel.update { it.copy(showGymRir = value, showGymRpe = if (value) false else it.showGymRpe) }
+            SettingsDropdown("Default workout effort field", listOf("None", "RPE", "RIR"), effortField, { it }) { value ->
+                viewModel.update { it.copy(showGymRpe = value == "RPE", showGymRir = value == "RIR") }
             }
+            Text("Individual exercises can override this default. RPE and RIR are alternative scales, so only one is shown at a time.", style = MaterialTheme.typography.bodySmall)
             SettingsToggle("Show tempo fields", settings.showGymTempo) { value -> viewModel.update { it.copy(showGymTempo = value) } }
             SettingsToggle("Include warm-ups in volume and PRs", settings.includeWarmupsInGymStats) { value -> viewModel.update { it.copy(includeWarmupsInGymStats = value) } }
         }
@@ -443,7 +555,15 @@ fun SettingsContent(
             }
             Text("Only these classifications count in category hard-set summaries. Volume and PR inclusion remain separately configurable.", style = MaterialTheme.typography.bodySmall)
         }
-        item { SettingsDropdown("Overlapping category allocation", listOf("Full", "Fractional", "PrimaryOnly"), settings.categoryAllocationMode, { it }) { selected -> viewModel.update { it.copy(categoryAllocationMode = selected) } } }
+        item {
+            SettingsDropdown(
+                "Overlapping category allocation",
+                listOf("Full", "Fractional", "PrimaryOnly"),
+                settings.categoryAllocationMode,
+                ::categoryAllocationModeLabel,
+            ) { selected -> viewModel.update { it.copy(categoryAllocationMode = selected) } }
+            Text("Controls how one hard set contributes when an exercise belongs to multiple categories.", style = MaterialTheme.typography.bodySmall)
+        }
         item { SettingsToggle("Adjust estimated 1RM using RPE/RIR", settings.adjustE1rmForEffort) { selected -> viewModel.update { it.copy(adjustE1rmForEffort = selected) } } }
         item { SettingsToggle("Allow assisted lifts in personal records", settings.includeAssistedInPersonalRecords) { selected -> viewModel.update { it.copy(includeAssistedInPersonalRecords = selected) } } }
         }
@@ -454,9 +574,59 @@ fun SettingsContent(
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Areas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("Create your own named areas to group related items across Tasks, Habits, Goals, Search, and Review.")
+                    Text("Create named areas to group related tasks, habits, goals, and tracks across search and review.")
                     Text("${state.areas.count { !it.archived }} active · ${state.areas.count { it.archived }} archived · ${state.areaUsage.values.sumOf(AreaUsageCounts::total) + state.unassignedAreaUsage.total} items", style = MaterialTheme.typography.bodySmall)
                     WhipButton(onClick = onEditAreas, modifier = Modifier.fillMaxWidth()) { Text("Manage Areas") }
+                }
+            }
+        }
+        item {
+            SettingsHeading("Custom Emojis")
+            Text(
+                "Name reusable emoji choices for your own organization. Whip's ${IDENTITY_EMOJI_PRESETS.size} common emojis are always available and cannot be renamed, replaced, or deleted.",
+            )
+            Text(
+                "Removing a custom choice does not change Habits, Goals, or Tracks that already use its emoji.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "${IDENTITY_EMOJI_PRESETS.size} Common Emojis · Read-Only",
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    if (settings.customIdentityEmojis.isEmpty()) {
+                        Text("No custom emojis yet.", style = MaterialTheme.typography.bodySmall)
+                    }
+                    settings.customIdentityEmojis.forEach { choice ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().testTag("custom-emoji-${choice.emoji}"),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            WhipIdentityEmoji(choice.emoji, contentDescription = "${choice.name} emoji")
+                            Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                                Text(choice.name, fontWeight = FontWeight.SemiBold)
+                                Text(choice.emoji, style = MaterialTheme.typography.bodySmall)
+                            }
+                            WhipTextButton(
+                                onClick = {
+                                    customEmojiEditorOriginal = choice.emoji
+                                    customEmojiEditorOpen = true
+                                },
+                            ) { Text("Edit") }
+                            WhipTextButton(onClick = { viewModel.removeCustomIdentityEmoji(choice.emoji) }) {
+                                Text("Remove", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                    WhipOutlinedButton(
+                        onClick = {
+                            customEmojiEditorOriginal = null
+                            customEmojiEditorOpen = true
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("custom-emoji-add"),
+                    ) { Text("Add Custom Emoji") }
                 }
             }
         }
@@ -481,94 +651,111 @@ fun SettingsContent(
         item(key = "notification-diagnostics-$diagnosticRefresh") {
             Card(Modifier.fillMaxWidth().testTag("notification-diagnostics")) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Delivery Diagnostics", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Reminder Delivery", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(overallNotificationState.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Text(
-                        when {
-                            notificationPermissionPermanentlyDenied -> "Notification permission is blocked. Re-enable it in Android settings before relying on reminders."
-                            notificationPermissionRationale -> "Notification permission was declined. Whip only uses it for reminders and rest timers you explicitly enable."
-                            !notificationPermissionGranted -> "Notification permission has not been granted. Reminders cannot be shown."
-                            !appNotificationsEnabled -> "Notifications are disabled for Whip in Android settings."
-                            !allReminderChannelsEnabled -> "One or more reminder channels are disabled in Android settings."
-                            else -> "Notification permission and all active reminder channels are enabled."
+                        when (overallNotificationState) {
+                            NotificationDeliveryState.Deliverable -> "Configured Whip reminders can be delivered by Android."
+                            NotificationDeliveryState.Blocked -> when {
+                                notificationPermissionPermanentlyDenied -> "Android notification permission is blocked. Re-enable it before relying on reminders."
+                                notificationPermissionRationale -> "Notification permission was declined. Whip uses it only for reminders and timers you enable."
+                                else -> "Notification permission has not been granted, so no reminder can be shown."
+                            }
+                            NotificationDeliveryState.OffInWhip -> "Android is ready, but no Whip reminder channel is active yet. Add a reminder or enable a timer when you want notifications."
+                            NotificationDeliveryState.OffInAndroid -> "Android is blocking Whip or at least one active reminder channel."
                         },
-                        color = if (notificationPermissionGranted && appNotificationsEnabled && allReminderChannelsEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                        color = when (overallNotificationState) {
+                            NotificationDeliveryState.Deliverable -> MaterialTheme.colorScheme.primary
+                            NotificationDeliveryState.OffInWhip -> MaterialTheme.colorScheme.onSurfaceVariant
+                            NotificationDeliveryState.Blocked, NotificationDeliveryState.OffInAndroid -> MaterialTheme.colorScheme.error
+                        },
                     )
-                    channelHealth.forEach { (label, enabled) ->
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text(label, modifier = Modifier.weight(1f))
-                            Text(if (enabled) "Enabled" else "Blocked", color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+
+                    if (!notificationPermissionGranted) {
+                        WhipButton(
+                            onClick = {
+                                if (notificationPermissionPermanentlyDenied) {
+                                    context.startActivity(
+                                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
+                                    )
+                                } else {
+                                    viewModel.markNotificationPermissionRequested()
+                                    notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text(if (notificationPermissionPermanentlyDenied) "Repair in Android Settings" else "Allow Notifications") }
+                    } else if (overallNotificationState == NotificationDeliveryState.OffInAndroid) {
+                        WhipButton(
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text("Repair in Android Settings") }
+                    }
+
+                    DisclosureButton("Delivery Details", deliveryDetailsExpanded, { deliveryDetailsExpanded = !deliveryDetailsExpanded }, Modifier.fillMaxWidth())
+                    if (deliveryDetailsExpanded) {
+                        channelStates.forEach { (label, state) ->
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text(label, modifier = Modifier.weight(1f))
+                                Text(state.label, color = if (state == NotificationDeliveryState.Deliverable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
-                    Text(
-                        if (batteryUnrestricted) {
-                            "Battery optimization is unrestricted for Whip."
-                        } else {
-                            "Android battery optimization may delay reminders while Whip is idle. Exact behavior depends on your device settings."
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+
+                    DisclosureButton("Troubleshooting", notificationTroubleshootingExpanded, { notificationTroubleshootingExpanded = !notificationTroubleshootingExpanded }, Modifier.fillMaxWidth())
+                    if (notificationTroubleshootingExpanded) {
+                        Text(
+                            if (batteryUnrestricted) "Battery optimization is unrestricted for Whip."
+                            else "Android battery optimization may delay reminders while Whip is idle.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        WhipOutlinedButton(
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text("Android Notification Settings") }
+                        reminderChannels.filter { (label) -> channelStates[label] == NotificationDeliveryState.OffInAndroid }.forEach { (label, channelId) ->
+                            WhipOutlinedButton(
+                                onClick = {
+                                    context.startActivity(
+                                        Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                            .putExtra(Settings.EXTRA_CHANNEL_ID, channelId),
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) { Text("Repair $label") }
+                        }
+                        WhipOutlinedButton(
+                            onClick = { context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text("Battery Optimization Settings") }
+                    }
                     notificationTestMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 }
             }
         }
-        if (!notificationPermissionGranted) {
-            item {
-                WhipOutlinedButton(
-                    onClick = {
-                        if (notificationPermissionPermanentlyDenied) {
-                            context.startActivity(
-                                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                                    .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
-                            )
-                        } else {
-                            viewModel.markNotificationPermissionRequested()
-                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text(if (notificationPermissionPermanentlyDenied) "Repair Notification Permission" else "Grant Notification Permission") }
-            }
-        }
-        item {
-            WhipOutlinedButton(
-                onClick = {
-                    context.startActivity(
-                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Open Android Notification Settings") }
-        }
-        reminderChannels.forEach { (label, channelId) ->
-            if (channelHealth[label] == false) {
-                item(key = "repair-channel-$channelId") {
-                    WhipOutlinedButton(
-                        onClick = {
-                            context.startActivity(
-                                Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
-                                    .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                                    .putExtra(Settings.EXTRA_CHANNEL_ID, channelId),
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Repair $label") }
-                }
-            }
-        }
-        item {
-            WhipOutlinedButton(
-                onClick = { context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Open Battery Optimization Settings") }
-        }
         item {
             val testNotificationAvailability = ControlAvailability(
-                enabled = notificationPermissionGranted && appNotificationsEnabled && taskNotificationChannelEnabled,
+                enabled = canSendNotificationTest(
+                    notificationPermissionGranted,
+                    appNotificationsEnabled,
+                    taskNotificationChannelBlocked,
+                ),
                 unavailableExplanation = when {
                     !notificationPermissionGranted -> "Allow Whip notifications in Android settings."
                     !appNotificationsEnabled -> "Turn on Whip notifications in Android settings."
-                    !taskNotificationChannelEnabled -> "Turn on the Tasks reminder channel in Android settings."
+                    taskNotificationChannelBlocked -> "Turn on the Task reminders channel in Android settings."
                     else -> null
                 },
             )
@@ -580,9 +767,13 @@ fun SettingsContent(
                     } else {
                         "Android blocked the test notification."
                     }
+                    diagnosticRefresh++
                 },
                 modifier = Modifier.fillMaxWidth().testTag("send-test-notification"),
             ) { Text("Send Test Notification") }
+            if (taskNotificationChannel == null && testNotificationAvailability.enabled) {
+                Text("Sending a test creates the Task reminders channel if it does not exist yet.", style = MaterialTheme.typography.bodySmall)
+            }
             AvailabilityNotice("Send test notification", testNotificationAvailability)
         }
         item { WhipTextButton(onClick = { diagnosticRefresh++ }) { Text("Refresh Notification Status") } }
@@ -604,7 +795,7 @@ fun SettingsContent(
         }
 
         if (section == SettingsSection.DataPrivacy) {
-        item { SettingsHeading("Backup and export") }
+        item { SettingsHeading("Backup & Export") }
         item {
             Card(Modifier.fillMaxWidth()) {
                 Column(
@@ -642,6 +833,7 @@ fun SettingsContent(
                             "Verified backups to keep (1–30)",
                             state.portableBackup.retentionCount,
                             viewModel::setPortableBackupRetention,
+                            validRange = 1..30,
                         )
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             WhipOutlinedButton(
@@ -681,17 +873,31 @@ fun SettingsContent(
         }
         item { WhipOutlinedButton(onClick = { openDocument.launch(arrayOf("application/json", "text/plain", "*/*")) }, modifier = Modifier.fillMaxWidth()) { Text("Preview and Restore Backup") } }
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf(ExportKind.TasksCsv to "Tasks", ExportKind.HabitsCsv to "Habits", ExportKind.GoalsCsv to "Goals", ExportKind.GymCsv to "Gym").forEach { (kind, label) ->
-                    WhipTextButton(onClick = { pendingExport = kind; createDocument.launch("whip-${label.lowercase()}-${LocalDate.now(settings.zoneId())}.csv") }, modifier = Modifier.weight(1f)) { Text(label) }
+            Text("Export CSV", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                maxItemsInEachRow = 3,
+            ) {
+                listOf(ExportKind.TasksCsv to "Tasks", ExportKind.HabitsCsv to "Habits", ExportKind.GoalsCsv to "Goals", ExportKind.GymCsv to "Gym", ExportKind.TracksCsv to "Tracks").forEach { (kind, label) ->
+                    WhipTextButton(
+                        onClick = { pendingExport = kind; createDocument.launch("whip-${label.lowercase()}-${LocalDate.now(settings.zoneId())}.csv") },
+                        modifier = Modifier.width(96.dp),
+                    ) { Text(label) }
                 }
             }
         }
-        item { WhipOutlinedButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) { Text("Delete All Local Data") } }
+        item {
+            WhipOutlinedButton(
+                onClick = { confirmDelete = true },
+                modifier = Modifier.fillMaxWidth().testTag("reset-whip-action"),
+            ) { Text("Reset Whip and Delete All Data") }
+        }
         }
 
         if (section == SettingsSection.DataPrivacy) {
-        item { SettingsHeading("Health and privacy") }
+        item { SettingsHeading("Health & Privacy") }
         item {
             Text("Whip stores data locally and does not require an account. Estimated 1RM and correlations are informational, not medical or safety advice.")
             Text(
@@ -728,21 +934,22 @@ fun SettingsContent(
                     val selected = type in settings.healthDataTypes
                     val permission = viewModel.requiredHealthPermissionsFor(type)
                     val granted = permission in state.healthConnect.grantedPermissions
-                    SettingsToggle(
-                        if (!settings.healthConnectEnabled) {
-                            "${type.name} · sync paused"
-                        } else {
-                            "${type.name} · ${if (granted) "Android access allowed" else "Android access not allowed"}"
-                        },
-                        selected && settings.healthConnectEnabled,
-                        enabled = settings.healthConnectEnabled,
-                    ) { enabled -> viewModel.setHealthDataType(type, enabled) }
+                    HealthDataTypeSetting(
+                        type = type,
+                        syncEnabled = settings.healthConnectEnabled,
+                        selected = selected,
+                        accessGranted = granted,
+                        onChange = { enabled -> viewModel.setHealthDataType(type, enabled) },
+                    )
                 }
             }
             item {
-                NumberSetting("Days to sync", settings.healthSyncDays) { value ->
-                    viewModel.update { it.copy(healthSyncDays = value.coerceIn(1, 365)) }
-                }
+                NumberSetting(
+                    "Days to sync",
+                    settings.healthSyncDays,
+                    { value -> viewModel.update { it.copy(healthSyncDays = value) } },
+                    validRange = 1..365,
+                )
                 val accessAvailability = ControlAvailability(
                     enabled = settings.healthDataTypes.isNotEmpty(),
                     unavailableExplanation = "Select at least one Health Connect category.",
@@ -773,7 +980,7 @@ fun SettingsContent(
             }
         }
         }
-        if (section == SettingsSection.Advanced) {
+        if (section == SettingsSection.AboutDiagnostics) {
         item { SettingsHeading("About Whip") }
         item {
             Card(Modifier.fillMaxWidth()) {
@@ -894,10 +1101,34 @@ fun SettingsContent(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete All Local Data?") },
-            text = { Text("This cannot be undone. Create a full backup first if you may need this data again.") },
-            confirmButton = { WhipTextButton(onClick = { viewModel.deleteAllData(); confirmDelete = false }) { Text("Delete Everything") } },
+            title = { Text("Reset Whip and Delete All Data?") },
+            text = { Text("This deletes every task, Habit, Goal, Track, workout, and local setting; disconnects the portable backup folder; and returns Whip to setup. Existing backup files outside Whip are not deleted. This cannot be undone.") },
+            confirmButton = {
+                WhipTextButton(
+                    onClick = {
+                        confirmDelete = false
+                        viewModel.deleteAllData(onSuccess = onDataReset)
+                    },
+                    modifier = Modifier.testTag("confirm-reset-whip"),
+                ) { Text("Reset and Delete Everything") }
+            },
             dismissButton = { WhipTextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+        )
+    }
+    if (customEmojiEditorOpen) {
+        val initial = settings.customIdentityEmojis.firstOrNull { it.emoji == customEmojiEditorOriginal }
+        CustomIdentityEmojiDialog(
+            initial = initial,
+            existingChoices = settings.customIdentityEmojis,
+            onDismiss = {
+                customEmojiEditorOpen = false
+                customEmojiEditorOriginal = null
+            },
+            onSave = { choice ->
+                viewModel.upsertCustomIdentityEmoji(customEmojiEditorOriginal, choice)
+                customEmojiEditorOpen = false
+                customEmojiEditorOriginal = null
+            },
         )
     }
     if (createUnit) {
@@ -956,6 +1187,86 @@ fun SettingsContent(
 }
 
 @Composable
+internal fun CustomIdentityEmojiDialog(
+    initial: CustomIdentityEmoji? = null,
+    existingChoices: List<CustomIdentityEmoji>,
+    onDismiss: () -> Unit,
+    onSave: (CustomIdentityEmoji) -> Unit,
+) {
+    val editorKey = initial?.emoji ?: "new-custom-emoji"
+    var emoji by rememberSaveable(editorKey) { mutableStateOf(initial?.emoji.orEmpty()) }
+    var name by rememberSaveable(editorKey) { mutableStateOf(initial?.name.orEmpty()) }
+    val normalizedEmoji = emoji.trim()
+    val normalizedName = name.trim()
+    val isBuiltIn = normalizedEmoji.isDefaultIdentityEmoji()
+    val emojiIsValid = normalizedEmoji.isIdentityEmoji() && !isBuiltIn
+    val duplicateEmoji = existingChoices.any { choice ->
+        choice.emoji == normalizedEmoji && choice.emoji != initial?.emoji
+    }
+    val duplicateName = existingChoices.any { choice ->
+        choice.emoji != initial?.emoji && choice.name.equals(normalizedName, ignoreCase = true)
+    }
+    val canSave = emojiIsValid && normalizedName.isNotBlank() && !duplicateEmoji && !duplicateName
+
+    AlertDialog(
+        modifier = Modifier.testTag("custom-emoji-editor"),
+        onDismissRequest = onDismiss,
+        title = { Text(if (initial == null) "Add Custom Emoji" else "Edit Custom Emoji") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Your custom choices are available in every Habit, Goal, and Track emoji picker. The common library stays read-only.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                OutlinedTextField(
+                    value = emoji,
+                    onValueChange = { emoji = it.trim().take(32) },
+                    modifier = Modifier.fillMaxWidth().testTag("custom-emoji-editor-glyph"),
+                    label = { Text("Emoji") },
+                    isError = normalizedEmoji.isNotEmpty() && (!emojiIsValid || duplicateEmoji),
+                    supportingText = {
+                        Text(
+                            when {
+                                isBuiltIn -> "This is a built-in emoji and is already always available."
+                                duplicateEmoji -> "This custom emoji already exists."
+                                normalizedEmoji.isNotEmpty() && !emojiIsValid -> "Enter one emoji, not text or multiple separate emojis."
+                                else -> "Choose one emoji for this custom entry."
+                            },
+                        )
+                    },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    modifier = Modifier.fillMaxWidth().testTag("custom-emoji-editor-name"),
+                    label = { Text("Name") },
+                    isError = duplicateName,
+                    supportingText = {
+                        Text(
+                            when {
+                                duplicateName -> "That custom emoji name is already in use."
+                                normalizedName.isBlank() && name.isNotEmpty() -> "Enter a name for your organization."
+                                else -> "For example: Deep Work, Family Admin, or Chess Study."
+                            },
+                        )
+                    },
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            WhipTextButton(
+                enabled = canSave,
+                onClick = { onSave(CustomIdentityEmoji(normalizedEmoji, normalizedName)) },
+                modifier = Modifier.testTag("custom-emoji-editor-save"),
+            ) { Text(if (initial == null) "Add" else "Save") }
+        },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+@Composable
 private fun TaxonomyRenameDialog(
     kind: String,
     initialName: String,
@@ -979,9 +1290,37 @@ private fun TaxonomyRenameDialog(
 
 @Composable private fun SettingsHeading(text: String) { HorizontalDivider(); Text(text.uiTitleCase(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
 
-@Composable private fun SettingsToggle(label: String, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
+@Composable
+internal fun HealthDataTypeSetting(
+    type: HealthDataType,
+    syncEnabled: Boolean,
+    selected: Boolean,
+    accessGranted: Boolean,
+    onChange: (Boolean) -> Unit,
+) {
+    WhipSettingsRow(
+        title = if (!syncEnabled) {
+            "${type.name} · sync paused"
+        } else {
+            "${type.name} · ${if (accessGranted) "Android access allowed" else "Android access not allowed"}"
+        },
+        modifier = Modifier.testTag("health-type-${type.name}"),
+        checked = selected,
+        enabled = syncEnabled,
+        onCheckedChange = onChange,
+    )
+}
+
+@Composable private fun SettingsToggle(
+    label: String,
+    checked: Boolean,
+    supportingText: String? = null,
+    enabled: Boolean = true,
+    onChange: (Boolean) -> Unit,
+) {
     WhipSettingsRow(
         title = label,
+        supportingText = supportingText,
         checked = checked,
         onCheckedChange = onChange,
         enabled = enabled,
@@ -992,14 +1331,49 @@ private fun TaxonomyRenameDialog(
     SelectionField(label = label, values = values, selected = selected, valueText = text, onSelect = onChange)
 }
 
-@Composable private fun NumberSetting(label: String, current: Int, onChange: (Int) -> Unit) {
+@Composable private fun NumberSetting(
+    label: String,
+    current: Int,
+    onChange: (Int) -> Unit,
+    validRange: IntRange? = null,
+    supportingText: String? = null,
+) {
     var text by rememberSaveable(current) { mutableStateOf(current.toString()) }
-    OutlinedTextField(text, { value -> text = value; value.toIntOrNull()?.let(onChange) }, label = { Text(label) }, modifier = Modifier.fillMaxWidth())
+    val parsed = text.toIntOrNull()
+    val valid = parsed != null && (validRange == null || parsed in validRange)
+    val supportingMessage = if (!valid && text.isNotBlank() && validRange != null) {
+        "Enter ${validRange.first}–${validRange.last}."
+    } else {
+        supportingText
+    }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { value ->
+            text = value
+            value.toIntOrNull()?.takeIf { validRange == null || it in validRange }?.let(onChange)
+        },
+        label = { Text(label) },
+        supportingText = if (supportingMessage != null) { { Text(supportingMessage) } } else null,
+        isError = text.isNotBlank() && !valid,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable private fun ClockSetting(label: String, currentMinutes: Int, onChange: (Int) -> Unit) {
     var text by rememberSaveable(currentMinutes) { mutableStateOf("%02d:%02d".format(currentMinutes / 60, currentMinutes % 60)) }
-    OutlinedTextField(text, { value -> text = value; parseSettingsClock(value)?.let(onChange) }, label = { Text(label) }, modifier = Modifier.fillMaxWidth())
+    val valid = parseSettingsClock(text) != null
+    OutlinedTextField(
+        value = text,
+        onValueChange = { value -> text = value; parseSettingsClock(value)?.let(onChange) },
+        label = { Text(label) },
+        supportingText = { Text("Use 24-hour HH:MM, from 00:00 to 23:59.") },
+        isError = text.isNotBlank() && !valid,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable private fun UnitSetting(label: String, values: List<String>, current: String, onChange: (String) -> Unit) {
@@ -1108,6 +1482,10 @@ private fun canonicalUnitLabel(dimension: UnitDimension): String = when (dimensi
     UnitDimension.Length -> "metres"
     UnitDimension.Money -> "currency units"
     UnitDimension.Energy -> "kilojoules"
+    UnitDimension.Temperature -> "degrees Celsius"
+    UnitDimension.Speed -> "metres per second"
+    UnitDimension.Pace -> "seconds per metre"
+    UnitDimension.Frequency -> "hertz"
     UnitDimension.Percentage -> "percent"
     UnitDimension.Unitless -> "base numbers"
     UnitDimension.Custom -> "custom base units"
@@ -1119,7 +1497,18 @@ private fun customUnitExample(dimension: UnitDimension): String = when (dimensio
     UnitDimension.Distance, UnitDimension.Length -> "Example: 400 m lap → enter 400."
     UnitDimension.Duration -> "Example: 15 minute block → enter 900 seconds."
     UnitDimension.Energy -> "Example: 1 kcal → enter 4.184 kJ."
+    UnitDimension.Temperature -> "Celsius, Fahrenheit, and Kelvin are built in. Custom scales must use the same zero point as Celsius."
+    UnitDimension.Speed -> "Example: 1 km/h → enter 0.27777778 metres per second."
+    UnitDimension.Pace -> "Example: 1 min/km → enter 0.06 seconds per metre."
+    UnitDimension.Frequency -> "Example: 1 per minute → enter 0.01666667 hertz."
     else -> "Enter the amount represented by one of your custom units."
+}
+
+private fun categoryAllocationModeLabel(value: String): String = when (value) {
+    "Full" -> "Full contribution"
+    "Fractional" -> "Split contribution"
+    "PrimaryOnly" -> "Primary category only"
+    else -> value
 }
 
 @Composable private fun TimeZoneSetting(current: String, onChange: (String) -> Unit) {

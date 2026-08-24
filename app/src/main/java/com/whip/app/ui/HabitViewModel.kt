@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.whip.app.WhipApplication
 import com.whip.app.core.OperationStatus
+import com.whip.app.core.currentDateFlow
 import com.whip.app.core.WhipClock
 import com.whip.app.data.HabitRepository
 import com.whip.app.domain.Habit
@@ -44,8 +45,6 @@ import com.whip.app.domain.targetSatisfied
 import com.whip.app.domain.valueForPeriod
 import java.time.LocalDate
 import java.util.concurrent.CancellationException
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -54,10 +53,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 data class HabitUiState(
@@ -100,7 +97,7 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
 
     private val habitUiState = combine(
         habitData,
-        currentDateFlow(clock),
+        app.settingsRepository.currentDateFlow(clock),
         app.measurementRepository.metrics,
         app.measurementRepository.entries,
         app.measurementRepository.customUnits,
@@ -205,8 +202,12 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
             delayMinutes = rule.delayMinutes,
             quietStartMinutes = rule.quietStartMinutes,
             quietEndMinutes = rule.quietEndMinutes,
-            autoCompleteTargetHabit = rule.autoCompleteTargetHabit,
+            action = rule.action,
+            notificationEnabled = rule.notificationEnabled,
             enabled = enabled,
+            conditionMode = rule.conditionMode,
+            conditions = rule.conditions,
+            mappings = rule.mappings,
         ),
     )
     fun doTriggerNow(occurrenceId: Long, rule: com.whip.app.domain.TriggerRule) = runOperation(
@@ -230,7 +231,7 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         app.automationPromptScheduler.cancel(id)
     }
     fun linkHabitToGoal(habitId: Long, goalId: Long, metric: LinkSourceMetric, from: LocalDate?) =
-        runOperation("Linking habit…", "Habit linked to goal") {
+        runOperation("Creating Goal Automation…", "Goal Automation created") {
             links.createRule(
                 LinkRuleDraft(
                     name = "Habit contribution",
@@ -373,11 +374,4 @@ private fun buildProgress(
         flexibleScheduleProgress = flexibleProgress?.completed,
         flexibleScheduleTarget = flexibleProgress?.target,
     )
-}
-
-private fun currentDateFlow(clock: WhipClock): Flow<LocalDate> = flow {
-    while (currentCoroutineContext().isActive) {
-        emit(clock.today())
-        delay(60_000)
-    }
 }

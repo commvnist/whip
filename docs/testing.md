@@ -5,17 +5,25 @@ Local quality gate:
 ```bash
 scripts/check
 scripts/check --full
-scripts/check --device
+scripts/check --emulator
 ```
 
 `scripts/check` is the required pre-commit gate: deterministic JVM tests,
-Android-test compilation, lint, and a debug build. `--device` additionally runs
+Android-test compilation, lint, and a debug build. `--emulator` additionally runs
 the persisted-data, navigation, Compose Accessibility Test
 Framework, editor-recreation, notification-action, backup fault-injection, and
 adaptive-layout tests. Android instrumentation resets only the separate
 `commvne.com.whip.app.debug` app, so it can run beside the signed
 `commvne.com.whip.app` release
-without replacing release data. Device execution remains deliberately opt-in.
+without replacing release data. The gate refuses physical hardware and requires
+exactly one connected disposable API 34+ emulator, preventing a test from
+clearing or otherwise disturbing a personal phone. `--device` remains an alias
+for compatibility but has the same emulator-only guard. Execution remains
+deliberately opt-in. Instrumentation classes run in bounded batches so Compose
+and graphics state is released between runner processes. The graphics-heavy
+interaction class runs first against the fresh emulator; every `*Test.kt` class
+is still included, and the gate fails if a test file does not declare the
+matching top-level class.
 `scripts/check --full` is the comprehensive local gate; it also builds the
 minified release and optimized Macrobenchmark target/harness. Run the device
 suite locally against API 26, 28, and 35 emulators when compatibility coverage
@@ -24,6 +32,19 @@ performance evidence. See [`performance.md`](performance.md). A current physical
 device remains the final smoke test for platform permission surfaces, wireless
 install/launch, Health Connect presence, input devices, and real folding
 transitions.
+
+The stable headless API 34 configuration used by the August 2026 release gate
+disables host Vulkan and uses the software renderer. This avoids treating a
+host/QEMU RenderThread failure as an application failure while still exercising
+the complete Compose instrumentation suite:
+
+```bash
+$ANDROID_HOME/emulator/emulator @whip_api34 \
+  -no-window -no-audio -no-boot-anim \
+  -no-snapshot-load -no-snapshot-save \
+  -gpu software -feature -Vulkan
+scripts/check --emulator
+```
 
 Release signing is opt-in and never checked into the repository. Set all four
 variables before building a signed release:
@@ -68,9 +89,11 @@ Every product area has fast domain coverage and at least one persisted or UI
 path. New behavior must add its regression to the narrowest applicable suite
 and update this matrix if it introduces a new feature area.
 
-Current baseline: 389 product tests—185 fast JVM tests and 204 Android
+Current baseline: 495 product tests—236 fast JVM tests and 259 Android
 instrumentation tests—plus 9 Macrobenchmark/Baseline Profile scenarios, lint,
-debug/release/benchmark builds, and the three-API local emulator matrix.
+debug/release/benchmark builds, and the disposable API 34 emulator suite. API
+26, 28, and current-API compatibility runs remain required when those system
+images are installed; the gate must not claim configurations that were not run.
 
 | Product capability | Deterministic/domain coverage | Persisted/integration coverage | UI/E2E coverage |
 | --- | --- | --- | --- |
@@ -82,18 +105,19 @@ debug/release/benchmark builds, and the three-API local emulator matrix.
 | Subtasks, snapshots, promotion, and percentage | `TaskProgressTest` | `TaskRepositoryTest` | real Home/task rendering in the core journey |
 | Task archive, unified occurrence recovery, and permanent deletion | recurrence visibility rules | cascade plus cross-domain cleanup in `TaskRepositoryTest` and `LinkRepositoryTest` | confirmation, reopen, undo skip, reset date, and cadence explanation in `TaskDeletionUiTest` |
 | Habit input modes, target rules, schedules, streaks, range/value quick buttons, and history | `HabitRulesTest`, `NumericSequenceTest` | `HabitRepositoryTest` | Home and Habits render through real flows |
-| Goal types, constrained aggregations, honest pace comparison, ranges, consistency, and milestones | `GoalRulesTest` | `GoalRepositoryTest` | Home and Goals render through real flows |
+| Goal types, constrained aggregations, honest pace comparison, ranges, consistency, milestones, and exact elapsed-time counters | `GoalRulesTest` | `GoalRepositoryTest`, `IdentityEmojiMigrationTest` | Home and Goals render through real flows; elapsed create/edit/reset controls compile in the adaptive journey |
+| First-class Tracks, arbitrary typed Fields, fractional-increment Scales, explicit ascending/descending sorting, 10,000-Entry calculations, typed filters, every numeric/count aggregation, paging, CSV, choice replacement, Goal Automations, Capture/Follow-up Automations, and durable prompts | `TrackDomainTest`, `SortDirectionTest`, `EditorFeatureIntegrityTest`, `AutomationUxPolicyTest` | `TrackRepositoryTest` verifies the movie-Entry-count → Goal cause/effect across delete/restore, plus `TrackScaleMigrationTest`, `BackupRepositoryTest`, and `LinkRepositoryTest` | `AutomationConfigurationE2ETest` configures Count Entries through the real UI and verifies two Entries create exactly two Goal contributions; `InteractionControlUiTest` covers exact Scale stepping/clearing; Track navigation/adaptive semantics compile in `AdaptiveWhipScreenTest`; signed-release compact/Fold smoke uses fresh live evidence |
 | First-class productivity Areas, global scope, stable assignment, merge/archive, and inline creation | `AreaScopeTest`, `PowerUserSettingsTest` | `MeasurementTaxonomyRepositoryTest`, backup/merge/CSV coverage | `AreaFeatureUiTest`; Home/Tasks/Habits/Goals/Search/Review routing and accessibility suites |
 | Gym exercises, sessions, sets, equipment-native units/increments, timer, next-set focus, compact rows, plate presets, routine-day shortcuts, and history | `GymCalculationsTest`, `DisplayUnitsTest`, `NumericSequenceTest`, `PowerUserSettingsTest` | `GymRepositoryTest`, settings round trip | pound hardware switching, input-before-save ordering, a single incomplete-set completion path, and accessible reorder actions in `GymPowerInputUiTest`; active workout and exercise render through real flows |
 | Exercise-specific machines, compact/custom mass stacks, ordinal pin/level ranges, exact-value stepping, machine-scoped history, routines, records, and graphs | `GymAnalyticsTest`, `NumericSequenceTest` | `GymRepositoryTest`, `RoutineRepositoryTest`, backup/CSV coverage | `GymPowerInputUiTest`; machine library and unit explanation in `WhipComposeSemanticsTest` |
 | Scalable routine composer, duplicate placements, user-owned rep-scheme library, structured rep-range prescriptions, equipment bindings, supersets, day lifecycle, records, accessible graphs, e1RM, and volume | `GymAnalyticsTest`, `RoutineBuilderStateTest`, `PowerUserSettingsTest` | settings encoding, `RoutineRepositoryTest`, and full-domain/settings backup round trip | 205-exercise search/multi-select, blank/add/apply/edit/delete rep schemes, and nested exercise/machine creation in `RoutineBuilderUiTest`; chart summary/semantics in `CoreFeatureJourneyE2ETest` |
 | Dependency-aware habit/goal/gym deletion | source/derived-data rules | cascade, orphan, graph-preset, PR, and history-preservation checks in `DomainDeletionCoordinatorTest` | impact confirmation in domain screens and `TaskDeletionUiTest` |
-| Links, contributions, triggers, and workout → weekly habit | `CrossDomainInsightsTest`, flexible-period event regression | idempotence, live ordering, overrides, exclusion, cycles, and undo/resume in `LinkRepositoryTest` | linked domain projections enter normal screens |
+| Goal Automations, Next-Action Automations, contributions, prompts, and workout → weekly habit | `AutomationUxPolicyTest`, `CrossDomainInsightsTest`, flexible-period event regression | complete exposed action/outcome matrix, endpoint rejection, idempotence, live ordering, overrides, exclusion, cycles, Track Entry count, and undo/resume in `LinkRepositoryTest` and `TrackRepositoryTest` | `AutomationConfigurationE2ETest` covers configuration plus observable effect; linked domain projections enter normal screens |
 | Measurements and custom units, including custom mass-to-kilogram factors | `MeasurementTest`, `DisplayUnitsTest` | habit, goal, gym, and link repository suites | `InteractionControlUiTest` creates and selects a unit from the in-editor chooser; Settings retains dimension-specific management |
-| Settings, units, week start, timezone, quiet hours, and notification diagnostics | `AppSettingsTest`, `QuietHoursTest` | settings repositories and background schedulers | diagnostics and test-notification controls in `WhipComposeSemanticsTest` |
-| Exact-record search, review, Whip-native restore/merge, and CSV export | search/insight and portable-backup suites | transactional backup repositories and CSV assertions | all active/archived search domains in `GlobalSearchRoutingTest`; Settings asserts third-party import is absent |
+| Settings, units, week start, timezone, quiet hours, and notification diagnostics | `AppSettingsTest`, `QuietHoursTest`, `SettingsCauseEffectContractTest` | every setting is registered in `docs/quality/settings-cause-effect.tsv`; settings repositories and background schedulers | diagnostics and test-notification controls in `WhipComposeSemanticsTest` |
+| Exact-record search, review, Whip-native restore/merge, and CSV export | search/insight and portable-backup suites | transactional backup repositories, v5→v6 backup-data compatibility, and CSV assertions | all active/archived search domains in `GlobalSearchRoutingTest`; Settings asserts third-party import is absent |
 | Foldables, tablets, phones, contextual pane, pane fullscreen, and edge-to-edge overlay ownership | `AdaptiveLayoutTest` | posture selection | `AdaptiveWhipScreenTest` covers separating and flat/non-separating book folds, editor/detail containment, and duplicate-header suppression; `InteractionControlUiTest` verifies that destination-sized backgrounds own the window while content alone receives safe insets; editor recreation plus physical Fold matrix |
-| Internal persistence across restart | checked-in current Room schema | `PersistentStorageE2ETest` closes and reopens a file-backed DB | `CoreFeatureJourneyE2ETest` recreates the Activity |
+| Internal persistence and forward-compatible upgrades | checked-in schemas 1–7 | `WhipDatabaseMigrationTest` preserves schema-1 Links/Contributions/Automations and schema-2 Tracks through schema 7; focused migration suites cover each later semantic change; `PersistentStorageE2ETest` closes and reopens a file-backed DB | `CoreFeatureJourneyE2ETest` recreates the Activity |
 | Full backup/restore, encryption, and tamper safety | filename/retention policy and codec rules | all first-class domains, routines, links, settings, checksum/authentication rejection, and recovery rollback | restore preview, passphrase, and folder controls |
 | Portable folder, crash-safe staging, retention, and scheduled backup | `PortableBackupPolicyTest` | manager recreation, staged write/read/rename/read verification, corrupt cleanup, validate-before-prune, empty-source protection, unique WorkManager job | Settings portable-backup journey |
 | Health-backed Habits and Goals | goal/habit/source rules | fake-provider import/update/delete, provenance, link rebuild | source choice and Settings reconciliation paths |

@@ -7,6 +7,7 @@ import com.whip.app.WhipApplication
 import com.whip.app.core.OperationStatus
 import com.whip.app.core.WhipClock
 import com.whip.app.core.zoneId
+import com.whip.app.core.currentDateFlow
 import com.whip.app.data.TaskRepository
 import com.whip.app.data.TaskDeletionImpact
 import com.whip.app.data.TaskBulkEdit
@@ -29,8 +30,6 @@ import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
 import java.util.concurrent.CancellationException
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,10 +37,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 enum class TaskDestination {
@@ -66,19 +62,23 @@ data class TaskUiState(
     val loading: Boolean = true,
 )
 
+data class TaskOperationFeedback(
+    val status: OperationStatus = OperationStatus.Idle,
+    val undoMessage: String? = null,
+    val quickAddedTaskId: Long? = null,
+)
+
 class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as WhipApplication
     private val repository: TaskRepository = app.taskRepository
     private val reminders = app.reminderScheduler
     private val clock = app.clock
 
-    private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
-    val operationStatus: StateFlow<OperationStatus> = _operationStatus.asStateFlow()
-    private val _pendingUndoMessage = MutableStateFlow<String?>(null)
-    val pendingUndoMessage: StateFlow<String?> = _pendingUndoMessage.asStateFlow()
-    private val _pendingQuickAddTaskId = MutableStateFlow<Long?>(null)
-    val pendingQuickAddTaskId: StateFlow<Long?> = _pendingQuickAddTaskId.asStateFlow()
+    private val _operationFeedback = MutableStateFlow(TaskOperationFeedback())
+    val operationFeedback: StateFlow<TaskOperationFeedback> = _operationFeedback.asStateFlow()
     private var pendingUndoAction: TaskUndoAction? = null
+    private var pendingUndoMessage: String? = null
+    private var pendingQuickAddTaskId: Long? = null
     private val _taskDeletionImpact = MutableStateFlow<TaskDeletionImpact?>(null)
     val taskDeletionImpact: StateFlow<TaskDeletionImpact?> = _taskDeletionImpact.asStateFlow()
 
@@ -93,7 +93,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     val uiState = combine(
         taskData,
-        currentDateFlow(clock),
+        app.settingsRepository.currentDateFlow(clock),
         app.settingsRepository.settings,
     ) { data, today, settings ->
         buildUiState(
@@ -114,17 +114,12 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            currentDateFlow(clock).distinctUntilChanged().collect { today ->
-                runCatching {
-                    repository.applyMissedOccurrencePolicies(today)
-                    reminders.syncAll()
-                }
-            }
+            app.settingsRepository.currentDateFlow(clock).collect { reminders.syncAll() }
         }
     }
 
     fun consumeOperationStatus() {
-        _operationStatus.value = OperationStatus.Idle
+        _operationFeedback.value = _operationFeedback.value.copy(status = OperationStatus.Idle)
     }
 
     fun saveTask(taskId: Long?, draft: TaskDraft, fromOccurrence: LocalDate? = null) {
@@ -155,7 +150,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         inbox: Boolean,
         areaId: String?,
     ) {
-        val draft = buildQuickAddTaskDraft(capture, clock.today(), defaultDate, inbox, areaId) ?: return
+        val draft = buildQuickAddTaskDraft(capture, defaultDate, inbox, areaId) ?: return
         runOperation("Adding task…", "Task added") {
             val taskId = repository.create(draft)
             reminders.syncTask(taskId)
@@ -198,8 +193,12 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun promoteStep(item: ScheduledTask, stepId: Long) {
-        runOperation("Promoting subtask…", "Subtask promoted to an anytime task") {
-            repository.promoteStep(item, stepId)
+        runOperation("Moving subtask…", "Subtask moved to a new Inbox task") {
+            val promotedTaskId = repository.promoteStep(item, stepId)
+            offerUndo(
+                "Move to a new Task can be undone",
+                TaskUndoAction.Promote(promotedTaskId, item.task.id, stepId),
+            )
         }
     }
 
@@ -235,9 +234,11 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             runCatching { app.taskDeletionCoordinator.preview(taskId) }
                 .onSuccess { _taskDeletionImpact.value = it }
                 .onFailure { error ->
-                    _operationStatus.value = OperationStatus.Failed(
-                        error.message ?: "Could not calculate deletion impact",
-                        error,
+                    _operationFeedback.value = TaskOperationFeedback(
+                        status = OperationStatus.Failed(
+                            error.message ?: "Could not calculate deletion impact",
+                            error,
+                        ),
                     )
                 }
         }
@@ -292,11 +293,21 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun planMyDay(candidates: List<ScheduledTask>, capacityMinutes: Int) {
-        val selected = selectTasksForCapacity(candidates, capacityMinutes)
-        runOperation("Planning today…", "${selected.size} tasks planned within $capacityMinutes minutes") {
-            repository.rescheduleAll(selected, clock.today())
-            repository.setInboxAll(selected.map { it.task.id }, false)
+        val selected = candidates.distinctBy(ScheduledTask::stableKey)
+        val selectedMinutes = selected.sumOf(ScheduledTask::estimatedDurationMinutes)
+        val assumedCount = selected.count { it.task.durationMinutes == null }
+        val assumption = if (assumedCount == 0) "" else " · $assumedCount without estimates counted as 30 min"
+        runOperation(
+            "Planning today…",
+            "${selected.size} tasks added to Today · $selectedMinutes min of $capacityMinutes daily capacity$assumption",
+        ) {
+            val inboxTaskIds = selected.filter { it.task.inbox }.mapTo(linkedSetOf()) { it.task.id }
+            repository.planAll(selected, clock.today())
             selected.map { it.task.id }.distinct().forEach { reminders.syncTask(it) }
+            offerUndo(
+                "Plan My Day can be undone",
+                TaskUndoAction.PlanMyDay(selected, inboxTaskIds),
+            )
         }
     }
 
@@ -355,8 +366,12 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearPendingUndo() {
         pendingUndoAction = null
-        _pendingUndoMessage.value = null
-        _pendingQuickAddTaskId.value = null
+        pendingUndoMessage = null
+        pendingQuickAddTaskId = null
+        _operationFeedback.value = _operationFeedback.value.copy(
+            undoMessage = null,
+            quickAddedTaskId = null,
+        )
     }
 
     fun undoLastTaskAction() {
@@ -375,6 +390,14 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                 is TaskUndoAction.RescheduleMany -> repository.restoreSchedules(action.items)
                 is TaskUndoAction.Restore -> action.taskIds.forEach { repository.restore(it) }
                 is TaskUndoAction.DeleteCreated -> repository.deletePermanently(action.taskId)
+                is TaskUndoAction.PlanMyDay -> {
+                    repository.restorePlan(action.items, action.originalInboxTaskIds)
+                }
+                is TaskUndoAction.Promote -> repository.undoPromoteStep(
+                    action.promotedTaskId,
+                    action.sourceTaskId,
+                    action.sourceStepId,
+                )
             }
             val taskIds = when (action) {
                 is TaskUndoAction.Complete -> action.items.map { it.task.id }
@@ -383,6 +406,8 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                 is TaskUndoAction.RescheduleMany -> action.items.map { it.task.id }
                 is TaskUndoAction.Restore -> action.taskIds
                 is TaskUndoAction.DeleteCreated -> listOf(action.taskId)
+                is TaskUndoAction.PlanMyDay -> action.items.map { it.task.id }
+                is TaskUndoAction.Promote -> listOf(action.promotedTaskId, action.sourceTaskId)
             }.distinct()
             taskIds.forEach { id -> reminders.syncTask(id) }
         }
@@ -390,8 +415,8 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun offerUndo(message: String, action: TaskUndoAction) {
         pendingUndoAction = action
-        _pendingUndoMessage.value = message
-        _pendingQuickAddTaskId.value = (action as? TaskUndoAction.DeleteCreated)?.taskId
+        pendingUndoMessage = message
+        pendingQuickAddTaskId = (action as? TaskUndoAction.DeleteCreated)?.taskId
     }
 
     private fun runOperation(
@@ -399,17 +424,31 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         successMessage: String,
         block: suspend () -> Unit,
     ) {
-        _operationStatus.value = OperationStatus.Running(runningMessage)
+        pendingUndoAction = null
+        pendingUndoMessage = null
+        pendingQuickAddTaskId = null
+        _operationFeedback.value = TaskOperationFeedback(
+            status = OperationStatus.Running(runningMessage),
+        )
         viewModelScope.launch {
             try {
                 block()
-                _operationStatus.value = OperationStatus.Succeeded(successMessage)
+                _operationFeedback.value = TaskOperationFeedback(
+                    status = OperationStatus.Succeeded(successMessage),
+                    undoMessage = pendingUndoMessage,
+                    quickAddedTaskId = pendingQuickAddTaskId,
+                )
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
-                _operationStatus.value = OperationStatus.Failed(
-                    message = error.message ?: "Something went wrong",
-                    cause = error,
+                pendingUndoAction = null
+                pendingUndoMessage = null
+                pendingQuickAddTaskId = null
+                _operationFeedback.value = TaskOperationFeedback(
+                    status = OperationStatus.Failed(
+                        message = error.message ?: "Something went wrong",
+                        cause = error,
+                    ),
                 )
             }
         }
@@ -423,6 +462,15 @@ private sealed interface TaskUndoAction {
     data class RescheduleMany(val items: List<ScheduledTask>) : TaskUndoAction
     data class Restore(val taskIds: List<Long>) : TaskUndoAction
     data class DeleteCreated(val taskId: Long) : TaskUndoAction
+    data class PlanMyDay(
+        val items: List<ScheduledTask>,
+        val originalInboxTaskIds: Set<Long>,
+    ) : TaskUndoAction
+    data class Promote(
+        val promotedTaskId: Long,
+        val sourceTaskId: Long,
+        val sourceStepId: Long,
+    ) : TaskUndoAction
 }
 
 private data class TaskData(
@@ -432,13 +480,6 @@ private data class TaskData(
     val stepStates: List<TaskStepState>,
     val stepSnapshots: List<TaskStepSnapshot>,
 )
-
-private fun currentDateFlow(clock: WhipClock): Flow<LocalDate> = flow {
-    while (currentCoroutineContext().isActive) {
-        emit(clock.today())
-        delay(60_000)
-    }
-}
 
 internal fun buildUiState(
     tasks: List<WhipTask>,
@@ -571,7 +612,8 @@ internal fun buildUiState(
                     task = task,
                     originalDate = date,
                     scheduledDate = date,
-                    isOverdue = (task.deadline ?: date).isBefore(today),
+                    isPastScheduledDate = date.isBefore(today),
+                    isDeadlineOverdue = task.deadline?.isBefore(today) == true,
                 ).withStepProgress()
                 planningItems += item
                 if (date.isAfter(today)) upcomingItems += item else todayItems += item
@@ -598,7 +640,7 @@ internal fun buildUiState(
                                 task = task,
                                 originalDate = original,
                                 scheduledDate = scheduled,
-                                isOverdue = scheduled.isBefore(today),
+                                isPastScheduledDate = scheduled.isBefore(today),
                             ).withStepProgress()
                             if (scheduled.isAfter(today)) {
                                 if (!scheduled.isAfter(planningThrough)) planningItems += item
@@ -620,7 +662,7 @@ internal fun buildUiState(
                         task = task,
                         originalDate = original,
                         scheduledDate = scheduled,
-                        isOverdue = scheduled.isBefore(today),
+                        isPastScheduledDate = scheduled.isBefore(today),
                     )
                 }
                 fun oldestGeneratedDue(): ScheduledTask? {
@@ -646,14 +688,14 @@ internal fun buildUiState(
                             task = task,
                             originalDate = occurrence.originalDate,
                             scheduledDate = occurrence.scheduledDate,
-                            isOverdue = occurrence.scheduledDate.isBefore(today),
+                            isPastScheduledDate = occurrence.scheduledDate.isBefore(today),
                         )
                     }
                     .toList()
                 val generatedDue = when (task.missedOccurrencePolicy) {
                     MissedOccurrencePolicy.KeepOldest -> oldestGeneratedDue()
                     MissedOccurrencePolicy.KeepLatest -> latestGeneratedDue()
-                    MissedOccurrencePolicy.AutoSkip -> RecurrenceEngine.nextOccurrence(rule, today, 0)?.let(::dueItem)
+                    MissedOccurrencePolicy.CurrentOnly -> RecurrenceEngine.nextOccurrence(rule, today, 0)?.let(::dueItem)
                 }
                 val dueCandidate = (recordedDue + listOfNotNull(generatedDue))
                     .distinctBy(ScheduledTask::stableKey)
@@ -661,7 +703,7 @@ internal fun buildUiState(
                         when (task.missedOccurrencePolicy) {
                             MissedOccurrencePolicy.KeepOldest -> candidates.minByOrNull { requireNotNull(it.scheduledDate) }
                             MissedOccurrencePolicy.KeepLatest -> candidates.maxByOrNull { requireNotNull(it.scheduledDate) }
-                            MissedOccurrencePolicy.AutoSkip -> candidates.filter { it.scheduledDate == today }.maxByOrNull { requireNotNull(it.originalDate) }
+                            MissedOccurrencePolicy.CurrentOnly -> candidates.filter { it.scheduledDate == today }.maxByOrNull { requireNotNull(it.originalDate) }
                         }
                     }
                     ?.withStepProgress()
@@ -725,7 +767,8 @@ internal fun buildUiState(
         today = todayItems.sortedWith(
             compareByDescending<ScheduledTask> { it.task.pinned }
                 .thenByDescending { it.task.priority.ordinal }
-                .thenByDescending(ScheduledTask::isOverdue)
+                .thenByDescending(ScheduledTask::isDeadlineOverdue)
+                .thenByDescending(ScheduledTask::isPastScheduledDate)
                 .thenBy { it.scheduledDate }
                 .thenBy { it.task.createdAtMillis },
         ),
@@ -757,18 +800,21 @@ internal fun selectTasksForCapacity(
         .filter { it.task.completedAtMillis == null && !it.task.archived }
         .sortedWith(
             compareByDescending<ScheduledTask> { it.task.priority.ordinal }
-                .thenByDescending { it.task.effort.ordinal }
-                .thenBy { it.task.durationMinutes ?: 30 }
+                .thenBy { it.task.deadline ?: LocalDate.MAX }
+                .thenBy { it.estimatedDurationMinutes() }
                 .thenBy { it.task.createdAtMillis },
         )
         .filter { item ->
-            val duration = (item.task.durationMinutes ?: 30).coerceAtLeast(1)
+            val duration = item.estimatedDurationMinutes()
             if (duration > remaining) false else {
                 remaining -= duration
                 true
             }
         }
 }
+
+internal fun ScheduledTask.estimatedDurationMinutes(): Int =
+    (task.durationMinutes ?: 30).coerceAtLeast(1)
 
 internal fun List<ScheduledTask>.withRecurringOccurrenceVisibility(
     showAllRecurringOccurrences: Boolean,

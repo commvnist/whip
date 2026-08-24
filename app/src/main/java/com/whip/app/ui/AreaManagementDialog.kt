@@ -100,7 +100,7 @@ internal fun AreaManagementDialog(
                     Column(Modifier.weight(1f)) {
                         Text(selectedArea?.name ?: "Areas", style = MaterialTheme.typography.headlineSmall)
                         Text(
-                            if (selectedArea == null) "Group related tasks, habits, and goals." else usageText(state.areaUsage[selectedArea.id] ?: AreaUsageCounts()),
+                            if (selectedArea == null) "Group related tasks, habits, goals, and tracks." else usageText(state.areaUsage[selectedArea.id] ?: AreaUsageCounts()),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -579,7 +579,7 @@ internal fun PermanentAreaDeleteDialog(
     val explanation = if (usage.total == 0) {
         "This area is empty. Deleting it cannot be undone."
     } else {
-        "Choose what happens to ${usage.total} assigned items: ${usage.tasks} tasks, ${usage.habits} habits, and ${usage.goals} goals. " +
+        "Choose what happens to ${usage.total} assigned items: ${usage.tasks} tasks, ${usage.habits} habits, ${usage.goals} goals, and ${usage.tracks} Tracks containing ${usage.trackEntries} Entries. " +
             "Moving them keeps the items and their history. Deleting the items cannot be undone. " +
             "Saved filters and widgets using this area will reset to All areas."
     }
@@ -658,14 +658,17 @@ internal fun LastAreaRequiredDialog(
     )
 }
 
-private fun usageText(usage: AreaUsageCounts): String = listOf(
-    usage.total.areaCount("item"),
-    usage.tasks.areaCount("task"),
-    usage.habits.areaCount("habit"),
-    usage.goals.areaCount("goal"),
-).joinToString(" · ")
-
-private fun Int.areaCount(noun: String): String = "$this $noun${if (this == 1) "" else "s"}"
+private fun usageText(usage: AreaUsageCounts): String {
+    if (usage.total == 0) return "No items"
+    val categories = listOf(
+        usage.tasks to "task",
+        usage.habits to "habit",
+        usage.goals to "goal",
+        usage.tracks to "Track",
+        usage.trackEntries to "Track Entry",
+    ).filter { it.first > 0 }.take(2).map { (count, noun) -> quantityLabel(count, noun) }
+    return (listOf(quantityLabel(usage.total, "item")) + categories).joinToString(" · ")
+}
 
 @Composable
 private fun RenameAreaDialog(

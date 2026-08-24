@@ -11,6 +11,7 @@ import com.whip.app.data.RoomHabitRepository
 import com.whip.app.data.RoomLinkRepository
 import com.whip.app.data.RoomMeasurementRepository
 import com.whip.app.data.RoomTaskRepository
+import com.whip.app.data.RoomTrackRepository
 import com.whip.app.data.TaskDeletionCoordinator
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.ExerciseDraft
@@ -21,18 +22,27 @@ import com.whip.app.domain.GoalType
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.LinkRuleDraft
 import com.whip.app.domain.LinkSourceMetric
 import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.MetricValueKind
 import com.whip.app.domain.TriggerRuleDraft
+import com.whip.app.domain.TriggerAction
+import com.whip.app.domain.TriggerFieldMapping
+import com.whip.app.domain.TriggerSourceProperty
 import com.whip.app.domain.TriggerOutcome
 import com.whip.app.domain.TriggerTargetType
 import com.whip.app.domain.TaskDraft
 import com.whip.app.domain.TaskStepDraft
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WorkoutSetDraft
+import com.whip.app.domain.TrackDraft
+import com.whip.app.domain.TrackEntryDraft
+import com.whip.app.domain.TrackFieldDraft
+import com.whip.app.domain.TrackFieldType
+import com.whip.app.domain.TrackValueDraft
 import com.whip.app.domain.flexibleProgress
 import java.time.Instant
 import java.time.LocalDate
@@ -56,6 +66,7 @@ class LinkRepositoryTest {
     private lateinit var gym: RoomGymRepository
     private lateinit var links: RoomLinkRepository
     private lateinit var tasks: RoomTaskRepository
+    private lateinit var tracks: RoomTrackRepository
 
     @Before fun setUp() {
         database = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), WhipDatabase::class.java).build()
@@ -66,6 +77,7 @@ class LinkRepositoryTest {
         gym = RoomGymRepository(database, FixedClock, ids)
         links = RoomLinkRepository(database, measurements, FixedClock, ids)
         tasks = RoomTaskRepository(database, FixedClock)
+        tracks = RoomTrackRepository(database, FixedClock, ids)
     }
 
     @After fun tearDown() = database.close()
@@ -174,8 +186,7 @@ class LinkRepositoryTest {
                 0,
                 targetType = TriggerTargetType.Habit,
                 targetEntityId = habitId,
-                // Old rules could persist this as false; workout-to-habit rules must still log.
-                autoCompleteTargetHabit = false,
+                action = com.whip.app.domain.TriggerAction.CheckOffHabit,
             ),
         )
         val exerciseId = gym.createExercise(ExerciseDraft("Press"))
@@ -223,6 +234,102 @@ class LinkRepositoryTest {
             rejected = true
         }
         assertTrue(rejected)
+        assertTrue(links.triggerRules.first().isEmpty())
+    }
+
+    @Test fun everyExposedAutomationConsequenceHasAnIdempotentCauseAndEffect() = runBlocking {
+        val sourceHabit = habits.create(HabitDraft(name = "Source", trackingMode = HabitTrackingMode.Count, targetMin = 1.0, startDate = FixedClock.today()))
+        val targetHabit = habits.create(HabitDraft(name = "Target", trackingMode = HabitTrackingMode.CheckOff, startDate = FixedClock.today()))
+        val targetTask = tasks.create(TaskDraft(title = "Follow up"))
+        val targetTrack = tracks.create(
+            TrackDraft(
+                name = "Evidence",
+                fields = listOf(TrackFieldDraft("Name", TrackFieldType.ShortText, primary = true)),
+            ),
+        )
+        val primary = requireNotNull(tracks.projection(targetTrack)).primaryField
+        val promptTask = links.createTrigger(TriggerRuleDraft("Prompt task", LinkSourceType.Habit, sourceHabit, outcome = TriggerOutcome.Recorded, targetType = TriggerTargetType.Task, targetEntityId = targetTask, action = TriggerAction.PromptTask))
+        val promptHabit = links.createTrigger(TriggerRuleDraft("Prompt habit", LinkSourceType.Habit, sourceHabit, outcome = TriggerOutcome.Recorded, targetType = TriggerTargetType.Habit, targetEntityId = targetHabit, action = TriggerAction.PromptHabit))
+        val checkOff = links.createTrigger(TriggerRuleDraft("Check off", LinkSourceType.Habit, sourceHabit, outcome = TriggerOutcome.Recorded, targetType = TriggerTargetType.Habit, targetEntityId = targetHabit, action = TriggerAction.CheckOffHabit))
+        val promptTrack = links.createTrigger(
+            TriggerRuleDraft(
+                "Capture evidence",
+                LinkSourceType.Habit,
+                sourceHabit,
+                outcome = TriggerOutcome.Recorded,
+                targetType = TriggerTargetType.Track,
+                targetEntityId = targetTrack,
+                action = TriggerAction.PromptTrackEntry,
+                mappings = listOf(TriggerFieldMapping(primary.id, TriggerSourceProperty.Constant, TrackValueDraft(textValue = "Captured"))),
+            ),
+        )
+
+        habits.log(sourceHabit, 1.0)
+        links.rebuildAll()
+        val occurrences = links.triggerOccurrences.first()
+        assertEquals(setOf(promptTask, promptHabit, checkOff, promptTrack), occurrences.map { it.triggerRuleId }.toSet())
+        assertEquals(1, habits.logs.first().count { it.habitId == targetHabit })
+
+        val captureOccurrence = occurrences.single { it.triggerRuleId == promptTrack }
+        val prefill = links.trackPromptDraft(captureOccurrence.id)
+        assertEquals("Captured", prefill.values.getValue(primary.uuid).textValue)
+        val entryId = links.fulfillTrackPrompt(captureOccurrence.id, prefill)
+        assertEquals("Captured", requireNotNull(tracks.projection(targetTrack)).primaryText(requireNotNull(tracks.projection(targetTrack)).entries.single { it.entry.id == entryId }))
+
+        links.rebuildAll()
+        assertEquals(4, links.triggerOccurrences.first().size)
+        assertEquals(1, habits.logs.first().count { it.habitId == targetHabit })
+    }
+
+    @Test fun everyHabitOutcomeCreatesOnlyItsMatchingAutomationOccurrences() = runBlocking {
+        val source = habits.create(
+            HabitDraft(
+                name = "Measured source",
+                trackingMode = HabitTrackingMode.Count,
+                targetMin = 2.0,
+                startDate = FixedClock.today(),
+            ),
+        )
+        val target = tasks.create(TaskDraft(title = "Review outcome"))
+        val rules = TriggerOutcome.entries.associateWith { outcome ->
+            links.createTrigger(
+                TriggerRuleDraft(
+                    name = outcome.name,
+                    sourceType = LinkSourceType.Habit,
+                    sourceEntityId = source,
+                    outcome = outcome,
+                    targetType = TriggerTargetType.Task,
+                    targetEntityId = target,
+                    action = TriggerAction.PromptTask,
+                ),
+            )
+        }
+        habits.log(source, 2.0, HabitLogStatus.Recorded)
+        habits.log(source, null, HabitLogStatus.Failed)
+        habits.log(source, null, HabitLogStatus.Skipped)
+        links.rebuildAll()
+        val counts = links.triggerOccurrences.first().groupingBy { it.triggerRuleId }.eachCount()
+        assertEquals(2, counts[rules.getValue(TriggerOutcome.Recorded)])
+        assertEquals(1, counts[rules.getValue(TriggerOutcome.Completed)])
+        assertEquals(1, counts[rules.getValue(TriggerOutcome.Failed)])
+        assertEquals(1, counts[rules.getValue(TriggerOutcome.Skipped)])
+    }
+
+    @Test fun unsupportedOrMissingAutomationEndpointsAreRejectedBeforePersistence() = runBlocking {
+        val target = tasks.create(TaskDraft(title = "Target"))
+        listOf(LinkSourceType.Exercise, LinkSourceType.Metric).forEach { sourceType ->
+            assertTrue(
+                runCatching {
+                    links.createTrigger(TriggerRuleDraft("Unsupported", sourceType, 42, targetType = TriggerTargetType.Task, targetEntityId = target, action = TriggerAction.PromptTask))
+                }.isFailure,
+            )
+        }
+        val source = habits.create(HabitDraft(name = "Source", startDate = FixedClock.today()))
+        assertTrue(
+            runCatching {
+                links.createTrigger(TriggerRuleDraft("Missing target", LinkSourceType.Habit, source, targetType = TriggerTargetType.Task, targetEntityId = Long.MAX_VALUE, action = TriggerAction.PromptTask))
+            }.isFailure,
+        )
         assertTrue(links.triggerRules.first().isEmpty())
     }
 
@@ -346,7 +453,8 @@ class LinkRepositoryTest {
             LinkRuleDraft(
                 name = "Proofreading contribution",
                 sourceType = LinkSourceType.Subtask,
-                sourceEntityId = stepId,
+                sourceEntityId = taskId,
+                sourceItemId = stepId,
                 sourceMetric = LinkSourceMetric.Completion,
                 targetGoalId = goalId,
             ),
@@ -359,14 +467,15 @@ class LinkRepositoryTest {
                 sourceEntityId = taskId,
                 targetType = TriggerTargetType.Habit,
                 targetEntityId = habitId,
-                autoCompleteTargetHabit = true,
+                action = com.whip.app.domain.TriggerAction.CheckOffHabit,
             ),
         )
         links.createTrigger(
             TriggerRuleDraft(
                 name = "Celebrate proofreading",
                 sourceType = LinkSourceType.Subtask,
-                sourceEntityId = stepId,
+                sourceEntityId = taskId,
+                sourceItemId = stepId,
                 targetType = TriggerTargetType.Habit,
                 targetEntityId = habitId,
             ),

@@ -98,16 +98,16 @@ class TaskUpcomingVisibilityTest {
 
         assertEquals(LocalDate.of(2026, 8, 18), dueDate(MissedOccurrencePolicy.KeepOldest))
         assertEquals(today, dueDate(MissedOccurrencePolicy.KeepLatest))
-        assertEquals(today, dueDate(MissedOccurrencePolicy.AutoSkip))
+        assertEquals(today, dueDate(MissedOccurrencePolicy.CurrentOnly))
     }
 
     @Test
     fun inboxIsSeparateFromTriagedAnytimeAndCapacityNeverOverfills() {
         val captured = task(1, ScheduleKind.Anytime).copy(inbox = true, durationMinutes = 45, priority = TaskPriority.High)
         val quick = task(2, ScheduleKind.Anytime).copy(inbox = false, durationMinutes = 30, effort = TaskEffort.Light)
-        val deep = task(3, ScheduleKind.Anytime).copy(inbox = true, durationMinutes = 90, effort = TaskEffort.Deep)
+        val highEffort = task(3, ScheduleKind.Anytime).copy(inbox = true, durationMinutes = 90, effort = TaskEffort.High)
         val state = buildUiState(
-            tasks = listOf(captured, quick, deep),
+            tasks = listOf(captured, quick, highEffort),
             occurrences = emptyList(),
             steps = emptyList(),
             stepStates = emptyList(),
@@ -120,6 +120,75 @@ class TaskUpcomingVisibilityTest {
         assertEquals(listOf(2L), state.anytime.map { it.task.id })
         assertEquals(listOf(1L, 2L), selectTasksForCapacity(state.inbox + state.anytime, 75).map { it.task.id })
         assertEquals(75, selectTasksForCapacity(state.inbox + state.anytime, 75).sumOf { it.task.durationMinutes ?: 30 })
+    }
+
+    @Test
+    fun scheduledDateAndDeadlineHaveIndependentStatus() {
+        val today = LocalDate.of(2026, 8, 23)
+        val item = task(1, ScheduleKind.Once).copy(
+            date = LocalDate.of(2026, 8, 20),
+            deadline = LocalDate.of(2026, 8, 30),
+        )
+
+        val projected = buildUiState(
+            tasks = listOf(item),
+            occurrences = emptyList(),
+            steps = emptyList(),
+            stepStates = emptyList(),
+            stepSnapshots = emptyList(),
+            today = today,
+            showAllUpcomingRecurringOccurrences = false,
+        ).today.single()
+
+        assertEquals(true, projected.isPastScheduledDate)
+        assertEquals(false, projected.isDeadlineOverdue)
+        assertEquals(LocalDate.of(2026, 8, 30), projected.task.deadline)
+    }
+
+    @Test
+    fun planRankingUsesPriorityAndDeadlineNotEffortAsImportance() {
+        val start = LocalDate.of(2026, 8, 23)
+        val highEffortLaterDeadline = ScheduledTask(
+            task(1, ScheduleKind.Anytime).copy(
+                effort = TaskEffort.High,
+                deadline = start.plusDays(7),
+                durationMinutes = 30,
+            ),
+            null,
+            null,
+        )
+        val lightEarlierDeadline = ScheduledTask(
+            task(2, ScheduleKind.Anytime).copy(
+                effort = TaskEffort.Light,
+                deadline = start.plusDays(1),
+                durationMinutes = 30,
+            ),
+            null,
+            null,
+        )
+
+        assertEquals(
+            listOf(2L),
+            selectTasksForCapacity(listOf(highEffortLaterDeadline, lightEarlierDeadline), 30).map { it.task.id },
+        )
+    }
+
+    @Test
+    fun currentOnlyChangesQueueProjectionWithoutCreatingHistoryFacts() {
+        val today = LocalDate.of(2026, 8, 21)
+        val state = buildUiState(
+            tasks = listOf(task(1, ScheduleKind.Recurring).copy(missedOccurrencePolicy = MissedOccurrencePolicy.CurrentOnly)),
+            occurrences = emptyList(),
+            steps = emptyList(),
+            stepStates = emptyList(),
+            stepSnapshots = emptyList(),
+            today = today,
+            showAllUpcomingRecurringOccurrences = false,
+        )
+
+        assertEquals(today, state.today.single().scheduledDate)
+        assertEquals(emptyList<ScheduledTask>(), state.completed)
+        assertEquals(emptyList<com.whip.app.domain.TaskOccurrence>(), state.occurrences)
     }
 
     @Test(timeout = 5_000)

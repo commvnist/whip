@@ -35,12 +35,13 @@ class MainActivity : ComponentActivity() {
         val action: String?,
         val entityId: Long?,
         val occurrenceEpochDay: Long?,
+        val automationOccurrenceId: Long?,
         val sharedText: String?,
         val deliveryId: Long,
     )
 
     private var deliveryCounter = 0L
-    private val launchRequest = mutableStateOf(LaunchRequest(null, null, null, null, 0L))
+    private val launchRequest = mutableStateOf(LaunchRequest(null, null, null, null, null, 0L))
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,6 +94,7 @@ class MainActivity : ComponentActivity() {
                     initialAction = request.action,
                     initialEntityId = request.entityId,
                     initialOccurrenceEpochDay = request.occurrenceEpochDay,
+                    initialAutomationOccurrenceId = request.automationOccurrenceId,
                     initialSharedText = request.sharedText,
                     initialDeliveryId = request.deliveryId,
                     foldInfo = foldInfo,
@@ -137,18 +139,23 @@ class MainActivity : ComponentActivity() {
                 WhipLaunchActions.ACTION_OPEN_HABIT,
                 WhipLaunchActions.ACTION_OPEN_GOAL,
                 WhipLaunchActions.ACTION_OPEN_GYM,
+                WhipLaunchActions.ACTION_OPEN_TRACK,
             )
         ) this?.getLongExtra(WhipLaunchActions.EXTRA_ENTITY_ID, -1L)?.takeIf { it >= 0L } else null
         val occurrence = this?.getLongExtra(
             WhipLaunchActions.EXTRA_OCCURRENCE_EPOCH_DAY,
             Long.MIN_VALUE,
         )?.takeUnless { it == Long.MIN_VALUE }
+        val automationOccurrence = this?.getLongExtra(
+            WhipLaunchActions.EXTRA_AUTOMATION_OCCURRENCE_ID,
+            -1L,
+        )?.takeIf { it >= 0L }
         val sharedText = if (action == WhipLaunchActions.ACTION_CAPTURE_SHARED_TASK) {
             this?.getStringExtra(android.content.Intent.EXTRA_TEXT)
                 ?.trim()
                 ?.takeIf(String::isNotBlank)
         } else null
-        return LaunchRequest(action, id, occurrence, sharedText, ++deliveryCounter)
+        return LaunchRequest(action, id, occurrence, automationOccurrence, sharedText, ++deliveryCounter)
     }
 
     @Suppress("DEPRECATION")

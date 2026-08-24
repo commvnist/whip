@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
@@ -25,6 +27,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import java.time.LocalDate
 import com.whip.app.domain.AreaScope
+import com.whip.app.domain.formatTrackScaleValue
 import com.whip.app.domain.matches
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -39,7 +42,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-enum class SearchDomain { Task, Habit, Goal, Exercise, Machine, Workout, Routine }
+enum class SearchDomain { Task, Habit, Goal, Track, TrackEntry, Exercise, Machine, Workout, Routine }
+
+private fun SearchDomain.uiLabel(): String = if (this == SearchDomain.TrackEntry) "Track Entry" else name
 
 data class WhipSearchResult(
     val domain: SearchDomain,
@@ -60,8 +65,9 @@ internal fun UnifiedSearchDialog(
     habitState: HabitUiState,
     goalState: GoalUiState,
     gymState: GymUiState,
+    modifier: Modifier = Modifier,
+    trackState: TrackUiState = TrackUiState(loading = false),
     onDismiss: () -> Unit,
-    dialogModifier: Modifier = Modifier,
     areaScope: AreaScope = AreaScope.All,
     areaScopeLabel: String? = null,
     onSearchAllAreas: () -> Unit = {},
@@ -72,10 +78,9 @@ internal fun UnifiedSearchDialog(
     var domains by rememberSaveable(initialScope.label) { mutableStateOf(initialScope.domains) }
     var requireAllTerms by rememberSaveable { mutableStateOf(true) }
     var filtersExpanded by rememberSaveable { mutableStateOf(false) }
-    var advancedExpanded by rememberSaveable { mutableStateOf(false) }
     var visibleResults by rememberSaveable { mutableIntStateOf(50) }
     val queryFocusRequester = remember { FocusRequester() }
-    val all = remember(taskState, habitState, goalState, gymState) {
+    val all = remember(taskState, habitState, goalState, gymState, trackState) {
         buildList {
             (taskState.inbox + taskState.today + taskState.upcoming + taskState.planning + taskState.anytime + taskState.completed + taskState.archived)
                 .distinctBy { it.task.id }
@@ -97,7 +102,8 @@ internal fun UnifiedSearchDialog(
                                 item.task.archived -> "archived"
                                 item.completedAtMillis != null -> "completed"
                                 item.task.inbox -> "inbox"
-                                item.isOverdue -> "overdue"
+                                item.isDeadlineOverdue -> "deadline overdue"
+                                item.isPastScheduledDate -> "past scheduled date"
                                 else -> "active"
                             },
                         ),
@@ -113,6 +119,46 @@ internal fun UnifiedSearchDialog(
                 val contributionText = goalState.contributions.filter { contribution -> contribution.targetGoalId == item.goal.id }
                     .joinToString(" · ") { it.explanation }
                 add(WhipSearchResult(SearchDomain.Goal, item.goal.id, item.goal.name, listOf(item.goal.description, measurementText, contributionText).filter(String::isNotBlank).joinToString(" · "), area = item.goal.area, areaId = item.goal.areaId, tags = item.goal.tags.toSet(), deadline = item.goal.deadline, status = item.goal.status.name.lowercase()))
+            }
+            trackState.projections.forEach { projection ->
+                add(
+                    WhipSearchResult(
+                        SearchDomain.Track,
+                        projection.track.id,
+                        projection.track.name,
+                        listOf(projection.track.description, projection.track.tags.joinToString(" "), "${projection.entries.size} Entries").filter(String::isNotBlank).joinToString(" · "),
+                        area = projection.track.area,
+                        areaId = projection.track.areaId,
+                        tags = projection.track.tags.toSet(),
+                        date = projection.entries.maxOfOrNull { it.entry.entryDate },
+                        status = if (projection.track.archived) "archived" else "active",
+                    ),
+                )
+                projection.entries.forEach { entry ->
+                    add(
+                        WhipSearchResult(
+                            SearchDomain.TrackEntry,
+                            entry.entry.id,
+                            projection.primaryText(entry),
+                            projection.fields.joinToString(" · ") { field ->
+                                val value = entry.value(field.id)
+                                when (field.type) {
+                                    com.whip.app.domain.TrackFieldType.ShortText, com.whip.app.domain.TrackFieldType.LongText -> value?.textValue.orEmpty()
+                                    com.whip.app.domain.TrackFieldType.Number -> value?.enteredNumber?.toString().orEmpty() + value?.enteredUnitId?.let { " $it" }.orEmpty()
+                                    com.whip.app.domain.TrackFieldType.SingleChoice -> projection.options.firstOrNull { it.id == value?.choiceOptionId }?.label.orEmpty()
+                                    com.whip.app.domain.TrackFieldType.Scale -> value?.scaleValue?.let(::formatTrackScaleValue).orEmpty()
+                                    com.whip.app.domain.TrackFieldType.Date -> value?.dateValue?.toString().orEmpty()
+                                    com.whip.app.domain.TrackFieldType.YesNo -> value?.booleanValue?.let { if (it) "Yes" else "No" }.orEmpty()
+                                }
+                            },
+                            area = projection.track.area,
+                            areaId = projection.track.areaId,
+                            tags = projection.track.tags.toSet(),
+                            date = entry.entry.entryDate,
+                            status = if (projection.track.archived) "archived" else "active",
+                        ),
+                    )
+                }
             }
             (gymState.exercises + gymState.archivedExercises).distinctBy { it.id }.forEach { exercise ->
                 add(WhipSearchResult(SearchDomain.Exercise, exercise.id, exercise.name, exercise.notes, status = if (exercise.archived) "archived" else "active"))
@@ -156,12 +202,13 @@ internal fun UnifiedSearchDialog(
             .thenBy { it.domain.ordinal },
     )
     val results = matchingResults.take(visibleResults)
+    val activeFilterCount = (if (domains != initialScope.domains) 1 else 0) + (if (!requireAllTerms) 1 else 0)
     LaunchedEffect(initialScope.label) { queryFocusRequester.requestFocus() }
 
     PaneAwareAlertDialog(
-        modifier = dialogModifier,
+        modifier = modifier,
         onDismissRequest = onDismiss,
-        title = { Text(if (initialScope.isAllWhip) "Search Whip" else "Search ${initialScope.label}") },
+        title = { Text("Search") },
         text = {
             Column(
                 modifier = Modifier.onPreviewKeyEvent { event ->
@@ -180,7 +227,7 @@ internal fun UnifiedSearchDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        "Scope: ${if (domains == SearchDomain.entries.toSet()) "All Whip" else domains.joinToString { it.name }}",
+                        "Scope: ${if (domains == SearchDomain.entries.toSet()) "All Whip" else domains.joinToString { it.uiLabel() }}",
                         style = MaterialTheme.typography.labelMedium,
                     )
                     if (domains != SearchDomain.entries.toSet()) {
@@ -199,24 +246,27 @@ internal fun UnifiedSearchDialog(
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it; visibleResults = 50 },
-                    label = { Text("Search ${if (domains == SearchDomain.entries.toSet()) "Whip" else domains.joinToString { it.name }}") },
+                    label = { Text("Search") },
+                    placeholder = { Text("Tasks, habits, goals, tracks…") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { results.firstOrNull()?.let(onSelect) }),
                     modifier = Modifier.fillMaxWidth().focusRequester(queryFocusRequester).testTag("unified-search-query"),
                 )
                 DisclosureButton(
-                    label = "Search Filters",
+                    label = if (activeFilterCount == 0) "Filters" else "Filters ($activeFilterCount)",
                     expanded = filtersExpanded,
                     onClick = { filtersExpanded = !filtersExpanded },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag("search-filter-disclosure"),
                 )
                 if (filtersExpanded) {
+                    Text("Content Types", style = MaterialTheme.typography.labelLarge)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         WhipFilterChip(
                             selected = domains == SearchDomain.entries.toSet(),
                             onClick = { domains = SearchDomain.entries.toSet() },
                             label = { Text("All Types") },
+                            modifier = Modifier.heightIn(min = 44.dp).widthIn(min = 92.dp),
                         )
                         SearchDomain.entries.forEach { domain ->
                             WhipFilterChip(
@@ -229,28 +279,46 @@ internal fun UnifiedSearchDialog(
                                         else -> SearchDomain.entries.toSet()
                                     }
                                 },
-                                label = { Text(domain.name) },
+                                label = { Text(domain.uiLabel()) },
+                                modifier = Modifier.heightIn(min = 44.dp).widthIn(min = 92.dp),
                             )
                         }
                     }
-                }
-                DisclosureButton(
-                    label = "Advanced Search",
-                    expanded = advancedExpanded,
-                    onClick = { advancedExpanded = !advancedExpanded },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                if (advancedExpanded) {
-                    WhipFilterChip(
+                    Text("Search Terms", style = MaterialTheme.typography.labelLarge)
+                    SegmentedChoiceBar(
                         selected = requireAllTerms,
-                        onClick = { requireAllTerms = !requireAllTerms },
-                        label = { Text(if (requireAllTerms) "Match All Terms" else "Match Any Term") },
+                        choices = listOf(true, false),
+                        onSelect = { requireAllTerms = it },
+                        label = { if (it) "Match All" else "Match Any" },
+                        modifier = Modifier.fillMaxWidth(),
+                        testTagPrefix = "search-terms",
                     )
                     Text(
                         "Use tag:work, area:home, status:completed, before:2026-09-01, after:2026-08-01, or deadline:true.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                } else if (activeFilterCount > 0) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (domains != initialScope.domains) {
+                            domains.forEach { domain ->
+                                WhipFilterChip(
+                                    selected = true,
+                                    onClick = {
+                                        domains = if (domains.size == 1) initialScope.domains else domains - domain
+                                    },
+                                    label = { Text("${domain.uiLabel()} ×") },
+                                    modifier = Modifier.heightIn(min = 44.dp).widthIn(min = 92.dp).testTag("search-active-domain-${domain.name}"),
+                                )
+                            }
+                        }
+                        if (!requireAllTerms) WhipFilterChip(
+                            true,
+                            { requireAllTerms = true },
+                            { Text("Match Any ×") },
+                            Modifier.heightIn(min = 44.dp).widthIn(min = 104.dp).testTag("search-active-match-any"),
+                        )
+                    }
                 }
                 LazyColumn(Modifier.fillMaxWidth().padding(top = 10.dp)) {
                     if (query.isNotBlank() && results.isEmpty()) item { Text("No matching items", modifier = Modifier.padding(16.dp)) }
@@ -262,7 +330,7 @@ internal fun UnifiedSearchDialog(
                             Column(Modifier.padding(12.dp)) {
                                 Text(result.title, fontWeight = FontWeight.SemiBold)
                                 Text(
-                                    result.domain.name + result.area.takeIf(String::isNotBlank)?.let { " · $it" }.orEmpty() + result.detail.takeIf(String::isNotBlank)?.let { " · $it" }.orEmpty(),
+                                    result.domain.uiLabel() + result.area.takeIf(String::isNotBlank)?.let { " · $it" }.orEmpty() + result.detail.takeIf(String::isNotBlank)?.let { " · $it" }.orEmpty(),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 2,
@@ -284,7 +352,7 @@ internal fun UnifiedSearchDialog(
 }
 
 internal fun WhipSearchResult.isVisibleInAreaScope(scope: AreaScope, explicitAreaOverride: Boolean): Boolean {
-    val productivity = domain in setOf(SearchDomain.Task, SearchDomain.Habit, SearchDomain.Goal)
+    val productivity = domain in setOf(SearchDomain.Task, SearchDomain.Habit, SearchDomain.Goal, SearchDomain.Track, SearchDomain.TrackEntry)
     return !productivity || explicitAreaOverride || scope.matches(areaId)
 }
 
@@ -300,7 +368,7 @@ internal fun WhipSearchResult.matchesQuery(query: String, requireAllTerms: Boole
             "tag" -> { structuredCount++; if (tags.none { it.equals(value, true) }) return false }
             "area" -> { structuredCount++; if (!area.contains(value, true)) return false }
             "status" -> { structuredCount++; if (!status.equals(value, true)) return false }
-            "domain" -> { structuredCount++; if (!domain.name.equals(value, true)) return false }
+            "domain" -> { structuredCount++; if (!domain.name.equals(value, true) && !domain.uiLabel().replace(" ", "").equals(value.replace(" ", ""), true)) return false }
             "before" -> {
                 structuredCount++
                 val boundary = parseDateOrNull(value) ?: return false
@@ -322,7 +390,7 @@ internal fun WhipSearchResult.matchesQuery(query: String, requireAllTerms: Boole
         }
     }
     if (plain.isEmpty()) return structuredCount > 0
-    val haystack = listOf(domain.name, title, detail, area, tags.joinToString(" "), status, date?.toString().orEmpty(), deadline?.toString().orEmpty())
+    val haystack = listOf(domain.uiLabel(), title, detail, area, tags.joinToString(" "), status, date?.toString().orEmpty(), deadline?.toString().orEmpty())
         .joinToString(" ").lowercase()
     return if (requireAllTerms) plain.all(haystack::contains) else plain.any(haystack::contains)
 }

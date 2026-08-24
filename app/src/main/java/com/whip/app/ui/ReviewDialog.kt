@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import com.whip.app.core.ReviewPeriod
-import com.whip.app.core.HomeSection
+import com.whip.app.core.ReviewSection
 import com.whip.app.core.SavedReviewFilter
 import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.HabitScheduleType
@@ -50,6 +49,14 @@ import java.time.ZoneId
 
 private data class ReviewSignal(val name: String, val values: List<Double>)
 
+internal fun reviewStartDate(period: ReviewPeriod, through: LocalDate): LocalDate = when (period) {
+    ReviewPeriod.Weekly -> through.minusDays(6)
+    ReviewPeriod.Monthly -> through.withDayOfMonth(1)
+}
+
+internal fun reviewSectionsInDisplayOrder(sections: Set<ReviewSection>): List<ReviewSection> =
+    ReviewSection.entries.filter(sections::contains)
+
 @Composable
 fun ReviewDialog(
     taskState: TaskUiState,
@@ -57,28 +64,27 @@ fun ReviewDialog(
     goalState: GoalUiState,
     gymState: GymUiState,
     period: ReviewPeriod,
+    modifier: Modifier = Modifier,
     zone: ZoneId = ZoneId.systemDefault(),
     onPeriodChange: (ReviewPeriod) -> Unit,
     onDismiss: () -> Unit,
-    sections: Set<HomeSection> = HomeSection.entries.toSet(),
+    sections: Set<ReviewSection> = ReviewSection.entries.toSet(),
     savedFilters: List<SavedReviewFilter> = emptyList(),
     selectedFilterName: String? = null,
-    onSectionsChange: (Set<HomeSection>) -> Unit = {},
+    onSectionsChange: (Set<ReviewSection>) -> Unit = {},
     onSaveFilter: (SavedReviewFilter) -> Unit = {},
     onSelectFilter: (String?) -> Unit = {},
     onDeleteFilter: (String) -> Unit = {},
-    onDrillDown: (HomeSection) -> Unit = {},
-    dialogModifier: Modifier = Modifier,
+    onDrillDown: (ReviewSection) -> Unit = {},
     productivityAreaLabel: String? = null,
+    trackState: TrackUiState = TrackUiState(loading = false),
+    onOpenTracks: () -> Unit = {},
 ) {
     var saveFilterOpen by rememberSaveable { mutableStateOf(false) }
     var filterName by rememberSaveable { mutableStateOf("") }
     val locale = LocalConfiguration.current.locales[0]
     val through = taskState.currentDate
-    val start = when (period) {
-        ReviewPeriod.Weekly -> through.minusDays(6)
-        ReviewPeriod.Monthly -> through.withDayOfMonth(1)
-    }
+    val start = reviewStartDate(period, through)
     val dates = generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(through) }.toList()
     val completedTasks = taskState.completed.groupingBy { item ->
         item.completedAtMillis?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() } ?: item.scheduledDate
@@ -103,12 +109,13 @@ fun ReviewDialog(
         }
     }
     val allSignals = listOf(
-        HomeSection.Tasks to ReviewSignal("Tasks", dates.map { completedTasks[it]?.toDouble() ?: 0.0 }),
-        HomeSection.Habits to ReviewSignal("Habit outcomes", dates.map { successfulHabitPeriods[it]?.toDouble() ?: 0.0 }),
-        HomeSection.Gym to ReviewSignal(if (productivityAreaLabel == null) "Workouts" else "Workouts · All gym data", dates.map { workouts[it]?.toDouble() ?: 0.0 }),
-        HomeSection.Goals to ReviewSignal("Goal progress", dates.map { goalOutcomes[it] ?: 0.0 }),
+        ReviewSection.Tasks to ReviewSignal("Tasks", dates.map { completedTasks[it]?.toDouble() ?: 0.0 }),
+        ReviewSection.Habits to ReviewSignal("Habit outcomes", dates.map { successfulHabitPeriods[it]?.toDouble() ?: 0.0 }),
+        ReviewSection.Gym to ReviewSignal(if (productivityAreaLabel == null) "Workouts" else "Workouts · All gym data", dates.map { workouts[it]?.toDouble() ?: 0.0 }),
+        ReviewSection.Goals to ReviewSignal("Goal progress", dates.map { goalOutcomes[it] ?: 0.0 }),
     )
-    val signals = allSignals.filter { it.first in sections }.map { it.second }
+    val includedSections = reviewSectionsInDisplayOrder(sections).toSet()
+    val signals = allSignals.filter { it.first in includedSections }.map { it.second }
     val correlationSignals = if (productivityAreaLabel == null) signals else signals.filterNot { it.name.startsWith("Workouts") }
     val correlationDates = (0L until 30L).map { through.minusDays(29L - it) }
     fun valuesFor(name: String): List<Double> = when (name) {
@@ -126,6 +133,7 @@ fun ReviewDialog(
         }
     }
     val hasReviewData = signals.any { signal -> signal.values.any { it != 0.0 } }
+    val hasTrackEvidence = trackState.projections.any { it.entries.isNotEmpty() }
 
     BackHandler(onBack = onDismiss)
     WhipFullScreenSurface(title = "Review & Trends") {
@@ -156,9 +164,20 @@ fun ReviewDialog(
                 } }
                 if (!hasReviewData) item {
                     WhipEmptyState(
-                        title = "Nothing Recorded Yet",
-                        supportingText = "Complete a task, check in a habit, record goal progress, or finish a workout. Review & Trends will build from those entries.",
+                        title = "No Reviewable Outcomes Yet",
+                        supportingText = if (hasTrackEvidence) {
+                            "You have recorded track evidence, but raw entry count is not treated as success. Complete an outcome or connect evidence to a goal to build Review & Trends."
+                        } else {
+                            "Complete a task, check in a habit, record goal progress, or finish a workout to build Review & Trends."
+                        },
                     )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        WhipTextButton(onClick = { onDrillDown(ReviewSection.Tasks) }) { Text("Open Tasks") }
+                        WhipTextButton(onClick = { onDrillDown(ReviewSection.Habits) }) { Text("Open Habits") }
+                        WhipTextButton(onClick = { onDrillDown(ReviewSection.Goals) }) { Text("Open Goals") }
+                        WhipTextButton(onClick = onOpenTracks) { Text("Open Tracks") }
+                        WhipTextButton(onClick = { onDrillDown(ReviewSection.Gym) }) { Text("Open Gym") }
+                    }
                 }
                 item {
                     FlowRow(
@@ -170,7 +189,7 @@ fun ReviewDialog(
                             WhipFilterChip(value == period, { onPeriodChange(value) }, { Text(value.name) })
                         }
                     }
-                    Text("$start – $through", style = MaterialTheme.typography.bodySmall)
+                    Text(formatReviewRange(start, through, locale), style = MaterialTheme.typography.bodySmall)
                 }
                 if (hasReviewData) item {
                     Text("Included Sections", fontWeight = FontWeight.Bold)
@@ -179,7 +198,7 @@ fun ReviewDialog(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        HomeSection.entries.forEach { section ->
+                        ReviewSection.entries.forEach { section ->
                             WhipFilterChip(
                                 selected = section in sections,
                                 onClick = {
@@ -207,7 +226,7 @@ fun ReviewDialog(
                     }
                     WhipTextButton(onClick = { saveFilterOpen = true }) { Text("Save Review Filter") }
                 }
-                if (hasReviewData) allSignals.filter { it.first in sections }.forEach { (section, signal) ->
+                if (hasReviewData) allSignals.filter { it.first in includedSections }.forEach { (section, signal) ->
                     item {
                         Row(
                             Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClickLabel = "Open ${signal.name} details") { onDrillDown(section) }.padding(vertical = 6.dp),
@@ -243,10 +262,11 @@ fun ReviewDialog(
         }
     }
     if (saveFilterOpen) {
-        AlertDialog(
+        PaneAwareAlertDialog(
+            modifier = modifier,
             onDismissRequest = { saveFilterOpen = false },
             title = { Text("Save Review Filter") },
-            text = { OutlinedTextField(filterName, { filterName = it }, label = { Text("Filter name") }) },
+            text = { OutlinedTextField(filterName, { filterName = it }, label = { Text("Filter Name") }) },
             confirmButton = {
                 WhipTextButton(
                     enabled = filterName.isNotBlank(),
@@ -260,6 +280,16 @@ fun ReviewDialog(
             dismissButton = { WhipTextButton(onClick = { saveFilterOpen = false }) { Text("Cancel") } },
         )
     }
+}
+
+internal fun formatReviewRange(start: LocalDate, through: LocalDate, locale: java.util.Locale): String {
+    val sameYear = start.year == through.year
+    val sameMonth = sameYear && start.month == through.month
+    val startPattern = if (sameYear) "MMM d" else "MMM d, uuuu"
+    val endPattern = if (sameMonth) "d, uuuu" else "MMM d, uuuu"
+    val startText = start.format(java.time.format.DateTimeFormatter.ofPattern(startPattern, locale))
+    val endText = through.format(java.time.format.DateTimeFormatter.ofPattern(endPattern, locale))
+    return "$startText–$endText"
 }
 
 private fun sparkline(values: List<Double>): String {

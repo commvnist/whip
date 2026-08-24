@@ -9,7 +9,10 @@ import android.view.Display
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -77,6 +80,11 @@ class ProductivityCreationJourneyE2ETest {
                     app.taskRepository.tasks.first { tasks -> tasks.any { it.title == "Journey task" } }
                 }
             }
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithText("Edit").fetchSemanticsNodes().any { node ->
+                    runCatching { node.layoutInfo.isPlaced }.getOrDefault(false)
+                }
+            }
             compose.onNodeWithText("Edit").assertIsDisplayed()
             compose.waitUntil(5_000) {
                 runCatching {
@@ -86,7 +94,14 @@ class ProductivityCreationJourneyE2ETest {
             }
             compose.onNodeWithContentDescription("Open task details for Journey task").performClick()
             compose.onNodeWithText("Schedule").assertIsDisplayed()
-            check(compose.onAllNodesWithText("Options").fetchSemanticsNodes().isNotEmpty())
+            if (compose.onAllNodesWithText("Options").fetchSemanticsNodes().isEmpty()) {
+                compose.onNode(
+                    hasContentDescription("Open Pages") and
+                        hasAnyAncestor(hasTestTag("task-actions-surface")),
+                ).performClick()
+            }
+            compose.onNodeWithText("Options").performClick()
+            compose.onNodeWithText("Pin to Home").assertIsDisplayed()
             compose.onNodeWithText("Close").performClick()
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
@@ -113,17 +128,30 @@ class ProductivityCreationJourneyE2ETest {
             compose.onNodeWithContentDescription("Edit habit Journey water")
                 .performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithText("Edit Habit").assertIsDisplayed()
-            compose.onNodeWithText("Cancel").performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithContentDescription("Cancel Habit editing")
+                .performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithContentDescription("Open habit details for Journey water")
                 .performSemanticsAction(SemanticsActions.OnClick)
-            listOf("Today", "History", "Connections", "Options").forEach { section ->
+            listOf("Today", "History").forEach { section ->
                 compose.onNodeWithTag("habit-detail-section-$section")
                     .performSemanticsAction(SemanticsActions.OnClick)
                 compose.onNodeWithText("Edit Habit").assertIsDisplayed()
             }
+            compose.onNode(
+                hasContentDescription("Open Pages") and hasAnyAncestor(hasTestTag("habit-detail-surface")),
+            ).performClick()
+            compose.onNodeWithText("Automation").performClick()
+            compose.onNodeWithTag("habit-detail-section-Automation").assertIsDisplayed()
+            compose.onNodeWithText("Edit Habit").assertIsDisplayed()
+            compose.onNode(
+                hasContentDescription("Open Pages") and hasAnyAncestor(hasTestTag("habit-detail-surface")),
+            ).performClick()
+            compose.onNodeWithText("Options").performClick()
+            compose.onNodeWithText("Edit Habit").assertIsDisplayed()
             compose.onNodeWithText("Edit Habit").performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithText("Edit Habit").assertIsDisplayed()
-            compose.onNodeWithText("Cancel").performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithContentDescription("Cancel Habit editing")
+                .performSemanticsAction(SemanticsActions.OnClick)
 
             compose.onNodeWithContentDescription("Goals tab").performClick()
             compose.onNodeWithContentDescription("Add goal").performClick()
@@ -143,24 +171,48 @@ class ProductivityCreationJourneyE2ETest {
                         .first { it.name == "Journey target" }.id
                 }
             }
-            compose.waitUntil(5_000) { compose.onAllNodesWithText("Goal created").fetchSemanticsNodes().isNotEmpty() }
-            compose.onNodeWithText("Done").performClick()
+            compose.waitUntil(5_000) { compose.onAllNodesWithText("Goal Created").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("goal-created-done").performClick()
             compose.onNodeWithContentDescription("Edit goal Journey target")
                 .performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithText("Edit Goal").assertIsDisplayed()
-            compose.onNodeWithText("Cancel").performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithContentDescription("Cancel Goal editing")
+                .performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithContentDescription("Open goal details for Journey target")
                 .performSemanticsAction(SemanticsActions.OnClick)
-            listOf("Overview", "History", "Connections", "Options").forEach { section ->
+            listOf("Overview", "History").forEach { section ->
                 compose.onNodeWithTag("goal-detail-section-$section")
                     .performSemanticsAction(SemanticsActions.OnClick)
                 compose.onNodeWithText("Edit Goal").assertIsDisplayed()
             }
+            compose.onNode(
+                hasContentDescription("Open Pages") and hasAnyAncestor(hasTestTag("goal-detail-surface")),
+            ).performClick()
+            compose.onNodeWithText("Automation").performClick()
+            compose.onNodeWithTag("goal-detail-section-Automation").assertIsDisplayed()
+            compose.onNodeWithText("Edit Goal").assertIsDisplayed()
+            compose.onNode(
+                hasContentDescription("Open Pages") and hasAnyAncestor(hasTestTag("goal-detail-surface")),
+            ).performClick()
+            compose.onNodeWithText("Options").performClick()
+            compose.onNodeWithText("Edit Goal").assertIsDisplayed()
             compose.onNodeWithText("Edit Goal").performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithText("Edit Goal").assertIsDisplayed()
-            compose.onNodeWithText("Cancel").performSemanticsAction(SemanticsActions.OnClick)
-            compose.onNodeWithTag("goal-destination-Archived").assertIsDisplayed()
-            compose.onNodeWithTag("goal-destination-Insights").performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithContentDescription("Cancel Goal editing")
+                .performSemanticsAction(SemanticsActions.OnClick)
+            if (compose.onAllNodesWithText("Discard Changes").fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithText("Discard Changes").performSemanticsAction(SemanticsActions.OnClick)
+            }
+            compose.onNodeWithContentDescription("Open Pages").performClick()
+            compose.onNodeWithText("Archived").performClick()
+            compose.onNodeWithText("Archived Goals").assertIsDisplayed()
+            if (compose.onAllNodesWithTag("goal-destination-Insights").fetchSemanticsNodes().isEmpty()) {
+                compose.onNodeWithContentDescription("Open Pages").performClick()
+                compose.onNodeWithText("Insights").performClick()
+            } else {
+                compose.onNodeWithTag("goal-destination-Insights")
+                    .performSemanticsAction(SemanticsActions.OnClick)
+            }
             compose.onNodeWithText("Goal Insights").assertIsDisplayed()
             compose.onNodeWithTag("goal-insight-$goalId").assertIsDisplayed()
         }

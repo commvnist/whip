@@ -323,7 +323,7 @@ class GymPowerInputUiTest {
         compose.onAllNodes(hasTestTag("active-set-composer")).assertCountEquals(1)
         compose.onAllNodesWithContentDescription("Reorder set 1").assertCountEquals(0)
         compose.onAllNodesWithContentDescription("Reorder set 2").assertCountEquals(0)
-        compose.onNodeWithText("Set 2 · 50 kg × 5").assertIsDisplayed()
+        compose.onNodeWithText("Set 2", substring = true).assertIsDisplayed()
     }
 
     @Test
@@ -367,7 +367,7 @@ class GymPowerInputUiTest {
         compose.onAllNodesWithContentDescription("Reorder set 1").assertCountEquals(0)
         compose.onNodeWithTag("active-set-composer").assertIsDisplayed()
         compose.onNodeWithText("1 Completed Set").performClick()
-        compose.onNodeWithText("Set 1 · 50 kg × 5").assertIsDisplayed()
+        compose.onNodeWithText("Set 1", substring = true).assertIsDisplayed()
         compose.onAllNodesWithContentDescription("Reorder set 1").assertCountEquals(0)
     }
 

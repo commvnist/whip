@@ -3,20 +3,27 @@ package com.whip.app
 import android.app.ActivityOptions
 import android.content.Intent
 import android.view.Display
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.uiautomator.By
-import androidx.test.uiautomator.UiDevice
-import androidx.test.uiautomator.Until
-import org.junit.Assert.assertNotNull
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlinx.coroutines.runBlocking
 
 @RunWith(AndroidJUnit4::class)
 class WhipNavigationTest {
+    @get:Rule
+    val compose = createEmptyComposeRule()
+
     @Test
     fun primaryAreasAndAccessibleTopActionsAreReachable() {
         runBlocking {
@@ -24,9 +31,6 @@ class WhipNavigationTest {
             app.backupRepository.deleteAllData()
             app.settingsRepository.update { it.copy(setupCompleted = true) }
         }
-        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        device.wakeUp()
-        device.executeShellCommand("wm dismiss-keyguard")
         val intent = Intent(
             ApplicationProvider.getApplicationContext(),
             MainActivity::class.java,
@@ -37,38 +41,71 @@ class WhipNavigationTest {
 
         // The explicit display is required on foldable devices that expose more than one display.
         ActivityScenario.launch<MainActivity>(intent, options).use {
-            device.waitForIdle()
-            assertVisible(device, By.text("Home"))
-            assertVisible(device, By.text("Review & Trends"))
+            compose.waitUntil(TIMEOUT_MS) {
+                compose.onAllNodesWithText("Review & Trends").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithContentDescription("Home").assertIsDisplayed()
+            compose.onNodeWithText("Review & Trends").assertIsDisplayed()
 
-            assertVisible(device, By.desc("Search All Whip Data"))
-            device.wait(Until.findObject(By.desc("Search All Whip Data")), TIMEOUT_MS).click()
-            assertVisible(device, By.text("Search Whip"))
-            device.wait(Until.findObject(By.text("Close")), TIMEOUT_MS).click()
-            device.wait(Until.findObject(By.desc("Tasks tab")), TIMEOUT_MS).click()
-            device.wait(Until.findObject(By.text("Upcoming")), TIMEOUT_MS).click()
-            assertVisible(device, By.textContains("The next 30 days"))
+            compose.onNodeWithContentDescription("Search All Whip Data").performClick()
+            compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
+            compose.onNodeWithText("Close").performClick()
+            compose.onNodeWithContentDescription("Tasks tab").performClick()
+            compose.onNodeWithTag("task-destination-Upcoming").performClick()
+            compose.onNodeWithText("The next 30 days", substring = true).assertIsDisplayed()
 
-            device.wait(Until.findObject(By.desc("Habits tab")), TIMEOUT_MS).click()
-            assertVisible(device, By.text("Check in, log a value, or continue a timer for habits due today."))
+            compose.onNodeWithContentDescription("Habits tab").performClick()
+            compose.onNodeWithText("Check in, log a value, or continue a timer for habits due today.").assertIsDisplayed()
 
-            device.wait(Until.findObject(By.desc("Gym tab")), TIMEOUT_MS).click()
-            assertVisible(device, By.text("Workout"))
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            compose.onNodeWithTag("gym-destination-Workout").assertIsDisplayed()
 
-            device.wait(Until.findObject(By.desc("Goals tab")), TIMEOUT_MS).click()
-            assertVisible(
-                device,
-                By.text("Long-term measurements, consistency, ranges, totals, and project milestones."),
-            )
+            compose.onNodeWithContentDescription("Goals tab").performClick()
+            compose.onNodeWithText("Long-term measurements, consistency, ranges, totals, and project milestones.").assertIsDisplayed()
+
+            compose.onNodeWithContentDescription("Tracks tab").performClick()
+            compose.onNodeWithText("Define the Evidence That Matters").assertIsDisplayed()
+            compose.onNodeWithText("Create Track").assertIsDisplayed()
         }
     }
 
-    private fun assertVisible(device: UiDevice, selector: androidx.test.uiautomator.BySelector) {
-        assertNotNull(device.wait(Until.findObject(selector), TIMEOUT_MS))
+    @Test
+    fun switchingPrimaryAreasResetsEachAreaToItsFirstHeading() {
+        runBlocking {
+            val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update { it.copy(setupCompleted = true) }
+        }
+        val intent = Intent(
+            ApplicationProvider.getApplicationContext(),
+            MainActivity::class.java,
+        ).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
+        val options = ActivityOptions.makeBasic()
+            .setLaunchDisplayId(Display.DEFAULT_DISPLAY)
+            .toBundle()
+
+        ActivityScenario.launch<MainActivity>(intent, options).use {
+            compose.waitUntil(TIMEOUT_MS) {
+                compose.onAllNodesWithText("Review & Trends").fetchSemanticsNodes().isNotEmpty()
+            }
+
+            compose.onNodeWithContentDescription("Tasks tab").performClick()
+            compose.onNodeWithTag("task-destination-Today").assertIsSelected()
+            compose.onNodeWithTag("task-destination-Inbox").performClick().assertIsSelected()
+
+            compose.onNodeWithContentDescription("Habits tab").performClick()
+            compose.onNodeWithTag("habit-destination-Today").assertIsSelected()
+            compose.onNodeWithTag("habit-destination-All").performClick().assertIsSelected()
+
+            compose.onNodeWithContentDescription("Tasks tab").performClick()
+            compose.onNodeWithTag("task-destination-Today").assertIsSelected()
+
+            compose.onNodeWithContentDescription("Habits tab").performClick()
+            compose.onNodeWithTag("habit-destination-Today").assertIsSelected()
+        }
     }
 
     private companion object {
-        const val SHORT_TIMEOUT_MS = 1_000L
-        const val TIMEOUT_MS = 5_000L
+        const val TIMEOUT_MS = 10_000L
     }
 }

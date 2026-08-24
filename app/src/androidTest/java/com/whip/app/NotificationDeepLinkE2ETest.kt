@@ -4,6 +4,9 @@ import android.app.ActivityOptions
 import android.content.Intent
 import android.view.Display
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -53,7 +56,7 @@ class NotificationDeepLinkE2ETest {
                 compose.onAllNodesWithTag("habit-detail-surface").fetchSemanticsNodes().isNotEmpty()
             }
             compose.onNodeWithText("Close").performClick()
-            compose.onNodeWithContentDescription("Home tab").performClick()
+            compose.onNodeWithContentDescription("Go to Home").performClick()
 
             ApplicationProvider.getApplicationContext<WhipApplication>().startActivity(openHabitIntent())
 
@@ -61,7 +64,14 @@ class NotificationDeepLinkE2ETest {
                 compose.onAllNodesWithTag("habit-detail-surface").fetchSemanticsNodes().isNotEmpty()
             }
             compose.onNodeWithTag("habit-detail-surface").assertIsDisplayed()
-            compose.onNodeWithTag("habit-detail-section-Connections").assertIsDisplayed()
+            if (compose.onAllNodesWithTag("habit-detail-section-Automation").fetchSemanticsNodes().isEmpty()) {
+                compose.onNode(
+                    hasContentDescription("Open Pages") and
+                        hasAnyAncestor(hasTestTag("habit-detail-surface")),
+                ).performClick()
+                compose.onNodeWithText("Automation").performClick()
+            }
+            compose.onNodeWithTag("habit-detail-section-Automation").assertIsDisplayed()
         }
     }
 

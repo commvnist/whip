@@ -96,6 +96,7 @@ class RestoreRecoveryManagerTest {
         override suspend fun exportTasksCsv() = ""
         override suspend fun exportHabitsCsv() = ""
         override suspend fun exportGoalsCsv() = ""
+        override suspend fun exportTracksCsv() = ""
         override suspend fun exportGymCsv() = ""
         override suspend fun deleteAllData() = Unit
     }

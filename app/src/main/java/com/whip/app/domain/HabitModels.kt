@@ -18,7 +18,7 @@ data class HabitDraft(
     val areaId: String? = null,
     val area: String = "",
     val tags: List<String> = emptyList(),
-    val icon: String = "✓",
+    val icon: String = DEFAULT_HABIT_EMOJI,
     val trackingMode: HabitTrackingMode = HabitTrackingMode.CheckOff,
     val dimension: UnitDimension = UnitDimension.Count,
     val unitId: String = "count",

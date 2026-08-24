@@ -12,6 +12,7 @@ import com.whip.app.data.RoomRoutineRepository
 import com.whip.app.data.RoomHabitRepository
 import com.whip.app.data.RoomGoalRepository
 import com.whip.app.data.RoomLinkRepository
+import com.whip.app.data.RoomTrackRepository
 import com.whip.app.data.RoomBackupRepository
 import com.whip.app.data.TaskDeletionCoordinator
 import com.whip.app.data.DomainDeletionCoordinator
@@ -75,6 +76,9 @@ class WhipApplication : Application() {
     }
     val linkRepository by lazy {
         RoomLinkRepository(database, measurementRepository, clock, idGenerator)
+    }
+    val trackRepository by lazy {
+        RoomTrackRepository(database, clock, idGenerator)
     }
     val taskDeletionCoordinator by lazy {
         TaskDeletionCoordinator(database, taskRepository, linkRepository)
@@ -166,10 +170,31 @@ class WhipApplication : Application() {
         }
         applicationScope.launch {
             merge(
+                trackRepository.tracks.map { Unit },
+                trackRepository.fields.map { Unit },
+                trackRepository.options.map { Unit },
+                trackRepository.entries.map { Unit },
+                trackRepository.values.map { Unit },
+            ).debounce(150).collectLatest {
+                runCatching { linkRepository.rebuildSources(setOf(LinkSourceType.Track)) }
+                runCatching { automationPromptScheduler.syncAll() }
+            }
+        }
+        applicationScope.launch {
+            merge(
+                linkRepository.triggerRules.map { Unit },
+                linkRepository.triggerOccurrences.map { Unit },
+            ).debounce(150).collectLatest {
+                runCatching { automationPromptScheduler.syncAll() }
+            }
+        }
+        applicationScope.launch {
+            merge(
                 taskRepository.tasks.map { Unit }, taskRepository.occurrences.map { Unit },
                 habitRepository.logs.map { Unit }, gymRepository.sessions.map { Unit },
                 gymRepository.sets.map { Unit }, linkRepository.rules.map { Unit },
                 linkRepository.triggerRules.map { Unit },
+                trackRepository.tracks.map { Unit }, trackRepository.entries.map { Unit },
             ).debounce(250).collectLatest { WhipWidgetProvider.updateAll(this@WhipApplication) }
         }
     }

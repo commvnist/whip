@@ -233,7 +233,9 @@ class PortableBackupManager(
     }
 
     suspend fun clearFolder() = mutex.withLock {
-        mutableState.value.folderUri?.let(Uri::parse)?.let(documentStore::releaseAccess)
+        // A provider may already have revoked access. Forgetting the local
+        // configuration must still succeed even when releasing that stale grant does not.
+        runCatching { mutableState.value.folderUri?.let(Uri::parse)?.let(documentStore::releaseAccess) }
         updateState {
             it.copy(
                 folderUri = null,

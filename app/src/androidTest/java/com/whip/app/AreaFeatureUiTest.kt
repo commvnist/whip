@@ -46,6 +46,42 @@ class AreaFeatureUiTest {
     }
 
     @Test
+    fun pickerDoesNotClaimARequiredDefaultWasInheritedFromTheCurrentView() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                AreaPicker(
+                    areas = listOf(area("main", "Main")),
+                    selectedAreaId = "main",
+                    selectedAreaName = "Main",
+                    onSelect = { _, _ -> },
+                    onCreateArea = { _, _, _ -> },
+                    inheritedFromScope = false,
+                )
+            }
+        }
+
+        compose.onAllNodesWithText("Defaulted from the current area view.").assertCountEquals(0)
+    }
+
+    @Test
+    fun pickerExplainsWhenItsAreaWasActuallyInheritedFromScope() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                AreaPicker(
+                    areas = listOf(area("main", "Main")),
+                    selectedAreaId = "main",
+                    selectedAreaName = "Main",
+                    onSelect = { _, _ -> },
+                    onCreateArea = { _, _, _ -> },
+                    inheritedFromScope = true,
+                )
+            }
+        }
+
+        compose.onNodeWithText("Defaulted from the current area view.").assertIsDisplayed()
+    }
+
+    @Test
     fun badgeUsesTextAndChangesTheGlobalScope() {
         val selected = AtomicReference<String>()
         compose.setContent {
@@ -100,7 +136,7 @@ class AreaFeatureUiTest {
         }
 
         compose.onNodeWithContentDescription("Area scope: Work").performClick()
-        compose.onNodeWithText("✓  Work · 3 items").assertIsDisplayed()
+        compose.onNodeWithText("Work · 3 items").assertIsDisplayed()
         compose.onAllNodesWithText("No area", substring = true).assertCountEquals(0)
         compose.onNodeWithText("Manage Areas").assertIsDisplayed()
     }

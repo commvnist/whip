@@ -1,9 +1,11 @@
 package com.whip.app.core
 
 import com.whip.app.domain.AreaScope
+import com.whip.app.domain.CustomIdentityEmoji
 import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.WorkoutSetClassification
+import com.whip.app.domain.normalizeCustomIdentityEmojis
 import java.nio.charset.StandardCharsets
 import java.util.Base64
 
@@ -22,8 +24,10 @@ data class SavedTaskFilter(
     val textQuery: String = "",
     val destination: String = "",
     val planningView: String = "List",
-    /** Smart, Title, Date, Priority. */
+    /** Smart, Manual, Scheduled Date, Deadline, Completion Date, Archived Date, Priority, Title. */
     val sortMode: String = "Smart",
+    /** Applies to explicit sortable fields; Smart and Manual retain their authored order. */
+    val sortDescending: Boolean = false,
     /** None, Date, Area, Priority. */
     val groupMode: String = "None",
     val areaId: String? = null,
@@ -31,7 +35,7 @@ data class SavedTaskFilter(
 
 data class SavedReviewFilter(
     val name: String,
-    val sections: Set<HomeSection> = HomeSection.entries.toSet(),
+    val sections: Set<ReviewSection> = ReviewSection.entries.toSet(),
 )
 
 /** Keeps saved navigation values within the routes supported by the current workspace. */
@@ -110,13 +114,14 @@ internal fun List<SavedTaskFilter>.encodeTaskFilters(): String = joinToString("\
         filter.sortMode,
         filter.groupMode,
         filter.areaId.orEmpty().encoded(),
+        filter.sortDescending.toString(),
     ).joinToString("|")
 }
 
 internal fun String?.decodeTaskFilters(): List<SavedTaskFilter> = this.orEmpty().lineSequence()
     .mapNotNull { line ->
         val parts = line.split('|')
-        if (parts.size != 16) return@mapNotNull null
+        if (parts.size !in 16..17) return@mapNotNull null
         SavedTaskFilter(
             name = parts[0].decoded().takeIf(String::isNotBlank) ?: return@mapNotNull null,
             priorities = parts[1].split(',').mapNotNullTo(linkedSetOf()) {
@@ -135,14 +140,19 @@ internal fun String?.decodeTaskFilters(): List<SavedTaskFilter> = this.orEmpty()
             textQuery = parts[10].decoded(),
             destination = parts[11],
             planningView = parts[12].takeIf { it in setOf("List", "Agenda", "Calendar") } ?: "List",
-            sortMode = parts[13].takeIf { it in setOf("Smart", "Manual", "Title", "Date", "Priority") } ?: "Smart",
-            groupMode = parts[14].takeIf { it in setOf("None", "Date", "Area", "Priority") } ?: "None",
+            sortMode = parts[13].takeIf {
+                it in setOf("Smart", "Manual", "Scheduled Date", "Deadline", "Completion Date", "Archived Date", "Title", "Priority")
+            } ?: "Smart",
+            groupMode = parts[14].takeIf {
+                it in setOf("None", "Scheduled Date", "Completion Date", "Archived Date", "Area", "Priority")
+            } ?: "None",
             areaId = parts[15].decoded().takeIf(String::isNotBlank),
+            sortDescending = parts.getOrNull(16)?.toBooleanStrictOrNull() ?: false,
         ).normalizedNavigation()
     }.distinctBy { it.name.lowercase() }.toList()
 
 internal fun List<SavedReviewFilter>.encodeReviewFilters(): String = joinToString("\n") { filter ->
-    "${filter.name.encoded()}|${filter.sections.joinToString(",", transform = HomeSection::name)}"
+    "${filter.name.encoded()}|${filter.sections.joinToString(",", transform = ReviewSection::name)}"
 }
 
 internal fun String?.decodeReviewFilters(): List<SavedReviewFilter> = this.orEmpty().lineSequence()
@@ -152,10 +162,27 @@ internal fun String?.decodeReviewFilters(): List<SavedReviewFilter> = this.orEmp
         SavedReviewFilter(
             name = parts[0].decoded().takeIf(String::isNotBlank) ?: return@mapNotNull null,
             sections = parts[1].split(',').mapNotNullTo(linkedSetOf()) {
-                runCatching { HomeSection.valueOf(it) }.getOrNull()
-            }.ifEmpty { HomeSection.entries.toSet() },
+                runCatching { ReviewSection.valueOf(it) }.getOrNull()
+            }.ifEmpty { ReviewSection.entries.toSet() },
         )
     }.distinctBy { it.name.lowercase() }.toList()
+
+internal fun List<CustomIdentityEmoji>.encodeCustomIdentityEmojis(): String =
+    normalizeCustomIdentityEmojis(this).joinToString("\n") { choice ->
+        "${choice.emoji.encoded()}|${choice.name.encoded()}"
+    }
+
+internal fun String?.decodeCustomIdentityEmojis(): List<CustomIdentityEmoji> =
+    normalizeCustomIdentityEmojis(
+        this.orEmpty().lineSequence().mapNotNull { line ->
+            val parts = line.split('|')
+            if (parts.size != 2) return@mapNotNull null
+            CustomIdentityEmoji(
+                emoji = parts[0].decoded(),
+                name = parts[1].decoded(),
+            )
+        }.toList(),
+    )
 
 internal fun List<PlatePreset>.encodePlatePresets(): String = joinToString("\n") { preset ->
     listOf(

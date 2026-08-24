@@ -9,13 +9,21 @@ import java.time.LocalDate
 import java.time.ZoneId
 import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.AreaScope
+import com.whip.app.domain.CustomIdentityEmoji
+import com.whip.app.domain.normalizeCustomIdentityEmojis
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.isActive
 
 enum class AppThemeMode { System, Light, Dark }
-enum class HomeSection { Tasks, Habits, Goals, Gym }
+enum class HomeSection { Tasks, Habits, Goals, Tracks, Gym }
+enum class ReviewSection { Tasks, Habits, Goals, Gym }
 enum class HealthDataType { Weight, Steps, Distance, Hydration, Sleep, Exercise }
 enum class ReviewPeriod { Weekly, Monthly }
 
@@ -74,11 +82,12 @@ data class AppSettings(
     val showHabitsInTaskPlanning: Boolean = false,
     val defaultHabitWeekStart: DayOfWeek = DayOfWeek.MONDAY,
     val naturalLanguageTaskCapture: Boolean = false,
+    val customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
     val savedTaskFilters: List<SavedTaskFilter> = emptyList(),
     val homeTaskFilterName: String? = null,
     val savedReviewFilters: List<SavedReviewFilter> = emptyList(),
     val selectedReviewFilterName: String? = null,
-    val reviewSections: Set<HomeSection> = HomeSection.entries.toSet(),
+    val reviewSections: Set<ReviewSection> = ReviewSection.entries.toSet(),
     val gymCompactSetRows: Boolean = false,
     val platePresets: List<PlatePreset> = emptyList(),
     val repPrescriptionSchemes: List<RepPrescriptionScheme> = emptyList(),
@@ -91,6 +100,17 @@ interface SettingsRepository {
     fun current(): AppSettings
     fun update(transform: (AppSettings) -> AppSettings)
 }
+
+/** Re-evaluates Today immediately after a time-zone/cutoff change and at minute boundaries. */
+fun SettingsRepository.currentDateFlow(clock: WhipClock): Flow<LocalDate> = combine(
+    flow {
+        while (currentCoroutineContext().isActive) {
+            emit(Unit)
+            delay(60_000)
+        }
+    },
+    settings,
+) { _, _ -> clock.today() }.distinctUntilChanged()
 
 class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository {
     private val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
@@ -121,7 +141,7 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         numberPrecision = preferences.getInt("precision", 1).coerceIn(0, 6),
         oneRepMaxFormula = preferences.getString("e1rmFormula", "Epley") ?: "Epley",
         oneRepMaxRepCutoff = preferences.getInt("e1rmCutoff", 10).coerceIn(1, 36),
-        defaultRestSeconds = preferences.getInt("defaultRest", 120).coerceAtLeast(0),
+        defaultRestSeconds = preferences.getInt("defaultRest", 120).coerceIn(15, 3_600),
         restTimerPresetSeconds = normalizeRestTimerPresets(
             preferences.getString("restTimerPresets", null)
                 ?.split(',')
@@ -162,23 +182,24 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         showHabitsInTaskPlanning = preferences.getBoolean("showHabitsInTaskPlanning", false),
         defaultHabitWeekStart = preferences.enum("habitWeekStart", DayOfWeek.MONDAY),
         naturalLanguageTaskCapture = preferences.getBoolean("naturalLanguageTaskCapture", false),
+        customIdentityEmojis = preferences.getString("customIdentityEmojis", null).decodeCustomIdentityEmojis(),
         savedTaskFilters = preferences.getString("savedTaskFilters", null).decodeTaskFilters(),
         homeTaskFilterName = preferences.getString("homeTaskFilterName", null),
         savedReviewFilters = preferences.getString("savedReviewFilters", null).decodeReviewFilters(),
         selectedReviewFilterName = preferences.getString("selectedReviewFilterName", null),
-        reviewSections = preferences.enumSet("reviewSections", HomeSection.entries)
-            .ifEmpty { HomeSection.entries.toSet() },
+        reviewSections = preferences.enumSet("reviewSections", ReviewSection.entries)
+            .ifEmpty { ReviewSection.entries.toSet() },
         gymCompactSetRows = preferences.getBoolean("gymCompactSetRows", false),
         platePresets = preferences.getString("platePresets", null).decodePlatePresets(),
         repPrescriptionSchemes = preferences.getString("repPrescriptionSchemes", null).decodeRepPrescriptionSchemes(),
         focusTimerDeadlineMillis = preferences.nullableLong("focusTimerDeadlineMillis")
             ?.takeIf { it > System.currentTimeMillis() },
         focusTimerTaskId = preferences.nullableLong("focusTimerTaskId"),
-    )
+    ).normalized()
 
     @SuppressLint("UseKtx")
     override fun update(transform: (AppSettings) -> AppSettings) {
-        val value = transform(current()).withValidUnits()
+        val value = transform(current()).normalized()
         preferences.edit()
             .putBoolean("setupCompleted", value.setupCompleted)
             .putBoolean("powerMode", value.powerMode)
@@ -227,11 +248,13 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .putBoolean("showHabitsInTaskPlanning", value.showHabitsInTaskPlanning)
             .putString("habitWeekStart", value.defaultHabitWeekStart.name)
             .putBoolean("naturalLanguageTaskCapture", value.naturalLanguageTaskCapture)
+            .remove("savedIdentityEmojis")
+            .putString("customIdentityEmojis", value.customIdentityEmojis.encodeCustomIdentityEmojis())
             .putString("savedTaskFilters", value.savedTaskFilters.encodeTaskFilters())
             .putNullableString("homeTaskFilterName", value.homeTaskFilterName)
             .putString("savedReviewFilters", value.savedReviewFilters.encodeReviewFilters())
             .putNullableString("selectedReviewFilterName", value.selectedReviewFilterName)
-            .putStringSet("reviewSections", value.reviewSections.mapTo(mutableSetOf(), HomeSection::name))
+            .putStringSet("reviewSections", value.reviewSections.mapTo(mutableSetOf(), ReviewSection::name))
             .putBoolean("gymCompactSetRows", value.gymCompactSetRows)
             .putString("platePresets", value.platePresets.encodePlatePresets())
             .putString("repPrescriptionSchemes", value.repPrescriptionSchemes.encodeRepPrescriptionSchemes())
@@ -241,12 +264,45 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
     }
 }
 
-fun AppSettings.withValidUnits(): AppSettings = copy(
-    massUnitId = normalizeMassUnit(massUnitId),
-    distanceUnitId = normalizeDistanceUnit(distanceUnitId),
-    volumeUnitId = normalizeVolumeUnit(volumeUnitId),
-    gymWeightUnitId = normalizeMassUnit(gymWeightUnitId),
-)
+fun AppSettings.normalized(): AppSettings {
+    val normalizedOrder = homeSections
+        .filter { it in HomeSection.entries }
+        .distinct()
+        .let { it + HomeSection.entries.filterNot(it::contains) }
+    val knownHidden = hiddenHomeSections.intersect(HomeSection.entries.toSet())
+    val normalizedHidden = if (knownHidden.size == HomeSection.entries.size) {
+        knownHidden - normalizedOrder.first()
+    } else {
+        knownHidden
+    }
+    return copy(
+        timeZoneId = timeZoneId?.takeIf { runCatching { ZoneId.of(it) }.isSuccess },
+        dayCutoffMinutes = dayCutoffMinutes.coerceIn(0, 1439),
+        massUnitId = normalizeMassUnit(massUnitId),
+        distanceUnitId = normalizeDistanceUnit(distanceUnitId),
+        volumeUnitId = normalizeVolumeUnit(volumeUnitId),
+        gymWeightUnitId = normalizeMassUnit(gymWeightUnitId),
+        numberPrecision = numberPrecision.coerceIn(0, 6),
+        oneRepMaxFormula = oneRepMaxFormula.takeIf { it in setOf("Epley", "Brzycki") } ?: "Epley",
+        oneRepMaxRepCutoff = oneRepMaxRepCutoff.coerceIn(1, 36),
+        defaultRestSeconds = defaultRestSeconds.coerceIn(15, 3_600),
+        restTimerPresetSeconds = normalizeRestTimerPresets(restTimerPresetSeconds),
+        hardSetClassifications = hardSetClassifications
+            .intersect(setOf("Working", "BackOff", "Drop", "Amrap", "Failure", "WarmUp"))
+            .ifEmpty { setOf("Working") },
+        categoryAllocationMode = categoryAllocationMode
+            .takeIf { it in setOf("Full", "Fractional", "PrimaryOnly") } ?: "Fractional",
+        homeSections = normalizedOrder,
+        hiddenHomeSections = normalizedHidden,
+        collapsedHomeSections = collapsedHomeSections.intersect(HomeSection.entries.toSet()),
+        healthDataTypes = healthDataTypes.intersect(HealthDataType.entries.toSet()),
+        healthSyncDays = healthSyncDays.coerceIn(1, 365),
+        customIdentityEmojis = normalizeCustomIdentityEmojis(customIdentityEmojis),
+    )
+}
+
+fun AppSettings.visibleHomeSections(): List<HomeSection> =
+    homeSections.filterNot(hiddenHomeSections::contains)
 
 fun normalizeMassUnit(value: String?): String = when (value?.trim()?.lowercase()) {
     "pound", "pounds", "lb", "lbs" -> "pound"

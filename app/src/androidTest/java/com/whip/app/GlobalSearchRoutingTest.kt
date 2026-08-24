@@ -4,11 +4,15 @@ import android.app.ActivityOptions
 import android.content.Intent
 import android.view.Display
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -67,7 +71,14 @@ class GlobalSearchRoutingTest {
             compose.onNodeWithText("Restore").assertIsDisplayed()
 
             searchFor("Searchable archived goal")
-            compose.onNodeWithText("Connections").assertIsDisplayed()
+            if (compose.onAllNodesWithText("Automation").fetchSemanticsNodes().isEmpty()) {
+                compose.onNode(
+                    hasContentDescription("Open Pages") and
+                        hasAnyAncestor(hasTestTag("goal-detail-surface")),
+                ).performClick()
+            }
+            compose.onNodeWithText("Automation").performClick()
+            compose.onNodeWithText("Goal Automations").assertIsDisplayed()
             compose.onNodeWithText("Close").performClick()
 
             searchFor("Searchable archived exercise")
@@ -88,11 +99,27 @@ class GlobalSearchRoutingTest {
     }
 
     private fun searchFor(title: String) {
-        compose.onNodeWithContentDescription("Search All Whip Data").performClick()
+        val searchDescription = listOf(
+            "Search All Whip Data",
+            "Search Habits",
+            "Search Goals",
+            "Search Tracks",
+            "Search Gym",
+            "Search Tasks",
+        ).first { description ->
+            compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithContentDescription(searchDescription).performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("unified-search-query").fetchSemanticsNodes().isNotEmpty()
+        }
+        if (compose.onAllNodesWithText("Search All Whip").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithText("Search All Whip").performClick()
+        }
         compose.onNodeWithTag("unified-search-query").performTextInput(title.removePrefix("Searchable "))
         compose.onNodeWithText(title).assertIsDisplayed().performClick()
         compose.waitUntil(10_000) {
-            compose.onAllNodesWithText("Search Whip").fetchSemanticsNodes().isEmpty()
+            compose.onAllNodesWithText("Search").fetchSemanticsNodes().isEmpty()
         }
         compose.waitForIdle()
     }

@@ -3,11 +3,8 @@ package com.whip.app.data
 import androidx.room.withTransaction
 import com.whip.app.core.WhipClock
 import com.whip.app.core.UuidWhipIdGenerator
-import com.whip.app.domain.MissedOccurrencePolicy
 import com.whip.app.domain.OccurrenceState
-import com.whip.app.domain.RecurrenceAnchor
 import com.whip.app.domain.RecurrenceEnd
-import com.whip.app.domain.RecurrenceEngine
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.ScheduledSubtask
 import com.whip.app.domain.ScheduleKind
@@ -51,7 +48,9 @@ interface TaskRepository {
     suspend fun duplicate(taskId: Long): Long
     suspend fun completeAll(items: List<ScheduledTask>)
     suspend fun rescheduleAll(items: List<ScheduledTask>, newDate: LocalDate)
+    suspend fun planAll(items: List<ScheduledTask>, newDate: LocalDate)
     suspend fun restoreSchedules(items: List<ScheduledTask>)
+    suspend fun restorePlan(items: List<ScheduledTask>, originalInboxTaskIds: Set<Long>)
     suspend fun archiveAll(taskIds: List<Long>)
     suspend fun restoreAll(taskIds: List<Long>)
     suspend fun setPinnedAll(taskIds: List<Long>, pinned: Boolean)
@@ -60,7 +59,7 @@ interface TaskRepository {
     suspend fun reorderAll(taskIdsInOrder: List<Long>)
     suspend fun getTask(taskId: Long): WhipTask?
     suspend fun getOccurrences(taskId: Long): List<TaskOccurrence>
-    suspend fun applyMissedOccurrencePolicies(today: LocalDate)
+    suspend fun undoPromoteStep(promotedTaskId: Long, sourceTaskId: Long, sourceStepId: Long)
 }
 
 /** Fields are left unchanged unless their corresponding update flag/value is supplied. */
@@ -224,13 +223,16 @@ class RoomTaskRepository(
 
     override suspend fun skip(item: ScheduledTask) {
         if (item.task.scheduleKind != ScheduleKind.Recurring) return
+        val now = clock.now().toEpochMilli()
         dao.upsertOccurrence(
             TaskOccurrence(
                 taskId = item.task.id,
                 originalDate = requireNotNull(item.originalDate),
                 scheduledDate = requireNotNull(item.scheduledDate),
                 state = OccurrenceState.Skipped,
-                completedAtMillis = null,
+                // A deliberate skip closes an occurrence at a real point in time. This is
+                // also the anchor used by completion-relative repeats.
+                completedAtMillis = now,
             ).toEntity(),
         )
     }
@@ -312,6 +314,16 @@ class RoomTaskRepository(
             dao.updateStep(step.copy(archived = true, updatedAtMillis = now))
             promotedId
         }
+
+    override suspend fun undoPromoteStep(
+        promotedTaskId: Long,
+        sourceTaskId: Long,
+        sourceStepId: Long,
+    ) = database.withTransaction {
+        dao.deleteTask(promotedTaskId)
+        val source = dao.getSteps(sourceTaskId).firstOrNull { it.id == sourceStepId } ?: return@withTransaction
+        dao.updateStep(source.copy(archived = false, updatedAtMillis = clock.now().toEpochMilli()))
+    }
 
     override suspend fun archive(taskId: Long) {
         val existing = dao.getTask(taskId) ?: return
@@ -411,6 +423,12 @@ class RoomTaskRepository(
         items.distinctBy(ScheduledTask::stableKey).forEach { reschedule(it, newDate) }
     }
 
+    override suspend fun planAll(items: List<ScheduledTask>, newDate: LocalDate) = database.withTransaction {
+        val unique = items.distinctBy(ScheduledTask::stableKey)
+        unique.forEach { reschedule(it, newDate) }
+        unique.map { it.task.id }.distinct().forEach { setInbox(it, false) }
+    }
+
     override suspend fun restoreSchedules(items: List<ScheduledTask>) = database.withTransaction {
         val now = clock.now().toEpochMilli()
         items.distinctBy(ScheduledTask::stableKey).forEach { item ->
@@ -441,6 +459,16 @@ class RoomTaskRepository(
                 )
             }
         }
+    }
+
+    override suspend fun restorePlan(
+        items: List<ScheduledTask>,
+        originalInboxTaskIds: Set<Long>,
+    ) = database.withTransaction {
+        restoreSchedules(items)
+        val ids = items.map { it.task.id }.distinct()
+        ids.forEach { setInbox(it, false) }
+        originalInboxTaskIds.forEach { setInbox(it, true) }
     }
 
     override suspend fun archiveAll(taskIds: List<Long>) = database.withTransaction {
@@ -501,46 +529,6 @@ class RoomTaskRepository(
 
     override suspend fun getOccurrences(taskId: Long): List<TaskOccurrence> =
         dao.getOccurrences(taskId).map(TaskOccurrenceEntity::toDomain)
-
-    override suspend fun applyMissedOccurrencePolicies(today: LocalDate) {
-        database.withTransaction {
-            dao.getActiveTasks()
-                .asSequence()
-                .map(TaskEntity::toDomain)
-                .filter { task ->
-                    task.scheduleKind == ScheduleKind.Recurring &&
-                        task.recurrence?.anchor == RecurrenceAnchor.Schedule &&
-                        task.missedOccurrencePolicy == MissedOccurrencePolicy.AutoSkip
-                }
-                .forEach { task ->
-                    val rule = requireNotNull(task.recurrence)
-                    val through = today.minusDays(1)
-                    if (through.isBefore(rule.startDate)) return@forEach
-                    val records = dao.getOccurrences(task.id)
-                        .map(TaskOccurrenceEntity::toDomain)
-                        .associateBy(TaskOccurrence::originalDate)
-                    RecurrenceEngine.occurrencesBetween(rule, rule.startDate, through)
-                        .forEach { original ->
-                            val record = records[original]
-                            val scheduled = record?.scheduledDate ?: original
-                            if (
-                                scheduled.isBefore(today) &&
-                                record?.state !in setOf(OccurrenceState.Completed, OccurrenceState.Skipped)
-                            ) {
-                                dao.upsertOccurrence(
-                                    TaskOccurrence(
-                                        taskId = task.id,
-                                        originalDate = original,
-                                        scheduledDate = scheduled,
-                                        state = OccurrenceState.Skipped,
-                                        completedAtMillis = null,
-                                    ).toEntity(),
-                                )
-                            }
-                        }
-                }
-        }
-    }
 
     private suspend fun syncSteps(taskId: Long, draft: TaskDraft, now: Long) {
         val existing = dao.getSteps(taskId).associateBy(TaskStepEntity::id)

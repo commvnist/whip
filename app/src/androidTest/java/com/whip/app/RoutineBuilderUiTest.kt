@@ -55,10 +55,13 @@ class RoutineBuilderUiTest {
             }
         }
 
-        compose.onAllNodesWithContentDescription("Move Day 1 earlier").assertCountEquals(0)
-        compose.onAllNodesWithContentDescription("Move Day 1 later").assertCountEquals(0)
-        compose.onAllNodesWithContentDescription("Delete Day 1").assertCountEquals(0)
-        compose.onNodeWithContentDescription("Duplicate Day 1").assertIsDisplayed()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithContentDescription("Duplicate Day A").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onAllNodesWithContentDescription("Move Day A earlier").assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("Move Day A later").assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("Delete Day A").assertCountEquals(0)
+        compose.onNodeWithContentDescription("Duplicate Day A").assertIsDisplayed()
     }
 
     @Test
@@ -99,14 +102,16 @@ class RoutineBuilderUiTest {
             hasText("Exercise 200") and hasAnyAncestor(hasTestTag("routine-exercise-picker-list")),
             useUnmergedTree = true,
         ).performClick()
-        compose.onNodeWithTag("routine-add-selected").assertTextContains("Add 1 exercise").performClick()
+        compose.onNodeWithTag("routine-add-selected").assertTextContains("Add 1 Exercise").performClick()
 
+        compose.onNodeWithTag("routine-placement-editor").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Back in routine builder").performClick()
         compose.onNode(
             hasText("Exercise 200") and hasAnyAncestor(hasTestTag("routine-selected-exercises")),
             useUnmergedTree = true,
         ).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Edit routine exercise Exercise 200").assertIsDisplayed()
         compose.onNodeWithContentDescription("More options for Exercise 200").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Edit routine exercise Exercise 200").assertIsDisplayed().performClick()
         compose.onNodeWithText("Hypertrophy · 3 × 8–10").performClick()
         compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasText("Reps min"))
         compose.onNodeWithTag("routine-reps-min-3").assertTextContains("8")
@@ -139,10 +144,9 @@ class RoutineBuilderUiTest {
 
         compose.waitForIdle()
         assertEquals("Incline press", createdName)
-        compose.onNode(
-            hasText("Incline press") and hasAnyAncestor(hasTestTag("routine-selected-exercises")),
-            useUnmergedTree = true,
-        ).assertIsDisplayed()
+        compose.onNodeWithTag("routine-placement-editor").assertIsDisplayed()
+        compose.onNodeWithText("Incline press").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Back in routine builder").performClick()
         compose.onNodeWithTag("routine-editor-name").assertTextContains("My routine")
         compose.onNodeWithText("1 new library item was saved independently and will remain if this routine is canceled.").assertIsDisplayed()
     }

@@ -1,9 +1,7 @@
 package com.whip.app.ui
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -13,21 +11,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ExpandLess
@@ -44,9 +39,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -54,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -65,7 +59,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Brush
 
 /**
  * Shared Whip interaction grammar:
@@ -103,105 +96,96 @@ internal fun DetailEditButton(label: String, onEdit: () -> Unit) {
 internal fun <T> DestinationTabBar(
     selected: T,
     destinations: List<T>,
+    modifier: Modifier = Modifier,
+    primaryDestinations: List<T> = destinations.take(4),
     onSelect: (T) -> Unit,
     label: (T) -> String,
-    modifier: Modifier = Modifier,
+    compactLabel: (T) -> String = label,
     testTagPrefix: String? = null,
 ) {
     if (destinations.isEmpty()) return
-    val destinationLabels = destinations.map { label(it).uiTitleCase() }
-    key(destinationLabels) {
-        val scrollState = rememberScrollState()
-        Column(modifier = modifier.fillMaxWidth()) {
-            BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val longestLabel = destinationLabels.maxOf(String::length)
-                val shouldScroll = destinations.size > 4 || longestLabel > 8 || maxWidth < 92.dp * destinations.size
-                val scrollingTabWidth = when {
-                    longestLabel >= 10 -> 112.dp
-                    longestLabel == 9 -> 104.dp
-                    else -> 84.dp
+    val fontScale = LocalDensity.current.fontScale
+    var pagesExpanded by rememberSaveable { mutableStateOf(false) }
+    Column(modifier = modifier.fillMaxWidth()) {
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val visibleCapacity = when {
+                fontScale >= 2f -> 2
+                fontScale >= 1.5f || maxWidth < 340.dp -> 2
+                destinations.size <= 4 -> 4
+                maxWidth < 520.dp -> 3
+                else -> 4
+            }
+            val preferred = primaryDestinations.filter { it in destinations }.ifEmpty { destinations }
+            val visible = preferred.take(visibleCapacity).toMutableList().also { shown ->
+                if (selected !in shown) {
+                    if (shown.isEmpty()) shown += selected
+                    else shown[shown.lastIndex] = selected
                 }
-                Box(Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 4.dp)
-                            .then(if (shouldScroll) Modifier.horizontalScroll(scrollState) else Modifier)
-                            .selectableGroup(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        destinations.forEachIndexed { index, destination ->
-                            val destinationLabel = destinationLabels[index]
-                            val isSelected = selected == destination
-                            val bringIntoViewRequester = remember(destinationLabel) { BringIntoViewRequester() }
-                            LaunchedEffect(isSelected, shouldScroll) {
-                                if (isSelected && shouldScroll) bringIntoViewRequester.bringIntoView()
-                            }
-                            Column(
-                                modifier = Modifier
-                                    .then(if (shouldScroll) Modifier.widthIn(min = scrollingTabWidth) else Modifier.weight(1f))
-                                    .heightIn(min = 48.dp)
-                                    .bringIntoViewRequester(bringIntoViewRequester)
-                                    .selectable(
-                                        selected = isSelected,
-                                        onClick = { onSelect(destination) },
-                                        role = Role.Tab,
-                                    )
-                                    .then(testTagPrefix?.let { Modifier.testTag("$it-$destinationLabel") } ?: Modifier),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                            ) {
-                                Box(
-                                    modifier = Modifier.height(45.dp).padding(
-                                        horizontal = if (shouldScroll) 10.dp else 2.dp,
-                                    ),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        destinationLabel,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                    )
-                                }
-                                HorizontalDivider(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                                    thickness = 3.dp,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+            }.distinct()
+            val hidden = destinations.filterNot(visible::contains)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(Modifier.weight(1f).selectableGroup()) {
+                    visible.forEach { destination ->
+                        val destinationLabel = label(destination).uiTitleCase()
+                        val visibleLabel = compactLabel(destination).uiTitleCase()
+                        val isSelected = selected == destination
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 48.dp)
+                                .selectable(
+                                    selected = isSelected,
+                                    onClick = { onSelect(destination) },
+                                    role = Role.Tab,
+                                )
+                                .semantics { contentDescription = destinationLabel }
+                                .then(testTagPrefix?.let { Modifier.testTag("$it-$destinationLabel") } ?: Modifier),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Box(Modifier.height(45.dp).padding(horizontal = 2.dp), contentAlignment = Alignment.Center) {
+                                Text(
+                                    visibleLabel,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                                 )
                             }
-                        }
-                    }
-                    if (shouldScroll && scrollState.canScrollBackward) {
-                        // Keep the fade constrained to the tab row without letting its
-                        // fillMaxHeight request participate in the parent's measurement.
-                        // Otherwise a scrollable tab bar can consume the whole content
-                        // pane and push the destination page below the viewport.
-                        Box(Modifier.matchParentSize()) {
-                            Spacer(
-                                Modifier.align(Alignment.CenterStart).width(20.dp).fillMaxHeight().background(
-                                    Brush.horizontalGradient(
-                                        listOf(MaterialTheme.colorScheme.surface, Color.Transparent),
-                                    ),
-                                ),
+                            HorizontalDivider(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp),
+                                thickness = 3.dp,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                             )
                         }
                     }
-                    if (shouldScroll && scrollState.canScrollForward) {
-                        Box(Modifier.matchParentSize()) {
-                            Spacer(
-                                Modifier.align(Alignment.CenterEnd).width(20.dp).fillMaxHeight().background(
-                                    Brush.horizontalGradient(
-                                        listOf(Color.Transparent, MaterialTheme.colorScheme.surface),
-                                    ),
-                                ),
+                }
+                if (hidden.isNotEmpty()) Box {
+                    WhipOutlinedButton(
+                        onClick = { pagesExpanded = true },
+                        modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Open Pages" },
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                    ) {
+                        Text("Pages", maxLines = 1)
+                        Icon(Icons.Outlined.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                    DropdownMenu(expanded = pagesExpanded, onDismissRequest = { pagesExpanded = false }) {
+                        hidden.forEach { destination ->
+                            val destinationLabel = label(destination).uiTitleCase()
+                            DropdownMenuItem(
+                                text = { Text(destinationLabel) },
+                                trailingIcon = if (destination == selected) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
+                                onClick = { pagesExpanded = false; onSelect(destination) },
                             )
                         }
                     }
                 }
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
@@ -213,6 +197,7 @@ internal fun <T> SegmentedChoiceBar(
     onSelect: (T) -> Unit,
     label: (T) -> String,
     modifier: Modifier = Modifier,
+    testTagPrefix: String? = null,
 ) {
     SingleChoiceSegmentedButtonRow(modifier = modifier) {
         choices.forEachIndexed { index, choice ->
@@ -225,7 +210,9 @@ internal fun <T> SegmentedChoiceBar(
                     topEnd = if (index == choices.lastIndex) 6.dp else 0.dp,
                     bottomEnd = if (index == choices.lastIndex) 6.dp else 0.dp,
                 ),
-                modifier = Modifier.heightIn(min = 48.dp),
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .then(testTagPrefix?.let { Modifier.testTag("$it-${label(choice)}") } ?: Modifier),
                 label = { Text(label(choice).uiTitleCase(), maxLines = 1) },
             )
         }
@@ -333,7 +320,8 @@ internal fun <T> SelectionField(
                 values.forEach { value ->
                     val isSelected = value == selected
                     DropdownMenuItem(
-                        text = { Text((if (isSelected) "✓  " else "") + valueText(value)) },
+                        text = { Text(valueText(value)) },
+                        leadingIcon = if (isSelected) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
                         onClick = {
                             onSelect(value)
                             expanded = false

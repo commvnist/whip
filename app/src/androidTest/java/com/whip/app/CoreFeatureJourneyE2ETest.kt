@@ -106,7 +106,7 @@ class CoreFeatureJourneyE2ETest {
             compose.onAllNodesWithContentDescription(
                 "E2E exercise Max weight chart",
                 substring = true,
-            ).assertCountEquals(2)
+            ).assertCountEquals(1)
 
             scenario.recreate()
             compose.waitUntil(timeoutMillis = 5_000) {

@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.input.key.Key
@@ -79,7 +80,7 @@ class ProductivityDefaultsUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Add task, habit, goal, exercise, workout, or measurement").performClick()
+        compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
         compose.onNodeWithText("Task").performClick()
         compose.onNodeWithTag("task-editor-title").performTextInput("Visible today")
         compose.onNodeWithText("Save").performClick()
@@ -150,7 +151,7 @@ class ProductivityDefaultsUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Add task, habit, goal, exercise, workout, or measurement").performClick()
+        compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
         compose.onNodeWithText("Habit").performClick()
         compose.onNodeWithTag("habit-editor-name").performTextInput("Discrete default")
         compose.onNodeWithText("Save").performClick()
@@ -184,7 +185,7 @@ class ProductivityDefaultsUiTest {
         compose.onNodeWithText("Use Defaults").assertIsDisplayed()
         compose.onAllNodesWithText("Decide Later").assertCountEquals(0)
         compose.onAllNodesWithText("Create Encrypted Backup Now").assertCountEquals(0)
-        compose.onNodeWithText("Whip stores your data locally", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Whip stores your data locally", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Use Defaults").performClick()
         compose.runOnIdle { assertEquals(1, defaultsUsed.get()) }
         compose.onNodeWithText("More Preferences").performClick()
@@ -219,6 +220,6 @@ class ProductivityDefaultsUiTest {
         }
         compose.onNodeWithText("Task").assertIsDisplayed()
         compose.onNodeWithText("Habit").assertIsDisplayed()
-        compose.onAllNodesWithText("Measurement").assertCountEquals(1)
+        compose.onAllNodesWithText("Track").assertCountEquals(1)
     }
 }

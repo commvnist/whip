@@ -40,6 +40,7 @@ class RoomAreaRepository(
         dao.reassignAllTaskAreas(null, area.id, area.name)
         dao.reassignAllHabitAreas(null, area.id, area.name)
         dao.reassignAllGoalAreas(null, area.id, area.name)
+        database.trackDao().reassignAllAreas(null, area.id, area.name, clock.now().toEpochMilli())
         area.id
     }
 
@@ -100,6 +101,7 @@ class RoomAreaRepository(
         dao.reassignAllTaskAreas(sourceId, targetId, targetName)
         dao.reassignAllHabitAreas(sourceId, targetId, targetName)
         dao.reassignAllGoalAreas(sourceId, targetId, targetName)
+        database.trackDao().reassignAllAreas(sourceId, targetId, targetName, clock.now().toEpochMilli())
         Unit
     }
 
@@ -109,7 +111,7 @@ class RoomAreaRepository(
         if (!area.archived) {
             require(active.any { it.id != id }) { "Create another Area before deleting ${area.name}." }
         }
-        val assignmentCount = dao.countAreaAssignments(id)
+        val assignmentCount = dao.countAreaAssignments(id) + database.trackDao().countAreaAssignments(id)
         val replacement = replacementAreaId?.let { targetId ->
             require(targetId != id) { "Choose a different destination" }
             requireNotNull(dao.getArea(targetId)) { "Destination Area no longer exists" }
@@ -122,6 +124,7 @@ class RoomAreaRepository(
             dao.reassignAllTaskAreas(id, target.id, target.name)
             dao.reassignAllHabitAreas(id, target.id, target.name)
             dao.reassignAllGoalAreas(id, target.id, target.name)
+            database.trackDao().reassignAllAreas(id, target.id, target.name, clock.now().toEpochMilli())
         }
         check(dao.deleteArea(id) == 1) { "Area could not be deleted" }
     }
@@ -170,6 +173,7 @@ class RoomAreaRepository(
         dao.moveTaskAreaReferences(source.id, target.id, target.name)
         dao.moveHabitAreaReferences(source.id, target.id, target.name)
         dao.moveGoalAreaReferences(source.id, target.id, target.name)
+        database.trackDao().moveAreaReferences(source.id, target.id, target.name, clock.now().toEpochMilli())
         dao.deleteArea(source.id)
     }
 
@@ -177,6 +181,7 @@ class RoomAreaRepository(
         dao.updateTaskAreaNames(id, name)
         dao.updateHabitAreaNames(id, name)
         dao.updateGoalAreaNames(id, name)
+        database.trackDao().updateAreaNames(id, name, clock.now().toEpochMilli())
     }
 
     private suspend fun ensureActiveArea(): AreaEntity {

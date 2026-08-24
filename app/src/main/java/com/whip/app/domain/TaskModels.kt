@@ -47,7 +47,7 @@ enum class RepeatStepPolicy {
 enum class MissedOccurrencePolicy {
     KeepOldest,
     KeepLatest,
-    AutoSkip,
+    CurrentOnly,
 }
 
 enum class TaskPriority {
@@ -59,9 +59,10 @@ enum class TaskPriority {
 }
 
 enum class TaskEffort(val label: String) {
+    Unspecified("Unspecified"),
     Light("Light"),
-    Moderate("Medium"),
-    Deep("High"),
+    Medium("Medium"),
+    High("High"),
 }
 
 data class RecurrenceRule(
@@ -115,7 +116,7 @@ data class WhipTask(
     /** Inbox is an explicit untriaged state, not an alias for every anytime task. */
     val inbox: Boolean = false,
     val durationMinutes: Int? = null,
-    val effort: TaskEffort = TaskEffort.Moderate,
+    val effort: TaskEffort = TaskEffort.Unspecified,
     val manualPosition: Int = 0,
 )
 
@@ -214,7 +215,7 @@ data class TaskDraft(
     val missedOccurrencePolicy: MissedOccurrencePolicy = MissedOccurrencePolicy.KeepLatest,
     val inbox: Boolean = true,
     val durationMinutes: Int? = null,
-    val effort: TaskEffort = TaskEffort.Moderate,
+    val effort: TaskEffort = TaskEffort.Unspecified,
 )
 
 data class ScheduledTask(
@@ -222,7 +223,8 @@ data class ScheduledTask(
     val originalDate: LocalDate?,
     val scheduledDate: LocalDate?,
     val completedAtMillis: Long? = null,
-    val isOverdue: Boolean = false,
+    val isPastScheduledDate: Boolean = false,
+    val isDeadlineOverdue: Boolean = false,
     val subtasks: List<ScheduledSubtask> = emptyList(),
 ) {
     val stableKey: String = "${task.id}:${originalDate?.toEpochDay() ?: "task"}"

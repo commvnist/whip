@@ -39,18 +39,18 @@ class ProductivityTemplateSafetyTest {
         val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
         ActivityScenario.launch<MainActivity>(intent, options).use {
             compose.waitForIdle()
-            compose.onNodeWithContentDescription("Add task, habit, goal, exercise, workout, or measurement").performClick()
+            compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
             compose.onNodeWithText("Task").performClick()
-            compose.onNodeWithText("Start from a Plain-Language Recipe").performClick()
+            compose.onNodeWithText("Use a Template").performClick()
             compose.onNodeWithText("Repeat on Chosen Weekdays").performClick()
 
             compose.onNodeWithTag("task-editor-title").assertIsDisplayed()
-            compose.onNodeWithText("Weekly task").assertIsDisplayed()
+            compose.onNodeWithText("Weekly Task").assertIsDisplayed()
             check(runBlocking { app.taskRepository.tasks.first().isEmpty() }) {
                 "Choosing a recipe persisted a task before Save"
             }
 
-            compose.onNodeWithText("Cancel").performClick()
+            compose.onNodeWithContentDescription("Cancel Task editing").performClick()
             compose.onNodeWithText("Discard Changes").performClick()
             check(runBlocking { app.taskRepository.tasks.first().isEmpty() })
         }

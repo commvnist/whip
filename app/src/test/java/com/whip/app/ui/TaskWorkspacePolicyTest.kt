@@ -8,6 +8,27 @@ import org.junit.Test
 
 class TaskWorkspacePolicyTest {
     @Test
+    fun todayIsTheFirstTaskHeadingFollowedByInbox() {
+        assertEquals(
+            listOf(
+                TaskWorkspaceDestination.Today,
+                TaskWorkspaceDestination.Inbox,
+                TaskWorkspaceDestination.Upcoming,
+                TaskWorkspaceDestination.Anytime,
+            ),
+            primaryTaskWorkspaceDestinations,
+        )
+    }
+
+    @Test
+    fun taskCreationDefaultsMatchTheWorkspaceThatInvokedThem() {
+        assertEquals(TaskPlacement.Inbox, TaskDestination.Inbox.creationPlacement())
+        assertEquals(TaskPlacement.Scheduled, TaskDestination.Today.creationPlacement())
+        assertEquals(TaskPlacement.Scheduled, TaskDestination.Upcoming.creationPlacement())
+        assertEquals(TaskPlacement.Anytime, TaskDestination.Anytime.creationPlacement())
+    }
+
+    @Test
     fun onlyUpcomingOffersPlanningViews() {
         TaskWorkspaceDestination.entries.forEach { destination ->
             val expected = if (destination == TaskWorkspaceDestination.Upcoming) {
@@ -80,7 +101,7 @@ class TaskWorkspacePolicyTest {
     fun quickAddUsesDestinationDefaultsAndArea() {
         val today = LocalDate.of(2026, 8, 22)
         val todayDraft = requireNotNull(
-            buildQuickAddTaskDraft("Clean room", today, today, inbox = false, areaId = "personal"),
+            buildQuickAddTaskDraft("Clean room", today, inbox = false, areaId = "personal"),
         )
         assertEquals("Clean room", todayDraft.title)
         assertEquals(ScheduleKind.Once, todayDraft.scheduleKind)
@@ -89,7 +110,7 @@ class TaskWorkspacePolicyTest {
         assertEquals("personal", todayDraft.areaId)
 
         val inboxDraft = requireNotNull(
-            buildQuickAddTaskDraft("Research desk", today, null, inbox = true, areaId = "work"),
+            buildQuickAddTaskDraft("Research desk", null, inbox = true, areaId = "work"),
         )
         assertEquals(ScheduleKind.Anytime, inboxDraft.scheduleKind)
         assertEquals(null, inboxDraft.date)
@@ -97,21 +118,19 @@ class TaskWorkspacePolicyTest {
     }
 
     @Test
-    fun quickAddPlainLanguageOverridesDestinationAndMultilineCreatesSteps() {
-        val today = LocalDate.of(2026, 8, 22)
+    fun quickCaptureIsLiteralAndMultilineCreatesSteps() {
         val draft = requireNotNull(
             buildQuickAddTaskDraft(
                 "Prepare report tomorrow\nDraft outline\nReview figures",
-                today,
                 defaultDate = null,
                 inbox = true,
                 areaId = "work",
             ),
         )
-        assertEquals("Prepare report", draft.title)
-        assertEquals(ScheduleKind.Once, draft.scheduleKind)
-        assertEquals(today.plusDays(1), draft.date)
-        assertEquals(false, draft.inbox)
+        assertEquals("Prepare report tomorrow", draft.title)
+        assertEquals(ScheduleKind.Anytime, draft.scheduleKind)
+        assertEquals(null, draft.date)
+        assertEquals(true, draft.inbox)
         assertEquals(listOf("Draft outline", "Review figures"), draft.steps.map { it.title })
     }
 
@@ -119,7 +138,7 @@ class TaskWorkspacePolicyTest {
     fun blankQuickAddDoesNothing() {
         assertEquals(
             null,
-            buildQuickAddTaskDraft("\n  ", LocalDate.of(2026, 8, 22), null, true, "main"),
+            buildQuickAddTaskDraft("\n  ", null, true, "main"),
         )
     }
 }

@@ -5,7 +5,7 @@ import java.time.LocalDate
 
 enum class LinkKind { Contribution, Context }
 
-enum class LinkSourceType { Habit, Task, Subtask, Workout, Exercise, Metric }
+enum class LinkSourceType { Habit, Task, Subtask, Workout, Exercise, Metric, Track }
 
 enum class LinkSourceMetric {
     NumericValue,
@@ -18,6 +18,8 @@ enum class LinkSourceMetric {
     MaxWeight,
     Distance,
     Repetitions,
+    EntryCount,
+    FieldValue,
 }
 
 enum class LinkValueMode { SourceValue, FixedValue }
@@ -38,6 +40,10 @@ data class LinkRuleDraft(
     val offset: Double = 0.0,
     val retroactiveFrom: LocalDate? = null,
     val enabled: Boolean = true,
+    val trackAggregation: TrackAggregation? = null,
+    val sourceFieldId: Long? = null,
+    val conditionMode: TrackConditionMode = TrackConditionMode.MatchAll,
+    val conditions: List<TrackCondition> = emptyList(),
 )
 
 data class LinkRule(
@@ -60,6 +66,10 @@ data class LinkRule(
     val enabled: Boolean,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    val trackAggregation: TrackAggregation? = null,
+    val sourceFieldId: Long? = null,
+    val conditionMode: TrackConditionMode = TrackConditionMode.MatchAll,
+    val conditions: List<TrackCondition> = emptyList(),
 )
 
 data class Contribution(
@@ -81,21 +91,34 @@ data class Contribution(
     val updatedAtMillis: Long,
 )
 
-enum class TriggerOutcome { Completed, Failed, Skipped }
-enum class TriggerTargetType { Habit, Task }
+enum class TriggerOutcome { Completed, Recorded, Failed, Skipped }
+enum class TriggerTargetType { Habit, Task, Track }
+enum class TriggerAction { PromptTask, PromptHabit, CheckOffHabit, PromptTrackEntry }
+enum class TriggerSourceProperty { Title, Notes, Name, NumericValue, Unit, Outcome, EventDate, Constant }
+
+data class TriggerFieldMapping(
+    val targetFieldId: Long,
+    val sourceProperty: TriggerSourceProperty,
+    val constantValue: TrackValueDraft? = null,
+)
 
 data class TriggerRuleDraft(
     val name: String,
     val sourceType: LinkSourceType,
     val sourceEntityId: Long,
+    val sourceItemId: Long? = null,
     val outcome: TriggerOutcome = TriggerOutcome.Completed,
     val targetType: TriggerTargetType,
     val targetEntityId: Long,
     val delayMinutes: Int = 0,
     val quietStartMinutes: Int? = null,
     val quietEndMinutes: Int? = null,
-    val autoCompleteTargetHabit: Boolean = false,
+    val action: TriggerAction = if (targetType == TriggerTargetType.Habit) TriggerAction.PromptHabit else TriggerAction.PromptTask,
+    val notificationEnabled: Boolean = false,
     val enabled: Boolean = true,
+    val conditionMode: TrackConditionMode = TrackConditionMode.MatchAll,
+    val conditions: List<TrackCondition> = emptyList(),
+    val mappings: List<TriggerFieldMapping> = emptyList(),
 )
 
 data class TriggerRule(
@@ -104,16 +127,21 @@ data class TriggerRule(
     val name: String,
     val sourceType: LinkSourceType,
     val sourceEntityId: Long,
+    val sourceItemId: Long?,
     val outcome: TriggerOutcome,
     val targetType: TriggerTargetType,
     val targetEntityId: Long,
     val delayMinutes: Int,
     val quietStartMinutes: Int?,
     val quietEndMinutes: Int?,
-    val autoCompleteTargetHabit: Boolean,
+    val action: TriggerAction,
+    val notificationEnabled: Boolean,
     val enabled: Boolean,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    val conditionMode: TrackConditionMode = TrackConditionMode.MatchAll,
+    val conditions: List<TrackCondition> = emptyList(),
+    val mappings: List<TriggerFieldMapping> = emptyList(),
 )
 
 data class TriggerOccurrence(
@@ -123,12 +151,20 @@ data class TriggerOccurrence(
     val availableAt: Instant,
     val deliveredAt: Instant?,
     val dismissedAt: Instant?,
+    val remindAt: Instant? = null,
+    val fulfilledEntryId: Long? = null,
+    val sourceSnapshot: String = "",
 )
 
 data class LinkBackfillPreview(
+    val scannedEventCount: Int,
     val eligibleEventCount: Int,
+    val skippedEventCount: Int,
+    val skippedReasons: Map<String, Int> = emptyMap(),
     val contributionCount: Int,
     val totalCanonicalValue: Double,
     val firstDate: LocalDate?,
     val lastDate: LocalDate?,
+    val unitExplanation: String = "",
+    val targetImpact: String = "",
 )

@@ -9,6 +9,7 @@ import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
 import com.whip.app.core.HealthDataType
 import com.whip.app.core.HomeSection
+import com.whip.app.core.ReviewSection
 import com.whip.app.core.ReviewPeriod
 import com.whip.app.core.SavedTaskFilter
 import com.whip.app.core.normalizedNavigation
@@ -16,11 +17,18 @@ import com.whip.app.core.SavedReviewFilter
 import com.whip.app.core.PlatePreset
 import com.whip.app.core.RepPrescriptionScheme
 import com.whip.app.core.SettingsRepository
+import com.whip.app.core.SystemWhipClock
+import com.whip.app.core.UuidWhipIdGenerator
 import com.whip.app.core.DEFAULT_REST_TIMER_PRESET_SECONDS
 import com.whip.app.core.normalizeRestTimerPresets
 import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskEffort
+import com.whip.app.domain.CustomIdentityEmoji
+import com.whip.app.domain.DEFAULT_GOAL_EMOJI
+import com.whip.app.domain.DEFAULT_HABIT_EMOJI
+import com.whip.app.domain.DEFAULT_TRACK_EMOJI
+import com.whip.app.domain.normalizedIdentityEmoji
 import java.security.MessageDigest
 import java.time.DayOfWeek
 import java.time.Instant
@@ -36,7 +44,7 @@ data class BackupPreview(
     val duplicateStableIds: Int,
     val checksumValid: Boolean,
     val settingsIncluded: Boolean,
-    val restoreCompatible: Boolean = databaseVersion == DATABASE_VERSION,
+    val restoreCompatible: Boolean = databaseVersion in OLDEST_COMPATIBLE_DATABASE_VERSION..BACKUP_DATABASE_VERSION,
     val compatibilityMessage: String? = null,
 )
 
@@ -55,6 +63,7 @@ interface BackupRepository {
     suspend fun exportHabitsCsv(): String
     suspend fun exportGoalsCsv(): String
     suspend fun exportGymCsv(): String
+    suspend fun exportTracksCsv(): String
     suspend fun deleteAllData()
 }
 
@@ -78,7 +87,7 @@ class RoomBackupRepository(
         JSONObject()
             .put("format", BACKUP_FORMAT)
             .put("envelopeVersion", ENVELOPE_VERSION)
-            .put("databaseVersion", DATABASE_VERSION)
+            .put("databaseVersion", BACKUP_DATABASE_VERSION)
             .put("exportedAt", Instant.now().toString())
             .put("checksumSha256", sha256(payload))
             .put("tables", tables)
@@ -120,6 +129,11 @@ class RoomBackupRepository(
             checksumValid = root.getString("checksumSha256") == sha256(payload),
             settingsIncluded = settings != null,
             restoreCompatible = true,
+            compatibilityMessage = if (databaseVersion < BACKUP_DATABASE_VERSION) {
+                "This backup will be upgraded to the current Whip backup format during restore."
+            } else {
+                null
+            },
         )
     }
 
@@ -139,6 +153,8 @@ class RoomBackupRepository(
                 val rows = tables.getJSONArray(table)
                 for (index in 0 until rows.length()) {
                     val values = rows.getJSONObject(index).toContentValues()
+                    values.applyBackupCompatibilityDefaults(table)
+                    values.normalizeIdentityEmoji(table)
                     val result = db.insert(safeIdentifier(table), SQLiteDatabase.CONFLICT_ABORT, values)
                     require(result != -1L) { "Could not restore $table row ${index + 1}" }
                 }
@@ -146,6 +162,7 @@ class RoomBackupRepository(
         }
         settings?.let { restored -> settingsRepository?.update { restored.toAppSettings() } }
         areaRepository?.ensureDefaultArea()
+        RoomTrackRepository(database, SystemWhipClock, UuidWhipIdGenerator).rebuildSearchIndex()
     }
 
     override suspend fun mergeBackup(json: String): BackupMergeSummary {
@@ -161,6 +178,7 @@ class RoomBackupRepository(
             val db = database.openHelper.writableDatabase
             val idMaps = mutableMapOf<String, MutableMap<Long, Long>>()
             val areaIdMap = mutableMapOf<String, String>()
+            val pendingEntryOccurrenceLinks = mutableListOf<Pair<Long, Long>>()
             var imported = 0
             var skipped = 0
             EXPORT_TABLES.forEach { table ->
@@ -199,7 +217,14 @@ class RoomBackupRepository(
                         continue
                     }
                     val values = row.toContentValues()
-                    if (table in setOf("tasks", "habits", "goals")) {
+                    values.applyBackupCompatibilityDefaults(table)
+                    values.normalizeIdentityEmoji(table)
+                    val sourceOccurrenceId = if (table == "track_entries") {
+                        values.getAsLong("sourceOccurrenceId")?.also { values.putNull("sourceOccurrenceId") }
+                    } else {
+                        null
+                    }
+                    if (table in setOf("tasks", "habits", "goals", "tracks")) {
                         values.getAsString("areaId")?.let { sourceId -> values.put("areaId", areaIdMap[sourceId] ?: sourceId) }
                     }
                     remapForeignKeys(values, metadata, idMaps)
@@ -207,6 +232,11 @@ class RoomBackupRepository(
                     if (metadata.autoNumericId) values.remove("id")
                     val result = db.insert(safeIdentifier(table), SQLiteDatabase.CONFLICT_IGNORE, values)
                     if (result == -1L) {
+                        if (metadata.autoNumericId && sourceNumericId != null) {
+                            existingNaturalChildId(db, table, values)?.let { targetId ->
+                                idMaps.getOrPut(table, ::mutableMapOf)[sourceNumericId] = targetId
+                            }
+                        }
                         skipped++
                     } else {
                         imported++
@@ -214,12 +244,34 @@ class RoomBackupRepository(
                         if (metadata.autoNumericId && sourceNumericId != null) {
                             idMaps.getOrPut(table, ::mutableMapOf)[sourceNumericId] = result
                         }
+                        if (table == "track_entries" && sourceOccurrenceId != null) {
+                            pendingEntryOccurrenceLinks += result to sourceOccurrenceId
+                        }
                     }
+                }
+            }
+            val sourceOccurrences = tables.getJSONArray("trigger_occurrences")
+            pendingEntryOccurrenceLinks.forEach { (entryId, sourceOccurrenceId) ->
+                val targetOccurrenceId = idMaps["trigger_occurrences"]?.get(sourceOccurrenceId)
+                    ?: sourceOccurrences.findObjectByNumericId(sourceOccurrenceId)?.let { source ->
+                        val sourceRuleId = source.optLongOrNull("triggerRuleId") ?: return@let null
+                        val targetRuleId = idMaps["trigger_rules"]?.get(sourceRuleId) ?: sourceRuleId
+                        db.query(
+                            "SELECT id FROM trigger_occurrences WHERE triggerRuleId = ? AND sourceEventId = ? LIMIT 1",
+                            arrayOf(targetRuleId.toString(), source.optString("sourceEventId")),
+                        ).use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) else null }
+                    }
+                targetOccurrenceId?.let { occurrenceId ->
+                    db.execSQL(
+                        "UPDATE track_entries SET sourceOccurrenceId = ? WHERE id = ?",
+                        arrayOf(occurrenceId, entryId),
+                    )
                 }
             }
             BackupMergeSummary(imported, skipped)
         }
         areaRepository?.ensureDefaultArea()
+        RoomTrackRepository(database, SystemWhipClock, UuidWhipIdGenerator).rebuildSearchIndex()
         return summary
     }
 
@@ -232,11 +284,15 @@ class RoomBackupRepository(
     )
 
     override suspend fun exportGoalsCsv(): String = queryCsv(
-        "SELECT g.uuid AS goalUuid, g.name AS goal, COALESCE(a.name, '') AS area, g.type, g.unitId, e.id AS entryId, e.localEpochDay, e.enteredValue, e.enteredUnitId, e.status, e.sourceType, e.note FROM goals g LEFT JOIN areas a ON a.id = g.areaId LEFT JOIN metric_entries e ON e.metricId = g.metricId ORDER BY g.id, e.timestampMillis",
+        "SELECT g.uuid AS goalUuid, g.name AS goal, COALESCE(a.name, '') AS area, g.type, g.unitId, g.elapsedStartMillis, g.elapsedDisplayUnit, e.id AS entryId, e.localEpochDay, e.enteredValue, e.enteredUnitId, e.status, e.sourceType, e.note FROM goals g LEFT JOIN areas a ON a.id = g.areaId LEFT JOIN metric_entries e ON e.metricId = g.metricId ORDER BY g.id, e.timestampMillis",
     )
 
     override suspend fun exportGymCsv(): String = queryCsv(
         "SELECT s.uuid AS workoutUuid, s.localEpochDay, s.name AS workout, e.uuid AS exerciseUuid, e.name AS exercise, e.trackingType, e.archived AS exerciseArchived, we.machineProfileUuidSnapshot AS machineScopeUuid, we.machineNameSnapshot AS machine, we.machineConfigurationGroupSnapshot AS machineConfigurationFamily, we.machineConfigurationVersionSnapshot AS machineConfigurationVersion, we.machineConfigurationSnapshot AS machineConfiguration, we.machineLoadTypeSnapshot AS machineLoadType, ws.uuid AS setUuid, ws.position, ws.classification, ws.machineLoadValue, ws.enteredWeight, ws.enteredWeightUnitId, ws.repetitions, ws.enteredDistance, ws.enteredDistanceUnitId, ws.durationSeconds, ws.rpe, ws.rir, ws.tempo, ws.note FROM exercises e LEFT JOIN workout_exercises we ON we.exerciseId = e.id LEFT JOIN workout_sessions s ON s.id = we.sessionId LEFT JOIN workout_sets ws ON ws.workoutExerciseId = we.id AND ws.deletedAtMillis IS NULL ORDER BY e.position, s.startedAtMillis, we.position, ws.position",
+    )
+
+    override suspend fun exportTracksCsv(): String = queryCsv(
+        "SELECT t.uuid AS trackUuid, t.name AS track, a.name AS area, e.uuid AS entryUuid, e.entryEpochDay, f.uuid AS fieldUuid, f.name AS field, f.type, v.textValue, v.enteredNumber, v.enteredUnitId, v.canonicalNumber, v.dateEpochDay, v.booleanValue, o.label AS choiceValue, v.scaleValue FROM tracks t JOIN areas a ON a.id = t.areaId LEFT JOIN track_entries e ON e.trackId = t.id LEFT JOIN track_values v ON v.entryId = e.id LEFT JOIN track_fields f ON f.id = v.fieldId LEFT JOIN track_choice_options o ON o.id = v.choiceOptionId ORDER BY t.position, e.entryEpochDay, e.createdAtMillis, f.position",
     )
 
     override suspend fun deleteAllData() {
@@ -269,15 +325,33 @@ class RoomBackupRepository(
             "This backup uses unsupported envelope version ${root.optInt("envelopeVersion")}; this build requires version $ENVELOPE_VERSION"
         }
         val dbVersion = root.optInt("databaseVersion")
-        require(dbVersion == DATABASE_VERSION) {
-            "This backup uses unsupported database version $dbVersion; this build requires version $DATABASE_VERSION"
+        require(dbVersion in OLDEST_COMPATIBLE_DATABASE_VERSION..BACKUP_DATABASE_VERSION) {
+            "This backup uses unsupported data version $dbVersion; this build supports versions " +
+                "$OLDEST_COMPATIBLE_DATABASE_VERSION through $BACKUP_DATABASE_VERSION"
         }
         val tables = root.optJSONObject("tables") ?: error("Backup has no table data")
         val tableNames = tables.keys().asSequence().toSet()
         require(tableNames == EXPORT_TABLES.toSet()) { "Backup table set does not match this build" }
         require(EXPORT_TABLES.all { tables.optJSONArray(it) != null }) { "Backup contains invalid table data" }
+        EXPORT_TABLES.forEach { table ->
+            val rows = tables.getJSONArray(table)
+            val seen = mutableSetOf<String>()
+            for (index in 0 until rows.length()) {
+                val row = rows.getJSONObject(index)
+                val stable = when {
+                    row.has("uuid") && !row.isNull("uuid") -> row.optString("uuid").takeIf(String::isNotBlank)
+                    row.opt("id") is String -> row.optString("id").takeIf(String::isNotBlank)
+                    else -> null
+                } ?: continue
+                require(seen.add(stable)) { "Backup contains duplicate stable identity '$stable' in $table" }
+            }
+        }
         return root
     }
+}
+
+private fun ContentValues.applyBackupCompatibilityDefaults(table: String) {
+    if (table == "track_fields" && !containsKey("scaleStep")) put("scaleStep", 1.0)
 }
 
 private data class MergeForeignKey(
@@ -337,6 +411,14 @@ private fun JSONObject.stableMergeKey(metadata: MergeTableMetadata): Pair<String
 private fun JSONObject.optLongOrNull(key: String): Long? =
     if (!has(key) || isNull(key) || opt(key) !is Number) null else optLong(key)
 
+private fun JSONArray.findObjectByNumericId(id: Long): JSONObject? {
+    for (index in 0 until length()) {
+        val candidate = optJSONObject(index) ?: continue
+        if (candidate.optLongOrNull("id") == id) return candidate
+    }
+    return null
+}
+
 private fun remapForeignKeys(
     values: ContentValues,
     metadata: MergeTableMetadata,
@@ -346,6 +428,25 @@ private fun remapForeignKeys(
         val old = values.getAsLong(key.childColumn) ?: return@forEach
         idMaps[key.parentTable]?.get(old)?.let { values.put(key.childColumn, it) }
     }
+}
+
+private fun existingNaturalChildId(
+    db: androidx.sqlite.db.SupportSQLiteDatabase,
+    table: String,
+    values: ContentValues,
+): Long? {
+    val (parentColumn, positionColumn) = when (table) {
+        "link_rule_conditions" -> "linkRuleId" to "position"
+        "trigger_rule_conditions" -> "triggerRuleId" to "position"
+        "trigger_field_mappings" -> "triggerRuleId" to "targetFieldId"
+        else -> return null
+    }
+    val parent = values.getAsLong(parentColumn) ?: return null
+    val position = values.getAsLong(positionColumn) ?: return null
+    return db.query(
+        "SELECT id FROM ${safeIdentifier(table)} WHERE ${safeIdentifier(parentColumn)} = ? AND ${safeIdentifier(positionColumn)} = ? LIMIT 1",
+        arrayOf(parent.toString(), position.toString()),
+    ).use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) else null }
 }
 
 private fun remapPolymorphicReferences(
@@ -362,6 +463,7 @@ private fun remapPolymorphicReferences(
         "Habit" -> "habits"
         "Workout" -> "workout_sessions"
         "Exercise" -> "exercises"
+        "Track" -> "tracks"
         else -> null
     }
     fun remapCsv(column: String, parent: String) {
@@ -392,9 +494,11 @@ private fun remapPolymorphicReferences(
         "contributions" -> sourceParent(values.getAsString("sourceType"))?.let { remap("sourceEntityId", it) }
         "trigger_rules" -> {
             sourceParent(values.getAsString("sourceType"))?.let { remap("sourceEntityId", it) }
+            if (values.getAsString("sourceType") == "Subtask") remap("sourceItemId", "task_steps")
             when (values.getAsString("targetType")) {
                 "Habit" -> remap("targetEntityId", "habits")
                 "Task" -> remap("targetEntityId", "tasks")
+                "Track" -> remap("targetEntityId", "tracks")
             }
         }
     }
@@ -439,7 +543,18 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 
 private const val BACKUP_FORMAT = "whip-backup"
 private const val ENVELOPE_VERSION = 2
-private const val DATABASE_VERSION = 1
+private const val OLDEST_COMPATIBLE_DATABASE_VERSION = 5
+private const val BACKUP_DATABASE_VERSION = 6
+
+private fun ContentValues.normalizeIdentityEmoji(table: String) {
+    val defaultEmoji = when (table) {
+        "habits" -> DEFAULT_HABIT_EMOJI
+        "goals" -> DEFAULT_GOAL_EMOJI
+        "tracks" -> DEFAULT_TRACK_EMOJI
+        else -> return
+    }
+    put("icon", getAsString("icon").orEmpty().normalizedIdentityEmoji(defaultEmoji))
+}
 
 private val EXPORT_TABLES = listOf(
     "areas",
@@ -450,7 +565,8 @@ private val EXPORT_TABLES = listOf(
     "workout_sessions", "workout_groups", "workout_exercises", "workout_sets",
     "personal_records", "graph_presets", "habits", "habit_checklist_items", "habit_logs",
     "habit_checklist_states", "habit_pauses", "goals", "goal_milestones",
-    "link_rules", "contributions", "trigger_rules", "trigger_occurrences",
+    "tracks", "track_fields", "track_choice_options", "track_entries", "track_values",
+    "link_rules", "link_rule_conditions", "link_condition_choices", "contributions", "trigger_rules", "trigger_rule_conditions", "trigger_condition_choices", "trigger_field_mappings", "trigger_occurrences",
 )
 
 private fun checksumPayload(tables: JSONObject, settings: JSONObject?): String =
@@ -502,6 +618,9 @@ private fun AppSettings.toJson(): JSONObject = JSONObject()
     .put("showHabitsInTaskPlanning", showHabitsInTaskPlanning)
     .put("defaultHabitWeekStart", defaultHabitWeekStart.name)
     .put("naturalLanguageTaskCapture", naturalLanguageTaskCapture)
+    .put("customIdentityEmojis", JSONArray(customIdentityEmojis.map { choice ->
+        JSONObject().put("emoji", choice.emoji).put("name", choice.name)
+    }))
     .put("savedTaskFilters", JSONArray(savedTaskFilters.map { filter ->
         JSONObject()
             .put("name", filter.name)
@@ -519,15 +638,16 @@ private fun AppSettings.toJson(): JSONObject = JSONObject()
             .put("destination", filter.destination)
             .put("planningView", filter.planningView)
             .put("sortMode", filter.sortMode)
+            .put("sortDescending", filter.sortDescending)
             .put("groupMode", filter.groupMode)
     }))
     .put("homeTaskFilterName", homeTaskFilterName ?: JSONObject.NULL)
     .put("savedReviewFilters", JSONArray(savedReviewFilters.map { filter ->
         JSONObject().put("name", filter.name)
-            .put("sections", JSONArray(filter.sections.map(HomeSection::name)))
+            .put("sections", JSONArray(filter.sections.map(ReviewSection::name)))
     }))
     .put("selectedReviewFilterName", selectedReviewFilterName ?: JSONObject.NULL)
-    .put("reviewSections", JSONArray(reviewSections.map(HomeSection::name)))
+    .put("reviewSections", JSONArray(reviewSections.map(ReviewSection::name)))
     .put("gymCompactSetRows", gymCompactSetRows)
     .put("platePresets", JSONArray(platePresets.map { preset ->
         JSONObject().put("name", preset.name).put("unitId", preset.unitId)
@@ -600,6 +720,11 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     showHabitsInTaskPlanning = optBoolean("showHabitsInTaskPlanning", false),
     defaultHabitWeekStart = enumValue("defaultHabitWeekStart", DayOfWeek.MONDAY),
     naturalLanguageTaskCapture = optBoolean("naturalLanguageTaskCapture", false),
+    customIdentityEmojis = optJSONArray("customIdentityEmojis").objects().mapNotNull { value ->
+        val emoji = value.optString("emoji").takeIf(String::isNotBlank) ?: return@mapNotNull null
+        val name = value.optString("name").takeIf(String::isNotBlank) ?: return@mapNotNull null
+        CustomIdentityEmoji(emoji = emoji, name = name)
+    },
     savedTaskFilters = optJSONArray("savedTaskFilters").objects().mapNotNull { value ->
         value.optString("name").takeIf(String::isNotBlank)?.let { name ->
             SavedTaskFilter(
@@ -620,6 +745,7 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
                 destination = value.optString("destination"),
                 planningView = value.optString("planningView", "List"),
                 sortMode = value.optString("sortMode", "Smart"),
+                sortDescending = value.optBoolean("sortDescending", false),
                 groupMode = value.optString("groupMode", "None"),
             ).normalizedNavigation()
         }
@@ -627,11 +753,11 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     homeTaskFilterName = nullableString("homeTaskFilterName"),
     savedReviewFilters = optJSONArray("savedReviewFilters").objects().mapNotNull { value ->
         value.optString("name").takeIf(String::isNotBlank)?.let { name ->
-            SavedReviewFilter(name, value.optJSONArray("sections").enumNames<HomeSection>().ifEmpty { HomeSection.entries.toSet() })
+            SavedReviewFilter(name, value.optJSONArray("sections").enumNames<ReviewSection>().ifEmpty { ReviewSection.entries.toSet() })
         }
     },
     selectedReviewFilterName = nullableString("selectedReviewFilterName"),
-    reviewSections = optJSONArray("reviewSections").enumNames<HomeSection>().ifEmpty { HomeSection.entries.toSet() },
+    reviewSections = optJSONArray("reviewSections").enumNames<ReviewSection>().ifEmpty { ReviewSection.entries.toSet() },
     gymCompactSetRows = optBoolean("gymCompactSetRows", false),
     platePresets = optJSONArray("platePresets").objects().mapNotNull { value ->
         val name = value.optString("name").takeIf(String::isNotBlank) ?: return@mapNotNull null

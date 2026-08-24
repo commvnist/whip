@@ -75,6 +75,8 @@ class GymUxRulesTest {
         assertEquals("1 exercise", quantityLabel(1, "exercise"))
         assertEquals("2 exercises", quantityLabel(2, "exercise"))
         assertEquals("1 entry", quantityLabel(1, "entry", "entries"))
+        assertEquals("2 entries", quantityLabel(2, "entry"))
+        assertEquals("2 boxes", quantityLabel(2, "box"))
     }
 
     @Test

@@ -86,6 +86,26 @@ class DomainDeletionCoordinator(
         return summary
     }
 
+    suspend fun deleteTrack(trackId: Long): DomainDeletionSummary {
+        val summary = database.withTransaction {
+            database.trackDao().getTrack(trackId) ?: return@withTransaction DomainDeletionSummary()
+            val links = database.linkDao().getRules().filter {
+                it.sourceType == LinkSourceType.Track.name && it.sourceEntityId == trackId
+            }
+            links.forEach { linkRepository.deleteRule(it.id) }
+            val triggers = database.linkDao().getTriggerRules().filter {
+                (it.sourceType == LinkSourceType.Track.name && it.sourceEntityId == trackId) ||
+                    (it.targetType == TriggerTargetType.Track.name && it.targetEntityId == trackId)
+            }
+            triggers.forEach { linkRepository.deleteTrigger(it.id) }
+            database.trackDao().deleteSearchForTrack(trackId)
+            check(database.trackDao().deleteTrack(trackId) == 1) { "Track no longer exists" }
+            DomainDeletionSummary(true, links.size, triggers.size)
+        }
+        linkRepository.rebuildAll()
+        return summary
+    }
+
     suspend fun deleteExercise(exerciseId: Long): DomainDeletionSummary {
         val affectedExerciseIds = mutableSetOf<Long>()
         val summary = database.withTransaction {

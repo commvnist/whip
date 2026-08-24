@@ -10,10 +10,11 @@ domain calculations. WorkManager, notifications, graphs, summaries, personal
 records, streaks, and goal progress are projections or side effects; none of
 them replaces the underlying source records.
 
-The 2026-08-22 pre-release cleanup reset Room to one checked-in version 1
-schema and intentionally removed all earlier development migrations. Once a
-build is publicly released, every schema change uses an explicit forward Room
-migration; destructive fallback is not permitted for released user data.
+The 2026-08-22 pre-release cleanup established schema 1 as the public baseline.
+Room is now schema 7, with every exported schema and explicit forward migration
+from 1 through 7 checked in. Migration tests exercise both the schema-1 baseline
+and schema-2 Track baseline through the current schema while preserving records
+and relationships. Destructive fallback is not permitted for user data.
 
 ## Time and identity
 
@@ -76,7 +77,7 @@ files:
 {
   "format": "whip-backup",
   "envelopeVersion": 2,
-  "databaseVersion": 1,
+  "databaseVersion": 6,
   "exportedAt": "2026-08-18T00:00:00Z",
   "checksumSha256": "...",
   "tables": {},
@@ -84,8 +85,11 @@ files:
 }
 ```
 
-Import is parse -> authenticate/checksum -> validate -> preview -> recoverable
-commit. Unknown future versions fail safely. CSV files are domain-specific
+The backup data version is intentionally independent of Room's schema version.
+The current backup data version is 6; version-5 archives are upgraded during
+restore by supplying the deterministic default Track Scale increment. Import is
+parse -> authenticate/checksum -> validate -> preview -> recoverable commit.
+Unknown future versions fail safely. CSV files are domain-specific
 interoperability exports, not complete backups. An optional encrypted envelope
 uses a password-based key derivation plus authenticated encryption; the
 passphrase is never stored.

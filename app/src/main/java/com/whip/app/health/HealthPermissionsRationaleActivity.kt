@@ -30,7 +30,7 @@ class HealthPermissionsRationaleActivity : ComponentActivity() {
                             "insights. Whip does not sell or upload this data, and it never writes to " +
                             "Health Connect.",
                     )
-                    Text("You can revoke access in Health Connect or turn syncing off in Whip Settings at any time.")
+                    Text("You can revoke access in Health Connect or turn syncing off in Whip under Settings → Data & Privacy → Health & Privacy.")
                     WhipButton(onClick = ::finish) { Text("Close") }
                 }
             }

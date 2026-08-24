@@ -2,12 +2,15 @@ package com.whip.app.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -20,27 +23,37 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.gestures.snapping.SnapPosition
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.setValue
@@ -52,8 +65,16 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material.icons.Icons
@@ -61,6 +82,10 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.ChevronLeft
+import androidx.compose.material.icons.outlined.ChevronRight
 import com.whip.app.domain.RecurrenceEnd
 import com.whip.app.domain.RecurrenceAnchor
 import com.whip.app.domain.RecurrenceRule
@@ -78,20 +103,35 @@ import com.whip.app.domain.WhipTask
 import com.whip.app.domain.Area
 import com.whip.app.domain.toDraft
 import java.time.DayOfWeek
-import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZoneOffset
+import java.time.Month
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.time.format.TextStyle
+import java.util.Locale
+import kotlin.math.abs
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.launch
+
+internal val LocalWhipFirstDayOfWeek = staticCompositionLocalOf { DayOfWeek.MONDAY }
 
 data class TaskEditorRequest(
     val task: WhipTask? = null,
     val fromOccurrence: LocalDate? = null,
     val initialCapture: String = "",
     val initialScheduleDate: LocalDate? = null,
+    val initialPlacement: TaskPlacement? = null,
     val sessionId: Long = 0L,
 )
+
+enum class TaskPlacement(val label: String) {
+    Inbox("Inbox"),
+    Anytime("Anytime"),
+    Scheduled("Scheduled"),
+}
 
 private enum class RepeatPreset {
     Daily,
@@ -123,6 +163,7 @@ fun TaskEditorDialog(
     powerMode: Boolean = false,
     areas: List<Area> = emptyList(),
     defaultAreaId: String? = null,
+    inheritedAreaFromScope: Boolean = false,
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
     knownTags: List<String> = emptyList(),
     paneOffsetX: Dp = 0.dp,
@@ -132,14 +173,21 @@ fun TaskEditorDialog(
     val keyboard = LocalSoftwareKeyboardController.current
     val titleFocusRequester = remember { FocusRequester() }
     val captureLines = request.initialCapture.lines().map(String::trim).filter(String::isNotBlank)
+    val requestedPlacement = request.initialPlacement
+        ?: TaskPlacement.Scheduled.takeIf { request.initialScheduleDate != null }
+        ?: TaskPlacement.Inbox
     val initial = request.task?.toDraft() ?: TaskDraft(
         title = captureLines.firstOrNull().orEmpty(),
         steps = captureLines.drop(1).mapIndexed { index, line -> TaskStepDraft(title = line, position = index) },
         showSubtaskProgress = captureLines.size > 1,
         repeatStepPolicy = defaultRepeatStepPolicy,
-        scheduleKind = if (request.initialScheduleDate == null) ScheduleKind.Anytime else ScheduleKind.Once,
+        scheduleKind = when (requestedPlacement) {
+            TaskPlacement.Inbox, TaskPlacement.Anytime -> ScheduleKind.Anytime
+            TaskPlacement.Scheduled -> ScheduleKind.Once
+        },
         date = request.initialScheduleDate,
-        inbox = request.initialScheduleDate == null,
+        recurrence = null,
+        inbox = requestedPlacement == TaskPlacement.Inbox,
         areaId = defaultAreaId,
         area = areas.firstOrNull { it.id == defaultAreaId }?.name.orEmpty(),
     )
@@ -228,11 +276,15 @@ fun TaskEditorDialog(
                 initial.deadline != null ||
                 initialRule?.anchor == RecurrenceAnchor.Completion ||
                 initial.missedOccurrencePolicy != MissedOccurrencePolicy.KeepLatest ||
-                initial.durationMinutes != null || initial.effort != TaskEffort.Moderate,
+                initial.durationMinutes != null || initial.effort != TaskEffort.Unspecified,
         )
     }
     var recipesOpen by rememberSaveable(editorKey) { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var pendingUndatedPlacement by rememberSaveable(editorKey) { mutableStateOf<TaskPlacement?>(null) }
+    var pendingRepeatEnable by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var saveMenuExpanded by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
 
     LaunchedEffect(editorKey) {
         if (request.task == null) {
@@ -284,6 +336,13 @@ fun TaskEditorDialog(
     val deadlineValid = !hasDeadline || scheduleKind != ScheduleKind.Once || !deadline.isBefore(mainDate)
     val canSave = title.isNotBlank() && recurrenceValid && deadlineValid &&
         (!reminderEnabled || reminderOffsets.isNotEmpty())
+    val saveProblem = when {
+        title.isBlank() -> "Enter a Task title to save."
+        !recurrenceValid -> "Finish the Repeat settings to save."
+        !deadlineValid -> "Deadline cannot be before the Scheduled Date."
+        reminderEnabled && reminderOffsets.isEmpty() -> "Choose at least one reminder time."
+        else -> null
+    }
     val recurrence = if (scheduleKind == ScheduleKind.Recurring && recurrenceValid) {
         RecurrenceRule(
             unit = when (repeatPreset) {
@@ -307,7 +366,8 @@ fun TaskEditorDialog(
     val currentDraft = TaskDraft(
         title = title.trim(), notes = notes.trim(), scheduleKind = scheduleKind,
         date = mainDate.takeIf { scheduleKind == ScheduleKind.Once }, recurrence = recurrence,
-        timeMinutes = timeMinutes.takeIf { hasTime }, reminderEnabled = hasTime && reminderEnabled,
+        timeMinutes = timeMinutes.takeIf { hasTime && scheduleKind != ScheduleKind.Anytime },
+        reminderEnabled = hasTime && reminderEnabled && scheduleKind != ScheduleKind.Anytime,
         steps = stepDrafts.filter { it.title.isNotBlank() }.mapIndexed { position, step ->
             step.copy(title = step.title.trim(), position = position)
         },
@@ -316,11 +376,36 @@ fun TaskEditorDialog(
         repeatStepPolicy = repeatStepPolicy, priority = priority, areaId = areaId, area = area.trim(),
         tags = tagsText.split(',').map(String::trim).filter(String::isNotBlank).toSet(),
         deadline = deadline.takeIf { scheduleKind == ScheduleKind.Once && hasDeadline },
-        reminderOffsetsMinutes = reminderOffsets.toList(),
+        reminderOffsetsMinutes = reminderOffsets.toList().takeIf { scheduleKind != ScheduleKind.Anytime }.orEmpty(),
         missedOccurrencePolicy = missedOccurrencePolicy,
         inbox = inbox && scheduleKind == ScheduleKind.Anytime,
         durationMinutes = durationMinutes.toIntOrNull()?.coerceIn(1, 1_440), effort = effort,
     )
+    val nestedDialogModifier = Modifier
+        .absoluteOffset(x = paneOffsetX)
+        .width(minOf(paneMaxWidth * 0.9f, 560.dp))
+    val placement = when {
+        scheduleKind != ScheduleKind.Anytime -> TaskPlacement.Scheduled
+        inbox -> TaskPlacement.Inbox
+        else -> TaskPlacement.Anytime
+    }
+    fun applyPlacement(next: TaskPlacement) {
+        scheduleKind = when (next) {
+            TaskPlacement.Inbox, TaskPlacement.Anytime -> ScheduleKind.Anytime
+            TaskPlacement.Scheduled -> ScheduleKind.Once
+        }
+        inbox = next == TaskPlacement.Inbox
+        if (next in setOf(TaskPlacement.Inbox, TaskPlacement.Anytime)) {
+            hasTime = false
+            reminderEnabled = false
+            reminderOffsets = emptySet()
+            hasDeadline = false
+        }
+    }
+    fun setRepeatEnabled(enabled: Boolean) {
+        scheduleKind = if (enabled) ScheduleKind.Recurring else ScheduleKind.Once
+        inbox = false
+    }
 
     Dialog(
         onDismissRequest = requestDismiss,
@@ -330,32 +415,94 @@ fun TaskEditorDialog(
             modifier = Modifier.fillMaxSize().imePadding(),
             contentAlignment = Alignment.Center,
         ) {
-            val editorWidth = minOf(maxWidth * 0.94f, paneMaxWidth)
+            val editorWidth = minOf(maxWidth, paneMaxWidth)
             Surface(
                 modifier = Modifier
                     .absoluteOffset(x = paneOffsetX)
                     .width(editorWidth)
-                    .heightIn(max = maxHeight * 0.92f)
+                    .fillMaxHeight()
                     .testTag("task-editor-surface"),
-                shape = MaterialTheme.shapes.extraLarge,
-                tonalElevation = 6.dp,
+                shape = RectangleShape,
+                tonalElevation = 0.dp,
             ) {
-            Column(modifier = Modifier.padding(22.dp)) {
-                Text(
-                    text = if (request.task == null) "Create Task" else "Edit Task",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                if (request.task == null) {
-                    WhipTextButton(onClick = { recipesOpen = true }) { Text("Start from a Plain-Language Recipe") }
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    IconButton(onClick = requestDismiss, enabled = !saving) {
+                        Icon(Icons.Outlined.Close, contentDescription = "Cancel Task editing")
+                    }
+                    Text(
+                        text = when {
+                            request.task == null -> "Create Task"
+                            request.fromOccurrence != null -> "Edit This and Future"
+                            else -> "Edit Task"
+                        },
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (request.task == null && onSaveAndNew != null && powerMode) {
+                        Box {
+                            IconButton(onClick = { saveMenuExpanded = true }, enabled = !saving) {
+                                Icon(Icons.Outlined.MoreVert, contentDescription = "More save options")
+                            }
+                            DropdownMenu(
+                                expanded = saveMenuExpanded,
+                                onDismissRequest = { saveMenuExpanded = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Save & Create Another") },
+                                    enabled = !saving,
+                                    onClick = {
+                                        saveMenuExpanded = false
+                                        if (canSave) {
+                                            onSaveAndNew(request.task?.id, currentDraft, request.fromOccurrence)
+                                        } else {
+                                            validationRequested = true
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    WhipButton(
+                        enabled = !saving,
+                        onClick = {
+                            if (canSave) {
+                                onSave(request.task?.id, currentDraft, request.fromOccurrence)
+                            } else {
+                                validationRequested = true
+                            }
+                        },
+                    ) {
+                        Text(
+                            when {
+                                saving -> "Saving…"
+                                request.fromOccurrence != null -> "Save Future"
+                                else -> "Save"
+                            },
+                        )
+                    }
                 }
-                Spacer(Modifier.height(16.dp))
+                HorizontalDivider()
                 Column(
                     modifier = Modifier
-                        .weight(1f, fill = false)
+                        .weight(1f)
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
+                    if (request.fromOccurrence != null) {
+                        DependentSettingsNotice(
+                            message = "Changes apply from ${request.fromOccurrence.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} forward. Earlier occurrences and history stay unchanged.",
+                            testTag = "task-edit-scope",
+                        )
+                    }
                     OutlinedTextField(
                         value = title,
                         onValueChange = { entered ->
@@ -373,8 +520,10 @@ fun TaskEditorDialog(
                         modifier = Modifier.fillMaxWidth().focusRequester(titleFocusRequester).testTag("task-editor-title"),
                         label = { Text("Task") },
                         singleLine = true,
-                        supportingText = { Text("Paste multiple lines to turn the extra lines into steps.") },
                     )
+                    if (request.task == null) {
+                        WhipTextButton(onClick = { recipesOpen = true }) { Text("Use a Template") }
+                    }
                     if (naturalLanguageCapture && request.task == null) {
                         WhipTextButton(
                             enabled = title.isNotBlank(),
@@ -402,69 +551,78 @@ fun TaskEditorDialog(
                             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                         }
                     }
-                    AreaPicker(
-                        areas = areas,
-                        selectedAreaId = areaId,
-                        selectedAreaName = area,
-                        onSelect = { id, name -> areaId = id; area = name },
-                        onCreateArea = onCreateArea,
-                        modifier = Modifier.fillMaxWidth(),
-                        dialogModifier = Modifier.absoluteOffset(x = paneOffsetX).width(paneMaxWidth),
-                        inheritedFromScope = request.task == null && defaultAreaId != null,
-                    )
-                    FieldLabel("Schedule")
+                    FieldLabel("Placement")
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        ScheduleKind.entries.forEach { kind ->
+                        TaskPlacement.entries.forEach { value ->
                             WhipFilterChip(
-                                selected = scheduleKind == kind,
-                                onClick = { scheduleKind = kind },
-                                label = {
-                                    Text(
-                                        when (kind) {
-                                            ScheduleKind.Anytime -> "Anytime"
-                                            ScheduleKind.Once -> "Work date"
-                                            ScheduleKind.Recurring -> "Repeat"
-                                        },
-                                    )
+                                selected = placement == value,
+                                onClick = {
+                                    if (
+                                        value in setOf(TaskPlacement.Inbox, TaskPlacement.Anytime) &&
+                                        placement == TaskPlacement.Scheduled
+                                    ) {
+                                        pendingUndatedPlacement = value
+                                    } else {
+                                        applyPlacement(value)
+                                    }
                                 },
+                                label = { Text(value.label) },
                             )
                         }
                     }
                     DependentSettingsNotice(
                         message = when (scheduleKind) {
-                            ScheduleKind.Anytime -> "Anytime keeps this task unscheduled. Inbox controls appear next."
-                            ScheduleKind.Once -> "Work date schedules one occurrence. Its date and optional deadline appear next."
+                            ScheduleKind.Anytime -> if (inbox) {
+                                "Inbox keeps this capture untriaged until you decide where it belongs."
+                            } else {
+                                "Anytime keeps this Task ready but unscheduled."
+                            }
+                            ScheduleKind.Once -> "Scheduled Date places this Task on one day. Time, reminders, and an optional Deadline appear below."
                             ScheduleKind.Recurring -> "Repeat creates future occurrences. Start date and repeat rules appear next."
                         },
                         testTag = "task-schedule-consequence",
                     )
 
-                    if (scheduleKind == ScheduleKind.Anytime) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                FieldLabel("Inbox")
-                                Text(
-                                    if (inbox) "Untriaged capture; decide when and where it belongs later." else "Triaged anytime task.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Switch(checked = inbox, onCheckedChange = { inbox = it })
+                    Row(
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            FieldLabel("Repeat")
+                            Text(
+                                if (scheduleKind == ScheduleKind.Recurring) "Cadence, anchor, and end settings are shown directly below."
+                                else "Create future occurrences from a schedule.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
+                        Switch(
+                            checked = scheduleKind == ScheduleKind.Recurring,
+                            modifier = Modifier.testTag("task-repeat-toggle"),
+                            onCheckedChange = { enabled ->
+                                if (enabled && scheduleKind == ScheduleKind.Anytime) pendingRepeatEnable = true
+                                else setRepeatEnabled(enabled)
+                            },
+                        )
                     }
 
                     if (scheduleKind != ScheduleKind.Anytime) {
                         ValueButton(
-                            label = if (scheduleKind == ScheduleKind.Once) "Work date" else "Starts",
+                            label = if (scheduleKind == ScheduleKind.Once) "Scheduled Date" else "Starts",
                             value = mainDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
                             onClick = { dateTarget = DateTarget.Main },
+                        )
+                    }
+
+                    if (scheduleKind == ScheduleKind.Anytime) {
+                        Text(
+                            "Schedule this Task to add a time, reminder, or Deadline.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
 
@@ -475,9 +633,9 @@ fun TaskEditorDialog(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(Modifier.weight(1f)) {
-                                FieldLabel("Separate deadline")
+                                FieldLabel("Separate Deadline")
                                 Text(
-                                    "Plan work on one date and keep the final due date visible.",
+                                    "Plan work on one date and keep the final Deadline visible.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -527,7 +685,7 @@ fun TaskEditorDialog(
                         }
 
                         if (repeatPreset == RepeatPreset.Weekdays) {
-                            FieldLabel("On these days")
+                            FieldLabel("On These Days")
                             FlowRow(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(7.dp),
@@ -560,9 +718,9 @@ fun TaskEditorDialog(
                                         label = {
                                             Text(
                                                 when (policy) {
-                                                    MissedOccurrencePolicy.KeepOldest -> "Keep oldest overdue"
-                                                    MissedOccurrencePolicy.KeepLatest -> "Show latest overdue"
-                                                    MissedOccurrencePolicy.AutoSkip -> "Auto-skip past occurrences"
+                                                    MissedOccurrencePolicy.KeepOldest -> "Show oldest missed"
+                                                    MissedOccurrencePolicy.KeepLatest -> "Show latest missed"
+                                                    MissedOccurrencePolicy.CurrentOnly -> "Show only today's occurrence"
                                                 },
                                             )
                                         },
@@ -572,14 +730,14 @@ fun TaskEditorDialog(
                             Text(
                                 when (missedOccurrencePolicy) {
                                     MissedOccurrencePolicy.KeepOldest -> "Work through the backlog in calendar order."
-                                    MissedOccurrencePolicy.KeepLatest -> "Show one current overdue occurrence without filling the screen."
-                                    MissedOccurrencePolicy.AutoSkip -> "Mark elapsed occurrences skipped and keep only today's cadence."
+                                    MissedOccurrencePolicy.KeepLatest -> "Show one current missed occurrence without filling the screen."
+                                    MissedOccurrencePolicy.CurrentOnly -> "Past cadence stays out of the queue without creating skipped history."
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        FieldLabel("Ends")
+                        FieldLabel("Repeat Ends")
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -602,7 +760,7 @@ fun TaskEditorDialog(
                         }
                         if (recurrenceEnd == RecurrenceEnd.OnDate) {
                             ValueButton(
-                                label = "End date",
+                                label = "End Date",
                                 value = endDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
                                 onClick = { dateTarget = DateTarget.End },
                                 isError = endDate.isBefore(mainDate),
@@ -615,13 +773,13 @@ fun TaskEditorDialog(
                                     occurrenceCountText = it.filter(Char::isDigit).take(4)
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                                label = { Text("Number of occurrences") },
+                                label = { Text("Number of Occurrences") },
                                 singleLine = true,
                                 isError = (count ?: 0) <= 0,
                             )
                         }
                         if (stepDrafts.isNotEmpty()) {
-                            FieldLabel("When the task repeats")
+                            FieldLabel("For Repeating Tasks")
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -637,6 +795,46 @@ fun TaskEditorDialog(
                         }
                     }
 
+                    if (scheduleKind != ScheduleKind.Anytime) {
+                        TaskTimeSettings(
+                            hasTime = hasTime,
+                            timeMinutes = timeMinutes,
+                            reminderEnabled = reminderEnabled,
+                            reminderOffsets = reminderOffsets,
+                            customReminderText = customReminderText,
+                            onHasTimeChange = {
+                                hasTime = it
+                                if (!it) {
+                                    reminderEnabled = false
+                                    reminderOffsets = emptySet()
+                                }
+                            },
+                            onChangeTime = { showTimePicker = true },
+                            onReminderEnabledChange = {
+                                reminderEnabled = it
+                                if (it) {
+                                    if (reminderOffsets.isEmpty()) reminderOffsets = setOf(0)
+                                    onRequestNotificationPermission()
+                                } else {
+                                    reminderOffsets = emptySet()
+                                }
+                            },
+                            onReminderOffsetsChange = { reminderOffsets = it },
+                            onCustomReminderTextChange = { customReminderText = it },
+                        )
+                    }
+
+                    AreaPicker(
+                        areas = areas,
+                        selectedAreaId = areaId,
+                        selectedAreaName = area,
+                        onSelect = { id, name -> areaId = id; area = name },
+                        onCreateArea = onCreateArea,
+                        modifier = Modifier.fillMaxWidth(),
+                        dialogModifier = Modifier.absoluteOffset(x = paneOffsetX).width(paneMaxWidth),
+                        inheritedFromScope = request.task == null && inheritedAreaFromScope,
+                    )
+
                     FieldLabel("Priority")
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -651,18 +849,18 @@ fun TaskEditorDialog(
                         }
                     }
                     DisclosureButton(
-                        label = "Optional details",
+                        label = "More Details",
                         expanded = showAdvanced,
                         onClick = { showAdvanced = !showAdvanced },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().testTag("task-editor-more-details"),
                     )
                     if (showAdvanced) {
-                        FieldLabel("Planning estimate")
+                        FieldLabel("Planning")
                         OutlinedTextField(
                             value = durationMinutes,
                             onValueChange = { durationMinutes = it.filter(Char::isDigit).take(4) },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Duration in minutes (optional)") },
+                            label = { Text("Duration in Minutes (Optional)") },
                             supportingText = { Text("Used by Plan My Day; unknown tasks use 30 minutes.") },
                             singleLine = true,
                         )
@@ -681,7 +879,7 @@ fun TaskEditorDialog(
                             }
                         }
                         Text(
-                            "Effort helps planning when time is unknown: Light is low energy, Medium needs ordinary attention, and High is sustained physical or mental work.",
+                            "Effort describes the energy this Task needs: Light, Medium, or High. It does not change Priority.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -714,7 +912,7 @@ fun TaskEditorDialog(
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                                label = { Text("Notes (optional)") },
+                                label = { Text("Notes (Optional)") },
                                 minLines = 2,
                                 maxLines = 3,
                             )
@@ -763,7 +961,7 @@ fun TaskEditorDialog(
                             value = newStepTitle,
                             onValueChange = { newStepTitle = it },
                             modifier = Modifier.weight(1f),
-                            label = { Text("New subtask") },
+                            label = { Text("New Subtask") },
                             singleLine = true,
                         )
                         IconButton(
@@ -788,9 +986,9 @@ fun TaskEditorDialog(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                FieldLabel("Show progress on task card")
+                                FieldLabel("Show Progress on Task Card")
                                 Text(
-                                    "Display completion based on these subtasks",
+                                    "Display completion based on these Subtasks.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -820,9 +1018,9 @@ fun TaskEditorDialog(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                FieldLabel("Complete task with final subtask")
+                                FieldLabel("Complete Task With Final Subtask")
                                 Text(
-                                    "Automatically finish the parent task at 100%",
+                                    "Automatically finish the parent Task at 100%.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -835,110 +1033,13 @@ fun TaskEditorDialog(
                     }
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column {
-                            FieldLabel("Set a time")
-                            if (hasTime) {
-                                Text(
-                                    LocalTime.of(timeMinutes / 60, timeMinutes % 60)
-                                        .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                        Switch(
-                            checked = hasTime,
-                            onCheckedChange = {
-                                hasTime = it
-                                if (!it) reminderEnabled = false
-                            },
-                        )
-                    }
-                    if (hasTime) {
-                        WhipTextButton(onClick = { showTimePicker = true }) {
-                            Text("Change Time")
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                FieldLabel("Notification")
-                                Text(
-                                    "Remind me at the task time",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Switch(
-                                checked = reminderEnabled,
-                                onCheckedChange = {
-                                    reminderEnabled = it
-                                    if (it) {
-                                        if (reminderOffsets.isEmpty()) reminderOffsets = setOf(0)
-                                        onRequestNotificationPermission()
-                                    } else {
-                                        reminderOffsets = emptySet()
-                                    }
-                                },
-                            )
-                        }
-                        if (reminderEnabled) {
-                            FieldLabel("Reminder times")
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                reminderOffsetOptions.forEach { (minutes, label) ->
-                                    WhipFilterChip(
-                                        selected = minutes in reminderOffsets,
-                                        onClick = {
-                                            reminderOffsets = if (minutes in reminderOffsets) {
-                                                reminderOffsets - minutes
-                                            } else {
-                                                reminderOffsets + minutes
-                                            }
-                                        },
-                                        label = { Text(label) },
-                                    )
-                                }
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                OutlinedTextField(
-                                    value = customReminderText,
-                                    onValueChange = { customReminderText = it.filter(Char::isDigit).take(5) },
-                                    modifier = Modifier.weight(1f),
-                                    label = { Text("Custom minutes before") },
-                                    singleLine = true,
-                                )
-                                WhipTextButton(
-                                    enabled = (customReminderText.toIntOrNull() ?: -1) in 0..43_200,
-                                    onClick = {
-                                        reminderOffsets = reminderOffsets + requireNotNull(customReminderText.toIntOrNull())
-                                        customReminderText = ""
-                                    },
-                                ) { Text("Add") }
-                            }
-                            Text(
-                                reminderOffsets.sortedDescending().joinToString(", ") { reminderOffsetLabel(it) }
-                                    .ifBlank { "Choose at least one reminder." },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (reminderOffsets.isEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-
                     if (showAdvanced) {
+                        FieldLabel("Notes & Tags")
                         OutlinedTextField(
                             value = notes,
                             onValueChange = { notes = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Notes (optional)") },
+                            modifier = Modifier.fillMaxWidth().testTag("task-editor-notes"),
+                            label = { Text("Notes (Optional)") },
                             minLines = 2,
                             maxLines = 4,
                         )
@@ -946,7 +1047,7 @@ fun TaskEditorDialog(
                             value = tagsText,
                             onValueChange = { tagsText = it },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Tags, comma-separated") },
+                            label = { Text("Tags, Comma-Separated") },
                             singleLine = true,
                         )
                         if (knownTags.isNotEmpty()) {
@@ -970,29 +1071,22 @@ fun TaskEditorDialog(
 
                 }
 
-                Spacer(Modifier.height(14.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                ) {
-                    WhipTextButton(onClick = requestDismiss, enabled = !saving) { Text("Cancel") }
-                    Spacer(Modifier.width(8.dp))
-                    if (request.task == null && onSaveAndNew != null) {
-                        WhipOutlinedButton(
-                            enabled = canSave && !saving,
-                            onClick = { onSaveAndNew(request.task?.id, currentDraft, request.fromOccurrence) },
-                        ) { Text("Save + New") }
-                        Spacer(Modifier.width(8.dp))
+                    saveProblem?.takeIf { validationRequested }?.let {
+                        Text(
+                            it,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 6.dp)
+                                .testTag("task-save-problem")
+                                .semantics { liveRegion = LiveRegionMode.Polite },
+                        )
                     }
-                    WhipTextButton(
-                        enabled = canSave && !saving,
-                        onClick = { onSave(request.task?.id, currentDraft, request.fromOccurrence) },
-                    ) { Text(if (saving) "Saving…" else "Save") }
                 }
             }
             }
         }
-    }
 
     dateTarget?.let { target ->
         WhipDatePickerDialog(
@@ -1010,6 +1104,8 @@ fun TaskEditorDialog(
                 }
                 dateTarget = null
             },
+            modifier = nestedDialogModifier,
+            firstDayOfWeek = firstDayOfWeek,
         )
     }
 
@@ -1019,7 +1115,8 @@ fun TaskEditorDialog(
             initialMinute = timeMinutes % 60,
             is24Hour = false,
         )
-        AlertDialog(
+        PaneAwareAlertDialog(
+            modifier = nestedDialogModifier,
             onDismissRequest = { showTimePicker = false },
             title = { Text("Task Time") },
             text = { TimePicker(state = pickerState) },
@@ -1036,9 +1133,54 @@ fun TaskEditorDialog(
             },
         )
     }
+    pendingUndatedPlacement?.let { target ->
+        PaneAwareAlertDialog(
+            modifier = nestedDialogModifier,
+            onDismissRequest = { pendingUndatedPlacement = null },
+            title = { Text("Remove Scheduling Details?") },
+            text = {
+                Text(
+                    buildList {
+                        add(
+                            if (scheduleKind == ScheduleKind.Recurring) {
+                                "The Repeat schedule and Start Date will be removed."
+                            } else {
+                                "The Scheduled Date will be removed."
+                            },
+                        )
+                        if (hasTime) add("The time will be removed.")
+                        if (reminderEnabled) add("All reminders will be removed.")
+                        if (hasDeadline) add("The Deadline will be removed.")
+                    }.joinToString(" ") + " The Task will move to ${target.label}.",
+                )
+            },
+            confirmButton = {
+                WhipButton(onClick = {
+                    applyPlacement(target)
+                    pendingUndatedPlacement = null
+                }) { Text("Move to ${target.label}") }
+            },
+            dismissButton = {
+                WhipTextButton(onClick = { pendingUndatedPlacement = null }) { Text("Keep Scheduled") }
+            },
+        )
+    }
+    if (pendingRepeatEnable) {
+        PaneAwareAlertDialog(
+            modifier = nestedDialogModifier,
+            onDismissRequest = { pendingRepeatEnable = false },
+            title = { Text("Schedule This Repeating Task?") },
+            text = { Text("Repeat needs a Start Date. This Task will move from ${placement.label} to Scheduled, using ${mainDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} as its Start Date.") },
+            confirmButton = {
+                WhipButton(onClick = { setRepeatEnabled(true); pendingRepeatEnable = false }) { Text("Schedule and Repeat") }
+            },
+            dismissButton = { WhipTextButton(onClick = { pendingRepeatEnable = false }) { Text("Cancel") } },
+        )
+    }
     if (recipesOpen) {
         TaskRecipeDialog(
             today = today,
+            modifier = nestedDialogModifier,
             onDismiss = { recipesOpen = false },
             onChoose = { draft ->
                 title = draft.title
@@ -1081,7 +1223,8 @@ fun TaskEditorDialog(
         )
     }
     if (confirmDiscard) {
-        AlertDialog(
+        PaneAwareAlertDialog(
+            modifier = nestedDialogModifier,
             onDismissRequest = { confirmDiscard = false },
             title = { Text("Discard Unsaved Changes?") },
             text = { Text("Your edits to this task have not been saved.") },
@@ -1144,19 +1287,124 @@ internal fun RecurrenceAnchorSelector(
 }
 
 @Composable
+private fun TaskTimeSettings(
+    hasTime: Boolean,
+    timeMinutes: Int,
+    reminderEnabled: Boolean,
+    reminderOffsets: Set<Int>,
+    customReminderText: String,
+    onHasTimeChange: (Boolean) -> Unit,
+    onChangeTime: () -> Unit,
+    onReminderEnabledChange: (Boolean) -> Unit,
+    onReminderOffsetsChange: (Set<Int>) -> Unit,
+    onCustomReminderTextChange: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            FieldLabel("Time")
+            Text(
+                if (hasTime) {
+                    LocalTime.of(timeMinutes / 60, timeMinutes % 60)
+                        .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+                } else {
+                    "No time"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = hasTime,
+            onCheckedChange = onHasTimeChange,
+            modifier = Modifier.testTag("task-time-toggle"),
+        )
+    }
+    if (!hasTime) return
+    WhipTextButton(onClick = onChangeTime) { Text("Change Time") }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            FieldLabel("Reminder")
+            Text(
+                "Notify me relative to the Task time.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = reminderEnabled,
+            onCheckedChange = onReminderEnabledChange,
+            modifier = Modifier.testTag("task-reminder-toggle"),
+        )
+    }
+    if (!reminderEnabled) return
+    FieldLabel("Reminder Times")
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        reminderOffsetOptions.forEach { (minutes, label) ->
+            WhipFilterChip(
+                selected = minutes in reminderOffsets,
+                onClick = {
+                    onReminderOffsetsChange(
+                        if (minutes in reminderOffsets) reminderOffsets - minutes else reminderOffsets + minutes,
+                    )
+                },
+                label = { Text(label) },
+            )
+        }
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(
+            value = customReminderText,
+            onValueChange = { onCustomReminderTextChange(it.filter(Char::isDigit).take(5)) },
+            modifier = Modifier.weight(1f),
+            label = { Text("Custom Minutes Before") },
+            singleLine = true,
+        )
+        WhipTextButton(
+            enabled = (customReminderText.toIntOrNull() ?: -1) in 0..43_200,
+            onClick = {
+                onReminderOffsetsChange(reminderOffsets + requireNotNull(customReminderText.toIntOrNull()))
+                onCustomReminderTextChange("")
+            },
+        ) { Text("Add") }
+    }
+    Text(
+        reminderOffsets.sortedDescending().joinToString(", ") { reminderOffsetLabel(it) }
+            .ifBlank { "Choose at least one reminder." },
+        style = MaterialTheme.typography.bodySmall,
+        color = if (reminderOffsets.isEmpty()) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+    )
+}
+
+@Composable
 private fun TaskRecipeDialog(
     today: LocalDate,
+    modifier: Modifier,
     onDismiss: () -> Unit,
     onChoose: (TaskDraft) -> Unit,
 ) {
     val recipes = listOf(
-        "Capture something for later" to TaskDraft(title = "New task", inbox = true),
-        "Do something on a date" to TaskDraft(
-            title = "Dated task", scheduleKind = ScheduleKind.Once, date = today,
+        "Capture Something for Later" to TaskDraft(title = "New Task", inbox = true),
+        "Do Something on a Date" to TaskDraft(
+            title = "Dated Task", scheduleKind = ScheduleKind.Once, date = today,
             inbox = false, durationMinutes = 30,
         ),
-        "Repeat on chosen weekdays" to TaskDraft(
-            title = "Weekly task",
+        "Repeat on Chosen Weekdays" to TaskDraft(
+            title = "Weekly Task",
             scheduleKind = ScheduleKind.Recurring,
             recurrence = RecurrenceRule(
                 unit = RecurrenceUnit.Weeks,
@@ -1165,8 +1413,8 @@ private fun TaskRecipeDialog(
             ),
             inbox = false,
         ),
-        "Break a project into steps" to TaskDraft(
-            title = "Project",
+        "Break Complex Work into Subtasks" to TaskDraft(
+            title = "Complex Task",
             steps = listOf(
                 TaskStepDraft(title = "Plan", position = 0),
                 TaskStepDraft(title = "Do the work", position = 1),
@@ -1174,13 +1422,14 @@ private fun TaskRecipeDialog(
             ),
             showSubtaskProgress = true,
             durationMinutes = 90,
-            effort = TaskEffort.Deep,
+            effort = TaskEffort.High,
             inbox = true,
         ),
     )
-    AlertDialog(
+    PaneAwareAlertDialog(
+        modifier = modifier,
         onDismissRequest = onDismiss,
-        title = { Text("Task Recipes") },
+        title = { Text("Task Templates") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Choose the closest shape. Whip fills the editor so you can review and change everything before saving.")
@@ -1190,10 +1439,10 @@ private fun TaskRecipeDialog(
                             Text(label.uiTitleCase(), fontWeight = FontWeight.SemiBold)
                             Text(
                                 when (label) {
-                                    "Capture something for later" -> "An unscheduled Inbox task."
-                                    "Do something on a date" -> "A one-time task dated today with a 30-minute estimate."
-                                    "Repeat on chosen weekdays" -> "A weekly series starting on today’s weekday."
-                                    else -> "A three-step project with progress and a deep-work estimate."
+                                    "Capture Something for Later" -> "An unscheduled Inbox Task."
+                                    "Do Something on a Date" -> "A one-time Task scheduled today with a 30-minute estimate."
+                                    "Repeat on Chosen Weekdays" -> "A weekly series starting on today’s weekday."
+                                    else -> "A three-step Task with progress and a High Effort estimate."
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                             )
@@ -1213,32 +1462,334 @@ fun WhipDatePickerDialog(
     initialDate: LocalDate,
     onDismiss: () -> Unit,
     onDateSelected: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier,
+    firstDayOfWeek: DayOfWeek? = null,
 ) {
-    val state = rememberDatePickerState(
-        initialSelectedDateMillis = initialDate
-            .atStartOfDay(ZoneOffset.UTC)
-            .toInstant()
-            .toEpochMilli(),
-    )
-    DatePickerDialog(
+    val resolvedFirstDayOfWeek = firstDayOfWeek ?: LocalWhipFirstDayOfWeek.current
+    var selectedEpochDay by rememberSaveable(initialDate) { mutableLongStateOf(initialDate.toEpochDay()) }
+    var monthStartEpochDay by rememberSaveable(initialDate) {
+        mutableLongStateOf(initialDate.withDayOfMonth(1).toEpochDay())
+    }
+    var choosingDateWithWheels by rememberSaveable(initialDate) { mutableStateOf(false) }
+    var jumpYear by rememberSaveable(initialDate) { mutableIntStateOf(initialDate.year) }
+    var jumpMonth by rememberSaveable(initialDate) { mutableIntStateOf(initialDate.monthValue) }
+    var jumpDay by rememberSaveable(initialDate) { mutableIntStateOf(initialDate.dayOfMonth) }
+    var wheelResetToken by rememberSaveable(initialDate) { mutableIntStateOf(0) }
+    val selectedDate = LocalDate.ofEpochDay(selectedEpochDay)
+    val monthStart = LocalDate.ofEpochDay(monthStartEpochDay).withDayOfMonth(1)
+    val jumpDate = clampedDate(jumpYear, jumpMonth, jumpDay)
+    val displayedDate = if (choosingDateWithWheels) jumpDate else selectedDate
+    val leadingEmptyDays =
+        (monthStart.dayOfWeek.value - resolvedFirstDayOfWeek.value + 7) % 7
+    val calendarCells = buildList<LocalDate?> {
+        repeat(leadingEmptyDays) { add(null) }
+        repeat(monthStart.lengthOfMonth()) { dayOffset -> add(monthStart.plusDays(dayOffset.toLong())) }
+        while (size % 7 != 0) add(null)
+    }
+    ProductivityEditorDialog(
+        modifier = Modifier.widthIn(min = 280.dp, max = 560.dp).then(modifier),
+        testTag = "date-picker-dialog",
         onDismissRequest = onDismiss,
+        title = { Text("Choose Date") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    displayedDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)),
+                    modifier = Modifier.testTag("date-picker-selected-date"),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                HorizontalDivider()
+                if (choosingDateWithWheels) {
+                    Text(
+                        "Swipe each column to choose a year, month, and day.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    key(wheelResetToken) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().testTag("date-picker-wheel-selector"),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            DateWheelColumn(
+                                label = "Year",
+                                values = 1..9999,
+                                selectedValue = jumpYear,
+                                valueLabel = Int::toString,
+                                onValueSelected = { year ->
+                                    jumpYear = year
+                                    jumpDay = jumpDay.coerceAtMost(YearMonth.of(year, jumpMonth).lengthOfMonth())
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                            DateWheelColumn(
+                                label = "Month",
+                                values = 1..12,
+                                selectedValue = jumpMonth,
+                                valueLabel = { month ->
+                                    Month.of(month).getDisplayName(TextStyle.FULL, Locale.getDefault())
+                                },
+                                onValueSelected = { month ->
+                                    jumpMonth = month
+                                    jumpDay = jumpDay.coerceAtMost(YearMonth.of(jumpYear, month).lengthOfMonth())
+                                },
+                                modifier = Modifier.weight(1.35f),
+                            )
+                            DateWheelColumn(
+                                label = "Day",
+                                values = 1..YearMonth.of(jumpYear, jumpMonth).lengthOfMonth(),
+                                selectedValue = jumpDay,
+                                valueLabel = Int::toString,
+                                onValueSelected = { jumpDay = it },
+                                modifier = Modifier.weight(0.85f),
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        WhipTextButton(
+                            onClick = {
+                                val today = LocalDate.now()
+                                jumpYear = today.year
+                                jumpMonth = today.monthValue
+                                jumpDay = today.dayOfMonth
+                                wheelResetToken += 1
+                            },
+                            modifier = Modifier.testTag("date-picker-today"),
+                        ) { Text("Today") }
+                        WhipOutlinedButton(
+                            onClick = {
+                                selectedEpochDay = jumpDate.toEpochDay()
+                                monthStartEpochDay = jumpDate.withDayOfMonth(1).toEpochDay()
+                                choosingDateWithWheels = false
+                            },
+                            modifier = Modifier.testTag("date-picker-show-calendar"),
+                        ) { Text("Show Calendar") }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(
+                            onClick = { monthStartEpochDay = monthStart.minusMonths(1).toEpochDay() },
+                            modifier = Modifier.size(48.dp),
+                        ) {
+                            Icon(Icons.Outlined.ChevronLeft, contentDescription = "Previous Month")
+                        }
+                        WhipTextButton(
+                            onClick = {
+                                jumpYear = selectedDate.year
+                                jumpMonth = selectedDate.monthValue
+                                jumpDay = selectedDate.dayOfMonth
+                                choosingDateWithWheels = true
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("date-picker-month-year")
+                                .semantics {
+                                    contentDescription =
+                                        "${monthStart.format(DateTimeFormatter.ofPattern("MMMM yyyy"))}. Jump to Date"
+                                },
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    monthStart.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    "Jump to Date",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        IconButton(
+                            onClick = { monthStartEpochDay = monthStart.plusMonths(1).toEpochDay() },
+                            modifier = Modifier.size(48.dp),
+                        ) {
+                            Icon(Icons.Outlined.ChevronRight, contentDescription = "Next Month")
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth()) {
+                        orderedWeekdays(resolvedFirstDayOfWeek).forEach { day ->
+                            Text(
+                                day.shortLabel,
+                                modifier = Modifier.weight(1f),
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    calendarCells.chunked(7).forEach { week ->
+                        Row(Modifier.fillMaxWidth()) {
+                            week.forEach { date ->
+                                if (date == null) {
+                                    Spacer(Modifier.weight(1f).aspectRatio(1f))
+                                } else {
+                                    val selected = date == selectedDate
+                                    Surface(
+                                        onClick = { selectedEpochDay = date.toEpochDay() },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .aspectRatio(1f)
+                                            .padding(2.dp)
+                                            .semantics {
+                                                contentDescription = "Select ${date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))}"
+                                                stateDescription = if (selected) "Selected" else "Not Selected"
+                                            },
+                                        shape = MaterialTheme.shapes.small,
+                                        color = if (selected) {
+                                            MaterialTheme.colorScheme.primaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.surface
+                                        },
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                date.dayOfMonth.toString(),
+                                                color = if (selected) {
+                                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurface
+                                                },
+                                                fontWeight = FontWeight.SemiBold.takeIf { selected },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         confirmButton = {
             WhipTextButton(
-                onClick = {
-                    state.selectedDateMillis?.let { millis ->
-                        onDateSelected(
-                            Instant.ofEpochMilli(millis)
-                                .atZone(ZoneOffset.UTC)
-                                .toLocalDate(),
-                        )
-                    }
-                },
+                onClick = { onDateSelected(if (choosingDateWithWheels) jumpDate else selectedDate) },
             ) { Text("Set") }
         },
         dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
-    ) {
-        DatePicker(state = state)
+    )
+}
+
+private fun clampedDate(year: Int, month: Int, day: Int): LocalDate {
+    val yearMonth = YearMonth.of(year, month)
+    return yearMonth.atDay(day.coerceIn(1, yearMonth.lengthOfMonth()))
+}
+
+@Composable
+private fun DateWheelColumn(
+    label: String,
+    values: IntRange,
+    selectedValue: Int,
+    valueLabel: (Int) -> String,
+    onValueSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val selectedIndex = (selectedValue - values.first).coerceIn(0, values.count() - 1)
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = selectedIndex,
+    )
+    val coroutineScope = rememberCoroutineScope()
+    val currentSelectedValue by rememberUpdatedState(selectedValue)
+    val currentOnValueSelected by rememberUpdatedState(onValueSelected)
+
+    LaunchedEffect(listState, values.first, values.last) {
+        snapshotFlow { listState.centeredItemIndex()?.minus(1) }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .collect { index ->
+                val value = values.first + index
+                if (value in values && value != currentSelectedValue) currentOnValueSelected(value)
+            }
     }
+
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(144.dp)
+                .testTag("date-picker-${label.lowercase(Locale.ROOT)}-wheel")
+                .semantics {
+                    contentDescription = "$label picker"
+                    stateDescription = valueLabel(selectedValue)
+                },
+            flingBehavior = rememberSnapFlingBehavior(listState, SnapPosition.Center),
+        ) {
+            items(
+                count = values.count() + 2,
+                key = { index -> "$label-wheel-$index" },
+            ) { index ->
+                if (index == 0 || index == values.count() + 1) {
+                    Spacer(Modifier.height(48.dp))
+                    return@items
+                }
+                val value = values.first + index - 1
+                val selected = value == selectedValue
+                Surface(
+                    onClick = {
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(value - values.first)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .testTag("date-picker-${label.lowercase(Locale.ROOT)}-$value")
+                        .semantics {
+                            contentDescription = "$label ${valueLabel(value)}"
+                            stateDescription = if (selected) "Selected" else "Not selected"
+                        },
+                    shape = MaterialTheme.shapes.small,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    },
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            valueLabel(value),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            style = if (selected) {
+                                MaterialTheme.typography.titleMedium
+                            } else {
+                                MaterialTheme.typography.bodyMedium
+                            },
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            fontWeight = FontWeight.SemiBold.takeIf { selected },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun LazyListState.centeredItemIndex(): Int? {
+    val viewportCenter = (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
+    return layoutInfo.visibleItemsInfo.minByOrNull { item ->
+        abs(item.offset + item.size / 2 - viewportCenter)
+    }?.index
 }
 
 @Composable

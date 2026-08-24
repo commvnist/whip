@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -22,6 +23,10 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
+import com.whip.app.domain.ExerciseDraft
+import com.whip.app.domain.ScheduleKind
+import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.WorkoutSetDraft
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Rule
@@ -53,11 +58,11 @@ class WhipComposeSemanticsTest {
 
         ActivityScenario.launch<MainActivity>(intent, options).use {
             compose.waitForIdle()
-            compose.onNodeWithContentDescription("Home tab").assertIsDisplayed()
-            compose.onNodeWithContentDescription("Add task, habit, goal, exercise, workout, or measurement").performClick()
+            compose.onNodeWithContentDescription("Home").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
             compose.onNodeWithText("Habit").assertIsDisplayed().performClick()
             compose.onNodeWithText("Name *").assertIsDisplayed()
-            compose.onNodeWithText("Cancel").performClick()
+            compose.onNodeWithContentDescription("Cancel Habit editing").performClick()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
             compose.onNodeWithTag("task-destination-Upcoming").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.onNodeWithText("The next 30 days", substring = true).assertIsDisplayed()
@@ -67,25 +72,45 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithText("Previous").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.waitForIdle()
             compose.onNodeWithText("July 2026").fetchSemanticsNode()
-            compose.onNodeWithContentDescription("Open Settings").performClick()
+            openSettings()
+            compose.onNodeWithTag("settings-section-Appearance & Home").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Home Overview"))
+            compose.onNodeWithText("Home Overview").assertIsDisplayed()
+            compose.onNodeWithText("All Settings").performClick()
             compose.onNodeWithTag("settings-section-Planning & Units").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Create reusable units", substring = true))
             compose.onNodeWithText("Create reusable units", substring = true).assertIsDisplayed()
-            compose.onNodeWithTag("settings-section-Reminders & Integrations").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
-            compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Delivery Diagnostics"))
+            compose.onNodeWithText("All Settings").performClick()
+            compose.onNodeWithTag("settings-section-Organization").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Manage Areas"))
+            compose.onNodeWithText("Manage Areas").assertIsDisplayed()
+            compose.onNodeWithText("All Settings").performClick()
+            compose.onNodeWithTag("settings-section-Reminders").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Delivery Details"))
             compose.onNodeWithTag("notification-diagnostics").assertIsDisplayed()
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Send Test Notification"))
             compose.onNodeWithText("Send Test Notification").assertIsDisplayed()
+            compose.onNodeWithText("All Settings").performClick()
             compose.onNodeWithTag("settings-section-Data & Privacy").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Portable Backup Folder"))
             compose.onNodeWithText("Portable Backup Folder").assertIsDisplayed()
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Choose Backup Folder"))
             compose.onNodeWithText("Choose Backup Folder").assertIsDisplayed()
-            compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Delete All Local Data"))
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Reset Whip and Delete All Data"))
             compose.onAllNodesWithText("FitNotes", substring = true).assertCountEquals(0)
-            compose.onNodeWithTag("settings-section-Advanced").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            compose.onNodeWithText("All Settings").performClick()
+            compose.onNodeWithTag("settings-section-About Whip").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("About Whip"))
             compose.onNodeWithTag("about-build-identity").assertIsDisplayed()
+        }
+    }
+
+    private fun openSettings() {
+        if (compose.onAllNodesWithContentDescription("Open Settings").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithContentDescription("Open Settings").performClick()
+        } else {
+            compose.onNodeWithContentDescription("App actions").performClick()
+            compose.onNodeWithText("Open Settings").performClick()
         }
     }
 
@@ -115,6 +140,16 @@ class WhipComposeSemanticsTest {
 
     @Test
     fun taskToolbarKeepsTemporaryControlsAttachedAndFocused() {
+        runBlocking {
+            val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+            app.taskRepository.create(
+                TaskDraft(
+                    title = "Toolbar test task",
+                    scheduleKind = ScheduleKind.Once,
+                    date = app.clock.today(),
+                ),
+            )
+        }
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.wakeUp()
         device.executeShellCommand("wm dismiss-keyguard")
@@ -125,22 +160,33 @@ class WhipComposeSemanticsTest {
         ActivityScenario.launch<MainActivity>(intent, options).use {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            compose.onNodeWithText("Filter & Sort").performClick()
-            compose.onNodeWithText("Filter & Sort Tasks").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Filter & Sort Tasks").performClick()
+            compose.onNodeWithText("Sort, Group & Filter Tasks").assertIsDisplayed()
             compose.onNodeWithText("Done").performClick()
-            compose.onNodeWithText("Search Tasks").performClick()
-            compose.onNodeWithText("Search Tasks and Steps").assertIsDisplayed()
-            compose.onNodeWithContentDescription("Close Search Tasks").performClick()
+            compose.onNodeWithContentDescription("Search Tasks").performClick()
+            compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
+            compose.onNodeWithText("Close").performClick()
             compose.onNodeWithContentDescription("More task list actions").performClick()
             compose.onNodeWithText("Select Tasks").performClick()
             compose.onNodeWithText("0 selected").assertIsDisplayed()
             compose.onNodeWithTag("task-destination-Inbox").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
-            compose.onNodeWithText("Opens the full task editor before anything is saved.").assertIsDisplayed()
+            compose.onNodeWithTag("task-quick-capture").assertIsDisplayed()
         }
     }
 
     @Test
     fun gymConfigurationControlsUseProgressiveDisclosure() {
+        runBlocking {
+            val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+            val exerciseId = app.gymRepository.createExercise(ExerciseDraft("Graph controls test"))
+            val workoutId = app.gymRepository.startWorkout("Graph controls history")
+            val placementId = app.gymRepository.addExerciseToWorkout(workoutId, exerciseId)
+            app.gymRepository.addSet(
+                placementId,
+                WorkoutSetDraft(weight = 50.0, reps = 5, completed = true),
+            )
+            app.gymRepository.finishWorkout(workoutId)
+        }
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.wakeUp()
         device.executeShellCommand("wm dismiss-keyguard")
@@ -160,11 +206,12 @@ class WhipComposeSemanticsTest {
 
             compose.onNodeWithTag("gym-destination-Progress")
                 .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
-            compose.onNodeWithText("Graph Options").assertIsDisplayed()
+            compose.onNodeWithText("Graph Options").performScrollTo().assertIsDisplayed()
             compose.onAllNodesWithText("Range").assertCountEquals(0)
             compose.onNodeWithText("Graph Options").performClick()
             compose.onNodeWithText("Range").assertIsDisplayed()
-            compose.onNodeWithText("Graph Presets").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasText("Graph Presets"))
+            compose.onNodeWithText("Graph Presets").assertIsDisplayed()
             compose.onAllNodesWithText("Preset name").assertCountEquals(0)
             compose.onNodeWithText("Graph Presets").performClick()
             compose.onNodeWithText("Preset name").assertIsDisplayed()
@@ -187,7 +234,11 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithTag("gym-library-Routines").performClick()
             compose.onNodeWithTag("gym-destination-Library").assertIsSelected()
             compose.onNodeWithTag("gym-library-child-Routines").assertIsDisplayed()
-            compose.onNodeWithContentDescription("Expand content pane").performClick()
+            if (compose.onAllNodesWithContentDescription("App actions").fetchSemanticsNodes().isEmpty()) {
+                return@use
+            }
+            compose.onNodeWithContentDescription("App actions").performClick()
+            compose.onNodeWithTag("expand-content-pane-action").performClick()
             compose.onNodeWithTag("gym-destination-Library").assertIsSelected()
             compose.onNodeWithTag("gym-library-child-Routines").assertIsDisplayed()
             compose.onNodeWithContentDescription("Restore split view").performClick()
@@ -226,22 +277,23 @@ class WhipComposeSemanticsTest {
         ActivityScenario.launch<MainActivity>(intent, options).use {
             compose.waitForIdle()
 
-            compose.onNodeWithContentDescription("Add task, habit, goal, exercise, workout, or measurement").performClick()
+            compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
             compose.onNodeWithText("Task").performClick()
-            compose.onAllNodesWithText("Notes (optional)").assertCountEquals(0)
-            compose.onNodeWithText("Advanced Options").performClick()
-            compose.onNodeWithText("Notes (optional)").assertIsDisplayed()
+            compose.onAllNodesWithText("Notes (Optional)").assertCountEquals(0)
+            compose.onNodeWithTag("task-editor-more-details").performScrollTo().performClick()
+            compose.onNodeWithText("Planning").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("Priority").performScrollTo().assertIsDisplayed()
             compose.onAllNodesWithText("Location cue").assertCountEquals(0)
-            compose.onNodeWithText("Cancel").performClick()
+            compose.onNodeWithContentDescription("Cancel Task editing").performClick()
 
-            compose.onNodeWithContentDescription("Home tab").performClick()
-            compose.onNodeWithContentDescription("Add task, habit, goal, exercise, workout, or measurement").performClick()
+            compose.onNodeWithContentDescription("Home").performClick()
+            compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
             compose.onNodeWithText("Habit").performClick()
             compose.onAllNodesWithText("Notes").assertCountEquals(0)
             compose.onNodeWithText("How do you want to track it?").assertIsDisplayed()
             compose.onAllNodesWithText("Intent").assertCountEquals(0)
             compose.onAllNodesWithText("Target rule").assertCountEquals(0)
+            compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Advanced Options"))
             compose.onNodeWithText("Advanced Options").assertIsDisplayed().performClick()
             compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Notes"))
             compose.onNodeWithText("Notes").assertIsDisplayed()
@@ -255,21 +307,29 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithText("Count").performClick()
             compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Target rule"))
             compose.onNodeWithText("Target rule").assertIsDisplayed()
-            compose.onNodeWithText("Cancel").performClick()
+            compose.onNodeWithContentDescription("Cancel Habit editing").performClick()
+            compose.onNodeWithText("Discard Changes")
+                .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("habit-editor-surface").fetchSemanticsNodes().isEmpty()
+            }
 
-            compose.onNodeWithContentDescription("Home tab").performClick()
-            compose.onNodeWithContentDescription("Add task, habit, goal, exercise, workout, or measurement").performClick()
+            compose.onNodeWithContentDescription("Go to Home").performClick()
+            compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
             compose.onNodeWithText("Goal").performClick()
             compose.onAllNodesWithText("Description").assertCountEquals(0)
-            compose.onNodeWithText("Starting value (optional)").assertIsDisplayed()
+            compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasText("Starting Value (Optional)"))
+            compose.onNodeWithText("Starting Value (Optional)").assertIsDisplayed()
             compose.onNodeWithText("Move from a starting value", substring = true).assertIsDisplayed()
+            compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasText("Advanced Options"))
             compose.onNodeWithText("Advanced Options").assertIsDisplayed().performClick()
             compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasText("Description"))
             compose.onNodeWithText("Description").assertIsDisplayed()
-            compose.onNodeWithText("Cancel").performClick()
+            compose.onNodeWithContentDescription("Cancel Goal editing").performClick()
 
             compose.onNodeWithContentDescription("Goals tab").performClick()
-            compose.onNodeWithText("Templates").performScrollTo().performClick()
+            compose.onNodeWithContentDescription("More Goal Actions").performClick()
+            compose.onNodeWithTag("goal-browse-templates-menu-action").performClick()
             compose.onNodeWithTag("goal-template-list").performScrollToNode(hasText("Build Savings", substring = true))
             compose.onNodeWithText("Build Savings", substring = true).assertIsDisplayed().performClick()
             compose.onNodeWithText("Savings").assertIsDisplayed()

@@ -180,6 +180,19 @@ class PortableBackupManagerTest {
     }
 
     @Test
+    fun forgettingFolderStillClearsLocalConfigurationAfterProviderRevokesAccess() = runBlocking {
+        val store = FakeDocumentStore(failOperation = "release")
+        val manager = manager(uniquePreferences(), FakeBackupRepository(0), store)
+        manager.configureFolder(TREE_URI)
+        manager.setAutomaticEnabled(true)
+
+        manager.clearFolder()
+
+        assertEquals(null, manager.state.value.folderUri)
+        assertFalse(manager.state.value.automaticEnabled)
+    }
+
+    @Test
     fun automaticBackupUsesOneRestartPersistentPeriodicJobAndCancelsWhenDisabled() {
         val workManager = WorkManager.getInstance(context)
         val scheduler = PortableBackupScheduler(context)
@@ -234,6 +247,7 @@ class PortableBackupManagerTest {
         override suspend fun exportTasksCsv() = ""
         override suspend fun exportHabitsCsv() = ""
         override suspend fun exportGoalsCsv() = ""
+        override suspend fun exportTracksCsv() = ""
         override suspend fun exportGymCsv() = ""
         override suspend fun deleteAllData() = Unit
     }
@@ -250,7 +264,9 @@ class PortableBackupManagerTest {
         val writtenNames = mutableListOf<String>()
 
         override fun persistAccess(treeUri: Uri) = Unit
-        override fun releaseAccess(treeUri: Uri) = Unit
+        override fun releaseAccess(treeUri: Uri) {
+            if (failOperation == "release") error("Provider already revoked access")
+        }
         override fun folderLabel(treeUri: Uri) = "Whip backups"
         override fun write(treeUri: Uri, displayName: String, content: String): PortableBackupFile {
             if (failOperation == "write-low-storage") error("No space left on selected provider")
