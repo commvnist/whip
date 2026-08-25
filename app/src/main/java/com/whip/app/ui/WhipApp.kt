@@ -48,7 +48,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -1269,14 +1268,6 @@ fun WhipScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (adaptiveLayout == WhipAdaptiveLayout.Compact || contentPaneIsExpanded) {
-                            WhipHomeButton(
-                                selected = appDestination == AppDestination.Home,
-                                enabled = trackEditorRoute == null,
-                                onClick = { selectPrimaryDestination(AppDestination.Home) },
-                                modifier = Modifier.size(48.dp).testTag("workspace-home-action"),
-                            )
-                        }
                         if (appDestination == AppDestination.Gym) {
                             Column(
                                 modifier = Modifier
@@ -1452,19 +1443,11 @@ fun WhipScreen(
         },
         bottomBar = {
             if (!gymRoutineEditorOpen && (adaptiveLayout == WhipAdaptiveLayout.Compact || contentPaneIsExpanded)) {
-                NavigationBar(modifier = Modifier.testTag("adaptive-bottom-navigation")) {
-                    primaryAppDestinations.forEach { destination ->
-                        val destinationLabel = stringResource(destination.labelRes)
-                        val destinationTabDescription = stringResource(R.string.nav_tab_description, destinationLabel)
-                        WhipNavigationBarItem(
-                            modifier = Modifier.semantics { contentDescription = destinationTabDescription },
-                            selected = appDestination == destination,
-                            onClick = { selectPrimaryDestination(destination) },
-                            icon = { Icon(destination.icon, contentDescription = null, modifier = Modifier.size(28.dp)) },
-                            label = { Text(destinationLabel) },
-                        )
-                    }
-                }
+                WhipBottomNavigation(
+                    selected = appDestination,
+                    onSelect = ::selectPrimaryDestination,
+                    enabled = trackEditorRoute == null,
+                )
             }
         },
         snackbarHost = {
@@ -2678,7 +2661,7 @@ private fun RowScope.WhipNavigationBarItem(
             contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else itemColor,
         ) {
             Box(
-                modifier = Modifier.size(width = 56.dp, height = 32.dp),
+                modifier = Modifier.size(width = 48.dp, height = 32.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 icon()
@@ -2745,46 +2728,40 @@ private fun WhipNavigationRail(
             .testTag("adaptive-navigation-rail"),
         color = railColor,
     ) {
-        NavigationRail(
+        Column(
             modifier = Modifier
                 .fillMaxHeight()
-                .windowInsetsPadding(WindowInsets.safeDrawing),
-            containerColor = railColor,
-            windowInsets = WindowInsets(0, 0, 0, 0),
-            header = {
-                Column(
-                    modifier = Modifier
-                        .padding(vertical = 8.dp)
-                        .width(80.dp)
-                        .heightIn(min = 72.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
-                ) {
-                    WhipHomeButton(
-                        selected = selected == AppDestination.Home,
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .width(80.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Column(
+                modifier = Modifier.testTag("adaptive-navigation-rail-destinations"),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                WhipNavigationRailItem(
+                    modifier = Modifier.semantics {
+                        contentDescription = if (selected == AppDestination.Home) "Home" else "Go to Home"
+                    },
+                    selected = selected == AppDestination.Home,
+                    enabled = enabled,
+                    onClick = { onSelect(AppDestination.Home) },
+                    icon = { WhipBrandMark(Modifier.size(34.dp)) },
+                    label = { Text(stringResource(R.string.nav_home), style = MaterialTheme.typography.labelMedium) },
+                )
+                primaryAppDestinations.forEach { destination ->
+                    val destinationLabel = stringResource(destination.labelRes)
+                    val destinationTabDescription = stringResource(R.string.nav_tab_description, destinationLabel)
+                    WhipNavigationRailItem(
+                        modifier = Modifier.semantics { contentDescription = destinationTabDescription },
+                        selected = destination == selected,
                         enabled = enabled,
-                        onClick = { onSelect(AppDestination.Home) },
-                        modifier = Modifier.size(48.dp),
-                    )
-                    Text(
-                        stringResource(R.string.nav_home),
-                        color = if (selected == AppDestination.Home) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelMedium,
+                        onClick = { onSelect(destination) },
+                        icon = { Icon(destination.icon, contentDescription = null, modifier = Modifier.size(28.dp)) },
+                        label = { Text(destinationLabel, style = MaterialTheme.typography.labelMedium) },
                     )
                 }
-            },
-        ) {
-            primaryAppDestinations.forEach { destination ->
-                val destinationLabel = stringResource(destination.labelRes)
-                val destinationTabDescription = stringResource(R.string.nav_tab_description, destinationLabel)
-                WhipNavigationRailItem(
-                    modifier = Modifier.semantics { contentDescription = destinationTabDescription },
-                    selected = destination == selected,
-                    enabled = enabled,
-                    onClick = { onSelect(destination) },
-                    icon = { Icon(destination.icon, contentDescription = null, modifier = Modifier.size(28.dp)) },
-                    label = { Text(destinationLabel) },
-                )
             }
         }
     }
@@ -2803,39 +2780,28 @@ private fun WhipBrandMark(
 }
 
 @Composable
-private fun WhipHomeButton(
-    selected: Boolean,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier
-            .selectable(
-                selected = selected,
-                enabled = enabled,
-                role = Role.Tab,
-                onClick = onClick,
-            )
-            .semantics { contentDescription = if (selected) "Home" else "Go to Home" },
-        shape = MaterialTheme.shapes.small,
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-        contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-    ) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            WhipBrandMark(Modifier.fillMaxSize().padding(6.dp))
-        }
-    }
-}
-
-@Composable
-private fun TabletopNavigation(
+private fun WhipBottomNavigation(
     selected: AppDestination,
     onSelect: (AppDestination) -> Unit,
     enabled: Boolean = true,
 ) {
+    PrimaryDestinationNavigationBar(
+        selected = selected,
+        onSelect = onSelect,
+        enabled = enabled,
+        modifier = Modifier.testTag("adaptive-bottom-navigation"),
+    )
+}
+
+@Composable
+private fun PrimaryDestinationNavigationBar(
+    selected: AppDestination,
+    onSelect: (AppDestination) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
     NavigationBar(
-        modifier = Modifier.testTag("adaptive-tabletop-navigation"),
+        modifier = modifier,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         WhipNavigationBarItem(
@@ -2846,7 +2812,14 @@ private fun TabletopNavigation(
             enabled = enabled,
             onClick = { onSelect(AppDestination.Home) },
             icon = { WhipBrandMark(Modifier.size(28.dp)) },
-            label = { Text(stringResource(R.string.nav_home)) },
+            label = {
+                Text(
+                    stringResource(R.string.nav_home),
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
         )
         primaryAppDestinations.forEach { destination ->
             val destinationLabel = stringResource(destination.labelRes)
@@ -2856,11 +2829,32 @@ private fun TabletopNavigation(
                 selected = destination == selected,
                 enabled = enabled,
                 onClick = { onSelect(destination) },
-                icon = { Icon(destination.icon, contentDescription = null, modifier = Modifier.size(28.dp)) },
-                label = { Text(destinationLabel) },
+                icon = { Icon(destination.icon, contentDescription = null, modifier = Modifier.size(26.dp)) },
+                label = {
+                    Text(
+                        destinationLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
             )
         }
     }
+}
+
+@Composable
+private fun TabletopNavigation(
+    selected: AppDestination,
+    onSelect: (AppDestination) -> Unit,
+    enabled: Boolean = true,
+) {
+    PrimaryDestinationNavigationBar(
+        selected = selected,
+        onSelect = onSelect,
+        enabled = enabled,
+        modifier = Modifier.testTag("adaptive-tabletop-navigation"),
+    )
 }
 
 private data class SupportPaneItem(val id: String, val title: String, val supportingText: String)

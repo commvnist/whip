@@ -450,6 +450,72 @@ class AdaptiveWhipScreenTest {
     }
 
     @Test
+    fun wideNavigationCentersTheCompleteDestinationGroup() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    adaptiveLayout = WhipAdaptiveLayout.NavigationRail,
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        val rail = compose.onNodeWithTag("adaptive-navigation-rail").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val destinations = compose.onNodeWithTag("adaptive-navigation-rail-destinations").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        check(kotlin.math.abs(destinations.center.y - rail.center.y) <= compose.density.density * 2f) {
+            "The wide navigation destinations must be vertically centered: rail=$rail destinations=$destinations"
+        }
+        val orderedDestinations = listOf("Home", "Tasks tab", "Habits tab", "Goals tab", "Tracks tab", "Gym tab")
+            .map { description ->
+                compose.onNodeWithContentDescription(description).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            }
+        check(orderedDestinations.zipWithNext().all { (before, after) -> before.top < after.top }) {
+            "The centered rail must retain Home-first destination order: $orderedDestinations"
+        }
+    }
+
+    @Test
+    fun compactNavigationMatchesTheRailAndKeepsWhipHomeReachable() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    adaptiveLayout = WhipAdaptiveLayout.Compact,
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("adaptive-bottom-navigation").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Home").assertIsDisplayed().assertIsSelected()
+        val orderedDestinations = listOf("Home", "Tasks tab", "Habits tab", "Goals tab", "Tracks tab", "Gym tab")
+            .map { description ->
+                compose.onNodeWithContentDescription(description).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            }
+        check(orderedDestinations.zipWithNext().all { (before, after) -> before.left < after.left }) {
+            "The compact bar must retain the rail's Home-first destination order: $orderedDestinations"
+        }
+        check(orderedDestinations.all { it.width >= compose.density.density * 48f }) {
+            "Every compact navigation destination must retain a 48 dp touch target: $orderedDestinations"
+        }
+
+        compose.onNodeWithContentDescription("Tasks tab").performClick().assertIsSelected()
+        compose.onNodeWithContentDescription("Go to Home").assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription("Home").assertIsSelected()
+    }
+
+    @Test
     fun everyPrimaryWorkspaceUsesTheSameHeaderAndNavigationGeometry() {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
@@ -613,7 +679,8 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithTag("expand-content-pane-action").performSemanticsAction(SemanticsActions.OnClick)
         compose.onNodeWithContentDescription("Back to Tracks").assertIsDisplayed()
         compose.onNodeWithContentDescription("Go to Home").assertIsDisplayed().performClick()
-        compose.onNodeWithText("Home").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Home").assertIsDisplayed().assertIsSelected()
+        compose.onNodeWithTag("home-list").assertIsDisplayed()
     }
 
     @Test
