@@ -50,10 +50,19 @@ import com.whip.app.ui.theme.WhipTheme
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.WhipTask
+import com.whip.app.domain.ElapsedDisplayUnit
+import com.whip.app.domain.Goal
+import com.whip.app.domain.GoalAggregation
+import com.whip.app.domain.GoalDirection
+import com.whip.app.domain.GoalPaceType
+import com.whip.app.domain.GoalProjection
+import com.whip.app.domain.GoalStatus
+import com.whip.app.domain.GoalType
 import com.whip.app.domain.Track
 import com.whip.app.domain.TrackField
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackProjection
+import com.whip.app.domain.UnitDimension
 import java.time.LocalDate
 import org.junit.Rule
 import org.junit.Test
@@ -763,6 +772,81 @@ class AdaptiveWhipScreenTest {
         val hinge = compose.onNodeWithContentDescription("Device hinge separator").fetchSemanticsNode().boundsInRoot
         val editor = compose.onNodeWithTag("goal-editor-surface").fetchSemanticsNode().boundsInRoot
         check(editor.right <= hinge.left + 1f) { "RTL goal editor crossed the hinge: editor=$editor hinge=$hinge" }
+    }
+
+    @Test
+    fun bookFoldGoalSupportPaneUsesTheSameTypeSpecificStatusAsCompactRows() {
+        val nowMillis = System.currentTimeMillis()
+        val goal = Goal(
+            id = 41,
+            uuid = "elapsed-goal-41",
+            metricId = "elapsed-metric-41",
+            name = "Quit Alcohol",
+            description = "",
+            area = "Main",
+            tags = emptyList(),
+            icon = "❤️",
+            type = GoalType.ElapsedSince,
+            dimension = UnitDimension.Count,
+            unitId = "count",
+            precision = 0,
+            baseline = null,
+            targetMin = null,
+            targetMax = null,
+            direction = GoalDirection.Increase,
+            startDate = LocalDate.of(2026, 8, 25),
+            deadline = null,
+            aggregation = GoalAggregation.Latest,
+            paceType = GoalPaceType.None,
+            reminderMinutes = null,
+            status = GoalStatus.Active,
+            pinned = false,
+            position = 0,
+            createdAtMillis = 1,
+            updatedAtMillis = 1,
+            elapsedStartMillis = nowMillis - 2L * 86_400_000L,
+            elapsedDisplayUnit = ElapsedDisplayUnit.Days,
+        )
+        val projection = GoalProjection(
+            goal = goal,
+            currentValue = null,
+            progress = null,
+            deltaFromBaseline = null,
+            expectedProgress = null,
+            paceDelta = null,
+            forecastDate = null,
+            onPace = null,
+            milestones = emptyList(),
+            entries = emptyList(),
+        )
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    goalState = GoalUiState(active = listOf(projection), loading = false),
+                    adaptiveLayout = WhipAdaptiveLayout.BookFold,
+                    foldInfo = WhipFoldInfo(
+                        orientation = WhipFoldOrientation.Vertical,
+                        leftPx = 700,
+                        topPx = 0,
+                        rightPx = 740,
+                        bottomPx = 1_800,
+                        separating = true,
+                        halfOpened = true,
+                    ),
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Goals tab").performClick()
+        compose.onNodeWithText("2 days").assertIsDisplayed()
+        compose.onAllNodesWithText("0% progress").assertCountEquals(0)
     }
 
     @Test

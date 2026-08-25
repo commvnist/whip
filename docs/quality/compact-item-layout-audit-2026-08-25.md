@@ -28,6 +28,18 @@ The initial implementation violated that contract by permanently suppressing sec
 | Goal | Progress, current/consistency value, pace, forecast, elapsed timer, milestones, rewards, and description disappeared. | The collapsed row keeps Log or Reset plus a type-specific status. Expansion restores progress, current/consistency, pace, forecast, timer detail, milestones, rewards, description, and Edit. |
 | Track | Latest entry and Add Entry disappeared; long titles were forced to one line. | The collapsed row keeps a two-line title, Area/count summary, and Add Entry. Expansion restores Latest and 48 dp Add/Edit actions. Selection and reorder modes preserve their existing interaction model. |
 
+## Follow-up visual audit from the Fold photographs
+
+The supplied open-Fold photographs exposed five related presentation defects that the initial parity pass did not catch:
+
+- The shared compact primary-action lane was 56 dp wide. Material text-button padding left too little text width, so the elapsed-goal action rendered as `Rese` / `t`. Compact text actions now use a reusable single-line button primitive with reduced horizontal padding, a minimum 48 dp target, and label-aware lanes; Reset receives 80 dp. Default and 200% font-scale tests assert that its label remains one line.
+- Completed Check Off Habits fell through target formatting and displayed `1/1`, even though their subtitle already described completion. Their collapsed status is now semantic (`Done · 1 day streak`) rather than a storage value.
+- Expanded Checklist and Check Off Habits fell through raw-value or target-progress rendering, exposing the internal completion sentinel as a bare `1` or a redundant `1 / 1` block. Binary and checklist modes are now excluded from both numeric branches. Rating and Log Only values remain available with explicit labels.
+- The Fold support pane synthesized a percentage for every Goal, causing elapsed Goals to say `0% progress` beside the correct `2 days` or `9 hours` status. Compact rows, adaptive context, and support panes now share one type-aware Goal status formatter.
+- In stacked expanded rows, Edit floated near the center of a full-width button. Its content is now leading-aligned while the full 48 dp target remains available.
+
+The live signed-release follow-up on the connected narrow physical display confirmed one-line Reset actions, `Done · 1 day streak` for Creatine, `3/3 items · 1 day streak` for Medication, all three checklist controls, leading-aligned Edit, and no standalone `1`. The repository-owned captures and hierarchy dumps are under `/storage/emulated/0/whip-debug/{screenshots,ui}` with the `compact-*-followup` names. Open-Fold companion-pane consistency is covered by `AdaptiveWhipScreenTest`; normal and 200% Reset sizing plus both binary-value leak paths are covered by `ProductivityCardDesignUiTest`.
+
 ## State and interaction matrix
 
 | Domain | States audited in compact mode | Inline interaction requirement | Automated evidence |
@@ -48,11 +60,11 @@ The setting description explicitly distinguishes the always-available primary ac
 
 Completed automated evidence:
 
-- The focused compact/card matrix passed ten Android UI tests plus two fast state-controller tests on the disposable API 34 emulator.
-- `scripts/check --full` passed, including 254 JVM tests, lint, coverage thresholds, minified release APK/AAB, and benchmark build.
-- `ANDROID_SERIAL=emulator-5554 scripts/check --emulator` passed all 305 Android instrumentation tests across seven isolated batches.
-- Total product regression baseline: 559 tests.
-- The repository release script installed signed `0.3.9 (15)` with a data-preserving package upgrade on `192.168.2.187:35089`; the local and installed base APK SHA-256 both equal `4f377dce45ac1c09103f529720f20f42efa2e9901293a9a35914b1e66096865c`.
-- The phone retained its original `firstInstallTime` of `2026-08-22 21:32:46`. The app completed a 104 ms cold launch and became the resumed foreground activity. The post-launch process log contained no Android runtime exception or fatal application error; two device-vendor library/service diagnostics were unrelated to Whip.
+- Focused status and Compose regressions passed on the disposable API 34 emulator, including normal and 200% Reset sizing, checklist and Check Off sentinel suppression, and open-Fold support-pane parity.
+- `scripts/check --full` passed, including 256 JVM tests, lint, coverage thresholds, minified release APK/AAB, and benchmark build.
+- `ANDROID_SERIAL=emulator-5554 scripts/check --emulator` passed all 306 Android instrumentation tests across seven isolated batches.
+- Total product regression baseline: 562 tests.
+- The repository release script installed signed `0.3.9 (15)` with a data-preserving package upgrade on `192.168.2.187:35089`; the local and installed base APK SHA-256 both equal `36c77e6c9147fe4e1f38c1e66940e279a11129a6c3fe0f554a052195f85dbfed`.
+- The phone retained its original `firstInstallTime` of `2026-08-22 21:32:46`. The app completed a 102 ms cold launch and became the resumed foreground activity. The post-launch Android runtime log contained no fatal application error.
 
 Physical-device instrumentation and destructive data operations were not used.

@@ -64,6 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -118,6 +119,29 @@ internal fun rememberCompactItemDisclosure(
         expanded = expansionState.expandedItemKey == itemKey,
         toggle = { expansionState.toggle(itemKey) },
     )
+}
+
+/** A one-line text action sized for the trailing lane of a compact item row. */
+@Composable
+internal fun ItemPrimaryTextButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    WhipTextButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp),
+        contentPadding = PaddingValues(horizontal = 4.dp),
+    ) {
+        Text(
+            text = label,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Clip,
+        )
+    }
 }
 
 /**
@@ -180,9 +204,9 @@ internal fun ProductivityItemCard(
  *
  *     identity emoji -> title/context -> primary action -> edit
  *
- * The primary action is always in the same 72 dp trailing lane when present.
- * This keeps completion, logging, rating, timer, and reset controls predictable
- * without pretending those domain actions all mean the same thing.
+ * The primary action uses a stable, label-aware trailing lane when present. This
+ * keeps completion, logging, rating, timer, and reset controls predictable without
+ * pretending those domain actions all mean the same thing.
  */
 @Composable
 internal fun ProductivityItemHeader(
@@ -203,6 +227,7 @@ internal fun ProductivityItemHeader(
     compactExpanded: Boolean = false,
     onCompactExpansionToggle: (() -> Unit)? = null,
     compactExpansionTag: String? = null,
+    compactPrimaryActionWidth: Dp = 64.dp,
     primaryAction: (@Composable () -> Unit)? = null,
 ) {
     val compact = LocalCompactItemLayout.current
@@ -231,7 +256,7 @@ internal fun ProductivityItemHeader(
                 }
                 primaryAction?.let { action ->
                     Box(
-                        modifier = primaryActionModifier.width(56.dp).heightIn(min = 48.dp),
+                        modifier = primaryActionModifier.width(compactPrimaryActionWidth).heightIn(min = 48.dp),
                         contentAlignment = Alignment.Center,
                     ) { action() }
                 }
@@ -277,6 +302,7 @@ internal fun ProductivityItemHeader(
                                     Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(20.dp))
                                     Spacer(Modifier.width(6.dp))
                                     Text("Edit")
+                                    Spacer(Modifier.weight(1f))
                                 }
                             }
                         }

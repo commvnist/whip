@@ -557,6 +557,26 @@ fun GoalAreaContent(
     }
 }
 
+internal fun GoalProjection.collectionStatus(
+    customUnits: List<UnitDefinition> = emptyList(),
+    nowMillis: Long = System.currentTimeMillis(),
+): String {
+    val goal = this.goal
+    return when {
+        goal.type == GoalType.ElapsedSince && goal.elapsedStartMillis != null ->
+            elapsedCounter(goal.elapsedStartMillis, nowMillis, goal.elapsedDisplayUnit).label()
+        goal.type == GoalType.WeightedMilestones ->
+            "${milestones.count { it.completed }}/${milestones.size} milestones"
+        progress != null -> "${(progress * 100).toInt()}% complete"
+        consistency != null -> with(requireNotNull(consistency)) {
+            "$successfulPeriods/$requiredPeriods ${period.name.lowercase()} periods"
+        }
+        currentValue != null ->
+            "Current ${formatGoalValue(goal.displayValue(currentValue, customUnits), goal.precision)} ${goal.unitId.goalUnitLabel()}".trim()
+        else -> goal.type.displayLabel()
+    }
+}
+
 @Composable
 fun GoalCard(
     projection: GoalProjection,
@@ -574,25 +594,13 @@ fun GoalCard(
         itemKey = "goal:${goal.id}",
         autoExpand = compact && goal.status == GoalStatus.Active && goal.type == GoalType.ElapsedSince,
     )
-    val compactStatus = when {
-        goal.type == GoalType.ElapsedSince && goal.elapsedStartMillis != null ->
-            elapsedCounter(goal.elapsedStartMillis, nowMillis, goal.elapsedDisplayUnit).label()
-        goal.type == GoalType.WeightedMilestones ->
-            "${projection.milestones.count { it.completed }}/${projection.milestones.size} milestones"
-        projection.progress != null -> "${(projection.progress * 100).toInt()}% complete"
-        projection.consistency != null -> with(projection.consistency) {
-            "$successfulPeriods/$requiredPeriods ${period.name.lowercase()} periods"
-        }
-        projection.currentValue != null ->
-            "Current ${formatGoalValue(goal.displayValue(projection.currentValue, customUnits), goal.precision)} ${goal.unitId.goalUnitLabel()}".trim()
-        else -> goal.type.displayLabel()
-    }
+    val compactStatus = projection.collectionStatus(customUnits, nowMillis)
     val primaryAction: (@Composable () -> Unit)? = when {
         goal.status == GoalStatus.Active && goal.type !in setOf(GoalType.WeightedMilestones, GoalType.ElapsedSince) -> {{
-            WhipTextButton(onClick = onRecord) { Text("Log") }
+            ItemPrimaryTextButton("Log", onRecord)
         }}
         goal.status == GoalStatus.Active && goal.type == GoalType.ElapsedSince -> {{
-            WhipTextButton(onClick = onResetElapsed) { Text("Reset") }
+            ItemPrimaryTextButton("Reset", onResetElapsed)
         }}
         else -> null
     }
@@ -630,6 +638,7 @@ fun GoalCard(
             compactExpanded = disclosure.expanded,
             onCompactExpansionToggle = disclosure.toggle.takeIf { compact },
             compactExpansionTag = "goal-expand-${goal.id}",
+            compactPrimaryActionWidth = if (goal.type == GoalType.ElapsedSince) 80.dp else 64.dp,
             primaryAction = primaryAction,
         )
         if (!compact || disclosure.expanded) {

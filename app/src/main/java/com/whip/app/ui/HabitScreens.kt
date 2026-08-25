@@ -651,6 +651,36 @@ private fun HabitAutomationDialog(
     )
 }
 
+internal fun HabitDayProgress.compactCollectionStatus(): String {
+    val streakUnit = when (habit.scheduleType) {
+        HabitScheduleType.FlexibleTimesPerWeek -> "week"
+        HabitScheduleType.FlexibleTimesPerMonth -> "month"
+        else -> "day"
+    }
+    val streakLabel = "$streak $streakUnit streak"
+    return when {
+        dayState == HabitDayState.Skipped -> "Skipped · streak protected"
+        habit.sourceMetricId != null -> "Synced · Health Connect"
+        habit.trackingMode == HabitTrackingMode.Checklist -> {
+            val completedItems = checklistItems.count { it.second }
+            "$completedItems/${checklistItems.size} items · $streakLabel"
+        }
+        habit.trackingMode == HabitTrackingMode.CheckOff ->
+            "${if (isDoneForToday()) "Done" else "Pending"} · $streakLabel"
+        habit.trackingMode == HabitTrackingMode.Duration && habit.timerStartedAtMillis != null -> "Timer running"
+        habit.trackingMode == HabitTrackingMode.Rating && value != 0.0 ->
+            "Rating ${formatHabitValue(value, habit.precision)} · $streakLabel"
+        habit.trackingMode == HabitTrackingMode.LogOnly ->
+            "${if (isDoneForToday()) "Logged" else "Not logged"} · $streakLabel"
+        habit.comparison != TargetComparison.None -> {
+            val target = habit.targetMax ?: habit.targetMin ?: 1.0
+            "${formatHabitValue(value, habit.precision)}/${formatHabitValue(target, habit.precision)} ${habit.unitId.unitLabel()}".trim()
+        }
+        value != 0.0 -> "${formatHabitValue(value, habit.precision)} ${habit.unitId.unitLabel()}".trim()
+        else -> "${habit.trackingMode.uiLabel()} · $streakLabel"
+    }
+}
+
 @Composable
 fun HabitProgressCard(
     item: HabitDayProgress,
@@ -684,23 +714,9 @@ fun HabitProgressCard(
             HabitScheduleType.FlexibleTimesPerMonth,
         )
     ) "recent periods" else "30d"
-    val compactStatus = when {
-        skipped -> "Skipped · streak protected"
-        habit.sourceMetricId != null -> "Synced · Health Connect"
-        habit.trackingMode == HabitTrackingMode.Checklist -> {
-            val completedItems = item.checklistItems.count { it.second }
-            "$completedItems/${item.checklistItems.size} items · ${item.streak} $streakUnit streak"
-        }
-        habit.trackingMode == HabitTrackingMode.Duration && habit.timerStartedAtMillis != null -> "Timer running"
-        habit.comparison != TargetComparison.None -> {
-            val target = habit.targetMax ?: habit.targetMin ?: 1.0
-            "${formatHabitValue(item.value, habit.precision)}/${formatHabitValue(target, habit.precision)} ${habit.unitId.unitLabel()}".trim()
-        }
-        item.value != 0.0 -> "${formatHabitValue(item.value, habit.precision)} ${habit.unitId.unitLabel()}".trim()
-        else -> "${habit.trackingMode.uiLabel()} · ${item.streak} $streakUnit streak"
-    }
+    val compactStatus = item.compactCollectionStatus()
     val primaryAction: (@Composable () -> Unit)? = when {
-        skipped -> if (compact) {{ WhipTextButton(onClick = onUndoSkip) { Text("Undo") } }} else {{ Text("Skipped", color = MaterialTheme.whipColors.warning, fontWeight = FontWeight.SemiBold) }}
+        skipped -> if (compact) {{ ItemPrimaryTextButton("Undo", onUndoSkip) }} else {{ Text("Skipped", color = MaterialTheme.whipColors.warning, fontWeight = FontWeight.SemiBold) }}
         habit.sourceMetricId != null -> if (compact) null else {{ Text("Synced", color = MaterialTheme.whipColors.success, fontWeight = FontWeight.SemiBold) }}
         habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) -> {{
             Checkbox(
@@ -716,21 +732,17 @@ fun HabitProgressCard(
         }}
         habit.trackingMode == HabitTrackingMode.Duration -> {{
             if (compact) {
-                WhipTextButton(onClick = onQuick) { Text(if (habit.timerStartedAtMillis == null) "Start" else "Stop") }
+                ItemPrimaryTextButton(if (habit.timerStartedAtMillis == null) "Start" else "Stop", onQuick)
             } else {
                 WhipButton(onClick = onQuick) { Text(if (habit.timerStartedAtMillis == null) "Start" else "Stop") }
             }
         }}
         habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) -> if (compact) {{
-            WhipTextButton(onClick = { onQuickValue(habit.quickIncrement) }) {
-                Text("+${editableNumericValue(habit.quickIncrement)}")
-            }
+            ItemPrimaryTextButton("+${editableNumericValue(habit.quickIncrement)}", { onQuickValue(habit.quickIncrement) })
         }} else null
         else -> {{
             if (compact) {
-                WhipTextButton(onClick = onQuick) {
-                    Text(if (habit.trackingMode == HabitTrackingMode.Rating) "Rate" else "Log")
-                }
+                ItemPrimaryTextButton(if (habit.trackingMode == HabitTrackingMode.Rating) "Rate" else "Log", onQuick)
             } else {
                 WhipButton(onClick = onQuick) {
                     if (habit.trackingMode == HabitTrackingMode.Rating) Text("Rate")
@@ -782,6 +794,9 @@ fun HabitProgressCard(
             compactExpanded = disclosure.expanded,
             onCompactExpansionToggle = disclosure.toggle.takeIf { compact },
             compactExpansionTag = "habit-expand-${habit.id}",
+            compactPrimaryActionWidth = if (
+                skipped || habit.trackingMode in setOf(HabitTrackingMode.Duration, HabitTrackingMode.Rating, HabitTrackingMode.LogOnly)
+            ) 72.dp else 64.dp,
             primaryAction = primaryAction,
         )
         if (!compact || disclosure.expanded) {
@@ -900,7 +915,7 @@ fun HabitProgressCard(
                 )
             } else if (
                 !skipped &&
-                habit.trackingMode != HabitTrackingMode.Checklist &&
+                habit.trackingMode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) &&
                 habit.comparison != TargetComparison.None
             ) {
                 val target = habit.targetMax ?: habit.targetMin ?: 1.0
@@ -910,8 +925,19 @@ fun HabitProgressCard(
                     "${formatHabitValue(item.value, habit.precision)} / ${formatHabitValue(target, habit.precision)} ${habit.unitId.unitLabel()}",
                     style = MaterialTheme.typography.labelMedium,
                 )
-            } else if (!skipped && item.value != 0.0) {
-                Text("${formatHabitValue(item.value, habit.precision)} ${habit.unitId.unitLabel()}")
+            } else if (
+                !skipped &&
+                item.value != 0.0 &&
+                habit.trackingMode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)
+            ) {
+                val formattedValue = "${formatHabitValue(item.value, habit.precision)} ${habit.unitId.unitLabel()}".trim()
+                Text(
+                    when (habit.trackingMode) {
+                        HabitTrackingMode.Rating -> "Rating: $formattedValue"
+                        HabitTrackingMode.LogOnly -> "Logged value: $formattedValue"
+                        else -> formattedValue
+                    },
+                )
             }
             if (habit.sourceMetricId != null) {
                 Text(

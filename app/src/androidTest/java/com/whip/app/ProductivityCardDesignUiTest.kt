@@ -415,6 +415,14 @@ class ProductivityCardDesignUiTest {
             trackingMode = HabitTrackingMode.Checklist,
             autoCompleteFromItems = false,
         )
+        val checkOffHabit = sampleHabit(date).copy(
+            id = 22,
+            uuid = "habit-22",
+            metricId = "metric-habit-22",
+            name = "Creatine",
+            comparison = TargetComparison.AtLeast,
+            targetMin = 1.0,
+        )
         val checklistItems = (1L..3L).map { id ->
             HabitChecklistItem(
                 id = id,
@@ -435,13 +443,13 @@ class ProductivityCardDesignUiTest {
                     LocalCompactItemLayout provides true,
                     LocalCompactItemExpansionState provides expansionState,
                 ) {
-                    Column(Modifier.fillMaxWidth().padding(20.dp)) {
+                    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp)) {
                         HabitProgressCard(
                             item = HabitDayProgress(
                                 habit = habit,
                                 date = date,
                                 scheduled = true,
-                                value = 0.0,
+                                value = 1.0,
                                 status = null,
                                 successful = false,
                                 checklistItems = checklistItems,
@@ -459,12 +467,34 @@ class ProductivityCardDesignUiTest {
                                 checklistUpdate = listOf(habitId, itemId, localDate, checked)
                             },
                         )
+                        HabitProgressCard(
+                            item = HabitDayProgress(
+                                habit = checkOffHabit,
+                                date = date,
+                                scheduled = true,
+                                value = 1.0,
+                                status = null,
+                                successful = true,
+                                checklistItems = emptyList(),
+                                streak = 1,
+                                completionRate = 1.0,
+                                dayState = HabitDayState.Completed,
+                            ),
+                            onOpen = {},
+                            onEdit = {},
+                            onQuick = {},
+                            onDecrement = {},
+                            onUndo = {},
+                            onUndoSkip = {},
+                            onChecklist = { _, _, _, _ -> },
+                        )
                     }
                 }
             }
         }
 
         compose.onNodeWithText("2/3 items", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Done · 1 day streak").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("2 / 3 items complete").assertCountEquals(0)
         checklistItems.forEach { (item, _) -> compose.onAllNodesWithText(item.name).assertCountEquals(0) }
         compose.onNodeWithContentDescription("Check off habit Medication").performClick()
@@ -473,10 +503,15 @@ class ProductivityCardDesignUiTest {
 
         compose.onNodeWithTag("habit-expand-${habit.id}", useUnmergedTree = true).performClick()
         compose.onNodeWithText("2 / 3 items complete").assertIsDisplayed()
+        compose.onAllNodesWithText("1").assertCountEquals(0)
         checklistItems.forEach { (item, _) -> compose.onNodeWithText(item.name).assertIsDisplayed() }
         assertTrue(height("habit-checklist-item-3") >= 48.dp)
         compose.onNodeWithTag("habit-checklist-item-3", useUnmergedTree = true).performClick()
         compose.runOnIdle { assertEquals(listOf(habit.id, 3L, date, true), checklistUpdate) }
+
+        compose.onNodeWithTag("habit-expand-${checkOffHabit.id}", useUnmergedTree = true).performScrollTo().performClick()
+        compose.onAllNodesWithText("1 / 1", substring = true).assertCountEquals(0)
+        compose.onAllNodesWithText("1").assertCountEquals(0)
     }
 
     @Test
@@ -591,6 +626,10 @@ class ProductivityCardDesignUiTest {
         }
 
         compose.onNodeWithText("2 days").assertIsDisplayed()
+        val resetLabelHeight = compose.onNodeWithText("Reset", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot().let { it.bottom - it.top }
+        assertTrue("Reset must remain on one line in the compact action lane: $resetLabelHeight", resetLabelHeight <= 24.dp)
+        assertTrue(height("goal-primary-action-8") >= 48.dp)
         compose.onNodeWithText("Reset").performClick()
         compose.onNodeWithText("0/1 milestones").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Publish the release").assertCountEquals(0)
@@ -621,7 +660,10 @@ class ProductivityCardDesignUiTest {
                 LocalCompactItemLayout provides true,
             ) {
                 WhipTheme(dynamicColor = false) {
-                    Column(Modifier.width(340.dp).padding(12.dp)) {
+                    Column(
+                        Modifier.width(340.dp).verticalScroll(rememberScrollState()).padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         TaskRow(
                             item = ScheduledTask(
                                 task = WhipTask(10, title, "Keep this context visible.", ScheduleKind.Once, date, null, null, false, false, null, 1, 1, areaId = "health", area = "Health"),
@@ -632,6 +674,32 @@ class ProductivityCardDesignUiTest {
                             onComplete = {},
                             onOpenActions = {},
                             onEdit = {},
+                        )
+                        GoalCard(
+                            projection = GoalProjection(
+                                goal = sampleGoal(date).copy(
+                                    id = 11,
+                                    name = "Reset elapsed goal",
+                                    type = GoalType.ElapsedSince,
+                                    elapsedStartMillis = 1_800_000_000_000L - 86_400_000L,
+                                    elapsedDisplayUnit = ElapsedDisplayUnit.Days,
+                                ),
+                                currentValue = null,
+                                progress = null,
+                                deltaFromBaseline = null,
+                                expectedProgress = null,
+                                paceDelta = null,
+                                forecastDate = null,
+                                onPace = null,
+                                milestones = emptyList(),
+                                entries = emptyList(),
+                            ),
+                            onOpen = {},
+                            onEdit = {},
+                            onRecord = {},
+                            onResetElapsed = {},
+                            onToggleMilestone = { _, _ -> },
+                            nowMillis = 1_800_000_000_000L,
                         )
                     }
                 }
@@ -649,6 +717,12 @@ class ProductivityCardDesignUiTest {
         compose.onNodeWithText("Keep this context visible.").assertIsDisplayed()
         compose.onNodeWithText("Health").assertIsDisplayed()
         assertTrue(height("task-edit-action-10") >= 48.dp)
+
+        val largeResetLabelHeight = compose.onNodeWithText("Reset", useUnmergedTree = true)
+            .performScrollTo()
+            .getUnclippedBoundsInRoot().let { it.bottom - it.top }
+        assertTrue("Reset must remain on one line at 200% text: $largeResetLabelHeight", largeResetLabelHeight <= 44.dp)
+        assertTrue(height("goal-primary-action-11") >= 48.dp)
     }
 
     @Test

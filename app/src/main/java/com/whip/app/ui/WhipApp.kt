@@ -886,6 +886,7 @@ fun WhipScreen(
         appDestination = destination
     }
 
+    val collectionStatusNowMillis = System.currentTimeMillis()
     val adaptiveSummary = AdaptiveSummary(
         date = state.currentDate,
         dueTasks = state.today.size,
@@ -899,7 +900,9 @@ fun WhipScreen(
                 "${formatHabitValue(item.value, item.habit.precision)}/${formatHabitValue(it, item.habit.precision)}"
             } ?: "log"}"
         },
-        goalContext = goalState.active.take(6).map { item -> "${item.goal.name} · ${((item.progress ?: 0.0) * 100).toInt()}%" },
+        goalContext = goalState.active.take(6).map { item ->
+            "${item.goal.name} · ${item.collectionStatus(goalState.customUnits, collectionStatusNowMillis)}"
+        },
         gymContextTitle = when (gymDestination) {
             GymDestination.Workout -> "Workout Context"
             GymDestination.History -> "Recent Workouts"
@@ -1188,7 +1191,7 @@ fun WhipScreen(
                         SupportPaneItem(
                             projection.goal.id.toString(),
                             projection.goal.name,
-                            "${((projection.progress ?: 0.0) * 100).toInt()}% progress",
+                            projection.collectionStatus(goalState.customUnits, collectionStatusNowMillis),
                         )
                     },
                     emptyText = "No Goals are active.",
