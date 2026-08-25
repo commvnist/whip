@@ -20,7 +20,13 @@ The resolved feature-scope review is in `docs/UNUSED_FEATURE_INVENTORY_2026-08-2
 ## Current implementation contract
 
 - Package ID: `commvne.com.whip.app`; product name: **Whip**.
-- Room is currently schema 9. Every checked-in schema from 1 through 9 has an explicit forward migration, and migration tests preserve existing Tasks and their identity emojis, Links, Contributions, Automations, Track Entries, identity values, elapsed Goals, fractional Scales, automation windows, and neutral Habit skips across upgrades.
+- Room is currently schema 28. Public releases 0.3.0–0.3.7 shipped schema 27,
+  which has an explicit lossless 27→28 migration. Every checked-in pre-release
+  schema from 1 through 9 also has an explicit forward path to 28. Migration
+  tests preserve existing Tasks and identity emojis, Links, Contributions,
+  Automations, Track Entries, entity-tag links, Goal completion snapshots,
+  identity values, elapsed Goals, fractional Scales, automation windows, and
+  neutral Habit skips across upgrades.
 - Complete backups write data version 8 and restore supported versions 5 through 8 with explicit in-memory upgrades. CSV remains an interoperability export, not a complete restore format.
 - Task location reminders and Android location permissions do not exist.
 - At least one active Area always exists. Area move/delete operations handle Tasks, Habits, and Goals explicitly.
@@ -49,13 +55,21 @@ See `docs/UX_ARCHITECTURE_IMPLEMENTATION_PLAN_2026-08-22.md` for the detailed re
 2. Domain and persistence names describe the same concept shown to users.
 3. Unit tests cover calculation/state rules; repository tests cover persistence; UI tests cover consequence and accessibility.
 4. `scripts/check` passes.
-5. Fold-specific changes are manually checked closed and open when a physical device is available, without running instrumentation against the personal release app.
+5. Adaptive changes pass the compact, typical, and expanded emulator matrix;
+   optional physical-device checks never run destructive instrumentation
+   against a personal release app.
 6. A signed release is installed only after the full non-device gate passes.
 7. After public release, every schema change includes an explicit forward migration and backup compatibility decision. Destructive resets require new explicit owner approval.
 
 ## Remaining release work
 
-- Perform the final clean-data signed-release installation and live smoke check.
-- Capture fresh Play Store screenshots only after the current UI is accepted.
-- Build the signed App Bundle and confirm Play Console accepts its version code and permission declarations.
-- Tag the first public schema only when the product owner declares the app released; from that point, local data is never treated as disposable.
+The repository release-quality gate is complete at the 2026-08-25 audit
+checkpoint. The following owner-controlled distribution activities are outside
+that emulator-only audit and are not implied by a passing repository gate:
+
+- Select and capture any new Play Store marketing screenshots after product
+  approval.
+- Upload the signed App Bundle and confirm Play Console accepts version code 15
+  and its permission declarations.
+- Create the distribution tag only when the product owner declares the release;
+  public local data must never be treated as disposable.
