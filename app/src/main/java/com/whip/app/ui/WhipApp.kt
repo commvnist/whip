@@ -3995,7 +3995,7 @@ private fun TaskAreaContent(
                     OutlinedTextField(
                         value = quickCapture,
                         onValueChange = { quickCapture = it },
-                        label = { Text(if (destination == TaskDestination.Inbox) "Quick Capture to Inbox" else "Quick Capture") },
+                        label = { Text("Quick Capture to ${destination.label}") },
                         trailingIcon = {
                             IconButton(
                                 enabled = quickCapture.isNotBlank() && !quickCaptureSubmitting,

@@ -97,6 +97,60 @@ class ProductivityDefaultsUiTest {
     }
 
     @Test
+    fun todayAndInboxQuickCaptureUseMatchingDestinationCopyAndDefaults() {
+        val today = LocalDate.of(2026, 8, 25)
+        val quickCaptures = mutableListOf<Triple<String, LocalDate?, Boolean>>()
+        val detailedDraft = AtomicReference<TaskDraft?>()
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(currentDate = today, loading = false),
+                    onSaveTask = { _, draft, _ -> detailedDraft.set(draft) },
+                    onQuickAddTaskWithResult = { capture, date, inbox, _, onFinished ->
+                        quickCaptures += Triple(capture, date, inbox)
+                        onFinished(true)
+                    },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Tasks tab").performClick()
+        compose.onNodeWithText("Quick Capture to Today").assertIsDisplayed()
+        compose.onNodeWithTag("task-quick-capture").performTextInput("Captured from Today")
+        compose.onNodeWithContentDescription("Add task now").performClick()
+
+        compose.onNodeWithTag("task-destination-Inbox").performClick()
+        compose.onNodeWithText("Quick Capture to Inbox").assertIsDisplayed()
+        compose.onNodeWithTag("task-quick-capture").performTextInput("Captured from Inbox")
+        compose.onNodeWithContentDescription("Add task now").performClick()
+
+        compose.onNodeWithTag("task-destination-Today").performClick()
+        compose.onNodeWithTag("task-quick-capture").performTextInput("Detailed from Today")
+        compose.onNodeWithText("Add Details").performClick()
+        compose.onNodeWithText("Save").performClick()
+
+        compose.runOnIdle {
+            assertEquals(
+                listOf(
+                    Triple("Captured from Today", today, false),
+                    Triple("Captured from Inbox", null, true),
+                ),
+                quickCaptures,
+            )
+            val draft = requireNotNull(detailedDraft.get())
+            assertEquals("Detailed from Today", draft.title)
+            assertEquals(ScheduleKind.Once, draft.scheduleKind)
+            assertEquals(today, draft.date)
+            assertFalse(draft.inbox)
+        }
+    }
+
+    @Test
     fun savingGoalWithoutAReminderDoesNotRequestNotificationPermission() {
         val permissionRequests = AtomicInteger()
         compose.setContent {
