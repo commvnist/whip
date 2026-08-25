@@ -1873,7 +1873,11 @@ private fun TrackEntriesPage(
         }
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                WhipButton(onClick = onAddEntry, enabled = !projection.track.archived, modifier = Modifier.weight(1f)) {
+                WhipButton(
+                    onClick = onAddEntry,
+                    enabled = !projection.track.archived,
+                    modifier = Modifier.weight(1f).testTag("track-add-entry"),
+                ) {
                     Icon(Icons.Outlined.Add, contentDescription = null); Spacer(Modifier.width(8.dp)); Text(projection.addEntryLabel())
                 }
                 WhipPageIconAction(Icons.Outlined.FilterAlt, "Filter Entries", { filterOpen = true }, badgeCount = conditions.size, active = conditions.isNotEmpty())

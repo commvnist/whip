@@ -136,16 +136,10 @@ class ProductivityCreationJourneyE2ETest {
                     .performSemanticsAction(SemanticsActions.OnClick)
                 compose.onNodeWithText("Edit Habit").assertIsDisplayed()
             }
-            compose.onNode(
-                hasContentDescription("Open Pages") and hasAnyAncestor(hasTestTag("habit-detail-surface")),
-            ).performClick()
-            compose.onNodeWithText("Automation").performClick()
+            selectDetailSection("habit", "Automation", "habit-detail-surface")
             compose.onNodeWithTag("habit-detail-section-Automation").assertIsDisplayed()
             compose.onNodeWithText("Edit Habit").assertIsDisplayed()
-            compose.onNode(
-                hasContentDescription("Open Pages") and hasAnyAncestor(hasTestTag("habit-detail-surface")),
-            ).performClick()
-            compose.onNodeWithText("Options").performClick()
+            selectDetailSection("habit", "Options", "habit-detail-surface")
             compose.onNodeWithText("Edit Habit").assertIsDisplayed()
             compose.onNodeWithText("Edit Habit").performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithText("Edit Habit").assertIsDisplayed()
@@ -182,16 +176,10 @@ class ProductivityCreationJourneyE2ETest {
                     .performSemanticsAction(SemanticsActions.OnClick)
                 compose.onNodeWithText("Edit Goal").assertIsDisplayed()
             }
-            compose.onNode(
-                hasContentDescription("Open Pages") and hasAnyAncestor(hasTestTag("goal-detail-surface")),
-            ).performClick()
-            compose.onNodeWithText("Automation").performClick()
+            selectDetailSection("goal", "Automation", "goal-detail-surface")
             compose.onNodeWithTag("goal-detail-section-Automation").assertIsDisplayed()
             compose.onNodeWithText("Edit Goal").assertIsDisplayed()
-            compose.onNode(
-                hasContentDescription("Open Pages") and hasAnyAncestor(hasTestTag("goal-detail-surface")),
-            ).performClick()
-            compose.onNodeWithText("Options").performClick()
+            selectDetailSection("goal", "Options", "goal-detail-surface")
             compose.onNodeWithText("Edit Goal").assertIsDisplayed()
             compose.onNodeWithText("Edit Goal").performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithText("Edit Goal").assertIsDisplayed()
@@ -215,6 +203,19 @@ class ProductivityCreationJourneyE2ETest {
             compose.onNodeWithTag(testTag).performSemanticsAction(SemanticsActions.OnClick)
         } else {
             compose.onNodeWithContentDescription("Open Pages").performClick()
+            compose.onNodeWithText(label).performClick()
+        }
+        compose.waitForIdle()
+    }
+
+    private fun selectDetailSection(prefix: String, label: String, surfaceTag: String) {
+        val sectionTag = "$prefix-detail-section-$label"
+        if (compose.onAllNodesWithTag(sectionTag).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag(sectionTag).performSemanticsAction(SemanticsActions.OnClick)
+        } else {
+            compose.onNode(
+                hasContentDescription("Open Pages") and hasAnyAncestor(hasTestTag(surfaceTag)),
+            ).performClick()
             compose.onNodeWithText(label).performClick()
         }
         compose.waitForIdle()

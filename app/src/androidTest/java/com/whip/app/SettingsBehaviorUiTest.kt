@@ -4,10 +4,12 @@ import android.os.Build
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -154,7 +156,7 @@ class SettingsBehaviorUiTest {
         compose.waitUntil(5_000) {
             compose.onAllNodesWithTag("settings-list").fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("Data & Privacy").assertIsDisplayed()
+        compose.onNodeWithTag("page-title").assertTextContains("Data & Privacy").assertIsDisplayed()
     }
 
     @Test
@@ -178,7 +180,9 @@ class SettingsBehaviorUiTest {
             selectSettingsCategory(section)
             compose.onNodeWithTag("settings-list").performScrollToNode(androidx.compose.ui.test.hasText(control))
             compose.onNodeWithText(control).assertIsDisplayed()
-            compose.onNodeWithText("All Settings").performClick()
+            if (compose.onAllNodesWithText("All Settings").fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithText("All Settings").performClick()
+            }
         }
     }
 
@@ -197,10 +201,19 @@ class SettingsBehaviorUiTest {
     }
 
     private fun selectSettingsCategory(label: String) {
-        if (compose.onAllNodesWithTag("settings-category-list").fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithTag("settings-category-list")
-                .performScrollToNode(hasTestTag("settings-section-$label"))
+        when {
+            compose.onAllNodesWithTag("settings-category-list").fetchSemanticsNodes().isNotEmpty() -> {
+                compose.onNodeWithTag("settings-category-list")
+                    .performScrollToNode(hasTestTag("settings-section-$label"))
+                compose.onNodeWithTag("settings-section-$label").performClick()
+            }
+            compose.onAllNodesWithTag("settings-support-list").fetchSemanticsNodes().isNotEmpty() -> {
+                compose.onNodeWithTag("settings-support-list")
+                    .performScrollToNode(hasTestTag("settings-support-section-$label"))
+                compose.onNodeWithTag("settings-support-section-$label").performClick()
+            }
+            else -> compose.onNodeWithTag("settings-section-$label").performClick()
         }
-        compose.onNodeWithTag("settings-section-$label").performClick()
+        compose.waitForIdle()
     }
 }

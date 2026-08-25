@@ -75,7 +75,7 @@ class FirstClassWorkflowE2ETest {
             compose.waitUntil(5_000) {
                 compose.onAllNodesWithText("Reading Log").fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithText("Add Name").performClick()
+            compose.onNodeWithTag("track-add-entry").performClick()
             compose.onNodeWithTag("track-entry-short-text-${projection.primaryField.uuid}")
                 .performTextInput("The Left Hand of Darkness")
             compose.onNodeWithText("Add").performClick()

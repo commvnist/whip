@@ -3032,6 +3032,7 @@ private fun SettingsSupportPane(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .testTag("settings-support-section-${section.label}")
                         .selectable(selected = active, role = Role.Tab, onClick = { onSelect(section) }),
                     colors = androidx.compose.material3.CardDefaults.cardColors(
                         containerColor = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,

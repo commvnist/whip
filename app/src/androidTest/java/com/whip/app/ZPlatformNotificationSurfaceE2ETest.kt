@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -59,7 +60,17 @@ class ZPlatformNotificationSurfaceE2ETest {
                 compose.onNodeWithContentDescription("App actions").performClick()
                 compose.onNodeWithText("Open Settings").performClick()
             }
-            compose.onNodeWithTag("settings-section-Reminders").performClick()
+            if (compose.onAllNodesWithTag("settings-support-list").fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithTag("settings-support-list")
+                    .performScrollToNode(hasTestTag("settings-support-section-Reminders"))
+                compose.onNodeWithTag("settings-support-section-Reminders").performClick()
+            } else {
+                if (compose.onAllNodesWithTag("settings-category-list").fetchSemanticsNodes().isNotEmpty()) {
+                    compose.onNodeWithTag("settings-category-list")
+                        .performScrollToNode(hasTestTag("settings-section-Reminders"))
+                }
+                compose.onNodeWithTag("settings-section-Reminders").performClick()
+            }
             compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("send-test-notification"))
             compose.onNodeWithTag("send-test-notification").performClick()
             compose.onNodeWithText("Test sent. Check the notification shade.").assertIsDisplayed()
