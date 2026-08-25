@@ -35,7 +35,7 @@ class GoalReminderScheduler(context: Context, private val settingsRepository: Se
     private val appContext = context.applicationContext
     private val workManager = WorkManager.getInstance(appContext)
     private val dao = WhipDatabase.get(appContext).goalDao()
-    suspend fun syncAll() = dao.getOpenGoals().forEach { syncGoal(it.id) }
+    suspend fun syncAll() = dao.getReminderGoalIds().forEach { syncGoal(it) }
     suspend fun syncGoal(id: Long) {
         workManager.cancelAllWorkByTag(tag(id))
         scheduleNext(id, System.currentTimeMillis())

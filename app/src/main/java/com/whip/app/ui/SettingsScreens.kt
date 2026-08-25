@@ -90,7 +90,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
-private enum class SettingsSection(val label: String, val supportingText: String) {
+internal enum class SettingsSection(val label: String, val supportingText: String) {
     Appearance("Appearance & Home", "Theme, presentation, home sections, and keyboard shortcuts"),
     Planning("Planning & Units", "Dates, units, numbers, effort, recurring tasks, and review defaults"),
     Organization("Organization", "Areas, tags, and naming systems"),
@@ -100,12 +100,14 @@ private enum class SettingsSection(val label: String, val supportingText: String
 }
 
 @Composable
-fun SettingsContent(
+internal fun SettingsContent(
     state: SettingsUiState,
     innerPadding: PaddingValues,
     viewModel: SettingsViewModel,
     onEditAreas: () -> Unit = {},
     onDataReset: () -> Unit = {},
+    selectedSection: SettingsSection? = null,
+    onSectionChange: (SettingsSection) -> Unit = {},
 ) {
     val context = LocalContext.current
     var pendingExport by rememberSaveable { mutableStateOf(ExportKind.Backup) }
@@ -126,7 +128,12 @@ fun SettingsContent(
     var exportPassphraseConfirmation by remember { mutableStateOf("") }
     var pendingExportPassphrase by remember { mutableStateOf<String?>(null) }
     var restorePassphrase by remember { mutableStateOf("") }
-    var section by rememberSaveable { mutableStateOf(SettingsSection.Appearance) }
+    var localSection by rememberSaveable { mutableStateOf(SettingsSection.Appearance) }
+    val section = selectedSection ?: localSection
+    val externalSectionNavigation = selectedSection != null
+    fun selectSection(next: SettingsSection) {
+        if (externalSectionNavigation) onSectionChange(next) else localSection = next
+    }
     var compactSectionOpen by rememberSaveable { mutableStateOf(false) }
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         diagnosticRefresh++
@@ -183,8 +190,8 @@ fun SettingsContent(
     val batteryUnrestricted = context.getSystemService(PowerManager::class.java)
         .isIgnoringBatteryOptimizations(context.packageName)
     BoxWithConstraints(Modifier.fillMaxSize().padding(innerPadding)) {
-        val wideSettingsNavigation = maxWidth >= 840.dp
-        if (!wideSettingsNavigation && !compactSectionOpen) {
+        val wideSettingsNavigation = !externalSectionNavigation && maxWidth >= 840.dp
+        if (!externalSectionNavigation && !wideSettingsNavigation && !compactSectionOpen) {
             Column(Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
@@ -205,7 +212,7 @@ fun SettingsContent(
                         NavigationRow(
                             title = choice.label,
                             supportingText = choice.supportingText,
-                            onClick = { section = choice; compactSectionOpen = true },
+                            onClick = { selectSection(choice); compactSectionOpen = true },
                             modifier = Modifier.testTag("settings-section-${choice.label}"),
                         )
                     }
@@ -213,7 +220,7 @@ fun SettingsContent(
             }
             return@BoxWithConstraints
         }
-        BackHandler(enabled = !wideSettingsNavigation && compactSectionOpen) {
+        BackHandler(enabled = !externalSectionNavigation && !wideSettingsNavigation && compactSectionOpen) {
             compactSectionOpen = false
         }
     Column(Modifier.fillMaxSize()) {
@@ -225,11 +232,9 @@ fun SettingsContent(
                 title = if (wideSettingsNavigation) "Settings" else section.label,
                 supportingText = if (wideSettingsNavigation) {
                     "Local preferences, data controls, defaults, and export."
-                } else {
-                    "Settings"
-                },
+                } else null,
                 actions = {
-                    if (!wideSettingsNavigation) {
+                    if (!externalSectionNavigation && !wideSettingsNavigation) {
                         WhipTextButton(onClick = { compactSectionOpen = false }) { Text("All Settings") }
                     }
                 },
@@ -245,7 +250,7 @@ fun SettingsContent(
                     NavigationDrawerItem(
                         label = { Text(choice.label) },
                         selected = section == choice,
-                        onClick = { section = choice },
+                        onClick = { selectSection(choice) },
                         modifier = Modifier.testTag("settings-section-${choice.label}"),
                     )
                 }
@@ -261,7 +266,6 @@ fun SettingsContent(
         state.message?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.primary); WhipTextButton(onClick = viewModel::consumeMessage) { Text("Dismiss") } } }
 
         if (section == SettingsSection.Appearance) {
-        item { SettingsHeading("Appearance & Home") }
         item {
             SettingsToggle(
                 "Show advanced controls by default",
@@ -1002,7 +1006,7 @@ fun SettingsContent(
     }
 
     state.backupPreview?.let { preview ->
-        AlertDialog(
+        PaneAwareAlertDialog(
             onDismissRequest = viewModel::cancelRestore,
             title = { Text("Import This Whip Backup?") },
             text = {
@@ -1027,7 +1031,7 @@ fun SettingsContent(
         )
     }
     if (showEncryptedExport) {
-        AlertDialog(
+        PaneAwareAlertDialog(
             onDismissRequest = {
                 showEncryptedExport = false
                 exportPassphrase = ""
@@ -1073,7 +1077,7 @@ fun SettingsContent(
         )
     }
     if (state.encryptedRestorePending) {
-        AlertDialog(
+        PaneAwareAlertDialog(
             onDismissRequest = { restorePassphrase = ""; viewModel.cancelEncryptedRestore() },
             title = { Text("Unlock Encrypted Backup") },
             text = {
@@ -1099,7 +1103,7 @@ fun SettingsContent(
         )
     }
     if (confirmDelete) {
-        AlertDialog(
+        PaneAwareAlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text("Reset Whip and Delete All Data?") },
             text = { Text("This deletes every task, Habit, Goal, Track, workout, and local setting; disconnects the portable backup folder; and returns Whip to setup. Existing backup files outside Whip are not deleted. This cannot be undone.") },
@@ -1208,7 +1212,7 @@ internal fun CustomIdentityEmojiDialog(
     }
     val canSave = emojiIsValid && normalizedName.isNotBlank() && !duplicateEmoji && !duplicateName
 
-    AlertDialog(
+    PaneAwareAlertDialog(
         modifier = Modifier.testTag("custom-emoji-editor"),
         onDismissRequest = onDismiss,
         title = { Text(if (initial == null) "Add Custom Emoji" else "Edit Custom Emoji") },
@@ -1274,7 +1278,7 @@ private fun TaxonomyRenameDialog(
     onSave: (String) -> Unit,
 ) {
     var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Rename or Merge $kind") },
         text = {

@@ -240,9 +240,10 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun saveMachine(id: Long?, draft: GymMachineDraft) = runOperation(
+    fun saveMachine(id: Long?, draft: GymMachineDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
         if (id == null) "Creating machine…" else "Saving machine…",
         if (id == null) "Machine created" else "Machine saved",
+        onFinished,
     ) {
         if (id == null) repository.createMachine(draft) else repository.updateMachine(id, draft)
     }
@@ -263,14 +264,16 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun createMachineVersion(sourceId: Long, draft: GymMachineDraft) = runOperation(
+    fun createMachineVersion(sourceId: Long, draft: GymMachineDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
         "Creating configuration version…",
         "Machine configuration version created",
+        onFinished,
     ) { repository.createMachineVersion(sourceId, draft) }
 
-    fun createMachineAndAssign(workoutExerciseId: Long, draft: GymMachineDraft) = runOperation(
+    fun createMachineAndAssign(workoutExerciseId: Long, draft: GymMachineDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
         "Creating and assigning machine…",
         "Machine created and assigned",
+        onFinished,
     ) {
         val machineId = repository.createMachine(draft)
         repository.setWorkoutExerciseMachine(workoutExerciseId, machineId)
@@ -335,9 +338,10 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun saveExercise(id: Long?, draft: ExerciseDraft) = runOperation(
+    fun saveExercise(id: Long?, draft: ExerciseDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
         if (id == null) "Creating exercise…" else "Saving exercise…",
         if (id == null) "Exercise created" else "Exercise saved",
+        onFinished,
     ) {
         if (id == null) repository.createExercise(draft) else repository.updateExercise(id, draft)
     }
@@ -358,17 +362,19 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun createExerciseAndAdd(sessionId: Long, draft: ExerciseDraft) = runOperation(
+    fun createExerciseAndAdd(sessionId: Long, draft: ExerciseDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
         "Creating exercise…",
         "Exercise added to workout",
+        onFinished,
     ) {
         val exerciseId = repository.createExercise(draft)
         repository.addExerciseToWorkout(sessionId, exerciseId)
     }
 
-    fun createExerciseAndSubstitute(workoutExerciseId: Long, draft: ExerciseDraft) = runOperation(
+    fun createExerciseAndSubstitute(workoutExerciseId: Long, draft: ExerciseDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
         "Creating substitution…",
         "Exercise created and substituted",
+        onFinished,
     ) {
         repository.substituteWorkoutExercise(workoutExerciseId, repository.createExercise(draft), null)
     }
@@ -714,12 +720,18 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         return next?.let { "Next: ${it.exercise.name}" }
     }
 
-    private fun runOperation(running: String, success: String, block: suspend () -> Unit) {
+    private fun runOperation(
+        running: String,
+        success: String,
+        onFinished: (Boolean) -> Unit = {},
+        block: suspend () -> Unit,
+    ) {
         _operationStatus.value = OperationStatus.Running(running)
         viewModelScope.launch {
             try {
                 block()
                 _operationStatus.value = OperationStatus.Succeeded(success)
+                runCatching { onFinished(true) }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
@@ -727,6 +739,7 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
                     error.message ?: "Something went wrong",
                     error,
                 )
+                runCatching { onFinished(false) }
             }
         }
     }

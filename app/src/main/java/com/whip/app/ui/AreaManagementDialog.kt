@@ -418,13 +418,13 @@ private fun AreaManagerRow(
                 Text(area.name, style = MaterialTheme.typography.titleMedium)
                 Text(usageText(usage), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            WhipTextButton(enabled = usage.total > 0, onClick = onMoveItems) { Text("Move Items") }
             Box {
                 IconButton(
                     onClick = { menu = true },
                     modifier = Modifier.semantics { contentDescription = "More options for ${area.name}" },
                 ) { Icon(Icons.Outlined.MoreVert, contentDescription = null) }
                 DropdownMenu(menu, { menu = false }) {
+                    DropdownMenuItem({ Text("Move All Items…") }, { menu = false; onMoveItems() }, enabled = usage.total > 0)
                     DropdownMenuItem({ Text("Rename") }, { menu = false; onRename() })
                     DropdownMenuItem({ Text("Choose Color") }, { menu = false; onColor() })
                     DropdownMenuItem({ Text("Move Up") }, { menu = false; onMove(-1) }, enabled = canMoveUp)
@@ -472,7 +472,7 @@ private fun AreaDetailContent(
             }
         }
         item {
-            WhipSection("Organization", supportingText = "Move or combine all assigned tasks, habits, and goals in one operation.") {
+            WhipSection("Organization", supportingText = "Move or combine every assigned task, habit, goal, Track, and Track Entry in one operation.") {
                 WhipOutlinedButton(onClick = onMoveItems, enabled = usage.total > 0, modifier = Modifier.fillMaxWidth()) {
                     Text(if (usage.total > 0) "Move ${usage.total} Items" else "No Items to Move")
                 }
@@ -666,7 +666,7 @@ private fun usageText(usage: AreaUsageCounts): String {
         usage.goals to "goal",
         usage.tracks to "Track",
         usage.trackEntries to "Track Entry",
-    ).filter { it.first > 0 }.take(2).map { (count, noun) -> quantityLabel(count, noun) }
+    ).filter { it.first > 0 }.map { (count, noun) -> quantityLabel(count, noun) }
     return (listOf(quantityLabel(usage.total, "item")) + categories).joinToString(" · ")
 }
 

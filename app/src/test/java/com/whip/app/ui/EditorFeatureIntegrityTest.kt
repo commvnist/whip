@@ -91,7 +91,7 @@ class EditorFeatureIntegrityTest {
     }
 
     @Test
-    fun goalEditorDerivesEntryMeaningAndOnlyShowsRealPaceChoices() {
+    fun goalEditorDerivesEntryMeaningAvoidsRedundantLoggingAndExplainsRequiredFields() {
         val goal = File(uiRoot, "GoalScreens.kt").readText()
 
         assertFalse(goal.contains("GoalEntryMode"))
@@ -102,8 +102,11 @@ class EditorFeatureIntegrityTest {
         assertTrue(goal.contains("type.compatibleAggregations()"))
         assertTrue(goal.contains("if (deadline != null && type != GoalType.OpenEndedTrend)"))
         assertTrue(goal.contains("Enter the amount to add. Whip adds each entry"))
-        assertTrue(goal.contains("Log Goal Value"))
-        assertTrue(goal.contains("No measurable active goals"))
+        assertFalse(goal.contains("Log Goal Value"))
+        assertFalse(goal.contains("No measurable active goals"))
+        assertTrue(goal.contains("required = type != GoalType.OpenEndedTrend"))
+        assertTrue(goal.contains("currentDraft.validationErrors"))
+        assertTrue(goal.contains("testTag = \"goal-save-problem\""))
     }
 
     @Test

@@ -176,7 +176,10 @@ class RoomTaskRepository(
                     manualPosition = existing.manualPosition,
                 ).copy(archived = existing.archived, pinned = existing.pinned),
             )
-            syncSteps(taskId, resolvedDraft, now)
+            val existingSteps = dao.getSteps(taskId)
+            if (!existingSteps.matches(resolvedDraft.steps)) {
+                syncSteps(taskId, resolvedDraft, now)
+            }
             taskId
     }
 
@@ -300,11 +303,13 @@ class RoomTaskRepository(
             val promotedId = dao.insertTask(
                 TaskDraft(
                     title = step.title,
+                    icon = item.task.icon,
                     notes = buildString {
                         append("From task: ${item.task.title}")
                         if (step.notes.isNotBlank()) append("\n\n${step.notes}")
                     },
                     priority = item.task.priority,
+                    areaId = item.task.areaId,
                     area = item.task.area,
                     tags = item.task.tags,
                     effort = item.task.effort,
@@ -663,5 +668,17 @@ class RoomTaskRepository(
                 ),
             )
         }
+    }
+}
+
+private fun List<TaskStepEntity>.matches(drafts: List<com.whip.app.domain.TaskStepDraft>): Boolean {
+    val active = filterNot(TaskStepEntity::archived).sortedBy(TaskStepEntity::position)
+    val normalized = drafts.filter { it.title.isNotBlank() }.sortedBy { it.position }
+    if (active.size != normalized.size) return false
+    return active.zip(normalized).withIndex().all { (index, pair) ->
+        val (stored, draft) = pair
+        stored.title == draft.title.trim() &&
+            stored.notes == draft.notes.trim() &&
+            stored.position == index
     }
 }

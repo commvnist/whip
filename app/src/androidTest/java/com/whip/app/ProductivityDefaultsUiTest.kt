@@ -1,6 +1,7 @@
 package com.whip.app
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertContentDescriptionContains
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
@@ -41,6 +42,7 @@ import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -128,6 +130,45 @@ class ProductivityDefaultsUiTest {
             }
         }
         assertEquals(0, permissionRequests.get())
+    }
+
+    @Test
+    fun goalEditorMarksRequiredTargetAndExplainsRejectedSave() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                val goalViewModel: GoalViewModel = viewModel()
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    goalState = GoalUiState(loading = false),
+                    goalViewModel = goalViewModel,
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Goals tab").performClick()
+        compose.onNodeWithContentDescription("Add goal").performClick()
+        compose.onNodeWithTag("goal-editor-name").performTextInput("Needs a target")
+        compose.onNodeWithText("Save").performClick()
+
+        compose.onNodeWithTag("goal-save-problem")
+            .assertIsDisplayed()
+            .assertContentDescriptionContains("Enter a target", substring = true)
+        compose.onNodeWithText("Target *").assertIsDisplayed()
+        assertTrue(runBlocking { app.goalRepository.goals.first().none { it.name == "Needs a target" } })
+
+        compose.onNodeWithTag("goal-editor-target").performTextInput("10")
+        compose.onNodeWithText("Save").performClick()
+        runBlocking {
+            withTimeout(5_000) {
+                app.goalRepository.goals.first { goals -> goals.any { it.name == "Needs a target" } }
+            }
+        }
     }
 
     @Test

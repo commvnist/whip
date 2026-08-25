@@ -146,7 +146,7 @@ class WhipApplication : Application() {
             }
         }
         applicationScope.launch {
-            habitRepository.logs.map { Unit }.debounce(150).collectLatest {
+            merge(habitRepository.logs.map { Unit }, habitRepository.skips.map { Unit }).debounce(150).collectLatest {
                 runCatching { linkRepository.rebuildSources(setOf(LinkSourceType.Habit)) }
                 runCatching { automationPromptScheduler.syncAll() }
             }
@@ -191,7 +191,7 @@ class WhipApplication : Application() {
         applicationScope.launch {
             merge(
                 taskRepository.tasks.map { Unit }, taskRepository.occurrences.map { Unit },
-                habitRepository.logs.map { Unit }, gymRepository.sessions.map { Unit },
+                habitRepository.logs.map { Unit }, habitRepository.skips.map { Unit }, gymRepository.sessions.map { Unit },
                 gymRepository.sets.map { Unit }, linkRepository.rules.map { Unit },
                 linkRepository.triggerRules.map { Unit },
                 trackRepository.tracks.map { Unit }, trackRepository.entries.map { Unit },

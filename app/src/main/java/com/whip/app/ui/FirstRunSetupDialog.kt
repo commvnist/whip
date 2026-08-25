@@ -41,7 +41,7 @@ fun FirstRunSetupDialog(
     var lowPressureMode by rememberSaveable { mutableStateOf(false) }
     var notifications by rememberSaveable { mutableStateOf(false) }
     var showOptionalPreferences by rememberSaveable { mutableStateOf(false) }
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = {},
         title = { Text("Set Up Whip") },
         text = {

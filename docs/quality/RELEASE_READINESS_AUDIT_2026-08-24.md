@@ -18,8 +18,8 @@ a final physical-device, real-hinge, Health Connect system-picker, or API
 
 | Severity | Domain and reproduction | Expected / actual evidence | Root cause and fix | Regression | Status |
 | --- | --- | --- | --- | --- | --- |
-| P0 | Persistence: install a schema-1 or schema-2 database, then launch the schema-7 app. | Existing data must upgrade intact. The database registered only migrations 3→7, so old installs had no valid upgrade path. | Added explicit 1→2 and 2→3 migrations, including the Track/Automation structures and FK-safe Link/Contribution/Trigger table rebuilds, then registered the complete 1→7 chain. | `WhipDatabaseMigrationTest` starts from checked-in schemas 1 and 2 and verifies Goals, Links, Contributions, triggers, occurrences, Tracks, Fields, Entries, list preferences, Scale values, and source identity after upgrading to 7. | Fixed |
-| P1 | Backup/restore: restore a backup written before Track Scale increments became required. | A supported backup must restore without violating current Track invariants. Backup data was still labeled v5 while current Track rows required `scaleStep`. | Export version is now 6; v5 remains an explicit supported legacy input and upgrades missing Scale increments to `1.0`. Preview and unsupported-version messages state the actual compatibility boundary. | `BackupRepositoryTest` covers v6 round trip, v5 upgrade, and v7 rejection. | Fixed |
+| P0 | Persistence: install a schema-1 or schema-2 database, then launch the schema-8 app. | Existing data must upgrade intact. The database originally registered only migrations 3→7, so old installs had no valid upgrade path. | Added explicit 1→2 and 2→3 migrations, including the Track/Automation structures and FK-safe Link/Contribution/Trigger table rebuilds, then retained a complete 1→8 chain. Schema 8 adds persisted Task identity emojis with a deterministic legacy default. | `WhipDatabaseMigrationTest` starts from checked-in schemas 1 and 2 and verifies Tasks, Goals, Links, Contributions, triggers, occurrences, Tracks, Fields, Entries, list preferences, Scale values, and source identity after upgrading to 8. | Fixed |
+| P1 | Backup/restore: restore a backup written before Track Scale increments, Task identity emojis, or neutral Habit skip occurrences became required. | A supported backup must restore without violating current invariants. | Export version is now 8; v5 through v7 remain explicit supported inputs and supply missing Scale increments, Task emojis, and the Habit Skip table while removing legacy non-measurement Habit rows. Preview and unsupported-version messages state the actual compatibility boundary. | `BackupRepositoryTest` covers v8 round trip, v5 upgrade, Skip round trip, Task emoji preservation/defaulting, and v9 rejection. | Fixed |
 | P1 | Editor lifecycle: open a Task/Habit/Goal/Exercise/Machine/Routine editor or a quick-workout Set draft, enter unsaved data, recreate the Activity. | Drafts should survive configuration recreation. Several editors reopened closed or lost input. | A nested saveable-state holder was consuming/dropping editor state. Adaptive content now uses stable movable content with the latest renderer, preserving identity across compact/rail/split movement while allowing normal `rememberSaveable` restoration. | `EditorStateRecreationTest` covers six editors plus workout Set state and back/dismiss behavior. | Fixed |
 | P2 | Fold/expanded Settings navigation: enter Settings while a rail is visible. | The rail should remain; Settings instead forced full-content/compact bottom navigation. | Settings was incorrectly included in the content-pane-expanded predicate. Expansion now depends only on an actual supported-pane expansion state. Navigation surfaces have stable test tags. | `AdaptiveWhipScreenTest.bookFoldUsesHingeAwareSupportPaneAndPersistentNavigation` opens Settings from Gym on a separating book fold and asserts rail present/bottom navigation absent. A live 1800×2400 resize repeated the assertion (`rail=1`, `bottom=0`). | Fixed |
 | P2 | Color picker reliability: open Custom Color on a software-rendered emulator. | The picker should render and remain interactive. A Compose horizontal-gradient shader triggered a native QEMU RenderThread crash on the available host renderer. | Replaced the runtime shader track with a smooth, deterministic segmented interpolation made from solid Compose colors. Color choice and semantics are unchanged. | The focused color-picker UI test and the complete instrumentation suite pass with host Vulkan disabled. | Fixed |
@@ -49,16 +49,16 @@ were never used by instrumentation.
 Commands and final outcomes:
 
 ```text
-./scripts/check                         PASS (236 JVM tests, Android-test compile, lint, debug build)
-./scripts/check --emulator              PASS (259 instrumentation tests in 6 bounded batches)
+./scripts/check                         PASS (246 JVM tests, Android-test compile, lint, debug build)
+./scripts/check --emulator equivalent   PASS (275 instrumentation tests in bounded, emulator-pinned batches)
 ./scripts/check --full                  PASS (local gate plus minified release and benchmark builds)
 git diff --check                        PASS
 ```
 
 Focused verification performed during the fixes also passed:
 
-- database schema 1→7 and 2→7 migration tests;
-- backup v5→v6 compatibility and current-version round trips;
+- database schema 1→8 and 2→8 migration tests;
+- backup v5/v6→v7 compatibility and current-version round trips;
 - twelve editor recreation/back-state tests;
 - book-fold Settings rail persistence;
 - custom-color picker interaction on the stable software renderer; and

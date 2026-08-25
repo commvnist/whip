@@ -62,7 +62,6 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import com.whip.app.core.AppSettings
-import com.whip.app.core.OperationStatus
 import com.whip.app.core.zoneId
 import com.whip.app.domain.Goal
 import com.whip.app.domain.Habit
@@ -103,6 +102,8 @@ import com.whip.app.domain.defaultAggregation
 import com.whip.app.domain.defaultDirection
 import com.whip.app.domain.editableNumericValue
 import com.whip.app.domain.toWhipDoubleOrNull
+import com.whip.app.domain.validationErrors
+import com.whip.app.ui.theme.whipColors
 import java.time.LocalDate
 import java.time.Instant
 import java.time.LocalTime
@@ -124,13 +125,13 @@ fun GoalAreaContent(
     editorModifier: Modifier = modifier,
     createRequested: Boolean = false,
     recordGoalIdRequest: Long? = null,
+    resetElapsedGoalIdRequest: Long? = null,
     onExternalRequestConsumed: () -> Unit = {},
     openGoalIdRequest: Long? = null,
     onOpenGoalRequestConsumed: () -> Unit = {},
     editGoalIdRequest: Long? = null,
     onEditGoalRequestConsumed: () -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
-    operationStatus: OperationStatus = OperationStatus.Idle,
     areas: List<Area> = emptyList(),
     defaultAreaId: String? = null,
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
@@ -163,17 +164,14 @@ fun GoalAreaContent(
     var resettingElapsedGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var manageOrder by rememberSaveable { mutableStateOf(false) }
     var toolsExpanded by rememberSaveable { mutableStateOf(false) }
-    var chooseGoalValue by rememberSaveable { mutableStateOf(false) }
     var deleteCandidateGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var templatesOpen by rememberSaveable { mutableStateOf(false) }
     var templateDraft by rememberSaveable { mutableStateOf<GoalDraft?>(null) }
     var editorSavePending by rememberSaveable { mutableStateOf(false) }
-    var editorSaveStarted by rememberSaveable { mutableStateOf(false) }
     var creationBaselineIds by rememberSaveable { mutableStateOf(emptyList<Long>()) }
     var awaitingCreatedGoal by rememberSaveable { mutableStateOf(false) }
     var postSaveGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var linkSavePending by rememberSaveable { mutableStateOf(false) }
-    var linkSaveStarted by rememberSaveable { mutableStateOf(false) }
     val projectionById = (state.active + state.completed + state.archived).associateBy { it.goal.id }
     val editing = editingGoalId?.let(projectionById::get)
     val recording = recordingGoalId?.let(projectionById::get)
@@ -193,34 +191,18 @@ fun GoalAreaContent(
             delay(30_000)
         }
     }
-    LaunchedEffect(createRequested, recordGoalIdRequest) {
+    LaunchedEffect(createRequested, recordGoalIdRequest, resetElapsedGoalIdRequest, state.active) {
         if (createRequested) creating = true
         if (recordGoalIdRequest != null && state.active.any { it.goal.id == recordGoalIdRequest }) recordingGoalId = recordGoalIdRequest
-        if (createRequested || recordGoalIdRequest != null) onExternalRequestConsumed()
-    }
-    LaunchedEffect(operationStatus, editorSavePending) {
-        if (!editorSavePending) return@LaunchedEffect
-        when (operationStatus) {
-            is OperationStatus.Running -> editorSaveStarted = true
-            is OperationStatus.Succeeded -> {
-                if (!editorSaveStarted) return@LaunchedEffect
-                if (awaitingCreatedGoal) {
-                    state.active.filterNot { it.goal.id in creationBaselineIds }
-                        .maxByOrNull { it.goal.createdAtMillis }
-                        ?.let { postSaveGoalId = it.goal.id; awaitingCreatedGoal = false }
-                }
-                creating = false
-                editingGoalId = null
-                templateDraft = null
-                editorSavePending = false
-                editorSaveStarted = false
+        if (resetElapsedGoalIdRequest != null && state.active.any {
+                it.goal.id == resetElapsedGoalIdRequest && it.goal.type == GoalType.ElapsedSince
             }
-            is OperationStatus.Failed -> {
-                if (!editorSaveStarted) return@LaunchedEffect
-                editorSavePending = false
-                editorSaveStarted = false
-            }
-            OperationStatus.Idle -> Unit
+        ) {
+            destination = GoalDestination.Active
+            resettingElapsedGoalId = resetElapsedGoalIdRequest
+        }
+        if (createRequested || recordGoalIdRequest != null || resetElapsedGoalIdRequest != null) {
+            onExternalRequestConsumed()
         }
     }
     LaunchedEffect(state.active, awaitingCreatedGoal) {
@@ -228,22 +210,6 @@ fun GoalAreaContent(
             state.active.filterNot { it.goal.id in creationBaselineIds }
                 .maxByOrNull { it.goal.createdAtMillis }
                 ?.let { postSaveGoalId = it.goal.id; awaitingCreatedGoal = false }
-        }
-    }
-    LaunchedEffect(operationStatus, linkSavePending) {
-        if (!linkSavePending) return@LaunchedEffect
-        when (operationStatus) {
-            is OperationStatus.Running -> linkSaveStarted = true
-            is OperationStatus.Succeeded -> {
-                if (!linkSaveStarted) return@LaunchedEffect
-                linkingGoalId = null; editingLinkRuleId = null
-                linkSavePending = false; linkSaveStarted = false
-            }
-            is OperationStatus.Failed -> {
-                if (!linkSaveStarted) return@LaunchedEffect
-                linkSavePending = false; linkSaveStarted = false
-            }
-            OperationStatus.Idle -> Unit
         }
     }
     LaunchedEffect(openGoalIdRequest, state.active, state.completed, state.archived) {
@@ -277,7 +243,6 @@ fun GoalAreaContent(
         GoalDestination.Completed -> state.completed
         GoalDestination.Archived -> state.archived
     }
-    val measurableActive = state.active.filter { it.goal.type !in setOf(GoalType.WeightedMilestones, GoalType.ElapsedSince) }
     BackHandler(enabled = manageOrder) { manageOrder = false }
     Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
         DestinationTabBar(
@@ -288,6 +253,7 @@ fun GoalAreaContent(
             label = GoalDestination::name,
             compactLabel = { if (it == GoalDestination.Completed) "Done" else it.name },
             testTagPrefix = "goal-destination",
+            barTestTag = "goal-workspace-navigation",
         )
         if (destination == GoalDestination.Insights) {
             GoalInsightsContent(
@@ -312,24 +278,6 @@ fun GoalAreaContent(
                             onClick = { toolsExpanded = true },
                         )
                         DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
-                            DropdownMenuItem(
-                                enabled = measurableActive.isNotEmpty(),
-                                text = {
-                                    Column {
-                                        Text("Log Goal Value")
-                                        if (measurableActive.isEmpty()) Text(
-                                            "No measurable active goals",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                },
-                                onClick = {
-                                    toolsExpanded = false
-                                    if (measurableActive.size == 1) recordingGoalId = measurableActive.single().goal.id
-                                    else chooseGoalValue = true
-                                },
-                            )
                             DropdownMenuItem(
                                 modifier = Modifier.testTag("goal-browse-templates-menu-action"),
                                 text = { Text("Browse Templates") },
@@ -414,7 +362,6 @@ fun GoalAreaContent(
                 editingGoalId = null
                 templateDraft = null
                 editorSavePending = false
-                editorSaveStarted = false
             },
             onSave = { draft ->
                 if (editing == null) {
@@ -422,12 +369,16 @@ fun GoalAreaContent(
                     awaitingCreatedGoal = true
                 }
                 editorSavePending = true
-                // A fast repository write can move Running -> Succeeded before
-                // Compose observes the intermediate status. Mark this request as
-                // started at dispatch so its terminal state cannot strand the
-                // editor in a saving state.
-                editorSaveStarted = true
-                viewModel.saveGoal(editing?.goal?.id, draft)
+                viewModel.saveGoal(editing?.goal?.id, draft) { succeeded ->
+                    editorSavePending = false
+                    if (succeeded) {
+                        creating = false
+                        editingGoalId = null
+                        templateDraft = null
+                    } else {
+                        awaitingCreatedGoal = false
+                    }
+                }
                 onAreaChanged(draft.areaId)
             },
         )
@@ -482,29 +433,6 @@ fun GoalAreaContent(
                 templatesOpen = false
                 creating = true
             },
-        )
-    }
-    if (chooseGoalValue) {
-        PaneAwareAlertDialog(
-            modifier = modifier,
-            onDismissRequest = { chooseGoalValue = false },
-            title = { Text("Log Goal Value") },
-            text = {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    item { Text("Choose the goal whose value you want to record.") }
-                    items(measurableActive, key = { "log-goal-${it.goal.id}" }) { projection ->
-                        WhipTextButton(
-                            onClick = {
-                                recordingGoalId = projection.goal.id
-                                chooseGoalValue = false
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text(projection.goal.name) }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = { WhipTextButton(onClick = { chooseGoalValue = false }) { Text("Cancel") } },
         )
     }
     resettingElapsed?.let { projection ->
@@ -601,9 +529,15 @@ fun GoalAreaContent(
             onClearPreview = viewModel::clearLinkPreview,
             onSave = { draft, includeHistory ->
                 linkSavePending = true
-                linkSaveStarted = true
-                if (editingLinkRule == null) viewModel.createLink(draft, includeHistory)
-                else viewModel.updateLink(editingLinkRule.id, draft)
+                val onFinished: (Boolean) -> Unit = { succeeded ->
+                    linkSavePending = false
+                    if (succeeded) {
+                        linkingGoalId = null
+                        editingLinkRuleId = null
+                    }
+                }
+                if (editingLinkRule == null) viewModel.createLink(draft, includeHistory, onFinished)
+                else viewModel.updateLink(editingLinkRule.id, draft, onFinished)
             },
         )
     }
@@ -626,36 +560,49 @@ fun GoalCard(
     onOpen: () -> Unit,
     onEdit: () -> Unit,
     onRecord: () -> Unit,
+    onResetElapsed: () -> Unit,
     onToggleMilestone: (Long, Boolean) -> Unit,
     nowMillis: Long = System.currentTimeMillis(),
-    onResetElapsed: () -> Unit = {},
 ) {
     val goal = projection.goal
-    Card(
-        modifier = Modifier.fillMaxWidth()
+    val primaryAction: (@Composable () -> Unit)? = when {
+        goal.status == GoalStatus.Active && goal.type !in setOf(GoalType.WeightedMilestones, GoalType.ElapsedSince) -> {{
+            WhipTextButton(onClick = onRecord) { Text("Log") }
+        }}
+        goal.status == GoalStatus.Active && goal.type == GoalType.ElapsedSince -> {{
+            WhipTextButton(onClick = onResetElapsed) { Text("Reset") }
+        }}
+        else -> null
+    }
+    ProductivityItemCard(
+        modifier = Modifier
             .clickable(onClickLabel = "Open goal details for ${goal.name}", onClick = onOpen)
+            .testTag("goal-card-${goal.id}")
             .semantics { contentDescription = "Open goal details for ${goal.name}" },
     ) {
-        Column(modifier = Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                WhipIdentityEmoji(goal.icon)
-                Spacer(Modifier.width(10.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(goal.name, fontWeight = FontWeight.Bold)
-                    if (goal.areaId != null) AreaBadge(goal.areaId, goal.area)
-                    Text(goal.type.displayLabel(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                if (goal.status == GoalStatus.Active && goal.type !in setOf(GoalType.WeightedMilestones, GoalType.ElapsedSince)) {
-                    WhipTextButton(onClick = onRecord) { Text("Log") }
-                }
-                if (goal.status == GoalStatus.Active && goal.type == GoalType.ElapsedSince) {
-                    WhipTextButton(onClick = onResetElapsed) { Text("Reset") }
-                }
-                ItemEditButton("goal", goal.name, onEdit)
-            }
+        ProductivityItemHeader(
+            itemType = "goal",
+            itemName = goal.name,
+            emoji = goal.icon,
+            areaId = goal.areaId,
+            areaName = goal.area,
+            onEdit = onEdit,
+            identityModifier = Modifier.testTag("goal-icon-${goal.id}"),
+            primaryActionModifier = Modifier.testTag("goal-primary-action-${goal.id}"),
+            editModifier = Modifier.testTag("goal-edit-action-${goal.id}"),
+            supportingContent = {
+                Text(
+                    goal.type.displayLabel(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            primaryAction = primaryAction,
+        )
             projection.progress?.let { progress ->
-                LinearProgressIndicator(progress = { progress.toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
-                Text("${(progress * 100).toInt()}% complete", color = MaterialTheme.colorScheme.primary)
+                val progressColor = if (progress >= 1.0) MaterialTheme.whipColors.success else MaterialTheme.whipColors.action
+                LinearProgressIndicator(progress = { progress.toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(), color = progressColor)
+                Text("${(progress * 100).toInt()}% complete", color = progressColor)
             }
             if (goal.type == GoalType.ElapsedSince) {
                 val started = goal.elapsedStartMillis
@@ -685,7 +632,6 @@ fun GoalCard(
                 }
             }
             if (goal.description.isNotBlank()) Text(goal.description, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
     }
 }
 
@@ -701,7 +647,7 @@ private fun ElapsedGoalResetDialog(
     var minutes by rememberSaveable(goal.id) { mutableIntStateOf(original.hour * 60 + original.minute) }
     var datePicker by rememberSaveable(goal.id) { mutableStateOf(false) }
     val selected = date.atTime(LocalTime.of(minutes / 60, minutes % 60)).atZone(zoneId).toInstant()
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Reset ${goal.name}?") },
         text = {
@@ -752,18 +698,27 @@ private fun GoalInsightsContent(
         }
         items(projections, key = { "goal-insight-${it.goal.id}" }) { projection ->
             val insights = remember(projection) { buildGoalInsights(projection.goal, projection.entries, projection.milestones) }
-            Card(
+            ProductivityItemCard(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .clickable(onClickLabel = "Open ${projection.goal.name}") { onOpen(projection) }
                     .testTag("goal-insight-${projection.goal.id}"),
             ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        WhipIdentityEmoji(projection.goal.icon)
-                        Spacer(Modifier.width(8.dp))
-                        Text(projection.goal.name, fontWeight = FontWeight.Bold)
-                    }
+                    ProductivityItemHeader(
+                        itemType = "goal",
+                        itemName = projection.goal.name,
+                        emoji = projection.goal.icon,
+                        areaId = projection.goal.areaId,
+                        areaName = projection.goal.area,
+                        onEdit = null,
+                        identityModifier = Modifier.testTag("goal-insight-icon-${projection.goal.id}"),
+                        supportingContent = {
+                            Text(
+                                projection.goal.type.displayLabel(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                    )
                     val chartValues = insights.points.mapNotNull { it.progress ?: it.canonicalValue }
                     if (projection.goal.type == GoalType.ElapsedSince) {
                         projection.goal.elapsedStartMillis?.let { started ->
@@ -789,7 +744,6 @@ private fun GoalInsightsContent(
                         ).joinToString(" · ").ifBlank { "Progress becomes available after the first log." },
                     )
                     if (projection.goal.type != GoalType.ElapsedSince) Text(insights.dataQualityExplanation, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
             }
         }
     }
@@ -852,7 +806,7 @@ private fun GoalTemplateDialog(
             paceType = GoalPaceType.None,
         ),
     )
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Start from a Goal Template") },
         text = {
@@ -986,6 +940,7 @@ private fun GoalEditorDialog(
     var elapsedMinutes by rememberSaveable(editorKey) { mutableIntStateOf(initialElapsedMoment.hour * 60 + initialElapsedMoment.minute) }
     var elapsedDisplayUnit by rememberSaveable(editorKey) { mutableStateOf(goal?.elapsedDisplayUnit ?: initialDraft?.elapsedDisplayUnit ?: ElapsedDisplayUnit.Auto) }
     var showElapsedDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
     val elapsedStartInstant = elapsedDate.atTime(LocalTime.of(elapsedMinutes / 60, elapsedMinutes % 60)).atZone(editorZone).toInstant()
     val compatibleAggregations = type.compatibleAggregations()
     val direction = type.defaultDirection()
@@ -999,6 +954,58 @@ private fun GoalEditorDialog(
     val initialFingerprint by rememberSaveable(editorKey) { mutableStateOf(editorFingerprint) }
     var showDiscardConfirmation by rememberSaveable(editorKey) { mutableStateOf(false) }
     val requestDismiss = { if (editorFingerprint != initialFingerprint) showDiscardConfirmation = true else onDismiss() }
+    val normalizedMilestones = milestoneDrafts.filter { it.name.isNotBlank() }
+        .map { it.copy(name = it.name.trim(), reward = it.reward.trim()) }
+    val currentDraft = GoalDraft(
+        name = name,
+        description = description,
+        areaId = areaId,
+        area = area,
+        tags = tags.split(',').map(String::trim).filter(String::isNotBlank),
+        icon = icon.ifBlank { DEFAULT_GOAL_EMOJI },
+        type = type,
+        dimension = dimension,
+        unitId = unitId,
+        precision = precision.toIntOrNull() ?: -1,
+        baseline = baseline.toWhipDoubleOrNull(),
+        targetMin = targetMin.toWhipDoubleOrNull(),
+        targetMax = targetMax.toWhipDoubleOrNull(),
+        direction = direction,
+        startDate = goal?.startDate ?: today,
+        deadline = deadline,
+        aggregation = aggregation,
+        paceType = pace.takeIf { deadline != null && type !in setOf(GoalType.OpenEndedTrend, GoalType.ElapsedSince) }
+            ?: GoalPaceType.None,
+        reminderMinutes = parseGoalClock(reminder),
+        milestones = normalizedMilestones,
+        aggregationPeriod = aggregationPeriod,
+        rollingDays = rollingDays.toIntOrNull(),
+        consistencyPeriod = consistencyPeriod,
+        consistencyRequiredPeriods = consistencyRequiredPeriods.toIntOrNull(),
+        elapsedStartMillis = elapsedStartInstant.toEpochMilli().takeIf { type == GoalType.ElapsedSince },
+        elapsedDisplayUnit = elapsedDisplayUnit,
+    )
+    val rawFieldProblems = buildList {
+        if (
+            type !in setOf(GoalType.Consistency, GoalType.WeightedMilestones, GoalType.ElapsedSince) &&
+            baseline.isNotBlank() && baseline.toWhipDoubleOrNull() == null
+        ) add("Starting value must be a number")
+        if (
+            type !in setOf(GoalType.WeightedMilestones, GoalType.ElapsedSince) &&
+            targetMin.isNotBlank() && targetMin.toWhipDoubleOrNull() == null
+        ) add(
+            if (type == GoalType.MaintainRange) "Range minimum must be a number" else "Target must be a number",
+        )
+        if (type == GoalType.MaintainRange && targetMax.isNotBlank() && targetMax.toWhipDoubleOrNull() == null) {
+            add("Range maximum must be a number")
+        }
+    }
+    val draftValidationMessages = currentDraft.validationErrors(System.currentTimeMillis())
+    val validationMessages = (rawFieldProblems + draftValidationMessages).distinct()
+    val validationRequester = remember { BringIntoViewRequester() }
+    LaunchedEffect(validationRequested, validationMessages) {
+        if (validationRequested && validationMessages.isNotEmpty()) validationRequester.bringIntoView()
+    }
     BackHandler(enabled = !showDiscardConfirmation, onBack = requestDismiss)
     ProductivityEditorDialog(
         modifier = modifier,
@@ -1011,7 +1018,30 @@ private fun GoalEditorDialog(
                 modifier = Modifier.testTag("goal-editor-fields"),
                 verticalArrangement = Arrangement.spacedBy(9.dp),
             ) {
-                item { OutlinedTextField(name, { name = it }, label = { Text("Name *") }, modifier = Modifier.fillMaxWidth().testTag("goal-editor-name")) }
+                item {
+                    Text("* Required field", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (validationRequested && validationMessages.isNotEmpty()) item {
+                    FormValidationSummary(
+                        messages = validationMessages,
+                        visible = true,
+                        modifier = Modifier.bringIntoViewRequester(validationRequester),
+                        testTag = "goal-save-problem",
+                    )
+                }
+                item { EditorSectionHeader("Basics", "Name this Goal and choose the emoji used across Whip.") }
+                item {
+                    OutlinedTextField(
+                        name,
+                        { name = it },
+                        label = { Text("Name *") },
+                        isError = validationRequested && name.isBlank(),
+                        supportingText = if (validationRequested && name.isBlank()) {
+                            { Text("Goal name is required") }
+                        } else null,
+                        modifier = Modifier.fillMaxWidth().testTag("goal-editor-name"),
+                    )
+                }
                 item {
                     WhipEmojiPicker(
                         value = icon,
@@ -1022,6 +1052,9 @@ private fun GoalEditorDialog(
                         onSaveEmoji = onSaveIdentityEmoji,
                         onRemoveSavedEmoji = onRemoveSavedIdentityEmoji,
                     )
+                }
+                item {
+                    EditorSectionHeader("Target", "Choose the Goal behavior first; its required target and measurement fields stay directly below it.")
                 }
                 item {
                     GoalEnumDropdown("Goal Type", GoalType.entries, type, GoalType::displayLabel) { selected ->
@@ -1053,23 +1086,72 @@ private fun GoalEditorDialog(
                     item {
                         if (type == GoalType.MaintainRange) {
                             ResponsiveFieldPair(
-                                first = { field -> GoalNumberField(targetMin, { targetMin = it }, "Range minimum", field) },
-                                second = { field -> GoalNumberField(targetMax, { targetMax = it }, "Range maximum", field) },
+                                first = { field ->
+                                    GoalNumberField(
+                                        targetMin,
+                                        { targetMin = it },
+                                        "Range Minimum",
+                                        field,
+                                        required = true,
+                                        error = if (validationRequested) when {
+                                            targetMin.toWhipDoubleOrNull() == null -> "Enter a range minimum"
+                                            targetMax.toWhipDoubleOrNull() != null && requireNotNull(targetMin.toWhipDoubleOrNull()) > requireNotNull(targetMax.toWhipDoubleOrNull()) -> "Must not exceed the maximum"
+                                            else -> null
+                                        } else null,
+                                    )
+                                },
+                                second = { field ->
+                                    GoalNumberField(
+                                        targetMax,
+                                        { targetMax = it },
+                                        "Range Maximum",
+                                        field,
+                                        required = true,
+                                        error = if (validationRequested && targetMax.toWhipDoubleOrNull() == null) "Enter a range maximum" else null,
+                                    )
+                                },
                             )
                         } else GoalNumberField(
                             targetMin,
                             { targetMin = it },
-                            if (type == GoalType.Consistency) "Successes per period" else "Target",
+                            if (type == GoalType.Consistency) "Successes per Period" else "Target",
                             Modifier.testTag("goal-editor-target"),
+                            required = type != GoalType.OpenEndedTrend,
+                            error = if (!validationRequested) null else when {
+                                type == GoalType.OpenEndedTrend -> null
+                                targetMin.toWhipDoubleOrNull() == null -> "Enter a target"
+                                type == GoalType.Consistency && requireNotNull(targetMin.toWhipDoubleOrNull()) <= 0.0 -> "Enter a value greater than zero"
+                                else -> null
+                            },
                         )
                     }
                     if (type != GoalType.Consistency) {
-                        item { GoalNumberField(baseline, { baseline = it }, "Starting Value (Optional)") }
+                        item {
+                            GoalNumberField(
+                                baseline,
+                                { baseline = it },
+                                "Starting Value (Optional)",
+                                error = "Starting value must be a number".takeIf {
+                                    validationRequested && baseline.isNotBlank() && baseline.toWhipDoubleOrNull() == null
+                                },
+                            )
+                        }
                     } else {
                         item {
                             ResponsiveFieldPair(
                                 first = { field -> Column(field) { GoalEnumDropdown("Period", GoalConsistencyPeriod.entries, consistencyPeriod, { it.name }) { consistencyPeriod = it } } },
-                                second = { field -> GoalNumberField(consistencyRequiredPeriods, { consistencyRequiredPeriods = it }, "Number of periods", field) },
+                                second = { field ->
+                                    GoalNumberField(
+                                        consistencyRequiredPeriods,
+                                        { consistencyRequiredPeriods = it },
+                                        "Number of Periods",
+                                        field,
+                                        required = true,
+                                        error = "Enter a positive whole number".takeIf {
+                                            validationRequested && (consistencyRequiredPeriods.toIntOrNull() ?: 0) <= 0
+                                        },
+                                    )
+                                },
                             )
                         }
                     }
@@ -1134,13 +1216,30 @@ private fun GoalEditorDialog(
                                 if (units.none { it.id == unitId && it.dimension == selected }) unitId = units.firstOrNull { it.dimension == selected }?.id ?: unitId
                             }
                         }
-                        item { GoalNumberField(precision, { precision = it }, "Decimal Places (0–6)") }
+                        item {
+                            GoalNumberField(
+                                precision,
+                                { precision = it },
+                                "Decimal Places (0–6)",
+                                required = true,
+                                error = "Enter a whole number from 0 to 6".takeIf {
+                                    validationRequested && (precision.toIntOrNull() ?: -1) !in 0..6
+                                },
+                            )
+                        }
                     }
                 }
                 if (type == GoalType.WeightedMilestones) {
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Milestones", fontWeight = FontWeight.Bold)
+                            Text("Milestones *", fontWeight = FontWeight.Bold)
+                            Text(
+                                "Add at least one named milestone with a positive weight.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (validationRequested && draftValidationMessages.any { it.contains("milestone", ignoreCase = true) }) {
+                                    MaterialTheme.colorScheme.error
+                                } else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                             milestoneDrafts.forEachIndexed { index, draft ->
                                 Card(Modifier.fillMaxWidth()) {
                                     Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1221,6 +1320,7 @@ private fun GoalEditorDialog(
                         }
                     }
                 }
+                item { EditorSectionHeader("Schedule", "Add a deadline, pace guidance, or reminder when this Goal needs a time boundary.") }
                 if (type != GoalType.ElapsedSince) item { WhipOutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) { Text(deadline?.let { "Deadline ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" } ?: "Add Deadline") } }
                 if (deadline != null && type != GoalType.OpenEndedTrend) item {
                     GoalEnumDropdown("Pace guidance", GoalPaceType.entries, pace, GoalPaceType::displayLabel) { pace = it }
@@ -1230,6 +1330,17 @@ private fun GoalEditorDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                item {
+                    ClockPickerButton(
+                        label = "Daily Measurement Reminder",
+                        minutes = parseGoalClock(reminder),
+                        onChange = { minutes ->
+                            if (minutes != null && parseGoalClock(reminder) == null) onRequestNotificationPermission()
+                            reminder = minutes?.let(::formatClockMinutes).orEmpty()
+                        },
+                    )
+                }
+                item { EditorSectionHeader("Organization", "Choose the Area that owns this Goal.") }
                 item {
                     AreaPicker(
                         areas = areas,
@@ -1244,29 +1355,30 @@ private fun GoalEditorDialog(
                 }
                 item {
                     DisclosureButton(
-                        label = "Advanced options",
+                        label = "More Details",
                         expanded = advanced,
                         onClick = { advanced = !advanced },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
                 if (advanced) {
+                    item { EditorSectionHeader("Details", "Fine-tune how measurements combine, then add optional context.") }
                     if (compatibleAggregations.size > 1) item {
                         GoalEnumDropdown("How entries combine", compatibleAggregations, aggregation, GoalAggregation::displayLabel) { aggregation = it }
                     }
                     if (type !in setOf(GoalType.Consistency, GoalType.WeightedMilestones, GoalType.ElapsedSince)) {
                         item { GoalEnumDropdown("Time window", GoalAggregationPeriod.entries, aggregationPeriod, GoalAggregationPeriod::displayLabel) { aggregationPeriod = it } }
-                        if (aggregationPeriod == GoalAggregationPeriod.RollingDays) item { GoalNumberField(rollingDays, { rollingDays = it }, "Rolling days") }
-                    }
-                    item {
-                        ClockPickerButton(
-                            label = "Daily measurement reminder",
-                            minutes = parseGoalClock(reminder),
-                            onChange = { minutes ->
-                                if (minutes != null && parseGoalClock(reminder) == null) onRequestNotificationPermission()
-                                reminder = minutes?.let(::formatClockMinutes).orEmpty()
-                            },
-                        )
+                        if (aggregationPeriod == GoalAggregationPeriod.RollingDays) item {
+                            GoalNumberField(
+                                rollingDays,
+                                { rollingDays = it },
+                                "Rolling Days",
+                                required = true,
+                                error = "Enter a positive whole number".takeIf {
+                                    validationRequested && (rollingDays.toIntOrNull() ?: 0) <= 0
+                                },
+                            )
+                        }
                     }
                     item { OutlinedTextField(description, { description = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth()) }
                     item { OutlinedTextField(tags, { tags = it }, label = { Text("Tags, comma-separated") }, modifier = Modifier.fillMaxWidth()) }
@@ -1274,32 +1386,9 @@ private fun GoalEditorDialog(
             }
         },
         confirmButton = {
-            WhipButton(enabled = name.isNotBlank() && !saving && (type != GoalType.ElapsedSince || !elapsedStartInstant.isAfter(Instant.now())), onClick = {
-                val milestones = milestoneDrafts.filter { it.name.isNotBlank() }
-                    .map { it.copy(name = it.name.trim(), reward = it.reward.trim()) }
-                val draft = GoalDraft(
-                        name = name,
-                        description = description,
-                        areaId = areaId,
-                        area = area,
-                        tags = tags.split(',').map(String::trim).filter(String::isNotBlank),
-                        icon = icon.ifBlank { DEFAULT_GOAL_EMOJI }, type = type, dimension = dimension,
-                        unitId = unitId, precision = precision.toIntOrNull()?.coerceIn(0, 6) ?: 1,
-                        baseline = baseline.toWhipDoubleOrNull(), targetMin = targetMin.toWhipDoubleOrNull(),
-                        targetMax = targetMax.toWhipDoubleOrNull(), direction = direction,
-                        startDate = goal?.startDate ?: today, deadline = deadline,
-                        aggregation = aggregation,
-                        paceType = pace.takeIf { deadline != null && type != GoalType.OpenEndedTrend } ?: GoalPaceType.None,
-                        reminderMinutes = parseGoalClock(reminder),
-                        milestones = milestones,
-                        aggregationPeriod = aggregationPeriod,
-                        rollingDays = rollingDays.toIntOrNull(),
-                        consistencyPeriod = consistencyPeriod,
-                        consistencyRequiredPeriods = consistencyRequiredPeriods.toIntOrNull(),
-                        elapsedStartMillis = elapsedStartInstant.toEpochMilli().takeIf { type == GoalType.ElapsedSince },
-                        elapsedDisplayUnit = elapsedDisplayUnit,
-                    )
-                onSave(draft)
+            WhipButton(enabled = !saving, onClick = {
+                validationRequested = true
+                if (validationMessages.isEmpty()) onSave(currentDraft)
             }) { Text(if (saving) "Saving…" else "Save") }
         },
         dismissButton = {
@@ -1331,7 +1420,9 @@ private fun GoalMeasurementDialog(
     var note by rememberSaveable(editorKey) { mutableStateOf(entry?.note.orEmpty()) }
     var date by rememberSaveable(editorKey) { mutableStateOf(entry?.localDate ?: today) }
     var showDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
-    AlertDialog(
+    var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
+    val parsedValue = value.toWhipDoubleOrNull()
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (entry == null) "Record ${projection.goal.name}" else "Edit Measurement") },
         text = {
@@ -1345,12 +1436,19 @@ private fun GoalMeasurementDialog(
                     value,
                     { value = it },
                     fieldLabel,
+                    required = true,
+                    error = "Enter a value".takeIf { validationRequested && parsedValue == null },
                 )
                 OutlinedTextField(note, { note = it }, label = { Text("Optional note") }, modifier = Modifier.fillMaxWidth())
                 WhipOutlinedButton(onClick = { showDatePicker = true }) { Text(date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))) }
             }
         },
-        confirmButton = { WhipTextButton(enabled = value.toWhipDoubleOrNull() != null, onClick = { onRecord(requireNotNull(value.toWhipDoubleOrNull()), date, note) }) { Text("Save") } },
+        confirmButton = {
+            WhipTextButton(onClick = {
+                validationRequested = true
+                parsedValue?.let { onRecord(it, date, note) }
+            }) { Text("Save") }
+        },
         dismissButton = {
             Row {
                 if (onDelete != null) WhipTextButton(onClick = onDelete) { Text("Delete") }
@@ -1562,17 +1660,30 @@ private fun ContributionOverrideDialog(
     var value by rememberSaveable(contribution.id) {
         mutableStateOf((contribution.overrideValue ?: contribution.canonicalValue)?.let(::editableNumericValue).orEmpty())
     }
-    AlertDialog(
+    var validationRequested by rememberSaveable(contribution.id) { mutableStateOf(false) }
+    val parsedValue = value.toWhipDoubleOrNull()
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Override Automated Contribution") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(contribution.explanation)
-                GoalNumberField(value, { value = it }, "Canonical value")
+                GoalNumberField(
+                    value,
+                    { value = it },
+                    "Canonical Value",
+                    required = true,
+                    error = "Enter a value".takeIf { validationRequested && parsedValue == null },
+                )
                 Text("This changes only this Automation result. The source event remains intact and explainable.", style = MaterialTheme.typography.bodySmall)
             }
         },
-        confirmButton = { WhipTextButton(enabled = value.toWhipDoubleOrNull() != null, onClick = { onSave(value.toWhipDoubleOrNull()) }) { Text("Save Override") } },
+        confirmButton = {
+            WhipTextButton(onClick = {
+                validationRequested = true
+                parsedValue?.let(onSave)
+            }) { Text("Save Override") }
+        },
         dismissButton = {
             Row {
                 if (contribution.overrideValue != null) WhipTextButton(onClick = { onSave(null) }) { Text("Clear Override") }
@@ -1645,6 +1756,7 @@ private fun GoalLinkEditorDialog(
     var conditionMode by rememberSaveable(editorKey) { mutableStateOf(initialRule?.conditionMode ?: TrackConditionMode.MatchAll) }
     var conditions by remember(editorKey) { mutableStateOf(initialRule?.conditions.orEmpty()) }
     var addingCondition by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
     var showAdvanced by rememberSaveable(editorKey) {
         mutableStateOf(
             initialRule?.let { rule ->
@@ -1769,12 +1881,28 @@ private fun GoalLinkEditorDialog(
             }
         },
     )
-    AlertDialog(
+    val automationDraft = draft()
+    val automationValidationMessages = buildList {
+        if (name.isBlank()) add("Automation name is required")
+        if (automationDraft.valueMode == LinkValueMode.FixedValue && fixedValue.toWhipDoubleOrNull() == null) {
+            add("Enter a fixed value")
+        }
+        if (multiplier.toWhipDoubleOrNull() == null) add("Multiplier must be a number")
+        if (offset.toWhipDoubleOrNull() == null) add("Offset must be a number")
+    }
+    PaneAwareAlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(if (initialRule == null) "Add Goal Automation" else "Edit Goal Automation") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item { Text("Choose an action that should update ${goal.name}. Whip keeps every change explainable and recalculates it when the source changes.") }
+                if (validationRequested && automationValidationMessages.isNotEmpty()) item {
+                    FormValidationSummary(
+                        messages = automationValidationMessages,
+                        visible = true,
+                        testTag = "goal-automation-save-problem",
+                    )
+                }
                 item { GoalEnumDropdown("What Adds Progress?", GoalProgressSourceKind.entries, sourceKind, GoalProgressSourceKind::label, titleCaseValues = false) { selected ->
                     sourceKind = selected
                     sourceMetric = availableMetrics(selected.sourceType).first()
@@ -1974,7 +2102,18 @@ private fun GoalLinkEditorDialog(
                     )
                 }
                 if (showAdvanced) {
-                    item { OutlinedTextField(name, { name = it }, label = { Text("Automation Name") }, modifier = Modifier.fillMaxWidth()) }
+                    item {
+                        OutlinedTextField(
+                            name,
+                            { name = it },
+                            label = { Text("Automation Name *") },
+                            isError = validationRequested && name.isBlank(),
+                            supportingText = if (validationRequested && name.isBlank()) {
+                                { Text("Automation name is required") }
+                            } else null,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     item {
                         GoalEnumDropdown(
                             "Use Automation As",
@@ -1994,20 +2133,60 @@ private fun GoalLinkEditorDialog(
                                 titleCaseValues = false,
                             ) { valueMode = it }
                         }
-                        if (valueMode == LinkValueMode.FixedValue) item { GoalNumberField(fixedValue, { fixedValue = it }, "Fixed value (${goal.unitId.goalUnitLabel()})") }
+                        if (valueMode == LinkValueMode.FixedValue) item {
+                            GoalNumberField(
+                                fixedValue,
+                                { fixedValue = it },
+                                "Fixed Value (${goal.unitId.goalUnitLabel()})",
+                                required = true,
+                                error = "Enter a fixed value".takeIf {
+                                    validationRequested && fixedValue.toWhipDoubleOrNull() == null
+                                },
+                            )
+                        }
                     }
                     if (kind == LinkKind.Contribution) item {
                         ResponsiveFieldPair(
-                            first = { field -> GoalNumberField(multiplier, { multiplier = it }, "Multiplier", field) },
-                            second = { field -> GoalNumberField(offset, { offset = it }, "Offset", field) },
+                            first = { field ->
+                                GoalNumberField(
+                                    multiplier,
+                                    { multiplier = it },
+                                    "Multiplier",
+                                    field,
+                                    required = true,
+                                    error = "Enter a number".takeIf {
+                                        validationRequested && multiplier.toWhipDoubleOrNull() == null
+                                    },
+                                )
+                            },
+                            second = { field ->
+                                GoalNumberField(
+                                    offset,
+                                    { offset = it },
+                                    "Offset",
+                                    field,
+                                    required = true,
+                                    error = "Enter a number".takeIf {
+                                        validationRequested && offset.toWhipDoubleOrNull() == null
+                                    },
+                                )
+                            },
                         )
                     }
                 }
             }
         },
         confirmButton = { WhipTextButton(
-            enabled = !saving && sourceAvailability.enabled && name.isNotBlank(),
-            onClick = { onSave(draft(), if (sourceType == LinkSourceType.Track) historyChoice != LinkHistoryChoice.NewEntriesOnly else includeHistory) },
+            enabled = !saving && sourceAvailability.enabled,
+            onClick = {
+                validationRequested = true
+                if (automationValidationMessages.isEmpty()) {
+                    onSave(
+                        automationDraft,
+                        if (sourceType == LinkSourceType.Track) historyChoice != LinkHistoryChoice.NewEntriesOnly else includeHistory,
+                    )
+                }
+            },
         ) { Text(if (saving) "Saving…" else if (initialRule == null) "Create Automation" else "Save Automation") } },
         dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )
@@ -2051,7 +2230,22 @@ private fun <T> GoalEnumDropdown(
 }
 
 @Composable
-private fun GoalNumberField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier) = OutlinedTextField(value, onValueChange, label = { Text(label) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = modifier.fillMaxWidth())
+private fun GoalNumberField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    required: Boolean = false,
+    error: String? = null,
+) = OutlinedTextField(
+    value = value,
+    onValueChange = onValueChange,
+    label = { Text(label + if (required) " *" else "") },
+    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+    isError = error != null,
+    supportingText = error?.let { message -> { Text(message) } },
+    modifier = modifier.fillMaxWidth(),
+)
 
 private fun GoalType.label() = name.replace(Regex("([a-z])([A-Z])"), "$1 $2")
 private fun GoalType.displayLabel(): String = when (this) {

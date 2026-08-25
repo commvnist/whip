@@ -16,7 +16,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -64,7 +64,14 @@ class GlobalSearchRoutingTest {
         val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
 
         ActivityScenario.launch<MainActivity>(intent, options).use {
-            compose.waitUntil(10_000) { compose.onAllNodesWithText("Home").fetchSemanticsNodes().isNotEmpty() }
+            // Compact navigation labels the destination "Home"; the expanded
+            // Fold rail does not. Wait for the action this journey actually
+            // needs so launch readiness is layout-independent.
+            compose.waitUntil(20_000) {
+                SEARCH_DESCRIPTIONS.any { description ->
+                    compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
+                }
+            }
 
             searchFor("Searchable archived habit")
             compose.onNodeWithText("Archived Habits").assertIsDisplayed()
@@ -99,28 +106,41 @@ class GlobalSearchRoutingTest {
     }
 
     private fun searchFor(title: String) {
-        val searchDescription = listOf(
+        // A detail can remain in the expanded support pane after a result is
+        // opened. Return to the stable app shell before starting the next
+        // cross-domain search instead of inheriting that detail's local scope.
+        if (compose.onAllNodesWithContentDescription("Go to Home").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithContentDescription("Go to Home").performClick()
+            compose.waitForIdle()
+        }
+        val searchDescription = SEARCH_DESCRIPTIONS.first { description ->
+            compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithContentDescription(searchDescription).performClick()
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithTag("unified-search-query").fetchSemanticsNodes().isNotEmpty()
+        }
+        if (compose.onAllNodesWithText("Search All Whip").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithText("Search All Whip").performClick()
+        }
+        // Search state is intentionally retained while navigating an expanded
+        // pane. Replace the prior query instead of appending to it.
+        compose.onNodeWithTag("unified-search-query").performTextReplacement(title.removePrefix("Searchable "))
+        compose.onNodeWithText(title).assertIsDisplayed().performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("Search").fetchSemanticsNodes().isEmpty()
+        }
+        compose.waitForIdle()
+    }
+
+    private companion object {
+        val SEARCH_DESCRIPTIONS = listOf(
             "Search All Whip Data",
             "Search Habits",
             "Search Goals",
             "Search Tracks",
             "Search Gym",
             "Search Tasks",
-        ).first { description ->
-            compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNodeWithContentDescription(searchDescription).performClick()
-        compose.waitUntil(5_000) {
-            compose.onAllNodesWithTag("unified-search-query").fetchSemanticsNodes().isNotEmpty()
-        }
-        if (compose.onAllNodesWithText("Search All Whip").fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithText("Search All Whip").performClick()
-        }
-        compose.onNodeWithTag("unified-search-query").performTextInput(title.removePrefix("Searchable "))
-        compose.onNodeWithText(title).assertIsDisplayed().performClick()
-        compose.waitUntil(10_000) {
-            compose.onAllNodesWithText("Search").fetchSemanticsNodes().isEmpty()
-        }
-        compose.waitForIdle()
+        )
     }
 }

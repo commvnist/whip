@@ -52,12 +52,31 @@ class HabitRepositoryTest {
         assertEquals(6.0, repository.logs.first().sumOf { it.value ?: 0.0 }, 0.0)
     }
 
-    @Test fun zeroSkippedAndExcusedRemainDistinct() = runBlocking {
-        val id = repository.create(HabitDraft(name = "Observe", trackingMode = HabitTrackingMode.LogOnly, startDate = FixedClock.today()))
-        repository.log(id, 0.0)
-        repository.log(id, null, HabitLogStatus.Skipped)
-        repository.log(id, null, HabitLogStatus.Excused)
-        assertEquals(setOf(HabitLogStatus.Recorded, HabitLogStatus.Skipped, HabitLogStatus.Excused), repository.logs.first().map { it.status }.toSet())
+    @Test fun skipIsASeparateOccurrenceThatNeverCreatesAMeasurement() = runBlocking {
+        val id = repository.create(HabitDraft(name = "Observe", startDate = FixedClock.today()))
+
+        repository.skipDay(id, FixedClock.today())
+
+        assertTrue(repository.logs.first().isEmpty())
+        assertTrue(database.measurementDao().observeEntries().first().isEmpty())
+        assertEquals(FixedClock.today(), repository.skips.first().single().localDate)
+
+        repository.undoSkip(id, FixedClock.today())
+        assertTrue(repository.skips.first().isEmpty())
+    }
+
+    @Test fun aRealCheckInClearsSkipAndFailedCheckOffDoesNotInventValueOne() = runBlocking {
+        val today = FixedClock.today()
+        val id = repository.create(HabitDraft(name = "Check", startDate = today))
+        repository.skipDay(id, today)
+        repository.setCheckOff(id, today, true)
+        assertTrue(repository.skips.first().isEmpty())
+        assertEquals(1.0, repository.logs.first().single().value ?: -1.0, 0.0)
+
+        repository.setCheckOff(id, today, false)
+        repository.log(id, null, HabitLogStatus.Failed)
+        assertEquals(null, repository.logs.first().single().value)
+        assertEquals(null, database.measurementDao().observeEntries().first().single().enteredValue)
     }
 
     @Test fun archiveRetainsHistoryAndUndoRemovesBothRepresentations() = runBlocking {

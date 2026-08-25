@@ -23,6 +23,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -264,6 +265,30 @@ class InteractionControlUiTest {
     }
 
     @Test
+    fun destinationTabsFillUnusedPrimaryCapacityBeforeShowingMore() {
+        var destination by mutableStateOf("Entries")
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Box(Modifier.width(480.dp)) {
+                    DestinationTabBar(
+                        selected = destination,
+                        destinations = listOf("Entries", "Rules", "Options", "Insights"),
+                        primaryDestinations = listOf("Entries", "Rules", "Insights"),
+                        onSelect = { destination = it },
+                        label = { it },
+                        testTagPrefix = "capacity-tab",
+                    )
+                }
+            }
+        }
+
+        listOf("Entries", "Rules", "Options", "Insights").forEach { label ->
+            compose.onNodeWithTag("capacity-tab-$label").assertIsDisplayed()
+        }
+        compose.onAllNodesWithContentDescription("Open Pages").assertCountEquals(0)
+    }
+
+    @Test
     fun destinationTabsUseShortVisibleLabelsWithoutLosingFullAccessibleNames() {
         var destination by mutableStateOf("Automations")
         compose.setContent {
@@ -312,7 +337,7 @@ class InteractionControlUiTest {
         compose.waitUntil {
             compose.onAllNodesWithTag("search-active-match-any").fetchSemanticsNodes().size == 1
         }
-        val minimumHeight = with(compose.density) { 44.dp.toPx() }
+        val minimumHeight = with(compose.density) { 48.dp.toPx() }
         val minimumWidth = with(compose.density) { 92.dp.toPx() }
         listOf("Task", "Habit").forEach { domain ->
             val bounds = compose.onNodeWithTag("search-active-domain-$domain").fetchSemanticsNode().boundsInRoot

@@ -24,17 +24,29 @@ interface HabitDao {
     @Query("SELECT * FROM habit_pauses ORDER BY startEpochDay DESC")
     fun observePauses(): Flow<List<HabitPauseEntity>>
 
+    @Query("SELECT * FROM habit_skips ORDER BY localEpochDay DESC, skippedAtMillis DESC")
+    fun observeSkips(): Flow<List<HabitSkipEntity>>
+
     @Query("SELECT * FROM habits")
     suspend fun getAllHabits(): List<HabitEntity>
 
     @Query("SELECT * FROM habits WHERE archived = 0")
     suspend fun getActiveHabits(): List<HabitEntity>
 
+    @Query("SELECT id FROM habits WHERE archived = 0 AND (reminderMinutesCsv != '' OR weekdayReminderMinutesCsv != '')")
+    suspend fun getReminderHabitIds(): List<Long>
+
     @Query("SELECT * FROM habit_pauses WHERE habitId = :habitId")
     suspend fun getPauses(habitId: Long): List<HabitPauseEntity>
 
     @Query("SELECT * FROM habit_logs")
     suspend fun getAllLogs(): List<HabitLogEntity>
+
+    @Query("SELECT * FROM habit_skips")
+    suspend fun getAllSkips(): List<HabitSkipEntity>
+
+    @Query("SELECT * FROM habit_skips WHERE habitId = :habitId")
+    suspend fun getSkips(habitId: Long): List<HabitSkipEntity>
 
     @Query("SELECT * FROM habits WHERE id = :id")
     suspend fun getHabit(id: Long): HabitEntity?
@@ -64,6 +76,7 @@ interface HabitDao {
     @Insert suspend fun insertChecklistItem(entity: HabitChecklistItemEntity): Long
     @Insert suspend fun insertLog(entity: HabitLogEntity): Long
     @Insert suspend fun insertPause(entity: HabitPauseEntity): Long
+    @Upsert suspend fun upsertSkip(entity: HabitSkipEntity)
 
     @Update suspend fun updateHabit(entity: HabitEntity)
     @Update suspend fun updateChecklistItem(entity: HabitChecklistItemEntity)
@@ -82,4 +95,7 @@ interface HabitDao {
 
     @Query("DELETE FROM habit_checklist_states WHERE habitId = :habitId AND localEpochDay = :epochDay")
     suspend fun deleteChecklistStatesForDate(habitId: Long, epochDay: Long)
+
+    @Query("DELETE FROM habit_skips WHERE habitId = :habitId AND localEpochDay = :epochDay")
+    suspend fun deleteSkip(habitId: Long, epochDay: Long): Int
 }

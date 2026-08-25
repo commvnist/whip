@@ -125,10 +125,12 @@ class BackupRepositoryTest {
     @Test fun backupPreviewAndTransactionalRestoreRoundTrip() = runBlocking {
         val id = habits.create(HabitDraft(name = "Hydrate, safely", unitId = "glass", startDate = FixedClock.today()))
         habits.log(id, 2.0, note = "morning \"large\" glass")
+        habits.skipDay(id, FixedClock.today().plusDays(1))
+        tasks.create(TaskDraft(title = "Ship release", icon = "🚀"))
         val json = backups.exportBackup()
         val preview = backups.previewBackup(json)
         assertEquals(2, preview.envelopeVersion)
-        assertEquals(6, preview.databaseVersion)
+        assertEquals(8, preview.databaseVersion)
         assertTrue(preview.checksumValid)
         assertTrue(preview.settingsIncluded)
         assertTrue(preview.totalRecords >= 3)
@@ -143,6 +145,8 @@ class BackupRepositoryTest {
         backups.restoreBackup(json)
         assertEquals("Hydrate, safely", habits.habits.first().single().name)
         assertEquals(2.0, habits.logs.first().single().value!!, 0.0)
+        assertEquals(FixedClock.today().plusDays(1), habits.skips.first().single().localDate)
+        assertEquals("🚀", tasks.tasks.first().single().icon)
         assertEquals(AppThemeMode.Dark, settings.current().themeMode)
         assertEquals("America/Toronto", settings.current().timeZoneId)
         assertEquals(180, settings.current().dayCutoffMinutes)
@@ -156,6 +160,7 @@ class BackupRepositoryTest {
         assertEquals(12, settings.current().repPrescriptionSchemes.single().repetitionsMax)
         assertEquals(90, settings.current().repPrescriptionSchemes.single().restSeconds)
         assertTrue(backups.exportHabitsCsv().contains("\"Hydrate, safely\""))
+        assertTrue(backups.exportHabitsCsv().contains("\"Skipped\""))
     }
 
     @Test fun areaIdentityAndScopeRoundTripAcrossEveryProductivityDomain() = runBlocking {
@@ -409,6 +414,7 @@ class BackupRepositoryTest {
     }
 
     @Test fun versionFiveBackupWithoutScaleIncrementUpgradesDuringRestore() = runBlocking {
+        tasks.create(TaskDraft(title = "Legacy Task"))
         tracks.create(
             TrackDraft(
                 "Legacy Ratings",
@@ -420,8 +426,11 @@ class BackupRepositoryTest {
         )
         val root = JSONObject(backups.exportBackup()).put("databaseVersion", 5)
         val tables = root.getJSONObject("tables")
+        tables.remove("habit_skips")
         val fields = tables.getJSONArray("track_fields")
         for (index in 0 until fields.length()) fields.getJSONObject(index).remove("scaleStep")
+        val taskRows = tables.getJSONArray("tasks")
+        for (index in 0 until taskRows.length()) taskRows.getJSONObject(index).remove("icon")
         val payload = tables.toString() + "\n" + root.optJSONObject("settings")?.toString().orEmpty()
         root.put(
             "checksumSha256",
@@ -438,6 +447,7 @@ class BackupRepositoryTest {
 
         val restored = requireNotNull(tracks.projection(tracks.tracks.first().single().id))
         assertEquals(1.0, restored.fields.single { it.name == "Rating" }.scaleStep, 0.0)
+        assertEquals("✅", tasks.tasks.first().single().icon)
     }
 
     @Test fun duplicateStableIdentityIsRejectedEvenWithAValidChecksum() = runBlocking {
@@ -459,7 +469,7 @@ class BackupRepositoryTest {
     @Test fun nonCurrentBackupVersionsOrTableSetsCannotBePreviewedOrRestored() = runBlocking {
         habits.create(HabitDraft(name = "Keep local", startDate = FixedClock.today()))
         val current = backups.exportBackup()
-        val wrongDatabase = JSONObject(current).put("databaseVersion", 7).toString()
+        val wrongDatabase = JSONObject(current).put("databaseVersion", 9).toString()
         val wrongEnvelope = JSONObject(current).put("envelopeVersion", 1).toString()
         val incompleteTables = JSONObject(current).also {
             it.getJSONObject("tables").remove("tags")

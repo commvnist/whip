@@ -306,7 +306,7 @@ class LinkRepositoryTest {
         }
         habits.log(source, 2.0, HabitLogStatus.Recorded)
         habits.log(source, null, HabitLogStatus.Failed)
-        habits.log(source, null, HabitLogStatus.Skipped)
+        habits.skipDay(source, FixedClock.today().plusDays(1))
         links.rebuildAll()
         val counts = links.triggerOccurrences.first().groupingBy { it.triggerRuleId }.eachCount()
         assertEquals(2, counts[rules.getValue(TriggerOutcome.Recorded)])

@@ -1,0 +1,170 @@
+package com.whip.app
+
+import android.app.ActivityOptions
+import android.content.Intent
+import android.view.Display
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
+import androidx.test.core.app.ActivityScenario
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.whip.app.core.AppSettings
+import com.whip.app.domain.WorkoutSessionState
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.junit.After
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+/**
+ * True UI-to-database-to-UI acceptance paths for first-class areas that used
+ * to have only component or repository tests.
+ */
+@RunWith(AndroidJUnit4::class)
+class FirstClassWorkflowE2ETest {
+    @get:Rule
+    val compose = createEmptyComposeRule()
+
+    private val app: WhipApplication
+        get() = ApplicationProvider.getApplicationContext()
+
+    @Before
+    fun reset() = runBlocking {
+        app.backupRepository.deleteAllData()
+        app.settingsRepository.update { AppSettings(setupCompleted = true) }
+    }
+
+    @After
+    fun clean() = runBlocking { app.backupRepository.deleteAllData() }
+
+    @Test
+    fun trackCanBeDefinedPopulatedAndReopenedThroughTheRealUi() {
+        launch().use { scenario ->
+            compose.waitForIdle()
+            compose.onNodeWithContentDescription("Tracks tab").performClick()
+            compose.onNodeWithText("Create Track").performClick()
+            compose.onNodeWithTag("track-editor-name").performTextInput("Reading Log")
+            compose.onNodeWithText("Save").performClick()
+
+            val projection = runBlocking {
+                withTimeout(5_000) {
+                    app.trackRepository.projections.first { rows ->
+                        rows.any { it.track.name == "Reading Log" && it.fields.isNotEmpty() }
+                    }
+                        .single { it.track.name == "Reading Log" }
+                }
+            }
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithText("Reading Log").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText("Add Name").performClick()
+            compose.onNodeWithTag("track-entry-short-text-${projection.primaryField.uuid}")
+                .performTextInput("The Left Hand of Darkness")
+            compose.onNodeWithText("Add").performClick()
+
+            runBlocking {
+                withTimeout(5_000) {
+                    app.trackRepository.projections.first { rows ->
+                        rows.singleOrNull { it.track.id == projection.track.id }?.entries?.size == 1
+                    }
+                }
+            }
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithText("The Left Hand of Darkness").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText("The Left Hand of Darkness").assertIsDisplayed()
+
+            scenario.recreate()
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithText("The Left Hand of Darkness").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText("The Left Hand of Darkness").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun workoutCanBeCreatedLoggedFinishedAndFoundInHistoryThroughTheRealUi() {
+        launch().use {
+            compose.waitForIdle()
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            compose.onNodeWithText("Create First Exercise").performClick()
+            compose.onNodeWithTag("exercise-editor-name").performTextInput("Goblet Squat")
+            compose.onNodeWithText("Save").performClick()
+
+            runBlocking {
+                withTimeout(5_000) {
+                    app.gymRepository.exercises.first { rows -> rows.any { it.name == "Goblet Squat" } }
+                }
+            }
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithText("Start Workout").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText("Start Workout").performClick()
+            compose.onNodeWithTag("workout-editor-name").performTextInput("Coverage Workout")
+            compose.onNodeWithText("Start").performClick()
+
+            val session = runBlocking {
+                withTimeout(5_000) {
+                    app.gymRepository.sessions.first { rows ->
+                        rows.any { it.state == WorkoutSessionState.Active }
+                    }.single { it.state == WorkoutSessionState.Active }
+                }
+            }
+            compose.onAllNodesWithText("Add Exercise")[0].performClick()
+            compose.onNodeWithText("Goblet Squat").performClick()
+            runBlocking {
+                withTimeout(5_000) {
+                    app.gymRepository.workoutExercises.first { rows -> rows.any { it.sessionId == session.id } }
+                }
+            }
+
+            compose.onNodeWithText("Add Set").performClick()
+            val set = runBlocking {
+                withTimeout(5_000) { app.gymRepository.sets.first { rows -> rows.isNotEmpty() }.single() }
+            }
+            compose.onNodeWithTag("quick-set-load-${set.id}").performTextReplacement("24")
+            compose.onNodeWithTag("quick-set-reps-${set.id}").performTextReplacement("10")
+            compose.onNodeWithTag("quick-set-save-next-${set.id}").performClick()
+            runBlocking {
+                withTimeout(5_000) {
+                    app.gymRepository.sets.first { rows -> rows.singleOrNull()?.completed == true }
+                }
+            }
+
+            compose.onNodeWithText("Finish").performClick()
+            compose.onNodeWithText("Review and Finish Workout?").assertIsDisplayed()
+            compose.onAllNodesWithText("Finish")[1].performClick()
+            compose.onNodeWithText("Workout Saved").assertIsDisplayed()
+            compose.onNodeWithText("View History").performClick()
+
+            runBlocking {
+                withTimeout(5_000) {
+                    app.gymRepository.sessions.first { rows ->
+                        rows.singleOrNull { it.id == session.id }?.state == WorkoutSessionState.Finished
+                    }
+                }
+            }
+            // Expanded Fold layouts can show the History heading and its row at
+            // the same time. Either visible instance proves the saved workout
+            // reached History; a singular text lookup is invalid in that layout.
+            compose.onAllNodesWithText("Coverage Workout")[0].assertIsDisplayed()
+        }
+    }
+
+    private fun launch(): ActivityScenario<MainActivity> {
+        val intent = Intent(app, MainActivity::class.java)
+            .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
+        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
+        return ActivityScenario.launch(intent, options)
+    }
+}

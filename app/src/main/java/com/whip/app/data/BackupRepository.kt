@@ -27,6 +27,7 @@ import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.CustomIdentityEmoji
 import com.whip.app.domain.DEFAULT_GOAL_EMOJI
 import com.whip.app.domain.DEFAULT_HABIT_EMOJI
+import com.whip.app.domain.DEFAULT_TASK_EMOJI
 import com.whip.app.domain.DEFAULT_TRACK_EMOJI
 import com.whip.app.domain.normalizedIdentityEmoji
 import java.security.MessageDigest
@@ -98,6 +99,9 @@ class RoomBackupRepository(
     override suspend fun previewBackup(json: String): BackupPreview {
         val root = parseAndValidate(json)
         val tables = root.getJSONObject("tables")
+        val settings = root.optJSONObject("settings")
+        val checksumValid = root.getString("checksumSha256") == sha256(checksumPayload(tables, settings))
+        if (checksumValid) upgradeBackupTables(root.getInt("databaseVersion"), tables)
         val counts = EXPORT_TABLES.associateWith { table -> tables.optJSONArray(table)?.length() ?: 0 }
         var duplicates = 0
         val db = database.openHelper.readableDatabase
@@ -115,9 +119,7 @@ class RoomBackupRepository(
                 }
             }
         }
-        val settings = root.optJSONObject("settings")
         val envelopeVersion = root.getInt("envelopeVersion")
-        val payload = checksumPayload(tables, settings)
         val databaseVersion = root.getInt("databaseVersion")
         return BackupPreview(
             envelopeVersion = envelopeVersion,
@@ -126,7 +128,7 @@ class RoomBackupRepository(
             tableCounts = counts,
             totalRecords = counts.values.sum(),
             duplicateStableIds = duplicates,
-            checksumValid = root.getString("checksumSha256") == sha256(payload),
+            checksumValid = checksumValid,
             settingsIncluded = settings != null,
             restoreCompatible = true,
             compatibilityMessage = if (databaseVersion < BACKUP_DATABASE_VERSION) {
@@ -146,6 +148,7 @@ class RoomBackupRepository(
                 checksumPayload(tables, settings),
             ),
         ) { "Backup checksum does not match" }
+        upgradeBackupTables(root.getInt("databaseVersion"), tables)
         database.withTransaction {
             val db = database.openHelper.writableDatabase
             EXPORT_TABLES.asReversed().forEach { table -> db.execSQL("DELETE FROM ${safeIdentifier(table)}") }
@@ -174,6 +177,7 @@ class RoomBackupRepository(
                 checksumPayload(tables, settings),
             ),
         ) { "Backup checksum does not match" }
+        upgradeBackupTables(root.getInt("databaseVersion"), tables)
         val summary = database.withTransaction {
             val db = database.openHelper.writableDatabase
             val idMaps = mutableMapOf<String, MutableMap<Long, Long>>()
@@ -280,7 +284,7 @@ class RoomBackupRepository(
     )
 
     override suspend fun exportHabitsCsv(): String = queryCsv(
-        "SELECT h.uuid AS habitUuid, h.name AS habit, COALESCE(a.name, '') AS area, h.trackingMode, l.uuid AS logUuid, l.localEpochDay, l.value, l.enteredUnitId, l.status, l.note FROM habits h LEFT JOIN areas a ON a.id = h.areaId LEFT JOIN habit_logs l ON l.habitId = h.id ORDER BY h.id, l.timestampMillis",
+        "SELECT h.uuid AS habitUuid, h.name AS habit, COALESCE(a.name, '') AS area, h.trackingMode, l.uuid AS eventUuid, l.localEpochDay, l.value, l.enteredUnitId, l.status, l.note FROM habits h LEFT JOIN areas a ON a.id = h.areaId LEFT JOIN habit_logs l ON l.habitId = h.id UNION ALL SELECT h.uuid, h.name, COALESCE(a.name, ''), h.trackingMode, s.uuid, s.localEpochDay, NULL, NULL, 'Skipped', '' FROM habits h JOIN habit_skips s ON s.habitId = h.id LEFT JOIN areas a ON a.id = h.areaId ORDER BY habitUuid, localEpochDay",
     )
 
     override suspend fun exportGoalsCsv(): String = queryCsv(
@@ -331,9 +335,12 @@ class RoomBackupRepository(
         }
         val tables = root.optJSONObject("tables") ?: error("Backup has no table data")
         val tableNames = tables.keys().asSequence().toSet()
-        require(tableNames == EXPORT_TABLES.toSet()) { "Backup table set does not match this build" }
-        require(EXPORT_TABLES.all { tables.optJSONArray(it) != null }) { "Backup contains invalid table data" }
-        EXPORT_TABLES.forEach { table ->
+        val expected = if (dbVersion < BACKUP_DATABASE_VERSION) LEGACY_EXPORT_TABLES.toSet() else EXPORT_TABLES.toSet()
+        require(tableNames == expected || (dbVersion < BACKUP_DATABASE_VERSION && tableNames == EXPORT_TABLES.toSet())) {
+            "Backup table set does not match this build"
+        }
+        require(tableNames.all { tables.optJSONArray(it) != null }) { "Backup contains invalid table data" }
+        tableNames.forEach { table ->
             val rows = tables.getJSONArray(table)
             val seen = mutableSetOf<String>()
             for (index in 0 until rows.length()) {
@@ -348,10 +355,54 @@ class RoomBackupRepository(
         }
         return root
     }
+
+    /** Upgrade a checksum-verified older envelope in memory before restore or merge. */
+    private fun upgradeBackupTables(databaseVersion: Int, tables: JSONObject) {
+        if (databaseVersion >= BACKUP_DATABASE_VERSION || tables.has("habit_skips")) return
+        val logs = tables.getJSONArray("habit_logs")
+        val retainedLogs = JSONArray()
+        val skips = JSONArray()
+        val obsoleteMetricEntryIds = mutableSetOf<String>()
+        for (index in 0 until logs.length()) {
+            val row = logs.getJSONObject(index)
+            when (row.optString("status")) {
+                "Skipped", "Excused" -> {
+                    val logUuid = row.optString("uuid")
+                    skips.put(
+                        JSONObject()
+                            .put("uuid", "habit-skip-$logUuid")
+                            .put("habitId", row.getLong("habitId"))
+                            .put("localEpochDay", row.getLong("localEpochDay"))
+                            .put("skippedAtMillis", row.optLong("timestampMillis"))
+                            .put("createdAtMillis", row.optLong("createdAtMillis"))
+                            .put("updatedAtMillis", row.optLong("updatedAtMillis")),
+                    )
+                    row.optString("metricEntryId").takeIf(String::isNotBlank)?.let(obsoleteMetricEntryIds::add)
+                }
+                "Missing" -> row.optString("metricEntryId").takeIf(String::isNotBlank)?.let(obsoleteMetricEntryIds::add)
+                else -> retainedLogs.put(row)
+            }
+        }
+        val deduplicatedSkips = JSONArray()
+        val seenOccurrences = mutableSetOf<Pair<Long, Long>>()
+        for (index in 0 until skips.length()) {
+            val row = skips.getJSONObject(index)
+            if (seenOccurrences.add(row.getLong("habitId") to row.getLong("localEpochDay"))) deduplicatedSkips.put(row)
+        }
+        val entries = tables.getJSONArray("metric_entries")
+        val retainedEntries = JSONArray()
+        for (index in 0 until entries.length()) {
+            entries.getJSONObject(index).takeUnless { it.optString("id") in obsoleteMetricEntryIds }?.let(retainedEntries::put)
+        }
+        tables.put("habit_logs", retainedLogs)
+        tables.put("metric_entries", retainedEntries)
+        tables.put("habit_skips", deduplicatedSkips)
+    }
 }
 
 private fun ContentValues.applyBackupCompatibilityDefaults(table: String) {
     if (table == "track_fields" && !containsKey("scaleStep")) put("scaleStep", 1.0)
+    if (table == "tasks" && !containsKey("icon")) put("icon", DEFAULT_TASK_EMOJI)
 }
 
 private data class MergeForeignKey(
@@ -544,10 +595,11 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 private const val BACKUP_FORMAT = "whip-backup"
 private const val ENVELOPE_VERSION = 2
 private const val OLDEST_COMPATIBLE_DATABASE_VERSION = 5
-private const val BACKUP_DATABASE_VERSION = 6
+private const val BACKUP_DATABASE_VERSION = 8
 
 private fun ContentValues.normalizeIdentityEmoji(table: String) {
     val defaultEmoji = when (table) {
+        "tasks" -> DEFAULT_TASK_EMOJI
         "habits" -> DEFAULT_HABIT_EMOJI
         "goals" -> DEFAULT_GOAL_EMOJI
         "tracks" -> DEFAULT_TRACK_EMOJI
@@ -564,10 +616,12 @@ private val EXPORT_TABLES = listOf(
     "gym_routines", "routine_days", "routine_exercises", "routine_sets",
     "workout_sessions", "workout_groups", "workout_exercises", "workout_sets",
     "personal_records", "graph_presets", "habits", "habit_checklist_items", "habit_logs",
-    "habit_checklist_states", "habit_pauses", "goals", "goal_milestones",
+    "habit_checklist_states", "habit_pauses", "habit_skips", "goals", "goal_milestones",
     "tracks", "track_fields", "track_choice_options", "track_entries", "track_values",
     "link_rules", "link_rule_conditions", "link_condition_choices", "contributions", "trigger_rules", "trigger_rule_conditions", "trigger_condition_choices", "trigger_field_mappings", "trigger_occurrences",
 )
+
+private val LEGACY_EXPORT_TABLES = EXPORT_TABLES - "habit_skips"
 
 private fun checksumPayload(tables: JSONObject, settings: JSONObject?): String =
     tables.toString() + "\n" + settings?.toString().orEmpty()

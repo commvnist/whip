@@ -850,11 +850,25 @@ class RoomLinkRepository(
         }
         if (type == LinkSourceType.Habit && outcome != TriggerOutcome.Completed) {
             val habit = database.habitDao().getHabit(rule.sourceEntityId) ?: return emptyList()
+            if (outcome == TriggerOutcome.Skipped) {
+                return database.habitDao().getSkips(habit.id).map { skip ->
+                    SourceEvent(
+                        "habit-skip:${skip.uuid}",
+                        type,
+                        habit.id,
+                        null,
+                        UnitDimension.Count,
+                        LocalDate.ofEpochDay(skip.localEpochDay),
+                        Instant.ofEpochMilli(skip.skippedAtMillis),
+                        "${habit.name} skipped",
+                        MetricSourceType.Habit,
+                    )
+                }
+            }
             val acceptedStatuses = when (outcome) {
                 TriggerOutcome.Recorded -> setOf(HabitLogStatus.Recorded.name, HabitLogStatus.Success.name, HabitLogStatus.Failed.name)
                 TriggerOutcome.Failed -> setOf(HabitLogStatus.Failed.name)
-                TriggerOutcome.Skipped -> setOf(HabitLogStatus.Skipped.name)
-                TriggerOutcome.Completed -> emptySet()
+                TriggerOutcome.Skipped, TriggerOutcome.Completed -> emptySet()
             }
             return database.habitDao().getAllLogs().filter { it.habitId == habit.id && it.status in acceptedStatuses }.map { log ->
                 SourceEvent("habit-log:${log.uuid}:${outcome.name}", type, habit.id, log.canonicalValue,

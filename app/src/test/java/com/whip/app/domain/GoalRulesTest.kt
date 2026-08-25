@@ -49,6 +49,25 @@ class GoalRulesTest {
         assertEquals(0.0, goalOutcomeScoreOnDate(elapsed, emptyList(), emptyList(), today), 0.0)
     }
 
+    @Test fun goalDraftValidationExplainsRequiredAndInvalidFieldsBeforePersistence() {
+        val missingTarget = GoalDraft(
+            name = "Named goal",
+            type = GoalType.ReachValue,
+            startDate = today,
+        ).withTypeSemantics()
+        assertEquals(listOf("Enter a target"), missingTarget.validationErrors(nowMillis = 1_000L))
+
+        val invalidRange = missingTarget.copy(
+            type = GoalType.MaintainRange,
+            targetMin = 10.0,
+            targetMax = 5.0,
+        ).withTypeSemantics()
+        assertTrue(invalidRange.validationErrors(1_000L).contains("Range minimum cannot exceed range maximum"))
+
+        val invalidPrecision = missingTarget.copy(targetMin = 10.0, precision = -1)
+        assertEquals(listOf("Decimal places must be between 0 and 6"), invalidPrecision.validationErrors(1_000L))
+    }
+
     @Test fun paceAndForecastAreDeterministic() {
         val projection = projectGoal(
             goal(baseline = 0.0, target = 100.0).copy(

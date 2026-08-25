@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -39,9 +40,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.graphics.RectangleShape
@@ -62,6 +67,36 @@ internal data class ControlAvailability(
         }
     }
 }
+
+@Composable
+internal fun EditorSectionHeader(
+    title: String,
+    supportingText: String? = null,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth().padding(top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Text(
+            title,
+            modifier = Modifier.semantics { heading() },
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        supportingText?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        HorizontalDivider(Modifier.padding(top = 3.dp), color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+internal data class WhipDialogPlacement(
+    val offsetX: Dp = 0.dp,
+    val maxWidth: Dp = WhipContentWidth.compactDialog,
+)
+
+internal val LocalWhipDialogPlacement = staticCompositionLocalOf { WhipDialogPlacement() }
 
 @Composable
 internal fun AvailabilityNotice(
@@ -106,6 +141,54 @@ internal fun DependentSettingsNotice(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/** Keeps a rejected save actionable instead of leaving an enabled Save button
+ * that appears to do nothing. The summary is suitable for any editor dialog;
+ * individual required fields should still carry an asterisk and inline error. */
+@Composable
+internal fun FormValidationSummary(
+    messages: List<String>,
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    testTag: String = "form-save-problem",
+) {
+    if (!visible || messages.isEmpty()) return
+    val distinctMessages = messages.distinct()
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(testTag)
+            .semantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = "Save blocked. ${distinctMessages.joinToString(". ")}"
+            },
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.errorContainer,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                "Review Required Fields",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            distinctMessages.take(5).forEach { message ->
+                Text(
+                    "• $message",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+            if (distinctMessages.size > 5) Text(
+                "• ${distinctMessages.size - 5} more fields need attention",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+        }
     }
 }
 
@@ -192,8 +275,12 @@ internal fun PaneAwareAlertDialog(
     confirmButton: @Composable () -> Unit,
     dismissButton: @Composable () -> Unit = {},
 ) {
+    val placement = LocalWhipDialogPlacement.current
+    val resolvedModifier = if (modifier == Modifier) {
+        Modifier.absoluteOffset(x = placement.offsetX).width(placement.maxWidth)
+    } else modifier
     ProductivityEditorDialog(
-        modifier = Modifier.widthIn(min = 280.dp, max = 560.dp).then(modifier),
+        modifier = resolvedModifier.widthIn(min = 280.dp, max = WhipContentWidth.compactDialog),
         testTag = null,
         onDismissRequest = onDismissRequest,
         title = title,
@@ -223,7 +310,7 @@ internal fun ClockPickerButton(
             initialMinute = (minutes ?: 0) % 60,
             is24Hour = true,
         )
-        AlertDialog(
+        PaneAwareAlertDialog(
             onDismissRequest = { pickerOpen = false },
             title = { Text(label) },
             text = { TimePicker(state = picker) },
@@ -327,7 +414,7 @@ internal fun WeekdayReminderEditor(
         }
     }
     if (choosingDay) {
-        AlertDialog(
+        PaneAwareAlertDialog(
             onDismissRequest = { choosingDay = false },
             title = { Text("Choose Weekday") },
             text = {
@@ -389,7 +476,7 @@ private fun ClockPickerDialog(
         initialMinute = initialMinutes % 60,
         is24Hour = true,
     )
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { TimePicker(state = picker) },

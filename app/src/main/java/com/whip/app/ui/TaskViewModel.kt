@@ -26,6 +26,7 @@ import com.whip.app.domain.WhipTask
 import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.RecurrenceAnchor
 import com.whip.app.domain.visibleTaskStepsForOccurrence
+import com.whip.app.reminders.reminderDefinitionChanged
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
@@ -122,7 +123,12 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         _operationFeedback.value = _operationFeedback.value.copy(status = OperationStatus.Idle)
     }
 
-    fun saveTask(taskId: Long?, draft: TaskDraft, fromOccurrence: LocalDate? = null) {
+    fun saveTask(
+        taskId: Long?,
+        draft: TaskDraft,
+        fromOccurrence: LocalDate? = null,
+        onFinished: (Boolean) -> Unit = {},
+    ) {
         runOperation(
             runningMessage = if (taskId == null) "Creating task…" else "Saving task…",
             successMessage = when {
@@ -130,17 +136,22 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                 fromOccurrence != null -> "Future series created · earlier history preserved"
                 else -> "Task saved"
             },
+            onFinished = onFinished,
         ) {
+            val existing = taskId?.let { repository.getTask(it) }
             val savedId = if (taskId == null) {
                 repository.create(draft)
             } else {
                 repository.update(taskId, draft, fromOccurrence)
             }
-            reminders.syncTask(savedId)
+            if (existing == null || existing.reminderDefinitionChanged(draft) || savedId != taskId) {
+                reminders.syncTask(savedId)
+            }
             if (taskId != null && savedId != taskId) {
                 reminders.syncTask(taskId)
             }
-            draft.tags.forEach { app.measurementRepository.ensureTag(it) }
+            draft.tags.filter { tag -> existing?.tags?.none { it.equals(tag, ignoreCase = true) } != false }
+                .forEach { app.measurementRepository.ensureTag(it) }
         }
     }
 
@@ -149,9 +160,14 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         defaultDate: LocalDate?,
         inbox: Boolean,
         areaId: String?,
+        onFinished: (Boolean) -> Unit = {},
     ) {
-        val draft = buildQuickAddTaskDraft(capture, defaultDate, inbox, areaId) ?: return
-        runOperation("Adding task…", "Task added") {
+        val draft = buildQuickAddTaskDraft(capture, defaultDate, inbox, areaId)
+        if (draft == null) {
+            onFinished(false)
+            return
+        }
+        runOperation("Adding task…", "Task added", onFinished) {
             val taskId = repository.create(draft)
             reminders.syncTask(taskId)
             offerUndo("Quick Add can be undone", TaskUndoAction.DeleteCreated(taskId))
@@ -422,6 +438,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private fun runOperation(
         runningMessage: String,
         successMessage: String,
+        onFinished: (Boolean) -> Unit = {},
         block: suspend () -> Unit,
     ) {
         pendingUndoAction = null
@@ -438,6 +455,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                     undoMessage = pendingUndoMessage,
                     quickAddedTaskId = pendingQuickAddTaskId,
                 )
+                runCatching { onFinished(true) }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
@@ -450,6 +468,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                         cause = error,
                     ),
                 )
+                runCatching { onFinished(false) }
             }
         }
     }

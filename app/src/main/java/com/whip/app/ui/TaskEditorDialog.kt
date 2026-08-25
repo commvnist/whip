@@ -101,6 +101,8 @@ import com.whip.app.domain.MissedOccurrencePolicy
 import com.whip.app.domain.TaskQuickCaptureParser
 import com.whip.app.domain.WhipTask
 import com.whip.app.domain.Area
+import com.whip.app.domain.CustomIdentityEmoji
+import com.whip.app.domain.DEFAULT_TASK_EMOJI
 import com.whip.app.domain.toDraft
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -166,6 +168,9 @@ fun TaskEditorDialog(
     inheritedAreaFromScope: Boolean = false,
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
     knownTags: List<String> = emptyList(),
+    customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
+    onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
+    onRemoveSavedIdentityEmoji: (String) -> Unit = {},
     paneOffsetX: Dp = 0.dp,
     paneMaxWidth: Dp = 720.dp,
     saving: Boolean = false,
@@ -196,6 +201,7 @@ fun TaskEditorDialog(
     val editorKey = "${request.task?.id ?: "new"}:${request.fromOccurrence?.toEpochDay() ?: "base"}:${request.sessionId}"
 
     var title by rememberSaveable(editorKey) { mutableStateOf(initial.title) }
+    var icon by rememberSaveable(editorKey) { mutableStateOf(initial.icon) }
     var notes by rememberSaveable(editorKey) { mutableStateOf(initial.notes) }
     var scheduleKind by rememberSaveable(editorKey) { mutableStateOf(initial.scheduleKind) }
     var mainDate by rememberSaveable(editorKey) {
@@ -296,7 +302,7 @@ fun TaskEditorDialog(
     val initialOffsets = initial.reminderOffsetsMinutes.toSet().ifEmpty {
         setOf(0).takeIf { initial.reminderEnabled }.orEmpty()
     }
-    val isDirty = title != initial.title || notes != initial.notes ||
+    val isDirty = title != initial.title || icon != initial.icon || notes != initial.notes ||
         scheduleKind != initial.scheduleKind ||
         (scheduleKind == ScheduleKind.Once && mainDate != (initial.date ?: today)) ||
         (scheduleKind == ScheduleKind.Recurring && (
@@ -364,7 +370,7 @@ fun TaskEditorDialog(
         )
     } else null
     val currentDraft = TaskDraft(
-        title = title.trim(), notes = notes.trim(), scheduleKind = scheduleKind,
+        title = title.trim(), icon = icon, notes = notes.trim(), scheduleKind = scheduleKind,
         date = mainDate.takeIf { scheduleKind == ScheduleKind.Once }, recurrence = recurrence,
         timeMinutes = timeMinutes.takeIf { hasTime && scheduleKind != ScheduleKind.Anytime },
         reminderEnabled = hasTime && reminderEnabled && scheduleKind != ScheduleKind.Anytime,
@@ -503,6 +509,7 @@ fun TaskEditorDialog(
                             testTag = "task-edit-scope",
                         )
                     }
+                    EditorSectionHeader("Basics", "Name this Task and choose the emoji used across Whip.")
                     OutlinedTextField(
                         value = title,
                         onValueChange = { entered ->
@@ -520,6 +527,15 @@ fun TaskEditorDialog(
                         modifier = Modifier.fillMaxWidth().focusRequester(titleFocusRequester).testTag("task-editor-title"),
                         label = { Text("Task") },
                         singleLine = true,
+                    )
+                    WhipEmojiPicker(
+                        value = icon,
+                        defaultEmoji = DEFAULT_TASK_EMOJI,
+                        onValueChange = { icon = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        customEmojis = customIdentityEmojis,
+                        onSaveEmoji = onSaveIdentityEmoji,
+                        onRemoveSavedEmoji = onRemoveSavedIdentityEmoji,
                     )
                     if (request.task == null) {
                         WhipTextButton(onClick = { recipesOpen = true }) { Text("Use a Template") }
@@ -551,7 +567,8 @@ fun TaskEditorDialog(
                             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                         }
                     }
-                    FieldLabel("Placement")
+                    EditorSectionHeader("Schedule", "Choose when this Task belongs; related repeat, date, time, and reminder controls stay together.")
+                    FieldLabel("When")
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -581,7 +598,7 @@ fun TaskEditorDialog(
                                 "Anytime keeps this Task ready but unscheduled."
                             }
                             ScheduleKind.Once -> "Scheduled Date places this Task on one day. Time, reminders, and an optional Deadline appear below."
-                            ScheduleKind.Recurring -> "Repeat creates future occurrences. Start date and repeat rules appear next."
+                            ScheduleKind.Recurring -> "This Task repeats from its start date. Configure the pattern directly below."
                         },
                         testTag = "task-schedule-consequence",
                     )
@@ -594,7 +611,7 @@ fun TaskEditorDialog(
                         Column(Modifier.weight(1f)) {
                             FieldLabel("Repeat")
                             Text(
-                                if (scheduleKind == ScheduleKind.Recurring) "Cadence, anchor, and end settings are shown directly below."
+                                if (scheduleKind == ScheduleKind.Recurring) "Repeating schedule is on."
                                 else "Create future occurrences from a schedule.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -824,6 +841,7 @@ fun TaskEditorDialog(
                         )
                     }
 
+                    EditorSectionHeader("Organization", "Choose the Area that owns this Task.")
                     AreaPicker(
                         areas = areas,
                         selectedAreaId = areaId,
@@ -835,6 +853,7 @@ fun TaskEditorDialog(
                         inheritedFromScope = request.task == null && inheritedAreaFromScope,
                     )
 
+                    EditorSectionHeader("Planning", "Set urgency now and reveal estimates or subtasks only when useful.")
                     FieldLabel("Priority")
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -849,13 +868,12 @@ fun TaskEditorDialog(
                         }
                     }
                     DisclosureButton(
-                        label = "More Details",
+                        label = "Planning Details",
                         expanded = showAdvanced,
                         onClick = { showAdvanced = !showAdvanced },
                         modifier = Modifier.fillMaxWidth().testTag("task-editor-more-details"),
                     )
                     if (showAdvanced) {
-                        FieldLabel("Planning")
                         OutlinedTextField(
                             value = durationMinutes,
                             onValueChange = { durationMinutes = it.filter(Char::isDigit).take(4) },
@@ -886,7 +904,7 @@ fun TaskEditorDialog(
                     }
 
                     if (showAdvanced) {
-                    FieldLabel("Subtasks")
+                    EditorSectionHeader("Subtasks", "Break the Task into steps and choose how progress appears.")
                     stepDrafts.forEachIndexed { index, step ->
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Column(
@@ -1034,7 +1052,7 @@ fun TaskEditorDialog(
                     }
 
                     if (showAdvanced) {
-                        FieldLabel("Notes & Tags")
+                        EditorSectionHeader("Notes & Tags", "Keep reference material and reusable labels with the Task.")
                         OutlinedTextField(
                             value = notes,
                             onValueChange = { notes = it },
@@ -1242,7 +1260,7 @@ internal fun completionAnchorAvailability(usesSelectedWeekdays: Boolean): Contro
     ControlAvailability(
         enabled = !usesSelectedWeekdays,
         unavailableExplanation = if (usesSelectedWeekdays) {
-            "Selected-day repeats stay tied to the calendar. Under Repeats, choose Daily or an Every X option to use completion-based timing."
+            "Specific-weekday repeats stay tied to the calendar. Under Repeats, choose Daily or a custom interval to use completion-based timing."
         } else {
             null
         },
@@ -1837,11 +1855,11 @@ private fun RecurrenceRule?.toPreset(): RepeatPreset = when {
 private val RepeatPreset.label: String
     get() = when (this) {
         RepeatPreset.Daily -> "Daily"
-        RepeatPreset.EveryDays -> "Every X Days"
-        RepeatPreset.Weekdays -> "Selected Days"
-        RepeatPreset.EveryWeeks -> "Every X Weeks"
-        RepeatPreset.EveryMonths -> "Every X Months"
-        RepeatPreset.EveryYears -> "Every X Years"
+        RepeatPreset.EveryDays -> "Custom Day Interval"
+        RepeatPreset.Weekdays -> "Specific Weekdays"
+        RepeatPreset.EveryWeeks -> "Custom Week Interval"
+        RepeatPreset.EveryMonths -> "Custom Month Interval"
+        RepeatPreset.EveryYears -> "Custom Year Interval"
     }
 
 private val RepeatPreset.unitLabel: String

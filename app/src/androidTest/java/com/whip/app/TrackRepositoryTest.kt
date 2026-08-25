@@ -47,7 +47,10 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -82,6 +85,40 @@ class TrackRepositoryTest {
     }
 
     @After fun tearDown() = database.close()
+
+    @Test fun projectionsNeverExposeATrackBeforeItsRequiredFields() = runBlocking {
+        var partialProjectionObserved = false
+        val collector = launch {
+            tracks.projections.collect { rows ->
+                if (rows.any { it.fields.isEmpty() }) partialProjectionObserved = true
+            }
+        }
+        yield()
+
+        val id = tracks.create(booksDraft())
+        tracks.projections.first { rows -> rows.any { it.track.id == id } }
+        collector.cancelAndJoin()
+
+        assertFalse(partialProjectionObserved)
+    }
+
+    @Test fun identityOnlyEditSkipsSchemaAndAutomationInvalidation() = runBlocking {
+        val id = tracks.create(booksDraft())
+        val before = requireNotNull(tracks.projection(id))
+        val entryId = tracks.addEntry(
+            id,
+            TrackEntryDraft(
+                TestClock.today(),
+                mapOf(before.primaryField.uuid to TrackValueDraft(textValue = "Fast save")),
+            ),
+        )
+
+        val impact = tracks.update(id, before.toDraft().copy(icon = "⚡"))
+
+        assertFalse(impact.automationInputsChanged)
+        assertEquals("⚡", requireNotNull(tracks.projection(id)).track.icon)
+        assertEquals(setOf(entryId), tracks.searchEntryIds(id, "Fast save"))
+    }
 
     @Test fun fractionalScaleRoundTripsThroughStorageCsvAnalyticsAndSchemaEdits() = runBlocking {
         val trackId = tracks.create(

@@ -17,6 +17,8 @@ import com.whip.app.domain.RecurrenceAnchor
 import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.MissedOccurrencePolicy
 import com.whip.app.domain.TaskEffort
+import com.whip.app.domain.DEFAULT_TASK_EMOJI
+import com.whip.app.domain.normalizedIdentityEmoji
 import com.whip.app.domain.toWeekdayMask
 import com.whip.app.domain.toWeekdays
 import java.time.LocalDate
@@ -72,6 +74,7 @@ fun TaskEntity.toDomain(): WhipTask {
         durationMinutes = durationMinutes,
         effort = runCatching { TaskEffort.valueOf(effort) }.getOrDefault(TaskEffort.Unspecified),
         manualPosition = manualPosition,
+        icon = icon.normalizedIdentityEmoji(DEFAULT_TASK_EMOJI),
     )
 }
 
@@ -128,6 +131,7 @@ fun TaskDraft.toEntity(
         durationMinutes = durationMinutes?.coerceIn(1, 1_440),
         effort = effort.name,
         manualPosition = manualPosition,
+        icon = icon.normalizedIdentityEmoji(DEFAULT_TASK_EMOJI),
     )
 }
 

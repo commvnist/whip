@@ -46,7 +46,7 @@ interface TrackRepository {
         confirmedFieldValueDeletionIds: Set<Long> = emptySet(),
         confirmedOptionValueDeletionIds: Set<Long> = emptySet(),
         optionReplacementIds: Map<Long, Long> = emptyMap(),
-    )
+    ): TrackUpdateImpact
     suspend fun duplicate(id: Long): Long
     suspend fun setPinned(id: Long, pinned: Boolean)
     suspend fun setArchived(id: Long, archived: Boolean)
@@ -62,6 +62,10 @@ interface TrackRepository {
     suspend fun exportCsv(trackId: Long): String
     suspend fun rebuildSearchIndex(trackId: Long? = null)
 }
+
+data class TrackUpdateImpact(
+    val automationInputsChanged: Boolean,
+)
 
 class RoomTrackRepository(
     private val database: WhipDatabase,
@@ -87,10 +91,17 @@ class RoomTrackRepository(
         val fieldIdsByTrack = fieldsByTrack.mapValues { (_, rows) -> rows.mapTo(mutableSetOf(), TrackField::id) }
         val entriesByTrack = allEntries.groupBy(TrackEntry::trackId)
         val valuesByEntry = allValues.groupBy(TrackFieldValue::entryId)
-        allTracks.map { track ->
+        // Each Track is committed with at least one Field, but Room invalidates
+        // the joined tables independently. Never publish the short-lived
+        // half-projection between those emissions: every consumer assumes a
+        // usable primary Field and a live UI could otherwise crash immediately
+        // after creating or changing a Track.
+        allTracks.mapNotNull { track ->
+            val trackFields = fieldsByTrack[track.id].orEmpty()
+            if (trackFields.isEmpty()) return@mapNotNull null
             TrackProjection(
                 track = track,
-                fields = fieldsByTrack[track.id].orEmpty().sortedBy(TrackField::position),
+                fields = trackFields.sortedBy(TrackField::position),
                 options = allOptions.filter { it.fieldId in fieldIdsByTrack[track.id].orEmpty() }
                     .sortedBy(TrackChoiceOption::position),
                 entries = entriesByTrack[track.id].orEmpty().map { entry ->
@@ -139,6 +150,15 @@ class RoomTrackRepository(
         validateFieldUnits(valid.fields)
         val existing = dao.getTrack(id) ?: error("Track no longer exists")
         val area = areaRepository.resolve(valid.areaId, valid.area)
+        val existingFields = dao.getFields(id)
+        val existingOptions = existingFields.takeIf { it.isNotEmpty() }
+            ?.let { dao.getOptionsForFields(it.map(TrackFieldEntity::id)) }
+            .orEmpty()
+        val fieldsChanged = !existingFields.matches(valid.fields, existingOptions)
+        val searchMetadataChanged = existing.name != valid.name ||
+            existing.areaId != area.id ||
+            existing.area != area.name ||
+            existing.tagsCsv != valid.tags.joinToString(",")
         dao.updateTrack(
             existing.copy(
                 name = valid.name,
@@ -150,14 +170,17 @@ class RoomTrackRepository(
                 updatedAtMillis = clock.now().toEpochMilli(),
             ),
         )
-        syncFields(
-            trackId = id,
-            drafts = valid.fields,
-            confirmedFieldValueDeletionIds = confirmedFieldValueDeletionIds,
-            confirmedOptionValueDeletionIds = confirmedOptionValueDeletionIds,
-            optionReplacementIds = optionReplacementIds,
-        )
-        rebuildSearchIndex(id)
+        if (fieldsChanged) {
+            syncFields(
+                trackId = id,
+                drafts = valid.fields,
+                confirmedFieldValueDeletionIds = confirmedFieldValueDeletionIds,
+                confirmedOptionValueDeletionIds = confirmedOptionValueDeletionIds,
+                optionReplacementIds = optionReplacementIds,
+            )
+        }
+        if (fieldsChanged || searchMetadataChanged) rebuildSearchIndex(id)
+        TrackUpdateImpact(automationInputsChanged = fieldsChanged)
     }
 
     override suspend fun duplicate(id: Long): Long {
@@ -736,6 +759,52 @@ class RoomTrackRepository(
             createdAtMillis = current?.createdAtMillis ?: now,
             updatedAtMillis = now,
         )
+    }
+}
+
+private fun List<TrackFieldEntity>.matches(
+    drafts: List<TrackFieldDraft>,
+    options: List<TrackChoiceOptionEntity>,
+): Boolean {
+    val ordered = sortedBy(TrackFieldEntity::position)
+    if (ordered.size != drafts.size) return false
+    return ordered.zip(drafts).withIndex().all { (index, pair) ->
+        val (stored, draft) = pair
+        val identityMatches = when {
+            draft.id != null -> draft.id == stored.id
+            draft.uuid != null -> draft.uuid == stored.uuid
+            else -> false
+        }
+        identityMatches &&
+            stored.name == draft.name &&
+            stored.type == draft.type.name &&
+            stored.position == index &&
+            stored.required == draft.required &&
+            stored.primaryField == draft.primary &&
+            stored.showInList == draft.showInList &&
+            stored.dimension == draft.dimension?.name &&
+            stored.unitId == draft.unitId &&
+            stored.precision == draft.precision &&
+            stored.scaleMin == draft.scaleMin &&
+            stored.scaleMax == draft.scaleMax &&
+            stored.scaleLowLabel == draft.scaleLowLabel &&
+            stored.scaleHighLabel == draft.scaleHighLabel &&
+            stored.scaleStep == draft.scaleStep &&
+            options.filter { it.fieldId == stored.id }.sortedBy(TrackChoiceOptionEntity::position)
+                .matches(draft.options)
+    }
+}
+
+private fun List<TrackChoiceOptionEntity>.matches(drafts: List<TrackChoiceOptionDraft>): Boolean {
+    if (size != drafts.size) return false
+    return zip(drafts).withIndex().all { (index, pair) ->
+        val (stored, draft) = pair
+        val identityMatches = when {
+            draft.id != null -> draft.id == stored.id
+            draft.uuid != null -> draft.uuid == stored.uuid
+            else -> false
+        }
+        identityMatches && stored.label == draft.label && stored.position == index
     }
 }
 

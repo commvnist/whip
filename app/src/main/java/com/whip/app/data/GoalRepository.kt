@@ -23,8 +23,7 @@ import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.MetricValueKind
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.UnitDefinition
-import com.whip.app.domain.compatibleAggregations
-import com.whip.app.domain.defaultDirection
+import com.whip.app.domain.validationErrors
 import com.whip.app.domain.withTypeSemantics
 import java.time.Instant
 import java.time.LocalDate
@@ -37,6 +36,7 @@ interface GoalRepository {
     val milestones: Flow<List<GoalMilestone>>
     val metricEntries: Flow<List<MetricEntry>>
 
+    suspend fun get(id: Long): Goal?
     suspend fun create(draft: GoalDraft): Long
     suspend fun update(id: Long, draft: GoalDraft)
     suspend fun duplicate(id: Long): Long
@@ -69,9 +69,11 @@ class RoomGoalRepository(
     override val milestones = dao.observeMilestones().map { it.map(GoalMilestoneEntity::toDomain) }
     override val metricEntries = measurementRepository.entries
 
+    override suspend fun get(id: Long): Goal? = dao.getGoal(id)?.toDomain()
+
     override suspend fun create(draft: GoalDraft): Long = database.withTransaction {
         val semanticDraft = draft.withTypeSemantics()
-        validateGoal(semanticDraft, clock.now().toEpochMilli())
+        semanticDraft.requireValid(clock.now().toEpochMilli())
         val area = areaRepository.resolve(semanticDraft.areaId, semanticDraft.area)
         val resolvedDraft = semanticDraft.copy(areaId = area.id, area = area.name)
         measurementRepository.ensureCustomUnit(semanticDraft.unitId, semanticDraft.unitId, semanticDraft.unitId, semanticDraft.dimension)
@@ -93,7 +95,7 @@ class RoomGoalRepository(
 
     override suspend fun update(id: Long, draft: GoalDraft) = database.withTransaction {
         val semanticDraft = draft.withTypeSemantics()
-        validateGoal(semanticDraft, clock.now().toEpochMilli())
+        semanticDraft.requireValid(clock.now().toEpochMilli())
         val area = areaRepository.resolve(semanticDraft.areaId, semanticDraft.area)
         val resolvedDraft = semanticDraft.copy(areaId = area.id, area = area.name)
         measurementRepository.ensureCustomUnit(semanticDraft.unitId, semanticDraft.unitId, semanticDraft.unitId, semanticDraft.dimension)
@@ -116,7 +118,10 @@ class RoomGoalRepository(
                 unit = unit,
             ),
         )
-        syncMilestones(id, semanticDraft.milestones, now)
+        val existingMilestones = dao.getMilestones(id)
+        if (!existingMilestones.matches(semanticDraft.milestones)) {
+            syncMilestones(id, semanticDraft.milestones, now)
+        }
     }
 
     override suspend fun duplicate(id: Long): Long {
@@ -272,36 +277,21 @@ class RoomGoalRepository(
         }
 }
 
-private fun validateGoal(draft: GoalDraft, nowMillis: Long) {
-    require(draft.name.isNotBlank()) { "Goal name is required" }
-    require(draft.deadline == null || !draft.deadline.isBefore(draft.startDate)) { "Deadline cannot precede the start date" }
-    require(listOfNotNull(draft.baseline, draft.targetMin, draft.targetMax).all(Double::isFinite)) { "Goal values must be finite numbers" }
-    require(draft.aggregation in draft.type.compatibleAggregations()) { "Goal calculation does not match its type" }
-    require(draft.direction == draft.type.defaultDirection()) { "Goal direction does not match its type" }
-    require(draft.paceType == GoalPaceType.None || draft.deadline != null) { "Pace guidance requires a deadline" }
-    when (draft.type) {
-        GoalType.ReachValue, GoalType.ReduceValue, GoalType.AccumulateTotal, GoalType.MeetAverage ->
-            require(draft.targetMin?.isFinite() == true) { "Enter a target" }
-        GoalType.MaintainRange -> require(
-            draft.targetMin?.isFinite() == true && draft.targetMax?.isFinite() == true && draft.targetMin <= draft.targetMax,
-        ) { "Enter a valid goal range" }
-        GoalType.WeightedMilestones -> {
-            require(draft.milestones.any { it.name.isNotBlank() }) { "Add at least one milestone" }
-            require(draft.milestones.all { it.weight.isFinite() && it.weight >= 0.0 }) { "Milestone weights must be non-negative numbers" }
-            require(draft.milestones.any { it.weight > 0.0 }) { "At least one milestone must have a positive weight" }
-        }
-        GoalType.ElapsedSince -> {
-            require(draft.elapsedStartMillis != null) { "Choose when the timer started" }
-            require(draft.elapsedStartMillis <= nowMillis) { "Start time cannot be in the future" }
-            require(draft.deadline == null) { "Elapsed-time Goals do not use a deadline" }
-        }
-        GoalType.Consistency, GoalType.OpenEndedTrend -> Unit
+private fun List<GoalMilestoneEntity>.matches(drafts: List<GoalMilestoneDraft>): Boolean {
+    val normalized = drafts.filter { it.name.isNotBlank() }
+    if (size != normalized.size) return false
+    return zip(normalized).withIndex().all { (index, pair) ->
+        val (stored, draft) = pair
+        stored.name == draft.name.trim() &&
+            stored.position == index &&
+            stored.weight == draft.weight.coerceAtLeast(0.0) &&
+            stored.reward == draft.reward.trim()
     }
-    if (draft.aggregationPeriod == GoalAggregationPeriod.RollingDays) require((draft.rollingDays ?: 0) > 0) { "Enter a positive rolling window" }
-    if (draft.type == GoalType.Consistency) {
-        require((draft.targetMin ?: 0.0) > 0.0) { "Enter a per-period consistency target" }
-        require((draft.consistencyRequiredPeriods ?: 0) > 0) { "Enter how many periods the goal should cover" }
-    }
+}
+
+private fun GoalDraft.requireValid(nowMillis: Long) {
+    val problems = validationErrors(nowMillis)
+    require(problems.isEmpty()) { problems.first() }
 }
 
 private fun GoalDraft.toEntity(

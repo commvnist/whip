@@ -11,7 +11,7 @@ import org.junit.Test
 
 class WhipVisualLanguageTest {
     @Test
-    fun equivalentHighlightsUseOneAccentFamily() {
+    fun semanticRolesRemainDistinctAndMapToTheirMaterialMeaning() {
         val source = lightColorScheme(
             primary = Color.Red,
             onPrimary = Color.White,
@@ -21,16 +21,16 @@ class WhipVisualLanguageTest {
             tertiary = Color.Blue,
         )
 
-        val unified = source.withUnifiedHighlights()
+        val semantic = source.toWhipSemanticColors()
 
-        assertEquals(unified.primary, unified.secondary)
-        assertEquals(unified.primary, unified.tertiary)
-        assertEquals(unified.primaryContainer, unified.secondaryContainer)
-        assertEquals(unified.primaryContainer, unified.tertiaryContainer)
-        assertEquals(unified.onPrimaryContainer, unified.onSecondaryContainer)
-        assertEquals(unified.onPrimaryContainer, unified.onTertiaryContainer)
-        assertEquals(source.outlineVariant, unified.outlineVariant)
-        assertEquals(source.error, unified.error)
+        assertEquals(source.primary, semantic.action)
+        assertEquals(source.primaryContainer, semantic.selection)
+        assertEquals(source.secondary, semantic.success)
+        assertEquals(source.tertiary, semantic.warning)
+        assertEquals(source.error, semantic.destructive)
+        assertEquals(source.onSurfaceVariant, semantic.metadata)
+        assertTrue(semantic.action != semantic.success)
+        assertTrue(semantic.action != semantic.warning)
     }
 
     @Test
@@ -104,9 +104,9 @@ class WhipVisualLanguageTest {
         assertTrue(habit.contains("listOf(HabitDestination.Today, HabitDestination.All, HabitDestination.Insights)"))
         assertTrue(goal.contains("enum class GoalDestination { Active, Completed, Archived, Insights }"))
         assertTrue(goal.contains("listOf(GoalDestination.Active, GoalDestination.Completed, GoalDestination.Insights)"))
-        assertTrue(track.contains("Entries(\"Entries\"),\n    Automations(\"Automations\"),\n    Options(\"Options\"),\n    Insights(\"Insights\")"))
+        assertTrue(track.contains("Entries(\"Entries\"),\n    Automations(\"Rules\"),\n    Options(\"Options\"),\n    Insights(\"Insights\")"))
         assertTrue(track.contains("listOf(TrackDetailDestination.Entries, TrackDetailDestination.Automations, TrackDetailDestination.Insights)"))
         assertTrue(goal.contains("GoalDestination.Completed) \"Done\""))
-        assertTrue(track.contains("TrackDetailDestination.Automations) \"Auto\""))
+        assertTrue(track.contains("compactLabel = TrackDetailDestination::label"))
     }
 }

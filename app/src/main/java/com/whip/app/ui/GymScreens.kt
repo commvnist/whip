@@ -307,17 +307,6 @@ fun GymAreaContent(
         substituteWorkoutExerciseId = null
         catalogSavePending = false
     }
-    LaunchedEffect(operationStatus, catalogSavePending) {
-        if (!catalogSavePending) return@LaunchedEffect
-        when (operationStatus) {
-            is OperationStatus.Running -> Unit
-            is OperationStatus.Succeeded -> closeCatalogEditors()
-            is OperationStatus.Failed -> {
-                catalogSavePending = false
-            }
-            OperationStatus.Idle -> Unit
-        }
-    }
     LaunchedEffect(createExerciseRequested, startWorkoutRequested) {
         if (createExerciseRequested) creatingExercise = true
         if (startWorkoutRequested) showStartWorkout = true
@@ -388,6 +377,7 @@ fun GymAreaContent(
             },
             label = GymDestination::name,
             testTagPrefix = "gym-destination",
+            barTestTag = "gym-workspace-navigation",
         )
         if (!routineEditorOpen && destination in libraryGymDestinations) {
             Row(
@@ -522,10 +512,14 @@ fun GymAreaContent(
             },
             onSave = { draft ->
                 catalogSavePending = true
+                val onFinished: (Boolean) -> Unit = { succeeded ->
+                    catalogSavePending = false
+                    if (succeeded) closeCatalogEditors()
+                }
                 when {
-                    machineVersionSource != null -> viewModel.createMachineVersion(machineVersionSource.id, draft)
-                    inlineMachineWorkoutExerciseId != null -> viewModel.createMachineAndAssign(requireNotNull(inlineMachineWorkoutExerciseId), draft)
-                    else -> viewModel.saveMachine(machineEditor?.id, draft)
+                    machineVersionSource != null -> viewModel.createMachineVersion(machineVersionSource.id, draft, onFinished)
+                    inlineMachineWorkoutExerciseId != null -> viewModel.createMachineAndAssign(requireNotNull(inlineMachineWorkoutExerciseId), draft, onFinished)
+                    else -> viewModel.saveMachine(machineEditor?.id, draft, onFinished)
                 }
             },
         )
@@ -550,14 +544,18 @@ fun GymAreaContent(
             },
             onSave = { draft ->
                 catalogSavePending = true
+                val onFinished: (Boolean) -> Unit = { succeeded ->
+                    catalogSavePending = false
+                    if (succeeded) closeCatalogEditors()
+                }
                 val sessionId = addCreatedExerciseToSession
                 val substitutionId = createForSubstitutionId
                 if (substitutionId != null) {
-                    viewModel.createExerciseAndSubstitute(substitutionId, draft)
+                    viewModel.createExerciseAndSubstitute(substitutionId, draft, onFinished)
                 } else if (sessionId != null) {
-                    viewModel.createExerciseAndAdd(sessionId, draft)
+                    viewModel.createExerciseAndAdd(sessionId, draft, onFinished)
                 } else {
-                    viewModel.saveExercise(exerciseEditor?.id, draft)
+                    viewModel.saveExercise(exerciseEditor?.id, draft, onFinished)
                 }
             },
         )
@@ -1545,7 +1543,7 @@ internal fun QuickSetEntry(
     showRpe: Boolean,
     showRir: Boolean,
     suggestedSet: WorkoutSet? = null,
-    onMoreDetails: () -> Unit = {},
+    onMoreDetails: () -> Unit,
     onSave: (WorkoutSetDraft, Boolean) -> Unit,
 ) {
     val policyExercise = workoutExercise.applyPolicySnapshot(exercise)
@@ -4651,8 +4649,8 @@ private fun SharedGymLineChart(
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(firstDate.toString(), style = MaterialTheme.typography.labelSmall)
-            Text(lastDate.toString(), style = MaterialTheme.typography.labelSmall)
+            Text(firstDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)), style = MaterialTheme.typography.labelSmall)
+            Text(lastDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)), style = MaterialTheme.typography.labelSmall)
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             series.forEachIndexed { index, item ->
@@ -5437,7 +5435,12 @@ private fun WorkoutEditorDialog(
         title = { Text(if (session == null) "Start Workout" else "Workout Details") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("Optional name") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    name,
+                    { name = it },
+                    label = { Text("Optional name") },
+                    modifier = Modifier.fillMaxWidth().testTag("workout-editor-name"),
+                )
                 OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth())
                 if (session == null) {
                     WhipOutlinedButton(onClick = { showDatePicker = true }) {

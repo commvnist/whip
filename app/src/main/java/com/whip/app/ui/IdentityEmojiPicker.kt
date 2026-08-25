@@ -75,7 +75,7 @@ internal fun WhipIdentityEmoji(
     }
 }
 
-/** Shared identity picker for Habits, Goals, and Tracks. */
+/** Shared identity picker for Tasks, Habits, Goals, and Tracks. */
 @Composable
 internal fun WhipEmojiPicker(
     value: String,
@@ -214,7 +214,7 @@ internal fun WhipEmojiPicker(
                                     when {
                                         customAttempted && duplicateCustomName -> "That custom emoji name is already in use."
                                         customAttempted && customName.isBlank() -> "Give this emoji a name for your organization."
-                                        else -> "This name appears in every Habit, Goal, and Track picker."
+                                        else -> "This name appears in every Task, Habit, Goal, and Track picker."
                                     },
                                 )
                             },

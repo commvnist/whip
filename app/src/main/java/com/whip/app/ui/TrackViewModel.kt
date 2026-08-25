@@ -166,13 +166,24 @@ class TrackViewModel(application: Application) : AndroidViewModel(application) {
         optionReplacementIds: Map<Long, Long> = emptyMap(),
         onSaved: (Long) -> Unit = {},
     ) = runOperation(if (id == null) "Creating Track…" else "Saving Track…", if (id == null) "Track created" else "Track saved") {
+        val existingTags = id?.let { uiState.value.track(it)?.track?.tags }
+        var automationInputsChanged = false
         val savedId = if (id == null) repository.create(draft) else {
-            repository.update(id, draft, confirmedFieldValueDeletionIds, confirmedOptionValueDeletionIds, optionReplacementIds)
+            automationInputsChanged = repository.update(
+                id,
+                draft,
+                confirmedFieldValueDeletionIds,
+                confirmedOptionValueDeletionIds,
+                optionReplacementIds,
+            ).automationInputsChanged
             id
         }
-        draft.tags.forEach { app.measurementRepository.ensureTag(it) }
-        app.linkRepository.rebuildAll()
-        app.automationPromptScheduler.syncAll()
+        draft.tags.filter { tag -> existingTags?.none { it.equals(tag, ignoreCase = true) } != false }
+            .forEach { app.measurementRepository.ensureTag(it) }
+        if (automationInputsChanged) {
+            app.linkRepository.rebuildAll()
+            app.automationPromptScheduler.syncAll()
+        }
         onSaved(savedId)
     }
 

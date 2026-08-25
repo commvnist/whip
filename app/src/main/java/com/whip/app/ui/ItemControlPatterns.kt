@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -55,10 +57,13 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.whip.app.R
 
 /**
  * Shared Whip interaction grammar:
@@ -86,6 +91,102 @@ internal fun ItemEditButton(
     }
 }
 
+/**
+ * Shared collection-card surface for Tasks, Habits, and Goals.
+ *
+ * Keeping the surface, corner treatment, inset, and vertical rhythm here stops
+ * each productivity area from gradually developing its own visual grammar.
+ */
+@Composable
+internal fun ProductivityItemCard(
+    modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            content = content,
+        )
+    }
+}
+
+/**
+ * Shared collection-card header hierarchy:
+ *
+ *     identity emoji -> title/context -> primary action -> edit
+ *
+ * The primary action is always in the same 72 dp trailing lane when present.
+ * This keeps completion, logging, rating, timer, and reset controls predictable
+ * without pretending those domain actions all mean the same thing.
+ */
+@Composable
+internal fun ProductivityItemHeader(
+    itemType: String,
+    itemName: String,
+    emoji: String,
+    areaId: String?,
+    areaName: String,
+    onEdit: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    identityModifier: Modifier = Modifier,
+    primaryActionModifier: Modifier = Modifier,
+    editModifier: Modifier = Modifier,
+    titleTextDecoration: TextDecoration? = null,
+    headlineAccessory: (@Composable RowScope.() -> Unit)? = null,
+    supportingContent: @Composable ColumnScope.() -> Unit = {},
+    primaryAction: (@Composable () -> Unit)? = null,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(identityModifier) { WhipIdentityEmoji(emoji) }
+        Spacer(Modifier.width(10.dp))
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                text = itemName,
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                textDecoration = titleTextDecoration,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            // Status badges must never compete with the item name for horizontal
+            // space. Narrow split panes still reserve the shared action lanes, so
+            // an inline badge could collapse even a short title to a few glyphs.
+            headlineAccessory?.let { accessory ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    accessory()
+                }
+            }
+            if (areaId != null) AreaBadge(areaId, areaName)
+            supportingContent()
+        }
+        primaryAction?.let { action ->
+            Box(
+                modifier = primaryActionModifier.width(72.dp).heightIn(min = 48.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                action()
+            }
+        }
+        if (onEdit != null) ItemEditButton(itemType, itemName, onEdit, editModifier)
+    }
+}
+
 @Composable
 internal fun DetailEditButton(label: String, onEdit: () -> Unit) {
     WhipTextButton(onClick = onEdit) { Text(label.uiTitleCase()) }
@@ -102,21 +203,28 @@ internal fun <T> DestinationTabBar(
     label: (T) -> String,
     compactLabel: (T) -> String = label,
     testTagPrefix: String? = null,
+    barTestTag: String? = null,
 ) {
     if (destinations.isEmpty()) return
     val fontScale = LocalDensity.current.fontScale
     var pagesExpanded by rememberSaveable { mutableStateOf(false) }
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(barTestTag?.let(Modifier::testTag) ?: Modifier),
+    ) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val visibleCapacity = when {
                 fontScale >= 2f -> 2
                 fontScale >= 1.5f || maxWidth < 340.dp -> 2
+                maxWidth < 380.dp && destinations.any { compactLabel(it).length > 10 } -> 3
                 destinations.size <= 4 -> 4
                 maxWidth < 520.dp -> 3
                 else -> 4
             }
-            val preferred = primaryDestinations.filter { it in destinations }.ifEmpty { destinations }
-            val visible = preferred.take(visibleCapacity).toMutableList().also { shown ->
+            val preferred = primaryDestinations.filter { it in destinations }
+            val orderedCandidates = (preferred + destinations).distinct()
+            val visible = orderedCandidates.take(visibleCapacity).toMutableList().also { shown ->
                 if (selected !in shown) {
                     if (shown.isEmpty()) shown += selected
                     else shown[shown.lastIndex] = selected
@@ -164,12 +272,12 @@ internal fun <T> DestinationTabBar(
                     }
                 }
                 if (hidden.isNotEmpty()) Box {
-                    WhipOutlinedButton(
+                    WhipTextButton(
                         onClick = { pagesExpanded = true },
                         modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Open Pages" },
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                     ) {
-                        Text("Pages", maxLines = 1)
+                        Text(stringResource(R.string.action_more), maxLines = 1)
                         Icon(Icons.Outlined.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
                     }
                     DropdownMenu(expanded = pagesExpanded, onDismissRequest = { pagesExpanded = false }) {

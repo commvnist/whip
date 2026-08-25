@@ -147,6 +147,10 @@ class RoutineBuilderUiTest {
         compose.onNodeWithTag("routine-placement-editor").assertIsDisplayed()
         compose.onNodeWithText("Incline press").assertIsDisplayed()
         compose.onNodeWithContentDescription("Back in routine builder").performClick()
+        compose.onNode(
+            hasText("Incline press") and hasAnyAncestor(hasTestTag("routine-selected-exercises")),
+            useUnmergedTree = true,
+        ).assertIsDisplayed()
         compose.onNodeWithTag("routine-editor-name").assertTextContains("My routine")
         compose.onNodeWithText("1 new library item was saved independently and will remain if this routine is canceled.").assertIsDisplayed()
     }

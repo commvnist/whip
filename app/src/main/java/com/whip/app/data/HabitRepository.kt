@@ -13,6 +13,7 @@ import com.whip.app.domain.HabitLog
 import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitScheduleType
+import com.whip.app.domain.HabitSkip
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.DEFAULT_HABIT_EMOJI
 import com.whip.app.domain.normalizedIdentityEmoji
@@ -24,6 +25,7 @@ import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.toWeekdayMask
 import com.whip.app.domain.toWeekdays
+import com.whip.app.domain.isScheduledOn
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -36,7 +38,9 @@ interface HabitRepository {
     val logs: Flow<List<HabitLog>>
     val checklistStates: Flow<List<HabitChecklistState>>
     val pauses: Flow<List<HabitPause>>
+    val skips: Flow<List<HabitSkip>>
 
+    suspend fun get(id: Long): Habit?
     suspend fun create(draft: HabitDraft): Long
     suspend fun update(id: Long, draft: HabitDraft)
     suspend fun duplicate(id: Long): Long
@@ -45,6 +49,8 @@ interface HabitRepository {
     suspend fun setPaused(id: Long, paused: Boolean)
     suspend fun reorder(ids: List<Long>)
     suspend fun addPause(id: Long, start: LocalDate, end: LocalDate?, note: String = "")
+    suspend fun skipDay(habitId: Long, date: LocalDate)
+    suspend fun undoSkip(habitId: Long, date: LocalDate)
     suspend fun log(
         habitId: Long,
         value: Double?,
@@ -84,6 +90,9 @@ class RoomHabitRepository(
     override val logs = dao.observeLogs().map { it.map(HabitLogEntity::toDomain) }
     override val checklistStates = dao.observeChecklistStates().map { it.map(HabitChecklistStateEntity::toDomain) }
     override val pauses = dao.observePauses().map { it.map(HabitPauseEntity::toDomain) }
+    override val skips = dao.observeSkips().map { it.map(HabitSkipEntity::toDomain) }
+
+    override suspend fun get(id: Long): Habit? = dao.getHabit(id)?.toDomain()
 
     override suspend fun create(draft: HabitDraft): Long = database.withTransaction {
         validateHabit(draft)
@@ -134,7 +143,10 @@ class RoomHabitRepository(
                 updatedAtMillis = now,
             ),
         )
-        syncChecklist(id, resolvedDraft.checklistItems, now)
+        val existingChecklist = dao.getChecklistItems(id)
+        if (!existingChecklist.matches(resolvedDraft.checklistItems)) {
+            syncChecklist(id, resolvedDraft.checklistItems, now)
+        }
     }
 
     override suspend fun duplicate(id: Long): Long {
@@ -173,16 +185,14 @@ class RoomHabitRepository(
         val instant = timestamp ?: clock.now()
         val zone = clock.zoneId()
         val localDate = date ?: timestamp?.atZone(zone)?.toLocalDate() ?: clock.today(zone)
+        dao.deleteSkip(habitId, localDate.toEpochDay())
         val logUuid = ids.nextId()
-        val effectiveValue = when (habit.trackingMode) {
-            HabitTrackingMode.CheckOff -> value ?: 1.0
-            else -> value
-        }
+        val effectiveValue = if (
+            habit.trackingMode == HabitTrackingMode.CheckOff &&
+            status in setOf(HabitLogStatus.Recorded, HabitLogStatus.Success)
+        ) value ?: 1.0 else value
         val entryStatus = when (status) {
-            HabitLogStatus.Skipped -> MetricEntryStatus.Skipped
-            HabitLogStatus.Missing -> MetricEntryStatus.Missing
             HabitLogStatus.Failed -> MetricEntryStatus.Failed
-            HabitLogStatus.Excused -> MetricEntryStatus.Excused
             else -> MetricEntryStatus.Recorded
         }
         val metricEntryId = measurementRepository.record(
@@ -242,12 +252,10 @@ class RoomHabitRepository(
             value
         }
         val entryStatus = when (status) {
-            HabitLogStatus.Skipped -> MetricEntryStatus.Skipped
-            HabitLogStatus.Missing -> MetricEntryStatus.Missing
             HabitLogStatus.Failed -> MetricEntryStatus.Failed
-            HabitLogStatus.Excused -> MetricEntryStatus.Excused
             else -> MetricEntryStatus.Recorded
         }
+        dao.deleteSkip(existing.habitId, date.toEpochDay())
         val zone = ZoneId.of(existing.zoneId)
         val instant = Instant.ofEpochMilli(existing.timestampMillis)
         val effectiveUnitId = enteredUnitId ?: existing.enteredUnitId ?: habit.unitId
@@ -319,6 +327,39 @@ class RoomHabitRepository(
         }
     }
 
+    override suspend fun skipDay(habitId: Long, date: LocalDate) = database.withTransaction {
+        val habit = dao.getHabit(habitId)?.toDomain() ?: error("Habit no longer exists")
+        require(!habit.archived) { "Archived habits cannot be skipped" }
+        require(!habit.paused) { "Paused habits do not need to be skipped" }
+        require(habit.sourceMetricId == null) { "Synced habits cannot be skipped manually" }
+        require(habit.scheduleType !in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)) {
+            "Flexible habits are completed any time during their period and do not have a daily occurrence to skip"
+        }
+        require(habit.isScheduledOn(date)) { "This habit is not scheduled for that date" }
+        require(dao.getLogsForDate(habitId, date.toEpochDay()).isEmpty()) {
+            "Remove the existing check-in before skipping this day"
+        }
+        require(dao.completedChecklistCount(habitId, date.toEpochDay()) == 0) {
+            "Clear the completed checklist items before skipping this day"
+        }
+        val now = clock.now().toEpochMilli()
+        val existing = dao.getSkips(habitId).firstOrNull { it.localEpochDay == date.toEpochDay() }
+        dao.upsertSkip(
+            HabitSkipEntity(
+                uuid = existing?.uuid ?: ids.nextId(),
+                habitId = habitId,
+                localEpochDay = date.toEpochDay(),
+                skippedAtMillis = existing?.skippedAtMillis ?: now,
+                createdAtMillis = existing?.createdAtMillis ?: now,
+                updatedAtMillis = now,
+            ),
+        )
+    }
+
+    override suspend fun undoSkip(habitId: Long, date: LocalDate) {
+        dao.deleteSkip(habitId, date.toEpochDay())
+    }
+
     override suspend fun startTimer(habitId: Long) {
         updateFlags(habitId) { it.copy(timerStartedAtMillis = clock.now().toEpochMilli()) }
     }
@@ -354,6 +395,17 @@ class RoomHabitRepository(
         dao.updateHabit(transform(current).copy(updatedAtMillis = clock.now().toEpochMilli()))
     }
 
+}
+
+private fun List<HabitChecklistItemEntity>.matches(drafts: List<HabitChecklistItemDraft>): Boolean {
+    val normalized = drafts.filter { it.name.isNotBlank() }.sortedBy(HabitChecklistItemDraft::position)
+    if (size != normalized.size) return false
+    return zip(normalized).withIndex().all { (index, pair) ->
+        val (stored, draft) = pair
+        !stored.archived &&
+            stored.name == draft.name.trim() &&
+            stored.position == index
+    }
 }
 
 private fun validateHabit(draft: HabitDraft) {
@@ -424,6 +476,7 @@ private fun HabitChecklistItemEntity.toDomain() = HabitChecklistItem(id, uuid, h
 private fun HabitLogEntity.toDomain() = HabitLog(id, uuid, habitId, value, canonicalValue, enteredUnitId, HabitLogStatus.valueOf(status), Instant.ofEpochMilli(timestampMillis), LocalDate.ofEpochDay(localEpochDay), zoneId, offsetSeconds, note, MetricSourceType.valueOf(sourceType), sourceId, metricEntryId, createdAtMillis, updatedAtMillis)
 private fun HabitChecklistStateEntity.toDomain() = HabitChecklistState(habitId, itemId, LocalDate.ofEpochDay(localEpochDay), completed, completedAtMillis, nameSnapshot)
 private fun HabitPauseEntity.toDomain() = HabitPause(id, habitId, LocalDate.ofEpochDay(startEpochDay), endEpochDay?.let(LocalDate::ofEpochDay), note)
+private fun HabitSkipEntity.toDomain() = HabitSkip(uuid, habitId, LocalDate.ofEpochDay(localEpochDay), skippedAtMillis, createdAtMillis, updatedAtMillis)
 
 private fun Habit.toDraft(items: List<HabitChecklistItemEntity>) = HabitDraft(
     name = name,

@@ -20,17 +20,15 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.uiautomator.UiDevice
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Before
@@ -73,10 +71,10 @@ class ProductivityCreationJourneyE2ETest {
             compose.waitForIdle()
 
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            compose.onNodeWithTag("task-quick-capture").performTextInput("Journey task")
+            compose.onNodeWithTag("task-quick-capture").performTextReplacement("Journey task")
             compose.onNodeWithContentDescription("Add task now").performClick()
             runBlocking {
-                withTimeout(5_000) {
+                awaitPersistence("quick-captured task") {
                     app.taskRepository.tasks.first { tasks -> tasks.any { it.title == "Journey task" } }
                 }
             }
@@ -106,11 +104,11 @@ class ProductivityCreationJourneyE2ETest {
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
             compose.onNodeWithContentDescription("Add habit").performClick()
-            compose.onNodeWithTag("habit-editor-name").performTextInput("Journey water")
+            compose.onNodeWithTag("habit-editor-name").performTextReplacement("Journey water")
             compose.onNodeWithText("Count").performClick()
             compose.onNodeWithText("Save").performClick()
             val habitId = runBlocking {
-                withTimeout(5_000) {
+                awaitPersistence("created habit") {
                     app.habitRepository.habits.first { habits -> habits.any { it.name == "Journey water" } }
                         .first { it.name == "Journey water" }.id
                 }
@@ -123,7 +121,9 @@ class ProductivityCreationJourneyE2ETest {
             }
             compose.onNodeWithText("+1").performClick()
             runBlocking {
-                withTimeout(5_000) { app.habitRepository.logs.first { logs -> logs.any { it.habitId == habitId } } }
+                awaitPersistence("habit check-off") {
+                    app.habitRepository.logs.first { logs -> logs.any { it.habitId == habitId } }
+                }
             }
             compose.onNodeWithContentDescription("Edit habit Journey water")
                 .performSemanticsAction(SemanticsActions.OnClick)
@@ -155,18 +155,16 @@ class ProductivityCreationJourneyE2ETest {
 
             compose.onNodeWithContentDescription("Goals tab").performClick()
             compose.onNodeWithContentDescription("Add goal").performClick()
-            compose.onNodeWithTag("goal-editor-name").performTextInput("Journey target")
-            UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).apply {
-                pressBack()
-                waitForIdle(1_000)
-            }
-            compose.waitForIdle()
+            compose.onNodeWithTag("goal-editor-name").performTextReplacement("Journey target")
+            // Do not inject Android Back to dismiss an IME here. On Samsung's
+            // expanded Fold layout the semantics edit may not open the IME, so
+            // Back correctly leaves the editor instead of dismissing a keyboard.
             compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasTestTag("goal-editor-target"))
             compose.waitForIdle()
             compose.onNodeWithTag("goal-editor-target").assertIsDisplayed().performTextReplacement("10")
             compose.onNodeWithText("Save").performClick()
             val goalId = runBlocking {
-                withTimeout(5_000) {
+                awaitPersistence("created goal") {
                     app.goalRepository.goals.first { goals -> goals.any { it.name == "Journey target" } }
                         .first { it.name == "Journey target" }.id
                 }
@@ -198,23 +196,26 @@ class ProductivityCreationJourneyE2ETest {
             compose.onNodeWithText("Edit Goal").assertIsDisplayed()
             compose.onNodeWithText("Edit Goal").performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithText("Edit Goal").assertIsDisplayed()
-            compose.onNodeWithContentDescription("Cancel Goal editing")
+            compose.onNodeWithTag("emoji-picker-trigger").performClick()
+            compose.onNodeWithTag("emoji-preset-Fitness").performClick()
+            compose.onNodeWithText("Save").performClick()
+            compose.waitUntil(2_500) {
+                compose.onAllNodesWithTag("goal-editor-surface").fetchSemanticsNodes().isEmpty()
+            }
+            check(runBlocking { app.goalRepository.goals.first().single { it.id == goalId }.icon } == "💪")
+            compose.onNodeWithTag("goal-destination-Archived")
                 .performSemanticsAction(SemanticsActions.OnClick)
-            if (compose.onAllNodesWithText("Discard Changes").fetchSemanticsNodes().isNotEmpty()) {
-                compose.onNodeWithText("Discard Changes").performSemanticsAction(SemanticsActions.OnClick)
-            }
-            compose.onNodeWithContentDescription("Open Pages").performClick()
-            compose.onNodeWithText("Archived").performClick()
             compose.onNodeWithText("Archived Goals").assertIsDisplayed()
-            if (compose.onAllNodesWithTag("goal-destination-Insights").fetchSemanticsNodes().isEmpty()) {
-                compose.onNodeWithContentDescription("Open Pages").performClick()
-                compose.onNodeWithText("Insights").performClick()
-            } else {
-                compose.onNodeWithTag("goal-destination-Insights")
-                    .performSemanticsAction(SemanticsActions.OnClick)
-            }
+            compose.onNodeWithTag("goal-destination-Insights")
+                .performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithText("Goal Insights").assertIsDisplayed()
             compose.onNodeWithTag("goal-insight-$goalId").assertIsDisplayed()
         }
+    }
+
+    private suspend fun <T> awaitPersistence(label: String, block: suspend () -> T): T = try {
+        withTimeout(15_000) { block() }
+    } catch (timeout: TimeoutCancellationException) {
+        throw AssertionError("$label did not reach the repository within 15 seconds", timeout)
     }
 }

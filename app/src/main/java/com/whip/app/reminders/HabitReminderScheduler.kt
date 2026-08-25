@@ -44,7 +44,7 @@ class HabitReminderScheduler(context: Context, private val settingsRepository: S
     private val workManager = WorkManager.getInstance(appContext)
     private val dao = WhipDatabase.get(appContext).habitDao()
 
-    suspend fun syncAll() = dao.getActiveHabits().forEach { syncHabit(it.id) }
+    suspend fun syncAll() = dao.getReminderHabitIds().forEach { syncHabit(it) }
 
     suspend fun syncHabit(habitId: Long) {
         workManager.cancelAllWorkByTag(tag(habitId))
@@ -63,12 +63,13 @@ class HabitReminderScheduler(context: Context, private val settingsRepository: S
         val app = appContext as? WhipApplication
         val domainHabit = app?.habitRepository?.habits?.first()?.firstOrNull { it.id == habitId }
         val domainLogs = app?.habitRepository?.logs?.first()?.filter { it.habitId == habitId }.orEmpty()
+        val domainSkips = app?.habitRepository?.skips?.first()?.filter { it.habitId == habitId }.orEmpty()
         val customUnits = app?.measurementRepository?.customUnits?.first().orEmpty()
         var best: HabitReminderTime? = null
         for (offset in 0L..3_650L) {
             val date = after.toLocalDate().plusDays(offset)
             if (!habit.isScheduled(date) || pauses.any { date.toEpochDay() >= it.startEpochDay && (it.endEpochDay == null || date.toEpochDay() <= it.endEpochDay) }) continue
-            if (domainHabit != null && !domainHabit.reminderNeededOn(domainLogs, date, customUnits)) continue
+            if (domainHabit != null && !domainHabit.reminderNeededOn(domainLogs, date, customUnits, domainSkips)) continue
             (weekdayReminders[date.dayOfWeek] ?: reminderMinutes).forEach { minute ->
                 val settings = settingsRepository?.current()
                 val candidate = adjustForQuietHours(
@@ -136,12 +137,13 @@ class HabitReminderWorker(context: Context, params: WorkerParameters) : Coroutin
         val habit = WhipDatabase.get(applicationContext).habitDao().getHabit(id) ?: return Result.success()
         val domainHabit = app.habitRepository.habits.first().firstOrNull { it.id == id }
         val logs = app.habitRepository.logs.first().filter { it.habitId == id }
+        val skips = app.habitRepository.skips.first().filter { it.habitId == id }
         val customUnits = app.measurementRepository.customUnits.first()
         val logicalDate = logicalHabitReminderDate(
             inputData.getLong(LOGICAL_EPOCH_DAY, Long.MIN_VALUE),
             app.clock.today(),
         )
-        if (!habit.archived && !habit.paused && domainHabit?.reminderNeededOn(logs, logicalDate, customUnits) != false) {
+        if (!habit.archived && !habit.paused && domainHabit?.reminderNeededOn(logs, logicalDate, customUnits, skips) != false) {
             HabitReminderNotifications.show(applicationContext, habit, logicalDate)
         }
         HabitReminderScheduler(applicationContext, app.settingsRepository).scheduleNext(id, System.currentTimeMillis() + 60_000)

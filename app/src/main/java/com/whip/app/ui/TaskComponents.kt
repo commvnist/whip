@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -13,11 +14,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
@@ -54,6 +55,7 @@ import com.whip.app.domain.WhipTask
 import com.whip.app.data.TaskDeletionImpact
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import com.whip.app.ui.theme.whipColors
 
 @Composable
 fun SectionHeading(title: String, count: Int, onClick: (() -> Unit)? = null) {
@@ -91,118 +93,104 @@ fun TaskRow(
     selected: Boolean = false,
     onSelectionToggle: (() -> Unit)? = null,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                completed -> MaterialTheme.colorScheme.surfaceContainerLow
-                item.isDeadlineOverdue -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
-                else -> MaterialTheme.colorScheme.surfaceContainer
+    ProductivityItemCard(
+        modifier = Modifier.then(
+            when {
+                selectionMode && onSelectionToggle != null -> Modifier.clickable(
+                    onClickLabel = "Select ${item.task.title}",
+                    onClick = onSelectionToggle,
+                )
+                onOpenActions != null -> Modifier
+                    .clickable(
+                        onClickLabel = "Open task details for ${item.task.title}",
+                        onClick = onOpenActions,
+                    )
+                    .semantics { contentDescription = "Open task details for ${item.task.title}" }
+                else -> Modifier
             },
         ),
+        containerColor = when {
+            completed -> MaterialTheme.colorScheme.surfaceContainerLow
+            item.isDeadlineOverdue -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
+            else -> MaterialTheme.colorScheme.surfaceContainer
+        },
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(
-                    when {
-                        selectionMode && onSelectionToggle != null -> Modifier.clickable(onClickLabel = "Select ${item.task.title}", onClick = onSelectionToggle)
-                        onOpenActions != null -> Modifier
-                            .clickable(onClickLabel = "Open task details for ${item.task.title}", onClick = onOpenActions)
-                            .semantics { contentDescription = "Open task details for ${item.task.title}" }
-                        else -> Modifier
-                    },
-                )
-                .padding(horizontal = 12.dp, vertical = 13.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Checkbox(
-                checked = if (selectionMode) selected else completed,
-                onCheckedChange = {
-                    if (selectionMode) onSelectionToggle?.invoke() else onComplete?.invoke()
-                },
-                enabled = if (selectionMode) onSelectionToggle != null else onComplete != null,
-                modifier = Modifier.semantics {
-                    contentDescription = if (selectionMode) {
-                        if (selected) "Deselect task ${item.task.title}" else "Select task ${item.task.title}"
-                    } else if (completed) {
-                        "Task ${item.task.title} completed"
-                    } else "Complete task ${item.task.title}"
-                },
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = item.task.title,
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        textDecoration = TextDecoration.LineThrough.takeIf { completed },
-                    )
-                    if (item.isDeadlineOverdue || item.isPastScheduledDate) {
-                        Surface(
-                            shape = MaterialTheme.shapes.small,
+        ProductivityItemHeader(
+            itemType = "task",
+            itemName = item.task.title,
+            emoji = item.task.icon,
+            areaId = item.task.areaId,
+            areaName = item.task.area,
+            onEdit = onEdit.takeUnless { selectionMode },
+            identityModifier = Modifier.testTag("task-icon-${item.task.id}"),
+            primaryActionModifier = Modifier.testTag("task-primary-action-${item.task.id}"),
+            editModifier = Modifier.testTag("task-edit-action-${item.task.id}"),
+            titleTextDecoration = TextDecoration.LineThrough.takeIf { completed },
+            headlineAccessory = if (item.isDeadlineOverdue || item.isPastScheduledDate) {
+                {
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = if (item.isDeadlineOverdue) {
+                            MaterialTheme.colorScheme.errorContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainerHighest
+                        },
+                    ) {
+                        Text(
+                            if (item.isDeadlineOverdue) "Deadline Overdue" else "Past Scheduled Date",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            style = MaterialTheme.typography.labelSmall,
                             color = if (item.isDeadlineOverdue) {
-                                MaterialTheme.colorScheme.errorContainer
+                                MaterialTheme.colorScheme.onErrorContainer
                             } else {
-                                MaterialTheme.colorScheme.surfaceContainerHighest
+                                MaterialTheme.colorScheme.onSurfaceVariant
                             },
-                        ) {
-                            Text(
-                                if (item.isDeadlineOverdue) "Deadline Overdue" else "Past Scheduled Date",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (item.isDeadlineOverdue) {
-                                    MaterialTheme.colorScheme.onErrorContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                            )
-                        }
+                        )
                     }
                 }
-                if (item.task.areaId != null) {
-                    Spacer(Modifier.height(4.dp))
-                    AreaBadge(item.task.areaId, item.task.area)
-                }
-                Spacer(Modifier.height(3.dp))
+            } else null,
+            supportingContent = {
                 Text(
                     item.detailLabel(completed),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (item.task.notes.isNotBlank()) {
-                    Spacer(Modifier.height(3.dp))
-                    Text(
-                        item.task.notes,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                    )
-                }
-                if (item.task.showSubtaskProgress && item.totalSubtasks > 0) {
-                    Spacer(Modifier.height(9.dp))
-                    LinearProgressIndicator(
-                        progress = { item.subtaskProgress },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        item.progressLabel(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            }
-            if (onEdit != null && !selectionMode) {
-                ItemEditButton("task", item.task.title, onEdit)
-            }
+                if (item.task.notes.isNotBlank()) Text(
+                    item.task.notes,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                )
+            },
+            primaryAction = {
+                Checkbox(
+                    checked = if (selectionMode) selected else completed,
+                    onCheckedChange = {
+                        if (selectionMode) onSelectionToggle?.invoke() else onComplete?.invoke()
+                    },
+                    enabled = if (selectionMode) onSelectionToggle != null else onComplete != null,
+                    modifier = Modifier.semantics {
+                        contentDescription = if (selectionMode) {
+                            if (selected) "Deselect task ${item.task.title}" else "Select task ${item.task.title}"
+                        } else if (completed) {
+                            "Task ${item.task.title} completed"
+                        } else "Complete task ${item.task.title}"
+                    },
+                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.whipColors.success),
+                )
+            },
+        )
+        if (item.task.showSubtaskProgress && item.totalSubtasks > 0) {
+            LinearProgressIndicator(
+                progress = { item.subtaskProgress },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                item.progressLabel(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }
@@ -219,14 +207,14 @@ fun TaskActionsDialog(
     onDeletePermanently: () -> Unit,
     onPin: () -> Unit,
     modifier: Modifier = Modifier,
-    onDuplicate: () -> Unit = {},
-    onToggleInbox: () -> Unit = {},
-    onStartFocus: (Int) -> Unit = {},
+    onDuplicate: () -> Unit,
+    onToggleInbox: () -> Unit,
+    onStartFocus: (Int) -> Unit,
     onToggleSubtask: (Long, Boolean) -> Unit,
     onPromoteSubtask: (Long) -> Unit,
     occurrenceHistory: List<TaskOccurrence> = emptyList(),
-    onReopenOccurrence: (TaskOccurrence) -> Unit = {},
-    onResetOccurrence: (TaskOccurrence) -> Unit = {},
+    onReopenOccurrence: (TaskOccurrence) -> Unit,
+    onResetOccurrence: (TaskOccurrence) -> Unit,
 ) {
     var section by rememberSaveable(item.stableKey) { mutableStateOf(TaskDetailSection.Overview) }
     var pendingMoveStepId by rememberSaveable(item.stableKey) { mutableStateOf<Long?>(null) }
@@ -422,8 +410,8 @@ fun CompletedTaskDialog(
     onDeletePermanently: () -> Unit,
     modifier: Modifier = Modifier,
     occurrenceHistory: List<TaskOccurrence> = emptyList(),
-    onReopenOccurrence: (TaskOccurrence) -> Unit = {},
-    onResetOccurrence: (TaskOccurrence) -> Unit = {},
+    onReopenOccurrence: (TaskOccurrence) -> Unit,
+    onResetOccurrence: (TaskOccurrence) -> Unit,
 ) {
     ProductivityEditorDialog(
         modifier = modifier.widthIn(min = 280.dp, max = 560.dp),
@@ -641,9 +629,9 @@ private fun ScheduledTask.detailLabel(completed: Boolean): String {
             "Deadline ${task.deadline.format(shortDateFormatter)}"
         }
     }
-    if (task.priority != TaskPriority.None) parts += task.priority.name
+    if (task.priority != TaskPriority.None) parts += "Priority: ${task.priority.name}"
     task.durationMinutes?.let { parts += "$it min" }
-    if (task.effort != TaskEffort.Unspecified) parts += "${task.effort.label} Effort"
+    if (task.effort != TaskEffort.Unspecified) parts += "Effort: ${task.effort.label}"
     if (task.tags.isNotEmpty()) parts += task.tags.joinToString(prefix = "#", separator = " #")
     if (task.scheduleKind == ScheduleKind.Recurring) parts += task.repeatLabel()
     if (task.inbox) parts += "Inbox"

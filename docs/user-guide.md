@@ -16,6 +16,13 @@
   so “three times each week” and “eight glasses each day” are ordinary setups.
   Numeric quick buttons accept either exact values (`1,2.5,8`) or a compact
   range (`1-10`) expanded by the Quick increment.
+  A scheduled daily occurrence can be **Skipped Today** before it has a
+  check-in. The card immediately shows **Skipped Today · Streak Protected**;
+  History and Insights retain the skipped day, today's reminders stop, and the
+  day neither completes nor breaks the streak. Use **Undo Skip** to restore it.
+  Unlogged past scheduled days become missed automatically—there is no separate
+  “mark missing” or “excuse” action. Flexible weekly/monthly habits have no
+  daily skip because their obligation belongs to the whole period.
 - **Goals** are long-term outcomes. They support latest-value, reduction,
   accumulation, range, average, consistency, weighted milestone, and open-ended
   trend modes. Measurements can be backdated and edited.
@@ -45,6 +52,9 @@ summary and empty-day shortcut only: its data and peer destination remain
 available in main navigation and global add/search.
 Low-pressure mode removes streak pressure from Habit cards and Insights while
 keeping the underlying history intact.
+On Home and the Habits **Today** page, habits that still need attention remain
+first. A completed occurrence moves to the subdued, collapsible **Done** section
+for confirmation or undo, then returns as pending on its next scheduled day.
 
 Task, habit, and goal editors open in a shorter basic mode. **Advanced Options**
 expands to reveal notes, metadata, units, aggregation details, and other power
@@ -62,7 +72,7 @@ Areas group tasks, habits, and goals under any names you choose. Whip creates
 keeps at least one active Area. **Edit Areas** can move every item from one Area
 to another in one action while retaining both the records and their history.
 Before deleting the only active Area, create its replacement first.
-Habits, Goals, and Tracks share the same 100 common identity emojis. Those
+Tasks, Habits, Goals, and Tracks share the same 100 common identity emojis. Those
 defaults are always available and read-only. Choose **Add Custom Emoji** in an
 emoji picker to save a reusable named choice, or open **Settings → Organization
 → Custom Emojis** to add, rename, replace, or remove your own choices. Custom

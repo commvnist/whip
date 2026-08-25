@@ -89,7 +89,7 @@ class EditorDependencyUxTest {
 
         compose.onNodeWithText("Next repeat is based on").assertIsDisplayed()
         compose.onNodeWithText("Completion Date").assertIsNotEnabled()
-        compose.onNodeWithText("Under Repeats, choose Daily or an Every X option", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Under Repeats, choose Daily or a custom interval", substring = true).assertIsDisplayed()
 
         compose.runOnIdle { usesSelectedDays.value = false }
         compose.onNodeWithText("Completion Date").assertIsEnabled().performClick()
@@ -113,12 +113,13 @@ class EditorDependencyUxTest {
         compose.onNodeWithTag("task-repeat-toggle").performScrollTo().performClick()
         compose.onNodeWithText("Schedule and Repeat").performClick()
         compose.onNodeWithTag("task-schedule-consequence").assertIsDisplayed()
-        compose.onNodeWithText("Repeat creates future occurrences", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("This Task repeats from its start date", substring = true).assertIsDisplayed()
 
         compose.onNodeWithText("Repeats").performScrollTo().assertIsDisplayed()
-        compose.onAllNodesWithText("Planning").assertCountEquals(0)
-        compose.onNodeWithText("More Details").performScrollTo().performClick()
         compose.onNodeWithText("Planning").performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithText("Subtasks").assertCountEquals(0)
+        compose.onNodeWithText("Planning Details").performScrollTo().performClick()
+        compose.onNodeWithText("Subtasks").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -149,6 +150,28 @@ class EditorDependencyUxTest {
             assertEquals(null, saved.get()?.timeMinutes)
             assertEquals(false, saved.get()?.reminderEnabled)
         }
+    }
+
+    @Test
+    fun taskEditorChoosesAndSavesSharedIdentityEmoji() {
+        val saved = AtomicReference<TaskDraft?>(null)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                TaskEditorDialog(
+                    request = TaskEditorRequest(sessionId = 105L),
+                    onDismiss = {},
+                    onSave = { _, draft, _ -> saved.set(draft) },
+                    onRequestNotificationPermission = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("task-editor-title").performTextInput("Clean Room")
+        compose.onNodeWithTag("emoji-picker-trigger").performClick()
+        compose.onNodeWithTag("emoji-preset-Cleaning").performClick()
+        compose.onNodeWithText("Save").performClick()
+
+        compose.runOnIdle { assertEquals("🧹", saved.get()?.icon) }
     }
 
     @Test

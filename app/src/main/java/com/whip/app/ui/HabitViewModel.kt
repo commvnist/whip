@@ -12,10 +12,12 @@ import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitChecklistItem
 import com.whip.app.domain.HabitChecklistState
 import com.whip.app.domain.HabitDayProgress
+import com.whip.app.domain.HabitDayState
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitLog
 import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.HabitPause
+import com.whip.app.domain.HabitSkip
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.LinkRuleDraft
@@ -43,6 +45,8 @@ import com.whip.app.domain.periodBounds
 import com.whip.app.domain.flexibleProgress
 import com.whip.app.domain.targetSatisfied
 import com.whip.app.domain.valueForPeriod
+import com.whip.app.domain.dayStateOn
+import com.whip.app.reminders.reminderDefinitionChanged
 import java.time.LocalDate
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -64,6 +68,7 @@ data class HabitUiState(
     val archivedProgress: List<HabitDayProgress> = emptyList(),
     val logs: List<HabitLog> = emptyList(),
     val pauses: List<HabitPause> = emptyList(),
+    val skips: List<HabitSkip> = emptyList(),
     val currentDate: LocalDate = LocalDate.now(),
     val loading: Boolean = true,
     val errorMessage: String? = null,
@@ -87,13 +92,15 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
 
     init { viewModelScope.launch { runCatching { reminders.syncAll() } } }
 
+    private val pausesAndSkips = combine(repository.pauses, repository.skips, ::Pair)
+
     private val habitData = combine(
         repository.habits,
         repository.checklistItems,
         repository.logs,
         repository.checklistStates,
-        repository.pauses,
-    ) { habits, items, logs, states, pauses -> HabitData(habits, items, logs, states, pauses) }
+        pausesAndSkips,
+    ) { habits, items, logs, states, neutral -> HabitData(habits, items, logs, states, neutral.first, neutral.second) }
 
     private val habitUiState = combine(
         habitData,
@@ -124,13 +131,16 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
     fun consumeOperationStatus() { _operationStatus.value = OperationStatus.Idle }
     fun retryLoading() { reloadKey.value++ }
     fun defaultSettings() = app.settingsRepository.current()
-    fun saveHabit(id: Long?, draft: HabitDraft) = runOperation(
+    fun saveHabit(id: Long?, draft: HabitDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
         if (id == null) "Creating habit…" else "Saving habit…",
         if (id == null) "Habit created" else "Habit saved",
+        onFinished,
     ) {
+        val existing = id?.let { repository.get(it) }
         val savedId = if (id == null) repository.create(draft) else { repository.update(id, draft); id }
-        reminders.syncHabit(savedId)
-        draft.tags.forEach { app.measurementRepository.ensureTag(it) }
+        if (existing == null || existing.reminderDefinitionChanged(draft)) reminders.syncHabit(savedId)
+        draft.tags.filter { tag -> existing?.tags?.none { it.equals(tag, ignoreCase = true) } != false }
+            .forEach { app.measurementRepository.ensureTag(it) }
     }
     fun duplicate(id: Long) = runOperation("Duplicating habit…", "Habit duplicated") { reminders.syncHabit(repository.duplicate(id)) }
     fun setArchived(id: Long, archived: Boolean) = runOperation(
@@ -147,6 +157,14 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
     fun addPause(id: Long, start: LocalDate, end: LocalDate?, note: String) = runOperation("Scheduling pause…", "Pause scheduled") {
         repository.addPause(id, start, end, note)
         reminders.syncHabit(id)
+    }
+    fun skipDay(habitId: Long, date: LocalDate) = runOperation("Skipping today…", "Today skipped · streak protected") {
+        repository.skipDay(habitId, date)
+        reminders.syncHabit(habitId)
+    }
+    fun undoSkip(habitId: Long, date: LocalDate) = runOperation("Restoring today…", "Skip undone") {
+        repository.undoSkip(habitId, date)
+        reminders.syncHabit(habitId)
     }
     fun log(habitId: Long, value: Double?, status: HabitLogStatus = HabitLogStatus.Recorded, date: LocalDate? = null, note: String = "") =
         runOperation("Saving check-in…", "Habit logged") {
@@ -183,11 +201,14 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
             reminders.syncHabit(habitId)
         }
     fun toggleChecklist(habitId: Long, itemId: Long, date: LocalDate, completed: Boolean) =
-        runOperation("Updating checklist…", "Checklist updated") { repository.toggleChecklistItem(habitId, itemId, date, completed) }
+        runOperation("Updating checklist…", "Checklist updated") {
+            repository.toggleChecklistItem(habitId, itemId, date, completed)
+            reminders.syncHabit(habitId)
+        }
     fun startTimer(habitId: Long) = runOperation("Starting timer…", "Habit timer started") { repository.startTimer(habitId) }
     fun stopTimer(habitId: Long) = runOperation("Stopping timer…", "Duration logged") { repository.stopTimer(habitId) }
-    fun createTrigger(draft: TriggerRuleDraft) = runOperation("Creating automation…", "Automation created") { links.createTrigger(draft) }
-    fun updateTrigger(id: Long, draft: TriggerRuleDraft) = runOperation("Saving automation…", "Automation saved") {
+    fun createTrigger(draft: TriggerRuleDraft, onFinished: (Boolean) -> Unit = {}) = runOperation("Creating automation…", "Automation created", onFinished) { links.createTrigger(draft) }
+    fun updateTrigger(id: Long, draft: TriggerRuleDraft, onFinished: (Boolean) -> Unit = {}) = runOperation("Saving automation…", "Automation saved", onFinished) {
         links.updateTrigger(id, draft)
     }
     fun setTriggerEnabled(rule: com.whip.app.domain.TriggerRule, enabled: Boolean) = updateTrigger(
@@ -245,16 +266,23 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
 
-    private fun runOperation(running: String, success: String, block: suspend () -> Unit) {
+    private fun runOperation(
+        running: String,
+        success: String,
+        onFinished: (Boolean) -> Unit = {},
+        block: suspend () -> Unit,
+    ) {
         _operationStatus.value = OperationStatus.Running(running)
         viewModelScope.launch {
             try {
                 block()
                 _operationStatus.value = OperationStatus.Succeeded(success)
+                runCatching { onFinished(true) }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
                 _operationStatus.value = OperationStatus.Failed(error.message ?: "Something went wrong", error)
+                runCatching { onFinished(false) }
             }
         }
     }
@@ -265,7 +293,7 @@ internal fun mirrorMetricEntriesAsHabitLogs(
     entries: List<MetricEntry>,
     customUnits: List<UnitDefinition> = emptyList(),
 ): List<HabitLog> = habits.filter { it.sourceMetricId != null }.flatMap { habit ->
-    entries.asSequence().filter { it.metricId == habit.sourceMetricId }.map { entry ->
+    entries.asSequence().filter { it.metricId == habit.sourceMetricId }.mapNotNull { entry ->
         val value = when {
             entry.enteredValue != null && entry.enteredUnitId == habit.unitId -> entry.enteredValue
             entry.canonicalValue != null -> (BuiltInUnits.get(habit.unitId) ?: customUnits.firstOrNull { it.id == habit.unitId })
@@ -273,6 +301,11 @@ internal fun mirrorMetricEntriesAsHabitLogs(
             else -> null
         }
         val stable = ("${habit.id}:${entry.id}".hashCode().toLong() and 0x7fff_ffffL).let { if (it == 0L) -1L else -it }
+        val status = when (entry.status) {
+            MetricEntryStatus.Recorded -> HabitLogStatus.Recorded
+            MetricEntryStatus.Failed -> HabitLogStatus.Failed
+            MetricEntryStatus.Missing, MetricEntryStatus.Skipped, MetricEntryStatus.Excused -> return@mapNotNull null
+        }
         HabitLog(
             id = stable,
             uuid = "metric:${habit.id}:${entry.id}",
@@ -280,13 +313,7 @@ internal fun mirrorMetricEntriesAsHabitLogs(
             value = value,
             canonicalValue = entry.canonicalValue,
             enteredUnitId = habit.unitId,
-            status = when (entry.status) {
-                MetricEntryStatus.Recorded -> HabitLogStatus.Recorded
-                MetricEntryStatus.Missing -> HabitLogStatus.Missing
-                MetricEntryStatus.Failed -> HabitLogStatus.Failed
-                MetricEntryStatus.Skipped -> HabitLogStatus.Skipped
-                MetricEntryStatus.Excused -> HabitLogStatus.Excused
-            },
+            status = status,
             timestamp = entry.timestamp,
             localDate = entry.localDate,
             zoneId = entry.zoneId,
@@ -307,6 +334,7 @@ private data class HabitData(
     val logs: List<HabitLog>,
     val states: List<HabitChecklistState>,
     val pauses: List<HabitPause>,
+    val skips: List<HabitSkip>,
 )
 
 private fun buildHabitUiState(data: HabitData, today: LocalDate, customUnits: List<UnitDefinition>): HabitUiState {
@@ -320,6 +348,7 @@ private fun buildHabitUiState(data: HabitData, today: LocalDate, customUnits: Li
         archivedProgress = archived.map { habit -> buildProgress(habit, data, today, customUnits) },
         logs = data.logs,
         pauses = data.pauses,
+        skips = data.skips,
         currentDate = today,
         loading = false,
     )
@@ -333,7 +362,8 @@ private fun buildProgress(
 ): HabitDayProgress {
     val habitLogs = data.logs.filter { it.habitId == habit.id }
     val habitPauses = data.pauses.filter { it.habitId == habit.id }
-    val flexibleProgress = habit.flexibleProgress(habitLogs, date, habitPauses)
+    val habitSkips = data.skips.filter { it.habitId == habit.id }
+    val flexibleProgress = habit.flexibleProgress(habitLogs, date, habitPauses, habitSkips)
     val weekCompletions = flexibleProgress?.completed.takeIf { habit.scheduleType == HabitScheduleType.FlexibleTimesPerWeek } ?: 0
     val monthCompletions = flexibleProgress?.completed.takeIf { habit.scheduleType == HabitScheduleType.FlexibleTimesPerMonth } ?: 0
     val status = habitLogs.filter { it.localDate == date }.maxByOrNull(HabitLog::timestamp)?.status
@@ -346,16 +376,17 @@ private fun buildProgress(
         date,
         pauses = habitPauses,
         customUnits = customUnits,
+        skips = habitSkips,
     )
     val streak = if (habit.scheduleType in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)) {
-        habit.flexiblePeriodStreak(habitLogs, date, habitPauses)
+        habit.flexiblePeriodStreak(habitLogs, date, habitPauses, habitSkips)
     } else {
         val neutralDates = (0L..365L).mapNotNullTo(mutableSetOf()) { offset ->
-            date.minusDays(offset).takeIf { habit.isNeutralDate(it, habitLogs, habitPauses) }
+            date.minusDays(offset).takeIf { habit.isNeutralDate(it, habitPauses, habitSkips) }
         }
         habitStreak(habit, date, successByDate, neutralDates)
     }
-    val ended = habit.hasEnded(habitLogs, date, habitPauses, customUnits)
+    val ended = habit.hasEnded(habitLogs, date, habitPauses, customUnits, habitSkips)
     val explicitlyPaused = data.pauses.any { it.habitId == habit.id && !date.isBefore(it.startDate) && (it.endDate == null || !date.isAfter(it.endDate)) }
     val items = data.items.filter { it.habitId == habit.id && !it.archived }.map { item ->
         val completed = data.states.firstOrNull { it.habitId == habit.id && it.itemId == item.id && it.localDate == date }?.completed == true
@@ -373,5 +404,6 @@ private fun buildProgress(
         completionRate = completionRate,
         flexibleScheduleProgress = flexibleProgress?.completed,
         flexibleScheduleTarget = flexibleProgress?.target,
+        dayState = habit.dayStateOn(date, date, habitLogs, habitPauses, habitSkips, customUnits),
     )
 }

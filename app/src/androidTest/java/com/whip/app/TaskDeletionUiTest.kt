@@ -115,8 +115,13 @@ class TaskDeletionUiTest {
                     onArchive = {},
                     onDeletePermanently = {},
                     onPin = {},
+                    onDuplicate = {},
+                    onToggleInbox = {},
+                    onStartFocus = {},
                     onToggleSubtask = { _, _ -> },
                     onPromoteSubtask = {},
+                    onReopenOccurrence = {},
+                    onResetOccurrence = {},
                 )
             }
         }
@@ -177,8 +182,13 @@ class TaskDeletionUiTest {
                         onArchive = {},
                         onDeletePermanently = { confirming = true },
                         onPin = {},
+                        onDuplicate = {},
+                        onToggleInbox = {},
+                        onStartFocus = {},
                         onToggleSubtask = { _, _ -> },
                         onPromoteSubtask = {},
+                        onReopenOccurrence = {},
+                        onResetOccurrence = {},
                     )
                 }
             }
@@ -236,6 +246,8 @@ class TaskDeletionUiTest {
                     onEdit = { edits.incrementAndGet() },
                     onReopen = { reopens.incrementAndGet() },
                     onDeletePermanently = {},
+                    onReopenOccurrence = {},
+                    onResetOccurrence = {},
                 )
             }
         }
@@ -280,8 +292,13 @@ class TaskDeletionUiTest {
                     onArchive = {},
                     onDeletePermanently = {},
                     onPin = {},
+                    onDuplicate = {},
+                    onToggleInbox = {},
+                    onStartFocus = {},
                     onToggleSubtask = { _, _ -> },
                     onPromoteSubtask = {},
+                    onReopenOccurrence = {},
+                    onResetOccurrence = {},
                 )
             }
         }
@@ -315,8 +332,10 @@ class TaskDeletionUiTest {
                 TaskActionsDialog(
                     item = item, onDismiss = {}, onComplete = {}, onEdit = {}, onReschedule = {},
                     onSkip = {}, onArchive = {}, onDeletePermanently = {}, onPin = {},
+                    onDuplicate = {}, onToggleInbox = {}, onStartFocus = {},
                     onToggleSubtask = { _, _ -> }, onPromoteSubtask = {},
                     occurrenceHistory = listOf(moved, skipped),
+                    onReopenOccurrence = {},
                     onResetOccurrence = { resets.incrementAndGet() },
                 )
             }

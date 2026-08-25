@@ -8,6 +8,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.whip.app.domain.DEFAULT_GOAL_EMOJI
 import com.whip.app.domain.DEFAULT_HABIT_EMOJI
+import com.whip.app.domain.DEFAULT_TASK_EMOJI
 import com.whip.app.domain.DEFAULT_TRACK_EMOJI
 import com.whip.app.domain.normalizedIdentityEmoji
 
@@ -42,6 +43,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         HabitLogEntity::class,
         HabitChecklistStateEntity::class,
         HabitPauseEntity::class,
+        HabitSkipEntity::class,
         GoalEntity::class,
         GoalMilestoneEntity::class,
         LinkRuleEntity::class,
@@ -60,7 +62,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         TrackValueEntity::class,
         TrackEntrySearchEntity::class,
     ],
-    version = 7,
+    version = 9,
     exportSchema = true,
 )
 abstract class WhipDatabase : RoomDatabase() {
@@ -235,6 +237,61 @@ abstract class WhipDatabase : RoomDatabase() {
             }
         }
 
+        val migration7To8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN icon TEXT NOT NULL DEFAULT '$DEFAULT_TASK_EMOJI'")
+            }
+        }
+
+        val migration8To9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS habit_skips (
+                        uuid TEXT NOT NULL,
+                        habitId INTEGER NOT NULL,
+                        localEpochDay INTEGER NOT NULL,
+                        skippedAtMillis INTEGER NOT NULL,
+                        createdAtMillis INTEGER NOT NULL,
+                        updatedAtMillis INTEGER NOT NULL,
+                        PRIMARY KEY(habitId, localEpochDay),
+                        FOREIGN KEY(habitId) REFERENCES habits(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_habit_skips_uuid ON habit_skips (uuid)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_habit_skips_habitId ON habit_skips (habitId)")
+
+                // Earlier builds stored Skip/Excuse/Missing as measurements.
+                // Preserve the user's neutral-day intent for Skip and Excuse,
+                // then remove every non-measurement row and its metric mirror.
+                db.execSQL(
+                    """
+                    INSERT OR IGNORE INTO habit_skips (
+                        uuid, habitId, localEpochDay, skippedAtMillis,
+                        createdAtMillis, updatedAtMillis
+                    )
+                    SELECT 'habit-skip-' || uuid, habitId, localEpochDay,
+                        timestampMillis, createdAtMillis, updatedAtMillis
+                    FROM habit_logs
+                    WHERE status IN ('Skipped', 'Excused')
+                    ORDER BY timestampMillis DESC, id DESC
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    DELETE FROM metric_entries
+                    WHERE id IN (
+                        SELECT metricEntryId FROM habit_logs
+                        WHERE status IN ('Skipped', 'Excused', 'Missing')
+                          AND metricEntryId IS NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("DELETE FROM habit_logs WHERE status IN ('Skipped', 'Excused', 'Missing')")
+            }
+        }
+
         /**
          * Repository checks provide friendly errors; these triggers are the final consistency
          * boundary for concurrent writers, restored data, and any future write path.
@@ -262,6 +319,8 @@ abstract class WhipDatabase : RoomDatabase() {
                     migration4To5,
                     migration5To6,
                     migration6To7,
+                    migration7To8,
+                    migration8To9,
                 )
                 .addCallback(integrityGuardCallback)
                 .build()

@@ -6,6 +6,9 @@ import android.view.Display
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -24,10 +27,20 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.whip.app.domain.ExerciseDraft
+import com.whip.app.domain.ElapsedDisplayUnit
+import com.whip.app.domain.GoalDraft
+import com.whip.app.domain.GoalType
+import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.TrackDraft
+import com.whip.app.domain.TrackFieldDraft
+import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.WorkoutSetDraft
+import java.time.Instant
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -115,6 +128,150 @@ class WhipComposeSemanticsTest {
     }
 
     @Test
+    fun elapsedGoalResetWorksFromHomeOnTheFirstTap() {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        val originalStart = Instant.now().minusSeconds(12 * 60 * 60)
+        val goalId = runBlocking {
+            app.goalRepository.create(
+                GoalDraft(
+                    name = "Recovery Counter",
+                    type = GoalType.ElapsedSince,
+                    startDate = app.clock.today(),
+                    elapsedStartMillis = originalStart.toEpochMilli(),
+                    elapsedDisplayUnit = ElapsedDisplayUnit.Hours,
+                ),
+            )
+        }
+        val intent = Intent(app, MainActivity::class.java)
+            .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
+        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
+
+        ActivityScenario.launch<MainActivity>(intent, options).use {
+            compose.onNodeWithText("Reset").performScrollTo().performClick()
+            compose.onNodeWithText("Reset Recovery Counter?").assertIsDisplayed()
+            compose.onNodeWithText("Reset to Now").performClick()
+
+            runBlocking {
+                withTimeout(5_000) {
+                    app.goalRepository.goals.first { goals ->
+                        goals.firstOrNull { it.id == goalId }
+                            ?.elapsedStartMillis
+                            ?.let { it > originalStart.toEpochMilli() }
+                            ?: false
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun homeCardOpenAndPrimaryCallbacksWorkOnFirstInteractionAfterLaunch() {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        val today = app.clock.today()
+        val (taskId, habitId, goalId, trackId) = runBlocking {
+            val taskId = app.taskRepository.create(
+                TaskDraft(
+                    title = "Home Callback Task",
+                    scheduleKind = ScheduleKind.Once,
+                    date = today,
+                    inbox = false,
+                ),
+            )
+            val habitId = app.habitRepository.create(HabitDraft(name = "Home Callback Habit", startDate = today))
+            val goalId = app.goalRepository.create(
+                GoalDraft(
+                    name = "Home Callback Goal",
+                    type = GoalType.ReachValue,
+                    targetMin = 10.0,
+                    startDate = today,
+                ),
+            )
+            val trackId = app.trackRepository.create(
+                TrackDraft(
+                    name = "Home Callback Track",
+                    fields = listOf(
+                        TrackFieldDraft("Title", TrackFieldType.ShortText, required = true, primary = true),
+                    ),
+                ),
+            )
+            app.trackRepository.setPinned(trackId, true)
+            listOf(taskId, habitId, goalId, trackId)
+        }
+        val intent = Intent(app, MainActivity::class.java)
+            .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
+        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
+
+        fun launchHome(interaction: () -> Unit) {
+            ActivityScenario.launch<MainActivity>(intent, options).use {
+                compose.waitUntil(5_000) {
+                    compose.onAllNodesWithTag("home-list").fetchSemanticsNodes().isNotEmpty()
+                }
+                interaction()
+            }
+        }
+
+        launchHome {
+            compose.onNodeWithTag("home-list").performScrollToNode(hasContentDescription("Open task details for Home Callback Task"))
+            compose.onNodeWithContentDescription("Open task details for Home Callback Task").performClick()
+            compose.onNodeWithTag("task-actions-surface").assertIsDisplayed()
+        }
+        launchHome {
+            compose.onNodeWithTag("home-list").performScrollToNode(hasContentDescription("Complete task Home Callback Task"))
+            compose.onNodeWithContentDescription("Complete task Home Callback Task").performClick()
+            runBlocking {
+                withTimeout(5_000) {
+                    app.taskRepository.tasks.first { tasks -> tasks.firstOrNull { it.id == taskId }?.completedAtMillis != null }
+                }
+            }
+        }
+
+        launchHome {
+            compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("habit-card-$habitId"))
+            compose.onNodeWithTag("habit-card-$habitId").performClick()
+            compose.onNodeWithTag("habit-detail-surface").assertIsDisplayed()
+        }
+        launchHome {
+            compose.onNodeWithTag("home-list").performScrollToNode(hasContentDescription("Check off habit Home Callback Habit"))
+            compose.onNodeWithContentDescription("Check off habit Home Callback Habit").performClick()
+            runBlocking {
+                withTimeout(5_000) {
+                    app.habitRepository.logs.first { logs -> logs.any { it.habitId == habitId } }
+                }
+            }
+        }
+
+        launchHome {
+            compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("goal-card-$goalId"))
+            compose.onNodeWithTag("goal-card-$goalId").performClick()
+            compose.onNodeWithTag("goal-detail-surface").assertIsDisplayed()
+        }
+        launchHome {
+            compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("goal-card-$goalId"))
+            compose.onNode(
+                hasText("Log") and hasAnyAncestor(hasTestTag("goal-primary-action-$goalId")),
+                useUnmergedTree = true,
+            ).performClick()
+            compose.onNodeWithText("Record Home Callback Goal").assertIsDisplayed()
+        }
+
+        launchHome {
+            compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("track-card-$trackId"))
+            compose.onNodeWithTag("track-card-$trackId").performClick()
+            compose.onNodeWithTag("track-destination-Entries").assertIsDisplayed()
+        }
+        launchHome {
+            compose.onNodeWithTag("home-list").performScrollToNode(
+                hasText("Add Title") and hasAnyAncestor(hasTestTag("track-card-$trackId")),
+            )
+            compose.onNode(
+                hasText("Add Title") and hasAnyAncestor(hasTestTag("track-card-$trackId")),
+                useUnmergedTree = true,
+            ).performClick()
+            compose.onNodeWithContentDescription("Close Entry Editor").assertIsDisplayed()
+        }
+    }
+
+    @Test
     fun machineLibraryExplainsMachineScopedTracking() {
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.wakeUp()
@@ -140,11 +297,12 @@ class WhipComposeSemanticsTest {
 
     @Test
     fun taskToolbarKeepsTemporaryControlsAttachedAndFocused() {
-        runBlocking {
+        val taskId = runBlocking {
             val app = ApplicationProvider.getApplicationContext<WhipApplication>()
             app.taskRepository.create(
                 TaskDraft(
                     title = "Toolbar test task",
+                    icon = "🧹",
                     scheduleKind = ScheduleKind.Once,
                     date = app.clock.today(),
                 ),
@@ -160,6 +318,9 @@ class WhipComposeSemanticsTest {
         ActivityScenario.launch<MainActivity>(intent, options).use {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
+            compose.onNodeWithTag("task-icon-$taskId", useUnmergedTree = true)
+                .performScrollTo()
+                .assertIsDisplayed()
             compose.onNodeWithContentDescription("Filter & Sort Tasks").performClick()
             compose.onNodeWithText("Sort, Group & Filter Tasks").assertIsDisplayed()
             compose.onNodeWithText("Done").performClick()
@@ -293,8 +454,8 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithText("How do you want to track it?").assertIsDisplayed()
             compose.onAllNodesWithText("Intent").assertCountEquals(0)
             compose.onAllNodesWithText("Target rule").assertCountEquals(0)
-            compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Advanced Options"))
-            compose.onNodeWithText("Advanced Options").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("More Details"))
+            compose.onNodeWithText("More Details").assertIsDisplayed().performClick()
             compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Notes"))
             compose.onNodeWithText("Notes").assertIsDisplayed()
             compose.onAllNodesWithText("Intent").assertCountEquals(0)
@@ -321,14 +482,15 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasText("Starting Value (Optional)"))
             compose.onNodeWithText("Starting Value (Optional)").assertIsDisplayed()
             compose.onNodeWithText("Move from a starting value", substring = true).assertIsDisplayed()
-            compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasText("Advanced Options"))
-            compose.onNodeWithText("Advanced Options").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasText("More Details"))
+            compose.onNodeWithText("More Details").assertIsDisplayed().performClick()
             compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasText("Description"))
             compose.onNodeWithText("Description").assertIsDisplayed()
             compose.onNodeWithContentDescription("Cancel Goal editing").performClick()
 
             compose.onNodeWithContentDescription("Goals tab").performClick()
             compose.onNodeWithContentDescription("More Goal Actions").performClick()
+            compose.onAllNodesWithText("Log Goal Value").assertCountEquals(0)
             compose.onNodeWithTag("goal-browse-templates-menu-action").performClick()
             compose.onNodeWithTag("goal-template-list").performScrollToNode(hasText("Build Savings", substring = true))
             compose.onNodeWithText("Build Savings", substring = true).assertIsDisplayed().performClick()

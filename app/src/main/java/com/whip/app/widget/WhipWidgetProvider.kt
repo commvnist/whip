@@ -15,6 +15,7 @@ import com.whip.app.domain.Habit
 import com.whip.app.domain.WhipTask
 import com.whip.app.domain.isScheduledOn
 import com.whip.app.domain.hasEnded
+import com.whip.app.domain.isNeutralDate
 import com.whip.app.domain.AreaScope
 import com.whip.app.domain.matches
 import kotlinx.coroutines.CoroutineScope
@@ -32,6 +33,7 @@ class WhipWidgetProvider : AppWidgetProvider() {
                 val today = app.clock.today()
                 val tasks = app.taskRepository.tasks.first()
                 val habitLogs = app.habitRepository.logs.first()
+                val habitSkips = app.habitRepository.skips.first()
                 val units = app.measurementRepository.customUnits.first()
                 val habits = app.habitRepository.habits.first()
                 val areas = app.areaRepository.areas.first()
@@ -40,7 +42,8 @@ class WhipWidgetProvider : AppWidgetProvider() {
                     val openTasks = tasks.count { !it.archived && it.completedAtMillis == null && areaScope.matches(it.areaId) }
                     val dueHabits = habits.count { habit ->
                         areaScope.matches(habit.areaId) && !habit.archived && habit.isScheduledOn(today) &&
-                            !habit.hasEnded(habitLogs.filter { it.habitId == habit.id }, today, customUnits = units)
+                            !habit.isNeutralDate(today, skips = habitSkips) &&
+                            !habit.hasEnded(habitLogs.filter { it.habitId == habit.id }, today, customUnits = units, skips = habitSkips)
                     }
                     val scopeLabel = when (areaScope) {
                         AreaScope.All -> "All areas"

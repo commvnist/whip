@@ -11,8 +11,8 @@ records, streaks, and goal progress are projections or side effects; none of
 them replaces the underlying source records.
 
 The 2026-08-22 pre-release cleanup established schema 1 as the public baseline.
-Room is now schema 7, with every exported schema and explicit forward migration
-from 1 through 7 checked in. Migration tests exercise both the schema-1 baseline
+Room is now schema 9, with every exported schema and explicit forward migration
+from 1 through 8 checked in. Migration tests exercise both the schema-1 baseline
 and schema-2 Track baseline through the current schema while preserving records
 and relationships. Destructive fallback is not permitted for user data.
 
@@ -40,8 +40,11 @@ from leaking into Tuesday's occurrence.
 
 Habits and goals share typed metric definitions and timestamped metric
 entries. Values are normalized to a canonical unit while retaining entry-unit
-metadata for display and audit. Missing, zero, skipped, failed, and excused are
-distinct. A metric's dimensional type cannot silently change after data exists.
+metadata for display and audit. Zero and failed measurements remain explicit;
+an absent habit check-in is derived as missed only after its scheduled day
+closes. A user skip is stored separately in `habit_skips`, never as a value or
+metric entry, so it cannot inflate totals or Goal Automations. A metric's
+dimensional type cannot silently change after data exists.
 Custom units store a name, symbol, dimension, and conversion factor, and use
 the same canonical conversion path as built-in units.
 
@@ -61,6 +64,55 @@ Task percentage, habit streaks, workout statistics, personal records, and goal
 progress are calculated from source records. Expensive results may be cached,
 but caches must be rebuildable and invalidated when historical sources change.
 
+Editor saves commit the authoritative Room change before reporting success.
+Dialogs receive that result directly; transient snackbar delivery is never a
+save-completion signal. Derived work is dependency-aware: presentation-only
+changes such as an emoji or description do not reschedule reminders, rewrite
+unchanged child rows, rebuild Track Automations, or rebuild Track entry search.
+Changes to cadence, reminder timing, Track Fields, or searchable Track metadata
+still invalidate the corresponding derived state.
+
+Habit occurrence state has one neutral user action: **Skip Today**. A skip is
+visible in the Today card, History, Insights, exports, and skipped-outcome
+Automations; it suppresses that day's reminder, is excluded from completion-rate
+denominators, and bridges rather than increments a streak. **Undo Skip** removes
+the occurrence. Missing is not writable state: past scheduled occurrences with
+no check-in or skip are derived as missed. Room migration 8→9 converts legacy
+Skip/Excuse log rows into one skip occurrence per habit/day and removes legacy
+Missing rows and their metric entries.
+
+## Productivity collection design
+
+Tasks, Habits, and Goals share one collection-card grammar implemented by
+`ProductivityItemCard` and `ProductivityItemHeader`: identity emoji, title and
+context, an optional fixed-width primary-action lane, then a trailing edit
+action. Card inset, shape, color, headline typography, area placement, and
+vertical spacing are owned by those primitives. Progress and expanded content
+follow beneath the header. Home, planning, active/completed/archived lists, and
+insight cards reuse the same hierarchy; a domain may omit an action, but may not
+reorder the remaining elements.
+
+## Adaptive presentation and visual semantics
+
+Whip treats a Fold or tablet as a composed workspace, not as a stretched phone.
+Each first-class destination may own an actionable support pane; support panes
+must contain useful navigation or context for that destination rather than
+generic dashboard filler. Primary content uses bounded readable widths, while
+review dashboards may use the wider dashboard bound.
+
+Transient dialogs are placed by `PaneAwareAlertDialog` inside the active
+content pane. Destination-sized editors and managers instead use
+`WhipFullScreenSurface`: its opaque surface owns the complete bounds supplied by
+the root, while safe-drawing insets apply only to its child content. This keeps
+the Fold hinge and status-bar background intentional and prevents a small
+dialog from straddling two panes.
+
+Color has semantic roles across domains. Primary is action/selection, secondary
+is success/completion, tertiary is warning/skip, and error is destructive.
+Features do not repurpose these roles as decorative identity colors. Shared
+navigation budgets elevated font scale and label length, fills available direct
+destination capacity, and reserves **More** only for genuine overflow.
+
 ## Links
 
 Contribution, context, and trigger links are separate rule types. A derived
@@ -77,7 +129,7 @@ files:
 {
   "format": "whip-backup",
   "envelopeVersion": 2,
-  "databaseVersion": 6,
+  "databaseVersion": 8,
   "exportedAt": "2026-08-18T00:00:00Z",
   "checksumSha256": "...",
   "tables": {},
@@ -86,8 +138,8 @@ files:
 ```
 
 The backup data version is intentionally independent of Room's schema version.
-The current backup data version is 6; version-5 archives are upgraded during
-restore by supplying the deterministic default Track Scale increment. Import is
+The current backup data version is 7; version-5 and version-6 archives are upgraded during
+restore by supplying the deterministic default Track Scale increment and Task identity emoji. Import is
 parse -> authenticate/checksum -> validate -> preview -> recoverable commit.
 Unknown future versions fail safely. CSV files are domain-specific
 interoperability exports, not complete backups. An optional encrypted envelope

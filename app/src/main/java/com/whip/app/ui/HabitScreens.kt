@@ -24,6 +24,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
@@ -59,17 +60,18 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import com.whip.app.core.AppSettings
-import com.whip.app.core.OperationStatus
 import com.whip.app.domain.Habit
 import com.whip.app.domain.Area
 import com.whip.app.domain.CustomIdentityEmoji
 import com.whip.app.domain.HabitChecklistItemDraft
 import com.whip.app.domain.HabitDayProgress
+import com.whip.app.domain.HabitDayState
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitEndType
 import com.whip.app.domain.HabitLog
 import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.HabitScheduleType
+import com.whip.app.domain.HabitSkip
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.DEFAULT_HABIT_EMOJI
 import com.whip.app.domain.TargetComparison
@@ -94,6 +96,8 @@ import com.whip.app.domain.isScheduledOn
 import com.whip.app.domain.outcomeForPeriod
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.domain.valueInUnit
+import com.whip.app.domain.dayStateOn
+import com.whip.app.domain.successfulPeriodOutcomeDates
 import java.time.Instant
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -101,6 +105,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
+import com.whip.app.ui.theme.whipColors
 
 enum class HabitDestination { Today, All, Connections, Archived, Insights }
 
@@ -120,7 +125,6 @@ fun HabitAreaContent(
     onEditHabitRequestConsumed: () -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     lowPressureMode: Boolean = false,
-    operationStatus: OperationStatus = OperationStatus.Idle,
     onOpenTask: (Long) -> Unit = {},
     areas: List<Area> = emptyList(),
     defaultAreaId: String? = null,
@@ -150,13 +154,13 @@ fun HabitAreaContent(
     var templatesOpen by rememberSaveable { mutableStateOf(false) }
     var templateDraft by rememberSaveable { mutableStateOf<HabitDraft?>(null) }
     var editorSavePending by rememberSaveable { mutableStateOf(false) }
-    var editorSaveStarted by rememberSaveable { mutableStateOf(false) }
     var linkingHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var historicalLogHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editingLogHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editingLogId by rememberSaveable { mutableStateOf<Long?>(null) }
     var focusedArchivedHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var deleteCandidateHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var skipConfirmationHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     val progressById = (state.all + state.today + state.archivedProgress).associateBy { it.habit.id }
     val editing = editingHabitId?.let(progressById::get)
     val actions = actionsHabitId?.let(progressById::get)
@@ -179,26 +183,6 @@ fun HabitAreaContent(
         if (createRequested) {
             creating = true
             onCreateRequestConsumed()
-        }
-    }
-    LaunchedEffect(operationStatus, editorSavePending) {
-        if (!editorSavePending) return@LaunchedEffect
-        when (operationStatus) {
-            is OperationStatus.Running -> editorSaveStarted = true
-            is OperationStatus.Succeeded -> {
-                if (!editorSaveStarted) return@LaunchedEffect
-                creating = false
-                editingHabitId = null
-                templateDraft = null
-                editorSavePending = false
-                editorSaveStarted = false
-            }
-            is OperationStatus.Failed -> {
-                if (!editorSaveStarted) return@LaunchedEffect
-                editorSavePending = false
-                editorSaveStarted = false
-            }
-            OperationStatus.Idle -> Unit
         }
     }
     LaunchedEffect(openHabitIdRequest, state.all, state.archived) {
@@ -237,11 +221,12 @@ fun HabitAreaContent(
             onSelect = { destination = it; focusedArchivedHabitId = null },
             label = { if (it == HabitDestination.Connections) "Automations" else it.name },
             testTagPrefix = "habit-destination",
+            barTestTag = "habit-workspace-navigation",
         )
         when (destination) {
             HabitDestination.Today -> HabitList(
                 title = "Today",
-                subtitle = "Check in, log a value, or continue a timer for habits due today.",
+                subtitle = "Check in, log a value, or continue a timer. Completed habits move to Done for confirmation or undo.",
                 progress = state.today,
                 empty = areaScopeLabel?.let { "No habits are due today in $it." } ?: "No habits are due today.",
                 onTemplates = { templatesOpen = true },
@@ -253,9 +238,11 @@ fun HabitAreaContent(
                 onDecrement = viewModel::decrementValue,
                 onUndo = { item -> latestPeriodLog(item)?.let { viewModel.undoLog(it.id, item.habit.id) } },
                 canUndo = { latestPeriodLog(it) != null },
+                onUndoSkip = { item -> viewModel.undoSkip(item.habit.id, item.date) },
                 onChecklist = viewModel::toggleChecklist,
                 onReorder = null,
                 lowPressureMode = lowPressureMode,
+                separateCompleted = true,
             )
             HabitDestination.All -> HabitList(
                 title = "All Habits",
@@ -271,6 +258,7 @@ fun HabitAreaContent(
                 onDecrement = viewModel::decrementValue,
                 onUndo = { item -> latestPeriodLog(item)?.let { viewModel.undoLog(it.id, item.habit.id) } },
                 canUndo = { latestPeriodLog(it) != null },
+                onUndoSkip = { item -> viewModel.undoSkip(item.habit.id, item.date) },
                 onChecklist = viewModel::toggleChecklist,
                 onReorder = viewModel::reorder,
                 lowPressureMode = lowPressureMode,
@@ -282,7 +270,6 @@ fun HabitAreaContent(
                 onOpenHabit = { actionsHabitId = it },
                 onOpenTask = onOpenTask,
                 onRequestNotificationPermission = onRequestNotificationPermission,
-                operationStatus = operationStatus,
             )
             HabitDestination.Archived -> ArchivedHabitList(
                 habits = state.archived,
@@ -319,12 +306,17 @@ fun HabitAreaContent(
                 editingHabitId = null
                 templateDraft = null
                 editorSavePending = false
-                editorSaveStarted = false
             },
             onSave = { draft ->
                 editorSavePending = true
-                editorSaveStarted = true
-                viewModel.saveHabit(editing?.habit?.id, draft)
+                viewModel.saveHabit(editing?.habit?.id, draft) { succeeded ->
+                    editorSavePending = false
+                    if (succeeded) {
+                        creating = false
+                        editingHabitId = null
+                        templateDraft = null
+                    }
+                }
                 onAreaChanged(draft.areaId)
             },
         )
@@ -339,10 +331,10 @@ fun HabitAreaContent(
             onPin = { viewModel.setPinned(item.habit.id, !item.habit.pinned); actionsHabitId = null },
             onPause = { viewModel.setPaused(item.habit.id, !item.habit.paused); actionsHabitId = null },
             onSchedulePause = { pauseRequestHabitId = item.habit.id; actionsHabitId = null },
-            onSkip = { viewModel.log(item.habit.id, null, HabitLogStatus.Skipped); actionsHabitId = null },
-            onExcuse = { viewModel.log(item.habit.id, null, HabitLogStatus.Excused); actionsHabitId = null },
-            onMissing = { viewModel.log(item.habit.id, null, HabitLogStatus.Missing); actionsHabitId = null },
+            onSkip = { skipConfirmationHabitId = item.habit.id; actionsHabitId = null },
+            onUndoSkip = { viewModel.undoSkip(item.habit.id, item.date); actionsHabitId = null },
             logs = state.logs.filter { it.habitId == item.habit.id },
+            skips = state.skips.filter { it.habitId == item.habit.id },
             onAddHistoricalLog = { historicalLogHabitId = item.habit.id; actionsHabitId = null },
             onEditLog = { log -> editingLogHabitId = item.habit.id; editingLogId = log.id; actionsHabitId = null },
             linkedGoals = goalState.linkRules.filter { it.sourceType == LinkSourceType.Habit && it.sourceEntityId == item.habit.id }
@@ -353,8 +345,26 @@ fun HabitAreaContent(
             lowPressureMode = lowPressureMode,
         )
     }
+    skipConfirmationHabitId?.let { habitId ->
+        val item = progressById[habitId]
+        if (item != null) PaneAwareAlertDialog(
+            onDismissRequest = { skipConfirmationHabitId = null },
+            title = { Text("Skip Today?") },
+            text = {
+                Text("${item.habit.name} will be marked Skipped for today. The day stays visible in History and Insights, does not count as completed or missed, protects your streak, and stops today's reminders.")
+            },
+            confirmButton = {
+                WhipTextButton(onClick = {
+                    viewModel.skipDay(item.habit.id, item.date)
+                    skipConfirmationHabitId = null
+                }) { Text("Skip Today") }
+            },
+            dismissButton = { WhipTextButton(onClick = { skipConfirmationHabitId = null }) { Text("Cancel") } },
+        )
+    }
     deleteCandidate?.let { habit ->
         val logCount = state.logs.count { it.habitId == habit.id }
+        val skipCount = state.skips.count { it.habitId == habit.id }
         val linkCount = goalState.linkRules.count {
             (it.sourceType == LinkSourceType.Habit && it.sourceEntityId == habit.id) || it.sourceMetricId == habit.metricId
         }
@@ -362,7 +372,7 @@ fun HabitAreaContent(
         PermanentDeleteDialog(
             title = "Delete ${habit.name} Permanently?",
             impacts = listOf(
-                "$logCount check-in${if (logCount == 1) "" else "s"}, checklist state, and streak history will be removed",
+                "$logCount check-in${if (logCount == 1) "" else "s"}, $skipCount skipped day${if (skipCount == 1) "" else "s"}, checklist state, and streak history will be removed",
                 "$linkCount Goal Automation${if (linkCount == 1) "" else "s"} and its generated measurements will be removed",
                 "$automationCount automation${if (automationCount == 1) "" else "s"} targeting this habit will be removed",
             ),
@@ -442,30 +452,13 @@ private fun HabitAutomationContent(
     onOpenHabit: (Long) -> Unit,
     onOpenTask: (Long) -> Unit,
     onRequestNotificationPermission: () -> Unit,
-    operationStatus: OperationStatus,
 ) {
     var creating by rememberSaveable { mutableStateOf(false) }
     var editingRuleId by rememberSaveable { mutableStateOf<Long?>(null) }
     var savePending by rememberSaveable { mutableStateOf(false) }
-    var saveStarted by rememberSaveable { mutableStateOf(false) }
     val editingRule = editingRuleId?.let { id -> state.triggerRules.firstOrNull { it.id == id } }
     val now = Instant.now()
     val pending = state.triggerOccurrences.filter { it.dismissedAt == null && !it.availableAt.isAfter(now) }
-    LaunchedEffect(operationStatus, savePending) {
-        if (!savePending) return@LaunchedEffect
-        when (operationStatus) {
-            is OperationStatus.Running -> saveStarted = true
-            is OperationStatus.Succeeded -> {
-                if (!saveStarted) return@LaunchedEffect
-                creating = false; editingRuleId = null; savePending = false; saveStarted = false
-            }
-            is OperationStatus.Failed -> {
-                if (!saveStarted) return@LaunchedEffect
-                savePending = false; saveStarted = false
-            }
-            OperationStatus.Idle -> Unit
-        }
-    }
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
             WhipPageHeader(
@@ -536,8 +529,14 @@ private fun HabitAutomationContent(
         onSave = { draft ->
             if (draft.notificationEnabled) onRequestNotificationPermission()
             savePending = true
-            saveStarted = true
-            if (editingRule == null) viewModel.createTrigger(draft) else viewModel.updateTrigger(editingRule.id, draft)
+            val onFinished: (Boolean) -> Unit = { succeeded ->
+                savePending = false
+                if (succeeded) {
+                    creating = false
+                    editingRuleId = null
+                }
+            }
+            if (editingRule == null) viewModel.createTrigger(draft, onFinished) else viewModel.updateTrigger(editingRule.id, draft, onFinished)
         },
     )
 }
@@ -594,7 +593,7 @@ private fun HabitAutomationDialog(
         else -> listOf(TriggerOutcome.Completed)
     }
     LaunchedEffect(sourceType) { if (outcome !in sourceOutcomes) outcome = sourceOutcomes.first() }
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(if (initialRule == null) "Create Next-Action Automation" else "Edit Next-Action Automation") },
         text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -657,70 +656,101 @@ fun HabitProgressCard(
     onQuick: () -> Unit,
     onQuickValue: (Double) -> Unit = { onQuick() },
     onSetValue: () -> Unit = onQuick,
-    onDecrement: () -> Unit = {},
-    onUndo: () -> Unit = {},
+    onDecrement: () -> Unit,
+    onUndo: () -> Unit,
     canUndo: Boolean = false,
+    onUndoSkip: () -> Unit,
     onChecklist: (Long, Long, LocalDate, Boolean) -> Unit,
     lowPressureMode: Boolean = false,
 ) {
     val habit = item.habit
+    val skipped = item.dayState == HabitDayState.Skipped
     var showAllQuickValues by rememberSaveable(habit.id) { mutableStateOf(false) }
-    Card(
+    val streakUnit = when (habit.scheduleType) {
+        HabitScheduleType.FlexibleTimesPerWeek -> "week"
+        HabitScheduleType.FlexibleTimesPerMonth -> "month"
+        else -> "day"
+    }
+    val rateWindow = if (habit.scheduleType in setOf(
+            HabitScheduleType.FlexibleTimesPerWeek,
+            HabitScheduleType.FlexibleTimesPerMonth,
+        )
+    ) "recent periods" else "30d"
+    val primaryAction: (@Composable () -> Unit)? = when {
+        skipped -> {{ Text("Skipped", color = MaterialTheme.whipColors.warning, fontWeight = FontWeight.SemiBold) }}
+        habit.sourceMetricId != null -> {{ Text("Synced", color = MaterialTheme.whipColors.success, fontWeight = FontWeight.SemiBold) }}
+        habit.trackingMode == HabitTrackingMode.CheckOff -> {{
+            Checkbox(
+                checked = item.successful == true,
+                onCheckedChange = { onQuick() },
+                modifier = Modifier.semantics {
+                    contentDescription = if (item.successful == true) {
+                        "Mark habit ${habit.name} incomplete"
+                    } else "Check off habit ${habit.name}"
+                },
+                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.whipColors.success),
+            )
+        }}
+        habit.trackingMode == HabitTrackingMode.Duration -> {{
+            WhipButton(onClick = onQuick) { Text(if (habit.timerStartedAtMillis == null) "Start" else "Stop") }
+        }}
+        habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) -> null
+        else -> {{
+            WhipButton(onClick = onQuick) {
+                if (habit.trackingMode == HabitTrackingMode.Rating) Text("Rate")
+                else Icon(Icons.Filled.Add, contentDescription = "Log ${habit.name}", modifier = Modifier.size(24.dp))
+            }
+        }}
+    }
+    ProductivityItemCard(
         modifier = Modifier
-            .fillMaxWidth()
             .clickable(onClickLabel = "Open habit details for ${habit.name}", onClick = onOpen)
             .testTag("habit-card-${habit.id}")
             .semantics { contentDescription = "Open habit details for ${habit.name}" },
+        containerColor = if (item.isDoneForToday()) {
+            MaterialTheme.colorScheme.surfaceContainerLow
+        } else {
+            MaterialTheme.colorScheme.surfaceContainer
+        },
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                WhipIdentityEmoji(habit.icon)
-                Spacer(Modifier.width(10.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(habit.name, fontWeight = FontWeight.Bold)
-                    if (habit.areaId != null) AreaBadge(habit.areaId, habit.area)
-                    val streakUnit = when (habit.scheduleType) {
-                        HabitScheduleType.FlexibleTimesPerWeek -> "week"
-                        HabitScheduleType.FlexibleTimesPerMonth -> "month"
-                        else -> "day"
-                    }
-                    val rateWindow = if (habit.scheduleType in setOf(
-                            HabitScheduleType.FlexibleTimesPerWeek,
-                            HabitScheduleType.FlexibleTimesPerMonth,
-                        )
-                    ) "recent periods" else "30d"
+        ProductivityItemHeader(
+            itemType = "habit",
+            itemName = habit.name,
+            emoji = habit.icon,
+            areaId = habit.areaId,
+            areaName = habit.area,
+            onEdit = onEdit,
+            identityModifier = Modifier.testTag("habit-icon-${habit.id}"),
+            primaryActionModifier = Modifier.testTag("habit-primary-action-${habit.id}"),
+            editModifier = Modifier.testTag("habit-edit-action-${habit.id}"),
+            supportingContent = {
+                Text(
+                    if (lowPressureMode) {
+                        "${habit.trackingMode.uiLabel()} · ${(item.completionRate * 100).toInt()}% / $rateWindow"
+                    } else {
+                        "${habit.trackingMode.uiLabel()} · ${item.streak} $streakUnit streak · ${(item.completionRate * 100).toInt()}% / $rateWindow"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            primaryAction = primaryAction,
+        )
+            if (skipped) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
                     Text(
-                        if (lowPressureMode) {
-                            "${habit.trackingMode.uiLabel()} · ${(item.completionRate * 100).toInt()}% / $rateWindow"
-                        } else {
-                            "${habit.trackingMode.uiLabel()} · ${item.streak} $streakUnit streak · ${(item.completionRate * 100).toInt()}% / $rateWindow"
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        "Skipped Today · Streak Protected",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.whipColors.warning,
                     )
+                    WhipTextButton(onClick = onUndoSkip) { Text("Undo Skip") }
                 }
-                if (habit.sourceMetricId != null) {
-                    Text("Synced", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-                } else when (habit.trackingMode) {
-                    HabitTrackingMode.CheckOff -> Checkbox(
-                        checked = item.successful == true,
-                        onCheckedChange = { onQuick() },
-                        modifier = Modifier.semantics {
-                            contentDescription = if (item.successful == true) {
-                                "Mark habit ${habit.name} incomplete"
-                            } else "Check off habit ${habit.name}"
-                        },
-                    )
-                    HabitTrackingMode.Duration -> WhipButton(onClick = onQuick) { Text(if (habit.timerStartedAtMillis == null) "Start" else "Stop") }
-                    HabitTrackingMode.Count, HabitTrackingMode.Decimal -> Unit
-                    else -> WhipButton(onClick = onQuick) {
-                        if (habit.trackingMode == HabitTrackingMode.Rating) Text("Rate")
-                        else Icon(Icons.Filled.Add, contentDescription = "Log ${habit.name}", modifier = Modifier.size(24.dp))
-                    }
-                }
-                ItemEditButton("habit", habit.name, onEdit)
             }
-            if (habit.sourceMetricId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
+            if (!skipped && habit.sourceMetricId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
                 val quickValues = (listOf(habit.quickIncrement) + habit.quickActions)
                     .filter { it.isFinite() && it > 0.0 }
                     .distinct()
@@ -746,7 +776,7 @@ fun HabitProgressCard(
                     WhipTextButton(enabled = canUndo, onClick = onUndo) { Text("Undo") }
                 }
             }
-            if (habit.trackingMode == HabitTrackingMode.Checklist) {
+            if (!skipped && habit.trackingMode == HabitTrackingMode.Checklist) {
                 item.checklistItems.forEach { (checklistItem, completed) ->
                     Row(
                         modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Toggle ${checklistItem.name}") {
@@ -759,7 +789,7 @@ fun HabitProgressCard(
                     }
                 }
             }
-            if (item.flexibleScheduleTarget != null && item.flexibleScheduleProgress != null) {
+            if (!skipped && item.flexibleScheduleTarget != null && item.flexibleScheduleProgress != null) {
                 val target = item.flexibleScheduleTarget
                 val fraction = (item.flexibleScheduleProgress.toFloat() / target).coerceIn(0f, 1f)
                 LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
@@ -767,7 +797,7 @@ fun HabitProgressCard(
                     "${item.flexibleScheduleProgress} / $target completions this ${if (habit.scheduleType == HabitScheduleType.FlexibleTimesPerWeek) "week" else "month"}",
                     style = MaterialTheme.typography.labelMedium,
                 )
-            } else if (habit.comparison != TargetComparison.None) {
+            } else if (!skipped && habit.comparison != TargetComparison.None) {
                 val target = habit.targetMax ?: habit.targetMin ?: 1.0
                 val fraction = if (target == 0.0) 0f else (item.value / target).toFloat().coerceIn(0f, 1f)
                 LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
@@ -775,13 +805,12 @@ fun HabitProgressCard(
                     "${formatHabitValue(item.value, habit.precision)} / ${formatHabitValue(target, habit.precision)} ${habit.unitId.unitLabel()}",
                     style = MaterialTheme.typography.labelMedium,
                 )
-            } else if (item.value != 0.0) {
+            } else if (!skipped && item.value != 0.0) {
                 Text("${formatHabitValue(item.value, habit.precision)} ${habit.unitId.unitLabel()}")
             }
             if (habit.sourceMetricId != null) {
                 Text("Read-only source: Health Connect · provenance is retained per entry", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-        }
     }
 }
 
@@ -794,6 +823,35 @@ fun quickHabitAction(item: HabitDayProgress, vm: HabitViewModel, openNumeric: ()
         HabitTrackingMode.Checklist -> Unit
         HabitTrackingMode.Rating, HabitTrackingMode.LogOnly -> openNumeric()
     }
+}
+
+internal data class DailyHabitSections(
+    val remaining: List<HabitDayProgress>,
+    val done: List<HabitDayProgress>,
+)
+
+internal fun HabitDayProgress.isDoneForToday(): Boolean =
+    dayState == HabitDayState.Completed || successful == true
+
+internal fun List<HabitDayProgress>.dailyHabitSections(): DailyHabitSections {
+    val (done, remaining) = partition(HabitDayProgress::isDoneForToday)
+    return DailyHabitSections(remaining = remaining, done = done)
+}
+
+@Composable
+internal fun DoneHabitsDisclosure(
+    count: Int,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    DisclosureRow(
+        title = "Done ($count)",
+        supportingText = "Completed today · expand to review or undo.",
+        expanded = expanded,
+        onClick = onToggle,
+        modifier = modifier.testTag("habit-done-disclosure"),
+    )
 }
 
 @Composable
@@ -811,12 +869,31 @@ private fun HabitList(
     onDecrement: (HabitDayProgress) -> Unit,
     onUndo: (HabitDayProgress) -> Unit,
     canUndo: (HabitDayProgress) -> Boolean,
+    onUndoSkip: (HabitDayProgress) -> Unit,
     onChecklist: (Long, Long, LocalDate, Boolean) -> Unit,
     onReorder: ((List<Long>) -> Unit)?,
     lowPressureMode: Boolean,
+    separateCompleted: Boolean = false,
 ) {
     var manageOrder by rememberSaveable { mutableStateOf(false) }
     var toolsExpanded by rememberSaveable { mutableStateOf(false) }
+    val sections = if (separateCompleted) progress.dailyHabitSections() else DailyHabitSections(progress, emptyList())
+    val doneIds = sections.done.mapTo(linkedSetOf()) { it.habit.id }
+    val dateKey = progress.firstOrNull()?.date?.toEpochDay() ?: Long.MIN_VALUE
+    var doneExpanded by rememberSaveable(title, dateKey) {
+        mutableStateOf(sections.remaining.isEmpty() && sections.done.isNotEmpty())
+    }
+    var knownDoneIds by remember(title, dateKey) { mutableStateOf(doneIds) }
+    var completionTrackingReady by remember(title, dateKey) { mutableStateOf(false) }
+    LaunchedEffect(doneIds) {
+        if (completionTrackingReady) {
+            if ((doneIds - knownDoneIds).isNotEmpty()) doneExpanded = true
+            if (doneIds.isEmpty()) doneExpanded = false
+        } else {
+            completionTrackingReady = true
+        }
+        knownDoneIds = doneIds
+    }
     BackHandler(enabled = manageOrder) { manageOrder = false }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -860,8 +937,14 @@ private fun HabitList(
                 onPrimaryAction = onTemplates,
             )
         }
-        items(progress, key = { it.habit.id }) { item ->
-            val index = progress.indexOfFirst { it.habit.id == item.habit.id }
+        if (separateCompleted && sections.remaining.isEmpty() && sections.done.isNotEmpty()) item {
+            WhipEmptyState(
+                title = "All Done for Today",
+                supportingText = "Your completed habits remain below if you need to review or undo one.",
+            )
+        }
+        items(sections.remaining, key = { it.habit.id }) { item ->
+            val index = sections.remaining.indexOfFirst { it.habit.id == item.habit.id }
             Column {
                 HabitProgressCard(
                     item = item,
@@ -873,23 +956,49 @@ private fun HabitList(
                     onDecrement = { onDecrement(item) },
                     onUndo = { onUndo(item) },
                     canUndo = canUndo(item),
+                    onUndoSkip = { onUndoSkip(item) },
                     onChecklist = onChecklist,
                     lowPressureMode = lowPressureMode,
                 )
                 if (manageOrder && onReorder != null) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         WhipTextButton(enabled = index > 0, onClick = {
-                            val ids = progress.map { it.habit.id }.toMutableList()
+                            val ids = sections.remaining.map { it.habit.id }.toMutableList()
                             java.util.Collections.swap(ids, index, index - 1)
                             onReorder(ids)
                         }) { Icon(Icons.Outlined.ArrowUpward, contentDescription = null, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(4.dp)); Text("Earlier") }
-                        WhipTextButton(enabled = index in 0 until progress.lastIndex, onClick = {
-                            val ids = progress.map { it.habit.id }.toMutableList()
+                        WhipTextButton(enabled = index in 0 until sections.remaining.lastIndex, onClick = {
+                            val ids = sections.remaining.map { it.habit.id }.toMutableList()
                             java.util.Collections.swap(ids, index, index + 1)
                             onReorder(ids)
                         }) { Icon(Icons.Outlined.ArrowDownward, contentDescription = null, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(4.dp)); Text("Later") }
                     }
                 }
+            }
+        }
+        if (sections.done.isNotEmpty()) {
+            item {
+                DoneHabitsDisclosure(
+                    count = sections.done.size,
+                    expanded = doneExpanded,
+                    onToggle = { doneExpanded = !doneExpanded },
+                )
+            }
+            if (doneExpanded) items(sections.done, key = { it.habit.id }) { item ->
+                HabitProgressCard(
+                    item = item,
+                    onOpen = { onOpen(item) },
+                    onEdit = { onEdit(item) },
+                    onQuick = { onQuick(item) },
+                    onQuickValue = { value -> onQuickValue(item, value) },
+                    onSetValue = { onSetValue(item) },
+                    onDecrement = { onDecrement(item) },
+                    onUndo = { onUndo(item) },
+                    canUndo = canUndo(item),
+                    onUndoSkip = { onUndoSkip(item) },
+                    onChecklist = onChecklist,
+                    lowPressureMode = lowPressureMode,
+                )
             }
         }
     }
@@ -915,11 +1024,27 @@ private fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
             )
         }
         items(state.all, key = { it.habit.id }) { item ->
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
-                    Text(item.habit.name, fontWeight = FontWeight.Bold)
+            ProductivityItemCard {
+                    ProductivityItemHeader(
+                        itemType = "habit",
+                        itemName = item.habit.name,
+                        emoji = item.habit.icon,
+                        areaId = item.habit.areaId,
+                        areaName = item.habit.area,
+                        onEdit = null,
+                        identityModifier = Modifier.testTag("habit-insight-icon-${item.habit.id}"),
+                        supportingContent = {
+                            Text(
+                                item.habit.trackingMode.uiLabel(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                    )
                     val habitLogs = state.logs.filter { it.habitId == item.habit.id }
-                    if (habitLogs.isEmpty()) {
+                    val habitSkips = state.skips.filter { it.habitId == item.habit.id }
+                    val habitPauses = state.pauses.filter { it.habitId == item.habit.id }
+                    if (habitLogs.isEmpty() && habitSkips.isEmpty()) {
                         Text(
                             "No activity yet. Check off or log this habit to build consistency and recent-activity insights.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -928,12 +1053,31 @@ private fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
                     } else {
                         if (!lowPressureMode) Text("Current streak: ${item.streak}")
                         Text("30-day completion: ${(item.completionRate * 100).toInt()}%")
-                        val total = habitLogs.asSequence()
+                        val successfulDates = item.habit.successfulPeriodOutcomeDates(
+                            habitLogs,
+                            item.habit.startDate,
+                            state.currentDate,
+                            habitPauses,
+                            state.customUnits,
+                            habitSkips,
+                        ).size
+                        val values = habitLogs.asSequence()
+                            .filter { it.status in setOf(HabitLogStatus.Recorded, HabitLogStatus.Success) }
                             .mapNotNull { it.valueInUnit(item.habit.unitId, state.customUnits) }
-                            .sum()
-                        Text(
-                            "All-time logged total: ${formatHabitValue(total, item.habit.precision)} ${item.habit.unitId.unitLabel()}",
-                        )
+                            .toList()
+                        Text(when (item.habit.trackingMode) {
+                            HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist -> "Completed $successfulDates Time${if (successfulDates == 1) "" else "s"}"
+                            HabitTrackingMode.Rating -> "Average Rating: ${formatHabitValue(values.average().takeUnless(Double::isNaN) ?: 0.0, item.habit.precision)}"
+                            HabitTrackingMode.LogOnly -> "Entries Logged: ${habitLogs.count { it.status != HabitLogStatus.Failed }}"
+                            else -> "All-Time Logged: ${formatHabitValue(values.sum(), item.habit.precision)} ${item.habit.unitId.unitLabel()}"
+                        })
+                        val scheduledStates = (29L downTo 0L).map { state.currentDate.minusDays(it) }
+                            .filter(item.habit::isScheduledOn)
+                            .map { day -> item.habit.dayStateOn(day, state.currentDate, habitLogs, habitPauses, habitSkips, state.customUnits) }
+                        val completedDays = scheduledStates.count { it == HabitDayState.Completed }
+                        val skippedDays = scheduledStates.count { it == HabitDayState.Skipped }
+                        val missedDays = scheduledStates.count { it in setOf(HabitDayState.Missed, HabitDayState.BelowTarget) }
+                        Text("Last 30 Days: $completedDays Completed · $skippedDays Skipped · $missedDays Missed/Below Target")
                         val weeklyRates = (7L downTo 0L).map { weeksAgo ->
                             val start = state.currentDate.minusWeeks(weeksAgo)
                                 .with(TemporalAdjusters.previousOrSame(item.habit.weekStart))
@@ -942,7 +1086,13 @@ private fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
                                 .takeWhile { !it.isAfter(end) }
                                 .filter(item.habit::isScheduledOn)
                                 .toList()
-                            val outcomes = scheduled.mapNotNull { day -> item.habit.outcomeForPeriod(habitLogs, day, state.customUnits) }
+                            val outcomes = scheduled.mapNotNull { day ->
+                                when (item.habit.dayStateOn(day, end, habitLogs, habitPauses, habitSkips, state.customUnits)) {
+                                    HabitDayState.Completed -> true
+                                    HabitDayState.Missed, HabitDayState.BelowTarget -> false
+                                    else -> null
+                                }
+                            }
                             if (outcomes.isEmpty()) null else outcomes.count { it }.toDouble() / outcomes.size
                         }
                         Text("Eight-Week Consistency", style = MaterialTheme.typography.labelMedium)
@@ -957,33 +1107,32 @@ private fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
                             },
                             style = MaterialTheme.typography.bodySmall,
                         )
-                        val recorded = habitLogs.groupBy { it.localDate }
                         val days = (27L downTo 0L).map { state.currentDate.minusDays(it) }
                         Text("Recent Activity", style = MaterialTheme.typography.labelMedium)
                         val calendarDescription = days.joinToString("; ") { day ->
-                            val logs = recorded[day].orEmpty()
-                            "$day: " + when {
-                                logs.any { it.status == HabitLogStatus.Excused || it.status == HabitLogStatus.Skipped } -> "skipped or excused"
-                                logs.any { (it.value ?: 0.0) > 0.0 || it.status == HabitLogStatus.Success } -> "positive or successful"
-                                logs.isNotEmpty() -> "zero logged"
-                                else -> "no entry"
+                            "$day: " + when (item.habit.dayStateOn(day, state.currentDate, habitLogs, habitPauses, habitSkips, state.customUnits)) {
+                                HabitDayState.Completed -> "completed"
+                                HabitDayState.Skipped -> "skipped"
+                                HabitDayState.Missed -> "missed"
+                                HabitDayState.BelowTarget -> "below target"
+                                HabitDayState.Pending -> "pending"
+                                HabitDayState.Paused -> "paused"
+                                HabitDayState.NotScheduled -> "not scheduled"
                             }
                         }
                         Text(
                             days.chunked(7).joinToString(" ") { week -> week.joinToString("") { day ->
-                                val logs = recorded[day].orEmpty()
-                                when {
-                                    logs.any { it.status == HabitLogStatus.Excused || it.status == HabitLogStatus.Skipped } -> "○"
-                                    logs.any { (it.value ?: 0.0) > 0.0 || it.status == HabitLogStatus.Success } -> "■"
-                                    logs.isNotEmpty() -> "□"
+                                when (item.habit.dayStateOn(day, state.currentDate, habitLogs, habitPauses, habitSkips, state.customUnits)) {
+                                    HabitDayState.Completed -> "✓"
+                                    HabitDayState.Skipped -> "○"
+                                    HabitDayState.Missed, HabitDayState.BelowTarget -> "×"
                                     else -> "·"
                                 }
                             } },
                             modifier = Modifier.semantics { contentDescription = calendarDescription },
                         )
-                        Text("■ success · □ recorded below target · ○ skipped/excused · · no entry", style = MaterialTheme.typography.labelSmall)
+                        Text("✓ completed · ○ skipped · × missed/below target · · pending, paused, or not scheduled", style = MaterialTheme.typography.labelSmall)
                     }
-                }
             }
         }
     }
@@ -1042,19 +1191,28 @@ private fun ArchivedHabitList(
             )
         }
         items(visible, key = Habit::id) { habit ->
-            Card(
-                modifier = Modifier.fillMaxWidth()
+            ProductivityItemCard(
+                modifier = Modifier
                     .clickable(onClickLabel = "Open habit details for ${habit.name}") { onOpen(habit) }
                     .semantics { contentDescription = "Open habit details for ${habit.name}" },
             ) {
-                Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(habit.name, fontWeight = FontWeight.Bold)
-                        if (habit.areaId != null) AreaBadge(habit.areaId, habit.area)
-                        Text("Archived", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    ItemEditButton("habit", habit.name, onEdit = { onEdit(habit) })
-                }
+                ProductivityItemHeader(
+                    itemType = "habit",
+                    itemName = habit.name,
+                    emoji = habit.icon,
+                    areaId = habit.areaId,
+                    areaName = habit.area,
+                    onEdit = { onEdit(habit) },
+                    identityModifier = Modifier.testTag("habit-icon-${habit.id}"),
+                    editModifier = Modifier.testTag("habit-edit-action-${habit.id}"),
+                    supportingContent = {
+                        Text(
+                            "Archived",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                )
             }
         }
     }
@@ -1099,7 +1257,7 @@ private fun HabitTemplateDialog(
             precision = 0, startDate = today,
         ),
     )
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Habit Templates") },
         text = {
@@ -1286,6 +1444,7 @@ private fun HabitEditorDialog(
                 modifier = Modifier.testTag("habit-editor-fields"),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                item { EditorSectionHeader("Basics", "Name this Habit and choose the emoji used across Whip.") }
                 item { OutlinedTextField(name, { name = it }, label = { Text("Name *") }, modifier = Modifier.fillMaxWidth().testTag("habit-editor-name")) }
                 item {
                     WhipEmojiPicker(
@@ -1323,6 +1482,7 @@ private fun HabitEditorDialog(
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
+                item { EditorSectionHeader("Tracking", "Choose the daily action first; its targets and measurement fields stay directly below it.") }
                 item {
                     Text("How do you want to track it?", fontWeight = FontWeight.Bold)
                     Text("Choose the action you want available each day. Whip fills in sensible defaults.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1499,6 +1659,7 @@ private fun HabitEditorDialog(
                         if (targetPeriod == TargetPeriod.RollingDays) item { NumberTextField(rollingDays, { rollingDays = it }, "Rolling-day window") }
                     }
                 }
+                item { EditorSectionHeader("Schedule", "Choose when this Habit is expected, then configure only the settings that schedule enables.") }
                 item {
                     EnumDropdown("Schedule", HabitScheduleType.entries, schedule, { it.scheduleLabel() }) { schedule = it }
                     DependentSettingsNotice(
@@ -1530,6 +1691,29 @@ private fun HabitEditorDialog(
                     }
                 }
                 item {
+                    val parsed = reminders.split(',').mapNotNull { parseClockMinutes(it.trim()) }.distinct().sorted()
+                    ReminderTimesEditor("Default Reminders", parsed) { updated ->
+                        if (updated.isNotEmpty() && parsed.isEmpty()) onRequestNotificationPermission()
+                        reminders = updated.joinToString(",", transform = ::formatClockMinutes)
+                    }
+                }
+                item {
+                    WeekdayReminderEditor(
+                        values = parseWeekdayReminderMap(weekdayReminders),
+                        firstDayOfWeek = weekStart,
+                    ) { updated ->
+                        if (updated.values.any { it.isNotEmpty() } && parseWeekdayReminderMap(weekdayReminders).values.all { it.isEmpty() }) {
+                            onRequestNotificationPermission()
+                        }
+                        weekdayReminders = formatWeekdayReminderMap(updated)
+                    }
+                }
+                item { EnumDropdown("End Condition", HabitEndType.entries, endType, { it.scheduleLabel() }) { endType = it } }
+                if (endType == HabitEndType.OnDate) item { WhipOutlinedButton(onClick = { showEndDatePicker = true }, modifier = Modifier.fillMaxWidth()) { Text(endDate?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "Choose End Date") } }
+                if (endType in setOf(HabitEndType.AfterStreak, HabitEndType.AfterCompletions, HabitEndType.AfterTotal)) item { NumberTextField(endValue, { endValue = it }, when (endType) { HabitEndType.AfterStreak -> "End After Streak"; HabitEndType.AfterCompletions -> "End After Completions"; else -> "End After Total" }) }
+                item { EnumDropdown("First Day of Week", DayOfWeek.entries, weekStart, { it.name.lowercase().replaceFirstChar(Char::uppercase) }) { weekStart = it } }
+                item { EditorSectionHeader("Organization", "Choose the Area that owns this Habit.") }
+                item {
                     AreaPicker(
                         areas = areas,
                         selectedAreaId = areaId,
@@ -1543,13 +1727,14 @@ private fun HabitEditorDialog(
                 }
                 item {
                     DisclosureButton(
-                        label = "Advanced options",
+                        label = "More Details",
                         expanded = showAdvanced,
                         onClick = { showAdvanced = !showAdvanced },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
                 if (showAdvanced) {
+                    item { EditorSectionHeader("Details", "Add reusable tags, quick actions, and notes only when they help.") }
                     item { OutlinedTextField(tags, { tags = it }, label = { Text("Tags, comma-separated") }, modifier = Modifier.fillMaxWidth()) }
                     if (sourceMetricId == null) item {
                         NumericQuickActionBuilder(
@@ -1560,28 +1745,6 @@ private fun HabitEditorDialog(
                         )
                         quickActionResult.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
                     }
-                    item {
-                        val parsed = reminders.split(',').mapNotNull { parseClockMinutes(it.trim()) }.distinct().sorted()
-                        ReminderTimesEditor("Default reminders", parsed) { updated ->
-                            if (updated.isNotEmpty() && parsed.isEmpty()) onRequestNotificationPermission()
-                            reminders = updated.joinToString(",", transform = ::formatClockMinutes)
-                        }
-                    }
-                    item {
-                        WeekdayReminderEditor(
-                            values = parseWeekdayReminderMap(weekdayReminders),
-                            firstDayOfWeek = weekStart,
-                        ) { updated ->
-                            if (updated.values.any { it.isNotEmpty() } && parseWeekdayReminderMap(weekdayReminders).values.all { it.isEmpty() }) {
-                                onRequestNotificationPermission()
-                            }
-                            weekdayReminders = formatWeekdayReminderMap(updated)
-                        }
-                    }
-                    item { EnumDropdown("End condition", HabitEndType.entries, endType, { it.scheduleLabel() }) { endType = it } }
-                    if (endType == HabitEndType.OnDate) item { WhipOutlinedButton(onClick = { showEndDatePicker = true }, modifier = Modifier.fillMaxWidth()) { Text(endDate?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "Choose End Date") } }
-                    if (endType in setOf(HabitEndType.AfterStreak, HabitEndType.AfterCompletions, HabitEndType.AfterTotal)) item { NumberTextField(endValue, { endValue = it }, when (endType) { HabitEndType.AfterStreak -> "End after streak"; HabitEndType.AfterCompletions -> "End after completions"; else -> "End after total" }) }
-                    item { EnumDropdown("First day of week", DayOfWeek.entries, weekStart, { it.name.lowercase().replaceFirstChar(Char::uppercase) }) { weekStart = it } }
                     item { OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth()) }
                 }
             }
@@ -1649,7 +1812,7 @@ private fun HabitEditorDialog(
 internal fun HabitValueDialog(item: HabitDayProgress, onDismiss: () -> Unit, onLog: (Double, String) -> Unit) {
     var value by rememberSaveable(item.habit.id, item.date) { mutableStateOf(editableNumericValue(item.value)) }
     var note by rememberSaveable(item.habit.id, item.date) { mutableStateOf("") }
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Set ${item.habit.name}") },
         text = {
@@ -1692,22 +1855,17 @@ private fun HabitHistoryLogDialog(
     var showDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
     val requiresValue = status in setOf(HabitLogStatus.Recorded, HabitLogStatus.Success) &&
         item.habit.trackingMode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (log == null) "Add Past ${item.habit.name} Entry" else "Edit ${item.habit.name} Entry") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                EnumDropdown("State", HabitLogStatus.entries, status, { it.name }) { selected ->
-                    status = selected
-                    if (selected in setOf(HabitLogStatus.Skipped, HabitLogStatus.Excused, HabitLogStatus.Missing)) value = ""
-                }
-                if (status !in setOf(HabitLogStatus.Skipped, HabitLogStatus.Excused, HabitLogStatus.Missing)) {
-                    NumberTextField(
-                        value,
-                        { value = it },
-                        "Value (${(log?.enteredUnitId ?: item.habit.unitId).unitLabel()})",
-                    )
-                }
+                EnumDropdown("State", HabitLogStatus.entries, status, { it.name }) { status = it }
+                NumberTextField(
+                    value,
+                    { value = it },
+                    "Value (${(log?.enteredUnitId ?: item.habit.unitId).unitLabel()})",
+                )
                 WhipOutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
                 }
@@ -1747,9 +1905,9 @@ private fun HabitActionsDialog(
     onPause: () -> Unit,
     onSchedulePause: () -> Unit,
     onSkip: () -> Unit,
-    onExcuse: () -> Unit,
-    onMissing: () -> Unit,
+    onUndoSkip: () -> Unit,
     logs: List<HabitLog>,
+    skips: List<HabitSkip>,
     onAddHistoricalLog: () -> Unit,
     onEditLog: (HabitLog) -> Unit,
     linkedGoals: List<String>,
@@ -1778,34 +1936,57 @@ private fun HabitActionsDialog(
                     HabitDetailSection.Today -> {
                         Text(
                             if (item.habit.archived) "This habit is archived. Restore it from More to resume check-ins."
+                            else if (item.dayState == HabitDayState.Skipped) "Skipped Today · Streak Protected"
                             else if (lowPressureMode) "${formatHabitValue(item.value, item.habit.precision)} logged"
                             else "${formatHabitValue(item.value, item.habit.precision)} logged · streak ${item.streak}",
                         )
-                        if (!item.habit.archived) listOf(
-                            (if (item.habit.paused) "Resume" else "Pause indefinitely") to onPause,
-                            "Schedule pause dates" to onSchedulePause,
-                            "Skip today" to onSkip,
-                            "Excuse today" to onExcuse,
-                            "Mark today missing" to onMissing,
-                        ).forEach { (label, action) -> WhipTextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text(label) } }
+                        if (!item.habit.archived) {
+                            listOf(
+                                (if (item.habit.paused) "Resume" else "Pause Indefinitely") to onPause,
+                                "Schedule Pause Dates" to onSchedulePause,
+                            ).forEach { (label, action) -> WhipTextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text(label) } }
+                            when {
+                                item.dayState == HabitDayState.Skipped -> WhipTextButton(
+                                    onClick = onUndoSkip,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) { Text("Undo Skip") }
+                                item.dayState == HabitDayState.Pending &&
+                                    item.habit.sourceMetricId == null &&
+                                    item.habit.scheduleType !in setOf(
+                                        HabitScheduleType.FlexibleTimesPerWeek,
+                                        HabitScheduleType.FlexibleTimesPerMonth,
+                                    ) -> WhipTextButton(
+                                    onClick = onSkip,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) { Text("Skip Today") }
+                            }
+                        }
                     }
                     HabitDetailSection.History -> {
                         WhipTextButton(onClick = onAddHistoricalLog, modifier = Modifier.fillMaxWidth()) { Text("Add Backdated Entry") }
-                        if (logs.isEmpty()) Text("No entries yet.") else {
+                        val events = (logs.map(HabitHistoryEvent::Log) + skips.map(HabitHistoryEvent::Skip))
+                            .sortedByDescending(HabitHistoryEvent::timeMillis)
+                        if (events.isEmpty()) Text("No entries yet.") else {
                             Text("Recent Entries", style = MaterialTheme.typography.labelMedium)
-                            val orderedLogs = logs.sortedByDescending(HabitLog::timestamp)
-                            orderedLogs.take(visibleLogs).forEach { log ->
-                                WhipTextButton(onClick = { onEditLog(log) }, modifier = Modifier.fillMaxWidth()) {
-                                    Text(
-                                        "${log.localDate}: ${log.value?.let { formatHabitValue(it, item.habit.precision) } ?: log.status.name}${if (log.note.isBlank()) "" else " · ${log.note}"}",
-                                        modifier = Modifier.fillMaxWidth(),
+                            events.take(visibleLogs).forEach { event ->
+                                when (event) {
+                                    is HabitHistoryEvent.Log -> WhipTextButton(onClick = { onEditLog(event.value) }, modifier = Modifier.fillMaxWidth()) {
+                                        Text(
+                                            "${event.value.localDate}: ${event.value.value?.let { formatHabitValue(it, item.habit.precision) } ?: event.value.status.name}${if (event.value.note.isBlank()) "" else " · ${event.value.note}"}",
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
+                                    is HabitHistoryEvent.Skip -> Text(
+                                        "${event.value.localDate}: Skipped",
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
-                            if (visibleLogs < orderedLogs.size) WhipTextButton(
-                                onClick = { visibleLogs = (visibleLogs + 25).coerceAtMost(orderedLogs.size) },
+                            if (visibleLogs < events.size) WhipTextButton(
+                                onClick = { visibleLogs = (visibleLogs + 25).coerceAtMost(events.size) },
                                 modifier = Modifier.fillMaxWidth(),
-                            ) { Text("Show 25 More · ${orderedLogs.size - visibleLogs} Remaining") }
+                            ) { Text("Show 25 More · ${events.size - visibleLogs} Remaining") }
                         }
                     }
                     HabitDetailSection.Connections -> {
@@ -1835,6 +2016,18 @@ private fun HabitActionsDialog(
     )
 }
 
+private sealed interface HabitHistoryEvent {
+    val timeMillis: Long
+
+    data class Log(val value: HabitLog) : HabitHistoryEvent {
+        override val timeMillis: Long = value.timestamp.toEpochMilli()
+    }
+
+    data class Skip(val value: HabitSkip) : HabitHistoryEvent {
+        override val timeMillis: Long = value.skippedAtMillis
+    }
+}
+
 private enum class HabitDetailSection(val label: String) {
     Today("Today"),
     History("History"),
@@ -1853,7 +2046,7 @@ private fun HabitGoalLinkDialog(
     val selected = selectedGoalId?.let { id -> goals.firstOrNull { it.goal.id == id } }
     var metric by rememberSaveable(habit.id) { mutableStateOf(if (habit.trackingMode == HabitTrackingMode.CheckOff) LinkSourceMetric.Success else LinkSourceMetric.NumericValue) }
     var includeHistory by rememberSaveable(habit.id) { mutableStateOf(false) }
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Connect ${habit.name} to a Goal") },
         text = {
@@ -1883,7 +2076,7 @@ private fun HabitPauseDialog(today: LocalDate, onDismiss: () -> Unit, onSave: (L
     var note by rememberSaveable { mutableStateOf("") }
     var pickingStart by rememberSaveable { mutableStateOf(false) }
     var pickingEnd by rememberSaveable { mutableStateOf(false) }
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Schedule Habit Pause") },
         text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1968,10 +2161,10 @@ private fun TargetPeriod.explanation(schedule: HabitScheduleType): String = when
 }
 private fun HabitScheduleType.scheduleLabel(): String = when (this) {
     HabitScheduleType.Daily -> "Daily"
-    HabitScheduleType.EveryNDays -> "Every X days"
-    HabitScheduleType.SelectedWeekdays -> "Weekdays"
-    HabitScheduleType.FlexibleTimesPerWeek -> "Flexible times per week"
-    HabitScheduleType.FlexibleTimesPerMonth -> "Flexible times per month"
+    HabitScheduleType.EveryNDays -> "Custom Day Interval"
+    HabitScheduleType.SelectedWeekdays -> "Specific Weekdays"
+    HabitScheduleType.FlexibleTimesPerWeek -> "Flexible Weekly Target"
+    HabitScheduleType.FlexibleTimesPerMonth -> "Flexible Monthly Target"
 }
 private fun HabitEndType.scheduleLabel(): String = when (this) {
     HabitEndType.Never -> "Never"

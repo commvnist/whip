@@ -58,6 +58,12 @@ internal object WhipSpacing {
     val major = 32.dp
 }
 
+internal object WhipContentWidth {
+    val compactDialog = 560.dp
+    val readable = 920.dp
+    val dashboard = 1200.dp
+}
+
 /**
  * A destination-sized overlay owns the complete edge-to-edge window surface,
  * while its interactive content stays inside the safe drawing insets.

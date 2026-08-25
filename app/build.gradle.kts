@@ -55,6 +55,10 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             resValue("string", "app_name", "Whip Dev")
+            // Coverage stays on the same disposable-emulator lane as the E2E
+            // suite; scripts/coverage validates both reports independently.
+            enableUnitTestCoverage = true
+            enableAndroidTestCoverage = true
         }
         release {
             isMinifyEnabled = true
@@ -139,4 +143,11 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4.accessibility)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+// The E2E contract test validates this repository-level capability register.
+// Declare it explicitly so Gradle cannot reuse a stale passing test result after
+// the matrix changes.
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    inputs.file(rootProject.file("docs/quality/e2e-coverage.tsv"))
 }

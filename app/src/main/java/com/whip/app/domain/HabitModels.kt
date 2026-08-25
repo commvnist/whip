@@ -10,7 +10,8 @@ enum class TargetComparison { AtLeast, AtMost, Exactly, WithinRange, None }
 enum class TargetPeriod { Occurrence, Day, Week, Month, RollingDays }
 enum class HabitScheduleType { Daily, EveryNDays, SelectedWeekdays, FlexibleTimesPerWeek, FlexibleTimesPerMonth }
 enum class HabitEndType { Never, OnDate, AfterStreak, AfterCompletions, AfterTotal }
-enum class HabitLogStatus { Recorded, Success, Failed, Skipped, Excused, Missing }
+enum class HabitLogStatus { Recorded, Success, Failed }
+enum class HabitDayState { Pending, Completed, BelowTarget, Missed, Skipped, Paused, NotScheduled }
 
 data class HabitDraft(
     val name: String,
@@ -144,6 +145,15 @@ data class HabitPause(
     val note: String,
 )
 
+data class HabitSkip(
+    val uuid: String,
+    val habitId: Long,
+    val localDate: LocalDate,
+    val skippedAtMillis: Long,
+    val createdAtMillis: Long,
+    val updatedAtMillis: Long,
+)
+
 data class HabitDayProgress(
     val habit: Habit,
     val date: LocalDate,
@@ -156,6 +166,7 @@ data class HabitDayProgress(
     val completionRate: Double,
     val flexibleScheduleProgress: Int? = null,
     val flexibleScheduleTarget: Int? = null,
+    val dayState: HabitDayState = HabitDayState.Pending,
 )
 
 data class FlexibleHabitProgress(
@@ -181,6 +192,7 @@ fun Habit.flexibleProgress(
     logs: List<HabitLog>,
     date: LocalDate,
     pauses: List<HabitPause> = emptyList(),
+    skips: List<HabitSkip> = emptyList(),
 ): FlexibleHabitProgress? {
     val configuredTarget = when (scheduleType) {
         HabitScheduleType.FlexibleTimesPerWeek,
@@ -211,23 +223,20 @@ fun Habit.flexibleProgress(
         .takeWhile { it <= bounds.endInclusive }
         .count { day ->
             !day.isBefore(startDate) && endDate?.let(day::isAfter) != true &&
-                !isNeutralDate(day, logs, pauses)
+                !isNeutralDate(day, pauses, skips)
         }
     return FlexibleHabitProgress(completed, configuredTarget.coerceAtMost(eligibleDays))
 }
 
 fun Habit.isNeutralDate(
     date: LocalDate,
-    logs: List<HabitLog>,
     pauses: List<HabitPause> = emptyList(),
+    skips: List<HabitSkip> = emptyList(),
 ): Boolean {
     if (pauses.any { it.habitId == id && !date.isBefore(it.startDate) && (it.endDate == null || !date.isAfter(it.endDate)) }) {
         return true
     }
-    return logs.asSequence()
-        .filter { it.habitId == id && it.localDate == date }
-        .maxByOrNull(HabitLog::timestamp)
-        ?.status in setOf(HabitLogStatus.Skipped, HabitLogStatus.Excused)
+    return skips.any { it.habitId == id && it.localDate == date }
 }
 
 fun Habit.valueForPeriod(
@@ -254,11 +263,6 @@ fun Habit.outcomeForPeriod(
     date: LocalDate,
     customUnits: List<UnitDefinition> = emptyList(),
 ): Boolean? {
-    val exactStatus = logs.asSequence()
-        .filter { it.habitId == id && it.localDate == date }
-        .maxByOrNull(HabitLog::timestamp)
-        ?.status
-    if (exactStatus in setOf(HabitLogStatus.Skipped, HabitLogStatus.Excused)) return null
     val hasData = logs.any {
         it.habitId == id && it.localDate in periodBounds(date) &&
             it.status in setOf(HabitLogStatus.Recorded, HabitLogStatus.Success, HabitLogStatus.Failed) &&
@@ -272,6 +276,7 @@ fun Habit.flexiblePeriodStreak(
     logs: List<HabitLog>,
     through: LocalDate,
     pauses: List<HabitPause> = emptyList(),
+    skips: List<HabitSkip> = emptyList(),
 ): Int {
     if (scheduleType !in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)) {
         return 0
@@ -288,14 +293,14 @@ fun Habit.flexiblePeriodStreak(
     }
     // An unfinished current period is not a failure. Carry the previous closed
     // streak until the current period either reaches its target or closes.
-    if ((flexibleProgress(logs, cursor, pauses)?.completed ?: 0) < (flexibleProgress(logs, cursor, pauses)?.target ?: 1)) {
+    if ((flexibleProgress(logs, cursor, pauses, skips)?.completed ?: 0) < (flexibleProgress(logs, cursor, pauses, skips)?.target ?: 1)) {
         cursor = previous(cursor)
     }
     var streak = 0
     while (!cursor.isBefore(startDate.withDayOfMonth(1).takeIf {
             scheduleType == HabitScheduleType.FlexibleTimesPerMonth
         } ?: startDate.with(TemporalAdjusters.previousOrSame(weekStart)))) {
-        val progress = flexibleProgress(logs, cursor, pauses) ?: break
+        val progress = flexibleProgress(logs, cursor, pauses, skips) ?: break
         if (progress.target == 0) {
             cursor = previous(cursor)
             continue
@@ -313,6 +318,7 @@ fun Habit.completionRateOverRecentPeriods(
     lookbackDays: Long = 30,
     pauses: List<HabitPause> = emptyList(),
     customUnits: List<UnitDefinition> = emptyList(),
+    skips: List<HabitSkip> = emptyList(),
 ): Double {
     val since = through.minusDays((lookbackDays - 1).coerceAtLeast(0))
     if (scheduleType !in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)) {
@@ -320,9 +326,11 @@ fun Habit.completionRateOverRecentPeriods(
             .takeWhile { !it.isBefore(since) && !it.isBefore(startDate) }
             .filter(::isScheduledOn)
             .toList()
-        val outcomes = scheduled
-            .filterNot { isNeutralDate(it, logs, pauses) }
-            .mapNotNull { outcomeForPeriod(logs, it, customUnits) }
+        val outcomes = scheduled.mapNotNull { day ->
+            if (isNeutralDate(day, pauses, skips)) return@mapNotNull null
+            outcomeForPeriod(logs, day, customUnits)
+                ?: false.takeIf { day.isBefore(through) }
+        }
         return if (outcomes.isEmpty()) 0.0 else outcomes.count { it }.toDouble() / outcomes.size
     }
     val starts = buildList {
@@ -337,7 +345,7 @@ fun Habit.completionRateOverRecentPeriods(
         }
     }
     val outcomes = starts.mapNotNull { start ->
-        val progress = flexibleProgress(logs, start, pauses) ?: return@mapNotNull null
+        val progress = flexibleProgress(logs, start, pauses, skips) ?: return@mapNotNull null
         if (progress.target == 0) return@mapNotNull null
         val complete = progress.completed >= progress.target
         val periodClosed = when (scheduleType) {
@@ -374,10 +382,11 @@ fun Habit.reminderNeededOn(
     logs: List<HabitLog>,
     date: LocalDate,
     customUnits: List<UnitDefinition> = emptyList(),
+    skips: List<HabitSkip> = emptyList(),
 ): Boolean {
-    if (hasEnded(logs, date, customUnits = customUnits)) return false
-    if (isNeutralDate(date, logs)) return false
-    val flexible = flexibleProgress(logs, date)
+    if (hasEnded(logs, date, customUnits = customUnits, skips = skips)) return false
+    if (isNeutralDate(date, skips = skips)) return false
+    val flexible = flexibleProgress(logs, date, skips = skips)
     val weekSuccesses = flexible?.completed.takeIf { scheduleType == HabitScheduleType.FlexibleTimesPerWeek } ?: 0
     val monthSuccesses = flexible?.completed.takeIf { scheduleType == HabitScheduleType.FlexibleTimesPerMonth } ?: 0
     if (!isScheduledOn(date, weekSuccesses, monthSuccesses)) return false
@@ -397,12 +406,13 @@ fun Habit.hasEnded(
     date: LocalDate,
     pauses: List<HabitPause> = emptyList(),
     customUnits: List<UnitDefinition> = emptyList(),
+    skips: List<HabitSkip> = emptyList(),
 ): Boolean = when (endType) {
     HabitEndType.Never -> false
     HabitEndType.OnDate -> endDate?.let(date::isAfter) == true
     HabitEndType.AfterCompletions -> {
         endValue?.toInt()?.let { target ->
-            successfulPeriodOutcomeDates(logs, startDate, date, pauses, customUnits).size >= target
+            successfulPeriodOutcomeDates(logs, startDate, date, pauses, customUnits, skips).size >= target
         } ?: false
     }
     HabitEndType.AfterTotal -> {
@@ -420,7 +430,7 @@ fun Habit.hasEnded(
             val outcomes = generateSequence(startDate) { it.plusDays(1) }
                 .takeWhile { !it.isAfter(date) }
                 .associateWith { day -> outcomeForPeriod(logs, day, customUnits) }
-            val neutral = outcomes.keys.filterTo(mutableSetOf()) { isNeutralDate(it, logs, pauses) }
+            val neutral = outcomes.keys.filterTo(mutableSetOf()) { isNeutralDate(it, pauses, skips) }
             outcomes.keys.asSequence()
                 .filter { outcomes[it] == true }
                 .any { through -> habitStreak(this, through, outcomes, neutral) >= target }
@@ -439,13 +449,14 @@ fun Habit.successfulPeriodOutcomeDates(
     through: LocalDate,
     pauses: List<HabitPause> = emptyList(),
     customUnits: List<UnitDefinition> = emptyList(),
+    skips: List<HabitSkip> = emptyList(),
 ): Set<LocalDate> {
     if (through.isBefore(from)) return emptySet()
     val habitLogs = logs.filter { it.habitId == id }
     if (scheduleType !in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)) {
         return generateSequence(from) { it.plusDays(1) }
             .takeWhile { !it.isAfter(through) }
-            .filter { isScheduledOn(it) && !isNeutralDate(it, habitLogs, pauses) && outcomeForPeriod(habitLogs, it, customUnits) == true }
+            .filter { isScheduledOn(it) && !isNeutralDate(it, pauses, skips) && outcomeForPeriod(habitLogs, it, customUnits) == true }
             .toSet()
     }
     val firstStart = when (scheduleType) {
@@ -461,7 +472,7 @@ fun Habit.successfulPeriodOutcomeDates(
                 HabitScheduleType.FlexibleTimesPerMonth -> periodStart..periodStart.withDayOfMonth(periodStart.lengthOfMonth())
                 else -> periodStart..periodStart
             }
-            val progress = flexibleProgress(habitLogs, periodStart, pauses)
+            val progress = flexibleProgress(habitLogs, periodStart, pauses, skips)
             val target = progress?.target ?: 0
             if (target > 0 && (progress?.completed ?: 0) >= target) {
                 val achievingDate = habitLogs.asSequence()
@@ -522,9 +533,32 @@ fun habitStreak(
         when (successByDate[date]) {
             true -> streak++
             false -> return streak
-            null -> return streak
+            null -> if (date == through) {
+                // An unfinished current occurrence does not erase the streak
+                // earned through the previous scheduled day.
+            } else return streak
         }
         date = date.minusDays(1)
     }
     return streak
+}
+
+fun Habit.dayStateOn(
+    date: LocalDate,
+    today: LocalDate,
+    logs: List<HabitLog>,
+    pauses: List<HabitPause> = emptyList(),
+    skips: List<HabitSkip> = emptyList(),
+    customUnits: List<UnitDefinition> = emptyList(),
+): HabitDayState {
+    if (paused || pauses.any { it.habitId == id && !date.isBefore(it.startDate) && (it.endDate == null || !date.isAfter(it.endDate)) }) {
+        return HabitDayState.Paused
+    }
+    if (skips.any { it.habitId == id && it.localDate == date }) return HabitDayState.Skipped
+    if (!isScheduledOn(date)) return HabitDayState.NotScheduled
+    return when (outcomeForPeriod(logs, date, customUnits)) {
+        true -> HabitDayState.Completed
+        false -> HabitDayState.BelowTarget
+        null -> if (date.isBefore(today)) HabitDayState.Missed else HabitDayState.Pending
+    }
 }

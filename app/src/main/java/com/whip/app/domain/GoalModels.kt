@@ -80,6 +80,47 @@ fun GoalDraft.withTypeSemantics(): GoalDraft = copy(
     paceType = paceType.takeIf { deadline != null && type !in setOf(GoalType.OpenEndedTrend, GoalType.ElapsedSince) } ?: GoalPaceType.None,
 )
 
+/**
+ * The authoritative save rules for a Goal draft. Editors use the complete list
+ * to explain every blocked save, while repositories enforce the same contract
+ * before writing anything.
+ */
+fun GoalDraft.validationErrors(nowMillis: Long): List<String> = buildList {
+    if (name.isBlank()) add("Goal name is required")
+    if (deadline != null && deadline.isBefore(startDate)) add("Deadline cannot precede the start date")
+    if (precision !in 0..6) add("Decimal places must be between 0 and 6")
+    if (listOfNotNull(baseline, targetMin, targetMax).any { !it.isFinite() }) add("Goal values must be finite numbers")
+    if (aggregation !in type.compatibleAggregations()) add("Goal calculation does not match its type")
+    if (direction != type.defaultDirection()) add("Goal direction does not match its type")
+    if (paceType != GoalPaceType.None && deadline == null) add("Pace guidance requires a deadline")
+    when (type) {
+        GoalType.ReachValue, GoalType.ReduceValue, GoalType.AccumulateTotal, GoalType.MeetAverage ->
+            if (targetMin?.isFinite() != true) add("Enter a target")
+        GoalType.MaintainRange -> when {
+            targetMin?.isFinite() != true || targetMax?.isFinite() != true -> add("Enter both range limits")
+            targetMin > targetMax -> add("Range minimum cannot exceed range maximum")
+        }
+        GoalType.WeightedMilestones -> {
+            if (milestones.none { it.name.isNotBlank() }) add("Add at least one milestone")
+            if (milestones.any { !it.weight.isFinite() || it.weight < 0.0 }) add("Milestone weights must be non-negative numbers")
+            if (milestones.none { it.name.isNotBlank() && it.weight > 0.0 }) add("At least one named milestone must have a positive weight")
+        }
+        GoalType.ElapsedSince -> {
+            if (elapsedStartMillis == null) add("Choose when the timer started")
+            if (elapsedStartMillis != null && elapsedStartMillis > nowMillis) add("Start time cannot be in the future")
+            if (deadline != null) add("Elapsed-time Goals do not use a deadline")
+        }
+        GoalType.Consistency, GoalType.OpenEndedTrend -> Unit
+    }
+    if (aggregationPeriod == GoalAggregationPeriod.RollingDays && (rollingDays ?: 0) <= 0) {
+        add("Enter a positive rolling window")
+    }
+    if (type == GoalType.Consistency) {
+        if ((targetMin ?: 0.0) <= 0.0) add("Enter a per-period consistency target")
+        if ((consistencyRequiredPeriods ?: 0) <= 0) add("Enter how many periods the goal should cover")
+    }
+}.distinct()
+
 data class Goal(
     val id: Long,
     val uuid: String,

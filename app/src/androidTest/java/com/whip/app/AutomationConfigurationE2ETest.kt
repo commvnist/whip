@@ -4,12 +4,14 @@ import android.app.ActivityOptions
 import android.content.Intent
 import android.view.Display
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -87,7 +89,7 @@ class AutomationConfigurationE2ETest {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithContentDescription("Movies Watched, 0 Entries. Open Track").performClick()
-            compose.onNodeWithTag("track-destination-Automations").performClick()
+            compose.onNodeWithTag("track-destination-Rules").performClick()
             compose.onNodeWithTag("track-automation-connect-goal").performScrollTo().performClick()
 
             compose.onNodeWithText("Connect Entries to a Goal").assertIsDisplayed()
@@ -157,12 +159,14 @@ class AutomationConfigurationE2ETest {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithContentDescription("Movies Watched, 2 Entries", substring = true).performClick()
-            compose.onNodeWithTag("track-destination-Automations").performClick()
+            compose.onNodeWithTag("track-destination-Rules").performClick()
             compose.onNodeWithTag("track-automation-connect-goal").performScrollTo().performClick()
 
             compose.onNodeWithText("New Entries Only").performScrollTo().performClick()
             compose.onNodeWithText("Include All Track History").performClick()
-            compose.onNodeWithText("2 scanned · 2 eligible · 0 skipped").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithTag("track-existing-goal-content")
+                .performScrollToNode(hasText("2 scanned · 2 eligible · 0 skipped"))
+            compose.onNodeWithText("2 scanned · 2 eligible · 0 skipped").assertIsDisplayed()
             compose.onNodeWithText("Current Goal result from these Entries: 2").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("To make every included contribution count", substring = true).performScrollTo().assertIsDisplayed()
             compose.onNodeWithTag("track-existing-goal-confirm").performClick()

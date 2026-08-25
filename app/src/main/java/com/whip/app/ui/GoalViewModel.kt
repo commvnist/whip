@@ -27,6 +27,7 @@ import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.WhipTask
 import com.whip.app.domain.projectGoal
+import com.whip.app.reminders.reminderDefinitionChanged
 import java.time.LocalDate
 import java.time.Instant
 import java.util.concurrent.CancellationException
@@ -129,13 +130,16 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
 
     fun consumeOperationStatus() { _operationStatus.value = OperationStatus.Idle }
     fun retryLoading() { reloadKey.value++ }
-    fun saveGoal(id: Long?, draft: GoalDraft) = runOperation(
+    fun saveGoal(id: Long?, draft: GoalDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
         if (id == null) "Creating goal…" else "Saving goal…",
         if (id == null) "Goal created" else "Goal saved",
+        onFinished,
     ) {
+        val existing = id?.let { repository.get(it) }
         val savedId = if (id == null) repository.create(draft) else { repository.update(id, draft); id }
-        reminders.syncGoal(savedId)
-        draft.tags.forEach { app.measurementRepository.ensureTag(it) }
+        if (existing == null || existing.reminderDefinitionChanged(draft)) reminders.syncGoal(savedId)
+        draft.tags.filter { tag -> existing?.tags?.none { it.equals(tag, ignoreCase = true) } != false }
+            .forEach { app.measurementRepository.ensureTag(it) }
     }
     fun duplicate(id: Long) = runOperation("Duplicating goal…", "Goal duplicated") { repository.duplicate(id) }
     fun setStatus(id: Long, status: GoalStatus) = runOperation("Updating goal…", "Goal ${status.name.lowercase()}") { repository.setStatus(id, status); reminders.syncGoal(id) }
@@ -158,12 +162,12 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         _backfillPreview.value = linkRepository.previewBackfill(draft)
     }
     fun clearLinkPreview() { _backfillPreview.value = null }
-    fun createLink(draft: LinkRuleDraft, includeHistory: Boolean) = runOperation("Creating Goal Automation…", "Goal Automation created") {
+    fun createLink(draft: LinkRuleDraft, includeHistory: Boolean, onFinished: (Boolean) -> Unit = {}) = runOperation("Creating Goal Automation…", "Goal Automation created", onFinished) {
         alignGoalCalculation(draft)
         linkRepository.createRule(draft, includeHistory)
         _backfillPreview.value = null
     }
-    fun updateLink(id: Long, draft: LinkRuleDraft) = runOperation("Saving Goal Automation…", "Goal Automation saved") {
+    fun updateLink(id: Long, draft: LinkRuleDraft, onFinished: (Boolean) -> Unit = {}) = runOperation("Saving Goal Automation…", "Goal Automation saved", onFinished) {
         alignGoalCalculation(draft)
         linkRepository.updateRule(id, draft)
         _backfillPreview.value = null
@@ -189,16 +193,23 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun runOperation(running: String, success: String, block: suspend () -> Unit) {
+    private fun runOperation(
+        running: String,
+        success: String,
+        onFinished: (Boolean) -> Unit = {},
+        block: suspend () -> Unit,
+    ) {
         _operationStatus.value = OperationStatus.Running(running)
         viewModelScope.launch {
             try {
                 block()
                 _operationStatus.value = OperationStatus.Succeeded(success)
+                runCatching { onFinished(true) }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
                 _operationStatus.value = OperationStatus.Failed(error.message ?: "Something went wrong", error)
+                runCatching { onFinished(false) }
             }
         }
     }

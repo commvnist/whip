@@ -3,6 +3,8 @@ package com.whip.app.domain
 import java.io.Serializable
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -214,7 +216,7 @@ data class TrackProjection(
                 ?.plus(value.enteredUnitId?.takeIf(String::isNotBlank)?.let { " $it" }.orEmpty()).orEmpty()
             TrackFieldType.SingleChoice -> options.firstOrNull { it.id == value.choiceOptionId }?.label.orEmpty()
             TrackFieldType.Scale -> value.scaleValue?.let(::formatTrackScaleValue).orEmpty()
-            TrackFieldType.Date -> value.dateValue?.toString().orEmpty()
+            TrackFieldType.Date -> value.dateValue?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)).orEmpty()
             TrackFieldType.YesNo -> value.booleanValue?.let { if (it) "Yes" else "No" }.orEmpty()
         }
     }

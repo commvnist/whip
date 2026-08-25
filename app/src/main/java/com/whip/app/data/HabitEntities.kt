@@ -130,3 +130,23 @@ data class HabitPauseEntity(
     val endEpochDay: Long?,
     val note: String,
 )
+
+/**
+ * A deliberately skipped scheduled occurrence. This is separate from
+ * [HabitLogEntity] because a skip is not a measurement and must never affect
+ * totals, averages, or value-based Goal Automations.
+ */
+@Entity(
+    tableName = "habit_skips",
+    primaryKeys = ["habitId", "localEpochDay"],
+    foreignKeys = [ForeignKey(entity = HabitEntity::class, parentColumns = ["id"], childColumns = ["habitId"], onDelete = ForeignKey.CASCADE)],
+    indices = [Index("uuid", unique = true), Index("habitId")],
+)
+data class HabitSkipEntity(
+    val uuid: String,
+    val habitId: Long,
+    val localEpochDay: Long,
+    val skippedAtMillis: Long,
+    val createdAtMillis: Long,
+    val updatedAtMillis: Long,
+)

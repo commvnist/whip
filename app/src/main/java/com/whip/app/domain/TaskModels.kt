@@ -118,6 +118,7 @@ data class WhipTask(
     val durationMinutes: Int? = null,
     val effort: TaskEffort = TaskEffort.Unspecified,
     val manualPosition: Int = 0,
+    val icon: String = DEFAULT_TASK_EMOJI,
 )
 
 data class TaskStep(
@@ -216,6 +217,7 @@ data class TaskDraft(
     val inbox: Boolean = true,
     val durationMinutes: Int? = null,
     val effort: TaskEffort = TaskEffort.Unspecified,
+    val icon: String = DEFAULT_TASK_EMOJI,
 )
 
 data class ScheduledTask(
@@ -243,6 +245,7 @@ data class ScheduledTask(
 
 fun WhipTask.toDraft(): TaskDraft = TaskDraft(
     title = title,
+    icon = icon,
     notes = notes,
     scheduleKind = scheduleKind,
     date = date,

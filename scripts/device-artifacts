@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SHARED_ROOT="/storage/emulated/0"
+readonly DEBUG_ROOT="${SHARED_ROOT}/whip-debug"
+readonly RELEASE_ROOT="${SHARED_ROOT}/whip"
+readonly SHELL_DEBUG_ROOT="/data/local/tmp/whip-debug"
+
+usage() {
+    cat <<'EOF'
+Keep Whip-generated device files out of shared-storage and shell roots.
+
+Usage:
+  scripts/device-artifacts prepare
+  scripts/device-artifacts capture NAME [HOST_OUTPUT]
+  scripts/device-artifacts ui-dump NAME [HOST_OUTPUT]
+  scripts/device-artifacts organize-legacy
+  scripts/device-artifacts inventory
+
+Debug/test/audit files:
+  /storage/emulated/0/whip-debug/{screenshots,ui,tests}
+  /data/local/tmp/whip-debug/{screenshots,ui,tests}
+
+Normal release exports:
+  /storage/emulated/0/whip
+
+Set WHIP_DEVICE when more than one device is connected.
+EOF
+}
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
+
+select_device() {
+    local requested="${WHIP_DEVICE:-}"
+    local -a connected=()
+    mapfile -t connected < <(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }')
+    if [[ -n "$requested" ]]; then
+        [[ " ${connected[*]} " == *" $requested "* ]] || die "WHIP_DEVICE '$requested' is not connected"
+        printf '%s\n' "$requested"
+        return
+    fi
+    [[ "${#connected[@]}" -eq 1 ]] || die "expected exactly one connected device; set WHIP_DEVICE"
+    printf '%s\n' "${connected[0]}"
+}
+
+safe_name() {
+    local name="${1:-}"
+    [[ "$name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || die "artifact names may use letters, numbers, dots, underscores, and hyphens"
+    printf '%s\n' "$name"
+}
+
+prepare() {
+    local serial="$1"
+    adb -s "$serial" shell mkdir -p \
+        "$DEBUG_ROOT/screenshots" "$DEBUG_ROOT/ui" "$DEBUG_ROOT/tests" \
+        "$RELEASE_ROOT" \
+        "$SHELL_DEBUG_ROOT/screenshots" "$SHELL_DEBUG_ROOT/ui" "$SHELL_DEBUG_ROOT/tests"
+}
+
+capture() {
+    local serial="$1" name host_output="${3:-}"
+    name="$(safe_name "$2")"
+    [[ "$name" == *.png ]] || name="${name}.png"
+    prepare "$serial"
+    local remote_path="${DEBUG_ROOT}/screenshots/${name}"
+    adb -s "$serial" shell screencap -p "$remote_path"
+    if [[ -n "$host_output" ]]; then
+        adb -s "$serial" pull "$remote_path" "$host_output"
+    fi
+    printf '%s\n' "$remote_path"
+}
+
+ui_dump() {
+    local serial="$1" name host_output="${3:-}"
+    name="$(safe_name "$2")"
+    [[ "$name" == *.xml ]] || name="${name}.xml"
+    prepare "$serial"
+    local remote_path="${DEBUG_ROOT}/ui/${name}"
+    adb -s "$serial" shell uiautomator dump "$remote_path" >/dev/null
+    if [[ -n "$host_output" ]]; then
+        adb -s "$serial" pull "$remote_path" "$host_output"
+    fi
+    printf '%s\n' "$remote_path"
+}
+
+organize_legacy() {
+    local serial="$1"
+    prepare "$serial"
+    adb -s "$serial" shell sh -s <<'REMOTE'
+set -eu
+debug_root=/storage/emulated/0/whip-debug
+shell_debug_root=/data/local/tmp/whip-debug
+
+move_unique() {
+    source_path="$1"
+    destination_dir="$2"
+    [ -f "$source_path" ] || return 0
+    base_name="${source_path##*/}"
+    destination_path="${destination_dir}/${base_name}"
+    if [ -e "$destination_path" ]; then
+        modified="$(stat -c %Y "$source_path" 2>/dev/null || date +%s)"
+        case "$base_name" in
+            *.*) destination_path="${destination_dir}/${base_name%.*}-legacy-${modified}.${base_name##*.}" ;;
+            *) destination_path="${destination_dir}/${base_name}-legacy-${modified}" ;;
+        esac
+    fi
+    mv "$source_path" "$destination_path"
+    printf 'moved %s -> %s\n' "$source_path" "$destination_path"
+}
+
+for path in \
+    /storage/emulated/0/Download/whip_ui*.xml \
+    /storage/emulated/0/whip_ui*.xml \
+    /storage/emulated/0/window_dump*.xml; do
+    move_unique "$path" "$debug_root/ui"
+done
+
+for path in \
+    /storage/emulated/0/DCIM/Screenshots/*_Whip.* \
+    /storage/emulated/0/whip-*.png \
+    /storage/emulated/0/routine-*.png; do
+    move_unique "$path" "$debug_root/screenshots"
+done
+
+for path in \
+    /data/local/tmp/temporaryScript_*_stderr \
+    /data/local/tmp/shellWrapper.sh \
+    /data/local/tmp/trace_processor_shell; do
+    move_unique "$path" "$shell_debug_root/tests"
+done
+
+for path in \
+    /data/local/tmp/*whip*.png \
+    /data/local/tmp/routine-*.png; do
+    move_unique "$path" "$shell_debug_root/screenshots"
+done
+REMOTE
+}
+
+inventory() {
+    local serial="$1"
+    prepare "$serial"
+    printf 'Debug artifacts on shared storage:\n'
+    adb -s "$serial" shell find "$DEBUG_ROOT" -type f -maxdepth 3 2>/dev/null | tr -d '\r' | sort
+    printf '\nDebug artifacts in shell storage:\n'
+    adb -s "$serial" shell find "$SHELL_DEBUG_ROOT" -type f -maxdepth 3 2>/dev/null | tr -d '\r' | sort
+    printf '\nFiles directly in shared-storage root (should be empty):\n'
+    adb -s "$serial" shell find "$SHARED_ROOT" -maxdepth 1 -type f 2>/dev/null | tr -d '\r' | sort
+    printf '\nKnown Whip/test artifacts directly in shell temp (should be empty):\n'
+    adb -s "$serial" shell 'find /data/local/tmp -maxdepth 1 -type f \( -name "*whip*" -o -name "routine-*.png" -o -name "temporaryScript_*_stderr" -o -name "shellWrapper.sh" -o -name "trace_processor_shell" \) 2>/dev/null' | tr -d '\r' | sort
+}
+
+main() {
+    command -v adb >/dev/null 2>&1 || die "adb is not installed"
+    local command="${1:-}" serial
+    case "$command" in
+        -h|--help) usage ;;
+        prepare|capture|ui-dump|organize-legacy|inventory)
+            serial="$(select_device)"
+            case "$command" in
+                prepare) prepare "$serial" ;;
+                capture) [[ -n "${2:-}" ]] || die "capture requires NAME"; capture "$serial" "$2" "${3:-}" ;;
+                ui-dump) [[ -n "${2:-}" ]] || die "ui-dump requires NAME"; ui_dump "$serial" "$2" "${3:-}" ;;
+                organize-legacy) organize_legacy "$serial" ;;
+                inventory) inventory "$serial" ;;
+            esac
+            ;;
+        *) usage >&2; exit 2 ;;
+    esac
+}
+
+main "$@"

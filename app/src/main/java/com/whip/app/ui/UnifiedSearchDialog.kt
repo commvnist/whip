@@ -17,6 +17,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +42,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.FilterAlt
 
 enum class SearchDomain { Task, Habit, Goal, Track, TrackEntry, Exercise, Machine, Workout, Routine }
 
@@ -147,7 +150,7 @@ internal fun UnifiedSearchDialog(
                                     com.whip.app.domain.TrackFieldType.Number -> value?.enteredNumber?.toString().orEmpty() + value?.enteredUnitId?.let { " $it" }.orEmpty()
                                     com.whip.app.domain.TrackFieldType.SingleChoice -> projection.options.firstOrNull { it.id == value?.choiceOptionId }?.label.orEmpty()
                                     com.whip.app.domain.TrackFieldType.Scale -> value?.scaleValue?.let(::formatTrackScaleValue).orEmpty()
-                                    com.whip.app.domain.TrackFieldType.Date -> value?.dateValue?.toString().orEmpty()
+                                    com.whip.app.domain.TrackFieldType.Date -> value?.dateValue?.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)).orEmpty()
                                     com.whip.app.domain.TrackFieldType.YesNo -> value?.booleanValue?.let { if (it) "Yes" else "No" }.orEmpty()
                                 }
                             },
@@ -253,12 +256,18 @@ internal fun UnifiedSearchDialog(
                     keyboardActions = KeyboardActions(onSearch = { results.firstOrNull()?.let(onSelect) }),
                     modifier = Modifier.fillMaxWidth().focusRequester(queryFocusRequester).testTag("unified-search-query"),
                 )
-                DisclosureButton(
-                    label = if (activeFilterCount == 0) "Filters" else "Filters ($activeFilterCount)",
-                    expanded = filtersExpanded,
-                    onClick = { filtersExpanded = !filtersExpanded },
-                    modifier = Modifier.fillMaxWidth().testTag("search-filter-disclosure"),
-                )
+                androidx.compose.foundation.layout.Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    WhipTextButton(
+                        onClick = { filtersExpanded = !filtersExpanded },
+                        modifier = Modifier.heightIn(min = 48.dp).testTag("search-filter-disclosure"),
+                    ) {
+                        Icon(Icons.Outlined.FilterAlt, contentDescription = null)
+                        Text(if (activeFilterCount == 0) "Filters" else "Filters ($activeFilterCount)")
+                    }
+                }
                 if (filtersExpanded) {
                     Text("Content Types", style = MaterialTheme.typography.labelLarge)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -266,7 +275,7 @@ internal fun UnifiedSearchDialog(
                             selected = domains == SearchDomain.entries.toSet(),
                             onClick = { domains = SearchDomain.entries.toSet() },
                             label = { Text("All Types") },
-                            modifier = Modifier.heightIn(min = 44.dp).widthIn(min = 92.dp),
+                            modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 92.dp),
                         )
                         SearchDomain.entries.forEach { domain ->
                             WhipFilterChip(
@@ -280,7 +289,7 @@ internal fun UnifiedSearchDialog(
                                     }
                                 },
                                 label = { Text(domain.uiLabel()) },
-                                modifier = Modifier.heightIn(min = 44.dp).widthIn(min = 92.dp),
+                                modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 92.dp),
                             )
                         }
                     }
@@ -308,7 +317,7 @@ internal fun UnifiedSearchDialog(
                                         domains = if (domains.size == 1) initialScope.domains else domains - domain
                                     },
                                     label = { Text("${domain.uiLabel()} ×") },
-                                    modifier = Modifier.heightIn(min = 44.dp).widthIn(min = 92.dp).testTag("search-active-domain-${domain.name}"),
+                                    modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 92.dp).testTag("search-active-domain-${domain.name}"),
                                 )
                             }
                         }
@@ -316,7 +325,7 @@ internal fun UnifiedSearchDialog(
                             true,
                             { requireAllTerms = true },
                             { Text("Match Any ×") },
-                            Modifier.heightIn(min = 44.dp).widthIn(min = 104.dp).testTag("search-active-match-any"),
+                            Modifier.heightIn(min = 48.dp).widthIn(min = 104.dp).testTag("search-active-match-any"),
                         )
                     }
                 }

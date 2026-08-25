@@ -4,4 +4,17 @@
     <string name="widget_description">Today’s Whip tasks and habits with quick add actions</string>
     <string name="widget_add_task">+ Task</string>
     <string name="widget_add_habit">+ Habit</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_tasks">Tasks</string>
+    <string name="nav_habits">Habits</string>
+    <string name="nav_goals">Goals</string>
+    <string name="nav_tracks">Tracks</string>
+    <string name="nav_gym">Gym</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_tab_description">%1$s tab</string>
+    <string name="action_more">More</string>
+    <plurals name="entry_count">
+        <item quantity="one">%d Entry</item>
+        <item quantity="other">%d Entries</item>
+    </plurals>
 </resources>

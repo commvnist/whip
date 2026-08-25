@@ -2,6 +2,7 @@ package com.whip.app.domain
 
 import java.util.Locale
 
+const val DEFAULT_TASK_EMOJI = "✅"
 const val DEFAULT_HABIT_EMOJI = "✅"
 const val DEFAULT_GOAL_EMOJI = "🎯"
 const val DEFAULT_TRACK_EMOJI = "📋"

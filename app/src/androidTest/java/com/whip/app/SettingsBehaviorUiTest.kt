@@ -123,6 +123,31 @@ class SettingsBehaviorUiTest {
         compose.onAllNodesWithContentDescription("Close Settings").assertCountEquals(0)
     }
 
+    @Test
+    fun everySettingsCategoryIsReachableAndOwnsItsExpectedControls() {
+        val expectedControl = linkedMapOf(
+            "Appearance & Home" to "Show advanced controls by default",
+            "Planning & Units" to "First day of week",
+            "Organization" to "Manage Areas",
+            "Reminders" to "Reminder Delivery",
+            "Data & Privacy" to "Portable Backup Folder",
+            "About Whip" to "Your data stays on this device unless you explicitly export or sync it.",
+        )
+
+        if (compose.onAllNodesWithContentDescription("Open Settings").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithContentDescription("Open Settings").performClick()
+        } else {
+            compose.onNodeWithContentDescription("App actions").performClick()
+            compose.onNodeWithText("Open Settings").performClick()
+        }
+        expectedControl.forEach { (section, control) ->
+            compose.onNodeWithTag("settings-section-$section").performClick()
+            compose.onNodeWithTag("settings-list").performScrollToNode(androidx.compose.ui.test.hasText(control))
+            compose.onNodeWithText(control).assertIsDisplayed()
+            compose.onNodeWithText("All Settings").performClick()
+        }
+    }
+
     private fun openAppearanceSettings() {
         openSettingsSection("Appearance & Home")
     }

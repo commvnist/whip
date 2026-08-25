@@ -202,6 +202,7 @@ class GymPowerInputUiTest {
                     preferredDistanceUnitId = "kilometre",
                     showRpe = false,
                     showRir = false,
+                    onMoreDetails = {},
                     onSave = { _, _ -> },
                 )
             }
@@ -391,6 +392,7 @@ class GymPowerInputUiTest {
                     preferredDistanceUnitId = "kilometre",
                     showRpe = false,
                     showRir = false,
+                    onMoreDetails = {},
                     onSave = { _, _ -> },
                 )
             }
@@ -430,6 +432,7 @@ class GymPowerInputUiTest {
                     showRpe = false,
                     showRir = false,
                     suggestedSet = previous,
+                    onMoreDetails = {},
                     onSave = { _, _ -> },
                 )
             }
@@ -456,6 +459,7 @@ class GymPowerInputUiTest {
                     preferredDistanceUnitId = "kilometre",
                     showRpe = true,
                     showRir = true,
+                    onMoreDetails = {},
                     onSave = { _, _ -> },
                 )
             }

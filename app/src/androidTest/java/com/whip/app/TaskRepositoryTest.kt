@@ -142,6 +142,7 @@ class TaskRepositoryTest {
         val refreshedParent = requireNotNull(repository.getTask(parentId))
 
         assertEquals("First", promoted.title)
+        assertEquals(parent.icon, promoted.icon)
         assertEquals("From task: Recurring\n\nUseful context", promoted.notes)
         assertEquals(ScheduleKind.Anytime, promoted.scheduleKind)
         assertTrue(refreshedParent.steps.first { it.id == parent.steps[0].id }.archived)
@@ -269,6 +270,7 @@ class TaskRepositoryTest {
     fun powerTaskFieldsPersistAndUpdateTogether() = runBlocking {
         val draft = TaskDraft(
             title = "Plan launch",
+            icon = "🚀",
             scheduleKind = ScheduleKind.Recurring,
             recurrence = RecurrenceRule(
                 unit = RecurrenceUnit.Months,
@@ -286,6 +288,7 @@ class TaskRepositoryTest {
         )
 
         val task = requireNotNull(repository.getTask(repository.create(draft)))
+        assertEquals("🚀", task.icon)
         assertEquals(TaskPriority.Urgent, task.priority)
         assertEquals("Work", task.area)
         assertEquals(setOf("launch", "client"), task.tags)

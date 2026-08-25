@@ -745,7 +745,7 @@ private fun RoutinePlacementCard(
             Icon(
                 Icons.Outlined.DragHandle,
                 contentDescription = "Drag to reorder ${exercise?.name ?: placement.exerciseNameSnapshot}",
-                modifier = Modifier.size(44.dp).padding(8.dp).pointerInput(placement.key) {
+                modifier = Modifier.size(48.dp).padding(8.dp).pointerInput(placement.key) {
                     detectDragGesturesAfterLongPress(
                         onDragEnd = { dragDistance = 0f },
                         onDragCancel = { dragDistance = 0f },

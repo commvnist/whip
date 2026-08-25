@@ -109,7 +109,7 @@ class InteractionConsistencyTest {
         val blocked = completionAnchorAvailability(usesSelectedWeekdays = true)
         assertFalse(blocked.enabled)
         assertTrue(blocked.unavailableExplanation.orEmpty().contains("Under Repeats"))
-        assertTrue(blocked.unavailableExplanation.orEmpty().contains("choose Daily or an Every X option"))
+        assertTrue(blocked.unavailableExplanation.orEmpty().contains("choose Daily or a custom interval"))
 
         assertTrue(completionAnchorAvailability(usesSelectedWeekdays = false).enabled)
     }

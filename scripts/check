@@ -33,7 +33,7 @@ while (($#)); do
 done
 
 tasks=(
-    :app:testDebugUnitTest
+    :app:createDebugUnitTestCoverageReport
     :app:compileDebugAndroidTestKotlin
     :app:lintDebug
     :app:assembleDebug
@@ -55,12 +55,24 @@ fi
 
 java scripts/RenderBrandIcon.java --verify
 
+unexpected_device_paths="$(
+    rg -n '/sdcard|/storage/emulated/0|/data/local/tmp' app/src scripts \
+        --glob '!scripts/device-artifacts' \
+        --glob '!scripts/check' \
+        --glob '!**/build/**' || true
+)"
+if [[ -n "$unexpected_device_paths" ]]; then
+    printf 'error: direct device-root artifact path bypasses scripts/device-artifacts:\n%s\n' "$unexpected_device_paths" >&2
+    exit 1
+fi
+
 if rg -n 'fallbackToDestructiveMigration' app/src/main; then
     printf 'error: destructive Room migration fallback is forbidden\n' >&2
     exit 1
 fi
 
 ./gradlew "${tasks[@]}"
+java scripts/CoverageGate.java unit app/build/reports/coverage/test/debug/report.xml
 
 merged_manifest="$(find app/build/intermediates/merged_manifests/debug -name AndroidManifest.xml -print -quit)"
 if [[ -z "$merged_manifest" ]]; then

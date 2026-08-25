@@ -1,6 +1,7 @@
 package com.whip.app
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -16,6 +17,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
@@ -63,6 +65,60 @@ class AdaptiveWhipScreenTest {
     val compose = createComposeRule()
 
     @Test
+    fun reviewUsesTheWholeWideCanvasAsAHingeAwareDashboard() {
+        val wideDensity = Density(1f)
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides wideDensity) {
+                WhipTheme(darkTheme = true, dynamicColor = false) {
+                    WhipScreen(
+                        state = TaskUiState(loading = false),
+                        habitState = HabitUiState(loading = false),
+                        goalState = GoalUiState(loading = false),
+                        gymState = GymUiState(loading = false),
+                        trackState = TrackUiState(loading = false),
+                        adaptiveLayout = WhipAdaptiveLayout.BookFold,
+                        foldInfo = WhipFoldInfo(
+                            orientation = WhipFoldOrientation.Vertical,
+                            leftPx = 320,
+                            topPx = 0,
+                            rightPx = 360,
+                            bottomPx = 1_800,
+                            separating = true,
+                            halfOpened = true,
+                        ),
+                        onSaveTask = { _, _, _ -> },
+                        onComplete = {},
+                        onSkip = {},
+                        onReschedule = { _, _ -> },
+                        onArchive = {},
+                        onReopen = {},
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithText("Review & Trends").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("review-wide-dashboard").assertIsDisplayed()
+        compose.onNodeWithTag("review-control-pane").assertIsDisplayed()
+        compose.onNodeWithTag("review-overview-pane").assertIsDisplayed()
+        compose.onNodeWithTag("review-hinge-gutter").assertIsDisplayed()
+        compose.onAllNodesWithTag("review-compact-dashboard").assertCountEquals(0)
+        compose.onNodeWithText("Included Sections").assertIsDisplayed()
+        compose.onNodeWithText("Overview").assertIsDisplayed()
+
+        val dashboard = compose.onNodeWithTag("review-wide-dashboard").fetchSemanticsNode().boundsInRoot
+        val controls = compose.onNodeWithTag("review-control-pane").fetchSemanticsNode().boundsInRoot
+        val gutter = compose.onNodeWithTag("review-hinge-gutter").fetchSemanticsNode().boundsInRoot
+        val overview = compose.onNodeWithTag("review-overview-pane").fetchSemanticsNode().boundsInRoot
+        check(dashboard.width > 900f) { "Review should own the wide window, not a dialog-width strip: $dashboard" }
+        check(controls.right <= gutter.left + 1f && gutter.right <= overview.left + 1f) {
+            "Review content must respect the hinge: controls=$controls gutter=$gutter overview=$overview"
+        }
+        compose.onNodeWithContentDescription("Close Review & Trends").performClick()
+        compose.onAllNodesWithTag("review-wide-dashboard").assertCountEquals(0)
+    }
+
+    @Test
     fun bookFoldUsesHingeAwareSupportPaneAndPersistentNavigation() {
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
@@ -92,7 +148,12 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithTag("adaptive-navigation-rail").assertIsDisplayed()
         compose.onNodeWithContentDescription("Device hinge separator").assertIsDisplayed()
         compose.onNodeWithContentDescription("Home").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Search All Whip Data").assertIsDisplayed().performClick()
+        if (compose.onAllNodesWithTag("workspace-search-action").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag("workspace-search-action").assertIsDisplayed().performClick()
+        } else {
+            compose.onNodeWithContentDescription("App actions").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("workspace-search-menu-action").assertIsDisplayed().performClick()
+        }
         compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
         compose.onNodeWithText("Close").performClick()
         val navigationTops = listOf("Tasks tab", "Habits tab", "Goals tab", "Tracks tab", "Gym tab").map { description ->
@@ -108,7 +169,7 @@ class AdaptiveWhipScreenTest {
             "Dark fold top inset exposed a light/transparent background: rail=$topRailBackground overview=$topOverviewBackground"
         }
         compose.onNodeWithText("Today").assertIsDisplayed()
-        compose.onNodeWithText("No tasks or habits need attention today.").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Tasks Today: 0. Open Tasks").assertIsDisplayed()
         compose.onNodeWithContentDescription("App actions").assertIsDisplayed().performClick()
         compose.onNodeWithTag("expand-content-pane-action").assertIsDisplayed()
             .performSemanticsAction(SemanticsActions.OnClick)
@@ -121,20 +182,76 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithContentDescription("Tasks tab")
             .performSemanticsAction(SemanticsActions.OnClick)
         compose.onNodeWithContentDescription("Tasks tab").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Tasks Today: 0. Open Tasks").assertIsDisplayed()
+        compose.onNodeWithText("Tasks Today").assertIsDisplayed()
+        compose.onNodeWithText("No Tasks need attention today.").assertIsDisplayed()
         // A scrollable destination bar must stay content-height in a narrow fold
         // pane so the page header and task content remain in the viewport.
         compose.onNodeWithTag("page-title").assertIsDisplayed()
         compose.onNodeWithTag("task-quick-capture").assertIsDisplayed()
         compose.onAllNodesWithContentDescription("Habits Remaining: 0. Open Habits").assertCountEquals(0)
         compose.onNodeWithContentDescription("Gym tab").performClick()
-        compose.onAllNodesWithText("Whip").assertCountEquals(0)
+        val gymBrand = compose.onNodeWithText("Whip").fetchSemanticsNode().boundsInRoot
+        val gymHeader = compose.onNodeWithTag("workspace-top-app-bar").fetchSemanticsNode().boundsInRoot
+        check(gymBrand.width > 0f && gymBrand.height > 0f && gymBrand.top < gymHeader.bottom && gymBrand.bottom > gymHeader.top) {
+            "Whip/Gym identity must remain inside the shared header: brand=$gymBrand header=$gymHeader"
+        }
+        val visibleGymLabels = compose.onAllNodesWithText("Gym").fetchSemanticsNodes().count { it.boundsInRoot.width > 0f && it.boundsInRoot.height > 0f }
+        check(visibleGymLabels > 0) { "The Gym identity or destination label must remain visible" }
+        compose.onAllNodesWithTag("workspace-area-action").assertCountEquals(0)
         compose.onNodeWithContentDescription("App actions").performClick()
         compose.onNodeWithText("Open Settings").performClick()
         compose.onNodeWithContentDescription("Close Settings").assertIsDisplayed()
         compose.onNodeWithTag("fold-support-pane").assertIsDisplayed()
         compose.onNodeWithTag("adaptive-navigation-rail").assertIsDisplayed()
+        compose.onNodeWithTag("settings-support-list").assertIsDisplayed()
         compose.onAllNodesWithTag("adaptive-bottom-navigation").assertCountEquals(0)
+    }
+
+    @Test
+    fun bookFoldSupportTitlesUseReadableThemeContrast() {
+        val darkTheme = mutableStateOf(true)
+        compose.setContent {
+            WhipTheme(darkTheme = darkTheme.value, dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    adaptiveLayout = WhipAdaptiveLayout.BookFold,
+                    foldInfo = WhipFoldInfo(
+                        orientation = WhipFoldOrientation.Vertical,
+                        leftPx = 700,
+                        topPx = 0,
+                        rightPx = 740,
+                        bottomPx = 1_800,
+                        separating = true,
+                        halfOpened = true,
+                    ),
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("Tasks tab").performClick()
+
+        listOf(true, false).forEach { useDarkTheme ->
+            compose.runOnIdle { darkTheme.value = useDarkTheme }
+            compose.waitForIdle()
+            val pixels = compose.onNodeWithTag("support-pane-title").captureToImage().toPixelMap()
+            val luminances = buildList {
+                for (y in 0 until pixels.height) for (x in 0 until pixels.width) add(pixels[x, y].luminance())
+            }
+            if (useDarkTheme) {
+                check(luminances.maxOrNull()!! > 0.5f) {
+                    "Dark support title did not render with a light foreground"
+                }
+            } else {
+                check(luminances.minOrNull()!! < 0.5f) {
+                    "Light support title did not render with a dark foreground"
+                }
+            }
+        }
     }
 
     @Test
@@ -290,7 +407,7 @@ class AdaptiveWhipScreenTest {
         }
 
         compose.onNodeWithContentDescription("Tasks tab").performClick()
-        compose.onAllNodesWithText("Pane-safe task")[1].performClick()
+        compose.onNodeWithContentDescription("Open task details for Pane-safe task").performClick()
         val hinge = compose.onNodeWithContentDescription("Device hinge separator").fetchSemanticsNode().boundsInRoot
         val dialog = compose.onNodeWithTag("task-actions-surface").fetchSemanticsNode().boundsInRoot
         check(dialog.left >= hinge.right - 1f) { "Task details crossed the flat-fold pane: dialog=$dialog hinge=$hinge" }
@@ -315,6 +432,121 @@ class AdaptiveWhipScreenTest {
 
         compose.onNodeWithTag("adaptive-navigation-rail").assertIsDisplayed()
         compose.onNodeWithTag("expanded-support-pane").assertIsDisplayed()
+    }
+
+    @Test
+    fun everyPrimaryWorkspaceUsesTheSameHeaderAndNavigationGeometry() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                val habitViewModel: HabitViewModel = viewModel()
+                val goalViewModel: GoalViewModel = viewModel()
+                val trackViewModel: TrackViewModel = viewModel()
+                val gymViewModel: GymViewModel = viewModel()
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    habitState = HabitUiState(loading = false),
+                    habitViewModel = habitViewModel,
+                    goalState = GoalUiState(loading = false),
+                    goalViewModel = goalViewModel,
+                    trackState = TrackUiState(loading = false),
+                    trackViewModel = trackViewModel,
+                    gymState = GymUiState(loading = false),
+                    gymViewModel = gymViewModel,
+                    adaptiveLayout = WhipAdaptiveLayout.Compact,
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        data class Geometry(val headerTop: Float, val headerHeight: Float, val navigationTop: Float, val navigationHeight: Float, val searchLeft: Float, val settingsLeft: Float)
+        val snapshots = listOf(
+            Triple("Tasks tab", "task-workspace-navigation", true),
+            Triple("Habits tab", "habit-workspace-navigation", true),
+            Triple("Goals tab", "goal-workspace-navigation", true),
+            Triple("Tracks tab", "track-workspace-navigation", true),
+            Triple("Gym tab", "gym-workspace-navigation", false),
+        ).map { (tab, navigationTag, hasArea) ->
+            compose.onNodeWithContentDescription(tab).performClick()
+            compose.onNodeWithTag(navigationTag).assertIsDisplayed()
+            if (hasArea) compose.onNodeWithContentDescription("Area scope: Main").assertIsDisplayed()
+            else {
+                compose.onAllNodesWithTag("workspace-area-action").assertCountEquals(0)
+                compose.onAllNodesWithText("Gym").assertCountEquals(2)
+            }
+            val header = compose.onNodeWithTag("workspace-top-app-bar").fetchSemanticsNode().boundsInRoot
+            val navigation = compose.onNodeWithTag(navigationTag).fetchSemanticsNode().boundsInRoot
+            val search = compose.onNodeWithTag("workspace-search-action").fetchSemanticsNode().boundsInRoot
+            val settings = compose.onNodeWithTag("workspace-settings-action").fetchSemanticsNode().boundsInRoot
+            Geometry(header.top, header.height, navigation.top, navigation.height, search.left, settings.left)
+        }
+        val expected = snapshots.first()
+        snapshots.drop(1).forEach { actual ->
+            check(kotlin.math.abs(actual.headerTop - expected.headerTop) <= 1f)
+            check(kotlin.math.abs(actual.headerHeight - expected.headerHeight) <= 1f)
+            check(kotlin.math.abs(actual.navigationTop - expected.navigationTop) <= 1f)
+            check(kotlin.math.abs(actual.navigationHeight - expected.navigationHeight) <= 1f)
+            check(kotlin.math.abs(actual.searchLeft - expected.searchLeft) <= 1f)
+            check(kotlin.math.abs(actual.settingsLeft - expected.settingsLeft) <= 1f)
+        }
+
+        compose.onNodeWithContentDescription("Tracks tab").performClick()
+        compose.onNodeWithTag("track-workspace-destination-Activity").performClick().assertIsSelected()
+        compose.onNodeWithText("A chronological view of Entries across visible Tracks", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("track-workspace-destination-Insights").performClick().assertIsSelected()
+        compose.onNodeWithText("Patterns and automation health across visible Tracks.").assertIsDisplayed()
+    }
+
+    @Test
+    fun expandedWorkspacesKeepSearchAndSettingsInOneSharedColumn() {
+        val wideDensity = Density(1f)
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides wideDensity) {
+                WhipTheme(dynamicColor = false) {
+                    val habitViewModel: HabitViewModel = viewModel()
+                    val goalViewModel: GoalViewModel = viewModel()
+                    val trackViewModel: TrackViewModel = viewModel()
+                    val gymViewModel: GymViewModel = viewModel()
+                    WhipScreen(
+                        state = TaskUiState(loading = false),
+                        habitState = HabitUiState(loading = false),
+                        habitViewModel = habitViewModel,
+                        goalState = GoalUiState(loading = false),
+                        goalViewModel = goalViewModel,
+                        trackState = TrackUiState(loading = false),
+                        trackViewModel = trackViewModel,
+                        gymState = GymUiState(loading = false),
+                        gymViewModel = gymViewModel,
+                        adaptiveLayout = WhipAdaptiveLayout.ExpandedDashboard,
+                        onSaveTask = { _, _, _ -> },
+                        onComplete = {},
+                        onSkip = {},
+                        onReschedule = { _, _ -> },
+                        onArchive = {},
+                        onReopen = {},
+                    )
+                }
+            }
+        }
+
+        val actionColumns = listOf("Tasks tab", "Habits tab", "Goals tab", "Tracks tab", "Gym tab").map { tab ->
+            compose.onNodeWithContentDescription(tab).performClick()
+            if (tab == "Tracks tab") compose.onNodeWithTag("track-overview-support").assertIsDisplayed()
+            val search = compose.onNodeWithTag("workspace-search-action").fetchSemanticsNode().boundsInRoot
+            val settings = compose.onNodeWithTag("workspace-settings-action").fetchSemanticsNode().boundsInRoot
+            search.left to settings.left
+        }
+        val expected = actionColumns.first()
+        actionColumns.drop(1).forEach { actual ->
+            check(kotlin.math.abs(actual.first - expected.first) <= 1f) { "Search moved between expanded workspaces: $actionColumns" }
+            check(kotlin.math.abs(actual.second - expected.second) <= 1f) { "Settings moved between expanded workspaces: $actionColumns" }
+        }
+        compose.onAllNodesWithTag("workspace-area-action").assertCountEquals(0)
+        compose.onNodeWithText("Whip").assertIsDisplayed()
     }
 
     @Test
@@ -347,7 +579,20 @@ class AdaptiveWhipScreenTest {
         }
 
         compose.onNodeWithContentDescription("Tracks tab").performClick()
-        compose.onNodeWithContentDescription("Films, 0 Entries. Open Track").performClick()
+        compose.onNodeWithTag("track-workspace-navigation").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Open Films").performClick()
+        compose.onNodeWithTag("track-workspace-navigation").assertIsDisplayed()
+        val backToTracks = compose.onNodeWithContentDescription("Back to Tracks").fetchSemanticsNode().boundsInRoot
+        check(backToTracks.width > 0f && backToTracks.height > 0f) { "Back to Tracks must remain laid out in a narrow Fold pane: $backToTracks" }
+        val workspaceNavigation = compose.onNodeWithTag("track-workspace-navigation").fetchSemanticsNode().boundsInRoot
+        val detailNavigation = compose.onNodeWithTag("track-destination-Entries").fetchSemanticsNode().boundsInRoot
+        val appBounds = compose.onNodeWithTag("workspace-top-app-bar").fetchSemanticsNode().boundsInRoot
+        check(detailNavigation.width > 0f && detailNavigation.height > 0f && detailNavigation.top >= appBounds.bottom) {
+            "Track detail navigation must be laid out below the app header: detail=$detailNavigation appHeader=$appBounds"
+        }
+        check(workspaceNavigation.bottom <= detailNavigation.top + 1f) {
+            "Track detail navigation must remain subordinate: workspace=$workspaceNavigation detail=$detailNavigation"
+        }
         compose.onNodeWithContentDescription("Back to Tracks").assertIsDisplayed()
         compose.onNodeWithContentDescription("App actions").performClick()
         compose.onNodeWithTag("expand-content-pane-action").performSemanticsAction(SemanticsActions.OnClick)

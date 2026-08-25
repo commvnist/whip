@@ -20,11 +20,12 @@ The resolved feature-scope review is in `docs/UNUSED_FEATURE_INVENTORY_2026-08-2
 ## Current implementation contract
 
 - Package ID: `commvne.com.whip.app`; product name: **Whip**.
-- Room is currently schema 7. Every checked-in schema from 1 through 7 has an explicit forward migration, and migration tests preserve existing Links, Contributions, Automations, Track Entries, identity values, elapsed Goals, fractional Scales, and automation windows across upgrades.
-- Complete backups accept only the current database and envelope versions. CSV remains an interoperability export, not a complete restore format.
+- Room is currently schema 9. Every checked-in schema from 1 through 9 has an explicit forward migration, and migration tests preserve existing Tasks and their identity emojis, Links, Contributions, Automations, Track Entries, identity values, elapsed Goals, fractional Scales, automation windows, and neutral Habit skips across upgrades.
+- Complete backups write data version 8 and restore supported versions 5 through 8 with explicit in-memory upgrades. CSV remains an interoperability export, not a complete restore format.
 - Task location reminders and Android location permissions do not exist.
 - At least one active Area always exists. Area move/delete operations handle Tasks, Habits, and Goals explicitly.
 - A Habit control is valid only when it changes logging, evaluation, schedule, reminders, presentation, filtering, or export.
+- Habit **Skip Today** is a separate neutral occurrence with visible History/Insights state and Undo; it never creates a metric value. Missing days are derived, not manually logged.
 - Goal type constrains direction and compatible aggregation. Log copy is derived from the actual calculation.
 - Only Area color is stored because it is consistently rendered. No hidden color metadata is permitted.
 - The global Add menu creates first-class objects only. **Log Goal Value** is an Active Goals action.

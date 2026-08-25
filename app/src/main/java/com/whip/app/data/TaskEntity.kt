@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.room.ColumnInfo
 
 @Entity(
     tableName = "tasks",
@@ -54,4 +55,6 @@ data class TaskEntity(
     val durationMinutes: Int? = null,
     val effort: String = "Unspecified",
     val manualPosition: Int = 0,
+    @ColumnInfo(defaultValue = "'✅'")
+    val icon: String = "✅",
 )

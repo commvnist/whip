@@ -167,12 +167,10 @@ class HabitRulesTest {
     }
 
     @Test
-    fun pauseSkipAndExcuseAreNeutralAndOnlyReduceImpossibleFlexibleTargets() {
+    fun aPauseIsNeutralAndOnlyReducesAnImpossibleFlexibleTarget() {
         val flexible = habit(schedule = HabitScheduleType.FlexibleTimesPerWeek, flexible = 3)
-        val pause = HabitPause(1, flexible.id, monday, monday.plusDays(3), "Travel")
+        val pause = HabitPause(1, flexible.id, monday, monday.plusDays(5), "Travel")
         val logs = listOf(
-            log(1, monday.plusDays(4), HabitLogStatus.Skipped).copy(value = null, canonicalValue = null),
-            log(2, monday.plusDays(5), HabitLogStatus.Excused).copy(value = null, canonicalValue = null),
             log(3, monday.plusDays(6), HabitLogStatus.Success),
         )
 
@@ -180,8 +178,29 @@ class HabitRulesTest {
         assertEquals(1, progress.target)
         assertEquals(1, progress.completed)
         assertEquals(1.0, flexible.completionRateOverRecentPeriods(logs, monday.plusDays(6), pauses = listOf(pause)), 0.0)
-        assertFalse(flexible.reminderNeededOn(logs, monday.plusDays(4)))
-        assertFalse(flexible.reminderNeededOn(logs, monday.plusDays(5)))
+    }
+
+    @Test
+    fun skipIsVisibleNeutralAndSuppressesReminderWithoutBecomingALog() {
+        val daily = habit()
+        val skip = HabitSkip("skip-1", daily.id, monday, 1, 1, 1)
+
+        assertTrue(daily.isNeutralDate(monday, skips = listOf(skip)))
+        assertEquals(HabitDayState.Skipped, daily.dayStateOn(monday, monday, emptyList(), skips = listOf(skip)))
+        assertFalse(daily.reminderNeededOn(emptyList(), monday, skips = listOf(skip)))
+        assertTrue(emptyList<HabitLog>().isEmpty())
+    }
+
+    @Test
+    fun pastUnloggedDayIsMissedButPendingTodayCarriesThePriorStreak() {
+        val daily = habit().copy(startDate = monday.minusDays(2))
+        val yesterday = monday.minusDays(1)
+        val logs = listOf(log(1, yesterday, HabitLogStatus.Success))
+
+        assertEquals(HabitDayState.Missed, daily.dayStateOn(monday.minusDays(2), monday, logs))
+        assertEquals(HabitDayState.Pending, daily.dayStateOn(monday, monday, logs))
+        assertEquals(1, habitStreak(daily, monday, mapOf(monday to null, yesterday to true)))
+        assertEquals(0.5, daily.completionRateOverRecentPeriods(logs, monday, lookbackDays = 3), 0.0)
     }
 
     @Test

@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -154,8 +155,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 
 internal enum class TrackDetailDestination(val label: String) {
     Entries("Entries"),
-    Automations("Automations"),
+    Automations("Rules"),
     Options("Options"),
+    Insights("Insights"),
+}
+
+/** Peer destinations for the Tracks workspace; Track detail navigation remains subordinate. */
+internal enum class TrackWorkspaceDestination(val label: String) {
+    Tracks("Tracks"),
+    Activity("Activity"),
     Insights("Insights"),
 }
 
@@ -235,11 +243,16 @@ internal fun TrackAreaContent(
     onSetGoal: (Long) -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     selectedTrackState: MutableState<Long?>? = null,
+    workspaceDestinationState: MutableState<TrackWorkspaceDestination>? = null,
     destinationState: MutableState<TrackDetailDestination>? = null,
+    dialogModifier: Modifier = Modifier,
 ) {
     val localSelectedTrackState = rememberSaveable { mutableStateOf<Long?>(null) }
     val activeSelectedTrackState = selectedTrackState ?: localSelectedTrackState
     var selectedTrackId by activeSelectedTrackState
+    val localWorkspaceDestinationState = rememberSaveable { mutableStateOf(TrackWorkspaceDestination.Tracks) }
+    val activeWorkspaceDestinationState = workspaceDestinationState ?: localWorkspaceDestinationState
+    var workspaceDestination by activeWorkspaceDestinationState
     var query by rememberSaveable { mutableStateOf("") }
     var showArchived by rememberSaveable { mutableStateOf(false) }
     val localDestinationState = rememberSaveable { mutableStateOf(TrackDetailDestination.Entries) }
@@ -287,17 +300,23 @@ internal fun TrackAreaContent(
 
     LaunchedEffect(createRequested) {
         if (createRequested) {
+            workspaceDestination = TrackWorkspaceDestination.Tracks
             onEditorRequest(TrackEditorIntent.Definition(null))
             onCreateRequestConsumed()
         }
     }
     LaunchedEffect(openTrackIdRequest) {
-        openTrackIdRequest?.let { selectedTrackId = it; destination = TrackDetailDestination.Entries }
+        openTrackIdRequest?.let {
+            workspaceDestination = TrackWorkspaceDestination.Tracks
+            selectedTrackId = it
+            destination = TrackDetailDestination.Entries
+        }
         if (openTrackIdRequest != null) onOpenTrackRequestConsumed()
     }
     LaunchedEffect(editTrackIdRequest, state.projections) {
         val trackId = editTrackIdRequest ?: return@LaunchedEffect
         if (state.track(trackId) != null) {
+            workspaceDestination = TrackWorkspaceDestination.Tracks
             onEditorRequest(TrackEditorIntent.Definition(trackId))
             onEditTrackRequestConsumed()
         }
@@ -305,6 +324,7 @@ internal fun TrackAreaContent(
     LaunchedEffect(openEntryIdRequest, state.projections) {
         val entryId = openEntryIdRequest ?: return@LaunchedEffect
         state.projections.firstOrNull { projection -> projection.entries.any { it.entry.id == entryId } }?.let {
+            workspaceDestination = TrackWorkspaceDestination.Tracks
             selectedTrackId = it.track.id
             onEditorRequest(TrackEditorIntent.Entry(it.track.id, entryId))
         }
@@ -313,6 +333,7 @@ internal fun TrackAreaContent(
     LaunchedEffect(addEntryTrackIdRequest, state.projections) {
         val trackId = addEntryTrackIdRequest ?: return@LaunchedEffect
         if (state.track(trackId) != null) {
+            workspaceDestination = TrackWorkspaceDestination.Tracks
             selectedTrackId = trackId
             onEditorRequest(TrackEditorIntent.Entry(trackId))
             onAddEntryTrackRequestConsumed()
@@ -323,6 +344,7 @@ internal fun TrackAreaContent(
         val occurrence = state.triggerOccurrences.firstOrNull { it.id == occurrenceId } ?: return@LaunchedEffect
         val rule = state.triggerRules.firstOrNull { it.id == occurrence.triggerRuleId } ?: return@LaunchedEffect
         val target = state.track(rule.targetEntityId) ?: return@LaunchedEffect
+        workspaceDestination = TrackWorkspaceDestination.Tracks
         selectedTrackId = target.track.id
         viewModel.loadPromptDraft(occurrenceId) { loaded ->
             onEditorRequest(TrackEditorIntent.Entry(target.track.id, promptOccurrenceId = occurrenceId, prefill = loaded))
@@ -332,6 +354,7 @@ internal fun TrackAreaContent(
     LaunchedEffect(reviewAutomationsTrackIdRequest, state.projections) {
         val trackId = reviewAutomationsTrackIdRequest ?: return@LaunchedEffect
         if (state.track(trackId) != null) {
+            workspaceDestination = TrackWorkspaceDestination.Tracks
             selectedTrackId = trackId
             destination = TrackDetailDestination.Automations
             onReviewAutomationsRequestConsumed()
@@ -342,7 +365,7 @@ internal fun TrackAreaContent(
     @Composable fun trackList(masterPane: Boolean) {
         AllTracksPage(
             state = state,
-            innerPadding = innerPadding,
+            innerPadding = PaddingValues(),
             query = query,
             onQueryChange = { query = it },
             showArchived = showArchived,
@@ -370,7 +393,7 @@ internal fun TrackAreaContent(
     @Composable fun trackDetail(projection: TrackProjection) {
         TrackDetailPage(
             projection = projection,
-            innerPadding = innerPadding,
+            innerPadding = PaddingValues(),
             destination = destination,
             onDestinationChange = { destination = it },
             onBack = { selectedTrackId = null },
@@ -395,6 +418,7 @@ internal fun TrackAreaContent(
             },
             onRequestNotificationPermission = onRequestNotificationPermission,
             saving = operationStatus is OperationStatus.Running,
+            dialogModifier = dialogModifier,
             onImport = {
                 importTrackId = projection.track.id
                 csvLauncher.launch("text/*")
@@ -406,37 +430,70 @@ internal fun TrackAreaContent(
             },
         )
     }
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        if (maxWidth >= 760.dp) {
-            Row(Modifier.fillMaxSize()) {
-                Box(Modifier.weight(0.38f).fillMaxHeight()) { trackList(masterPane = true) }
-                VerticalDivider(
-                    Modifier
-                        .fillMaxHeight()
-                        .padding(
-                            top = innerPadding.calculateTopPadding(),
-                            bottom = innerPadding.calculateBottomPadding(),
-                        ),
-                )
-                Box(Modifier.weight(0.62f).fillMaxHeight()) {
-                    selected?.let { trackDetail(it) } ?: Box(
-                        Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        WhipEmptyState("Choose a Track", "Select a Track to review Entries, Insights, Automations, and Options.")
+    Column(Modifier.fillMaxSize().padding(innerPadding)) {
+        DestinationTabBar(
+            selected = workspaceDestination,
+            destinations = TrackWorkspaceDestination.entries,
+            onSelect = { selectedDestination ->
+                workspaceDestination = selectedDestination
+                if (selectedDestination != TrackWorkspaceDestination.Tracks) selectedTrackId = null
+            },
+            label = TrackWorkspaceDestination::label,
+            testTagPrefix = "track-workspace-destination",
+            barTestTag = "track-workspace-navigation",
+        )
+        BoxWithConstraints(Modifier.fillMaxSize().weight(1f)) {
+            when (workspaceDestination) {
+                TrackWorkspaceDestination.Tracks -> if (maxWidth >= 760.dp) {
+                    Row(Modifier.fillMaxSize()) {
+                        Box(Modifier.weight(0.38f).fillMaxHeight()) { trackList(masterPane = true) }
+                        VerticalDivider(Modifier.fillMaxHeight())
+                        Box(Modifier.weight(0.62f).fillMaxHeight()) {
+                            selected?.let { trackDetail(it) } ?: Box(
+                                Modifier.fillMaxSize().padding(24.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                WhipEmptyState("Choose a Track", "Select a Track to review Entries, Rules, Insights, and Options.")
+                            }
+                        }
                     }
+                } else if (selected == null) {
+                    trackList(masterPane = false)
+                } else {
+                    trackDetail(selected)
                 }
+                TrackWorkspaceDestination.Activity -> TrackActivityPage(
+                    state = state,
+                    areas = areas,
+                    customUnits = customUnits,
+                    onOpenTrack = { id ->
+                        workspaceDestination = TrackWorkspaceDestination.Tracks
+                        selectedTrackId = id
+                        destination = TrackDetailDestination.Entries
+                    },
+                    onEditEntry = { trackId, entryId ->
+                        onEditorRequest(TrackEditorIntent.Entry(trackId, entryId))
+                    },
+                    onDeleteEntry = { deleteEntryId = it },
+                    dialogModifier = dialogModifier,
+                )
+                TrackWorkspaceDestination.Insights -> TrackWorkspaceInsightsPage(
+                    state = state,
+                    customUnits = customUnits,
+                    onOpenTrack = { id ->
+                        workspaceDestination = TrackWorkspaceDestination.Tracks
+                        selectedTrackId = id
+                        destination = TrackDetailDestination.Insights
+                    },
+                )
             }
-        } else if (selected == null) {
-            trackList(masterPane = false)
-        } else {
-            trackDetail(selected)
         }
     }
 
     deleteTrackId?.let { id ->
         val track = state.track(id)
-        if (track != null) AlertDialog(
+        if (track != null) PaneAwareAlertDialog(
+            modifier = dialogModifier,
             onDismissRequest = { deleteTrackId = null },
             title = { Text("Delete ${track.track.name} Permanently?") },
             text = {
@@ -463,7 +520,8 @@ internal fun TrackAreaContent(
         val impact = selected?.let { projection ->
             projection.entries.firstOrNull { it.entry.id == id }?.let { projection.primaryText(it) }
         }.orEmpty()
-        AlertDialog(
+        PaneAwareAlertDialog(
+            modifier = dialogModifier,
             onDismissRequest = { deleteEntryId = null },
             title = { Text("Delete Entry?") },
             text = { Text("$impact will be removed. Goal progress created from this entry will be reconciled automatically.") },
@@ -518,12 +576,399 @@ internal fun TrackAreaContent(
         },
     )
     fileError?.let { message ->
-        AlertDialog(
+        PaneAwareAlertDialog(
+            modifier = dialogModifier,
             onDismissRequest = { fileError = null },
             title = { Text("CSV File Error") },
             text = { Text(message) },
             confirmButton = { WhipTextButton(onClick = { fileError = null }) { Text("OK") } },
         )
+    }
+}
+
+private enum class TrackActivityDateRange(val label: String) {
+    AnyDate("Any Date"),
+    SevenDays("7 Days"),
+    ThirtyDays("30 Days"),
+    ThisYear("This Year");
+
+    fun contains(date: LocalDate, today: LocalDate): Boolean = when (this) {
+        AnyDate -> true
+        SevenDays -> date in today.minusDays(6)..today
+        ThirtyDays -> date in today.minusDays(29)..today
+        ThisYear -> date.year == today.year && !date.isAfter(today)
+    }
+}
+
+private data class TrackActivityItem(
+    val projection: TrackProjection,
+    val entry: TrackEntryProjection,
+)
+
+@Composable
+private fun TrackActivityPage(
+    state: TrackUiState,
+    areas: List<Area>,
+    customUnits: List<UnitDefinition>,
+    onOpenTrack: (Long) -> Unit,
+    onEditEntry: (Long, Long) -> Unit,
+    onDeleteEntry: (Long) -> Unit,
+    dialogModifier: Modifier,
+) {
+    var searchVisible by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var filtersVisible by rememberSaveable { mutableStateOf(false) }
+    var trackFilterId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var areaFilterId by rememberSaveable { mutableStateOf<String?>(null) }
+    var dateRange by rememberSaveable { mutableStateOf(TrackActivityDateRange.AnyDate) }
+    var trackMenuOpen by rememberSaveable { mutableStateOf(false) }
+    var areaMenuOpen by rememberSaveable { mutableStateOf(false) }
+    var viewedEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val units = BuiltInUnits.all + customUnits
+    val activeTracks = state.active
+    val visibleAreaIds = activeTracks.map(TrackProjection::track).map { it.areaId }.toSet()
+    val availableAreas = areas.filter { !it.archived && it.id in visibleAreaIds }
+    val normalizedQuery = query.trim()
+    val items = activeTracks.flatMap { projection ->
+        projection.entries.map { TrackActivityItem(projection, it) }
+    }.filter { item ->
+        val projection = item.projection
+        val searchable = buildList {
+            add(projection.track.name)
+            add(projection.track.area)
+            add(projection.primaryText(item.entry))
+            projection.fields.forEach { field -> add(projection.formattedValue(item.entry, field, units)) }
+        }
+        (trackFilterId == null || projection.track.id == trackFilterId) &&
+            (areaFilterId == null || projection.track.areaId == areaFilterId) &&
+            dateRange.contains(item.entry.entry.entryDate, state.currentDate) &&
+            (normalizedQuery.isBlank() || searchable.any { it.contains(normalizedQuery, ignoreCase = true) })
+    }.sortedWith(
+        compareByDescending<TrackActivityItem> { it.entry.entry.entryDate }
+            .thenByDescending { it.entry.entry.createdAtMillis },
+    )
+    val activeFilterCount = listOf(
+        trackFilterId != null,
+        areaFilterId != null,
+        dateRange != TrackActivityDateRange.AnyDate,
+    ).count { it }
+    val selectedTrackLabel = activeTracks.firstOrNull { it.track.id == trackFilterId }?.track?.name ?: "All Tracks"
+    val selectedAreaLabel = availableAreas.firstOrNull { it.id == areaFilterId }?.name ?: "All Areas"
+
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().widthIn(max = 1040.dp).align(Alignment.TopCenter),
+            contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item {
+                WhipPageHeader(
+                    title = "Activity",
+                    supportingText = "A chronological view of Entries across visible Tracks · ${quantityLabel(items.size, "Entry")}",
+                ) {
+                    WhipPageIconAction(
+                        icon = Icons.Outlined.Search,
+                        label = "Search Track Activity",
+                        onClick = { searchVisible = !searchVisible; if (!searchVisible) query = "" },
+                        active = searchVisible || query.isNotBlank(),
+                    )
+                    WhipPageIconAction(
+                        icon = Icons.Outlined.FilterAlt,
+                        label = "Filter Track Activity",
+                        onClick = { filtersVisible = !filtersVisible },
+                        badgeCount = activeFilterCount,
+                        active = filtersVisible || activeFilterCount > 0,
+                    )
+                }
+            }
+            if (searchVisible) item {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier.fillMaxWidth().testTag("track-activity-search"),
+                    label = { Text("Search Activity") },
+                    placeholder = { Text("Entry, Track, Area, or Field value") },
+                    singleLine = true,
+                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                    trailingIcon = if (query.isNotEmpty()) {{
+                        IconButton(onClick = { query = "" }) { Icon(Icons.Outlined.Close, contentDescription = "Clear Search") }
+                    }} else null,
+                )
+            }
+            if (filtersVisible) item {
+                Card(Modifier.fillMaxWidth().testTag("track-activity-filters")) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Filters", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            if (activeFilterCount > 0) WhipTextButton(onClick = {
+                                trackFilterId = null
+                                areaFilterId = null
+                                dateRange = TrackActivityDateRange.AnyDate
+                            }) { Text("Clear") }
+                        }
+                        Text("Date", style = MaterialTheme.typography.labelLarge)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            TrackActivityDateRange.entries.forEach { range ->
+                                WhipFilterChip(
+                                    selected = dateRange == range,
+                                    onClick = { dateRange = range },
+                                    label = { Text(range.label) },
+                                )
+                            }
+                        }
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box {
+                                WhipOutlinedButton(onClick = { trackMenuOpen = true }, modifier = Modifier.testTag("track-activity-track-filter")) {
+                                    Text(selectedTrackLabel, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                DropdownMenu(trackMenuOpen, { trackMenuOpen = false }) {
+                                    DropdownMenuItem(text = { Text("All Tracks") }, onClick = { trackFilterId = null; trackMenuOpen = false })
+                                    activeTracks.forEach { projection ->
+                                        DropdownMenuItem(
+                                            text = { Text("${projection.track.icon} ${projection.track.name}") },
+                                            onClick = { trackFilterId = projection.track.id; trackMenuOpen = false },
+                                        )
+                                    }
+                                }
+                            }
+                            Box {
+                                WhipOutlinedButton(onClick = { areaMenuOpen = true }, modifier = Modifier.testTag("track-activity-area-filter")) {
+                                    Text(selectedAreaLabel, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                DropdownMenu(areaMenuOpen, { areaMenuOpen = false }) {
+                                    DropdownMenuItem(text = { Text("All Areas") }, onClick = { areaFilterId = null; areaMenuOpen = false })
+                                    availableAreas.forEach { area ->
+                                        DropdownMenuItem(text = { Text(area.name) }, onClick = { areaFilterId = area.id; areaMenuOpen = false })
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            when {
+                state.loading -> item { DomainLoadContent("Track Activity", PaddingValues()) }
+                items.isEmpty() -> item {
+                    WhipEmptyState(
+                        title = if (activeFilterCount > 0 || query.isNotBlank()) "No Matching Activity" else "No Track Activity Yet",
+                        supportingText = if (activeFilterCount > 0 || query.isNotBlank()) {
+                            "Clear a filter or try a different search."
+                        } else {
+                            "Entries appear here after you add them to a Track."
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
+                    )
+                }
+                else -> items(items, key = { "track-activity-${it.entry.entry.id}" }) { item ->
+                    TrackActivityRow(
+                        item = item,
+                        customUnits = customUnits,
+                        onOpen = { viewedEntryId = item.entry.entry.id },
+                        onOpenTrack = { onOpenTrack(item.projection.track.id) },
+                        onEdit = { onEditEntry(item.projection.track.id, item.entry.entry.id) },
+                        onDelete = { onDeleteEntry(item.entry.entry.id) },
+                    )
+                }
+            }
+        }
+    }
+    viewedEntryId?.let { entryId ->
+        activeTracks.firstNotNullOfOrNull { projection ->
+            projection.entries.firstOrNull { it.entry.id == entryId }?.let { projection to it }
+        }?.let { (projection, entry) ->
+            TrackEntryDetailsDialog(
+                modifier = dialogModifier,
+                projection = projection,
+                entry = entry,
+                customUnits = customUnits,
+                editable = true,
+                onDismiss = { viewedEntryId = null },
+                onEdit = { viewedEntryId = null; onEditEntry(projection.track.id, entryId) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun TrackActivityRow(
+    item: TrackActivityItem,
+    customUnits: List<UnitDefinition>,
+    onOpen: () -> Unit,
+    onOpenTrack: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var moreOpen by rememberSaveable(item.entry.entry.id) { mutableStateOf(false) }
+    val projection = item.projection
+    val entry = item.entry
+    val supporting = projection.fields.filter(TrackField::showInList).take(2).mapNotNull { field ->
+        projection.formattedValue(entry, field, BuiltInUnits.all + customUnits).takeIf(String::isNotBlank)?.let { "${field.name} $it" }
+    }
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(
+            onClickLabel = "Open Entry ${projection.primaryText(entry)}",
+            onClick = onOpen,
+        ),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 14.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            WhipIdentityEmoji(projection.track.icon)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(projection.primaryText(entry), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    listOf(projection.track.name, projection.track.area, entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
+                        .filter(String::isNotBlank).joinToString(" · "),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (supporting.isNotEmpty()) Text(supporting.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
+            }
+            ItemEditButton("Entry", projection.primaryText(entry), onEdit)
+            Box {
+                IconButton(onClick = { moreOpen = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More Actions for ${projection.primaryText(entry)}") }
+                DropdownMenu(moreOpen, { moreOpen = false }) {
+                    DropdownMenuItem(text = { Text("Open Track") }, onClick = { moreOpen = false; onOpenTrack() })
+                    DropdownMenuItem(
+                        text = { Text("Delete Entry") },
+                        leadingIcon = { Icon(Icons.Outlined.DeleteForever, contentDescription = null) },
+                        onClick = { moreOpen = false; onDelete() },
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class TrackNumericSummary(
+    val projection: TrackProjection,
+    val field: TrackField,
+    val values: List<Double>,
+    val unitLabel: String,
+)
+
+@Composable
+private fun TrackWorkspaceInsightsPage(
+    state: TrackUiState,
+    customUnits: List<UnitDefinition>,
+    onOpenTrack: (Long) -> Unit,
+) {
+    val activeTracks = state.active
+    val activeTrackIds = activeTracks.mapTo(mutableSetOf()) { it.track.id }
+    val totalEntries = activeTracks.sumOf { it.entries.size }
+    val lastSevenDays = (6L downTo 0L).map { offset -> state.currentDate.minusDays(offset) }
+    val recentTracks = activeTracks.mapNotNull { projection ->
+        projection.entries.maxWithOrNull(compareBy<TrackEntryProjection> { it.entry.entryDate }.thenBy { it.entry.createdAtMillis })
+            ?.let { projection to it }
+    }.sortedWith(compareByDescending<Pair<TrackProjection, TrackEntryProjection>> { it.second.entry.entryDate }.thenByDescending { it.second.entry.createdAtMillis })
+    val units = BuiltInUnits.all + customUnits
+    val numericSummaries = activeTracks.flatMap { projection ->
+        projection.fields.filter { it.type == TrackFieldType.Number || it.type == TrackFieldType.Scale }.mapNotNull { field ->
+            val values = projection.entries.mapNotNull { entry ->
+                entry.value(field.id)?.let { value ->
+                    if (field.type == TrackFieldType.Number) value.canonicalNumber ?: value.enteredNumber else value.scaleValue
+                }
+            }
+            values.takeIf(List<Double>::isNotEmpty)?.let {
+                val unitLabel = field.unitId?.let { id -> units.firstOrNull { it.id == id }?.symbol }.orEmpty()
+                TrackNumericSummary(projection, field, values, unitLabel)
+            }
+        }
+    }
+    val progressRules = state.linkRules.filter { it.sourceType == LinkSourceType.Track && it.sourceEntityId in activeTrackIds }
+    val actionRules = state.triggerRules.filter {
+        it.sourceType == LinkSourceType.Track && it.sourceEntityId in activeTrackIds ||
+            it.targetType == TriggerTargetType.Track && it.targetEntityId in activeTrackIds
+    }
+    val actionRuleIds = actionRules.mapTo(mutableSetOf(), TriggerRule::id)
+    val pendingPrompts = state.triggerOccurrences.count {
+        it.triggerRuleId in actionRuleIds && it.dismissedAt == null && it.fulfilledEntryId == null
+    }
+
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().widthIn(max = 1040.dp).align(Alignment.TopCenter).testTag("track-workspace-insights-list"),
+            contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item { WhipPageHeader("Insights", "Patterns and automation health across visible Tracks.") }
+            if (state.loading) item { DomainLoadContent("Track Insights", PaddingValues()) }
+            else {
+                item {
+                    InsightCard(
+                        "Overview",
+                        listOf(
+                            "Active Tracks" to activeTracks.size.toString(),
+                            "Total Entries" to totalEntries.toString(),
+                            "Entries in 7 Days" to activeTracks.sumOf { track -> track.entries.count { it.entry.entryDate in state.currentDate.minusDays(6)..state.currentDate } }.toString(),
+                            "Entries in 30 Days" to activeTracks.sumOf { track -> track.entries.count { it.entry.entryDate in state.currentDate.minusDays(29)..state.currentDate } }.toString(),
+                        ),
+                    )
+                }
+                item {
+                    InsightCard(
+                        "Entry Frequency",
+                        lastSevenDays.map { date ->
+                            date.format(DateTimeFormatter.ofPattern("EEE, MMM d")) to
+                                activeTracks.sumOf { track -> track.entries.count { it.entry.entryDate == date } }.toString()
+                        },
+                    )
+                }
+                item {
+                    InsightCard(
+                        "Automation Status",
+                        listOf(
+                            "Goal Rules" to "${progressRules.count(LinkRule::enabled)} of ${progressRules.size} enabled",
+                            "Action Rules" to "${actionRules.count(TriggerRule::enabled)} of ${actionRules.size} enabled",
+                            "Pending Entries" to pendingPrompts.toString(),
+                        ),
+                    )
+                }
+                if (recentTracks.isNotEmpty()) {
+                    item { Text("Recently Active Tracks", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
+                    items(recentTracks.take(8), key = { "recent-track-${it.first.track.id}" }) { (projection, entry) ->
+                        Card(Modifier.fillMaxWidth().clickable(onClickLabel = "Open ${projection.track.name} Insights") { onOpenTrack(projection.track.id) }) {
+                            Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                WhipIdentityEmoji(projection.track.icon)
+                                Column(Modifier.weight(1f)) {
+                                    Text(projection.track.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        "${projection.primaryText(entry)} · ${entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                if (numericSummaries.isNotEmpty()) {
+                    item { Text("Numeric Summaries", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
+                    items(numericSummaries, key = { "numeric-${it.projection.track.id}-${it.field.id}" }) { summary ->
+                        val suffix = summary.unitLabel.takeIf(String::isNotBlank)?.let { " $it" }.orEmpty()
+                        InsightCard(
+                            "${summary.projection.track.icon} ${summary.projection.track.name} · ${summary.field.name}",
+                            listOf(
+                                "Entries" to summary.values.size.toString(),
+                                "Total" to "${summary.values.sum().formatCompact()}$suffix",
+                                "Average" to "${summary.values.average().formatCompact()}$suffix",
+                            ),
+                        )
+                    }
+                }
+                if (activeTracks.isEmpty()) item {
+                    WhipEmptyState(
+                        "No Track Insights Yet",
+                        "Create a Track and add Entries to see cross-Track patterns here.",
+                        Modifier.fillMaxWidth().padding(vertical = 40.dp),
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -614,11 +1059,14 @@ private fun TrackGoalAutomationDialog(
     val consistencyValid = goalType != GoalType.Consistency || consistencyRequiredPeriods.toIntOrNull()?.let { it > 0 } == true
     val valid = goalName.isNotBlank() && (!needsField || selectedField != null) && targetValid && rangeValid && consistencyValid &&
         (aggregation != TrackAggregation.FixedAmount || fixedAmount.toWhipDoubleOrNull() != null)
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Create a Goal From Entries") },
         text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyColumn(
+                modifier = Modifier.testTag("track-new-goal-content"),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 item { Text("Choose how Entries in ${projection.track.name} should change the new Goal. Every contribution remains separately auditable.") }
                 item {
                     SelectionField(
@@ -790,11 +1238,14 @@ private fun TrackExistingGoalAutomationDialog(
     val valid = selectedGoal != null && compatibleMeasures.isNotEmpty() &&
         (!needsField || selectedField != null) &&
         (aggregation != TrackAggregation.FixedAmount || fixedValue.toWhipDoubleOrNull() != null)
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
         title = { Text("Connect Entries to a Goal") },
         text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyColumn(
+                modifier = Modifier.testTag("track-existing-goal-content"),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 item { Text("Each eligible Entry becomes one explainable contribution. Editing or deleting an Entry recalculates the Goal automatically.") }
                 if (selectedGoal == null) {
                     item { Text("No active compatible Goals are available. Create a Goal first, then return here.") }
@@ -1140,43 +1591,51 @@ internal fun TrackRow(
     reordering: Boolean = false,
     selectionMode: Boolean = false,
     selected: Boolean = false,
-    onSelectionToggle: () -> Unit = {},
-    onEnterSelection: () -> Unit = {},
+    onSelectionToggle: (() -> Unit)? = null,
+    onEnterSelection: (() -> Unit)? = null,
     compact: Boolean = false,
 ) {
+    val selectable = selectionMode && onSelectionToggle != null
     val latest = projection.entries.maxWithOrNull(compareBy<TrackEntryProjection> { it.entry.entryDate }.thenBy { it.entry.createdAtMillis })
     Card(
-        modifier = Modifier.fillMaxWidth().combinedClickable(
+        modifier = Modifier.fillMaxWidth().testTag("track-card-${projection.track.id}").combinedClickable(
             enabled = !reordering,
-            onClickLabel = if (selectionMode) "${if (selected) "Deselect" else "Select"} ${projection.track.name}" else "Open ${projection.track.name}",
-            onLongClickLabel = "Select ${projection.track.name}",
-            onClick = { if (selectionMode) onSelectionToggle() else onOpen(projection.track.id) },
+            onClickLabel = if (selectable) "${if (selected) "Deselect" else "Select"} ${projection.track.name}" else "Open ${projection.track.name}",
+            onLongClickLabel = onEnterSelection?.let { "Select ${projection.track.name}" },
+            onClick = { if (selectable) onSelectionToggle.invoke() else onOpen(projection.track.id) },
             onLongClick = onEnterSelection,
         )
             .semantics {
                 role = Role.Button
                 contentDescription = buildString {
                     append("${projection.track.name}, ${projection.entries.size} Entries")
-                    latest?.let { append(", latest ${projection.primaryText(it)}, ${it.entry.entryDate}") }
-                    append(if (selectionMode) ". ${if (selected) "Selected" else "Not selected"}. Select Track" else ". Open Track")
+                    latest?.let {
+                        append(", latest ${projection.primaryText(it)}, ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
+                    }
+                    append(if (selectable) ". ${if (selected) "Selected" else "Not selected"}. Select Track" else ". Open Track")
                 }
             },
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (selectionMode) Checkbox(selected, { onSelectionToggle() })
+                if (selectable) Checkbox(selected, { onSelectionToggle.invoke() })
                 WhipIdentityEmoji(projection.track.icon)
                 Column(Modifier.weight(1f)) {
                     Text(projection.track.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text("${projection.track.area} · ${quantityLabel(projection.entries.size, "Entry")}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (selectionMode) {
+                if (selectable) {
                     Text(if (selected) "Selected" else "Not Selected", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else if (reordering) {
                     IconButton(enabled = onMoveEarlier != null, onClick = { onMoveEarlier?.invoke() }) { Icon(Icons.Outlined.ArrowUpward, "Move ${projection.track.name} Earlier") }
                     IconButton(enabled = onMoveLater != null, onClick = { onMoveLater?.invoke() }) { Icon(Icons.Outlined.ArrowDownward, "Move ${projection.track.name} Later") }
                 } else {
-                    ItemEditButton("Track", projection.track.name, onEdit = { onEdit(projection.track.id) })
+                    ItemEditButton(
+                        "Track",
+                        projection.track.name,
+                        onEdit = { onEdit(projection.track.id) },
+                        modifier = Modifier.testTag("track-edit-action-${projection.track.id}"),
+                    )
                 }
             }
             if (!compact) latest?.let {
@@ -1187,7 +1646,7 @@ internal fun TrackRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (!compact && !selectionMode) {
+            if (!compact && !selectable) {
                 WhipOutlinedButton(
                     onClick = { onAddEntry(projection.track.id) },
                     enabled = !projection.track.archived && !reordering,
@@ -1195,7 +1654,7 @@ internal fun TrackRow(
                 ) {
                     Icon(Icons.Outlined.Add, contentDescription = null); Spacer(Modifier.width(8.dp)); Text(if (projection.track.archived) "Restore to Add Entries" else projection.addEntryLabel())
                 }
-            } else if (!reordering && !selectionMode) {
+            } else if (!reordering && !selectable) {
                 WhipTextButton(
                     onClick = { onAddEntry(projection.track.id) },
                     enabled = !projection.track.archived,
@@ -1232,6 +1691,7 @@ private fun TrackDetailPage(
     onOpenPrompt: (Long) -> Unit,
     onRequestNotificationPermission: () -> Unit,
     saving: Boolean,
+    dialogModifier: Modifier,
 ) {
     val captureRules = state.triggerRules.filter { it.targetType == TriggerTargetType.Track && it.targetEntityId == projection.track.id }
     val followUpRules = state.triggerRules.filter { it.sourceType == LinkSourceType.Track && it.sourceEntityId == projection.track.id }
@@ -1243,19 +1703,33 @@ private fun TrackDetailPage(
             !(occurrence.remindAt ?: occurrence.availableAt).isAfter(now)
     }
     Column(Modifier.fillMaxSize().padding(innerPadding)) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onBack, modifier = Modifier.semantics { contentDescription = "Back to Tracks" }) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val constrainedHeader = maxWidth < 280.dp
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = if (constrainedHeader) 4.dp else 12.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(if (constrainedHeader) 2.dp else 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack, modifier = Modifier.semantics { contentDescription = "Back to Tracks" }) {
+                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        projection.track.name,
+                        style = if (constrainedHeader) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = if (constrainedHeader) 1 else 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        if (constrainedHeader) quantityLabel(projection.entries.size, "Entry") else "${quantityLabel(projection.entries.size, "Entry")} · ${projection.track.area}",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (!constrainedHeader) ItemEditButton("Track", projection.track.name, onEditTrack)
             }
-            Column(Modifier.weight(1f)) {
-                Text(projection.track.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text("${quantityLabel(projection.entries.size, "Entry")} · ${projection.track.area}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            ItemEditButton("Track", projection.track.name, onEditTrack)
         }
         DestinationTabBar(
             selected = destination,
@@ -1263,8 +1737,9 @@ private fun TrackDetailPage(
             primaryDestinations = listOf(TrackDetailDestination.Entries, TrackDetailDestination.Automations, TrackDetailDestination.Insights),
             onSelect = onDestinationChange,
             label = TrackDetailDestination::label,
-            compactLabel = { if (it == TrackDetailDestination.Automations) "Auto" else it.label },
+            compactLabel = TrackDetailDestination::label,
             testTagPrefix = "track-destination",
+            barTestTag = "track-detail-navigation",
         )
         when (destination) {
             TrackDetailDestination.Entries -> TrackEntriesPage(
@@ -1281,8 +1756,9 @@ private fun TrackDetailPage(
                 viewModel::dismissPrompt,
                 { query -> viewModel.searchEntryIds(projection.track.id, query) },
                 { offset, limit -> viewModel.entryPage(projection.track.id, offset, limit) },
+                dialogModifier,
             )
-            TrackDetailDestination.Insights -> TrackInsightsPage(projection, customUnits, today)
+            TrackDetailDestination.Insights -> TrackInsightsPage(projection, customUnits, today, dialogModifier)
             TrackDetailDestination.Automations -> TrackAutomationsOverview(
                 projection,
                 state,
@@ -1328,6 +1804,7 @@ private fun TrackEntriesPage(
     onDismissPrompt: (Long) -> Unit = {},
     searchEntryIds: suspend (String) -> Set<Long> = { emptySet() },
     loadEntryPage: suspend (Int, Int) -> TrackEntryPage,
+    dialogModifier: Modifier = Modifier,
 ) {
     var query by rememberSaveable(projection.track.id) { mutableStateOf("") }
     var sort by rememberSaveable(projection.track.id) { mutableStateOf(TrackSort.EntryDate) }
@@ -1342,6 +1819,7 @@ private fun TrackEntriesPage(
     var totalEntryCount by remember(projection.track.id) { mutableIntStateOf(projection.entries.size) }
     var pageLoading by remember(projection.track.id) { mutableStateOf(true) }
     var pageError by remember(projection.track.id) { mutableStateOf<String?>(null) }
+    var viewEntryId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val pageVersion = projection.entries.maxOfOrNull { it.entry.updatedAtMillis } ?: 0L
     suspend fun reloadPage() {
@@ -1464,7 +1942,15 @@ private fun TrackEntriesPage(
             )
         }
         items(shown, key = { "entry-${it.entry.id}" }) { entry ->
-            TrackEntryRow(projection, entry, customUnits, !projection.track.archived, { onEditEntry(entry.entry.id) }, { onDeleteEntry(entry.entry.id) })
+            TrackEntryRow(
+                projection = projection,
+                entry = entry,
+                customUnits = customUnits,
+                editable = !projection.track.archived,
+                onOpen = { viewEntryId = entry.entry.id },
+                onEdit = { onEditEntry(entry.entry.id) },
+                onDelete = { onDeleteEntry(entry.entry.id) },
+            )
         }
         if (databasePagedView && pagedEntries.size < totalEntryCount) item {
             WhipOutlinedButton(
@@ -1489,6 +1975,7 @@ private fun TrackEntriesPage(
         }
     }
     if (filterOpen) TrackFilterDialog(
+        modifier = dialogModifier,
         projection = projection,
         initial = conditions,
         initialMode = conditionMode,
@@ -1497,6 +1984,19 @@ private fun TrackEntriesPage(
         onDismiss = { filterOpen = false },
         onApply = { mode, updated -> conditionMode = mode; conditions = updated; filterOpen = false },
     )
+    viewEntryId?.let { entryId ->
+        projection.entries.firstOrNull { it.entry.id == entryId }?.let { entry ->
+            TrackEntryDetailsDialog(
+                modifier = dialogModifier,
+                projection = projection,
+                entry = entry,
+                customUnits = customUnits,
+                editable = !projection.track.archived,
+                onDismiss = { viewEntryId = null },
+                onEdit = { viewEntryId = null; onEditEntry(entryId) },
+            )
+        }
+    }
 }
 
 private const val TRACK_ENTRY_PAGE_SIZE = 100
@@ -1538,6 +2038,7 @@ private fun TrackEntryRow(
     entry: TrackEntryProjection,
     customUnits: List<UnitDefinition>,
     editable: Boolean,
+    onOpen: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -1545,7 +2046,7 @@ private fun TrackEntryRow(
     val supporting = projection.fields.filter(TrackField::showInList).take(2).mapNotNull { field ->
         projection.formattedValue(entry, field, BuiltInUnits.all + customUnits).takeIf(String::isNotBlank)?.let { "${field.name} $it" }
     }
-    Card(Modifier.fillMaxWidth().clickable(enabled = editable, onClickLabel = "Edit Entry ${projection.primaryText(entry)}", onClick = onEdit)) {
+    Card(Modifier.fillMaxWidth().clickable(onClickLabel = "Open Entry ${projection.primaryText(entry)}", onClick = onOpen)) {
         Row(Modifier.fillMaxWidth().padding(start = 14.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(projection.primaryText(entry), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -1564,10 +2065,59 @@ private fun TrackEntryRow(
 }
 
 @Composable
+private fun TrackEntryDetailsDialog(
+    modifier: Modifier,
+    projection: TrackProjection,
+    entry: TrackEntryProjection,
+    customUnits: List<UnitDefinition>,
+    editable: Boolean,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit,
+) {
+    val units = BuiltInUnits.all + customUnits
+    PaneAwareAlertDialog(
+        modifier = modifier,
+        onDismissRequest = onDismiss,
+        title = { Text(projection.primaryText(entry)) },
+        text = {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                item {
+                    Text(
+                        entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                items(projection.fields, key = TrackField::id) { field ->
+                    val value = projection.formattedValue(entry, field, units).ifBlank { "—" }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(field.name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(value)
+                    }
+                }
+                if (entry.entry.sourceExplanation.isNotBlank()) item {
+                    Text(entry.entry.sourceExplanation, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        },
+        confirmButton = { WhipTextButton(onClick = onDismiss) { Text("Close") } },
+        dismissButton = {
+            if (editable) WhipTextButton(onClick = onEdit) {
+                Icon(Icons.Outlined.Edit, contentDescription = null)
+                Text("Edit Entry")
+            }
+        },
+    )
+}
+
+@Composable
 private fun TrackInsightsPage(
     projection: TrackProjection,
     customUnits: List<UnitDefinition>,
     today: LocalDate,
+    dialogModifier: Modifier = Modifier,
 ) {
     var filterOpen by rememberSaveable(projection.track.id) { mutableStateOf(false) }
     var conditions by remember(projection.track.id) { mutableStateOf<List<TrackCondition>>(emptyList()) }
@@ -1679,6 +2229,7 @@ private fun TrackInsightsPage(
         }
     }
     if (filterOpen) TrackFilterDialog(
+        modifier = dialogModifier,
         projection = projection,
         initial = conditions,
         initialMode = conditionMode,
@@ -1730,7 +2281,7 @@ private fun TrackAutomationsOverview(
         contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, 112.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        item { WhipPageHeader("Automations", "Choose what should happen when an Entry is added, or what should prompt a new Entry.") }
+        item { WhipPageHeader("Rules", "Choose how Entries update Goals or prompt a next action.") }
         item {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1931,7 +2482,7 @@ private fun TrackProgressAutomationEditorDialog(
     val valid = name.isNotBlank() && (!needsField || selectedField != null) &&
         (aggregation != TrackAggregation.FixedAmount || fixedValue.toWhipDoubleOrNull() != null) &&
         multiplier.toWhipDoubleOrNull() != null && offset.toWhipDoubleOrNull() != null
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Edit Goal Automation") },
         text = {
@@ -2142,7 +2693,7 @@ private fun TrackAutomationEditorDialog(
     val valid = name.isNotBlank() && sourceId != null && targetId != null &&
         (kind != TrackAutomationKind.CaptureIntoTrack || sourceType != LinkSourceType.Subtask ||
             state.sourceTaskSteps.any { it.id == sourceStepId && it.taskId == sourceTaskId })
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (initialRule == null) "Create Automation" else "Edit Automation") },
         text = {
@@ -2401,7 +2952,7 @@ private fun TrackCsvImportDialog(
     val preview = previewResult.getOrNull()
     val error = headersResult.exceptionOrNull()?.message ?: previewResult.exceptionOrNull()?.message
     val canImport = preview != null && preview.validRows > 0 && preview.invalidRows == 0
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Import ${projection.track.name} Entries") },
         text = {
@@ -2657,7 +3208,7 @@ internal fun TrackEditor(
     )
     confirmFieldDeleteIndex?.let { index -> fields.getOrNull(index)?.let { field ->
         val valueCount = field.id?.let { id -> initial?.entries?.count { it.value(id) != null } } ?: 0
-        AlertDialog(
+        PaneAwareAlertDialog(
             onDismissRequest = { confirmFieldDeleteIndex = null },
             title = { Text("Delete ${field.name} Field?") },
             text = { Text(if (valueCount > 0) "This permanently deletes $valueCount saved values from existing Entries. Renaming or reordering keeps them." else "This Field has no saved values and can be removed safely.") },
@@ -2675,7 +3226,7 @@ internal fun TrackEditor(
             },
         )
     } }
-    if (unsavedConfirm) AlertDialog(
+    if (unsavedConfirm) PaneAwareAlertDialog(
         onDismissRequest = { unsavedConfirm = false },
         title = { Text("Discard Unsaved Changes?") },
         text = { Text("Your Track and Field edits have not been saved.") },
@@ -2687,7 +3238,7 @@ internal fun TrackEditor(
         val unresolvedAutomation = impacts.any { (option, _, automationCount) ->
             automationCount > 0 && option.id !in editorState.optionReplacementIds
         }
-        AlertDialog(
+        PaneAwareAlertDialog(
             onDismissRequest = { confirmOptionDeletion = false },
             title = { Text("Resolve Removed Choices") },
             text = {
@@ -2776,7 +3327,7 @@ private fun TrackFieldEditor(
     } else null
     val scaleValues = scaleValuesResult?.getOrNull()
     val scaleError = scaleValuesResult?.exceptionOrNull()?.message
-    AlertDialog(
+    PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (initial.id == null && initial.uuid == null) "Add Field" else "Edit Field") },
         text = {
@@ -2918,12 +3469,12 @@ internal fun TrackEntryEditor(
     BackHandler(enabled = true, onBack = ::requestDismiss)
 
     WhipFullScreenSurface(
-        if (initial == null) projection.addEntryLabel() else "Edit ${projection.primaryField.name}",
+        if (initial == null) "Add Entry" else "Edit Entry",
         modifier.testTag("track-entry-editor-surface"),
     ) {
         Scaffold(
             topBar = { TopAppBar(
-                title = { Text(if (initial == null) projection.addEntryLabel() else "Edit ${projection.primaryField.name}") },
+                title = { Text(if (initial == null) "Add Entry" else "Edit Entry") },
                 navigationIcon = { IconButton(onClick = ::requestDismiss) { Icon(Icons.Outlined.Close, "Close Entry Editor") } },
                 actions = { WhipTextButton(enabled = !saving, onClick = { attempted = true; if (missing.isEmpty()) onSave(draft) }) { Text(if (saving) "Saving…" else if (initial == null) "Add" else "Save") } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
@@ -2957,7 +3508,7 @@ internal fun TrackEntryEditor(
                             Text("All Entry Identity Fields match. Duplicates are allowed; review a match or keep this separate Entry.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             duplicatePrimaryMatches.forEach { match ->
                                 WhipTextButton(onClick = { possibleMatchId = match.entry.id }) {
-                                    Text("Review ${projection.primaryText(match)} · ${match.entry.entryDate}")
+                                    Text("Review ${projection.primaryText(match)} · ${match.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
                                 }
                             }
                         }
@@ -2983,14 +3534,14 @@ internal fun TrackEntryEditor(
         }
     }
     if (datePickerOpen) WhipDatePickerDialog(entryDate, { datePickerOpen = false }, { selected -> stateHolder.updateDraft { it.copy(entryDate = selected) }; datePickerOpen = false })
-    if (unsavedConfirm) AlertDialog(
+    if (unsavedConfirm) PaneAwareAlertDialog(
         onDismissRequest = { unsavedConfirm = false },
         title = { Text("Discard Unsaved Entry?") },
         text = { Text("Your changes to this Entry have not been saved.") },
         confirmButton = { WhipTextButton(onClick = { unsavedConfirm = false; dismissAndClear() }) { Text("Discard", color = MaterialTheme.colorScheme.error) } },
         dismissButton = { WhipTextButton(onClick = { unsavedConfirm = false }) { Text("Keep Editing") } },
     )
-    if (deleteConfirm && onDelete != null) AlertDialog(
+    if (deleteConfirm && onDelete != null) PaneAwareAlertDialog(
         onDismissRequest = { deleteConfirm = false },
         title = { Text("Delete Entry?") },
         text = { Text("This entry and its saved field values will be removed. Linked goal progress will be reconciled automatically.") },
@@ -3002,12 +3553,12 @@ internal fun TrackEntryEditor(
         dismissButton = { WhipTextButton(onClick = { deleteConfirm = false }) { Text("Cancel") } },
     )
     possibleMatchId?.let { matchId -> projection.entries.firstOrNull { it.entry.id == matchId }?.let { match ->
-        AlertDialog(
+        PaneAwareAlertDialog(
             onDismissRequest = { possibleMatchId = null },
             title = { Text(projection.primaryText(match)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Existing Entry · ${match.entry.entryDate}")
+                    Text("Existing Entry · ${match.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
                     projection.fields.filterNot(TrackField::primary).mapNotNull { field ->
                         projection.formattedValue(match, field, BuiltInUnits.all + customUnits)
                             .takeIf(String::isNotBlank)?.let { field.name to it }
@@ -3034,8 +3585,21 @@ internal fun TrackEntryField(
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Text(field.name + if (field.required) " *" else "", style = MaterialTheme.typography.labelLarge)
         when (field.type) {
-            TrackFieldType.ShortText -> OutlinedTextField(value.textValue.orEmpty(), { onValue(value.copy(textValue = it.take(300))) }, singleLine = true, isError = showError, modifier = Modifier.fillMaxWidth())
-            TrackFieldType.LongText -> OutlinedTextField(value.textValue.orEmpty(), { onValue(value.copy(textValue = it.take(5_000))) }, minLines = 3, maxLines = 8, isError = showError, modifier = Modifier.fillMaxWidth())
+            TrackFieldType.ShortText -> OutlinedTextField(
+                value.textValue.orEmpty(),
+                { onValue(value.copy(textValue = it.take(300))) },
+                singleLine = true,
+                isError = showError,
+                modifier = Modifier.fillMaxWidth().testTag("track-entry-short-text-${field.uuid}"),
+            )
+            TrackFieldType.LongText -> OutlinedTextField(
+                value.textValue.orEmpty(),
+                { onValue(value.copy(textValue = it.take(5_000))) },
+                minLines = 3,
+                maxLines = 8,
+                isError = showError,
+                modifier = Modifier.fillMaxWidth().testTag("track-entry-long-text-${field.uuid}"),
+            )
             TrackFieldType.Number -> {
                 val unit = units.firstOrNull { it.id == (value.enteredUnitId ?: field.unitId) }
                 var numberText by rememberSaveable(field.uuid) {
@@ -3148,6 +3712,7 @@ internal fun TrackEntryField(
 
 @Composable
 internal fun TrackFilterDialog(
+    modifier: Modifier = Modifier,
     projection: TrackProjection,
     initial: List<TrackCondition>,
     initialMode: TrackConditionMode,
@@ -3159,11 +3724,12 @@ internal fun TrackFilterDialog(
     var mode by rememberSaveable { mutableStateOf(initialMode) }
     var conditions by remember { mutableStateOf(initial) }
     var adding by rememberSaveable { mutableStateOf(false) }
-    AlertDialog(
+    PaneAwareAlertDialog(
+        modifier = modifier,
         onDismissRequest = onDismiss,
         title = { Text("Filter Entries") },
         text = {
-            LazyColumn(Modifier.fillMaxWidth().fillMaxHeight(0.68f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 560.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 item { SegmentedChoiceBar(mode, TrackConditionMode.entries, { mode = it }, { if (it == TrackConditionMode.MatchAll) "Match All" else "Match Any" }, Modifier.fillMaxWidth()) }
                 if (conditions.isEmpty()) item { Text("No filters. Every entry is included.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 itemsIndexed(conditions) { index, condition ->
@@ -3179,7 +3745,7 @@ internal fun TrackFilterDialog(
         confirmButton = { WhipTextButton(onClick = { onApply(mode, conditions) }) { Text("Apply Filters") } },
         dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
-    if (adding) TrackConditionEditor(projection, { adding = false }, today = today, units = units) { conditions = conditions + it; adding = false }
+    if (adding) TrackConditionEditor(projection, { adding = false }, today = today, units = units, modifier = modifier) { conditions = conditions + it; adding = false }
 }
 
 @Composable
@@ -3188,6 +3754,7 @@ internal fun TrackConditionEditor(
     onDismiss: () -> Unit,
     today: LocalDate = LocalDate.now(),
     units: List<UnitDefinition> = BuiltInUnits.all,
+    modifier: Modifier = Modifier,
     onSave: (TrackCondition) -> Unit,
 ) {
     val subjects = remember(projection.track.id, projection.fields) {
@@ -3215,7 +3782,8 @@ internal fun TrackConditionEditor(
         TrackFieldType.Date -> true
         TrackFieldType.YesNo -> true
     }
-    AlertDialog(
+    PaneAwareAlertDialog(
+        modifier = modifier,
         onDismissRequest = onDismiss,
         title = { Text("Add Condition") },
         text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -3232,8 +3800,8 @@ internal fun TrackConditionEditor(
                     projection.optionsFor(requireNotNull(field).id).forEach { option -> WhipFilterChip(option.uuid in selectedChoices, { selectedChoices = if (option.uuid in selectedChoices) selectedChoices - option.uuid else selectedChoices + option.uuid }, { Text(option.label) }) }
                 }
                 TrackFieldType.Date -> {
-                    WhipOutlinedButton(onClick = { datePicker = 1 }, modifier = Modifier.fillMaxWidth()) { Text(firstDate.toString()) }
-                    if (operator == TrackConditionOperator.Between) WhipOutlinedButton(onClick = { datePicker = 2 }, modifier = Modifier.fillMaxWidth()) { Text(secondDate.toString()) }
+                    WhipOutlinedButton(onClick = { datePicker = 1 }, modifier = Modifier.fillMaxWidth()) { Text(firstDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))) }
+                    if (operator == TrackConditionOperator.Between) WhipOutlinedButton(onClick = { datePicker = 2 }, modifier = Modifier.fillMaxWidth()) { Text(secondDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))) }
                 }
                 TrackFieldType.YesNo -> Unit
             }
@@ -3277,7 +3845,7 @@ private fun TrackProjection.identityKey(values: Map<String, TrackValueDraft>): S
             TrackFieldType.Number -> "${value.enteredNumber} ${value.enteredUnitId.orEmpty()}"
             TrackFieldType.SingleChoice -> options.firstOrNull { it.uuid == value.choiceOptionUuid }?.label.orEmpty()
             TrackFieldType.Scale -> value.scaleValue?.let(::formatTrackScaleValue).orEmpty()
-            TrackFieldType.Date -> value.dateValue?.toString().orEmpty()
+            TrackFieldType.Date -> value.dateValue?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)).orEmpty()
             TrackFieldType.YesNo -> value.booleanValue?.toString().orEmpty()
         }.trim().lowercase()
     }
@@ -3456,7 +4024,9 @@ internal fun TrackCondition.summaryValue(
         }
         if (secondNumberValue != null) "${display(numberValue)} and ${display(secondNumberValue)}" else display(numberValue)
     }
-    dateValue != null -> if (secondDateValue != null) "$dateValue and $secondDateValue" else dateValue.toString()
+    dateValue != null -> if (secondDateValue != null) {
+        "${dateValue.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} and ${secondDateValue.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}"
+    } else dateValue.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
     else -> ""
 }
 
