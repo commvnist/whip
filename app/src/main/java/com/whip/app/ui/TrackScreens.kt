@@ -1452,7 +1452,7 @@ private fun AllTracksPage(
         onReorder(all.map { it.track.id })
     }
     LazyColumn(
-        Modifier.fillMaxSize().padding(innerPadding),
+        Modifier.fillMaxSize().padding(innerPadding).testTag("track-list"),
         contentPadding = PaddingValues(if (masterPane) 12.dp else 20.dp, 16.dp, if (masterPane) 12.dp else 20.dp, 112.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {

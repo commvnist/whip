@@ -1,19 +1,20 @@
 package com.whip.app
 
-import android.app.ActivityOptions
 import android.content.Intent
-import android.view.Display
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
-import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
@@ -43,12 +44,9 @@ class WhipNavigationTest {
             ApplicationProvider.getApplicationContext(),
             MainActivity::class.java,
         ).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic()
-            .setLaunchDisplayId(Display.DEFAULT_DISPLAY)
-            .toBundle()
-
-        // The explicit display is required on foldable devices that expose more than one display.
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        // API 28+ is pinned to the default display for foldables; API 26–27
+        // launches without ActivityOptions because AndroidX forbids them there.
+        launchMainActivity(intent).use {
             compose.waitUntil(TIMEOUT_MS) {
                 compose.onAllNodesWithText("Review & Trends").fetchSemanticsNodes().isNotEmpty()
             }
@@ -59,7 +57,7 @@ class WhipNavigationTest {
             compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
             compose.onNodeWithText("Close").performClick()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            compose.onNodeWithTag("task-destination-Upcoming").performClick()
+            selectDestination("task-destination-Upcoming", "Upcoming")
             compose.onNodeWithText("The next 30 days", substring = true).assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
@@ -79,6 +77,7 @@ class WhipNavigationTest {
             compose.onNodeWithContentDescription("Gym tab").performClick()
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithTag("track-workspace-destination-Tracks").assertIsSelected()
+            compose.onNodeWithTag("track-list").performScrollToNode(hasText("Create Track"))
             compose.onNodeWithText("Define the Evidence That Matters").assertIsDisplayed()
             compose.onNodeWithText("Create Track").assertIsDisplayed()
         }
@@ -95,11 +94,7 @@ class WhipNavigationTest {
             ApplicationProvider.getApplicationContext(),
             MainActivity::class.java,
         ).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic()
-            .setLaunchDisplayId(Display.DEFAULT_DISPLAY)
-            .toBundle()
-
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             compose.waitUntil(TIMEOUT_MS) {
                 compose.onAllNodesWithText("Review & Trends").fetchSemanticsNodes().isNotEmpty()
             }
@@ -146,9 +141,7 @@ class WhipNavigationTest {
             ApplicationProvider.getApplicationContext(),
             MainActivity::class.java,
         ).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             compose.waitUntil(TIMEOUT_MS) {
                 compose.onAllNodesWithText("Review & Trends").fetchSemanticsNodes().isNotEmpty()
             }
@@ -160,7 +153,10 @@ class WhipNavigationTest {
                 ApplicationProvider.getApplicationContext<WhipApplication>()
                     .settingsRepository.current().reviewPeriod == ReviewPeriod.Monthly
             }
-            compose.onNodeWithText("Save Review Filter").performClick()
+            compose.onNodeWithText("Save Review Filter").performScrollTo().performClick()
+            compose.waitUntil(TIMEOUT_MS) {
+                compose.onAllNodesWithTag("review-filter-name").fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNodeWithTag("review-filter-name").performTextInput("Monthly Outcomes")
             compose.onNodeWithText("Save").performClick()
             compose.waitUntil(TIMEOUT_MS) {
@@ -199,6 +195,7 @@ class WhipNavigationTest {
                 selectDestination("gym-destination-$destination", destination)
             }
             listOf("Routines", "Exercises", "Machines", "Categories", "Tools").forEach { destination ->
+                compose.onNodeWithTag("gym-library-list").performScrollToNode(hasText(destination))
                 compose.onNodeWithTag("gym-library-$destination").performClick()
                 compose.onNodeWithTag("gym-library-child-$destination").assertIsDisplayed().performClick()
             }
@@ -222,7 +219,8 @@ class WhipNavigationTest {
         if (compose.onAllNodesWithTag(testTag).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithTag(testTag).performClick().assertIsSelected()
         } else {
-            compose.onNodeWithContentDescription("Open Pages").performClick()
+            val pageMenus = compose.onAllNodesWithContentDescription("Open Pages")
+            pageMenus[pageMenus.fetchSemanticsNodes().lastIndex].performClick()
             compose.onNodeWithText(fullLabel).performClick()
         }
         compose.waitForIdle()

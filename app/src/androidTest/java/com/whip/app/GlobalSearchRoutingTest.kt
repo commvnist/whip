@@ -1,8 +1,6 @@
 package com.whip.app
 
-import android.app.ActivityOptions
 import android.content.Intent
-import android.view.Display
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
@@ -17,7 +15,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
-import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -61,9 +58,7 @@ class GlobalSearchRoutingTest {
         device.wakeUp()
         device.executeShellCommand("wm dismiss-keyguard")
         val intent = Intent(app, MainActivity::class.java).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             // Compact navigation labels the destination "Home"; the expanded
             // Fold rail does not. Wait for the action this journey actually
             // needs so launch readiness is layout-independent.

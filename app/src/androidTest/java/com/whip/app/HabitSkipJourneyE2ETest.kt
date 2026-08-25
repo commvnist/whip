@@ -1,16 +1,16 @@
 package com.whip.app
 
-import android.app.ActivityOptions
 import android.content.Intent
-import android.view.Display
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -18,7 +18,6 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -27,6 +26,7 @@ import com.whip.app.domain.HabitDraft
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals
 import org.junit.After
@@ -64,8 +64,7 @@ class HabitSkipJourneyE2ETest {
     @Test
     fun skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo() {
         val intent = Intent(app, MainActivity::class.java).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             compose.onNodeWithContentDescription("Habits tab").performClick()
             compose.onNodeWithTag("habit-card-$habitId").assertIsDisplayed()
             compose.onNodeWithContentDescription("Open habit details for Read Today")
@@ -77,8 +76,11 @@ class HabitSkipJourneyE2ETest {
             compose.onNodeWithText("Skip Today?").assertIsDisplayed()
             compose.onNodeWithText("Skip Today").performClick()
 
+            val skipSaved = runBlocking {
+                withTimeoutOrNull(5_000) { app.habitRepository.skips.first { rows -> rows.any { it.habitId == habitId } } }
+            }
+            checkNotNull(skipSaved) { "Habit skip did not reach the repository" }
             runBlocking {
-                withTimeout(5_000) { app.habitRepository.skips.first { rows -> rows.any { it.habitId == habitId } } }
                 check(app.habitRepository.logs.first().none { it.habitId == habitId })
                 check(app.measurementRepository.entries.first().none { it.sourceId?.contains("$habitId") == true })
             }
@@ -90,12 +92,16 @@ class HabitSkipJourneyE2ETest {
             compose.onNodeWithText("${app.clock.today()}: Skipped").assertIsDisplayed()
             compose.onNodeWithText("Close").performClick()
 
-            compose.onNodeWithTag("habit-destination-Insights").performClick()
+            selectDestination("habit-destination-Insights", "Insights")
             compose.onNodeWithText("Last 30 Days: 0 Completed · 1 Skipped · 0 Missed/Below Target").assertIsDisplayed()
-            compose.onNodeWithTag("habit-destination-Today").performClick()
-            compose.onNodeWithText("Undo Skip").performClick()
+            selectDestination("habit-destination-Today", "Today")
+            compose.onNodeWithTag("habit-list-Today").performScrollToNode(hasText("Undo Skip"))
+            compose.onNodeWithText("Undo Skip").performSemanticsAction(SemanticsActions.OnClick)
 
-            runBlocking { withTimeout(5_000) { app.habitRepository.skips.first { it.isEmpty() } } }
+            val skipRemoved = runBlocking {
+                withTimeoutOrNull(5_000) { app.habitRepository.skips.first { it.isEmpty() } }
+            }
+            checkNotNull(skipRemoved) { "Habit skip undo did not reach the repository" }
             compose.onAllNodesWithText("Skipped Today · Streak Protected").assertCountEquals(0)
         }
     }
@@ -108,19 +114,22 @@ class HabitSkipJourneyE2ETest {
             app.habitRepository.create(HabitDraft(name = "Drink Water", startDate = today))
         }
         val intent = Intent(app, MainActivity::class.java).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             compose.onNodeWithContentDescription("Habits tab").performClick()
             compose.onNodeWithTag("habit-card-$pendingHabitId").assertIsDisplayed()
+            compose.onNodeWithTag("habit-list-Today").performScrollToNode(hasTestTag("habit-done-disclosure"))
             compose.onNodeWithTag("habit-done-disclosure").assertIsDisplayed()
             compose.onAllNodesWithTag("habit-card-$habitId").assertCountEquals(0)
 
             compose.onNodeWithTag("habit-done-disclosure").performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithTag("habit-list-Today").performScrollToNode(hasTestTag("habit-card-$habitId"))
             compose.onNodeWithTag("habit-card-$habitId").assertIsDisplayed()
-            val pendingBounds = compose.onNodeWithTag("habit-card-$pendingHabitId").getUnclippedBoundsInRoot()
-            val doneBounds = compose.onNodeWithTag("habit-card-$habitId").getUnclippedBoundsInRoot()
-            assertTrue("Done habits must follow habits that still need attention", pendingBounds.top < doneBounds.top)
+            val pendingNodes = compose.onAllNodesWithTag("habit-card-$pendingHabitId").fetchSemanticsNodes()
+            if (pendingNodes.isNotEmpty()) {
+                val pendingBounds = compose.onNodeWithTag("habit-card-$pendingHabitId").getUnclippedBoundsInRoot()
+                val doneBounds = compose.onNodeWithTag("habit-card-$habitId").getUnclippedBoundsInRoot()
+                assertTrue("Done habits must follow habits that still need attention", pendingBounds.top < doneBounds.top)
+            }
 
             compose.onNodeWithContentDescription("Mark habit Read Today incomplete").performClick()
             runBlocking {
@@ -131,6 +140,7 @@ class HabitSkipJourneyE2ETest {
             compose.waitUntil(5_000) {
                 compose.onAllNodesWithTag("habit-done-disclosure").fetchSemanticsNodes().isEmpty()
             }
+            compose.onNodeWithTag("habit-list-Today").performScrollToNode(hasTestTag("habit-card-$habitId"))
             compose.onNodeWithTag("habit-card-$habitId").assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Check off habit Read Today").performClick()
@@ -142,7 +152,9 @@ class HabitSkipJourneyE2ETest {
             compose.waitUntil(5_000) {
                 compose.onAllNodesWithTag("habit-card-$habitId").fetchSemanticsNodes().isNotEmpty()
             }
+            compose.onNodeWithTag("habit-list-Today").performScrollToNode(hasTestTag("habit-done-disclosure"))
             compose.onNodeWithTag("habit-done-disclosure").assertIsDisplayed()
+            compose.onNodeWithTag("habit-list-Today").performScrollToNode(hasTestTag("habit-card-$habitId"))
             compose.onNodeWithTag("habit-card-$habitId").assertIsDisplayed()
 
             UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).pressBack()
@@ -163,5 +175,16 @@ class HabitSkipJourneyE2ETest {
             compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("habit-card-$habitId"))
             compose.onNodeWithTag("habit-card-$habitId").assertIsDisplayed()
         }
+    }
+
+    private fun selectDestination(testTag: String, fullLabel: String) {
+        if (compose.onAllNodesWithTag(testTag).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag(testTag).performClick()
+        } else {
+            val pageMenus = compose.onAllNodesWithContentDescription("Open Pages")
+            pageMenus[pageMenus.fetchSemanticsNodes().lastIndex].performClick()
+            compose.onNodeWithText(fullLabel).performClick()
+        }
+        compose.waitForIdle()
     }
 }

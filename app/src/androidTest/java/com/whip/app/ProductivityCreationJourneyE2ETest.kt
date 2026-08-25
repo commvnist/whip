@@ -1,11 +1,9 @@
 package com.whip.app
 
 import android.Manifest
-import android.app.ActivityOptions
 import android.content.pm.PackageManager
 import android.content.Intent
 import android.os.Build
-import android.view.Display
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasTestTag
@@ -22,7 +20,6 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.semantics.SemanticsActions
-import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.core.content.ContextCompat
@@ -66,8 +63,7 @@ class ProductivityCreationJourneyE2ETest {
     @Test
     fun taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi() {
         val intent = Intent(app, MainActivity::class.java).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-        ActivityScenario.launch<MainActivity>(intent, options).use { scenario ->
+        launchMainActivity(intent).use { scenario ->
             compose.waitForIdle()
 
             compose.onNodeWithContentDescription("Tasks tab").performClick()
@@ -206,14 +202,22 @@ class ProductivityCreationJourneyE2ETest {
                 compose.onAllNodesWithTag("goal-editor-surface").fetchSemanticsNodes().isEmpty()
             }
             check(runBlocking { app.goalRepository.goals.first().single { it.id == goalId }.icon } == "💪")
-            compose.onNodeWithTag("goal-destination-Archived")
-                .performSemanticsAction(SemanticsActions.OnClick)
+            selectDestination("goal-destination-Archived", "Archived")
             compose.onNodeWithText("Archived Goals").assertIsDisplayed()
-            compose.onNodeWithTag("goal-destination-Insights")
-                .performSemanticsAction(SemanticsActions.OnClick)
+            selectDestination("goal-destination-Insights", "Insights")
             compose.onNodeWithText("Goal Insights").assertIsDisplayed()
             compose.onNodeWithTag("goal-insight-$goalId").assertIsDisplayed()
         }
+    }
+
+    private fun selectDestination(testTag: String, label: String) {
+        if (compose.onAllNodesWithTag(testTag).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag(testTag).performSemanticsAction(SemanticsActions.OnClick)
+        } else {
+            compose.onNodeWithContentDescription("Open Pages").performClick()
+            compose.onNodeWithText(label).performClick()
+        }
+        compose.waitForIdle()
     }
 
     private suspend fun <T> awaitPersistence(label: String, block: suspend () -> T): T = try {

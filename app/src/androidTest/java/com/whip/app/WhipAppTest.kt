@@ -1,11 +1,8 @@
 package com.whip.app
 
-import android.app.ActivityOptions
 import android.content.Intent
-import android.view.Display
 import android.view.View
 import android.view.ViewGroup
-import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertTrue
@@ -18,11 +15,7 @@ class WhipAppTest {
             ApplicationProvider.getApplicationContext(),
             MainActivity::class.java,
         )
-        val options = ActivityOptions.makeBasic()
-            .setLaunchDisplayId(Display.DEFAULT_DISPLAY)
-            .toBundle()
-
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             InstrumentationRegistry.getInstrumentation().waitForIdleSync()
             it.onActivity { activity ->
                 val root = activity.findViewById<ViewGroup>(android.R.id.content)

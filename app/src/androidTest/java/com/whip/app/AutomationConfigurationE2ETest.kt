@@ -1,8 +1,6 @@
 package com.whip.app
 
-import android.app.ActivityOptions
 import android.content.Intent
-import android.view.Display
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -12,7 +10,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
-import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.GoalAggregation
@@ -84,8 +81,7 @@ class AutomationConfigurationE2ETest {
     fun userCanConnectMovieEntryCountToAnExistingGoalAndObserveTheEffect() {
         val intent = Intent(app, MainActivity::class.java)
             .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithContentDescription("Movies Watched, 0 Entries. Open Track").performClick()
@@ -154,15 +150,16 @@ class AutomationConfigurationE2ETest {
 
         val intent = Intent(app, MainActivity::class.java)
             .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithContentDescription("Movies Watched, 2 Entries", substring = true).performClick()
             compose.onNodeWithTag("track-destination-Rules").performClick()
             compose.onNodeWithTag("track-automation-connect-goal").performScrollTo().performClick()
 
-            compose.onNodeWithText("New Entries Only").performScrollTo().performClick()
+            compose.onNodeWithTag("track-existing-goal-content")
+                .performScrollToNode(hasText("New Entries Only"))
+            compose.onNodeWithText("New Entries Only").performClick()
             compose.onNodeWithText("Include All Track History").performClick()
             compose.onNodeWithTag("track-existing-goal-content")
                 .performScrollToNode(hasText("2 scanned · 2 eligible · 0 skipped"))
@@ -190,8 +187,7 @@ class AutomationConfigurationE2ETest {
     fun trackSortMenuOffersIdentityAndLongTextFields() {
         val intent = Intent(app, MainActivity::class.java)
             .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithContentDescription("Movies Watched, 0 Entries. Open Track").performClick()

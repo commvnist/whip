@@ -1,7 +1,9 @@
 package com.whip.app
 
 import android.content.Intent
+import android.os.Build
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -13,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -37,6 +40,7 @@ class EditorStateRecreationTest {
     val compose = createEmptyComposeRule()
 
     private var workoutSetId: Long = 0
+    private lateinit var currentScenario: ActivityScenario<MainActivity>
 
     @Before fun prepareApp() = runBlocking {
         val app = ApplicationProvider.getApplicationContext<WhipApplication>()
@@ -79,7 +83,11 @@ class EditorStateRecreationTest {
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         // UiDevice coordinates are physical-screen coordinates. Compose boundsInRoot
         // are local to the dialog window and diverge on edge-to-edge/fold layouts.
-        requireNotNull(device.wait(Until.findObject(By.desc("Cancel Task editing")), 5_000)).click()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            requireNotNull(device.wait(Until.findObject(By.desc("Cancel Task editing")), 5_000)).click()
+        } else {
+            compose.onNodeWithContentDescription("Cancel Task editing").performClick()
+        }
 
         compose.waitUntil(3_000) {
             compose.onAllNodesWithText("Discard Unsaved Changes?").fetchSemanticsNodes().isNotEmpty()
@@ -212,6 +220,11 @@ class EditorStateRecreationTest {
     }
 
     private fun pressSystemBack() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            currentScenario.onActivity { activity -> activity.onBackPressedDispatcher.onBackPressed() }
+            compose.waitForIdle()
+            return
+        }
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         // Android may consume Back while the IME is hiding, especially for a platform
         // AlertDialog. Retry the physical action, but never treat an IME-only Back
@@ -230,7 +243,12 @@ class EditorStateRecreationTest {
     private fun openGymDestination(label: String) {
         compose.onNodeWithContentDescription("Gym tab").performClick()
         if (label in setOf("Routines", "Exercises", "Machines", "Categories", "Tools")) {
-            compose.onNodeWithTag("gym-destination-Library").performClick()
+            if (compose.onAllNodesWithTag("gym-destination-Library").fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithTag("gym-destination-Library").performClick()
+            } else {
+                compose.onNodeWithContentDescription("Open Pages").performClick()
+                compose.onNodeWithText("Library").performClick()
+            }
             compose.waitUntil(10_000) {
                 compose.onAllNodesWithTag("gym-library-$label").fetchSemanticsNodes().isNotEmpty()
             }
@@ -256,6 +274,9 @@ class EditorStateRecreationTest {
         ActivityScenario.launch<MainActivity>(
             Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
                 .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true),
-        ).use(block)
+        ).use { scenario ->
+            currentScenario = scenario
+            block(scenario)
+        }
     }
 }

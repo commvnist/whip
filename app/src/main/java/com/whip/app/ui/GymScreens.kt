@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -874,7 +875,7 @@ fun GymAreaContent(
 @Composable
 private fun GymLibraryLanding(onOpen: (GymDestination) -> Unit) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().testTag("gym-library-list"),
         contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -953,6 +954,7 @@ private fun WorkoutContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -5361,7 +5363,10 @@ private fun ExercisePickerDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Exercise") },
         text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LazyColumn(
+                modifier = Modifier.testTag("workout-exercise-picker-list"),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 item { OutlinedTextField(query, { query = it }, label = { Text("Search") }, modifier = Modifier.fillMaxWidth()) }
                 val visible = exercises.filter { exerciseMatchesQuery(it, query) }
                     .sortedWith(compareByDescending<Exercise> { it.id in preferredIds }.thenBy { it.name.lowercase() })
@@ -5450,7 +5455,14 @@ private fun WorkoutEditorDialog(
                 ToggleRow("Keep screen awake on workout screen", keepAwake) { keepAwake = it }
             }
         },
-        confirmButton = { WhipTextButton(onClick = { onStart(name, notes, date, keepAwake) }) { Text(if (session == null) "Start" else "Save") } },
+        confirmButton = {
+            WhipTextButton(
+                onClick = { onStart(name, notes, date, keepAwake) },
+                modifier = Modifier.testTag("workout-editor-confirm"),
+            ) {
+                Text(if (session == null) "Start" else "Save")
+            }
+        },
         dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
     if (showDatePicker) {

@@ -53,8 +53,6 @@ class MainActivity : ComponentActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
                 setShowWhenLocked(true)
                 setTurnScreenOn(true)
-            } else {
-                enableApi26TestLockScreenFlags()
             }
         }
         enableEdgeToEdge()
@@ -156,14 +154,6 @@ class MainActivity : ComponentActivity() {
                 ?.takeIf(String::isNotBlank)
         } else null
         return LaunchRequest(action, id, occurrence, automationOccurrence, sharedText, ++deliveryCounter)
-    }
-
-    @Suppress("DEPRECATION")
-    private fun enableApi26TestLockScreenFlags() {
-        window.addFlags(
-            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON,
-        )
     }
 
     private companion object {

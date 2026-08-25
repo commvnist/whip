@@ -1,8 +1,6 @@
 package com.whip.app
 
-import android.app.ActivityOptions
 import android.content.Intent
-import android.view.Display
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertCountEquals
@@ -21,7 +19,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
-import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -67,9 +64,7 @@ class WhipComposeSemanticsTest {
             ApplicationProvider.getApplicationContext(),
             MainActivity::class.java,
         ).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Home").assertIsDisplayed()
             compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
@@ -144,9 +139,7 @@ class WhipComposeSemanticsTest {
         }
         val intent = Intent(app, MainActivity::class.java)
             .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             compose.onNodeWithText("Reset").performScrollTo().performClick()
             compose.onNodeWithText("Reset Recovery Counter?").assertIsDisplayed()
             compose.onNodeWithText("Reset to Now").performClick()
@@ -199,10 +192,8 @@ class WhipComposeSemanticsTest {
         }
         val intent = Intent(app, MainActivity::class.java)
             .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-
         fun launchHome(interaction: () -> Unit) {
-            ActivityScenario.launch<MainActivity>(intent, options).use {
+            launchMainActivity(intent).use {
                 compose.waitUntil(5_000) {
                     compose.onAllNodesWithTag("home-list").fetchSemanticsNodes().isNotEmpty()
                 }
@@ -278,9 +269,7 @@ class WhipComposeSemanticsTest {
         device.executeShellCommand("wm dismiss-keyguard")
         val intent = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
             .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Gym tab").performClick()
             compose.onNodeWithTag("gym-destination-Library").assertIsDisplayed().performClick()
@@ -313,9 +302,7 @@ class WhipComposeSemanticsTest {
         device.executeShellCommand("wm dismiss-keyguard")
         val intent = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
             .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
             compose.onNodeWithTag("task-icon-$taskId", useUnmergedTree = true)
@@ -353,9 +340,7 @@ class WhipComposeSemanticsTest {
         device.executeShellCommand("wm dismiss-keyguard")
         val intent = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
             .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Gym tab").performClick()
             compose.onNodeWithTag("gym-destination-History")
@@ -386,9 +371,7 @@ class WhipComposeSemanticsTest {
         device.executeShellCommand("wm dismiss-keyguard")
         val intent = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
             .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Gym tab").performClick()
             compose.onNodeWithTag("gym-destination-Library").performClick()
@@ -415,9 +398,7 @@ class WhipComposeSemanticsTest {
         device.executeShellCommand("wm dismiss-keyguard")
         val intent = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
             .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Gym tab").performClick()
             compose.onAllNodesWithTag("fold-gym-destination-library").assertCountEquals(0)
@@ -433,9 +414,7 @@ class WhipComposeSemanticsTest {
         device.executeShellCommand("wm dismiss-keyguard")
         val intent = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
             .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
-
-        ActivityScenario.launch<MainActivity>(intent, options).use {
+        launchMainActivity(intent).use {
             compose.waitForIdle()
 
             compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
