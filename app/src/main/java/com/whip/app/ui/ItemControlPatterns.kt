@@ -73,24 +73,36 @@ import com.whip.app.R
 /** User-selected collection density; unrelated to window-size or fold posture. */
 internal val LocalCompactItemLayout = staticCompositionLocalOf { false }
 
-/** Coordinates the single inline disclosure used by compact collection rows. */
+/** Coordinates independently expanded compact collection rows. */
 @Stable
-internal class CompactItemExpansionState(initialExpandedItemKey: String? = null) {
-    var expandedItemKey by mutableStateOf(initialExpandedItemKey)
+internal class CompactItemExpansionState(initialExpandedItemKeys: Set<String> = emptySet()) {
+    var expandedItemKeys by mutableStateOf(initialExpandedItemKeys.toSet())
         private set
+    private var automaticallyExpandedItemKeys = initialExpandedItemKeys.toSet()
 
     fun toggle(itemKey: String) {
-        expandedItemKey = itemKey.takeUnless { expandedItemKey == itemKey }
+        expandedItemKeys = if (itemKey in expandedItemKeys) {
+            expandedItemKeys - itemKey
+        } else {
+            expandedItemKeys + itemKey
+        }
     }
 
-    fun expandIfNone(itemKey: String) {
-        if (expandedItemKey == null) expandedItemKey = itemKey
+    fun expandAutomatically(itemKey: String) {
+        if (itemKey !in automaticallyExpandedItemKeys) {
+            automaticallyExpandedItemKeys = automaticallyExpandedItemKeys + itemKey
+            expandedItemKeys = expandedItemKeys + itemKey
+        }
+    }
+
+    fun collapseAll() {
+        expandedItemKeys = emptySet()
     }
 }
 
-private val CompactItemExpansionStateSaver = Saver<CompactItemExpansionState, String>(
-    save = { it.expandedItemKey.orEmpty() },
-    restore = { CompactItemExpansionState(it.ifBlank { null }) },
+private val CompactItemExpansionStateSaver = Saver<CompactItemExpansionState, ArrayList<String>>(
+    save = { ArrayList(it.expandedItemKeys) },
+    restore = { CompactItemExpansionState(it.toSet()) },
 )
 
 @Composable
@@ -113,10 +125,10 @@ internal fun rememberCompactItemDisclosure(
     val fallback = rememberCompactItemExpansionState()
     val expansionState = LocalCompactItemExpansionState.current ?: fallback
     LaunchedEffect(autoExpand, itemKey, expansionState) {
-        if (autoExpand) expansionState.expandIfNone(itemKey)
+        if (autoExpand) expansionState.expandAutomatically(itemKey)
     }
     return CompactItemDisclosure(
-        expanded = expansionState.expandedItemKey == itemKey,
+        expanded = itemKey in expansionState.expandedItemKeys,
         toggle = { expansionState.toggle(itemKey) },
     )
 }
@@ -383,10 +395,18 @@ internal fun <T> DestinationTabBar(
     compactLabel: (T) -> String = label,
     testTagPrefix: String? = null,
     barTestTag: String? = null,
+    resetCompactItemExpansionOnChange: Boolean = true,
 ) {
     if (destinations.isEmpty()) return
     val fontScale = LocalDensity.current.fontScale
+    val compactItemExpansionState = LocalCompactItemExpansionState.current
     var pagesExpanded by rememberSaveable { mutableStateOf(false) }
+    fun selectDestination(destination: T) {
+        if (resetCompactItemExpansionOnChange && destination != selected) {
+            compactItemExpansionState?.collapseAll()
+        }
+        onSelect(destination)
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -426,7 +446,7 @@ internal fun <T> DestinationTabBar(
                                 .heightIn(min = 48.dp)
                                 .selectable(
                                     selected = isSelected,
-                                    onClick = { onSelect(destination) },
+                                    onClick = { selectDestination(destination) },
                                     role = Role.Tab,
                                 )
                                 .semantics { contentDescription = destinationLabel }
@@ -465,7 +485,7 @@ internal fun <T> DestinationTabBar(
                             DropdownMenuItem(
                                 text = { Text(destinationLabel) },
                                 trailingIcon = if (destination == selected) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
-                                onClick = { pagesExpanded = false; onSelect(destination) },
+                                onClick = { pagesExpanded = false; selectDestination(destination) },
                             )
                         }
                     }
@@ -485,12 +505,19 @@ internal fun <T> SegmentedChoiceBar(
     label: (T) -> String,
     modifier: Modifier = Modifier,
     testTagPrefix: String? = null,
+    resetCompactItemExpansionOnChange: Boolean = false,
 ) {
+    val compactItemExpansionState = LocalCompactItemExpansionState.current
     SingleChoiceSegmentedButtonRow(modifier = modifier) {
         choices.forEachIndexed { index, choice ->
             SegmentedButton(
                 selected = selected == choice,
-                onClick = { onSelect(choice) },
+                onClick = {
+                    if (resetCompactItemExpansionOnChange && choice != selected) {
+                        compactItemExpansionState?.collapseAll()
+                    }
+                    onSelect(choice)
+                },
                 shape = RoundedCornerShape(
                     topStart = if (index == 0) 6.dp else 0.dp,
                     bottomStart = if (index == 0) 6.dp else 0.dp,
@@ -737,5 +764,6 @@ internal fun DetailSectionBar(
         onSelect = onSelect,
         label = { it },
         testTagPrefix = testTagPrefix,
+        resetCompactItemExpansionOnChange = false,
     )
 }

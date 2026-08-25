@@ -519,6 +519,7 @@ fun WhipScreen(
     adaptiveLayout: WhipAdaptiveLayout = WhipAdaptiveLayout.Compact,
     foldInfo: WhipFoldInfo? = null,
 ) {
+    val compactItemExpansionState = LocalCompactItemExpansionState.current
     var appDestination by rememberSaveable { mutableStateOf(AppDestination.Home) }
     var settingsCallerDestination by rememberSaveable { mutableStateOf(AppDestination.Home) }
     var taskDestination by rememberSaveable { mutableStateOf(TaskDestination.Today) }
@@ -885,6 +886,7 @@ fun WhipScreen(
 
     fun selectPrimaryDestination(destination: AppDestination) {
         if (destination == appDestination) return
+        compactItemExpansionState?.collapseAll()
         when (destination) {
             AppDestination.Tasks -> {
                 taskDestination = TaskDestination.Today
@@ -1270,7 +1272,7 @@ fun WhipScreen(
                             WhipHomeButton(
                                 selected = appDestination == AppDestination.Home,
                                 enabled = trackEditorRoute == null,
-                                onClick = { appDestination = AppDestination.Home },
+                                onClick = { selectPrimaryDestination(AppDestination.Home) },
                                 modifier = Modifier.size(48.dp).testTag("workspace-home-action"),
                             )
                         }
@@ -3858,6 +3860,7 @@ private fun TaskAreaContent(
                 },
                 label = TaskHistorySection::label,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                resetCompactItemExpansionOnChange = true,
             )
         }
         Column(
@@ -4045,6 +4048,7 @@ private fun TaskAreaContent(
                         onSelect = { planningView = workspaceDestination.normalizePlanningView(it) },
                         label = TaskPlanningView::name,
                         modifier = Modifier.fillMaxWidth(),
+                        resetCompactItemExpansionOnChange = true,
                     )
                 }
                 WhipActiveFilterRow(

@@ -12,8 +12,9 @@ The initial implementation violated that contract by permanently suppressing sec
 - A collapsed row contains identity, a title of up to two lines, a concise status, the domain's primary action, and a dedicated disclosure action. Ordinary rows target roughly 56–72 dp and must remain materially shorter than standard cards.
 - The primary action never toggles disclosure. Completion, logging, reset, timer, rating, numeric increment, and Track entry creation remain one tap away.
 - Expansion happens inline and reveals Area, supporting metadata, Edit, notes, progress, histories, provenance, and every secondary action or child item.
-- At most one compact row is expanded across the app. The selected row is saveable across navigation and configuration recreation.
-- An active duration Habit or elapsed Goal may expand automatically only when no row is already selected. Automatic expansion never replaces the user's current disclosure.
+- Any number of compact rows can be expanded together so users can compare or operate on multiple items without repeatedly closing prior rows. The expanded set is saveable across configuration recreation.
+- Switching a primary app tab, collection workspace tab, or Task planning/history sub-tab collapses the expanded set. This gives every destination a clean list state instead of carrying unrelated disclosure state across tabs.
+- An active duration Habit or elapsed Goal may expand automatically once without replacing the user's current disclosures. After a tab reset, previously handled timers remain collapsed instead of immediately defeating the clean destination state.
 - At narrow widths or 150%+ text, expanded metadata and actions stack. Wider rows use columns. Titles retain two lines and all action targets remain at least 48 dp.
 - Detail-card navigation remains available, but is not a substitute for an inline action that standard mode exposes.
 - Standard card behavior and hierarchy remain unchanged.
@@ -48,7 +49,7 @@ The live signed-release follow-up on the connected narrow physical display confi
 | Habit | check-off; count/decimal; duration; checklist; rating/log; skipped; synced; flexible target; completed/pending | parent completion; every checklist item; quick values; decrement; Set; Undo; Start/Stop; Rate/Log; Undo Skip; Edit | `ProductivityCardDesignUiTest` numeric, checklist, and state-matrix cases; `HabitRepositoryTest` auto-complete-on/off cases |
 | Goal | measured progress; current value; consistency; pace/forecast; elapsed; weighted milestones; description; active/non-active | Log; Reset; milestone toggle; Edit | `ProductivityCardDesignUiTest` measured, elapsed, and milestone cases |
 | Track | empty history; latest entry; archived; selection/reorder; adaptive master pane; user density; long title | Add Entry; Edit; select/reorder; card open | `TrackWorkspaceUiTest` compact parity case and 200% RTL workspace case |
-| Cross-cutting | narrow 340 dp content; 200% font; dark/light theme; disclosure replacement; state restoration; persisted setting; backup/restore | one expanded item; independent primary action; 48 dp actions; responsive stack; readable title lane | `CompactItemExpansionStateTest`; `ProductivityCardDesignUiTest`; `SettingsBehaviorUiTest`; `AppSettingsPersistenceTest`; `BackupRepositoryTest` |
+| Cross-cutting | narrow 340 dp content; 200% font; dark/light theme; multiple disclosures; tab reset; state restoration; persisted setting; backup/restore | independently expanded items; clean state after tab changes; independent primary action; 48 dp actions; responsive stack; readable title lane | `CompactItemExpansionStateTest`; `ProductivityCardDesignUiTest`; `SettingsBehaviorUiTest`; `AppSettingsPersistenceTest`; `BackupRepositoryTest` |
 
 ## Design decisions
 
@@ -60,11 +61,11 @@ The setting description explicitly distinguishes the always-available primary ac
 
 Completed automated evidence:
 
-- Focused status and Compose regressions passed on the disposable API 34 emulator, including normal and 200% Reset sizing, checklist and Check Off sentinel suppression, and open-Fold support-pane parity.
-- `scripts/check --full` passed, including 256 JVM tests, lint, coverage thresholds, minified release APK/AAB, and benchmark build.
-- `ANDROID_SERIAL=emulator-5554 scripts/check --emulator` passed all 306 Android instrumentation tests across seven isolated batches.
-- Total product regression baseline: 562 tests.
-- The repository release script installed signed `0.3.9 (15)` with a data-preserving package upgrade on `192.168.2.187:35089`; the local and installed base APK SHA-256 both equal `36c77e6c9147fe4e1f38c1e66940e279a11129a6c3fe0f554a052195f85dbfed`.
-- The phone retained its original `firstInstallTime` of `2026-08-22 21:32:46`. The app completed a 102 ms cold launch and became the resumed foreground activity. The post-launch Android runtime log contained no fatal application error.
+- Focused state and Compose regressions passed on the disposable API 34 emulator, including simultaneous Task/Habit/Goal disclosures, workspace-tab collapse, saved-state restoration, normal and 200% Reset sizing, checklist and Check Off sentinel suppression, and open-Fold support-pane parity.
+- `scripts/check --full` passed, including 257 JVM tests, lint, coverage thresholds, minified release APK/AAB, and benchmark build.
+- `ANDROID_SERIAL=emulator-5554 scripts/check --emulator` passed all 311 Android instrumentation tests across seven isolated batches.
+- Total product regression baseline: 568 tests.
+- The repository release script installed and cold-launched signed `0.3.9 (15)` on the disposable API 34 emulator. The local and installed base APK SHA-256 both equal `6913b9fb577ea43b442f33aeebac3f1f02adf6eb9d2d1214bfc380337e5cb6b2`.
+- An earlier narrow-display follow-up also installed signed `0.3.9 (15)` with a data-preserving package upgrade on `192.168.2.187:35089`; that prior visual pass completed a 102 ms cold launch without a fatal application error.
 
 Physical-device instrumentation and destructive data operations were not used.

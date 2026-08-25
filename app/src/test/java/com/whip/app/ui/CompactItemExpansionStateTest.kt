@@ -1,31 +1,38 @@
 package com.whip.app.ui
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 class CompactItemExpansionStateTest {
     @Test
-    fun toggleKeepsAtMostOneCompactItemExpanded() {
+    fun toggleAllowsMultipleCompactItemsToRemainExpanded() {
         val state = CompactItemExpansionState()
 
         state.toggle("task:1")
-        assertEquals("task:1", state.expandedItemKey)
-
         state.toggle("habit:2")
-        assertEquals("habit:2", state.expandedItemKey)
+        assertEquals(setOf("task:1", "habit:2"), state.expandedItemKeys)
 
-        state.toggle("habit:2")
-        assertNull(state.expandedItemKey)
+        state.toggle("task:1")
+        assertEquals(setOf("habit:2"), state.expandedItemKeys)
+
+        state.collapseAll()
+        assertEquals(emptySet<String>(), state.expandedItemKeys)
     }
 
     @Test
-    fun automaticExpansionDoesNotReplaceTheUsersCurrentDisclosure() {
+    fun automaticExpansionIsAdditiveButDoesNotReopenAfterATabReset() {
         val state = CompactItemExpansionState()
 
-        state.expandIfNone("goal:timer")
-        state.expandIfNone("habit:timer")
+        state.toggle("task:1")
+        state.expandAutomatically("goal:timer")
+        state.expandAutomatically("habit:timer")
 
-        assertEquals("goal:timer", state.expandedItemKey)
+        assertEquals(setOf("task:1", "goal:timer", "habit:timer"), state.expandedItemKeys)
+
+        state.collapseAll()
+        state.expandAutomatically("goal:timer")
+        state.expandAutomatically("habit:timer")
+
+        assertEquals(emptySet<String>(), state.expandedItemKeys)
     }
 }

@@ -52,6 +52,7 @@ import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WhipTask
 import com.whip.app.ui.GoalCard
 import com.whip.app.ui.HabitProgressCard
+import com.whip.app.ui.DestinationTabBar
 import com.whip.app.ui.LocalCompactItemLayout
 import com.whip.app.ui.LocalCompactItemExpansionState
 import com.whip.app.ui.TaskRow
@@ -294,6 +295,67 @@ class ProductivityCardDesignUiTest {
     }
 
     @Test
+    fun compactRowsExpandIndependentlyAndWorkspaceTabChangesCollapseThem() {
+        val date = LocalDate.of(2026, 8, 24)
+        val firstNotes = "First expanded details"
+        val secondNotes = "Second expanded details"
+        val first = ScheduledTask(
+            task = WhipTask(15, "First compact task", firstNotes, ScheduleKind.Once, date, null, null, false, false, null, 1, 1),
+            originalDate = date,
+            scheduledDate = date,
+        )
+        val second = ScheduledTask(
+            task = WhipTask(16, "Second compact task", secondNotes, ScheduleKind.Once, date, null, null, false, false, null, 1, 1),
+            originalDate = date,
+            scheduledDate = date,
+        )
+        val selectedTab = mutableStateOf("Today")
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                val expansionState = rememberCompactItemExpansionState()
+                CompositionLocalProvider(
+                    LocalCompactItemLayout provides true,
+                    LocalCompactItemExpansionState provides expansionState,
+                ) {
+                    Column(Modifier.fillMaxWidth()) {
+                        DestinationTabBar(
+                            selected = selectedTab.value,
+                            destinations = listOf("Today", "Upcoming"),
+                            onSelect = { selectedTab.value = it },
+                            label = { it },
+                            testTagPrefix = "compact-test-tab",
+                        )
+                        if (selectedTab.value == "Today") {
+                            Column(
+                                Modifier.fillMaxWidth().padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                TaskRow(first, false, {}, {}, {})
+                                TaskRow(second, false, {}, {}, {})
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("task-expand-15", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("task-expand-16", useUnmergedTree = true).performClick()
+        compose.onNodeWithText(firstNotes).assertIsDisplayed()
+        compose.onNodeWithText(secondNotes).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Collapse task First compact task").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Collapse task Second compact task").assertIsDisplayed()
+
+        compose.onNodeWithTag("compact-test-tab-Upcoming").performClick()
+        compose.onNodeWithTag("compact-test-tab-Today").performClick()
+
+        compose.onAllNodesWithText(firstNotes).assertCountEquals(0)
+        compose.onAllNodesWithText(secondNotes).assertCountEquals(0)
+        compose.onNodeWithContentDescription("Expand task First compact task").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Expand task Second compact task").assertIsDisplayed()
+    }
+
+    @Test
     fun compactHabitAndGoalRowsKeepDetailsAndInlineActions() {
         val date = LocalDate.of(2026, 8, 24)
         val compact = mutableStateOf(false)
@@ -393,7 +455,9 @@ class ProductivityCardDesignUiTest {
         compose.onNodeWithText("Undo").performScrollTo().performClick()
 
         compose.onNodeWithTag("goal-expand-7", useUnmergedTree = true).performScrollTo().performClick()
-        compose.onAllNodesWithText("2 / 8", substring = true).assertCountEquals(0)
+        compose.onNodeWithText("2 / 8", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Collapse habit Drink water").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Collapse goal Read 50 books").assertIsDisplayed()
         compose.onNodeWithText("Current: 25", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Finish the annual reading list.").performScrollTo().assertIsDisplayed()
         compose.runOnIdle {
@@ -637,7 +701,8 @@ class ProductivityCardDesignUiTest {
 
         compose.onNodeWithTag("goal-expand-9", useUnmergedTree = true).performScrollTo().performClick()
         compose.onNodeWithText("2 days").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Expand goal Days since smoking").assertExists()
+        compose.onNodeWithContentDescription("Collapse goal Days since smoking").assertExists()
+        compose.onNodeWithContentDescription("Collapse goal Launch the product").assertExists()
         compose.onNodeWithText("Publish the release").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Celebrate").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Complete every launch gate.").performScrollTo().assertIsDisplayed()

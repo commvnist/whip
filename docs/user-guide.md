@@ -53,6 +53,9 @@ summary and empty-day shortcut only: its data and peer destination remain
 available in main navigation and global add/search.
 Low-pressure mode removes streak pressure from Habit cards and Insights while
 keeping the underlying history intact.
+Compact item layout keeps Tasks, Habits, Goals, and Tracks list-sized until you
+expand them. You can keep several rows expanded at once; changing a main or
+workspace tab collapses them so the destination opens as a clean list.
 On Home and the Habits **Today** page, habits that still need attention remain
 first. A completed occurrence moves to the subdued, collapsible **Done** section
 for confirmation or undo, then returns as pending on its next scheduled day.
