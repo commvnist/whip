@@ -50,5 +50,7 @@ Completed automated evidence:
 - `scripts/check --full` passed, including 252 JVM tests, lint, coverage thresholds, minified release APK/AAB, and benchmark build.
 - `ANDROID_SERIAL=emulator-5554 scripts/check --emulator` passed all 304 Android instrumentation tests across seven isolated batches.
 - Total product regression baseline: 556 tests.
+- The signed `0.3.9 (15)` APK was installed with `adb install -r` on `192.168.2.187:35089`; the local and installed base APK SHA-256 both equal `088292121fcf47814f91c3236f843fe0b2d68c56e66062251246d379323423b8`.
+- The phone retained its original `firstInstallTime` of `2026-08-22 21:32:46`, confirming a data-preserving package upgrade. The app completed a 121 ms cold launch, became the resumed foreground activity, and emitted no process-scoped error logs in the post-launch check.
 
-The remaining delivery step is a data-preserving signed release upgrade and cold-launch smoke on the connected phone. Physical-device instrumentation and destructive data operations are prohibited.
+Physical-device instrumentation and destructive data operations were not used.
