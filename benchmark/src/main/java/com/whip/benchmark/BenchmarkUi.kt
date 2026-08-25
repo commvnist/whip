@@ -58,3 +58,14 @@ internal fun UiDevice.completeOnboardingIfNeeded() {
     }
     waitForIdle(1_000)
 }
+
+internal fun UiDevice.clickPrimaryDestination(label: String) {
+    if (label == "Home") {
+        // Goal and Gym projections can recompose continuously while their dense history is
+        // loading, making the exported Compose node stale between lookup and click. The brand
+        // home action has a stable top-bar position across Whip's benchmark phone viewport.
+        executeShellCommand("input tap ${displayWidth / 10} ${displayHeight * 8 / 100}")
+        return
+    }
+    clickObject(By.text(label), "$label navigation item")
+}

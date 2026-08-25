@@ -36,6 +36,11 @@ to either storage root. Normal release exports remain user-initiated through
 Android's document picker and should use `/storage/emulated/0/whip` when local
 shared storage is desired.
 
+The Macrobenchmark fixture communicates seed readiness through its visible
+benchmark-only Activity. Benchmark JSON, messages, and Perfetto traces are
+collected by the Android Gradle plugin under `benchmark/build/outputs`; Whip's
+harness does not write status files to a device storage root.
+
 `scripts/check --full` is the comprehensive local gate; it also builds the
 minified release and optimized Macrobenchmark target/harness. Release
 compatibility uses disposable API 26 (minimum), API 34 (typical phone/full

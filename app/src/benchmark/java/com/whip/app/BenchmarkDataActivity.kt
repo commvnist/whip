@@ -23,21 +23,12 @@ class BenchmarkDataActivity : Activity() {
             val mode = intent.getStringExtra("mode") ?: "home"
             runCatching { seed(mode) }
                 .onSuccess {
-                    writeSeedStatus("ready:$mode")
                     runOnUiThread { status.text = "Seed ready: $mode" }
                 }
                 .onFailure { error ->
-                    writeSeedStatus("failed:$mode:${error.message.orEmpty()}")
                     runOnUiThread { status.text = "Seed failed: ${error.message}" }
                 }
         }.start()
-    }
-
-    private fun writeSeedStatus(value: String) {
-        externalMediaDirs.firstOrNull()?.let { directory ->
-            directory.mkdirs()
-            directory.resolve(SEED_STATUS_FILE).writeText(value)
-        }
     }
 
     private fun seed(mode: String) {
@@ -80,7 +71,7 @@ class BenchmarkDataActivity : Activity() {
 
     private fun seedLargeGraphs(db: androidx.sqlite.db.SupportSQLiteDatabase, now: Long, today: Long) {
         db.execSQL("INSERT INTO metric_definitions VALUES ('benchmark-goal-metric','Benchmark trend','Decimal','Unitless','unitless',1,1,0,$now,$now)")
-        db.execSQL("INSERT INTO goals (id,uuid,metricId,name,description,area,tagsCsv,icon,type,dimension,unitId,precision,baseline,targetMin,targetMax,direction,startEpochDay,deadlineEpochDay,aggregation,aggregationPeriod,rollingDays,paceType,consistencyPeriod,consistencyRequiredPeriods,reminderMinutes,status,pinned,position,createdAtMillis,updatedAtMillis) VALUES (1,'benchmark-goal','benchmark-goal-metric','100k point goal','','Benchmark','dense','◎','OpenEndedTrend','Unitless','unitless',1,NULL,NULL,NULL,'Neutral',$today,NULL,'Latest','All',NULL,'None','Week',NULL,NULL,'Active',0,0,$now,$now)")
+        db.execSQL("INSERT INTO goals (id,uuid,metricId,name,description,area,tagsCsv,icon,type,dimension,unitId,precision,baseline,targetMin,targetMax,direction,startEpochDay,deadlineEpochDay,aggregation,aggregationPeriod,rollingDays,paceType,consistencyPeriod,consistencyRequiredPeriods,elapsedStartMillis,elapsedDisplayUnit,reminderMinutes,status,pinned,position,createdAtMillis,updatedAtMillis) VALUES (1,'benchmark-goal','benchmark-goal-metric','100k point goal','','Benchmark','dense','◎','OpenEndedTrend','Unitless','unitless',1,NULL,NULL,NULL,'Neutral',$today,NULL,'Latest','All',NULL,'None','Week',NULL,NULL,'Auto',NULL,'Active',0,0,$now,$now)")
         db.execSQL(
             "$FIVE_DIGIT_SEQUENCE INSERT INTO metric_entries (id,metricId,canonicalValue,enteredValue,enteredUnitId,status,timestampMillis,localEpochDay,zoneId,offsetSeconds,sourceType,sourceId,note,createdAtMillis,updatedAtMillis) " +
                 "SELECT 'benchmark-goal-entry-'||x,'benchmark-goal-metric',x%1000,x%1000,'unitless','Recorded',$now-(x*60000),$today-(x/10),'UTC',0,'Manual',NULL,'',$now,$now FROM seq WHERE x < 100000",
@@ -97,7 +88,6 @@ class BenchmarkDataActivity : Activity() {
     }
 
     private companion object {
-        const val SEED_STATUS_FILE = "benchmark-seed-status.txt"
         const val FIVE_DIGIT_SEQUENCE = "WITH digits(n) AS (VALUES(0),(1),(2),(3),(4),(5),(6),(7),(8),(9)), seq(x) AS (SELECT a.n+10*b.n+100*c.n+1000*d.n+10000*e.n FROM digits a CROSS JOIN digits b CROSS JOIN digits c CROSS JOIN digits d CROSS JOIN digits e)"
     }
 }

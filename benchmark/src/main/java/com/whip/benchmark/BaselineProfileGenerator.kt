@@ -2,7 +2,6 @@ package com.whip.benchmark
 
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.uiautomator.By
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,7 +27,7 @@ class BaselineProfileGenerator {
         startWhipActivityAndWait()
         device.completeOnboardingIfNeeded()
         listOf("Tasks", "Habits", "Gym", "Goals", "Home").forEach { label ->
-            device.clickObject(By.text(label), "$label navigation item")
+            device.clickPrimaryDestination(label)
             device.waitForIdle(1_000)
         }
     }

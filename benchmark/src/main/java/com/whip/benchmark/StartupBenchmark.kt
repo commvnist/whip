@@ -10,7 +10,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import androidx.test.uiautomator.By
 
 @RunWith(AndroidJUnit4::class)
 class StartupBenchmark {
@@ -66,7 +65,7 @@ class StartupBenchmark {
         },
     ) {
         listOf("Tasks", "Habits", "Gym", "Goals", "Home").forEach { label ->
-            device.requireObject(By.text(label), "$label navigation item").click()
+            device.clickPrimaryDestination(label)
             device.waitForIdle()
         }
     }
@@ -83,11 +82,16 @@ class StartupBenchmark {
                     device.executeShellCommand("wm size 1800x2200")
                     pressHome()
                     startWhipActivityAndWait()
+                    device.completeOnboardingIfNeeded()
                 },
             ) {
                 device.executeShellCommand("wm size 2200x1800")
                 device.waitForIdle()
+                device.clickPrimaryDestination("Tasks")
+                device.waitForIdle()
                 device.executeShellCommand("wm size 1800x2200")
+                device.waitForIdle()
+                device.clickPrimaryDestination("Goals")
                 device.waitForIdle()
             }
         } finally {

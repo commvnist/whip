@@ -56,7 +56,7 @@ fi
 java scripts/RenderBrandIcon.java --verify
 
 unexpected_device_paths="$(
-    rg -n '/sdcard|/storage/emulated/0|/data/local/tmp' app/src scripts \
+    rg -n '/sdcard|/storage/emulated/0|/data/local/tmp' app/src benchmark/src scripts \
         --glob '!scripts/device-artifacts' \
         --glob '!scripts/check' \
         --glob '!**/build/**' || true

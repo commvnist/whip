@@ -1,6 +1,5 @@
 package com.whip.benchmark
 
-import android.os.SystemClock
 import androidx.benchmark.macro.BaselineProfileMode
 import androidx.benchmark.macro.CompilationMode
 import androidx.benchmark.macro.FrameTimingMetric
@@ -10,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
 import java.util.regex.Pattern
 import org.junit.Rule
 import org.junit.Test
@@ -51,7 +51,7 @@ class DenseDataBenchmark {
         ) {
             device.requireObject(By.desc("Goals tab"), "Goals navigation item").click()
             device.waitForIdle()
-            device.requireObject(By.text("100k point goal"), "100k point goal").click()
+            device.requireObject(By.text("100k point goal"), "100k point goal", 60_000).click()
             device.waitForIdle()
             device.pressBack()
             device.requireObject(By.desc("Gym tab"), "Gym navigation item").click()
@@ -122,21 +122,14 @@ class DenseDataBenchmark {
         device.executeShellCommand(
             "pm grant $PACKAGE_NAME android.permission.POST_NOTIFICATIONS",
         )
-        val statusPath = "/sdcard/Android/media/$PACKAGE_NAME/benchmark-seed-status.txt"
-        device.executeShellCommand("rm -f $statusPath")
         val launch = device.executeShellCommand(
             "am start -W -n $PACKAGE_NAME/com.whip.app.BenchmarkDataActivity --es mode $mode",
         )
         check("Status: ok" in launch) { "Benchmark fixture activity did not launch: $launch" }
-        val deadline = SystemClock.elapsedRealtime() + 180_000
-        var status = ""
-        while (SystemClock.elapsedRealtime() < deadline) {
-            status = device.executeShellCommand("cat $statusPath").trim()
-            if (status == "ready:$mode" || status.startsWith("failed:$mode:")) break
-            SystemClock.sleep(250)
-        }
-        check(status == "ready:$mode") {
-            "Benchmark fixture failed to seed: $mode${if (status.isBlank()) "" else " ($status)"}"
+        val ready = device.wait(Until.findObject(By.text("Seed ready: $mode")), 180_000)
+        check(ready != null) {
+            val failure = device.findObject(By.textStartsWith("Seed failed:"))?.text
+            "Benchmark fixture failed to seed: $mode${failure?.let { " ($it)" }.orEmpty()}"
         }
         // Remove the fixture Activity from the app task before Macrobenchmark
         // launches the normal MAIN/LAUNCHER entry point. Merely pressing Home can

@@ -20,7 +20,7 @@ Build the target and harness on any development machine:
 ./gradlew :benchmark:assembleBenchmark
 ```
 
-Run the full benchmark and Baseline Profile generator on a selected API 35+
+Run the full benchmark and Baseline Profile generator on a selected API 34+
 device with animations disabled:
 
 ```bash
@@ -28,11 +28,16 @@ ANDROID_SERIAL=device-serial \
   ./gradlew :benchmark:connectedBenchmarkAndroidTest
 ```
 
-Run the suite locally on a fixed API 35+ emulator when execution smoke is
+Run the suite locally on a fixed API 34+ emulator when execution smoke is
 needed, and retain the raw benchmark/profile outputs with the audit evidence.
 Emulator numbers prove only that scenarios execute; release performance
 decisions must come from an otherwise-idle physical reference device, repeated
 before and after the same change and build.
+
+The benchmark fixture reports readiness through its visible Activity state, so
+it does not create ad-hoc status files on device storage. Gradle pulls benchmark
+JSON, messages, and Perfetto traces to
+`benchmark/build/outputs/connected_android_test_additional_output` on the host.
 
 ## Acceptance budgets
 
@@ -80,13 +85,36 @@ benchmark APK contains binary profile and metadata assets.
 | Active workout Save + next | 8.8 ms p95 CPU frame | Pass; all iterations persisted the set |
 
 All nine benchmark/profile scenarios passed. Raw Perfetto traces and generated
-reports are written by the harness to
-`/storage/emulated/0/Android/media/com.whip.benchmark` on the reference device.
+reports were retained with that audit's evidence.
 The dense Home benchmark currently observes only two measured frames per
 iteration, so its p95 is useful as a smoke/regression signal but is not a broad
 scroll-jank percentage. Resize is likewise an intentionally abrupt synthetic
 `wm size` transition; its small sample should be optimized and remeasured, not
 presented as ordinary navigation performance.
+
+## API 34 emulator execution audit — 2026-08-25
+
+The complete nine-scenario suite passed together with zero failures and zero
+skips on `whip_api34`: Android 14/API 34, 1080×2400 at 420 dpi, headless software
+rendering. This is release execution and regression evidence only. Emulator
+frame values are intentionally not compared with the physical-device budgets.
+No Whip crash or ANR occurred during the 10 minute 18 second run.
+
+| Scenario | Emulator result |
+| --- | --- |
+| Cold startup, packaged profile | 582.7 ms median |
+| Cold startup, no compilation | 629.5 ms median |
+| Warm startup, packaged profile | 117.5 ms median |
+| Primary navigation | 55.6 ms p95 CPU frame |
+| Forced expanded resize | 99.1 ms p95 CPU frame |
+| Home, 10k tasks + 10k habit logs | 25.4 ms p95 CPU frame |
+| Goal/Gym, 100k history points | 74.4 ms p95 CPU frame |
+| Active workout Save + next | 20.7 ms p95 CPU frame |
+
+The optimized target APK SHA-256 was
+`21d0f7b05a08d680086383a8d3b66cdaf443e207b34bd409d2ab66c6620642af`;
+the minified harness APK SHA-256 was
+`834ccdce65b33091a6c0589fcd76e1cac74c0c6aa4bc9ac285fb750c2b54fd6f`.
 
 References: [Android Macrobenchmark](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview)
 and [Baseline Profile generation](https://developer.android.com/topic/performance/baselineprofiles/create-baselineprofile).
