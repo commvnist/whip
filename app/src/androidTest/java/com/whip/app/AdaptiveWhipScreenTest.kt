@@ -407,7 +407,8 @@ class AdaptiveWhipScreenTest {
         }
 
         compose.onNodeWithContentDescription("Tasks tab").performClick()
-        compose.onNodeWithContentDescription("Open task details for Pane-safe task").performClick()
+        compose.onNodeWithContentDescription("Open task details for Pane-safe task")
+            .performSemanticsAction(SemanticsActions.OnClick)
         val hinge = compose.onNodeWithContentDescription("Device hinge separator").fetchSemanticsNode().boundsInRoot
         val dialog = compose.onNodeWithTag("task-actions-surface").fetchSemanticsNode().boundsInRoot
         check(dialog.left >= hinge.right - 1f) { "Task details crossed the flat-fold pane: dialog=$dialog hinge=$hinge" }

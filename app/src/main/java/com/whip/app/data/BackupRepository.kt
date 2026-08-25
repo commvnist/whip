@@ -638,6 +638,7 @@ private fun AppSettings.toJson(): JSONObject = JSONObject()
     .put("includeAssistedInPersonalRecords", includeAssistedInPersonalRecords)
     .put("themeMode", themeMode.name)
     .put("dynamicColor", dynamicColor)
+    .put("compactItemLayout", compactItemLayout)
     .put("firstDayOfWeek", firstDayOfWeek.name)
     .put("timeZoneId", timeZoneId ?: JSONObject.NULL)
     .put("dayCutoffMinutes", dayCutoffMinutes)
@@ -735,6 +736,7 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     includeAssistedInPersonalRecords = optBoolean("includeAssistedInPersonalRecords", false),
     themeMode = enumValue("themeMode", AppThemeMode.System),
     dynamicColor = optBoolean("dynamicColor", true),
+    compactItemLayout = optBoolean("compactItemLayout", false),
     firstDayOfWeek = enumValue("firstDayOfWeek", DayOfWeek.MONDAY),
     timeZoneId = optString("timeZoneId").takeUnless { !has("timeZoneId") || isNull("timeZoneId") || runCatching { java.time.ZoneId.of(it) }.isFailure },
     dayCutoffMinutes = optInt("dayCutoffMinutes", 0).coerceIn(0, 1439),

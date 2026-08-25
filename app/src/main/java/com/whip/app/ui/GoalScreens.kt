@@ -150,6 +150,7 @@ fun GoalAreaContent(
         return
     }
     val localDestinationState = rememberSaveable { mutableStateOf(GoalDestination.Active) }
+    val compactItemLayout = LocalCompactItemLayout.current
     val activeDestinationState = destinationState ?: localDestinationState
     var destination by activeDestinationState
     var creating by rememberSaveable { mutableStateOf(false) }
@@ -264,7 +265,7 @@ fun GoalAreaContent(
         } else LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compactItemLayout) 4.dp else 10.dp),
         ) {
             item {
                 WhipPageHeader(
@@ -565,6 +566,7 @@ fun GoalCard(
     nowMillis: Long = System.currentTimeMillis(),
 ) {
     val goal = projection.goal
+    val compact = LocalCompactItemLayout.current
     val primaryAction: (@Composable () -> Unit)? = when {
         goal.status == GoalStatus.Active && goal.type !in setOf(GoalType.WeightedMilestones, GoalType.ElapsedSince) -> {{
             WhipTextButton(onClick = onRecord) { Text("Log") }
@@ -592,13 +594,17 @@ fun GoalCard(
             editModifier = Modifier.testTag("goal-edit-action-${goal.id}"),
             supportingContent = {
                 Text(
-                    goal.type.displayLabel(),
+                    buildString {
+                        append(goal.type.displayLabel())
+                        if (compact) projection.progress?.let { append(" · ${(it * 100).toInt()}%") }
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
             primaryAction = primaryAction,
         )
+        if (!compact) {
             projection.progress?.let { progress ->
                 val progressColor = if (progress >= 1.0) MaterialTheme.whipColors.success else MaterialTheme.whipColors.action
                 LinearProgressIndicator(progress = { progress.toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(), color = progressColor)
@@ -632,6 +638,7 @@ fun GoalCard(
                 }
             }
             if (goal.description.isNotBlank()) Text(goal.description, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

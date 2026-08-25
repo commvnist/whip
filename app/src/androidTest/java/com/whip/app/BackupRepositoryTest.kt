@@ -99,6 +99,7 @@ class BackupRepositoryTest {
         settings = FakeSettingsRepository(
             AppSettings(
                 themeMode = AppThemeMode.Dark,
+                compactItemLayout = true,
                 timeZoneId = "America/Toronto",
                 dayCutoffMinutes = 180,
                 showAllUpcomingTaskOccurrences = true,
@@ -148,6 +149,7 @@ class BackupRepositoryTest {
         assertEquals(FixedClock.today().plusDays(1), habits.skips.first().single().localDate)
         assertEquals("🚀", tasks.tasks.first().single().icon)
         assertEquals(AppThemeMode.Dark, settings.current().themeMode)
+        assertEquals(true, settings.current().compactItemLayout)
         assertEquals("America/Toronto", settings.current().timeZoneId)
         assertEquals(180, settings.current().dayCutoffMinutes)
         assertEquals(true, settings.current().showAllUpcomingTaskOccurrences)

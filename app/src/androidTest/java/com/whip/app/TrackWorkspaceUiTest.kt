@@ -1,10 +1,12 @@
 package com.whip.app
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
@@ -17,6 +19,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.Area
@@ -32,6 +35,8 @@ import com.whip.app.ui.GoalUiState
 import com.whip.app.ui.HabitUiState
 import com.whip.app.ui.SettingsUiState
 import com.whip.app.ui.TaskUiState
+import com.whip.app.ui.LocalCompactItemLayout
+import com.whip.app.ui.TrackRow
 import com.whip.app.ui.TrackUiState
 import com.whip.app.ui.TrackViewModel
 import com.whip.app.ui.WhipAdaptiveLayout
@@ -39,6 +44,7 @@ import com.whip.app.ui.WhipScreen
 import com.whip.app.ui.theme.WhipTheme
 import java.time.LocalDate
 import org.junit.Rule
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -164,6 +170,43 @@ class TrackWorkspaceUiTest {
         compose.onNodeWithContentDescription("Open Pages").performClick()
         compose.onNodeWithText("Insights").performClick()
         compose.onNodeWithText("Patterns and automation health across visible Tracks.").assertIsDisplayed()
+    }
+
+    @Test
+    fun userSelectedCompactTrackRowsHideSecondaryControlsAndRemainEditable() {
+        val compact = mutableStateOf(false)
+        val projection = trackProjection(
+            id = 3,
+            name = "Movies",
+            icon = "🎬",
+            areaId = "personal",
+            area = "Personal",
+            entryId = 33,
+            title = "Arrival",
+            score = 4.5,
+            date = LocalDate.of(2026, 8, 24),
+        )
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                CompositionLocalProvider(LocalCompactItemLayout provides compact.value) {
+                    TrackRow(projection, {}, {}, {})
+                }
+            }
+        }
+
+        val standardHeight = compose.onNodeWithTag("track-card-3").getUnclippedBoundsInRoot().let { it.bottom - it.top }
+        compose.onAllNodesWithText("Latest:", substring = true).assertCountEquals(1)
+
+        compose.runOnIdle { compact.value = true }
+        compose.waitForIdle()
+
+        val compactHeight = compose.onNodeWithTag("track-card-3").getUnclippedBoundsInRoot().let { it.bottom - it.top }
+        assertTrue("Compact Track row should be shorter: $standardHeight vs $compactHeight", compactHeight < standardHeight)
+        assertTrue(
+            "Compact Track edit action must retain a 48 dp target",
+            compose.onNodeWithTag("track-edit-action-3", useUnmergedTree = true).getUnclippedBoundsInRoot().let { it.bottom - it.top } >= 48.dp,
+        )
+        compose.onAllNodesWithText("Latest:", substring = true).assertCountEquals(0)
     }
 
     private fun trackProjection(

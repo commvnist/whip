@@ -2,6 +2,7 @@ package com.whip.app.core
 
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.take
@@ -21,9 +22,20 @@ class AppSettingsTest {
     fun upcomingRepeatingTasksAreCompactByDefault() {
         assertEquals(false, AppSettings().showAllUpcomingTaskOccurrences)
         assertEquals(false, AppSettings().showHabitsInTaskPlanning)
+        assertEquals(false, AppSettings().compactItemLayout)
         assertEquals(emptyList<RepPrescriptionScheme>(), AppSettings().repPrescriptionSchemes)
         assertEquals(AreaScope.All.storageKey, AppSettings().activeAreaScope)
         assertEquals(listOf(60, 90, 120, 150, 180, 300), AppSettings().restTimerPresetSeconds)
+    }
+
+    @Test
+    fun defaultClockTodayUsesTheClockZone() {
+        val clock = object : WhipClock {
+            override fun now(): Instant = Instant.parse("2026-08-25T01:30:00Z")
+            override fun zoneId(): ZoneId = ZoneId.of("America/Toronto")
+        }
+
+        assertEquals(LocalDate.of(2026, 8, 24), clock.today())
     }
 
     @Test

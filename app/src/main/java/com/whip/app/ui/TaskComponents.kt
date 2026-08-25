@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -93,6 +94,7 @@ fun TaskRow(
     selected: Boolean = false,
     onSelectionToggle: (() -> Unit)? = null,
 ) {
+    val compact = LocalCompactItemLayout.current
     ProductivityItemCard(
         modifier = Modifier.then(
             when {
@@ -154,8 +156,10 @@ fun TaskRow(
                     item.detailLabel(completed),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                if (item.task.notes.isNotBlank()) Text(
+                if (!compact && item.task.notes.isNotBlank()) Text(
                     item.task.notes,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -180,7 +184,7 @@ fun TaskRow(
                 )
             },
         )
-        if (item.task.showSubtaskProgress && item.totalSubtasks > 0) {
+        if (!compact && item.task.showSubtaskProgress && item.totalSubtasks > 0) {
             LinearProgressIndicator(
                 progress = { item.subtaskProgress },
                 modifier = Modifier.fillMaxWidth(),

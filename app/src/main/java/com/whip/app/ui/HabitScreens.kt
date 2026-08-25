@@ -664,6 +664,7 @@ fun HabitProgressCard(
     lowPressureMode: Boolean = false,
 ) {
     val habit = item.habit
+    val compact = LocalCompactItemLayout.current
     val skipped = item.dayState == HabitDayState.Skipped
     var showAllQuickValues by rememberSaveable(habit.id) { mutableStateOf(false) }
     val streakUnit = when (habit.scheduleType) {
@@ -692,13 +693,27 @@ fun HabitProgressCard(
             )
         }}
         habit.trackingMode == HabitTrackingMode.Duration -> {{
-            WhipButton(onClick = onQuick) { Text(if (habit.timerStartedAtMillis == null) "Start" else "Stop") }
+            if (compact) {
+                WhipTextButton(onClick = onQuick) { Text(if (habit.timerStartedAtMillis == null) "Start" else "Stop") }
+            } else {
+                WhipButton(onClick = onQuick) { Text(if (habit.timerStartedAtMillis == null) "Start" else "Stop") }
+            }
         }}
-        habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) -> null
+        habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) -> if (compact) {{
+            WhipTextButton(onClick = { onQuickValue(habit.quickIncrement) }) {
+                Text("+${editableNumericValue(habit.quickIncrement)}")
+            }
+        }} else null
         else -> {{
-            WhipButton(onClick = onQuick) {
-                if (habit.trackingMode == HabitTrackingMode.Rating) Text("Rate")
-                else Icon(Icons.Filled.Add, contentDescription = "Log ${habit.name}", modifier = Modifier.size(24.dp))
+            if (compact) {
+                WhipTextButton(onClick = onQuick) {
+                    Text(if (habit.trackingMode == HabitTrackingMode.Rating) "Rate" else "Log")
+                }
+            } else {
+                WhipButton(onClick = onQuick) {
+                    if (habit.trackingMode == HabitTrackingMode.Rating) Text("Rate")
+                    else Icon(Icons.Filled.Add, contentDescription = "Log ${habit.name}", modifier = Modifier.size(24.dp))
+                }
             }
         }}
     }
@@ -736,7 +751,7 @@ fun HabitProgressCard(
             },
             primaryAction = primaryAction,
         )
-            if (skipped) {
+            if (!compact && skipped) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -750,7 +765,7 @@ fun HabitProgressCard(
                     WhipTextButton(onClick = onUndoSkip) { Text("Undo Skip") }
                 }
             }
-            if (!skipped && habit.sourceMetricId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
+            if (!compact && !skipped && habit.sourceMetricId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
                 val quickValues = (listOf(habit.quickIncrement) + habit.quickActions)
                     .filter { it.isFinite() && it > 0.0 }
                     .distinct()
@@ -776,7 +791,7 @@ fun HabitProgressCard(
                     WhipTextButton(enabled = canUndo, onClick = onUndo) { Text("Undo") }
                 }
             }
-            if (!skipped && habit.trackingMode == HabitTrackingMode.Checklist) {
+            if (!compact && !skipped && habit.trackingMode == HabitTrackingMode.Checklist) {
                 item.checklistItems.forEach { (checklistItem, completed) ->
                     Row(
                         modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Toggle ${checklistItem.name}") {
@@ -801,7 +816,7 @@ fun HabitProgressCard(
                     )
                 }
             }
-            if (!skipped && item.flexibleScheduleTarget != null && item.flexibleScheduleProgress != null) {
+            if (!compact && !skipped && item.flexibleScheduleTarget != null && item.flexibleScheduleProgress != null) {
                 val target = item.flexibleScheduleTarget
                 val fraction = (item.flexibleScheduleProgress.toFloat() / target).coerceIn(0f, 1f)
                 LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
@@ -810,6 +825,7 @@ fun HabitProgressCard(
                     style = MaterialTheme.typography.labelMedium,
                 )
             } else if (
+                !compact &&
                 !skipped &&
                 habit.trackingMode != HabitTrackingMode.Checklist &&
                 habit.comparison != TargetComparison.None
@@ -821,10 +837,10 @@ fun HabitProgressCard(
                     "${formatHabitValue(item.value, habit.precision)} / ${formatHabitValue(target, habit.precision)} ${habit.unitId.unitLabel()}",
                     style = MaterialTheme.typography.labelMedium,
                 )
-            } else if (!skipped && item.value != 0.0) {
+            } else if (!compact && !skipped && item.value != 0.0) {
                 Text("${formatHabitValue(item.value, habit.precision)} ${habit.unitId.unitLabel()}")
             }
-            if (habit.sourceMetricId != null) {
+            if (!compact && habit.sourceMetricId != null) {
                 Text("Read-only source: Health Connect · provenance is retained per entry", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
     }
@@ -891,6 +907,7 @@ private fun HabitList(
     lowPressureMode: Boolean,
     separateCompleted: Boolean = false,
 ) {
+    val compact = LocalCompactItemLayout.current
     var manageOrder by rememberSaveable { mutableStateOf(false) }
     var toolsExpanded by rememberSaveable { mutableStateOf(false) }
     val sections = if (separateCompleted) progress.dailyHabitSections() else DailyHabitSections(progress, emptyList())
@@ -909,7 +926,7 @@ private fun HabitList(
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("habit-list-$title"),
         contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 10.dp),
     ) {
         item {
             WhipPageHeader(title = title, supportingText = subtitle) {

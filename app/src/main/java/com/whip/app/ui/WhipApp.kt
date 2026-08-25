@@ -315,6 +315,7 @@ fun WhipApp(
             ),
             LocalWhipFirstDayOfWeek provides settingsState.settings.firstDayOfWeek,
             LocalWhipDialogPlacement provides dialogPlacement,
+            LocalCompactItemLayout provides settingsState.settings.compactItemLayout,
         ) {
         WhipScreen(
             state = state.forArea(areaScope),
@@ -3966,7 +3967,7 @@ private fun TaskAreaContent(
         LazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 112.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(if (appSettings.compactItemLayout) 4.dp else 12.dp),
         ) {
         appSettings.focusTimerDeadlineMillis?.takeIf { it > focusClockMillis && !selectionMode }?.let { deadline ->
             item {

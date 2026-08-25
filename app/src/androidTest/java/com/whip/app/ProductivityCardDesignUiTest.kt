@@ -5,11 +5,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
@@ -37,6 +41,7 @@ import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WhipTask
 import com.whip.app.ui.GoalCard
 import com.whip.app.ui.HabitProgressCard
+import com.whip.app.ui.LocalCompactItemLayout
 import com.whip.app.ui.TaskRow
 import com.whip.app.ui.theme.WhipTheme
 import java.time.DayOfWeek
@@ -197,6 +202,133 @@ class ProductivityCardDesignUiTest {
     }
 
     @Test
+    fun compactTaskRowsShowMoreItemsWithoutShrinkingThePrimaryAction() {
+        val date = LocalDate.of(2026, 8, 24)
+        val compact = mutableStateOf(false)
+        val notes = "Read the decision notes before the meeting."
+        val item = ScheduledTask(
+            task = WhipTask(
+                id = 5,
+                title = "Review quarterly plan",
+                notes = notes,
+                icon = "📖",
+                scheduleKind = ScheduleKind.Once,
+                date = date,
+                recurrence = null,
+                timeMinutes = null,
+                reminderEnabled = false,
+                archived = false,
+                completedAtMillis = null,
+                createdAtMillis = 1,
+                updatedAtMillis = 1,
+            ),
+            originalDate = date,
+            scheduledDate = date,
+        )
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                CompositionLocalProvider(LocalCompactItemLayout provides compact.value) {
+                    Column(Modifier.fillMaxWidth().padding(20.dp)) {
+                        TaskRow(item, false, {}, {}, {})
+                    }
+                }
+            }
+        }
+
+        val standardHeight = contentDescriptionHeight("Open task details for Review quarterly plan")
+        compose.onAllNodesWithText(notes).assertCountEquals(1)
+
+        compose.runOnIdle { compact.value = true }
+        compose.waitForIdle()
+
+        val compactHeight = contentDescriptionHeight("Open task details for Review quarterly plan")
+        assertTrue("Compact row should be materially shorter: $standardHeight vs $compactHeight", compactHeight <= standardHeight - 20.dp)
+        assertTrue("Compact primary action must retain a 48 dp target", height("task-primary-action-5") >= 48.dp)
+        compose.onAllNodesWithText(notes).assertCountEquals(0)
+    }
+
+    @Test
+    fun compactHabitAndGoalRowsMoveSecondaryDetailsBehindTheRowTap() {
+        val date = LocalDate.of(2026, 8, 24)
+        val compact = mutableStateOf(false)
+        val habit = sampleHabit(date).copy(
+            id = 6,
+            name = "Drink water",
+            trackingMode = HabitTrackingMode.Count,
+            comparison = TargetComparison.AtLeast,
+            targetMin = 8.0,
+            quickIncrement = 1.0,
+        )
+        val goal = sampleGoal(date).copy(id = 7, name = "Read 50 books", description = "Finish the annual reading list.")
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                CompositionLocalProvider(LocalCompactItemLayout provides compact.value) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        HabitProgressCard(
+                            item = HabitDayProgress(
+                                habit = habit,
+                                date = date,
+                                scheduled = true,
+                                value = 2.0,
+                                status = null,
+                                successful = false,
+                                checklistItems = emptyList(),
+                                streak = 3,
+                                completionRate = 0.5,
+                                dayState = HabitDayState.Pending,
+                            ),
+                            onOpen = {},
+                            onEdit = {},
+                            onQuick = {},
+                            onDecrement = {},
+                            onUndo = {},
+                            onUndoSkip = {},
+                            onChecklist = { _, _, _, _ -> },
+                        )
+                        GoalCard(
+                            projection = GoalProjection(
+                                goal = goal,
+                                currentValue = 25.0,
+                                progress = 0.5,
+                                deltaFromBaseline = 25.0,
+                                expectedProgress = null,
+                                paceDelta = null,
+                                forecastDate = null,
+                                onPace = null,
+                                milestones = emptyList(),
+                                entries = emptyList(),
+                            ),
+                            onOpen = {},
+                            onEdit = {},
+                            onRecord = {},
+                            onResetElapsed = {},
+                            onToggleMilestone = { _, _ -> },
+                        )
+                    }
+                }
+            }
+        }
+
+        val standardHabitHeight = height("habit-card-6")
+        val standardGoalHeight = height("goal-card-7")
+        compose.onNodeWithText("50% complete").assertIsDisplayed()
+        compose.onNodeWithText("Finish the annual reading list.").assertIsDisplayed()
+
+        compose.runOnIdle { compact.value = true }
+        compose.waitForIdle()
+
+        assertTrue(height("habit-card-6") < standardHabitHeight)
+        assertTrue(height("goal-card-7") < standardGoalHeight)
+        assertTrue(height("habit-primary-action-6") >= 48.dp)
+        assertTrue(height("goal-primary-action-7") >= 48.dp)
+        compose.onAllNodesWithText("50% complete").assertCountEquals(0)
+        compose.onAllNodesWithText("Finish the annual reading list.").assertCountEquals(0)
+    }
+
+    @Test
     fun checklistHabitShowsManualParentCompletionAndSubItemProgress() {
         val date = LocalDate.of(2026, 8, 24)
         var parentCompletionRequested = false
@@ -256,6 +388,16 @@ class ProductivityCardDesignUiTest {
         .getUnclippedBoundsInRoot()
         .left
         .value
+
+    private fun height(tag: String) = compose
+        .onNodeWithTag(tag, useUnmergedTree = true)
+        .getUnclippedBoundsInRoot()
+        .let { it.bottom - it.top }
+
+    private fun contentDescriptionHeight(description: String) = compose
+        .onNodeWithContentDescription(description)
+        .getUnclippedBoundsInRoot()
+        .let { it.bottom - it.top }
 
     private fun sampleHabit(date: LocalDate) = Habit(
         id = 2,

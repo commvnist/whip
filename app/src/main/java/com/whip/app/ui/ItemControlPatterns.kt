@@ -46,6 +46,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -64,6 +65,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import com.whip.app.R
+
+/** User-selected collection density; unrelated to window-size or fold posture. */
+internal val LocalCompactItemLayout = staticCompositionLocalOf { false }
 
 /**
  * Shared Whip interaction grammar:
@@ -103,14 +107,18 @@ internal fun ProductivityItemCard(
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val compact = LocalCompactItemLayout.current
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
+        shape = if (compact) MaterialTheme.shapes.small else MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = containerColor),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth().padding(
+                horizontal = if (compact) 8.dp else 14.dp,
+                vertical = if (compact) 4.dp else 14.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 6.dp),
             content = content,
         )
     }
@@ -142,15 +150,17 @@ internal fun ProductivityItemHeader(
     supportingContent: @Composable ColumnScope.() -> Unit = {},
     primaryAction: (@Composable () -> Unit)? = null,
 ) {
+    val compact = LocalCompactItemLayout.current
+    val fontScale = LocalDensity.current.fontScale
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(identityModifier) { WhipIdentityEmoji(emoji) }
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(if (compact) 6.dp else 10.dp))
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 0.dp else 3.dp),
         ) {
             Text(
                 text = itemName,
@@ -158,7 +168,9 @@ internal fun ProductivityItemHeader(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 textDecoration = titleTextDecoration,
-                maxLines = 2,
+                // Compact remains readable with accessibility text scaling instead
+                // of forcing every enlarged title into a single clipped line.
+                maxLines = if (compact && fontScale < 1.5f) 1 else 2,
                 overflow = TextOverflow.Ellipsis,
             )
             // Status badges must never compete with the item name for horizontal
@@ -172,12 +184,12 @@ internal fun ProductivityItemHeader(
                     accessory()
                 }
             }
-            if (areaId != null) AreaBadge(areaId, areaName)
+            if (!compact && areaId != null) AreaBadge(areaId, areaName)
             supportingContent()
         }
         primaryAction?.let { action ->
             Box(
-                modifier = primaryActionModifier.width(72.dp).heightIn(min = 48.dp),
+                modifier = primaryActionModifier.width(if (compact) 56.dp else 72.dp).heightIn(min = 48.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 action()

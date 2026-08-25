@@ -36,6 +36,7 @@ class AppSettingsPersistenceTest {
             notificationPermissionRequested = true,
             themeMode = AppThemeMode.Dark,
             dynamicColor = false,
+            compactItemLayout = true,
             firstDayOfWeek = DayOfWeek.SUNDAY,
             timeZoneId = "America/Toronto",
             dayCutoffMinutes = 180,

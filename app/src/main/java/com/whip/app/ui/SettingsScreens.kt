@@ -297,6 +297,14 @@ internal fun SettingsContent(
             ) { selected -> viewModel.update { it.copy(dynamicColor = selected) } }
         }
         item {
+            SettingsToggle(
+                "Use compact item rows",
+                settings.compactItemLayout,
+                supportingText = "Shows Tasks, Habits, Goals, and Tracks as denser list-style rows. Tap a row for full details and controls.",
+                modifier = Modifier.testTag("settings-compact-item-layout"),
+            ) { selected -> viewModel.update { it.copy(compactItemLayout = selected) } }
+        }
+        item {
             SettingsHeading("Home Overview")
             Text(
                 "Choose which sections and empty-day shortcuts appear on Home. Main navigation and saved data remain unchanged. Home Details controls whether a visible section starts expanded.",
@@ -1320,6 +1328,7 @@ internal fun HealthDataTypeSetting(
     checked: Boolean,
     supportingText: String? = null,
     enabled: Boolean = true,
+    modifier: Modifier = Modifier,
     onChange: (Boolean) -> Unit,
 ) {
     WhipSettingsRow(
@@ -1328,6 +1337,7 @@ internal fun HealthDataTypeSetting(
         checked = checked,
         onCheckedChange = onChange,
         enabled = enabled,
+        modifier = modifier,
     )
 }
 

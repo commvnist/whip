@@ -76,6 +76,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -1424,6 +1425,7 @@ private fun AllTracksPage(
     onDismissPrompt: (Long) -> Unit,
     masterPane: Boolean,
 ) {
+    val userCompact = LocalCompactItemLayout.current
     var moreOpen by rememberSaveable { mutableStateOf(false) }
     var reordering by rememberSaveable { mutableStateOf(false) }
     var selecting by rememberSaveable { mutableStateOf(false) }
@@ -1454,7 +1456,7 @@ private fun AllTracksPage(
     LazyColumn(
         Modifier.fillMaxSize().padding(innerPadding).testTag("track-list"),
         contentPadding = PaddingValues(if (masterPane) 12.dp else 20.dp, 16.dp, if (masterPane) 12.dp else 20.dp, 112.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(if (userCompact) 4.dp else 12.dp),
     ) {
         item {
             WhipPageHeader(
@@ -1595,6 +1597,9 @@ internal fun TrackRow(
     onEnterSelection: (() -> Unit)? = null,
     compact: Boolean = false,
 ) {
+    val userCompact = LocalCompactItemLayout.current
+    val dense = compact || userCompact
+    val fontScale = LocalDensity.current.fontScale
     val selectable = selectionMode && onSelectionToggle != null
     val latest = projection.entries.maxWithOrNull(compareBy<TrackEntryProjection> { it.entry.entryDate }.thenBy { it.entry.createdAtMillis })
     Card(
@@ -1616,12 +1621,24 @@ internal fun TrackRow(
                 }
             },
     ) {
-        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(
+            Modifier.fillMaxWidth().padding(
+                horizontal = if (dense) 8.dp else 14.dp,
+                vertical = if (dense) 4.dp else 14.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(if (dense) 2.dp else 8.dp),
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (selectable) Checkbox(selected, { onSelectionToggle.invoke() })
                 WhipIdentityEmoji(projection.track.icon)
                 Column(Modifier.weight(1f)) {
-                    Text(projection.track.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        projection.track.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = if (dense && fontScale < 1.5f) 1 else 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                     Text("${projection.track.area} · ${quantityLabel(projection.entries.size, "Entry")}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (selectable) {
@@ -1638,7 +1655,7 @@ internal fun TrackRow(
                     )
                 }
             }
-            if (!compact) latest?.let {
+            if (!dense) latest?.let {
                 Text(
                     "Latest: ${projection.primaryText(it)} · ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1646,7 +1663,7 @@ internal fun TrackRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (!compact && !selectable) {
+            if (!dense && !selectable) {
                 WhipOutlinedButton(
                     onClick = { onAddEntry(projection.track.id) },
                     enabled = !projection.track.archived && !reordering,
@@ -1654,7 +1671,7 @@ internal fun TrackRow(
                 ) {
                     Icon(Icons.Outlined.Add, contentDescription = null); Spacer(Modifier.width(8.dp)); Text(if (projection.track.archived) "Restore to Add Entries" else projection.addEntryLabel())
                 }
-            } else if (!reordering && !selectable) {
+            } else if (compact && !userCompact && !reordering && !selectable) {
                 WhipTextButton(
                     onClick = { onAddEntry(projection.track.id) },
                     enabled = !projection.track.archived,

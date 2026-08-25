@@ -50,6 +50,16 @@ class SettingsBehaviorUiTest {
     }
 
     @Test
+    fun compactItemLayoutCanBeEnabledFromAppearance() {
+        openAppearanceSettings()
+        compose.onNodeWithTag("settings-list")
+            .performScrollToNode(hasTestTag("settings-compact-item-layout"))
+        compose.onNodeWithTag("settings-compact-item-layout").performClick()
+
+        compose.waitUntil { app.settingsRepository.current().compactItemLayout }
+    }
+
+    @Test
     fun hidingGoalsRemovesItsHomeSectionAndEmptyDayShortcut() {
         openAppearanceSettings()
         compose.onNodeWithTag("settings-list")
