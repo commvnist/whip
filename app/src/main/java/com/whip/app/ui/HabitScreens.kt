@@ -699,10 +699,7 @@ fun HabitProgressCard(
     val habit = item.habit
     val compact = LocalCompactItemLayout.current
     val skipped = item.dayState == HabitDayState.Skipped
-    val disclosure = rememberCompactItemDisclosure(
-        itemKey = "habit:${habit.id}:${item.date.toEpochDay()}",
-        autoExpand = compact && habit.trackingMode == HabitTrackingMode.Duration && habit.timerStartedAtMillis != null,
-    )
+    val disclosure = rememberCompactItemDisclosure(itemKey = "habit:${habit.id}:${item.date.toEpochDay()}")
     var showAllQuickValues by rememberSaveable(habit.id) { mutableStateOf(false) }
     val streakUnit = when (habit.scheduleType) {
         HabitScheduleType.FlexibleTimesPerWeek -> "week"

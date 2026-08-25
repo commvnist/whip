@@ -20,19 +20,11 @@ class CompactItemExpansionStateTest {
     }
 
     @Test
-    fun automaticExpansionIsAdditiveButDoesNotReopenAfterATabReset() {
-        val state = CompactItemExpansionState()
-
-        state.toggle("task:1")
-        state.expandAutomatically("goal:timer")
-        state.expandAutomatically("habit:timer")
-
-        assertEquals(setOf("task:1", "goal:timer", "habit:timer"), state.expandedItemKeys)
-
-        state.collapseAll()
-        state.expandAutomatically("goal:timer")
-        state.expandAutomatically("habit:timer")
-
-        assertEquals(emptySet<String>(), state.expandedItemKeys)
+    fun freshStateStartsCollapsedAndSavedDisclosuresCanBeRestored() {
+        assertEquals(emptySet<String>(), CompactItemExpansionState().expandedItemKeys)
+        assertEquals(
+            setOf("task:1", "goal:timer", "habit:timer"),
+            CompactItemExpansionState(setOf("task:1", "goal:timer", "habit:timer")).expandedItemKeys,
+        )
     }
 }

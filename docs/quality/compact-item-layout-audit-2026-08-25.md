@@ -14,7 +14,7 @@ The initial implementation violated that contract by permanently suppressing sec
 - Expansion happens inline and reveals Area, supporting metadata, Edit, notes, progress, histories, provenance, and every secondary action or child item.
 - Any number of compact rows can be expanded together so users can compare or operate on multiple items without repeatedly closing prior rows. The expanded set is saveable across configuration recreation.
 - Switching a primary app tab, collection workspace tab, or Task planning/history sub-tab collapses the expanded set. This gives every destination a clean list state instead of carrying unrelated disclosure state across tabs.
-- An active duration Habit or elapsed Goal may expand automatically once without replacing the user's current disclosures. After a tab reset, previously handled timers remain collapsed instead of immediately defeating the clean destination state.
+- Every compact row begins collapsed, including active duration Habits and elapsed-since Goals. Their primary Stop or Reset action and current status remain available in the collapsed row, so automatic expansion is unnecessary.
 - At narrow widths or 150%+ text, expanded metadata and actions stack. Wider rows use columns. Titles retain two lines and all action targets remain at least 48 dp.
 - Detail-card navigation remains available, but is not a substitute for an inline action that standard mode exposes.
 - Standard card behavior and hierarchy remain unchanged.
@@ -65,7 +65,7 @@ Completed automated evidence:
 - `scripts/check --full` passed, including 257 JVM tests, lint, coverage thresholds, minified release APK/AAB, and benchmark build.
 - `ANDROID_SERIAL=emulator-5554 scripts/check --emulator` passed all 311 Android instrumentation tests across seven isolated batches.
 - Total product regression baseline: 568 tests.
-- The repository release script installed and cold-launched signed `0.3.9 (15)` on the disposable API 34 emulator. The local and installed base APK SHA-256 both equal `6913b9fb577ea43b442f33aeebac3f1f02adf6eb9d2d1214bfc380337e5cb6b2`.
+- The repository release script installed and cold-launched signed `0.3.9 (15)` on the disposable API 34 emulator. The local and installed base APK SHA-256 both equal `146b44d81f3a1bab34991456eec5f7805ee35dea29cbad485dbead062da34df7`.
 - An earlier narrow-display follow-up also installed signed `0.3.9 (15)` with a data-preserving package upgrade on `192.168.2.187:35089`; that prior visual pass completed a 102 ms cold launch without a fatal application error.
 
 Physical-device instrumentation and destructive data operations were not used.

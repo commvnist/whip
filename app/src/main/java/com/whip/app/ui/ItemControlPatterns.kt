@@ -41,7 +41,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,20 +77,12 @@ internal val LocalCompactItemLayout = staticCompositionLocalOf { false }
 internal class CompactItemExpansionState(initialExpandedItemKeys: Set<String> = emptySet()) {
     var expandedItemKeys by mutableStateOf(initialExpandedItemKeys.toSet())
         private set
-    private var automaticallyExpandedItemKeys = initialExpandedItemKeys.toSet()
 
     fun toggle(itemKey: String) {
         expandedItemKeys = if (itemKey in expandedItemKeys) {
             expandedItemKeys - itemKey
         } else {
             expandedItemKeys + itemKey
-        }
-    }
-
-    fun expandAutomatically(itemKey: String) {
-        if (itemKey !in automaticallyExpandedItemKeys) {
-            automaticallyExpandedItemKeys = automaticallyExpandedItemKeys + itemKey
-            expandedItemKeys = expandedItemKeys + itemKey
         }
     }
 
@@ -120,13 +111,9 @@ internal data class CompactItemDisclosure(
 @Composable
 internal fun rememberCompactItemDisclosure(
     itemKey: String,
-    autoExpand: Boolean = false,
 ): CompactItemDisclosure {
     val fallback = rememberCompactItemExpansionState()
     val expansionState = LocalCompactItemExpansionState.current ?: fallback
-    LaunchedEffect(autoExpand, itemKey, expansionState) {
-        if (autoExpand) expansionState.expandAutomatically(itemKey)
-    }
     return CompactItemDisclosure(
         expanded = itemKey in expansionState.expandedItemKeys,
         toggle = { expansionState.toggle(itemKey) },

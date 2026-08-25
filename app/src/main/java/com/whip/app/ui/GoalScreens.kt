@@ -590,10 +590,7 @@ fun GoalCard(
 ) {
     val goal = projection.goal
     val compact = LocalCompactItemLayout.current
-    val disclosure = rememberCompactItemDisclosure(
-        itemKey = "goal:${goal.id}",
-        autoExpand = compact && goal.status == GoalStatus.Active && goal.type == GoalType.ElapsedSince,
-    )
+    val disclosure = rememberCompactItemDisclosure(itemKey = "goal:${goal.id}")
     val compactStatus = projection.collectionStatus(customUnits, nowMillis)
     val primaryAction: (@Composable () -> Unit)? = when {
         goal.status == GoalStatus.Active && goal.type !in setOf(GoalType.WeightedMilestones, GoalType.ElapsedSince) -> {{

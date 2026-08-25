@@ -690,6 +690,7 @@ class ProductivityCardDesignUiTest {
         }
 
         compose.onNodeWithText("2 days").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Expand goal Days since smoking").assertExists()
         val resetLabelHeight = compose.onNodeWithText("Reset", useUnmergedTree = true)
             .getUnclippedBoundsInRoot().let { it.bottom - it.top }
         assertTrue("Reset must remain on one line in the compact action lane: $resetLabelHeight", resetLabelHeight <= 24.dp)
@@ -701,7 +702,7 @@ class ProductivityCardDesignUiTest {
 
         compose.onNodeWithTag("goal-expand-9", useUnmergedTree = true).performScrollTo().performClick()
         compose.onNodeWithText("2 days").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Collapse goal Days since smoking").assertExists()
+        compose.onNodeWithContentDescription("Expand goal Days since smoking").assertExists()
         compose.onNodeWithContentDescription("Collapse goal Launch the product").assertExists()
         compose.onNodeWithText("Publish the release").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Celebrate").performScrollTo().assertIsDisplayed()
