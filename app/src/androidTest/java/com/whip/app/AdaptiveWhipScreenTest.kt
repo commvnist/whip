@@ -123,6 +123,11 @@ class AdaptiveWhipScreenTest {
         check(controls.right <= gutter.left + 1f && gutter.right <= overview.left + 1f) {
             "Review content must respect the hinge: controls=$controls gutter=$gutter overview=$overview"
         }
+        val reviewTitle = compose.onNodeWithTag("review-destination-title").fetchSemanticsNode().boundsInRoot
+        val reviewClose = compose.onNodeWithTag("review-close-action").fetchSemanticsNode().boundsInRoot
+        check(reviewClose.center.x > reviewTitle.center.x) {
+            "Review's dismiss action must stay on the trailing side like Settings: title=$reviewTitle close=$reviewClose"
+        }
         compose.onNodeWithContentDescription("Close Review & Trends").performClick()
         compose.onAllNodesWithTag("review-wide-dashboard").assertCountEquals(0)
     }

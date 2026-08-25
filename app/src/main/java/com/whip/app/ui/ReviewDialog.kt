@@ -22,8 +22,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -45,8 +43,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
 import com.whip.app.core.ReviewPeriod
 import com.whip.app.core.ReviewSection
 import com.whip.app.core.SavedReviewFilter
@@ -354,14 +350,8 @@ private fun ReviewDestinationHeader(
         horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(
-            onClick = onDismiss,
-            modifier = Modifier.semantics { contentDescription = "Close Review & Trends" },
-        ) {
-            Icon(Icons.Outlined.Close, contentDescription = null)
-        }
         Column(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).testTag("review-destination-title"),
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
         ) {
             Text(
@@ -375,6 +365,11 @@ private fun ReviewDestinationHeader(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        WhipTrailingCloseAction(
+            label = "Close Review & Trends",
+            onClick = onDismiss,
+            modifier = Modifier.testTag("review-close-action"),
+        )
     }
 }
 

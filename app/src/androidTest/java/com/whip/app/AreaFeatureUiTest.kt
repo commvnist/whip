@@ -1,13 +1,19 @@
 package com.whip.app.ui
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.Density
+import androidx.test.core.app.ApplicationProvider
+import com.whip.app.WhipApplication
 import com.whip.app.domain.Area
 import com.whip.app.domain.AreaScope
 import com.whip.app.ui.theme.WhipTheme
@@ -139,6 +145,42 @@ class AreaFeatureUiTest {
         compose.onNodeWithText("Work · 3 items").assertIsDisplayed()
         compose.onAllNodesWithText("No area", substring = true).assertCountEquals(0)
         compose.onNodeWithText("Manage Areas").assertIsDisplayed()
+    }
+
+    @Test
+    fun areaWorkspaceKeepsExitTrailingAndBackLeadingAtTwoHundredPercentText() {
+        val dismissed = AtomicReference(false)
+        val application = ApplicationProvider.getApplicationContext<WhipApplication>()
+        val viewModel = SettingsViewModel(application)
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 2f)) {
+                WhipTheme(dynamicColor = false) {
+                    AreaManagementDialog(
+                        state = SettingsUiState(areas = listOf(area("right-hand", "Right Hand"))),
+                        viewModel = viewModel,
+                        onDismiss = { dismissed.set(true) },
+                    )
+                }
+            }
+        }
+
+        val rootTitle = compose.onNodeWithTag("area-destination-title").fetchSemanticsNode().boundsInRoot
+        val rootClose = compose.onNodeWithTag("area-close-action").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        check(rootClose.center.x > rootTitle.center.x) {
+            "Areas exit must stay on the trailing side: title=$rootTitle close=$rootClose"
+        }
+
+        compose.onNodeWithContentDescription("Open area details for Right Hand").performClick()
+        val detailTitle = compose.onNodeWithTag("area-destination-title").fetchSemanticsNode().boundsInRoot
+        val back = compose.onNodeWithTag("area-back-action").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val close = compose.onNodeWithTag("area-close-action").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        check(back.center.x < detailTitle.center.x && close.center.x > detailTitle.center.x) {
+            "Area details must keep Back leading and Exit trailing: back=$back title=$detailTitle close=$close"
+        }
+
+        compose.onNodeWithContentDescription("Close Areas").performClick()
+        compose.runOnIdle { assertEquals(true, dismissed.get()) }
     }
 
     @Test

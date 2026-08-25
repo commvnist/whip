@@ -97,7 +97,9 @@ remain contextual controls with distinct roles;
 habit overlays only apply to Agenda and Calendar. Gym's Library is a child-page
 landing screen rather than a show-more control. On wide screens Settings uses a
 persistent category list, and create moves to the top app bar so it does not
-cover content.
+cover content. App-level workspaces such as Settings, Review & Trends, and Areas
+keep their exit X at the right edge; hierarchical Area details keep Back on the
+left as a separate action.
 
 Quick captures can enter a real **Inbox** for later triage. **Plan My Day**
 selects work within a user-entered time capacity using duration, urgency, and

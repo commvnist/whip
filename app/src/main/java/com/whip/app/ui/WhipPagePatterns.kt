@@ -65,6 +65,29 @@ internal object WhipContentWidth {
 }
 
 /**
+ * Dismisses an app-level destination from the trailing edge of its header.
+ *
+ * Back remains a leading navigation action on hierarchical child pages; an X is
+ * always an exit, so keeping it trailing matches Settings and keeps app-level
+ * workspaces reachable with the same thumb movement.
+ */
+@Composable
+internal fun WhipTrailingCloseAction(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.size(48.dp).semantics { contentDescription = label },
+    ) {
+        Icon(Icons.Outlined.Close, contentDescription = null)
+    }
+}
+
+/**
  * A destination-sized overlay owns the complete edge-to-edge window surface,
  * while its interactive content stays inside the safe drawing insets.
  *

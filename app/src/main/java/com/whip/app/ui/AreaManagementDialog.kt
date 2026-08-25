@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -50,7 +51,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Close
 import com.whip.app.domain.Area
 import kotlinx.coroutines.launch
 
@@ -89,15 +89,17 @@ internal fun AreaManagementDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconButton(
-                        onClick = { if (detailId != null) detailId = null else onDismiss() },
-                        modifier = Modifier.semantics {
-                            contentDescription = if (detailId != null) "Back to Areas" else "Close Areas"
-                        },
-                    ) {
-                        Icon(if (detailId != null) Icons.AutoMirrored.Outlined.ArrowBack else Icons.Outlined.Close, contentDescription = null)
+                    if (detailId != null) {
+                        IconButton(
+                            onClick = { detailId = null },
+                            modifier = Modifier
+                                .testTag("area-back-action")
+                                .semantics { contentDescription = "Back to Areas" },
+                        ) {
+                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
+                        }
                     }
-                    Column(Modifier.weight(1f)) {
+                    Column(Modifier.weight(1f).testTag("area-destination-title")) {
                         Text(selectedArea?.name ?: "Areas", style = MaterialTheme.typography.headlineSmall)
                         Text(
                             if (selectedArea == null) "Group related tasks, habits, goals, and tracks." else usageText(state.areaUsage[selectedArea.id] ?: AreaUsageCounts()),
@@ -106,6 +108,11 @@ internal fun AreaManagementDialog(
                         )
                     }
                     if (selectedArea == null) WhipButton(onClick = { createOpen = true }) { Text("Create Area") }
+                    WhipTrailingCloseAction(
+                        label = "Close Areas",
+                        onClick = onDismiss,
+                        modifier = Modifier.testTag("area-close-action"),
+                    )
                 }
                 HorizontalDivider()
                 BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
