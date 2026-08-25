@@ -73,7 +73,7 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V1_DATABASE_NAME,
-            9,
+            28,
             true,
             *allMigrations,
         ).use { database ->
@@ -165,7 +165,7 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V2_DATABASE_NAME,
-            9,
+            28,
             true,
             *allMigrations.drop(1).toTypedArray(),
         ).use { database ->
@@ -240,7 +240,13 @@ class WhipDatabaseMigrationTest {
             close()
         }
 
-        helper.runMigrationsAndValidate(V8_DATABASE_NAME, 9, true, WhipDatabase.migration8To9).use { database ->
+        helper.runMigrationsAndValidate(
+            V8_DATABASE_NAME,
+            28,
+            true,
+            WhipDatabase.migration8To9,
+            WhipDatabase.migration9To28,
+        ).use { database ->
             database.query("SELECT uuid, habitId, localEpochDay, skippedAtMillis FROM habit_skips").use { cursor ->
                 check(cursor.moveToFirst())
                 assertEquals("habit-skip-log-excused", cursor.getString(0))
@@ -259,6 +265,177 @@ class WhipDatabaseMigrationTest {
                 check(cursor.moveToFirst())
                 assertEquals("entry-recorded", cursor.getString(0))
                 assertEquals(1, cursor.count)
+            }
+        }
+    }
+
+    @Test
+    fun migrationTwentySevenToTwentyEightPreservesPublicReleaseDataAndRelationships() {
+        helper.createDatabase(V27_DATABASE_NAME, 27).apply {
+            execSQL(
+                "INSERT INTO tags (id, name, colorArgb, archived, createdAtMillis, updatedAtMillis) " +
+                    "VALUES ('tag-release', 'Release', 123, 0, 100, 100)",
+            )
+            execSQL(
+                """
+                INSERT INTO tasks (
+                    id, uuid, title, notes, scheduleKind, dateEpochDay, recurrenceUnit,
+                    recurrenceInterval, weekdaysMask, recurrenceEnd, recurrenceEndEpochDay,
+                    recurrenceCount, timeMinutes, reminderEnabled, archived, completedAtMillis,
+                    createdAtMillis, updatedAtMillis, showSubtaskProgress, progressDisplay,
+                    autoCompleteFromSteps, repeatStepPolicy, pinned, priority, areaId, area,
+                    tagsCsv, deadlineEpochDay, recurrenceAnchor, reminderOffsetsMinutesCsv,
+                    locationReminderEnabled, locationName, locationLatitude, locationLongitude,
+                    locationRadiusMeters, locationTrigger, missedOccurrencePolicy, inbox,
+                    durationMinutes, effort, manualPosition
+                ) VALUES (
+                    5, 'task-public-5', 'Upgrade Sentinel', 'keep me', 'Anytime', NULL, NULL,
+                    1, 0, NULL, NULL, NULL, NULL, 0, 0, NULL,
+                    100, 100, 1, 'Percent', 1, 'Reset', 1, 'High', NULL, '',
+                    'Release', NULL, 'Schedule', '', 1, 'Home', 43.7, -79.4,
+                    150, 'Arrive', 'KeepLatest', 1, 25, 'Light', 4
+                )
+                """.trimIndent(),
+            )
+            execSQL(
+                "INSERT INTO task_steps (id, uuid, taskId, title, position, notes, weight, archived, createdAtMillis, updatedAtMillis) " +
+                    "VALUES (6, 'step-public-6', 5, 'Preserved step', 0, 'step note', 2.5, 0, 100, 100)",
+            )
+            execSQL(
+                "INSERT INTO task_step_snapshots (taskId, occurrenceKey, stepId, title, position, notes, weight, completed, completedAtMillis) " +
+                    "VALUES (5, 20690, 6, 'Preserved step', 0, 'snapshot note', 2.5, 1, 200)",
+            )
+            execSQL(
+                "INSERT INTO entity_tag_links (entityType, entityId, tagId) " +
+                    "VALUES ('Task', '5', 'tag-release')",
+            )
+            execSQL(
+                """
+                INSERT INTO goals (
+                    id, uuid, metricId, name, description, areaId, area, tagsCsv, icon,
+                    colorArgb, type, dimension, unitId, precision, baseline, targetMin,
+                    targetMax, direction, startEpochDay, deadlineEpochDay, aggregation,
+                    aggregationPeriod, rollingDays, entryMode, paceType, consistencyPeriod,
+                    consistencyRequiredPeriods, reminderMinutes, status, pinned, position,
+                    createdAtMillis, updatedAtMillis
+                ) VALUES (
+                    7, 'goal-public-7', 'metric-public-7', 'Preserved Goal', '', NULL, '', '', '🎯',
+                    456, 'ReachValue', 'Count', 'count', 1, 0, 50,
+                    NULL, 'Increase', 20690, NULL, 'Sum', 'All', NULL, 'Manual', 'None', 'Week',
+                    NULL, NULL, 'Completed', 1, 0, 100, 200
+                )
+                """.trimIndent(),
+            )
+            execSQL(
+                "INSERT INTO goal_milestones (id, uuid, goalId, name, position, weight, targetValue, completed, completedAtMillis, linkedTaskId, reward, createdAtMillis, updatedAtMillis) " +
+                    "VALUES (8, 'milestone-public-8', 7, 'Preserved milestone', 0, 1.5, 10, 1, 200, 5, 'Reward', 100, 200)",
+            )
+            execSQL(
+                "INSERT INTO goal_completion_snapshots (id, goalId, completedAtMillis, value, progress, status) " +
+                    "VALUES (9, 7, 200, 50, 1, 'Completed')",
+            )
+            execSQL(
+                """
+                INSERT INTO link_rules (
+                    id, uuid, name, kind, sourceType, sourceEntityId, sourceMetricId,
+                    sourceItemId, sourceMetric, targetGoalId, targetMilestoneId,
+                    valueMode, fixedValue, multiplier, offset, retroactiveFromEpochDay,
+                    enabled, createdAtMillis, updatedAtMillis
+                ) VALUES (
+                    11, 'link-public-11', 'Task to Goal', 'Contribution', 'Task', 5, NULL,
+                    NULL, 'Value', 7, 8, 'SourceValue', NULL, 1, 0, NULL, 1, 100, 100
+                )
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO contributions (
+                    id, uuid, linkRuleId, sourceEventId, sourceType, sourceEntityId,
+                    targetGoalId, metricEntryId, canonicalValue, localEpochDay,
+                    timestampMillis, excluded, overrideValue, explanation,
+                    createdAtMillis, updatedAtMillis
+                ) VALUES (
+                    12, 'contribution-public-12', 11, 'task-event-public', 'Task', 5,
+                    7, NULL, 2.5, 20690, 1000, 0, NULL, 'Public contribution', 1000, 1000
+                )
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO trigger_rules (
+                    id, uuid, name, sourceType, sourceEntityId, outcome, targetType,
+                    targetEntityId, delayMinutes, quietStartMinutes, quietEndMinutes,
+                    autoCompleteTargetHabit, enabled, createdAtMillis, updatedAtMillis
+                ) VALUES (
+                    21, 'trigger-public-21', 'Follow Up', 'Task', 5, 'Completed', 'Habit',
+                    3, 0, NULL, NULL, 1, 1, 100, 100
+                )
+                """.trimIndent(),
+            )
+            execSQL(
+                "INSERT INTO trigger_occurrences (id, triggerRuleId, sourceEventId, availableAtMillis, deliveredAtMillis, dismissedAtMillis) " +
+                    "VALUES (22, 21, 'trigger-event-public', 2000, 2100, NULL)",
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            V27_DATABASE_NAME,
+            28,
+            true,
+            WhipDatabase.migration27To28,
+        ).use { database ->
+            database.query("SELECT title, notes, icon, tagsCsv, inbox FROM tasks WHERE id = 5").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("Upgrade Sentinel", cursor.getString(0))
+                assertEquals("keep me", cursor.getString(1))
+                assertEquals("✅", cursor.getString(2))
+                assertEquals("Release", cursor.getString(3))
+                assertEquals(1, cursor.getInt(4))
+            }
+            database.query(
+                "SELECT s.title, s.notes, p.completed, p.notes FROM task_steps s " +
+                    "JOIN task_step_snapshots p ON p.stepId = s.id WHERE s.id = 6",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("Preserved step", cursor.getString(0))
+                assertEquals("step note", cursor.getString(1))
+                assertEquals(1, cursor.getInt(2))
+                assertEquals("snapshot note", cursor.getString(3))
+            }
+            database.query(
+                "SELECT g.name, g.elapsedStartMillis, g.elapsedDisplayUnit, m.name, s.status " +
+                    "FROM goals g JOIN goal_milestones m ON m.goalId = g.id " +
+                    "JOIN goal_completion_snapshots s ON s.goalId = g.id WHERE g.id = 7",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("Preserved Goal", cursor.getString(0))
+                check(cursor.isNull(1))
+                assertEquals("Auto", cursor.getString(2))
+                assertEquals("Preserved milestone", cursor.getString(3))
+                assertEquals("Completed", cursor.getString(4))
+            }
+            database.query(
+                "SELECT l.conditionMode, c.explanation FROM link_rules l " +
+                    "JOIN contributions c ON c.linkRuleId = l.id WHERE l.id = 11",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("MatchAll", cursor.getString(0))
+                assertEquals("Public contribution", cursor.getString(1))
+            }
+            database.query(
+                "SELECT r.action, r.notificationEnabled, r.conditionMode, o.sourceSnapshot " +
+                    "FROM trigger_rules r JOIN trigger_occurrences o ON o.triggerRuleId = r.id WHERE r.id = 21",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("CheckOffHabit", cursor.getString(0))
+                assertEquals(0, cursor.getInt(1))
+                assertEquals("MatchAll", cursor.getString(2))
+                assertEquals("", cursor.getString(3))
+            }
+            database.query("SELECT tagId FROM entity_tag_links WHERE entityType = 'Task' AND entityId = '5'").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("tag-release", cursor.getString(0))
             }
         }
     }
@@ -335,6 +512,7 @@ class WhipDatabaseMigrationTest {
         const val V1_DATABASE_NAME = "complete-v1-to-v9-migration"
         const val V2_DATABASE_NAME = "complete-v2-to-v9-migration"
         const val V8_DATABASE_NAME = "habit-skip-v8-to-v9-migration"
+        const val V27_DATABASE_NAME = "public-v27-to-v28-migration"
 
         val allMigrations: Array<Migration> = arrayOf(
             WhipDatabase.migration1To2,
@@ -345,6 +523,7 @@ class WhipDatabaseMigrationTest {
             WhipDatabase.migration6To7,
             WhipDatabase.migration7To8,
             WhipDatabase.migration8To9,
+            WhipDatabase.migration9To28,
         )
     }
 }

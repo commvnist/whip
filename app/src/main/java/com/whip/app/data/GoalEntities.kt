@@ -73,3 +73,25 @@ data class GoalMilestoneEntity(
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
 )
+
+/** Completion history written by public schema-27 builds and retained during upgrades. */
+@Entity(
+    tableName = "goal_completion_snapshots",
+    foreignKeys = [
+        ForeignKey(
+            entity = GoalEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["goalId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("goalId")],
+)
+data class LegacyGoalCompletionSnapshotEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val goalId: Long,
+    val completedAtMillis: Long,
+    val value: Double?,
+    val progress: Double?,
+    val status: String,
+)

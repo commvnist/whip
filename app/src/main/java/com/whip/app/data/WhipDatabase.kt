@@ -24,6 +24,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         MetricEntryEntity::class,
         AreaEntity::class,
         TagEntity::class,
+        LegacyEntityTagLinkEntity::class,
         ExerciseEntity::class,
         ExerciseCategoryEntity::class,
         ExerciseCategoryJoinEntity::class,
@@ -46,6 +47,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         HabitSkipEntity::class,
         GoalEntity::class,
         GoalMilestoneEntity::class,
+        LegacyGoalCompletionSnapshotEntity::class,
         LinkRuleEntity::class,
         ContributionEntity::class,
         TriggerRuleEntity::class,
@@ -62,7 +64,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         TrackValueEntity::class,
         TrackEntrySearchEntity::class,
     ],
-    version = 9,
+    version = 28,
     exportSchema = true,
 )
 abstract class WhipDatabase : RoomDatabase() {
@@ -292,6 +294,18 @@ abstract class WhipDatabase : RoomDatabase() {
             }
         }
 
+        val migration9To28 = object : Migration(9, 28) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                LegacyReleaseMigration.createCompatibilityTables(db)
+            }
+        }
+
+        val migration27To28 = object : Migration(27, 28) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                LegacyReleaseMigration.migrateSchema27(db)
+            }
+        }
+
         /**
          * Repository checks provide friendly errors; these triggers are the final consistency
          * boundary for concurrent writers, restored data, and any future write path.
@@ -321,6 +335,8 @@ abstract class WhipDatabase : RoomDatabase() {
                     migration6To7,
                     migration7To8,
                     migration8To9,
+                    migration9To28,
+                    migration27To28,
                 )
                 .addCallback(integrityGuardCallback)
                 .build()
@@ -454,7 +470,7 @@ abstract class WhipDatabase : RoomDatabase() {
             }
         }
 
-        private fun createTrackTablesV2(db: SupportSQLiteDatabase) {
+        internal fun createTrackTablesV2(db: SupportSQLiteDatabase) {
             db.execSQL(
                 """
                 CREATE TABLE IF NOT EXISTS tracks (
@@ -799,7 +815,7 @@ abstract class WhipDatabase : RoomDatabase() {
             db.execSQL("CREATE INDEX IF NOT EXISTS index_trigger_occurrences_fulfilledEntryId ON trigger_occurrences (fulfilledEntryId)")
         }
 
-        private fun createAutomationDetailTablesV2(db: SupportSQLiteDatabase) {
+        internal fun createAutomationDetailTablesV2(db: SupportSQLiteDatabase) {
             db.execSQL(
                 """
                 CREATE TABLE IF NOT EXISTS link_rule_conditions (
