@@ -60,7 +60,11 @@ class WhipWidgetProvider : AppWidgetProvider() {
                     manager.updateAppWidget(id, views)
                 }
             } finally {
-                pending.finish()
+                // Programmatic refreshes (configuration, repository changes) call
+                // this method outside BroadcastReceiver.onReceive, where goAsync()
+                // legitimately returns null. Only finish a platform-owned pending
+                // result when the update was dispatched as a broadcast.
+                pending?.finish()
             }
         }
     }

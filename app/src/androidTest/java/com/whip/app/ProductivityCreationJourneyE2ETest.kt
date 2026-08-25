@@ -125,6 +125,9 @@ class ProductivityCreationJourneyE2ETest {
                     app.habitRepository.logs.first { logs -> logs.any { it.habitId == habitId } }
                 }
             }
+            compose.onNodeWithTag("habit-list-Today").performScrollToNode(
+                hasContentDescription("Edit habit Journey water"),
+            )
             compose.onNodeWithContentDescription("Edit habit Journey water")
                 .performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithText("Edit Habit").assertIsDisplayed()

@@ -884,19 +884,14 @@ private fun HabitList(
         mutableStateOf(sections.remaining.isEmpty() && sections.done.isNotEmpty())
     }
     var knownDoneIds by remember(title, dateKey) { mutableStateOf(doneIds) }
-    var completionTrackingReady by remember(title, dateKey) { mutableStateOf(false) }
     LaunchedEffect(doneIds) {
-        if (completionTrackingReady) {
-            if ((doneIds - knownDoneIds).isNotEmpty()) doneExpanded = true
-            if (doneIds.isEmpty()) doneExpanded = false
-        } else {
-            completionTrackingReady = true
-        }
+        if ((doneIds - knownDoneIds).isNotEmpty()) doneExpanded = true
+        if (doneIds.isEmpty()) doneExpanded = false
         knownDoneIds = doneIds
     }
     BackHandler(enabled = manageOrder) { manageOrder = false }
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().testTag("habit-list-$title"),
         contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {

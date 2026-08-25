@@ -15,11 +15,16 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
 import com.whip.app.core.AppSettings
 import com.whip.app.core.HomeSection
 import com.whip.app.domain.CustomIdentityEmoji
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -121,6 +126,26 @@ class SettingsBehaviorUiTest {
 
         compose.onNodeWithTag("home-destination-links").assertIsDisplayed()
         compose.onAllNodesWithContentDescription("Close Settings").assertCountEquals(0)
+    }
+
+    @Test
+    fun plainJsonBackupUsesAndroidsDocumentProviderAndReturnsSafelyOnCancel() {
+        openSettingsSection("Data & Privacy")
+        compose.onNodeWithTag("settings-list")
+            .performScrollToNode(androidx.compose.ui.test.hasText("Save Plain JSON Backup"))
+        compose.onNodeWithText("Save Plain JSON Backup").performClick()
+
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        assertTrue(
+            "Android's document provider did not open for a user-selected export destination",
+            device.wait(Until.hasObject(By.pkg("com.google.android.documentsui")), 5_000),
+        )
+        device.pressBack()
+        assertTrue(
+            "Whip did not resume after the document provider was cancelled",
+            device.wait(Until.hasObject(By.pkg(app.packageName)), 5_000),
+        )
+        compose.onNodeWithText("Data & Privacy").assertIsDisplayed()
     }
 
     @Test

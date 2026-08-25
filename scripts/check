@@ -19,7 +19,7 @@ usage() {
         '  scripts/check --full      Also build release and the optimized benchmark harness' \
         '' \
         'Instrumentation reinstalls/clears the debug app. Physical devices are refused.' \
-        'Start exactly one API 34+ disposable emulator, then run scripts/check --emulator.'
+        'Set ANDROID_SERIAL to an API 34+ disposable emulator, or connect exactly one emulator.'
 }
 
 while (($#)); do
@@ -111,14 +111,22 @@ if [[ "$run_emulator_tests" == true ]]; then
         exit 1
     }
 
-    mapfile -t connected_serials < <(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }')
-    if [[ "${#connected_serials[@]}" -ne 1 ]]; then
-        printf 'error: instrumentation requires exactly one connected disposable emulator; found %s\n' "${#connected_serials[@]}" >&2
-        printf 'Disconnect physical devices and extra emulators before rerunning.\n' >&2
-        exit 1
+    if [[ -n "${ANDROID_SERIAL:-}" ]]; then
+        test_serial="$ANDROID_SERIAL"
+        if ! adb -s "$test_serial" get-state 2>/dev/null | grep -qx device; then
+            printf 'error: ANDROID_SERIAL is not a connected device: %s\n' "$test_serial" >&2
+            exit 1
+        fi
+    else
+        mapfile -t connected_serials < <(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }')
+        if [[ "${#connected_serials[@]}" -ne 1 ]]; then
+            printf 'error: set ANDROID_SERIAL to one disposable emulator; found %s connected devices\n' "${#connected_serials[@]}" >&2
+            exit 1
+        fi
+        test_serial="${connected_serials[0]}"
     fi
 
-    readonly test_serial="${connected_serials[0]}"
+    readonly test_serial
     if [[ "$(adb -s "$test_serial" shell getprop ro.boot.qemu | tr -d '\r')" != "1" ]]; then
         printf 'error: refusing to run destructive instrumentation on physical device %s\n' "$test_serial" >&2
         exit 1

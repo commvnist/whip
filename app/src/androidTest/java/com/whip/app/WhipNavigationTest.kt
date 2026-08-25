@@ -63,7 +63,9 @@ class WhipNavigationTest {
             compose.onNodeWithText("The next 30 days", substring = true).assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
-            compose.onNodeWithText("Check in, log a value, or continue a timer for habits due today.").assertIsDisplayed()
+            compose.onNodeWithText(
+                "Check in, log a value, or continue a timer. Completed habits move to Done for confirmation or undo.",
+            ).assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Gym tab").performClick()
             compose.onNodeWithTag("gym-destination-Workout").assertIsDisplayed()
