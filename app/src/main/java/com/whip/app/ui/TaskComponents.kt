@@ -156,10 +156,10 @@ fun TaskRow(
                     item.detailLabel(completed),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = if (compact) 2 else 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (!compact && item.task.notes.isNotBlank()) Text(
+                if (item.task.notes.isNotBlank()) Text(
                     item.task.notes,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -184,17 +184,30 @@ fun TaskRow(
                 )
             },
         )
-        if (!compact && item.task.showSubtaskProgress && item.totalSubtasks > 0) {
-            LinearProgressIndicator(
-                progress = { item.subtaskProgress },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                item.progressLabel(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold,
-            )
+        if (item.task.showSubtaskProgress && item.totalSubtasks > 0) {
+            if (compact) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    LinearProgressIndicator(progress = { item.subtaskProgress }, modifier = Modifier.weight(1f))
+                    Text(
+                        item.progressLabel(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            } else {
+                LinearProgressIndicator(progress = { item.subtaskProgress }, modifier = Modifier.fillMaxWidth())
+                Text(
+                    item.progressLabel(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
     }
 }

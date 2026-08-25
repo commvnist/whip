@@ -300,7 +300,7 @@ internal fun SettingsContent(
             SettingsToggle(
                 "Use compact item rows",
                 settings.compactItemLayout,
-                supportingText = "Shows Tasks, Habits, Goals, and Tracks as denser list-style rows. Tap a row for full details and controls.",
+                supportingText = "Reflows Tasks, Habits, Goals, and Tracks into denser rows while keeping their information and inline actions available.",
                 modifier = Modifier.testTag("settings-compact-item-layout"),
             ) { selected -> viewModel.update { it.copy(compactItemLayout = selected) } }
         }

@@ -115,10 +115,10 @@ internal fun ProductivityItemCard(
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(
-                horizontal = if (compact) 8.dp else 14.dp,
-                vertical = if (compact) 4.dp else 14.dp,
+                horizontal = if (compact) 10.dp else 14.dp,
+                vertical = if (compact) 6.dp else 14.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 6.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 6.dp),
             content = content,
         )
     }
@@ -151,51 +151,90 @@ internal fun ProductivityItemHeader(
     primaryAction: (@Composable () -> Unit)? = null,
 ) {
     val compact = LocalCompactItemLayout.current
-    val fontScale = LocalDensity.current.fontScale
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(identityModifier) { WhipIdentityEmoji(emoji) }
-        Spacer(Modifier.width(if (compact) 6.dp else 10.dp))
+    if (compact) {
         Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(if (compact) 0.dp else 3.dp),
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text(
-                text = itemName,
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                textDecoration = titleTextDecoration,
-                // Compact remains readable with accessibility text scaling instead
-                // of forcing every enlarged title into a single clipped line.
-                maxLines = if (compact && fontScale < 1.5f) 1 else 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            // Status badges must never compete with the item name for horizontal
-            // space. Narrow split panes still reserve the shared action lanes, so
-            // an inline badge could collapse even a short title to a few glyphs.
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(identityModifier) { WhipIdentityEmoji(emoji) }
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = itemName,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    textDecoration = titleTextDecoration,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                primaryAction?.let { action ->
+                    Box(
+                        modifier = primaryActionModifier.width(56.dp).heightIn(min = 48.dp),
+                        contentAlignment = Alignment.Center,
+                    ) { action() }
+                }
+                if (onEdit != null) ItemEditButton(itemType, itemName, onEdit, editModifier)
+            }
+            // Compact is a reflowed layout, not a reduced-information state.
+            // Secondary content receives the full card width instead of sharing
+            // the narrow title lane with two trailing actions.
             headlineAccessory?.let { accessory ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    accessory()
-                }
+                ) { accessory() }
             }
-            if (!compact && areaId != null) AreaBadge(areaId, areaName)
-            supportingContent()
+            if (areaId != null) {
+                AreaBadge(areaId, areaName)
+                Column(content = supportingContent)
+            } else {
+                Column(content = supportingContent)
+            }
         }
-        primaryAction?.let { action ->
-            Box(
-                modifier = primaryActionModifier.width(if (compact) 56.dp else 72.dp).heightIn(min = 48.dp),
-                contentAlignment = Alignment.Center,
+    } else {
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(identityModifier) { WhipIdentityEmoji(emoji) }
+            Spacer(Modifier.width(10.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
-                action()
+                Text(
+                    text = itemName,
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    textDecoration = titleTextDecoration,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                // Status badges must never compete with the item name for horizontal
+                // space. Narrow split panes still reserve the shared action lanes, so
+                // an inline badge could collapse even a short title to a few glyphs.
+                headlineAccessory?.let { accessory ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) { accessory() }
+                }
+                if (areaId != null) AreaBadge(areaId, areaName)
+                supportingContent()
             }
+            primaryAction?.let { action ->
+                Box(
+                    modifier = primaryActionModifier.width(72.dp).heightIn(min = 48.dp),
+                    contentAlignment = Alignment.Center,
+                ) { action() }
+            }
+            if (onEdit != null) ItemEditButton(itemType, itemName, onEdit, editModifier)
         }
-        if (onEdit != null) ItemEditButton(itemType, itemName, onEdit, editModifier)
     }
 }
 

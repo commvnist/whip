@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -594,51 +595,70 @@ fun GoalCard(
             editModifier = Modifier.testTag("goal-edit-action-${goal.id}"),
             supportingContent = {
                 Text(
-                    buildString {
-                        append(goal.type.displayLabel())
-                        if (compact) projection.progress?.let { append(" · ${(it * 100).toInt()}%") }
-                    },
+                    goal.type.displayLabel(),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
             primaryAction = primaryAction,
         )
-        if (!compact) {
-            projection.progress?.let { progress ->
-                val progressColor = if (progress >= 1.0) MaterialTheme.whipColors.success else MaterialTheme.whipColors.action
+        projection.progress?.let { progress ->
+            val progressColor = if (progress >= 1.0) MaterialTheme.whipColors.success else MaterialTheme.whipColors.action
+            if (compact) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    LinearProgressIndicator(
+                        progress = { progress.toFloat().coerceIn(0f, 1f) },
+                        modifier = Modifier.weight(1f),
+                        color = progressColor,
+                    )
+                    Text("${(progress * 100).toInt()}% complete", style = MaterialTheme.typography.labelSmall, color = progressColor)
+                }
+            } else {
                 LinearProgressIndicator(progress = { progress.toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(), color = progressColor)
                 Text("${(progress * 100).toInt()}% complete", color = progressColor)
             }
-            if (goal.type == GoalType.ElapsedSince) {
-                val started = goal.elapsedStartMillis
-                if (started != null) {
-                    Text(
-                        elapsedCounter(started, nowMillis, goal.elapsedDisplayUnit).label(),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            } else projection.consistency?.let { consistency ->
-                Text(
-                    "${consistency.successfulPeriods}/${consistency.requiredPeriods} successful ${consistency.period.name.lowercase()} periods · " +
-                        "${formatGoalValue(consistency.currentPeriodValue, goal.precision)}/${formatGoalValue(consistency.targetPerPeriod, goal.precision)} this period",
-                )
-            } ?: projection.currentValue?.let { canonical ->
-                val current = goal.displayValue(canonical, customUnits)
-                Text("Current: ${formatGoalValue(current, goal.precision)} ${goal.unitId.goalUnitLabel()}")
-            }
-            val pace = when (projection.onPace) { true -> "On pace"; false -> "Behind pace"; null -> null }
-            if (pace != null) Text(pace + (projection.forecastDate?.let { " · forecast ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" } ?: ""), style = MaterialTheme.typography.labelMedium)
-            projection.milestones.forEach { milestone ->
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = milestone.completed, onCheckedChange = { onToggleMilestone(milestone.id, it) })
-                    Text(milestone.name, modifier = Modifier.weight(1f))
-                    if (milestone.reward.isNotBlank()) Text(milestone.reward, style = MaterialTheme.typography.labelSmall)
-                }
-            }
-            if (goal.description.isNotBlank()) Text(goal.description, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        if (goal.type == GoalType.ElapsedSince) {
+            val started = goal.elapsedStartMillis
+            if (started != null) {
+                Text(
+                    elapsedCounter(started, nowMillis, goal.elapsedDisplayUnit).label(),
+                    style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        } else projection.consistency?.let { consistency ->
+            Text(
+                "${consistency.successfulPeriods}/${consistency.requiredPeriods} successful ${consistency.period.name.lowercase()} periods · " +
+                    "${formatGoalValue(consistency.currentPeriodValue, goal.precision)}/${formatGoalValue(consistency.targetPerPeriod, goal.precision)} this period",
+            )
+        } ?: projection.currentValue?.let { canonical ->
+            val current = goal.displayValue(canonical, customUnits)
+            Text("Current: ${formatGoalValue(current, goal.precision)} ${goal.unitId.goalUnitLabel()}")
+        }
+        val pace = when (projection.onPace) { true -> "On pace"; false -> "Behind pace"; null -> null }
+        if (pace != null) Text(pace + (projection.forecastDate?.let { " · forecast ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" } ?: ""), style = MaterialTheme.typography.labelMedium)
+        projection.milestones.forEach { milestone ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .testTag("goal-milestone-${milestone.id}")
+                    .clickable(onClickLabel = "Toggle ${milestone.name}") {
+                        onToggleMilestone(milestone.id, !milestone.completed)
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(checked = milestone.completed, onCheckedChange = { onToggleMilestone(milestone.id, it) })
+                Text(milestone.name, modifier = Modifier.weight(1f))
+                if (milestone.reward.isNotBlank()) Text(milestone.reward, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+        if (goal.description.isNotBlank()) Text(goal.description, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

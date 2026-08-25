@@ -5,9 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -17,15 +20,19 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.Goal
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalDirection
+import com.whip.app.domain.GoalMilestone
 import com.whip.app.domain.GoalPaceType
 import com.whip.app.domain.GoalProjection
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.GoalType
+import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitChecklistItem
 import com.whip.app.domain.HabitDayProgress
@@ -34,9 +41,12 @@ import com.whip.app.domain.HabitEndType
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.ScheduleKind
+import com.whip.app.domain.ScheduledSubtask
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.TargetComparison
 import com.whip.app.domain.TargetPeriod
+import com.whip.app.domain.TaskProgressDisplay
+import com.whip.app.domain.TaskStep
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WhipTask
 import com.whip.app.ui.GoalCard
@@ -202,7 +212,7 @@ class ProductivityCardDesignUiTest {
     }
 
     @Test
-    fun compactTaskRowsShowMoreItemsWithoutShrinkingThePrimaryAction() {
+    fun compactTaskRowsReflowNotesAndSubtaskProgressWithoutLosingActions() {
         val date = LocalDate.of(2026, 8, 24)
         val compact = mutableStateOf(false)
         val notes = "Read the decision notes before the meeting."
@@ -221,9 +231,25 @@ class ProductivityCardDesignUiTest {
                 completedAtMillis = null,
                 createdAtMillis = 1,
                 updatedAtMillis = 1,
+                showSubtaskProgress = true,
+                progressDisplay = TaskProgressDisplay.Both,
             ),
             originalDate = date,
             scheduledDate = date,
+            subtasks = listOf(
+                ScheduledSubtask(
+                    step = TaskStep(51, 5, "Read the forecast", 0, createdAtMillis = 1, updatedAtMillis = 1),
+                    completed = true,
+                    completedAtMillis = 1,
+                    title = "Read the forecast",
+                ),
+                ScheduledSubtask(
+                    step = TaskStep(52, 5, "Confirm the risks", 1, createdAtMillis = 1, updatedAtMillis = 1),
+                    completed = false,
+                    completedAtMillis = null,
+                    title = "Confirm the risks",
+                ),
+            ),
         )
         compose.setContent {
             WhipTheme(dynamicColor = false) {
@@ -237,18 +263,21 @@ class ProductivityCardDesignUiTest {
 
         val standardHeight = contentDescriptionHeight("Open task details for Review quarterly plan")
         compose.onAllNodesWithText(notes).assertCountEquals(1)
+        compose.onNodeWithText("1/2 · 50%").assertIsDisplayed()
 
         compose.runOnIdle { compact.value = true }
         compose.waitForIdle()
 
         val compactHeight = contentDescriptionHeight("Open task details for Review quarterly plan")
-        assertTrue("Compact row should be materially shorter: $standardHeight vs $compactHeight", compactHeight <= standardHeight - 20.dp)
+        assertTrue("Compact row should still be denser after preserving details: $standardHeight vs $compactHeight", compactHeight < standardHeight)
         assertTrue("Compact primary action must retain a 48 dp target", height("task-primary-action-5") >= 48.dp)
-        compose.onAllNodesWithText(notes).assertCountEquals(0)
+        assertTrue("Compact edit action must retain a 48 dp target", height("task-edit-action-5") >= 48.dp)
+        compose.onNodeWithText(notes).assertIsDisplayed()
+        compose.onNodeWithText("1/2 · 50%").assertIsDisplayed()
     }
 
     @Test
-    fun compactHabitAndGoalRowsMoveSecondaryDetailsBehindTheRowTap() {
+    fun compactHabitAndGoalRowsKeepDetailsAndInlineActions() {
         val date = LocalDate.of(2026, 8, 24)
         val compact = mutableStateOf(false)
         val habit = sampleHabit(date).copy(
@@ -260,11 +289,16 @@ class ProductivityCardDesignUiTest {
             quickIncrement = 1.0,
         )
         val goal = sampleGoal(date).copy(id = 7, name = "Read 50 books", description = "Finish the annual reading list.")
+        var quickValue: Double? = null
+        var decremented = false
+        var setValue = false
+        var undone = false
+        var goalLogged = false
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 CompositionLocalProvider(LocalCompactItemLayout provides compact.value) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(20.dp),
+                        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         HabitProgressCard(
@@ -283,8 +317,11 @@ class ProductivityCardDesignUiTest {
                             onOpen = {},
                             onEdit = {},
                             onQuick = {},
-                            onDecrement = {},
-                            onUndo = {},
+                            onQuickValue = { quickValue = it },
+                            onSetValue = { setValue = true },
+                            onDecrement = { decremented = true },
+                            onUndo = { undone = true },
+                            canUndo = true,
                             onUndoSkip = {},
                             onChecklist = { _, _, _, _ -> },
                         )
@@ -303,7 +340,7 @@ class ProductivityCardDesignUiTest {
                             ),
                             onOpen = {},
                             onEdit = {},
-                            onRecord = {},
+                            onRecord = { goalLogged = true },
                             onResetElapsed = {},
                             onToggleMilestone = { _, _ -> },
                         )
@@ -312,7 +349,6 @@ class ProductivityCardDesignUiTest {
             }
         }
 
-        val standardHabitHeight = height("habit-card-6")
         val standardGoalHeight = height("goal-card-7")
         compose.onNodeWithText("50% complete").assertIsDisplayed()
         compose.onNodeWithText("Finish the annual reading list.").assertIsDisplayed()
@@ -320,18 +356,32 @@ class ProductivityCardDesignUiTest {
         compose.runOnIdle { compact.value = true }
         compose.waitForIdle()
 
-        assertTrue(height("habit-card-6") < standardHabitHeight)
         assertTrue(height("goal-card-7") < standardGoalHeight)
-        assertTrue(height("habit-primary-action-6") >= 48.dp)
         assertTrue(height("goal-primary-action-7") >= 48.dp)
-        compose.onAllNodesWithText("50% complete").assertCountEquals(0)
-        compose.onAllNodesWithText("Finish the annual reading list.").assertCountEquals(0)
+        compose.onNodeWithText("2 / 8", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("50% complete").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Current: 25", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Finish the annual reading list.").performScrollTo().assertIsDisplayed()
+
+        compose.onNodeWithText("+1").performScrollTo().performClick()
+        compose.onNodeWithText("−1").performScrollTo().performClick()
+        compose.onNodeWithText("Set").performScrollTo().performClick()
+        compose.onNodeWithText("Undo").performScrollTo().performClick()
+        compose.onNodeWithText("Log").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertEquals(1.0, quickValue)
+            assertTrue(decremented)
+            assertTrue(setValue)
+            assertTrue(undone)
+            assertTrue(goalLogged)
+        }
     }
 
     @Test
-    fun checklistHabitShowsManualParentCompletionAndSubItemProgress() {
+    fun compactChecklistHabitKeepsParentAndEachSubItemInteractive() {
         val date = LocalDate.of(2026, 8, 24)
         var parentCompletionRequested = false
+        var checklistUpdate: List<Any>? = null
         val habit = sampleHabit(date).copy(
             name = "Medication",
             trackingMode = HabitTrackingMode.Checklist,
@@ -352,35 +402,195 @@ class ProductivityCardDesignUiTest {
 
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                Column(Modifier.fillMaxWidth().padding(20.dp)) {
-                    HabitProgressCard(
-                        item = HabitDayProgress(
-                            habit = habit,
-                            date = date,
-                            scheduled = true,
-                            value = 0.0,
-                            status = null,
-                            successful = false,
-                            checklistItems = checklistItems,
-                            streak = 0,
-                            completionRate = 0.0,
-                            dayState = HabitDayState.Pending,
-                        ),
-                        onOpen = {},
-                        onEdit = {},
-                        onQuick = { parentCompletionRequested = true },
-                        onDecrement = {},
-                        onUndo = {},
-                        onUndoSkip = {},
-                        onChecklist = { _, _, _, _ -> },
-                    )
+                CompositionLocalProvider(LocalCompactItemLayout provides true) {
+                    Column(Modifier.fillMaxWidth().padding(20.dp)) {
+                        HabitProgressCard(
+                            item = HabitDayProgress(
+                                habit = habit,
+                                date = date,
+                                scheduled = true,
+                                value = 0.0,
+                                status = null,
+                                successful = false,
+                                checklistItems = checklistItems,
+                                streak = 0,
+                                completionRate = 0.0,
+                                dayState = HabitDayState.Pending,
+                            ),
+                            onOpen = {},
+                            onEdit = {},
+                            onQuick = { parentCompletionRequested = true },
+                            onDecrement = {},
+                            onUndo = {},
+                            onUndoSkip = {},
+                            onChecklist = { habitId, itemId, localDate, checked ->
+                                checklistUpdate = listOf(habitId, itemId, localDate, checked)
+                            },
+                        )
+                    }
                 }
             }
         }
 
         compose.onNodeWithText("2 / 3 items complete").assertIsDisplayed()
+        checklistItems.forEach { (item, _) -> compose.onNodeWithText(item.name).assertIsDisplayed() }
+        assertTrue(height("habit-checklist-item-3") >= 48.dp)
+        compose.onNodeWithTag("habit-checklist-item-3", useUnmergedTree = true).performClick()
+        compose.runOnIdle { assertEquals(listOf(habit.id, 3L, date, true), checklistUpdate) }
         compose.onNodeWithContentDescription("Check off habit Medication").performClick()
         compose.runOnIdle { assertTrue(parentCompletionRequested) }
+    }
+
+    @Test
+    fun compactHabitStateMatrixKeepsTimerSkipAndSyncedInformation() {
+        val date = LocalDate.of(2026, 8, 24)
+        var timerRequested = false
+        var undoSkipRequested = false
+        val duration = sampleHabit(date).copy(
+            id = 11,
+            name = "Meditate",
+            trackingMode = HabitTrackingMode.Duration,
+            dimension = UnitDimension.Duration,
+            unitId = "second",
+        )
+        val skipped = sampleHabit(date).copy(id = 12, name = "Evening walk")
+        val synced = sampleHabit(date).copy(id = 13, name = "Daily steps", sourceMetricId = "health-steps")
+
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                CompositionLocalProvider(LocalCompactItemLayout provides true) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        HabitProgressCard(
+                            item = HabitDayProgress(duration, date, true, 90.0, null, false, emptyList(), 2, 0.4, dayState = HabitDayState.Pending),
+                            onOpen = {}, onEdit = {}, onQuick = { timerRequested = true }, onDecrement = {}, onUndo = {}, onUndoSkip = {},
+                            onChecklist = { _, _, _, _ -> },
+                        )
+                        HabitProgressCard(
+                            item = HabitDayProgress(skipped, date, true, 0.0, null, null, emptyList(), 5, 0.8, dayState = HabitDayState.Skipped),
+                            onOpen = {}, onEdit = {}, onQuick = {}, onDecrement = {}, onUndo = {}, onUndoSkip = { undoSkipRequested = true },
+                            onChecklist = { _, _, _, _ -> },
+                        )
+                        HabitProgressCard(
+                            item = HabitDayProgress(synced, date, true, 8_000.0, null, true, emptyList(), 7, 0.9, dayState = HabitDayState.Completed),
+                            onOpen = {}, onEdit = {}, onQuick = {}, onDecrement = {}, onUndo = {}, onUndoSkip = {},
+                            onChecklist = { _, _, _, _ -> },
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithText("Start").performScrollTo().performClick()
+        compose.onNodeWithText("Skipped Today · Streak Protected").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Undo Skip").performScrollTo().performClick()
+        compose.onNodeWithText("Read-only source: Health Connect", substring = true).performScrollTo().assertIsDisplayed()
+        compose.runOnIdle {
+            assertTrue(timerRequested)
+            assertTrue(undoSkipRequested)
+        }
+    }
+
+    @Test
+    fun compactGoalKeepsElapsedTimerResetAndMilestoneControls() {
+        val date = LocalDate.of(2026, 8, 24)
+        val nowMillis = 1_800_000_000_000L
+        val twoDaysMillis = 2L * 24L * 60L * 60L * 1_000L
+        var resetRequested = false
+        var milestoneUpdate: Pair<Long, Boolean>? = null
+        val elapsedGoal = sampleGoal(date).copy(
+            id = 8,
+            name = "Days since smoking",
+            type = GoalType.ElapsedSince,
+            elapsedStartMillis = nowMillis - twoDaysMillis,
+            elapsedDisplayUnit = ElapsedDisplayUnit.Days,
+        )
+        val milestoneGoal = sampleGoal(date).copy(
+            id = 9,
+            name = "Launch the product",
+            type = GoalType.WeightedMilestones,
+            description = "Complete every launch gate.",
+        )
+        val milestone = GoalMilestone(91, "milestone-91", 9, "Publish the release", 0, 1.0, false, null, "Celebrate", 1, 1)
+
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                CompositionLocalProvider(LocalCompactItemLayout provides true) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        GoalCard(
+                            projection = GoalProjection(elapsedGoal, null, null, null, null, null, null, null, emptyList(), emptyList()),
+                            onOpen = {},
+                            onEdit = {},
+                            onRecord = {},
+                            onResetElapsed = { resetRequested = true },
+                            onToggleMilestone = { _, _ -> },
+                            nowMillis = nowMillis,
+                        )
+                        GoalCard(
+                            projection = GoalProjection(milestoneGoal, null, 0.0, null, null, null, null, null, listOf(milestone), emptyList()),
+                            onOpen = {},
+                            onEdit = {},
+                            onRecord = {},
+                            onResetElapsed = {},
+                            onToggleMilestone = { id, completed -> milestoneUpdate = id to completed },
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithText("2 days").assertIsDisplayed()
+        compose.onNodeWithText("Reset").performClick()
+        compose.onNodeWithText("Publish the release").assertIsDisplayed()
+        compose.onNodeWithText("Celebrate").assertIsDisplayed()
+        compose.onNodeWithText("Complete every launch gate.").assertIsDisplayed()
+        assertTrue(height("goal-milestone-91") >= 48.dp)
+        compose.onNodeWithTag("goal-milestone-91", useUnmergedTree = true).performClick()
+        compose.runOnIdle {
+            assertTrue(resetRequested)
+            assertEquals(91L to true, milestoneUpdate)
+        }
+    }
+
+    @Test
+    fun compactCardsKeepLongTextReadableAtTwoHundredPercentFontScale() {
+        val date = LocalDate.of(2026, 8, 24)
+        val title = "Prepare the quarterly medication and care coordination review"
+        val largeText = Density(compose.density.density, fontScale = 2f)
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalDensity provides largeText,
+                LocalCompactItemLayout provides true,
+            ) {
+                WhipTheme(dynamicColor = false) {
+                    Column(Modifier.width(340.dp).padding(12.dp)) {
+                        TaskRow(
+                            item = ScheduledTask(
+                                task = WhipTask(10, title, "Keep this context visible.", ScheduleKind.Once, date, null, null, false, false, null, 1, 1, areaId = "health", area = "Health"),
+                                originalDate = date,
+                                scheduledDate = date,
+                            ),
+                            completed = false,
+                            onComplete = {},
+                            onOpenActions = {},
+                            onEdit = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        val titleBounds = compose.onNodeWithText(title, useUnmergedTree = true).assertIsDisplayed().getUnclippedBoundsInRoot()
+        assertTrue("Compact title must retain usable width at 200% text", titleBounds.right - titleBounds.left >= 100.dp)
+        compose.onNodeWithText("Keep this context visible.").assertIsDisplayed()
+        compose.onNodeWithText("Health").assertIsDisplayed()
+        assertTrue(height("task-primary-action-10") >= 48.dp)
+        assertTrue(height("task-edit-action-10") >= 48.dp)
     }
 
     private fun left(tag: String): Float = compose

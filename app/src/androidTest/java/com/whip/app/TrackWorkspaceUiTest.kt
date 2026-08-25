@@ -173,8 +173,10 @@ class TrackWorkspaceUiTest {
     }
 
     @Test
-    fun userSelectedCompactTrackRowsHideSecondaryControlsAndRemainEditable() {
+    fun userSelectedCompactTrackRowsKeepLatestAddAndEditActions() {
         val compact = mutableStateOf(false)
+        var addedTrackId: Long? = null
+        var editedTrackId: Long? = null
         val projection = trackProjection(
             id = 3,
             name = "Movies",
@@ -189,7 +191,7 @@ class TrackWorkspaceUiTest {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 CompositionLocalProvider(LocalCompactItemLayout provides compact.value) {
-                    TrackRow(projection, {}, {}, {})
+                    TrackRow(projection, {}, { editedTrackId = it }, { addedTrackId = it })
                 }
             }
         }
@@ -206,7 +208,13 @@ class TrackWorkspaceUiTest {
             "Compact Track edit action must retain a 48 dp target",
             compose.onNodeWithTag("track-edit-action-3", useUnmergedTree = true).getUnclippedBoundsInRoot().let { it.bottom - it.top } >= 48.dp,
         )
-        compose.onAllNodesWithText("Latest:", substring = true).assertCountEquals(0)
+        compose.onNodeWithText("Latest:", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Add Title").performClick()
+        compose.onNodeWithContentDescription("Edit Track Movies").performClick()
+        compose.runOnIdle {
+            assertTrue(addedTrackId == 3L)
+            assertTrue(editedTrackId == 3L)
+        }
     }
 
     private fun trackProjection(

@@ -76,7 +76,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -1599,7 +1598,6 @@ internal fun TrackRow(
 ) {
     val userCompact = LocalCompactItemLayout.current
     val dense = compact || userCompact
-    val fontScale = LocalDensity.current.fontScale
     val selectable = selectionMode && onSelectionToggle != null
     val latest = projection.entries.maxWithOrNull(compareBy<TrackEntryProjection> { it.entry.entryDate }.thenBy { it.entry.createdAtMillis })
     Card(
@@ -1636,7 +1634,7 @@ internal fun TrackRow(
                         projection.track.name,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        maxLines = if (dense && fontScale < 1.5f) 1 else 2,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text("${projection.track.area} · ${quantityLabel(projection.entries.size, "Entry")}", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1655,7 +1653,7 @@ internal fun TrackRow(
                     )
                 }
             }
-            if (!dense) latest?.let {
+            latest?.let {
                 Text(
                     "Latest: ${projection.primaryText(it)} · ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1671,7 +1669,7 @@ internal fun TrackRow(
                 ) {
                     Icon(Icons.Outlined.Add, contentDescription = null); Spacer(Modifier.width(8.dp)); Text(if (projection.track.archived) "Restore to Add Entries" else projection.addEntryLabel())
                 }
-            } else if (compact && !userCompact && !reordering && !selectable) {
+            } else if (dense && !reordering && !selectable) {
                 WhipTextButton(
                     onClick = { onAddEntry(projection.track.id) },
                     enabled = !projection.track.archived,
