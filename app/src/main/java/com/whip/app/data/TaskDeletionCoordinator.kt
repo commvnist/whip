@@ -20,40 +20,47 @@ class TaskDeletionCoordinator(
         previewWithinTransaction(taskId)
     }
 
+    suspend fun preview(taskIds: Set<Long>): TaskDeletionBatchImpact = database.withTransaction {
+        previewBatchWithinTransaction(taskIds)
+    }
+
     suspend fun delete(
         taskId: Long,
         expectedRevisionToken: Long? = null,
-    ): TaskDeletionSummary = database.withTransaction {
-        val impact = previewWithinTransaction(taskId)
-        if (!impact.exists) return@withTransaction TaskDeletionSummary()
-        require(expectedRevisionToken == null || expectedRevisionToken == impact.revisionToken) {
-            "Task changed after the deletion preview. Review the updated impact before deleting."
+    ): TaskDeletionSummary {
+        val result = delete(
+            taskIds = setOf(taskId),
+            expectedRevisionTokens = expectedRevisionToken?.let { mapOf(taskId to it) },
+        )
+        return TaskDeletionSummary(
+            taskDeleted = result.tasksDeleted == 1,
+            linkRulesDeleted = result.linkRulesDeleted,
+            automationRulesDeleted = result.automationRulesDeleted,
+        )
+    }
+
+    suspend fun delete(
+        taskIds: Set<Long>,
+        expectedRevisionTokens: Map<Long, Long>? = null,
+    ): TaskDeletionBatchSummary = database.withTransaction {
+        val impact = previewBatchWithinTransaction(taskIds)
+        if (impact.taskIds.isEmpty()) return@withTransaction TaskDeletionBatchSummary()
+        require(
+            expectedRevisionTokens == null ||
+                (impact.taskIds == impact.requestedTaskIds && expectedRevisionTokens == impact.revisionTokens),
+        ) {
+            "One or more tasks changed after the deletion preview. Review the updated impact before deleting."
         }
 
-        val stepIds = database.taskDao().getSteps(taskId).mapTo(mutableSetOf()) { it.id }
-
-        val linkRuleIds = database.linkDao().getRules()
-            .filter { rule ->
-                (rule.sourceType == LinkSourceType.Task.name && rule.sourceEntityId == taskId) ||
-                    (rule.sourceType == LinkSourceType.Subtask.name && rule.sourceEntityId in stepIds)
-            }
-            .map { it.id }
-        linkRuleIds.forEach { linkRepository.deleteRule(it) }
-
-        val triggerRuleIds = database.linkDao().getTriggerRules()
-            .filter { rule ->
-                (rule.sourceType == LinkSourceType.Task.name && rule.sourceEntityId == taskId) ||
-                    (rule.sourceType == LinkSourceType.Subtask.name && rule.sourceEntityId in stepIds) ||
-                    (rule.targetEntityId == taskId && rule.targetType == TriggerTargetType.Task.name)
-            }
-            .map { it.id }
-        triggerRuleIds.forEach { linkRepository.deleteTrigger(it) }
-
-        check(taskRepository.deletePermanently(taskId)) { "Task no longer exists" }
-        TaskDeletionSummary(
-            taskDeleted = true,
-            linkRulesDeleted = linkRuleIds.size,
-            automationRulesDeleted = triggerRuleIds.size,
+        impact.linkRuleIds.forEach { linkRepository.deleteRule(it) }
+        impact.automationRuleIds.forEach { linkRepository.deleteTrigger(it) }
+        impact.taskIds.sorted().forEach { taskId ->
+            check(taskRepository.deletePermanently(taskId)) { "Task no longer exists" }
+        }
+        TaskDeletionBatchSummary(
+            tasksDeleted = impact.taskIds.size,
+            linkRulesDeleted = impact.linkRuleIds.size,
+            automationRulesDeleted = impact.automationRuleIds.size,
         )
     }
 
@@ -88,8 +95,41 @@ class TaskDeletionCoordinator(
         )
     }
 
-    private companion object {
-        val TASK_SOURCE_TYPES = setOf(LinkSourceType.Task.name, LinkSourceType.Subtask.name)
+    private suspend fun previewBatchWithinTransaction(taskIds: Set<Long>): TaskDeletionBatchImpact {
+        val requestedTaskIds = taskIds.filter { it > 0 }.toSet()
+        val tasks = requestedTaskIds.sorted().mapNotNull { taskRepository.getTask(it) }
+        val existingTaskIds = tasks.mapTo(linkedSetOf()) { it.id }
+        val steps = existingTaskIds.flatMap { database.taskDao().getSteps(it) }
+        val stepIds = steps.mapTo(mutableSetOf()) { it.id }
+        val occurrences = existingTaskIds.flatMap { taskRepository.getOccurrences(it) }
+        val linkRuleIds = database.linkDao().getRules()
+            .filterTo(linkedSetOf()) { rule ->
+                (rule.sourceType == LinkSourceType.Task.name && rule.sourceEntityId in existingTaskIds) ||
+                    (rule.sourceType == LinkSourceType.Subtask.name && rule.sourceEntityId in stepIds)
+            }
+            .mapTo(linkedSetOf()) { it.id }
+        val automationRuleIds = database.linkDao().getTriggerRules()
+            .filterTo(linkedSetOf()) { rule ->
+                (rule.sourceType == LinkSourceType.Task.name && rule.sourceEntityId in existingTaskIds) ||
+                    (rule.sourceType == LinkSourceType.Subtask.name && rule.sourceEntityId in stepIds) ||
+                    (rule.targetType == TriggerTargetType.Task.name && rule.targetEntityId in existingTaskIds)
+            }
+            .mapTo(linkedSetOf()) { it.id }
+        val completedOneShotCount = tasks.count { it.recurrence == null && it.completedAtMillis != null }
+        return TaskDeletionBatchImpact(
+            requestedTaskIds = requestedTaskIds,
+            taskIds = existingTaskIds,
+            titles = tasks.map { it.title },
+            recurringSeriesCount = tasks.count { it.recurrence != null },
+            recordedOccurrenceCount = occurrences.size + completedOneShotCount,
+            completedOccurrenceCount = occurrences.count { it.state == OccurrenceState.Completed } + completedOneShotCount,
+            skippedOccurrenceCount = occurrences.count { it.state == OccurrenceState.Skipped },
+            openOccurrenceCount = occurrences.count { it.state == OccurrenceState.Open },
+            stepCount = steps.count { !it.archived },
+            linkRuleIds = linkRuleIds,
+            automationRuleIds = automationRuleIds,
+            revisionTokens = tasks.associate { it.id to it.updatedAtMillis },
+        )
     }
 }
 
@@ -110,6 +150,30 @@ data class TaskDeletionImpact(
 
 data class TaskDeletionSummary(
     val taskDeleted: Boolean = false,
+    val linkRulesDeleted: Int = 0,
+    val automationRulesDeleted: Int = 0,
+)
+
+data class TaskDeletionBatchImpact(
+    val requestedTaskIds: Set<Long> = emptySet(),
+    val taskIds: Set<Long> = emptySet(),
+    val titles: List<String> = emptyList(),
+    val recurringSeriesCount: Int = 0,
+    val recordedOccurrenceCount: Int = 0,
+    val completedOccurrenceCount: Int = 0,
+    val skippedOccurrenceCount: Int = 0,
+    val openOccurrenceCount: Int = 0,
+    val stepCount: Int = 0,
+    internal val linkRuleIds: Set<Long> = emptySet(),
+    internal val automationRuleIds: Set<Long> = emptySet(),
+    val revisionTokens: Map<Long, Long> = emptyMap(),
+) {
+    val linkRuleCount: Int get() = linkRuleIds.size
+    val automationRuleCount: Int get() = automationRuleIds.size
+}
+
+data class TaskDeletionBatchSummary(
+    val tasksDeleted: Int = 0,
     val linkRulesDeleted: Int = 0,
     val automationRulesDeleted: Int = 0,
 )

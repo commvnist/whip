@@ -521,6 +521,47 @@ class LinkRepositoryTest {
         assertEquals(2, habits.habits.first().size)
     }
 
+    @Test fun permanentBulkTaskDeletePreviewsUniqueImpactAndRejectsAStaleSelectionAtomically() = runBlocking {
+        val firstId = tasks.create(TaskDraft(title = "First selected task"))
+        val secondId = tasks.create(
+            TaskDraft(
+                title = "Second selected task",
+                steps = listOf(TaskStepDraft(title = "Only once", position = 0)),
+            ),
+        )
+        links.createTrigger(
+            TriggerRuleDraft(
+                name = "Selected task chain",
+                sourceType = LinkSourceType.Task,
+                sourceEntityId = firstId,
+                targetType = TriggerTargetType.Task,
+                targetEntityId = secondId,
+            ),
+        )
+        val coordinator = TaskDeletionCoordinator(database, tasks, links)
+        val selectedIds = setOf(firstId, secondId)
+        val preview = coordinator.preview(selectedIds)
+
+        assertEquals(selectedIds, preview.taskIds)
+        assertEquals(2, preview.titles.size)
+        assertEquals(1, preview.stepCount)
+        assertEquals(1, preview.automationRuleCount)
+
+        val changed = requireNotNull(database.taskDao().getTask(secondId))
+        database.taskDao().updateTask(changed.copy(pinned = true, updatedAtMillis = changed.updatedAtMillis + 1))
+        assertTrue(runCatching { coordinator.delete(selectedIds, preview.revisionTokens) }.isFailure)
+        assertEquals(2, tasks.tasks.first().size)
+        assertEquals(1, links.triggerRules.first().size)
+
+        val refreshed = coordinator.preview(selectedIds)
+        val result = coordinator.delete(selectedIds, refreshed.revisionTokens)
+
+        assertEquals(2, result.tasksDeleted)
+        assertEquals(1, result.automationRulesDeleted)
+        assertTrue(tasks.tasks.first().isEmpty())
+        assertTrue(links.triggerRules.first().isEmpty())
+    }
+
     private object FixedClock : WhipClock {
         override fun now(): Instant = Instant.parse("2026-08-17T16:00:00Z")
         override fun today(zoneId: ZoneId): LocalDate = LocalDate.of(2026, 8, 17)

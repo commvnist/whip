@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Card
 import androidx.compose.material3.OutlinedTextField
@@ -170,6 +171,7 @@ import com.whip.app.domain.HabitDayProgress
 import com.whip.app.core.zoneId
 import com.whip.app.core.WhipLaunchActions
 import com.whip.app.data.TaskBulkEdit
+import com.whip.app.data.TaskDeletionBatchImpact
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -233,6 +235,7 @@ fun WhipApp(
     val taskOperationFeedback by taskViewModel.operationFeedback.collectAsStateWithLifecycle()
     val operationStatus = taskOperationFeedback.status
     val taskDeletionImpact by taskViewModel.taskDeletionImpact.collectAsStateWithLifecycle()
+    val taskDeletionBatchImpact by taskViewModel.taskDeletionBatchImpact.collectAsStateWithLifecycle()
     val pendingTaskUndoMessage = taskOperationFeedback.undoMessage
     val pendingQuickAddTaskId = taskOperationFeedback.quickAddedTaskId
     val gymOperationStatus by gymViewModel.operationStatus.collectAsStateWithLifecycle()
@@ -399,9 +402,14 @@ fun WhipApp(
             onBulkCompleteTasks = taskViewModel::completeAll,
             onBulkArchiveTasks = taskViewModel::archiveAll,
             onBulkRestoreTasks = taskViewModel::restoreAll,
+            onBulkReopenTasks = taskViewModel::reopenAll,
             onBulkPinTasks = taskViewModel::pinAll,
             onBulkPostponeTasks = taskViewModel::postponeAll,
             onBulkEditTasks = taskViewModel::editAll,
+            onBulkDeleteTasksPermanently = taskViewModel::deleteAllPermanently,
+            taskDeletionBatchImpact = taskDeletionBatchImpact,
+            onPreviewBulkTaskDeletion = taskViewModel::previewPermanentDeletions,
+            onClearBulkTaskDeletionPreview = taskViewModel::clearPermanentDeletionBatchPreview,
             onReorderTasks = taskViewModel::reorder,
             onPlanMyDay = taskViewModel::planMyDay,
             onDuplicateTask = taskViewModel::duplicate,
@@ -490,9 +498,14 @@ fun WhipScreen(
     onBulkCompleteTasks: (List<ScheduledTask>) -> Unit = {},
     onBulkArchiveTasks: (List<ScheduledTask>) -> Unit = {},
     onBulkRestoreTasks: (List<ScheduledTask>) -> Unit = {},
+    onBulkReopenTasks: (List<ScheduledTask>) -> Unit = {},
     onBulkPinTasks: (List<ScheduledTask>, Boolean) -> Unit = { _, _ -> },
     onBulkPostponeTasks: (List<ScheduledTask>, LocalDate) -> Unit = { _, _ -> },
     onBulkEditTasks: (List<ScheduledTask>, TaskBulkEdit) -> Unit = { _, _ -> },
+    onBulkDeleteTasksPermanently: (Set<Long>) -> Unit = {},
+    taskDeletionBatchImpact: TaskDeletionBatchImpact? = null,
+    onPreviewBulkTaskDeletion: (Set<Long>) -> Unit = {},
+    onClearBulkTaskDeletionPreview: () -> Unit = {},
     onReorderTasks: (List<ScheduledTask>) -> Unit = {},
     onPlanMyDay: (List<ScheduledTask>, Int) -> Unit = { _, _ -> },
     onDuplicateTask: (Long) -> Unit = {},
@@ -1631,9 +1644,14 @@ fun WhipScreen(
                     onBulkComplete = onBulkCompleteTasks,
                     onBulkArchive = onBulkArchiveTasks,
                     onBulkRestore = onBulkRestoreTasks,
+                    onBulkReopen = onBulkReopenTasks,
                     onBulkPin = onBulkPinTasks,
                     onBulkPostpone = onBulkPostponeTasks,
                     onBulkEdit = onBulkEditTasks,
+                    onBulkDeletePermanently = onBulkDeleteTasksPermanently,
+                    deletionBatchImpact = taskDeletionBatchImpact,
+                    onPreviewBulkDeletion = onPreviewBulkTaskDeletion,
+                    onClearBulkDeletionPreview = onClearBulkTaskDeletionPreview,
                     onSetHabitPlanningOverlay = { enabled -> settingsViewModel?.update { it.copy(showHabitsInTaskPlanning = enabled) } },
                     onOpenPlanningHabit = { habitId -> openHabitIdRequested = habitId; appDestination = AppDestination.Habits },
                     onReorder = onReorderTasks,
@@ -3585,9 +3603,14 @@ private fun TaskAreaContent(
     onBulkComplete: (List<ScheduledTask>) -> Unit,
     onBulkArchive: (List<ScheduledTask>) -> Unit,
     onBulkRestore: (List<ScheduledTask>) -> Unit,
+    onBulkReopen: (List<ScheduledTask>) -> Unit,
     onBulkPin: (List<ScheduledTask>, Boolean) -> Unit,
     onBulkPostpone: (List<ScheduledTask>, LocalDate) -> Unit,
     onBulkEdit: (List<ScheduledTask>, TaskBulkEdit) -> Unit,
+    onBulkDeletePermanently: (Set<Long>) -> Unit,
+    deletionBatchImpact: TaskDeletionBatchImpact?,
+    onPreviewBulkDeletion: (Set<Long>) -> Unit,
+    onClearBulkDeletionPreview: () -> Unit,
     onSetHabitPlanningOverlay: (Boolean) -> Unit,
     onOpenPlanningHabit: (Long) -> Unit,
     onReorder: (List<ScheduledTask>) -> Unit,
@@ -3628,6 +3651,7 @@ private fun TaskAreaContent(
     var selectionActionsOpen by rememberSaveable { mutableStateOf(false) }
     var selectedKeys by rememberSaveable { mutableStateOf(emptySet<String>()) }
     var archivePreviewKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
+    var deletePreviewTaskIds by rememberSaveable { mutableStateOf<Set<Long>?>(null) }
     var bulkEditOpen by rememberSaveable { mutableStateOf(false) }
     var bulkDatePickerOpen by rememberSaveable { mutableStateOf(false) }
     var calendarMonth by rememberSaveable(state.currentDate) { mutableStateOf(YearMonth.from(state.currentDate)) }
@@ -3800,6 +3824,12 @@ private fun TaskAreaContent(
         }
     }
 
+    fun finishSelection() {
+        selectionMode = false
+        selectionActionsOpen = false
+        selectedKeys = emptySet()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -3834,10 +3864,10 @@ private fun TaskAreaContent(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            WhipPageHeader(
-                title = destination.label,
-                supportingText = taskDestinationSupportingText(destination, visibleTasks.size),
-            ) {
+            if (!selectionMode) WhipPageHeader(
+                    title = destination.label,
+                    supportingText = taskDestinationSupportingText(destination, visibleTasks.size),
+                ) {
                 if (workspaceDestination == TaskWorkspaceDestination.History) {
                     WhipPageIconAction(
                         icon = Icons.AutoMirrored.Outlined.ArrowBack,
@@ -3884,13 +3914,13 @@ private fun TaskAreaContent(
                         }
                     }
                 }
-            }
+                }
             if (selectionMode) {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text("${selectedItems.size} selected", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                            WhipTextButton(onClick = { selectionMode = false; selectedKeys = emptySet() }) { Text("Done") }
+                            WhipTextButton(onClick = ::finishSelection) { Text("Done") }
                         }
                         if (hiddenSelectedCount > 0) {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -3919,6 +3949,90 @@ private fun TaskAreaContent(
                             if (activeFilterCount > 0) {
                                 WhipTextButton(onClick = { showFilters = true }) { Text("Filters · $activeFilterCount") }
                             }
+                        }
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth().testTag("task-selection-actions"),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            val actionModifier = Modifier.widthIn(min = 104.dp).heightIn(min = 48.dp)
+                            when (destination) {
+                                TaskDestination.Completed -> WhipButton(
+                                    enabled = selectedItems.isNotEmpty(),
+                                    onClick = { onBulkReopen(selectedItems); finishSelection() },
+                                    modifier = actionModifier.testTag("task-selection-reopen"),
+                                ) { Text("Reopen", maxLines = 1) }
+                                TaskDestination.Archived -> WhipButton(
+                                    enabled = selectedItems.isNotEmpty(),
+                                    onClick = { onBulkRestore(selectedItems); finishSelection() },
+                                    modifier = actionModifier.testTag("task-selection-restore"),
+                                ) { Text("Restore", maxLines = 1) }
+                                else -> WhipButton(
+                                    enabled = selectedItems.isNotEmpty(),
+                                    onClick = { onBulkComplete(selectedItems); finishSelection() },
+                                    modifier = actionModifier.testTag("task-selection-complete"),
+                                ) { Text("Complete", maxLines = 1) }
+                            }
+                            if (destination != TaskDestination.Archived) {
+                                WhipOutlinedButton(
+                                    enabled = selectedItems.isNotEmpty(),
+                                    onClick = {
+                                        archivePreviewKeys = selectedItems.mapTo(linkedSetOf(), ScheduledTask::stableKey)
+                                    },
+                                    modifier = actionModifier.testTag("task-selection-archive"),
+                                ) { Text("Archive", maxLines = 1) }
+                            }
+                            WhipOutlinedButton(
+                                enabled = selectedItems.isNotEmpty(),
+                                onClick = { bulkEditOpen = true },
+                                modifier = actionModifier.testTag("task-selection-edit"),
+                            ) { Text("Edit", maxLines = 1) }
+                            if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
+                                Box {
+                                    WhipOutlinedButton(
+                                        enabled = selectedItems.isNotEmpty(),
+                                        onClick = { selectionActionsOpen = true },
+                                        modifier = actionModifier.testTag("task-selection-more"),
+                                    ) {
+                                        Icon(Icons.Outlined.MoreVert, contentDescription = null)
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("More", maxLines = 1)
+                                    }
+                                    DropdownMenu(
+                                        expanded = selectionActionsOpen,
+                                        onDismissRequest = { selectionActionsOpen = false },
+                                    ) {
+                                        DropdownMenuItem(text = { Text("Pin") }, onClick = {
+                                            onBulkPin(selectedItems, true); finishSelection()
+                                        })
+                                        DropdownMenuItem(text = { Text("Unpin") }, onClick = {
+                                            onBulkPin(selectedItems, false); finishSelection()
+                                        })
+                                        DropdownMenuItem(text = { Text("Move to Tomorrow") }, onClick = {
+                                            onBulkPostpone(selectedItems, state.currentDate.plusDays(1)); finishSelection()
+                                        })
+                                        DropdownMenuItem(text = { Text("Move to Next Week") }, onClick = {
+                                            onBulkPostpone(selectedItems, state.currentDate.plusWeeks(1)); finishSelection()
+                                        })
+                                        DropdownMenuItem(text = { Text("Choose Date") }, onClick = {
+                                            bulkDatePickerOpen = true; selectionActionsOpen = false
+                                        })
+                                    }
+                                }
+                            }
+                            WhipOutlinedButton(
+                                enabled = selectedItems.isNotEmpty(),
+                                onClick = {
+                                    val ids = selectedItems.mapTo(linkedSetOf()) { it.task.id }
+                                    deletePreviewTaskIds = ids
+                                    onPreviewBulkDeletion(ids)
+                                },
+                                modifier = actionModifier.testTag("task-selection-delete"),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error,
+                                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
+                            ) { Text("Delete", maxLines = 1) }
                         }
                     }
                 }
@@ -4277,86 +4391,6 @@ private fun TaskAreaContent(
             )
         }
         }
-        if (selectionMode) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                tonalElevation = 4.dp,
-                shadowElevation = 4.dp,
-                color = MaterialTheme.colorScheme.surfaceContainer,
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            WhipButton(
-                                enabled = selectedItems.isNotEmpty(),
-                                onClick = { onBulkComplete(selectedItems); selectedKeys = emptySet() },
-                                modifier = Modifier.weight(1f),
-                            ) { Text("Complete", maxLines = 1) }
-                            WhipOutlinedButton(
-                                enabled = selectedItems.isNotEmpty(),
-                                onClick = { archivePreviewKeys = selectedItems.mapTo(linkedSetOf(), ScheduledTask::stableKey) },
-                                modifier = Modifier.weight(1f),
-                            ) { Text("Archive", maxLines = 1) }
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            WhipOutlinedButton(
-                                enabled = selectedItems.isNotEmpty(),
-                                onClick = { bulkEditOpen = true },
-                                modifier = Modifier.weight(1f),
-                            ) { Text("Edit", maxLines = 1) }
-                            Box(modifier = Modifier.weight(1f)) {
-                                WhipOutlinedButton(
-                                    enabled = selectedItems.isNotEmpty(),
-                                    onClick = { selectionActionsOpen = true },
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Icon(Icons.Outlined.MoreVert, contentDescription = null)
-                                    Spacer(Modifier.width(4.dp))
-                                    Text("More", maxLines = 1)
-                                }
-                                DropdownMenu(
-                                    expanded = selectionActionsOpen,
-                                    onDismissRequest = { selectionActionsOpen = false },
-                                ) {
-                                    DropdownMenuItem(text = { Text("Pin") }, onClick = {
-                                        onBulkPin(selectedItems, true); selectedKeys = emptySet(); selectionActionsOpen = false
-                                    })
-                                    DropdownMenuItem(text = { Text("Unpin") }, onClick = {
-                                        onBulkPin(selectedItems, false); selectedKeys = emptySet(); selectionActionsOpen = false
-                                    })
-                                    DropdownMenuItem(text = { Text("Move to Tomorrow") }, onClick = {
-                                        onBulkPostpone(selectedItems, state.currentDate.plusDays(1)); selectedKeys = emptySet(); selectionActionsOpen = false
-                                    })
-                                    DropdownMenuItem(text = { Text("Move to Next Week") }, onClick = {
-                                        onBulkPostpone(selectedItems, state.currentDate.plusWeeks(1)); selectedKeys = emptySet(); selectionActionsOpen = false
-                                    })
-                                    DropdownMenuItem(text = { Text("Choose Date") }, onClick = {
-                                        bulkDatePickerOpen = true; selectionActionsOpen = false
-                                    })
-                                }
-                            }
-                        }
-                    } else if (destination == TaskDestination.Archived) {
-                        WhipButton(
-                            enabled = selectedItems.isNotEmpty(),
-                            onClick = { onBulkRestore(selectedItems); selectedKeys = emptySet() },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text("Restore") }
-                    }
-                }
-            }
-        }
     }
 
     if (showFilters) {
@@ -4552,12 +4586,28 @@ private fun TaskAreaContent(
                     enabled = affected.isNotEmpty(),
                     onClick = {
                         onBulkArchive(affected)
-                        selectedKeys = emptySet()
                         archivePreviewKeys = null
+                        finishSelection()
                     },
                 ) { Text("Archive ${series.size}") }
             },
             dismissButton = { WhipTextButton(onClick = { archivePreviewKeys = null }) { Text("Cancel") } },
+        )
+    }
+    deletePreviewTaskIds?.let { taskIds ->
+        PermanentTaskBatchDeleteDialog(
+            taskIds = taskIds,
+            impact = deletionBatchImpact,
+            modifier = dialogModifier,
+            onDismiss = {
+                deletePreviewTaskIds = null
+                onClearBulkDeletionPreview()
+            },
+            onConfirm = {
+                onBulkDeletePermanently(taskIds)
+                deletePreviewTaskIds = null
+                finishSelection()
+            },
         )
     }
     if (bulkDatePickerOpen) {
@@ -4567,8 +4617,8 @@ private fun TaskAreaContent(
             onDismiss = { bulkDatePickerOpen = false },
             onDateSelected = { date ->
                 onBulkPostpone(selectedItems, date)
-                selectedKeys = emptySet()
                 bulkDatePickerOpen = false
+                finishSelection()
             },
         )
     }
@@ -4581,11 +4631,74 @@ private fun TaskAreaContent(
             onDismiss = { bulkEditOpen = false },
             onApply = { edit ->
                 onBulkEdit(selectedItems, edit)
-                selectedKeys = emptySet()
                 bulkEditOpen = false
+                finishSelection()
             },
         )
     }
+}
+
+@Composable
+private fun PermanentTaskBatchDeleteDialog(
+    taskIds: Set<Long>,
+    impact: TaskDeletionBatchImpact?,
+    modifier: Modifier,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val exactImpact = impact?.takeIf {
+        it.requestedTaskIds == taskIds && it.taskIds == taskIds
+    }
+    val count = taskIds.size
+    PaneAwareAlertDialog(
+        modifier = modifier,
+        onDismissRequest = onDismiss,
+        title = { Text("Delete $count ${if (count == 1) "Task" else "Tasks"} Permanently?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                when {
+                    impact == null || impact.requestedTaskIds != taskIds -> {
+                        Text("Calculating the exact deletion impact…")
+                    }
+                    exactImpact == null -> {
+                        Text(
+                            "One or more selected tasks changed or no longer exist. Close this confirmation and select the tasks again.",
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    else -> {
+                        exactImpact.titles.take(8).forEach { Text("• $it") }
+                        if (exactImpact.titles.size > 8) Text("…and ${exactImpact.titles.size - 8} more")
+                        if (exactImpact.recurringSeriesCount > 0) {
+                            Text(
+                                "${exactImpact.recurringSeriesCount} repeating ${if (exactImpact.recurringSeriesCount == 1) "series is" else "series are"} included in full.",
+                            )
+                        }
+                        Text("Removed", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text(
+                            "${exactImpact.recordedOccurrenceCount} recorded occurrence${if (exactImpact.recordedOccurrenceCount == 1) "" else "s"} " +
+                                "(${exactImpact.completedOccurrenceCount} completed, ${exactImpact.skippedOccurrenceCount} skipped, ${exactImpact.openOccurrenceCount} open)",
+                        )
+                        Text("${exactImpact.stepCount} subtask${if (exactImpact.stepCount == 1) "" else "s"}")
+                        Text("${exactImpact.linkRuleCount} goal progress source${if (exactImpact.linkRuleCount == 1) "" else "s"}")
+                        Text("${exactImpact.automationRuleCount} automation${if (exactImpact.automationRuleCount == 1) "" else "s"}")
+                        Text(
+                            "This cannot be undone. Export a backup first if you may need this history.",
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            WhipTextButton(
+                enabled = exactImpact != null,
+                onClick = onConfirm,
+                modifier = Modifier.testTag("confirm-task-selection-delete"),
+            ) { Text("Delete Permanently", color = MaterialTheme.colorScheme.error) }
+        },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable

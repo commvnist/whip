@@ -9,6 +9,7 @@ import com.whip.app.core.WhipClock
 import com.whip.app.core.zoneId
 import com.whip.app.core.currentDateFlow
 import com.whip.app.data.TaskRepository
+import com.whip.app.data.TaskDeletionBatchImpact
 import com.whip.app.data.TaskDeletionImpact
 import com.whip.app.data.TaskBulkEdit
 import com.whip.app.domain.OccurrenceState
@@ -80,6 +81,8 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private var pendingQuickAddTaskId: Long? = null
     private val _taskDeletionImpact = MutableStateFlow<TaskDeletionImpact?>(null)
     val taskDeletionImpact: StateFlow<TaskDeletionImpact?> = _taskDeletionImpact.asStateFlow()
+    private val _taskDeletionBatchImpact = MutableStateFlow<TaskDeletionBatchImpact?>(null)
+    val taskDeletionBatchImpact: StateFlow<TaskDeletionBatchImpact?> = _taskDeletionBatchImpact.asStateFlow()
 
     private val taskData = combine(
         repository.tasks,
@@ -261,6 +264,46 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         _taskDeletionImpact.value = null
     }
 
+    fun deleteAllPermanently(taskIds: Set<Long>) {
+        val uniqueIds = taskIds.filterTo(linkedSetOf()) { it > 0 }
+        if (uniqueIds.isEmpty()) return
+        runOperation(
+            "Deleting ${uniqueIds.size} tasks permanently…",
+            "${uniqueIds.size} tasks permanently deleted",
+        ) {
+            val preview = checkNotNull(
+                _taskDeletionBatchImpact.value?.takeIf {
+                    it.requestedTaskIds == uniqueIds && it.taskIds == uniqueIds
+                },
+            ) { "Review the exact deletion impact before deleting these tasks" }
+            app.taskDeletionCoordinator.delete(uniqueIds, preview.revisionTokens)
+            _taskDeletionBatchImpact.value = null
+            uniqueIds.forEach { reminders.syncTask(it) }
+        }
+    }
+
+    fun previewPermanentDeletions(taskIds: Set<Long>) {
+        val uniqueIds = taskIds.filterTo(linkedSetOf()) { it > 0 }
+        _taskDeletionBatchImpact.value = null
+        if (uniqueIds.isEmpty()) return
+        viewModelScope.launch {
+            runCatching { app.taskDeletionCoordinator.preview(uniqueIds) }
+                .onSuccess { _taskDeletionBatchImpact.value = it }
+                .onFailure { error ->
+                    _operationFeedback.value = TaskOperationFeedback(
+                        status = OperationStatus.Failed(
+                            error.message ?: "Could not calculate deletion impact",
+                            error,
+                        ),
+                    )
+                }
+        }
+    }
+
+    fun clearPermanentDeletionBatchPreview() {
+        _taskDeletionBatchImpact.value = null
+    }
+
     fun reopen(taskId: Long) {
         runOperation("Reopening task…", "Task reopened") {
             repository.reopen(taskId)
@@ -345,6 +388,17 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             ids.forEach { taskId ->
                 reminders.syncTask(taskId)
             }
+        }
+    }
+
+    fun reopenAll(items: List<ScheduledTask>) {
+        val uniqueItems = items.distinctBy(ScheduledTask::stableKey)
+        runOperation("Reopening ${uniqueItems.size} tasks…", "${uniqueItems.size} tasks reopened") {
+            uniqueItems.forEach { item ->
+                if (item.task.scheduleKind == ScheduleKind.Recurring) repository.reopenOccurrence(item)
+                else repository.reopen(item.task.id)
+            }
+            uniqueItems.map { it.task.id }.distinct().forEach { reminders.syncTask(it) }
         }
     }
 

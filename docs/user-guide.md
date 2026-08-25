@@ -105,7 +105,11 @@ effort; missing estimates count as 30 minutes. Tasks can be duplicated back to
 Inbox, gently deferred, bulk-postponed, and filtered by Area, tags, dates,
 status, deadline, Inbox, effort, and duration. A local focus timer can be
 attached to the current task. Completion date, rather than the original due
-date, places finished work on the completed calendar.
+date, places finished work on the completed calendar. **Select Tasks** opens a
+contextual action surface: active tasks can be completed, archived, edited,
+pinned, or rescheduled; completed tasks can be reopened; archived tasks can be
+restored. Permanent bulk deletion first shows the exact affected history,
+subtasks, goal sources, and automations and asks for confirmation.
 
 The task editor labels planning intensity as **Effort**, with the parallel
 choices **Light**, **Medium**, and **High**.
