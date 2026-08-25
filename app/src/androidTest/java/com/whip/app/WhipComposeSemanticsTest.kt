@@ -113,6 +113,29 @@ class WhipComposeSemanticsTest {
         }
     }
 
+    @Test
+    fun medicationTemplateStartsAsAThreeItemChecklist() {
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        device.wakeUp()
+        device.executeShellCommand("wm dismiss-keyguard")
+        val intent = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
+            .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
+
+        launchMainActivity(intent).use {
+            compose.waitForIdle()
+            compose.onNodeWithContentDescription("Habits tab").performClick()
+            compose.onNodeWithText("Browse Templates").performClick()
+            compose.onNodeWithText("Medication").performClick()
+
+            compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Medication 3"))
+            compose.onNodeWithText("Medication 1").assertIsDisplayed()
+            compose.onNodeWithText("Medication 2").assertIsDisplayed()
+            compose.onNodeWithText("Medication 3").assertIsDisplayed()
+            compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Complete Habit With Final Item"))
+            compose.onNodeWithTag("habit-auto-complete-from-items").assertIsDisplayed()
+        }
+    }
+
     private fun openSettings() {
         if (compose.onAllNodesWithContentDescription("Open Settings").fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithContentDescription("Open Settings").performClick()
@@ -443,6 +466,15 @@ class WhipComposeSemanticsTest {
             )
             compose.onNodeWithText("One check completes each scheduled occurrence. No numeric value is required.").assertIsDisplayed()
             compose.onAllNodesWithText("Target rule").assertCountEquals(0)
+            compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Checklist"))
+            compose.onNodeWithText("Checklist").performClick()
+            compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Complete Habit With Final Item"))
+            compose.onNodeWithText("Complete Habit With Final Item").assertIsDisplayed()
+            compose.onNodeWithTag("habit-auto-complete-from-items").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("habit-editor-fields").performScrollToNode(
+                hasText("Checklist items stay independent.", substring = true),
+            )
+            compose.onNodeWithText("Checklist items stay independent.", substring = true).assertIsDisplayed()
             compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Count"))
             compose.onNodeWithText("Count").performClick()
             compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Target rule"))

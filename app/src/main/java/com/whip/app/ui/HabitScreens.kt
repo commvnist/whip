@@ -679,7 +679,7 @@ fun HabitProgressCard(
     val primaryAction: (@Composable () -> Unit)? = when {
         skipped -> {{ Text("Skipped", color = MaterialTheme.whipColors.warning, fontWeight = FontWeight.SemiBold) }}
         habit.sourceMetricId != null -> {{ Text("Synced", color = MaterialTheme.whipColors.success, fontWeight = FontWeight.SemiBold) }}
-        habit.trackingMode == HabitTrackingMode.CheckOff -> {{
+        habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) -> {{
             Checkbox(
                 checked = item.successful == true,
                 onCheckedChange = { onQuick() },
@@ -788,6 +788,18 @@ fun HabitProgressCard(
                         Text(checklistItem.name)
                     }
                 }
+                val completedItems = item.checklistItems.count { it.second }
+                val totalItems = item.checklistItems.size
+                if (totalItems > 0) {
+                    LinearProgressIndicator(
+                        progress = { completedItems.toFloat() / totalItems },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        "$completedItems / $totalItems items complete",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
             }
             if (!skipped && item.flexibleScheduleTarget != null && item.flexibleScheduleProgress != null) {
                 val target = item.flexibleScheduleTarget
@@ -797,7 +809,11 @@ fun HabitProgressCard(
                     "${item.flexibleScheduleProgress} / $target completions this ${if (habit.scheduleType == HabitScheduleType.FlexibleTimesPerWeek) "week" else "month"}",
                     style = MaterialTheme.typography.labelMedium,
                 )
-            } else if (!skipped && habit.comparison != TargetComparison.None) {
+            } else if (
+                !skipped &&
+                habit.trackingMode != HabitTrackingMode.Checklist &&
+                habit.comparison != TargetComparison.None
+            ) {
                 val target = habit.targetMax ?: habit.targetMin ?: 1.0
                 val fraction = if (target == 0.0) 0f else (item.value / target).toFloat().coerceIn(0f, 1f)
                 LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
@@ -820,7 +836,7 @@ fun quickHabitAction(item: HabitDayProgress, vm: HabitViewModel, openNumeric: ()
         HabitTrackingMode.CheckOff -> vm.setCheckOff(item.habit.id, item.date, item.successful != true)
         HabitTrackingMode.Count, HabitTrackingMode.Decimal -> vm.log(item.habit.id, item.habit.quickIncrement)
         HabitTrackingMode.Duration -> if (item.habit.timerStartedAtMillis == null) vm.startTimer(item.habit.id) else vm.stopTimer(item.habit.id)
-        HabitTrackingMode.Checklist -> Unit
+        HabitTrackingMode.Checklist -> vm.setCheckOff(item.habit.id, item.date, item.successful != true)
         HabitTrackingMode.Rating, HabitTrackingMode.LogOnly -> openNumeric()
     }
 }
@@ -1225,7 +1241,17 @@ private fun HabitTemplateDialog(
             dimension = UnitDimension.Count, unitId = "glass", targetMin = 8.0,
             quickIncrement = 1.0, quickActions = listOf(1.0, 2.0), startDate = today,
         ),
-        "Medication" to HabitDraft(name = "Medication", icon = "💊", trackingMode = HabitTrackingMode.CheckOff, startDate = today),
+        "Medication" to HabitDraft(
+            name = "Medication",
+            icon = "💊",
+            trackingMode = HabitTrackingMode.Checklist,
+            checklistItems = listOf(
+                HabitChecklistItemDraft("Medication 1", 0),
+                HabitChecklistItemDraft("Medication 2", 1),
+                HabitChecklistItemDraft("Medication 3", 2),
+            ),
+            startDate = today,
+        ),
         "Reading" to HabitDraft(
             name = "Reading", icon = "📚", trackingMode = HabitTrackingMode.Count,
             dimension = UnitDimension.Count, unitId = "page", targetMin = 20.0,
@@ -1274,7 +1300,7 @@ private fun HabitTemplateDialog(
 
 private fun habitTemplateDescription(label: String): String = when (label) {
     "Hydration" -> "Count toward 8 glasses per day with +1 and +2 buttons."
-    "Medication" -> "A simple daily done/not-done check-in."
+    "Medication" -> "Three editable items; checking the final one completes the Habit."
     "Reading" -> "Add pages toward a daily target of 20."
     "Meditation" -> "Track minutes toward a daily duration target."
     "No-spend day" -> "Check it off after a day without spending."
@@ -1313,6 +1339,7 @@ private fun Habit.toEditorDraft(checklist: List<HabitChecklistItemDraft>) = Habi
     weekdayReminderMinutes = weekdayReminderMinutes,
     weekStart = weekStart,
     checklistItems = checklist,
+    autoCompleteFromItems = autoCompleteFromItems,
     sourceMetricId = sourceMetricId,
 )
 
@@ -1403,6 +1430,9 @@ private fun HabitEditorDialog(
     var checklistDrafts by rememberSaveable(editorKey) {
         mutableStateOf<List<HabitChecklistItemDraft>>(initial.checklistItems.toList())
     }
+    var autoCompleteFromItems by rememberSaveable(editorKey) {
+        mutableStateOf(initial.autoCompleteFromItems)
+    }
     val quickActionResult = parseNumericSequence(
         specification = quickActions,
         rangeIncrement = quickIncrement.toWhipDoubleOrNull(),
@@ -1422,7 +1452,7 @@ private fun HabitEditorDialog(
         targetPeriod, schedule, interval, weekdays.sortedBy { it.value }, flexible, rollingDays,
         quickIncrement, quickActions, reminders, weekdayReminders, endType,
         endDate, endValue, weekStart, unitId, dimension, precision, sourceMetricId,
-        checklistDrafts.map { "${it.id}:${it.uuid}:${it.position}:${it.name}" },
+        checklistDrafts.map { "${it.id}:${it.uuid}:${it.position}:${it.name}" }, autoCompleteFromItems,
     ).joinToString("\u001f")
     val initialFingerprint by rememberSaveable(editorKey) { mutableStateOf(editorFingerprint) }
     var showDiscardConfirmation by rememberSaveable(editorKey) { mutableStateOf(false) }
@@ -1566,6 +1596,32 @@ private fun HabitEditorDialog(
                                 Spacer(Modifier.width(6.dp))
                                 Text("Add Checklist Item")
                             }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Complete Habit With Final Item", fontWeight = FontWeight.Medium)
+                                    Text(
+                                        "Automatically complete the parent Habit when every checklist item is checked.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                Switch(
+                                    checked = autoCompleteFromItems,
+                                    onCheckedChange = { autoCompleteFromItems = it },
+                                    modifier = Modifier.testTag("habit-auto-complete-from-items"),
+                                )
+                            }
+                            if (checklistDrafts.none { it.name.isNotBlank() }) {
+                                Text(
+                                    "Add at least one checklist item.",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
                         }
                     }
                 }
@@ -1588,7 +1644,11 @@ private fun HabitEditorDialog(
                             message = if (mode == HabitTrackingMode.CheckOff) {
                                 "One check completes each scheduled occurrence. No numeric value is required."
                             } else {
-                                "Completing every checklist item completes the scheduled occurrence. No numeric target is required."
+                                if (autoCompleteFromItems) {
+                                    "The final checklist item completes the scheduled occurrence. You can also complete the parent Habit directly."
+                                } else {
+                                    "Checklist items stay independent. Complete the parent Habit directly when the occurrence is done."
+                                }
                             },
                             testTag = "habit-checkoff-consequence",
                         )
@@ -1746,7 +1806,11 @@ private fun HabitEditorDialog(
         },
         confirmButton = {
             WhipButton(
-                enabled = name.isNotBlank() && quickActionResult.error == null && quickIncrementValid && !saving,
+                enabled = name.isNotBlank() &&
+                    quickActionResult.error == null &&
+                    quickIncrementValid &&
+                    (mode != HabitTrackingMode.Checklist || checklistDrafts.any { it.name.isNotBlank() }) &&
+                    !saving,
                 onClick = {
                     val draft = HabitDraft(
                             name = name,
@@ -1779,6 +1843,7 @@ private fun HabitEditorDialog(
                             weekStart = weekStart,
                             checklistItems = checklistDrafts.filter { it.name.isNotBlank() }
                                 .mapIndexed { index, item -> item.copy(name = item.name.trim(), position = index) },
+                            autoCompleteFromItems = autoCompleteFromItems,
                             sourceMetricId = sourceMetricId,
                         )
                     onSave(draft)

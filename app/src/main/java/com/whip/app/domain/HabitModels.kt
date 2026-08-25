@@ -43,6 +43,7 @@ data class HabitDraft(
     val weekdayReminderMinutes: Map<DayOfWeek, List<Int>> = emptyMap(),
     val weekStart: DayOfWeek = DayOfWeek.MONDAY,
     val checklistItems: List<HabitChecklistItemDraft> = emptyList(),
+    val autoCompleteFromItems: Boolean = true,
     /** Optional external metric mirrored into this habit (for example Health Connect steps). */
     val sourceMetricId: String? = null,
 ) : java.io.Serializable
@@ -87,6 +88,7 @@ data class Habit(
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
     val sourceMetricId: String? = null,
+    val autoCompleteFromItems: Boolean = true,
 )
 
 data class HabitChecklistItemDraft(

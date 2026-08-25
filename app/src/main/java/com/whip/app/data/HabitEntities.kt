@@ -1,5 +1,6 @@
 package com.whip.app.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -57,6 +58,7 @@ data class HabitEntity(
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
     val sourceMetricId: String? = null,
+    @ColumnInfo(defaultValue = "1") val autoCompleteFromItems: Boolean = true,
 )
 
 @Entity(

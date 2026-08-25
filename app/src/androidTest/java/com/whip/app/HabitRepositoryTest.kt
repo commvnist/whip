@@ -260,6 +260,61 @@ class HabitRepositoryTest {
         assertTrue(repository.checklistStates.first().isEmpty())
     }
 
+    @Test fun checklistOnlyAutoCompletesAfterTheFinalItem() = runBlocking {
+        val today = FixedClock.today()
+        val id = repository.create(
+            HabitDraft(
+                name = "Medication",
+                trackingMode = HabitTrackingMode.Checklist,
+                startDate = today,
+                checklistItems = listOf(
+                    HabitChecklistItemDraft("Medication 1", 0),
+                    HabitChecklistItemDraft("Medication 2", 1),
+                    HabitChecklistItemDraft("Medication 3", 2),
+                ),
+            ),
+        )
+        val items = repository.checklistItems.first()
+
+        repository.toggleChecklistItem(id, items[0].id, today, true)
+        repository.toggleChecklistItem(id, items[1].id, today, true)
+        assertTrue(repository.logs.first().isEmpty())
+
+        repository.toggleChecklistItem(id, items[2].id, today, true)
+        assertEquals(1, repository.logs.first().size)
+        assertEquals(1.0, repository.logs.first().single().value ?: -1.0, 0.0)
+
+        repository.toggleChecklistItem(id, items[2].id, today, false)
+        assertEquals(1, repository.logs.first().size)
+    }
+
+    @Test fun checklistCanKeepItemsIndependentAndUseManualParentCompletion() = runBlocking {
+        val today = FixedClock.today()
+        val id = repository.create(
+            HabitDraft(
+                name = "Medication",
+                trackingMode = HabitTrackingMode.Checklist,
+                autoCompleteFromItems = false,
+                startDate = today,
+                checklistItems = listOf(
+                    HabitChecklistItemDraft("Medication 1", 0),
+                    HabitChecklistItemDraft("Medication 2", 1),
+                ),
+            ),
+        )
+        assertFalse(repository.habits.first().single().autoCompleteFromItems)
+
+        repository.checklistItems.first().forEach { item ->
+            repository.toggleChecklistItem(id, item.id, today, true)
+        }
+        assertTrue(repository.logs.first().isEmpty())
+
+        repository.setCheckOff(id, today, true)
+        assertEquals(1.0, repository.logs.first().single().value ?: -1.0, 0.0)
+        repository.setCheckOff(id, today, false)
+        assertTrue(repository.logs.first().isEmpty())
+    }
+
     @Test fun invalidEndConditionsAreRejectedAndIrrelevantFieldsAreCleared() = runBlocking {
         val today = FixedClock.today()
         assertTrue(

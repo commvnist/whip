@@ -289,17 +289,10 @@ class RoomHabitRepository(
     override suspend fun setCheckOff(habitId: Long, date: LocalDate, completed: Boolean) {
         database.withTransaction {
             val habit = dao.getHabit(habitId)?.toDomain() ?: error("Habit no longer exists")
-            require(habit.trackingMode == HabitTrackingMode.CheckOff) { "This habit is not a check-off habit" }
-            val positiveLogs = dao.getLogsForDate(habitId, date.toEpochDay())
-                .filter { it.status in setOf(HabitLogStatus.Recorded.name, HabitLogStatus.Success.name) && (it.value ?: 0.0) > 0.0 }
-            if (completed && positiveLogs.isEmpty()) {
-                log(habitId, 1.0, HabitLogStatus.Success, date)
-            } else if (!completed) {
-                positiveLogs.forEach { entry ->
-                    entry.metricEntryId?.let { measurementRepository.deleteEntry(it) }
-                    dao.deleteLog(entry.id)
-                }
+            require(habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)) {
+                "This habit cannot be completed with a check-off"
             }
+            setCompletionWithinTransaction(habitId, date, completed)
         }
     }
 
@@ -310,20 +303,29 @@ class RoomHabitRepository(
         completed: Boolean,
     ) {
         database.withTransaction {
-        val item = dao.getChecklistItems(habitId).firstOrNull { it.id == itemId && !it.archived }
-            ?: error("Checklist item no longer exists")
-        val now = clock.now().toEpochMilli()
-        dao.upsertChecklistState(
-            HabitChecklistStateEntity(
-                habitId = habitId,
-                itemId = itemId,
-                localEpochDay = date.toEpochDay(),
-                completed = completed,
-                completedAtMillis = now.takeIf { completed },
-                nameSnapshot = item.name,
-            ),
-        )
-            log(habitId, dao.completedChecklistCount(habitId, date.toEpochDay()).toDouble(), date = date)
+            val habit = dao.getHabit(habitId)?.toDomain() ?: error("Habit no longer exists")
+            require(habit.trackingMode == HabitTrackingMode.Checklist) { "This habit does not have checklist items" }
+            val activeItems = dao.getChecklistItems(habitId).filterNot(HabitChecklistItemEntity::archived)
+            val item = activeItems.firstOrNull { it.id == itemId }
+                ?: error("Checklist item no longer exists")
+            val now = clock.now().toEpochMilli()
+            dao.upsertChecklistState(
+                HabitChecklistStateEntity(
+                    habitId = habitId,
+                    itemId = itemId,
+                    localEpochDay = date.toEpochDay(),
+                    completed = completed,
+                    completedAtMillis = now.takeIf { completed },
+                    nameSnapshot = item.name,
+                ),
+            )
+            if (
+                habit.autoCompleteFromItems &&
+                activeItems.isNotEmpty() &&
+                dao.completedChecklistCount(habitId, date.toEpochDay()) == activeItems.size
+            ) {
+                setCompletionWithinTransaction(habitId, date, completed = true)
+            }
         }
     }
 
@@ -395,6 +397,25 @@ class RoomHabitRepository(
         dao.updateHabit(transform(current).copy(updatedAtMillis = clock.now().toEpochMilli()))
     }
 
+    private suspend fun setCompletionWithinTransaction(
+        habitId: Long,
+        date: LocalDate,
+        completed: Boolean,
+    ) {
+        val positiveLogs = dao.getLogsForDate(habitId, date.toEpochDay())
+            .filter {
+                it.status in setOf(HabitLogStatus.Recorded.name, HabitLogStatus.Success.name) &&
+                    (it.value ?: 0.0) > 0.0
+            }
+        if (completed && positiveLogs.isEmpty()) {
+            log(habitId, 1.0, HabitLogStatus.Success, date)
+        } else if (!completed) {
+            positiveLogs.forEach { entry ->
+                entry.metricEntryId?.let { measurementRepository.deleteEntry(it) }
+                dao.deleteLog(entry.id)
+            }
+        }
+    }
 }
 
 private fun List<HabitChecklistItemEntity>.matches(drafts: List<HabitChecklistItemDraft>): Boolean {
@@ -413,6 +434,9 @@ private fun validateHabit(draft: HabitDraft) {
     require(draft.scheduleInterval > 0) { "Schedule interval must be positive" }
     require(draft.quickIncrement.isFinite() && draft.quickIncrement > 0.0) { "Quick increment must be positive" }
     require(draft.quickActions.all { it.isFinite() && it >= 0.0 }) { "Quick actions must be non-negative numbers" }
+    if (draft.trackingMode == HabitTrackingMode.Checklist) {
+        require(draft.checklistItems.any { it.name.isNotBlank() }) { "Add at least one checklist item" }
+    }
     if (draft.scheduleType == HabitScheduleType.SelectedWeekdays) require(draft.weekdays.isNotEmpty()) { "Pick at least one weekday" }
     require(listOfNotNull(draft.targetMin, draft.targetMax).all(Double::isFinite)) { "Habit targets must be finite numbers" }
     when (draft.comparison) {
@@ -454,7 +478,7 @@ private fun HabitDraft.toEntity(
     endValue?.takeIf { endType in setOf(HabitEndType.AfterStreak, HabitEndType.AfterCompletions, HabitEndType.AfterTotal) },
     quickIncrement, quickActions.joinToString(","), reminderMinutes.joinToString(","),
     weekdayReminderMinutes.toReminderCsv(), weekStart.name, timerStartedAtMillis, pinned, position,
-    archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId,
+    archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId, autoCompleteFromItems,
 )
 
 private fun HabitEntity.toDomain() = Habit(
@@ -469,7 +493,7 @@ private fun HabitEntity.toDomain() = Habit(
     reminderMinutesCsv.split(',').mapNotNull(String::toIntOrNull),
     weekdayReminderMinutesCsv.fromReminderCsv(),
     java.time.DayOfWeek.valueOf(weekStart), timerStartedAtMillis, pinned, position,
-    archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId,
+    archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId, autoCompleteFromItems,
 )
 
 private fun HabitChecklistItemEntity.toDomain() = HabitChecklistItem(id, uuid, habitId, name, position, archived, createdAtMillis, updatedAtMillis)
@@ -510,6 +534,7 @@ private fun Habit.toDraft(items: List<HabitChecklistItemEntity>) = HabitDraft(
     checklistItems = items.mapIndexed { index, item ->
         HabitChecklistItemDraft(item.name, index, id = item.id, uuid = item.uuid)
     },
+    autoCompleteFromItems = autoCompleteFromItems,
     sourceMetricId = sourceMetricId,
 )
 

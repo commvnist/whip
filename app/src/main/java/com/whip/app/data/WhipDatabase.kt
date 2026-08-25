@@ -64,7 +64,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         TrackValueEntity::class,
         TrackEntrySearchEntity::class,
     ],
-    version = 28,
+    version = 29,
     exportSchema = true,
 )
 abstract class WhipDatabase : RoomDatabase() {
@@ -306,6 +306,14 @@ abstract class WhipDatabase : RoomDatabase() {
             }
         }
 
+        val migration28To29 = object : Migration(28, 29) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE habits ADD COLUMN autoCompleteFromItems INTEGER NOT NULL DEFAULT 1",
+                )
+            }
+        }
+
         /**
          * Repository checks provide friendly errors; these triggers are the final consistency
          * boundary for concurrent writers, restored data, and any future write path.
@@ -337,6 +345,7 @@ abstract class WhipDatabase : RoomDatabase() {
                     migration8To9,
                     migration9To28,
                     migration27To28,
+                    migration28To29,
                 )
                 .addCallback(integrityGuardCallback)
                 .build()

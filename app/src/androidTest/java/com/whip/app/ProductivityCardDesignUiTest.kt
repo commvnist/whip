@@ -11,6 +11,8 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.Goal
@@ -21,6 +23,7 @@ import com.whip.app.domain.GoalProjection
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.Habit
+import com.whip.app.domain.HabitChecklistItem
 import com.whip.app.domain.HabitDayProgress
 import com.whip.app.domain.HabitDayState
 import com.whip.app.domain.HabitEndType
@@ -191,6 +194,61 @@ class ProductivityCardDesignUiTest {
             titleBounds.bottom <= badgeBounds.top,
         )
         assertTrue("The title must retain a usable width", titleBounds.right - titleBounds.left >= 100.dp)
+    }
+
+    @Test
+    fun checklistHabitShowsManualParentCompletionAndSubItemProgress() {
+        val date = LocalDate.of(2026, 8, 24)
+        var parentCompletionRequested = false
+        val habit = sampleHabit(date).copy(
+            name = "Medication",
+            trackingMode = HabitTrackingMode.Checklist,
+            autoCompleteFromItems = false,
+        )
+        val checklistItems = (1L..3L).map { id ->
+            HabitChecklistItem(
+                id = id,
+                uuid = "item-$id",
+                habitId = habit.id,
+                name = "Medication $id",
+                position = id.toInt() - 1,
+                archived = false,
+                createdAtMillis = 1,
+                updatedAtMillis = 1,
+            ) to (id < 3)
+        }
+
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Column(Modifier.fillMaxWidth().padding(20.dp)) {
+                    HabitProgressCard(
+                        item = HabitDayProgress(
+                            habit = habit,
+                            date = date,
+                            scheduled = true,
+                            value = 0.0,
+                            status = null,
+                            successful = false,
+                            checklistItems = checklistItems,
+                            streak = 0,
+                            completionRate = 0.0,
+                            dayState = HabitDayState.Pending,
+                        ),
+                        onOpen = {},
+                        onEdit = {},
+                        onQuick = { parentCompletionRequested = true },
+                        onDecrement = {},
+                        onUndo = {},
+                        onUndoSkip = {},
+                        onChecklist = { _, _, _, _ -> },
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithText("2 / 3 items complete").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Check off habit Medication").performClick()
+        compose.runOnIdle { assertTrue(parentCompletionRequested) }
     }
 
     private fun left(tag: String): Float = compose

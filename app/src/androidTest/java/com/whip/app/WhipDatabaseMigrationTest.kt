@@ -73,7 +73,7 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V1_DATABASE_NAME,
-            28,
+            29,
             true,
             *allMigrations,
         ).use { database ->
@@ -165,7 +165,7 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V2_DATABASE_NAME,
-            28,
+            29,
             true,
             *allMigrations.drop(1).toTypedArray(),
         ).use { database ->
@@ -242,10 +242,11 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V8_DATABASE_NAME,
-            28,
+            29,
             true,
             WhipDatabase.migration8To9,
             WhipDatabase.migration9To28,
+            WhipDatabase.migration28To29,
         ).use { database ->
             database.query("SELECT uuid, habitId, localEpochDay, skippedAtMillis FROM habit_skips").use { cursor ->
                 check(cursor.moveToFirst())
@@ -381,9 +382,10 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V27_DATABASE_NAME,
-            28,
+            29,
             true,
             WhipDatabase.migration27To28,
+            WhipDatabase.migration28To29,
         ).use { database ->
             database.query("SELECT title, notes, icon, tagsCsv, inbox FROM tasks WHERE id = 5").use { cursor ->
                 check(cursor.moveToFirst())
@@ -436,6 +438,58 @@ class WhipDatabaseMigrationTest {
             database.query("SELECT tagId FROM entity_tag_links WHERE entityType = 'Task' AND entityId = '5'").use { cursor ->
                 check(cursor.moveToFirst())
                 assertEquals("tag-release", cursor.getString(0))
+            }
+        }
+    }
+
+    @Test
+    fun migrationTwentyEightToTwentyNineKeepsExistingChecklistHabitsAutomatic() {
+        helper.createDatabase(V28_DATABASE_NAME, 28).apply {
+            execSQL(
+                "INSERT INTO metric_definitions (id, name, valueKind, dimension, defaultUnitId, precision, dimensionLocked, archived, createdAtMillis, updatedAtMillis) " +
+                    "VALUES ('metric-checklist', 'Medication', 'Checklist', 'Count', 'count', 0, 0, 0, 1, 1)",
+            )
+            execSQL(
+                """
+                INSERT INTO habits (
+                    id, uuid, metricId, name, notes, areaId, area, tagsCsv, icon,
+                    trackingMode, dimension, unitId, precision, comparison, targetMin,
+                    targetMax, targetPeriod, rollingDays, scheduleType, scheduleInterval,
+                    weekdaysMask, flexibleTimesPerWeek, startEpochDay, endType, endEpochDay,
+                    endValue, quickIncrement, quickActionsCsv, reminderMinutesCsv,
+                    weekdayReminderMinutesCsv, weekStart, timerStartedAtMillis, pinned,
+                    position, archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId
+                ) VALUES (
+                    3, 'habit-checklist', 'metric-checklist', 'Medication', '', NULL, '', '', '💊',
+                    'Checklist', 'Count', 'count', 0, 'AtLeast', 1, NULL, 'Occurrence', NULL,
+                    'Daily', 1, 0, NULL, 20690, 'Never', NULL, NULL, 1, '', '', '',
+                    'MONDAY', NULL, 0, 0, 0, 0, 1, 1, NULL
+                )
+                """.trimIndent(),
+            )
+            execSQL(
+                "INSERT INTO habit_checklist_items (id, uuid, habitId, name, position, archived, createdAtMillis, updatedAtMillis) " +
+                    "VALUES (4, 'item-4', 3, 'Medication 1', 0, 0, 1, 1)",
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            V28_DATABASE_NAME,
+            29,
+            true,
+            WhipDatabase.migration28To29,
+        ).use { database ->
+            database.query(
+                "SELECT name, autoCompleteFromItems FROM habits WHERE id = 3",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("Medication", cursor.getString(0))
+                assertEquals(1, cursor.getInt(1))
+            }
+            database.query("SELECT name FROM habit_checklist_items WHERE id = 4").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("Medication 1", cursor.getString(0))
             }
         }
     }
@@ -513,6 +567,7 @@ class WhipDatabaseMigrationTest {
         const val V2_DATABASE_NAME = "complete-v2-to-v9-migration"
         const val V8_DATABASE_NAME = "habit-skip-v8-to-v9-migration"
         const val V27_DATABASE_NAME = "public-v27-to-v28-migration"
+        const val V28_DATABASE_NAME = "checklist-v28-to-v29-migration"
 
         val allMigrations: Array<Migration> = arrayOf(
             WhipDatabase.migration1To2,
@@ -524,6 +579,7 @@ class WhipDatabaseMigrationTest {
             WhipDatabase.migration7To8,
             WhipDatabase.migration8To9,
             WhipDatabase.migration9To28,
+            WhipDatabase.migration28To29,
         )
     }
 }
