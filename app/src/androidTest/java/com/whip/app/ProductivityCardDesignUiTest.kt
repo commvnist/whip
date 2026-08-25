@@ -15,6 +15,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
@@ -52,7 +53,9 @@ import com.whip.app.domain.WhipTask
 import com.whip.app.ui.GoalCard
 import com.whip.app.ui.HabitProgressCard
 import com.whip.app.ui.LocalCompactItemLayout
+import com.whip.app.ui.LocalCompactItemExpansionState
 import com.whip.app.ui.TaskRow
+import com.whip.app.ui.rememberCompactItemExpansionState
 import com.whip.app.ui.theme.WhipTheme
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -215,6 +218,7 @@ class ProductivityCardDesignUiTest {
     fun compactTaskRowsReflowNotesAndSubtaskProgressWithoutLosingActions() {
         val date = LocalDate.of(2026, 8, 24)
         val compact = mutableStateOf(false)
+        var completionRequested = false
         val notes = "Read the decision notes before the meeting."
         val item = ScheduledTask(
             task = WhipTask(
@@ -253,9 +257,13 @@ class ProductivityCardDesignUiTest {
         )
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                CompositionLocalProvider(LocalCompactItemLayout provides compact.value) {
+                val expansionState = rememberCompactItemExpansionState()
+                CompositionLocalProvider(
+                    LocalCompactItemLayout provides compact.value,
+                    LocalCompactItemExpansionState provides expansionState,
+                ) {
                     Column(Modifier.fillMaxWidth().padding(20.dp)) {
-                        TaskRow(item, false, {}, {}, {})
+                        TaskRow(item, false, { completionRequested = true }, {}, {})
                     }
                 }
             }
@@ -269,11 +277,20 @@ class ProductivityCardDesignUiTest {
         compose.waitForIdle()
 
         val compactHeight = contentDescriptionHeight("Open task details for Review quarterly plan")
-        assertTrue("Compact row should still be denser after preserving details: $standardHeight vs $compactHeight", compactHeight < standardHeight)
+        assertTrue("Collapsed compact row should be materially denser: $standardHeight vs $compactHeight", compactHeight <= standardHeight - 32.dp)
         assertTrue("Compact primary action must retain a 48 dp target", height("task-primary-action-5") >= 48.dp)
-        assertTrue("Compact edit action must retain a 48 dp target", height("task-edit-action-5") >= 48.dp)
+        assertTrue("Compact expansion action must retain a 48 dp target", height("task-expand-5") >= 48.dp)
+        compose.onAllNodesWithText(notes).assertCountEquals(0)
+        compose.onAllNodesWithText("1/2 · 50%").assertCountEquals(0)
+
+        compose.onNodeWithContentDescription("Complete task Review quarterly plan").performClick()
+        compose.runOnIdle { assertTrue(completionRequested) }
+        compose.onAllNodesWithText(notes).assertCountEquals(0)
+
+        compose.onNodeWithTag("task-expand-5", useUnmergedTree = true).performClick()
         compose.onNodeWithText(notes).assertIsDisplayed()
         compose.onNodeWithText("1/2 · 50%").assertIsDisplayed()
+        assertTrue("Expanded compact edit action must retain a 48 dp target", height("task-edit-action-5") >= 48.dp)
     }
 
     @Test
@@ -296,7 +313,11 @@ class ProductivityCardDesignUiTest {
         var goalLogged = false
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                CompositionLocalProvider(LocalCompactItemLayout provides compact.value) {
+                val expansionState = rememberCompactItemExpansionState()
+                CompositionLocalProvider(
+                    LocalCompactItemLayout provides compact.value,
+                    LocalCompactItemExpansionState provides expansionState,
+                ) {
                     Column(
                         modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -358,16 +379,23 @@ class ProductivityCardDesignUiTest {
 
         assertTrue(height("goal-card-7") < standardGoalHeight)
         assertTrue(height("goal-primary-action-7") >= 48.dp)
-        compose.onNodeWithText("2 / 8", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("2/8", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("50% complete").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Current: 25", substring = true).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Finish the annual reading list.").performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithText("Current: 25", substring = true).assertCountEquals(0)
+        compose.onAllNodesWithText("Finish the annual reading list.").assertCountEquals(0)
 
         compose.onNodeWithText("+1").performScrollTo().performClick()
+        compose.onNodeWithText("Log").performScrollTo().performClick()
+        compose.onNodeWithTag("habit-expand-6", useUnmergedTree = true).performScrollTo().performClick()
+        compose.onNodeWithText("2 / 8", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("−1").performScrollTo().performClick()
         compose.onNodeWithText("Set").performScrollTo().performClick()
         compose.onNodeWithText("Undo").performScrollTo().performClick()
-        compose.onNodeWithText("Log").performScrollTo().performClick()
+
+        compose.onNodeWithTag("goal-expand-7", useUnmergedTree = true).performScrollTo().performClick()
+        compose.onAllNodesWithText("2 / 8", substring = true).assertCountEquals(0)
+        compose.onNodeWithText("Current: 25", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Finish the annual reading list.").performScrollTo().assertIsDisplayed()
         compose.runOnIdle {
             assertEquals(1.0, quickValue)
             assertTrue(decremented)
@@ -402,7 +430,11 @@ class ProductivityCardDesignUiTest {
 
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                CompositionLocalProvider(LocalCompactItemLayout provides true) {
+                val expansionState = rememberCompactItemExpansionState()
+                CompositionLocalProvider(
+                    LocalCompactItemLayout provides true,
+                    LocalCompactItemExpansionState provides expansionState,
+                ) {
                     Column(Modifier.fillMaxWidth().padding(20.dp)) {
                         HabitProgressCard(
                             item = HabitDayProgress(
@@ -432,13 +464,19 @@ class ProductivityCardDesignUiTest {
             }
         }
 
+        compose.onNodeWithText("2/3 items", substring = true).assertIsDisplayed()
+        compose.onAllNodesWithText("2 / 3 items complete").assertCountEquals(0)
+        checklistItems.forEach { (item, _) -> compose.onAllNodesWithText(item.name).assertCountEquals(0) }
+        compose.onNodeWithContentDescription("Check off habit Medication").performClick()
+        compose.runOnIdle { assertTrue(parentCompletionRequested) }
+        compose.onAllNodesWithText("2 / 3 items complete").assertCountEquals(0)
+
+        compose.onNodeWithTag("habit-expand-${habit.id}", useUnmergedTree = true).performClick()
         compose.onNodeWithText("2 / 3 items complete").assertIsDisplayed()
         checklistItems.forEach { (item, _) -> compose.onNodeWithText(item.name).assertIsDisplayed() }
         assertTrue(height("habit-checklist-item-3") >= 48.dp)
         compose.onNodeWithTag("habit-checklist-item-3", useUnmergedTree = true).performClick()
         compose.runOnIdle { assertEquals(listOf(habit.id, 3L, date, true), checklistUpdate) }
-        compose.onNodeWithContentDescription("Check off habit Medication").performClick()
-        compose.runOnIdle { assertTrue(parentCompletionRequested) }
     }
 
     @Test
@@ -484,8 +522,12 @@ class ProductivityCardDesignUiTest {
         }
 
         compose.onNodeWithText("Start").performScrollTo().performClick()
-        compose.onNodeWithText("Skipped Today · Streak Protected").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Undo Skip").performScrollTo().performClick()
+        compose.onNodeWithText("Skipped · streak protected").performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithText("Skipped Today · Streak Protected").assertCountEquals(0)
+        compose.onNodeWithText("Undo").performScrollTo().performClick()
+        compose.onNodeWithText("Synced · Health Connect").performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithText("Read-only source: Health Connect", substring = true).assertCountEquals(0)
+        compose.onNodeWithTag("habit-expand-13", useUnmergedTree = true).performScrollTo().performClick()
         compose.onNodeWithText("Read-only source: Health Connect", substring = true).performScrollTo().assertIsDisplayed()
         compose.runOnIdle {
             assertTrue(timerRequested)
@@ -517,9 +559,13 @@ class ProductivityCardDesignUiTest {
 
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                CompositionLocalProvider(LocalCompactItemLayout provides true) {
+                val expansionState = rememberCompactItemExpansionState()
+                CompositionLocalProvider(
+                    LocalCompactItemLayout provides true,
+                    LocalCompactItemExpansionState provides expansionState,
+                ) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(20.dp),
+                        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         GoalCard(
@@ -546,11 +592,18 @@ class ProductivityCardDesignUiTest {
 
         compose.onNodeWithText("2 days").assertIsDisplayed()
         compose.onNodeWithText("Reset").performClick()
-        compose.onNodeWithText("Publish the release").assertIsDisplayed()
-        compose.onNodeWithText("Celebrate").assertIsDisplayed()
-        compose.onNodeWithText("Complete every launch gate.").assertIsDisplayed()
+        compose.onNodeWithText("0/1 milestones").performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithText("Publish the release").assertCountEquals(0)
+        compose.onAllNodesWithText("Celebrate").assertCountEquals(0)
+
+        compose.onNodeWithTag("goal-expand-9", useUnmergedTree = true).performScrollTo().performClick()
+        compose.onNodeWithText("2 days").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Expand goal Days since smoking").assertExists()
+        compose.onNodeWithText("Publish the release").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Celebrate").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Complete every launch gate.").performScrollTo().assertIsDisplayed()
         assertTrue(height("goal-milestone-91") >= 48.dp)
-        compose.onNodeWithTag("goal-milestone-91", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("goal-milestone-91", useUnmergedTree = true).performScrollTo().performClick()
         compose.runOnIdle {
             assertTrue(resetRequested)
             assertEquals(91L to true, milestoneUpdate)
@@ -587,10 +640,50 @@ class ProductivityCardDesignUiTest {
 
         val titleBounds = compose.onNodeWithText(title, useUnmergedTree = true).assertIsDisplayed().getUnclippedBoundsInRoot()
         assertTrue("Compact title must retain usable width at 200% text", titleBounds.right - titleBounds.left >= 100.dp)
+        compose.onAllNodesWithText("Keep this context visible.").assertCountEquals(0)
+        compose.onAllNodesWithText("Health").assertCountEquals(0)
+        assertTrue(height("task-primary-action-10") >= 48.dp)
+        assertTrue(height("task-expand-10") >= 48.dp)
+
+        compose.onNodeWithTag("task-expand-10", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Keep this context visible.").assertIsDisplayed()
         compose.onNodeWithText("Health").assertIsDisplayed()
-        assertTrue(height("task-primary-action-10") >= 48.dp)
         assertTrue(height("task-edit-action-10") >= 48.dp)
+    }
+
+    @Test
+    fun compactExpansionSurvivesSavedStateRestoration() {
+        val date = LocalDate.of(2026, 8, 24)
+        val notes = "Restored expanded details"
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                CompositionLocalProvider(LocalCompactItemLayout provides true) {
+                    Column(Modifier.fillMaxWidth().padding(20.dp)) {
+                        TaskRow(
+                            item = ScheduledTask(
+                                task = WhipTask(14, "Persist expansion", notes, ScheduleKind.Once, date, null, null, false, false, null, 1, 1),
+                                originalDate = date,
+                                scheduledDate = date,
+                            ),
+                            completed = false,
+                            onComplete = {},
+                            onOpenActions = {},
+                            onEdit = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onAllNodesWithText(notes).assertCountEquals(0)
+        compose.onNodeWithTag("task-expand-14", useUnmergedTree = true).performClick()
+        compose.onNodeWithText(notes).assertIsDisplayed()
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        compose.onNodeWithText(notes).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Collapse task Persist expansion").assertIsDisplayed()
     }
 
     private fun left(tag: String): Float = compose

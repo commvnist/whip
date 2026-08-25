@@ -95,6 +95,8 @@ fun TaskRow(
     onSelectionToggle: (() -> Unit)? = null,
 ) {
     val compact = LocalCompactItemLayout.current
+    val disclosure = rememberCompactItemDisclosure("task:${item.stableKey}")
+    val compactSummary = item.detailLabel(completed)
     ProductivityItemCard(
         modifier = Modifier.then(
             when {
@@ -166,6 +168,20 @@ fun TaskRow(
                     maxLines = 2,
                 )
             },
+            compactSummaryContent = {
+                if (compactSummary.isNotBlank()) {
+                    Text(
+                        compactSummary,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            },
+            compactExpanded = disclosure.expanded,
+            onCompactExpansionToggle = disclosure.toggle.takeIf { compact },
+            compactExpansionTag = "task-expand-${item.task.id}",
             primaryAction = {
                 Checkbox(
                     checked = if (selectionMode) selected else completed,
@@ -184,7 +200,7 @@ fun TaskRow(
                 )
             },
         )
-        if (item.task.showSubtaskProgress && item.totalSubtasks > 0) {
+        if ((!compact || disclosure.expanded) && item.task.showSubtaskProgress && item.totalSubtasks > 0) {
             if (compact) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

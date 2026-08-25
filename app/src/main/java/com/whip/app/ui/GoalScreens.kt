@@ -6,6 +6,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -49,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -568,6 +570,23 @@ fun GoalCard(
 ) {
     val goal = projection.goal
     val compact = LocalCompactItemLayout.current
+    val disclosure = rememberCompactItemDisclosure(
+        itemKey = "goal:${goal.id}",
+        autoExpand = compact && goal.status == GoalStatus.Active && goal.type == GoalType.ElapsedSince,
+    )
+    val compactStatus = when {
+        goal.type == GoalType.ElapsedSince && goal.elapsedStartMillis != null ->
+            elapsedCounter(goal.elapsedStartMillis, nowMillis, goal.elapsedDisplayUnit).label()
+        goal.type == GoalType.WeightedMilestones ->
+            "${projection.milestones.count { it.completed }}/${projection.milestones.size} milestones"
+        projection.progress != null -> "${(projection.progress * 100).toInt()}% complete"
+        projection.consistency != null -> with(projection.consistency) {
+            "$successfulPeriods/$requiredPeriods ${period.name.lowercase()} periods"
+        }
+        projection.currentValue != null ->
+            "Current ${formatGoalValue(goal.displayValue(projection.currentValue, customUnits), goal.precision)} ${goal.unitId.goalUnitLabel()}".trim()
+        else -> goal.type.displayLabel()
+    }
     val primaryAction: (@Composable () -> Unit)? = when {
         goal.status == GoalStatus.Active && goal.type !in setOf(GoalType.WeightedMilestones, GoalType.ElapsedSince) -> {{
             WhipTextButton(onClick = onRecord) { Text("Log") }
@@ -600,8 +619,20 @@ fun GoalCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
+            compactSummaryContent = {
+                Text(
+                    compactStatus,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            },
+            compactExpanded = disclosure.expanded,
+            onCompactExpansionToggle = disclosure.toggle.takeIf { compact },
+            compactExpansionTag = "goal-expand-${goal.id}",
             primaryAction = primaryAction,
         )
+        if (!compact || disclosure.expanded) {
         projection.progress?.let { progress ->
             val progressColor = if (progress >= 1.0) MaterialTheme.whipColors.success else MaterialTheme.whipColors.action
             if (compact) {
@@ -643,22 +674,44 @@ fun GoalCard(
         val pace = when (projection.onPace) { true -> "On pace"; false -> "Behind pace"; null -> null }
         if (pace != null) Text(pace + (projection.forecastDate?.let { " · forecast ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" } ?: ""), style = MaterialTheme.typography.labelMedium)
         projection.milestones.forEach { milestone ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .testTag("goal-milestone-${milestone.id}")
-                    .clickable(onClickLabel = "Toggle ${milestone.name}") {
-                        onToggleMilestone(milestone.id, !milestone.completed)
-                    },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Checkbox(checked = milestone.completed, onCheckedChange = { onToggleMilestone(milestone.id, it) })
-                Text(milestone.name, modifier = Modifier.weight(1f))
-                if (milestone.reward.isNotBlank()) Text(milestone.reward, style = MaterialTheme.typography.labelSmall)
+            val milestoneModifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .testTag("goal-milestone-${milestone.id}")
+                .clickable(onClickLabel = "Toggle ${milestone.name}") {
+                    onToggleMilestone(milestone.id, !milestone.completed)
+                }
+            if (compact) {
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
+                    if (stacked) {
+                        Column(milestoneModifier) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(checked = milestone.completed, onCheckedChange = { onToggleMilestone(milestone.id, it) })
+                                Text(milestone.name, modifier = Modifier.weight(1f))
+                            }
+                            if (milestone.reward.isNotBlank()) {
+                                Text(milestone.reward, modifier = Modifier.padding(start = 48.dp), style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    } else {
+                        Row(milestoneModifier, verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = milestone.completed, onCheckedChange = { onToggleMilestone(milestone.id, it) })
+                            Text(milestone.name, modifier = Modifier.weight(1f))
+                            if (milestone.reward.isNotBlank()) Text(milestone.reward, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            } else {
+                Row(milestoneModifier, verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = milestone.completed, onCheckedChange = { onToggleMilestone(milestone.id, it) })
+                    Text(milestone.name, modifier = Modifier.weight(1f))
+                    if (milestone.reward.isNotBlank()) Text(milestone.reward, style = MaterialTheme.typography.labelSmall)
+                }
             }
         }
         if (goal.description.isNotBlank()) Text(goal.description, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

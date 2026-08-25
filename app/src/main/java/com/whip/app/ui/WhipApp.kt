@@ -308,6 +308,7 @@ fun WhipApp(
                 maxWidth = minOf(contentWidth * 0.94f, 560.dp),
             )
         } else WhipDialogPlacement(maxWidth = minOf(maxWidth * 0.94f, 560.dp))
+        val compactItemExpansionState = rememberCompactItemExpansionState()
         CompositionLocalProvider(
             LocalAreaUiContext provides AreaUiContext(
                 areas = settingsState.areas,
@@ -316,6 +317,7 @@ fun WhipApp(
             LocalWhipFirstDayOfWeek provides settingsState.settings.firstDayOfWeek,
             LocalWhipDialogPlacement provides dialogPlacement,
             LocalCompactItemLayout provides settingsState.settings.compactItemLayout,
+            LocalCompactItemExpansionState provides compactItemExpansionState,
         ) {
         WhipScreen(
             state = state.forArea(areaScope),

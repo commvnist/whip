@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -49,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -667,6 +669,10 @@ fun HabitProgressCard(
     val habit = item.habit
     val compact = LocalCompactItemLayout.current
     val skipped = item.dayState == HabitDayState.Skipped
+    val disclosure = rememberCompactItemDisclosure(
+        itemKey = "habit:${habit.id}:${item.date.toEpochDay()}",
+        autoExpand = compact && habit.trackingMode == HabitTrackingMode.Duration && habit.timerStartedAtMillis != null,
+    )
     var showAllQuickValues by rememberSaveable(habit.id) { mutableStateOf(false) }
     val streakUnit = when (habit.scheduleType) {
         HabitScheduleType.FlexibleTimesPerWeek -> "week"
@@ -678,8 +684,23 @@ fun HabitProgressCard(
             HabitScheduleType.FlexibleTimesPerMonth,
         )
     ) "recent periods" else "30d"
+    val compactStatus = when {
+        skipped -> "Skipped · streak protected"
+        habit.sourceMetricId != null -> "Synced · Health Connect"
+        habit.trackingMode == HabitTrackingMode.Checklist -> {
+            val completedItems = item.checklistItems.count { it.second }
+            "$completedItems/${item.checklistItems.size} items · ${item.streak} $streakUnit streak"
+        }
+        habit.trackingMode == HabitTrackingMode.Duration && habit.timerStartedAtMillis != null -> "Timer running"
+        habit.comparison != TargetComparison.None -> {
+            val target = habit.targetMax ?: habit.targetMin ?: 1.0
+            "${formatHabitValue(item.value, habit.precision)}/${formatHabitValue(target, habit.precision)} ${habit.unitId.unitLabel()}".trim()
+        }
+        item.value != 0.0 -> "${formatHabitValue(item.value, habit.precision)} ${habit.unitId.unitLabel()}".trim()
+        else -> "${habit.trackingMode.uiLabel()} · ${item.streak} $streakUnit streak"
+    }
     val primaryAction: (@Composable () -> Unit)? = when {
-        skipped -> if (compact) null else {{ Text("Skipped", color = MaterialTheme.whipColors.warning, fontWeight = FontWeight.SemiBold) }}
+        skipped -> if (compact) {{ WhipTextButton(onClick = onUndoSkip) { Text("Undo") } }} else {{ Text("Skipped", color = MaterialTheme.whipColors.warning, fontWeight = FontWeight.SemiBold) }}
         habit.sourceMetricId != null -> if (compact) null else {{ Text("Synced", color = MaterialTheme.whipColors.success, fontWeight = FontWeight.SemiBold) }}
         habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) -> {{
             Checkbox(
@@ -700,7 +721,11 @@ fun HabitProgressCard(
                 WhipButton(onClick = onQuick) { Text(if (habit.timerStartedAtMillis == null) "Start" else "Stop") }
             }
         }}
-        habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) -> null
+        habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) -> if (compact) {{
+            WhipTextButton(onClick = { onQuickValue(habit.quickIncrement) }) {
+                Text("+${editableNumericValue(habit.quickIncrement)}")
+            }
+        }} else null
         else -> {{
             if (compact) {
                 WhipTextButton(onClick = onQuick) {
@@ -746,20 +771,57 @@ fun HabitProgressCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
+            compactSummaryContent = {
+                Text(
+                    compactStatus,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            },
+            compactExpanded = disclosure.expanded,
+            onCompactExpansionToggle = disclosure.toggle.takeIf { compact },
+            compactExpansionTag = "habit-expand-${habit.id}",
             primaryAction = primaryAction,
         )
+        if (!compact || disclosure.expanded) {
             if (skipped) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        "Skipped Today · Streak Protected",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.whipColors.warning,
-                    )
-                    WhipTextButton(onClick = onUndoSkip) { Text("Undo Skip") }
+                if (compact) {
+                    BoxWithConstraints(Modifier.fillMaxWidth()) {
+                        val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
+                        if (stacked) {
+                            Column {
+                                Text(
+                                    "Skipped Today · Streak Protected",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.whipColors.warning,
+                                )
+                                WhipTextButton(onClick = onUndoSkip, modifier = Modifier.fillMaxWidth()) { Text("Undo Skip") }
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text("Skipped Today · Streak Protected", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.whipColors.warning)
+                                WhipTextButton(onClick = onUndoSkip) { Text("Undo Skip") }
+                            }
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            "Skipped Today · Streak Protected",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.whipColors.warning,
+                        )
+                        WhipTextButton(onClick = onUndoSkip) { Text("Undo Skip") }
+                    }
                 }
             }
             if (!skipped && habit.sourceMetricId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
@@ -858,6 +920,7 @@ fun HabitProgressCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
     }
 }
 

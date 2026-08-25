@@ -41,10 +41,13 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -68,6 +71,54 @@ import com.whip.app.R
 
 /** User-selected collection density; unrelated to window-size or fold posture. */
 internal val LocalCompactItemLayout = staticCompositionLocalOf { false }
+
+/** Coordinates the single inline disclosure used by compact collection rows. */
+@Stable
+internal class CompactItemExpansionState(initialExpandedItemKey: String? = null) {
+    var expandedItemKey by mutableStateOf(initialExpandedItemKey)
+        private set
+
+    fun toggle(itemKey: String) {
+        expandedItemKey = itemKey.takeUnless { expandedItemKey == itemKey }
+    }
+
+    fun expandIfNone(itemKey: String) {
+        if (expandedItemKey == null) expandedItemKey = itemKey
+    }
+}
+
+private val CompactItemExpansionStateSaver = Saver<CompactItemExpansionState, String>(
+    save = { it.expandedItemKey.orEmpty() },
+    restore = { CompactItemExpansionState(it.ifBlank { null }) },
+)
+
+@Composable
+internal fun rememberCompactItemExpansionState(): CompactItemExpansionState = rememberSaveable(
+    saver = CompactItemExpansionStateSaver,
+) { CompactItemExpansionState() }
+
+internal val LocalCompactItemExpansionState = staticCompositionLocalOf<CompactItemExpansionState?> { null }
+
+internal data class CompactItemDisclosure(
+    val expanded: Boolean,
+    val toggle: () -> Unit,
+)
+
+@Composable
+internal fun rememberCompactItemDisclosure(
+    itemKey: String,
+    autoExpand: Boolean = false,
+): CompactItemDisclosure {
+    val fallback = rememberCompactItemExpansionState()
+    val expansionState = LocalCompactItemExpansionState.current ?: fallback
+    LaunchedEffect(autoExpand, itemKey, expansionState) {
+        if (autoExpand) expansionState.expandIfNone(itemKey)
+    }
+    return CompactItemDisclosure(
+        expanded = expansionState.expandedItemKey == itemKey,
+        toggle = { expansionState.toggle(itemKey) },
+    )
+}
 
 /**
  * Shared Whip interaction grammar:
@@ -148,6 +199,10 @@ internal fun ProductivityItemHeader(
     titleTextDecoration: TextDecoration? = null,
     headlineAccessory: (@Composable RowScope.() -> Unit)? = null,
     supportingContent: @Composable ColumnScope.() -> Unit = {},
+    compactSummaryContent: @Composable ColumnScope.() -> Unit = {},
+    compactExpanded: Boolean = false,
+    onCompactExpansionToggle: (() -> Unit)? = null,
+    compactExpansionTag: String? = null,
     primaryAction: (@Composable () -> Unit)? = null,
 ) {
     val compact = LocalCompactItemLayout.current
@@ -157,42 +212,89 @@ internal fun ProductivityItemHeader(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(identityModifier) { WhipIdentityEmoji(emoji) }
                 Spacer(Modifier.width(8.dp))
-                Text(
-                    text = itemName,
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    textDecoration = titleTextDecoration,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = itemName,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        textDecoration = titleTextDecoration,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (onCompactExpansionToggle != null && !compactExpanded) compactSummaryContent()
+                }
                 primaryAction?.let { action ->
                     Box(
                         modifier = primaryActionModifier.width(56.dp).heightIn(min = 48.dp),
                         contentAlignment = Alignment.Center,
                     ) { action() }
                 }
-                if (onEdit != null) ItemEditButton(itemType, itemName, onEdit, editModifier)
+                if (onCompactExpansionToggle != null) {
+                    IconButton(
+                        onClick = onCompactExpansionToggle,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .then(compactExpansionTag?.let(Modifier::testTag) ?: Modifier)
+                            .semantics {
+                                contentDescription = "${if (compactExpanded) "Collapse" else "Expand"} $itemType $itemName"
+                                stateDescription = if (compactExpanded) "Expanded" else "Collapsed"
+                            },
+                    ) {
+                        Icon(
+                            if (compactExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                            contentDescription = null,
+                        )
+                    }
+                } else if (onEdit != null) {
+                    ItemEditButton(itemType, itemName, onEdit, editModifier)
+                }
             }
-            // Compact is a reflowed layout, not a reduced-information state.
-            // Secondary content receives the full card width instead of sharing
-            // the narrow title lane with two trailing actions.
-            headlineAccessory?.let { accessory ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) { accessory() }
-            }
-            if (areaId != null) {
-                AreaBadge(areaId, areaName)
-                Column(content = supportingContent)
-            } else {
-                Column(content = supportingContent)
+            if (onCompactExpansionToggle == null || compactExpanded) {
+                if (onCompactExpansionToggle != null) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
+                    if (stacked) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            headlineAccessory?.let { accessory ->
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { accessory() }
+                            }
+                            if (areaId != null) AreaBadge(areaId, areaName)
+                            supportingContent()
+                            if (onCompactExpansionToggle != null && onEdit != null) {
+                                WhipTextButton(
+                                    onClick = onEdit,
+                                    modifier = editModifier
+                                        .fillMaxWidth()
+                                        .heightIn(min = 48.dp)
+                                        .semantics { contentDescription = "Edit $itemType $itemName" },
+                                ) {
+                                    Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(20.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Edit")
+                                }
+                            }
+                        }
+                    } else {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                headlineAccessory?.let { accessory ->
+                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { accessory() }
+                                }
+                                if (areaId != null) AreaBadge(areaId, areaName)
+                                supportingContent()
+                            }
+                            if (onCompactExpansionToggle != null && onEdit != null) {
+                                ItemEditButton(itemType, itemName, onEdit, editModifier)
+                            }
+                        }
+                    }
+                }
             }
         }
     } else {

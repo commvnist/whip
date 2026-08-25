@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -37,6 +38,8 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.MoreVert
@@ -76,6 +79,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -1600,6 +1604,17 @@ internal fun TrackRow(
     val dense = compact || userCompact
     val selectable = selectionMode && onSelectionToggle != null
     val latest = projection.entries.maxWithOrNull(compareBy<TrackEntryProjection> { it.entry.entryDate }.thenBy { it.entry.createdAtMillis })
+    if (dense && !selectable && !reordering) {
+        CompactTrackRow(
+            projection = projection,
+            latest = latest,
+            onOpen = onOpen,
+            onEdit = onEdit,
+            onAddEntry = onAddEntry,
+            onEnterSelection = onEnterSelection,
+        )
+        return
+    }
     Card(
         modifier = Modifier.fillMaxWidth().testTag("track-card-${projection.track.id}").combinedClickable(
             enabled = !reordering,
@@ -1675,6 +1690,144 @@ internal fun TrackRow(
                     enabled = !projection.track.archived,
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(if (projection.track.archived) "Archived" else projection.addEntryLabel()) }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun CompactTrackRow(
+    projection: TrackProjection,
+    latest: TrackEntryProjection?,
+    onOpen: (Long) -> Unit,
+    onEdit: (Long) -> Unit,
+    onAddEntry: (Long) -> Unit,
+    onEnterSelection: (() -> Unit)?,
+) {
+    val disclosure = rememberCompactItemDisclosure("track:${projection.track.id}")
+    val addLabel = if (projection.track.archived) "Archived" else projection.addEntryLabel()
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("track-card-${projection.track.id}")
+            .combinedClickable(
+                onClickLabel = "Open ${projection.track.name}",
+                onLongClickLabel = onEnterSelection?.let { "Select ${projection.track.name}" },
+                onClick = { onOpen(projection.track.id) },
+                onLongClick = onEnterSelection,
+            )
+            .semantics {
+                role = Role.Button
+                contentDescription = buildString {
+                    append("${projection.track.name}, ${projection.entries.size} Entries")
+                    latest?.let {
+                        append(", latest ${projection.primaryText(it)}, ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
+                    }
+                    append(". Open Track")
+                }
+            },
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                WhipIdentityEmoji(projection.track.icon)
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        projection.track.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        "${projection.track.area} · ${quantityLabel(projection.entries.size, "Entry")}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                IconButton(
+                    onClick = { onAddEntry(projection.track.id) },
+                    enabled = !projection.track.archived,
+                    modifier = Modifier.size(48.dp).testTag("track-primary-action-${projection.track.id}"),
+                ) {
+                    Icon(Icons.Outlined.Add, contentDescription = addLabel)
+                }
+                IconButton(
+                    onClick = disclosure.toggle,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .testTag("track-expand-${projection.track.id}")
+                        .semantics {
+                            contentDescription = "${if (disclosure.expanded) "Collapse" else "Expand"} Track ${projection.track.name}"
+                            stateDescription = if (disclosure.expanded) "Expanded" else "Collapsed"
+                        },
+                ) {
+                    Icon(
+                        if (disclosure.expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                        contentDescription = null,
+                    )
+                }
+            }
+            if (disclosure.expanded) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().testTag("track-expanded-${projection.track.id}"),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    latest?.let {
+                        Text(
+                            "Latest: ${projection.primaryText(it)} · ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    BoxWithConstraints(Modifier.fillMaxWidth()) {
+                        val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
+                        if (stacked) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                WhipOutlinedButton(
+                                    onClick = { onAddEntry(projection.track.id) },
+                                    enabled = !projection.track.archived,
+                                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                                ) { Icon(Icons.Outlined.Add, contentDescription = null); Spacer(Modifier.width(6.dp)); Text(addLabel) }
+                                WhipTextButton(
+                                    onClick = { onEdit(projection.track.id) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp)
+                                        .testTag("track-edit-action-${projection.track.id}")
+                                        .semantics { contentDescription = "Edit Track ${projection.track.name}" },
+                                ) { Icon(Icons.Outlined.Edit, contentDescription = null); Spacer(Modifier.width(6.dp)); Text("Edit") }
+                            }
+                        } else {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                WhipOutlinedButton(
+                                    onClick = { onAddEntry(projection.track.id) },
+                                    enabled = !projection.track.archived,
+                                    modifier = Modifier.weight(1f).height(48.dp),
+                                ) { Icon(Icons.Outlined.Add, contentDescription = null); Spacer(Modifier.width(6.dp)); Text(addLabel) }
+                                WhipTextButton(
+                                    onClick = { onEdit(projection.track.id) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp)
+                                        .testTag("track-edit-action-${projection.track.id}")
+                                        .semantics { contentDescription = "Edit Track ${projection.track.name}" },
+                                ) { Icon(Icons.Outlined.Edit, contentDescription = null); Spacer(Modifier.width(6.dp)); Text("Edit") }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

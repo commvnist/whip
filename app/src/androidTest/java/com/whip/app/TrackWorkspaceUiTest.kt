@@ -10,6 +10,7 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -203,13 +204,27 @@ class TrackWorkspaceUiTest {
         compose.waitForIdle()
 
         val compactHeight = compose.onNodeWithTag("track-card-3").getUnclippedBoundsInRoot().let { it.bottom - it.top }
+        assertTrue("Collapsed compact Track row should be list-sized: $compactHeight", compactHeight <= 80.dp)
         assertTrue("Compact Track row should be shorter: $standardHeight vs $compactHeight", compactHeight < standardHeight)
         assertTrue(
-            "Compact Track edit action must retain a 48 dp target",
-            compose.onNodeWithTag("track-edit-action-3", useUnmergedTree = true).getUnclippedBoundsInRoot().let { it.bottom - it.top } >= 48.dp,
+            "Compact Track primary action must retain a 48 dp target",
+            compose.onNodeWithTag("track-primary-action-3", useUnmergedTree = true).getUnclippedBoundsInRoot().let { it.bottom - it.top } >= 48.dp,
         )
+        compose.onAllNodesWithText("Latest:", substring = true).assertCountEquals(0)
+        compose.onAllNodesWithText("Add Title").assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("Edit Track Movies").assertCountEquals(0)
+
+        compose.onNodeWithContentDescription("Add Title").performClick()
+        compose.onAllNodesWithText("Latest:", substring = true).assertCountEquals(0)
+        compose.onNodeWithTag("track-expand-3", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Latest:", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("Add Title").performClick()
+        compose.onNodeWithText("Add Title").assertIsDisplayed()
+        val compactEditHeight = compose.onNodeWithTag("track-edit-action-3", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot().let { it.bottom - it.top }
+        assertTrue(
+            "Expanded compact Track edit action must retain a 48 dp target: $compactEditHeight",
+            compactEditHeight >= 48.dp - 0.01.dp,
+        )
         compose.onNodeWithContentDescription("Edit Track Movies").performClick()
         compose.runOnIdle {
             assertTrue(addedTrackId == 3L)
