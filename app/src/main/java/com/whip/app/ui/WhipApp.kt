@@ -145,6 +145,7 @@ import com.whip.app.core.OperationStatus
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.TaskQuickCaptureParser
 import com.whip.app.domain.Area
 import com.whip.app.domain.AreaScope
 import com.whip.app.domain.matches
@@ -3665,6 +3666,20 @@ private fun TaskAreaContent(
     var quickCapture by rememberSaveable { mutableStateOf("") }
     var quickCaptureSubmitting by rememberSaveable { mutableStateOf(false) }
     var submittedQuickCapture by rememberSaveable { mutableStateOf("") }
+    val quickCaptureAssumptions = remember(
+        quickCapture,
+        state.currentDate,
+        appSettings.naturalLanguageTaskCapture,
+    ) {
+        if (appSettings.naturalLanguageTaskCapture) {
+            TaskQuickCaptureParser.parse(quickCapture, state.currentDate).assumptions
+        } else {
+            emptyList()
+        }
+    }
+    val quickCaptureStateDescription = quickCaptureAssumptions.smartCaptureStateDescription(
+        "These highlighted phrases will be applied when the Task is added",
+    )
     val workspaceDestination = destination.toWorkspaceRoute().destination
     LaunchedEffect(selectionMode) {
         onSelectionModeChange(selectionMode)
@@ -4118,6 +4133,11 @@ private fun TaskAreaContent(
                         value = quickCapture,
                         onValueChange = { quickCapture = it },
                         label = { Text("Quick Capture to ${destination.label}") },
+                        visualTransformation = SmartTaskCaptureVisualTransformation(
+                            assumptions = quickCaptureAssumptions,
+                            highlightColor = MaterialTheme.colorScheme.primaryContainer,
+                            highlightedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
                         trailingIcon = {
                             IconButton(
                                 enabled = quickCapture.isNotBlank() && !quickCaptureSubmitting,
@@ -4129,7 +4149,18 @@ private fun TaskAreaContent(
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { submitQuickCapture() }),
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag("task-quick-capture"),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics {
+                                quickCaptureStateDescription?.let { stateDescription = it }
+                            }
+                            .testTag("task-quick-capture"),
+                    )
+                    SmartTaskCapturePreview(
+                        assumptions = quickCaptureAssumptions,
+                        actionText = "Highlighted phrases will be applied when you add this Task. Parsing stays on this device.",
+                        modifier = Modifier.fillMaxWidth(),
+                        testTag = "smart-task-quick-preview",
                     )
                     if (quickCapture.isNotBlank() || quickCaptureSubmitting) Row(
                         Modifier.fillMaxWidth(),

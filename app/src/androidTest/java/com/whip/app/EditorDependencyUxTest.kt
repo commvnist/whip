@@ -3,9 +3,11 @@ package com.whip.app.ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -16,7 +18,10 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import com.whip.app.domain.RecurrenceAnchor
+import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TaskDraft
 import com.whip.app.ui.theme.WhipTheme
@@ -49,6 +54,54 @@ class EditorDependencyUxTest {
         compose.onNodeWithText("Save").assertIsEnabled().performClick()
         compose.onNodeWithText("Enter a Task title to save.").assertIsDisplayed()
         compose.runOnIdle { assertEquals(null, saved.get()) }
+    }
+
+    @Test
+    fun smartCaptureHighlightsPreviewsAndAppliesEverySupportedDetailBeforeSave() {
+        val saved = AtomicReference<TaskDraft?>(null)
+        val today = LocalDate.of(2026, 8, 25)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                TaskEditorDialog(
+                    request = TaskEditorRequest(sessionId = 22L),
+                    onDismiss = {},
+                    onSave = { _, draft, _ -> saved.set(draft) },
+                    onRequestNotificationPermission = {},
+                    naturalLanguageCapture = true,
+                    today = today,
+                )
+            }
+        }
+
+        compose.onNodeWithTag("task-editor-title").performTextInput(
+            "Plan launch every 2 weeks on 2026-09-01 deadline 2026-10-01",
+        )
+        compose.onNodeWithTag("task-editor-title").assert(
+            SemanticsMatcher("describes every highlighted Smart Capture assumption") { node ->
+                val description = node.config[SemanticsProperties.StateDescription]
+                listOf("every 2 weeks", "2026-09-01", "2026-10-01").all(description::contains)
+            },
+        )
+        compose.onNodeWithTag("smart-task-editor-preview").assertIsDisplayed()
+        compose.onNodeWithText("Repeat · every 2 weeks").assertIsDisplayed()
+        compose.onNodeWithText("Schedule · 2026-09-01").assertIsDisplayed()
+        compose.onNodeWithText("Deadline · 2026-10-01").assertIsDisplayed()
+
+        compose.onNodeWithTag("smart-task-capture-apply").performClick()
+        compose.onNodeWithTag("task-editor-title").assertTextContains("Plan launch")
+        compose.onNodeWithTag("smart-task-capture-applied").assertIsDisplayed()
+        compose.onNodeWithText("Save").performClick()
+
+        compose.runOnIdle {
+            val draft = requireNotNull(saved.get())
+            assertEquals("Plan launch", draft.title)
+            assertEquals(ScheduleKind.Recurring, draft.scheduleKind)
+            assertEquals(null, draft.date)
+            assertEquals(LocalDate.of(2026, 9, 1), draft.recurrence?.startDate)
+            assertEquals(RecurrenceUnit.Weeks, draft.recurrence?.unit)
+            assertEquals(2, draft.recurrence?.interval)
+            assertEquals(LocalDate.of(2026, 10, 1), draft.deadline)
+        }
     }
 
     @Test

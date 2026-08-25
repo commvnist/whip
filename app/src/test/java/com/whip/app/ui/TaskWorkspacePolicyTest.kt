@@ -1,6 +1,7 @@
 package com.whip.app.ui
 
 import com.whip.app.core.SavedTaskFilter
+import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.ScheduleKind
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -145,6 +146,46 @@ class TaskWorkspacePolicyTest {
         assertEquals(null, draft.date)
         assertEquals(true, draft.inbox)
         assertEquals(listOf("Draft outline", "Review figures"), draft.steps.map { it.title })
+    }
+
+    @Test
+    fun enabledSmartCaptureAppliesOnlyRecognizedAssumptions() {
+        val today = LocalDate.of(2026, 8, 25)
+        val draft = requireNotNull(
+            buildQuickAddTaskDraft(
+                capture = "Prepare report every 2 weeks on 2026-09-01 deadline 2026-10-01",
+                defaultDate = null,
+                areaId = "work",
+                smartCaptureToday = today,
+            ),
+        )
+
+        assertEquals("Prepare report", draft.title)
+        assertEquals(ScheduleKind.Recurring, draft.scheduleKind)
+        assertEquals(null, draft.date)
+        assertEquals(LocalDate.of(2026, 9, 1), draft.recurrence?.startDate)
+        assertEquals(RecurrenceUnit.Weeks, draft.recurrence?.unit)
+        assertEquals(2, draft.recurrence?.interval)
+        assertEquals(LocalDate.of(2026, 10, 1), draft.deadline)
+        assertEquals(false, draft.inbox)
+        assertEquals("work", draft.areaId)
+    }
+
+    @Test
+    fun enabledSmartCaptureKeepsDestinationDefaultsWhenNothingIsRecognized() {
+        val today = LocalDate.of(2026, 8, 25)
+        val draft = requireNotNull(
+            buildQuickAddTaskDraft(
+                capture = "Discuss tomorrow's release",
+                defaultDate = today,
+                areaId = null,
+                smartCaptureToday = today,
+            ),
+        )
+
+        assertEquals("Discuss tomorrow's release", draft.title)
+        assertEquals(ScheduleKind.Once, draft.scheduleKind)
+        assertEquals(today, draft.date)
     }
 
     @Test

@@ -476,13 +476,38 @@ internal fun SettingsContent(
         }
         item { SettingsDropdown("Repeating-task subtask default", RepeatStepPolicy.entries, settings.defaultTaskStepPolicy, RepeatStepPolicy::uiLabel) { value -> viewModel.update { it.copy(defaultTaskStepPolicy = value) } } }
         item {
-            SettingsToggle("Enable smart task capture", settings.naturalLanguageTaskCapture) { value ->
-                viewModel.update { it.copy(naturalLanguageTaskCapture = value) }
-            }
+            SettingsToggle(
+                label = "Enable Smart Task Capture",
+                checked = settings.naturalLanguageTaskCapture,
+                modifier = Modifier.testTag("settings-smart-task-capture"),
+            ) { value -> viewModel.update { it.copy(naturalLanguageTaskCapture = value) } }
             Text(
-                "Adds an explicit parser for phrases such as “tomorrow”, “every 2 weeks”, and ISO dates. It never sends task text off-device.",
+                "Recognized date, repeat, and Deadline phrases are highlighted before anything changes. Quick Capture applies the visible assumptions when you add; Add Details lets you review and apply them explicitly. Parsing stays on this device.",
                 style = MaterialTheme.typography.bodySmall,
             )
+            if (settings.naturalLanguageTaskCapture) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp).testTag("smart-task-capture-examples"),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text("Try Smart Capture", fontWeight = FontWeight.Bold)
+                        Text("Send the report tomorrow", style = MaterialTheme.typography.bodyMedium)
+                        Text("Review the budget next Friday", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Take medication every Monday, Wednesday and Friday",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Text(
+                            "You can also use on 2026-09-01 or deadline 2026-09-05. Only highlighted phrases are interpreted.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
         }
         item { SettingsHeading("Habit Defaults") }
         item {

@@ -162,7 +162,14 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         areaId: String?,
         onFinished: (Boolean) -> Unit = {},
     ) {
-        val draft = buildQuickAddTaskDraft(capture, defaultDate, areaId)
+        val settings = app.settingsRepository.current()
+        val draft = buildQuickAddTaskDraft(
+            capture = capture,
+            defaultDate = defaultDate,
+            areaId = areaId,
+            smartCaptureToday = clock.today(settings.zoneId())
+                .takeIf { settings.naturalLanguageTaskCapture },
+        )
         if (draft == null) {
             onFinished(false)
             return

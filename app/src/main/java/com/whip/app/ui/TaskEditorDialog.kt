@@ -244,6 +244,17 @@ fun TaskEditorDialog(
         mutableStateOf(initialRule?.anchor ?: RecurrenceAnchor.Schedule)
     }
     var smartCaptureSummary by rememberSaveable(editorKey) { mutableStateOf<String?>(null) }
+    val smartCapturePreview = remember(title, today, naturalLanguageCapture, request.task) {
+        if (naturalLanguageCapture && request.task == null) {
+            TaskQuickCaptureParser.parse(title, today)
+        } else {
+            null
+        }
+    }
+    val smartCaptureAssumptions = smartCapturePreview?.assumptions.orEmpty()
+    val smartCaptureStateDescription = smartCaptureAssumptions.smartCaptureStateDescription(
+        "These highlighted phrases are a preview and are only applied when Apply Highlighted Details is selected",
+    )
     val stepDraftSaver = listSaver<List<TaskStepDraft>, Any>(
         save = { drafts -> drafts.flatMap { listOf(it.id ?: Long.MIN_VALUE, it.title, it.position, it.notes) } },
         restore = { saved -> saved.chunked(4).map { values ->
@@ -337,13 +348,13 @@ fun TaskEditorDialog(
             (recurrenceEnd != RecurrenceEnd.OnDate || !endDate.isBefore(mainDate)) &&
             (recurrenceEnd != RecurrenceEnd.AfterCount || (count ?: 0) > 0)
         )
-    val deadlineValid = !hasDeadline || scheduleKind != ScheduleKind.Once || !deadline.isBefore(mainDate)
+    val deadlineValid = !hasDeadline || scheduleKind == ScheduleKind.Anytime || !deadline.isBefore(mainDate)
     val canSave = title.isNotBlank() && recurrenceValid && deadlineValid &&
         (!reminderEnabled || reminderOffsets.isNotEmpty())
     val saveProblem = when {
         title.isBlank() -> "Enter a Task title to save."
         !recurrenceValid -> "Finish the Repeat settings to save."
-        !deadlineValid -> "Deadline cannot be before the Scheduled Date."
+        !deadlineValid -> "Deadline cannot be before the Task's scheduled start."
         reminderEnabled && reminderOffsets.isEmpty() -> "Choose at least one reminder time."
         else -> null
     }
@@ -379,7 +390,7 @@ fun TaskEditorDialog(
         progressDisplay = progressDisplay, autoCompleteFromSteps = autoCompleteFromSteps,
         repeatStepPolicy = repeatStepPolicy, priority = priority, areaId = areaId, area = area.trim(),
         tags = tagsText.split(',').map(String::trim).filter(String::isNotBlank).toSet(),
-        deadline = deadline.takeIf { scheduleKind == ScheduleKind.Once && hasDeadline },
+        deadline = deadline.takeIf { scheduleKind != ScheduleKind.Anytime && hasDeadline },
         reminderOffsetsMinutes = reminderOffsets.toList().takeIf { scheduleKind != ScheduleKind.Anytime }.orEmpty(),
         missedOccurrencePolicy = missedOccurrencePolicy,
         inbox = scheduleKind == ScheduleKind.Anytime,
@@ -510,6 +521,7 @@ fun TaskEditorDialog(
                         onValueChange = { entered ->
                             val lines = entered.lines()
                             title = lines.firstOrNull().orEmpty()
+                            smartCaptureSummary = null
                             val pastedSteps = lines.drop(1).map(String::trim).filter(String::isNotBlank)
                             if (pastedSteps.isNotEmpty()) {
                                 stepDrafts = (stepDrafts + pastedSteps.mapIndexed { index, step ->
@@ -519,27 +531,31 @@ fun TaskEditorDialog(
                                 showAdvanced = true
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().focusRequester(titleFocusRequester).testTag("task-editor-title"),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(titleFocusRequester)
+                            .semantics {
+                                smartCaptureStateDescription?.let { stateDescription = it }
+                            }
+                            .testTag("task-editor-title"),
                         label = { Text("Task") },
+                        visualTransformation = SmartTaskCaptureVisualTransformation(
+                            assumptions = smartCaptureAssumptions,
+                            highlightColor = MaterialTheme.colorScheme.primaryContainer,
+                            highlightedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
                         singleLine = true,
                     )
-                    WhipEmojiPicker(
-                        value = icon,
-                        defaultEmoji = DEFAULT_TASK_EMOJI,
-                        onValueChange = { icon = it },
+                    SmartTaskCapturePreview(
+                        assumptions = smartCaptureAssumptions,
+                        actionText = "Highlighted phrases are only a preview here. Apply them to update this Task's schedule.",
                         modifier = Modifier.fillMaxWidth(),
-                        customEmojis = customIdentityEmojis,
-                        onSaveEmoji = onSaveIdentityEmoji,
-                        onRemoveSavedEmoji = onRemoveSavedIdentityEmoji,
+                        testTag = "smart-task-editor-preview",
                     )
-                    if (request.task == null) {
-                        WhipTextButton(onClick = { recipesOpen = true }) { Text("Use a Template") }
-                    }
-                    if (naturalLanguageCapture && request.task == null) {
-                        WhipTextButton(
-                            enabled = title.isNotBlank(),
+                    if (smartCaptureAssumptions.isNotEmpty()) {
+                        WhipOutlinedButton(
                             onClick = {
-                                val parsed = TaskQuickCaptureParser.parse(title, today)
+                                val parsed = requireNotNull(smartCapturePreview)
                                 title = parsed.title
                                 scheduleKind = parsed.scheduleKind
                                 parsed.date?.let { mainDate = it }
@@ -552,15 +568,33 @@ fun TaskEditorDialog(
                                     hasDeadline = true
                                     deadline = it
                                 }
-                                smartCaptureSummary = parsed.recognized.takeIf { it.isNotEmpty() }
-                                    ?.joinToString(prefix = "Applied: ")
-                                    ?: "No supported date or repeat phrase found"
+                                smartCaptureSummary = parsed.recognized.joinToString(
+                                    prefix = "Applied · ",
+                                    separator = " · ",
+                                )
                             },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text("Apply Smart Date and Repeat") }
-                        smartCaptureSummary?.let {
-                            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                        }
+                            modifier = Modifier.fillMaxWidth().testTag("smart-task-capture-apply"),
+                        ) { Text("Apply Highlighted Details") }
+                    }
+                    smartCaptureSummary?.let {
+                        Text(
+                            it,
+                            modifier = Modifier.testTag("smart-task-capture-applied"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    WhipEmojiPicker(
+                        value = icon,
+                        defaultEmoji = DEFAULT_TASK_EMOJI,
+                        onValueChange = { icon = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        customEmojis = customIdentityEmojis,
+                        onSaveEmoji = onSaveIdentityEmoji,
+                        onRemoveSavedEmoji = onRemoveSavedIdentityEmoji,
+                    )
+                    if (request.task == null) {
+                        WhipTextButton(onClick = { recipesOpen = true }) { Text("Use a Template") }
                     }
                     EditorSectionHeader("Schedule", "Choose when this Task belongs; related repeat, date, time, and reminder controls stay together.")
                     FieldLabel("When")
@@ -635,7 +669,7 @@ fun TaskEditorDialog(
                         )
                     }
 
-                    if (scheduleKind == ScheduleKind.Once) {
+                    if (scheduleKind != ScheduleKind.Anytime) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -644,7 +678,11 @@ fun TaskEditorDialog(
                             Column(Modifier.weight(1f)) {
                                 FieldLabel("Separate Deadline")
                                 Text(
-                                    "Plan work on one date and keep the final Deadline visible.",
+                                    if (scheduleKind == ScheduleKind.Once) {
+                                        "Plan work on one date and keep the final Deadline visible."
+                                    } else {
+                                        "Keep one final Deadline visible across this repeating series."
+                                    },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )

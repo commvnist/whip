@@ -6,11 +6,14 @@ import android.content.Intent
 import android.os.Build
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -19,6 +22,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -27,6 +32,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
+import com.whip.app.domain.RecurrenceUnit
+import com.whip.app.domain.ScheduleKind
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -53,7 +60,11 @@ class ProductivityCreationJourneyE2ETest {
         }
         app.backupRepository.deleteAllData()
         app.settingsRepository.update {
-            it.copy(setupCompleted = true, powerMode = false)
+            it.copy(
+                setupCompleted = true,
+                powerMode = false,
+                naturalLanguageTaskCapture = false,
+            )
         }
     }
 
@@ -198,12 +209,128 @@ class ProductivityCreationJourneyE2ETest {
         }
     }
 
+    @Test
+    fun smartTaskCaptureExplainsHighlightsPersistsAndReversesThroughTheRealUi() {
+        val intent = Intent(app, MainActivity::class.java)
+            .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
+        launchMainActivity(intent).use {
+            compose.waitForIdle()
+
+            openPlanningSettings()
+            compose.onNodeWithTag("settings-list")
+                .performScrollToNode(hasTestTag("settings-smart-task-capture"))
+            compose.onNodeWithTag("settings-smart-task-capture").performClick()
+            compose.waitUntil(5_000) { app.settingsRepository.current().naturalLanguageTaskCapture }
+            compose.onNodeWithTag("smart-task-capture-examples").assertIsDisplayed()
+            compose.onNodeWithText("Send the report tomorrow").assertIsDisplayed()
+            compose.onNodeWithText("Review the budget next Friday").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Close Settings").performClick()
+
+            compose.onNodeWithContentDescription("Tasks tab").performClick()
+            val today = app.clock.today()
+            val deadline = today.plusDays(7)
+            compose.onNodeWithTag("task-quick-capture").performTextReplacement(
+                "Write report tomorrow deadline $deadline",
+            )
+            compose.onNodeWithTag("task-quick-capture").assert(
+                SemanticsMatcher("announces the assumptions applied by Quick Capture") { node ->
+                    val description = node.config[SemanticsProperties.StateDescription]
+                    description.contains("Tomorrow") && description.contains(deadline.toString()) &&
+                        description.contains("will be applied")
+                },
+            )
+            compose.onNodeWithTag("smart-task-quick-preview").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Add task now").performClick()
+
+            val smartTask = runBlocking {
+                awaitPersistence("smart-captured task") {
+                    app.taskRepository.tasks.first { tasks -> tasks.any { task -> task.title == "Write report" } }
+                        .single { task -> task.title == "Write report" }
+                }
+            }
+            check(smartTask.scheduleKind == ScheduleKind.Once)
+            check(smartTask.date == today.plusDays(1))
+            check(smartTask.deadline == deadline)
+            check(!smartTask.inbox)
+
+            openPlanningSettings()
+            compose.onNodeWithTag("settings-list")
+                .performScrollToNode(hasTestTag("settings-smart-task-capture"))
+            compose.onNodeWithTag("settings-smart-task-capture").performClick()
+            compose.waitUntil(5_000) { !app.settingsRepository.current().naturalLanguageTaskCapture }
+            compose.onAllNodesWithTag("smart-task-capture-examples").assertCountEquals(0)
+            compose.onNodeWithContentDescription("Close Settings").performClick()
+
+            compose.onNodeWithTag("task-quick-capture").performTextReplacement("Literal task tomorrow")
+            compose.onAllNodesWithTag("smart-task-quick-preview").assertCountEquals(0)
+            compose.onNodeWithContentDescription("Add task now").performClick()
+            val literalTask = runBlocking {
+                awaitPersistence("literal task after Smart Capture was disabled") {
+                    app.taskRepository.tasks.first { tasks -> tasks.any { task -> task.title == "Literal task tomorrow" } }
+                        .single { task -> task.title == "Literal task tomorrow" }
+                }
+            }
+            check(literalTask.scheduleKind == ScheduleKind.Once)
+            check(literalTask.date == today)
+
+            openPlanningSettings()
+            compose.onNodeWithTag("settings-list")
+                .performScrollToNode(hasTestTag("settings-smart-task-capture"))
+            compose.onNodeWithTag("settings-smart-task-capture").performClick()
+            compose.waitUntil(5_000) { app.settingsRepository.current().naturalLanguageTaskCapture }
+            compose.onNodeWithContentDescription("Close Settings").performClick()
+
+            val seriesStart = today.plusDays(2)
+            compose.onNodeWithTag("task-quick-capture").performTextReplacement(
+                "Review metrics every 2 weeks on $seriesStart",
+            )
+            compose.onNodeWithText("Add Details").performClick()
+            compose.onNodeWithTag("smart-task-editor-preview").assertIsDisplayed()
+            compose.onNodeWithTag("smart-task-capture-apply").performClick()
+            compose.onNodeWithText("Save").performClick()
+            val repeatingTask = runBlocking {
+                awaitPersistence("reviewed Smart Capture task") {
+                    app.taskRepository.tasks.first { tasks -> tasks.any { task -> task.title == "Review metrics" } }
+                        .single { task -> task.title == "Review metrics" }
+                }
+            }
+            check(repeatingTask.scheduleKind == ScheduleKind.Recurring)
+            val recurrence = requireNotNull(repeatingTask.recurrence)
+            check(recurrence.unit == RecurrenceUnit.Weeks)
+            check(recurrence.interval == 2)
+            check(recurrence.startDate == seriesStart)
+        }
+    }
+
     private fun selectDestination(testTag: String, label: String) {
         if (compose.onAllNodesWithTag(testTag).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithTag(testTag).performSemanticsAction(SemanticsActions.OnClick)
         } else {
             compose.onNodeWithContentDescription("Open Pages").performClick()
             compose.onNodeWithText(label).performClick()
+        }
+        compose.waitForIdle()
+    }
+
+    private fun openPlanningSettings() {
+        if (compose.onAllNodesWithContentDescription("Open Settings").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithContentDescription("Open Settings").performClick()
+        } else {
+            compose.onNodeWithContentDescription("App actions").performClick()
+            compose.onNodeWithText("Open Settings").performClick()
+        }
+        when {
+            compose.onAllNodesWithTag("settings-category-list").fetchSemanticsNodes().isNotEmpty() -> {
+                compose.onNodeWithTag("settings-category-list")
+                    .performScrollToNode(hasTestTag("settings-section-Planning & Units"))
+                compose.onNodeWithTag("settings-section-Planning & Units").performClick()
+            }
+            compose.onAllNodesWithTag("settings-support-list").fetchSemanticsNodes().isNotEmpty() -> {
+                compose.onNodeWithTag("settings-support-list")
+                    .performScrollToNode(hasTestTag("settings-support-section-Planning & Units"))
+                compose.onNodeWithTag("settings-support-section-Planning & Units").performClick()
+            }
+            else -> compose.onNodeWithTag("settings-section-Planning & Units").performClick()
         }
         compose.waitForIdle()
     }

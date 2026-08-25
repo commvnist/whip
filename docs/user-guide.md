@@ -130,11 +130,15 @@ reaches 8; Review, reminder suppression, linked Goals, and streaks use that
 single period outcome rather than counting six entries as six successes.
 
 Smart task capture is disabled by default. When enabled in **Settings →
-Planning & Units → Task Defaults**, **Apply
-smart date and repeat** recognizes explicit local phrases such as `tomorrow`,
-`next Friday`, `every 2 months`, `on 2026-09-01`, and `deadline 2026-09-05`.
-The parser is deterministic, only runs when tapped, and never sends title text
-off the device.
+Planning & Units → Task Defaults**, Whip highlights the exact words it recognizes
+and shows the resulting schedule, repeat, or Deadline assumptions before saving.
+Quick Capture applies those visible assumptions when you tap Add. **Add Details**
+keeps them as a preview until you tap **Apply Highlighted Details**. Supported
+phrases include `today`, `tomorrow`, `next Friday`, `every 2 months`, selected
+weekdays, `on 2026-09-01`, and `deadline 2026-09-05`. Invalid dates, invalid
+intervals, and unsupported text remain part of the title instead of being
+silently interpreted. The parser is deterministic and never sends title text
+off the device. Examples appear directly below the setting while it is enabled.
 
 ## Workout calculations
 

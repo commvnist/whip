@@ -5,6 +5,7 @@ import com.whip.app.core.normalizedNavigation
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.TaskQuickCaptureParser
 import com.whip.app.domain.TaskStepDraft
 import java.time.LocalDate
 
@@ -121,17 +122,25 @@ internal fun buildQuickAddTaskDraft(
     capture: String,
     defaultDate: LocalDate?,
     areaId: String?,
+    smartCaptureToday: LocalDate? = null,
 ): TaskDraft? {
     val lines = capture.lineSequence().map(String::trim).filter(String::isNotBlank).toList()
     if (lines.isEmpty()) return null
-    // Quick Capture is deliberately literal. Natural-language parsing is an explicit,
-    // previewed action in the full editor so saving never changes the user's words or dates
-    // behind their back.
-    val scheduleKind = if (defaultDate == null) ScheduleKind.Anytime else ScheduleKind.Once
+    val parsed = smartCaptureToday
+        ?.let { today -> TaskQuickCaptureParser.parse(lines.first(), today) }
+        ?.takeIf { it.assumptions.isNotEmpty() }
+    val scheduleKind = parsed?.scheduleKind
+        ?: if (defaultDate == null) ScheduleKind.Anytime else ScheduleKind.Once
     return TaskDraft(
-        title = lines.first(),
+        title = parsed?.title ?: lines.first(),
         scheduleKind = scheduleKind,
-        date = defaultDate,
+        date = if (parsed == null) {
+            defaultDate
+        } else {
+            parsed.date.takeIf { scheduleKind == ScheduleKind.Once }
+        },
+        recurrence = parsed?.recurrence,
+        deadline = parsed?.deadline,
         areaId = areaId,
         inbox = scheduleKind == ScheduleKind.Anytime,
         steps = lines.drop(1).mapIndexed { index, title ->
