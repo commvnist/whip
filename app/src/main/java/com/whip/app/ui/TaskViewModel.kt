@@ -45,7 +45,6 @@ enum class TaskDestination {
     Inbox,
     Today,
     Upcoming,
-    Anytime,
     Completed,
     Archived,
 }
@@ -54,7 +53,6 @@ data class TaskUiState(
     val inbox: List<ScheduledTask> = emptyList(),
     val today: List<ScheduledTask> = emptyList(),
     val upcoming: List<ScheduledTask> = emptyList(),
-    val anytime: List<ScheduledTask> = emptyList(),
     val completed: List<ScheduledTask> = emptyList(),
     val archived: List<ScheduledTask> = emptyList(),
     val planning: List<ScheduledTask> = emptyList(),
@@ -158,11 +156,10 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     fun quickAddTask(
         capture: String,
         defaultDate: LocalDate?,
-        inbox: Boolean,
         areaId: String?,
         onFinished: (Boolean) -> Unit = {},
     ) {
-        val draft = buildQuickAddTaskDraft(capture, defaultDate, inbox, areaId)
+        val draft = buildQuickAddTaskDraft(capture, defaultDate, areaId)
         if (draft == null) {
             onFinished(false)
             return
@@ -289,12 +286,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         runOperation("Updating task…", "Task updated") { repository.setPinned(taskId, pinned) }
     }
 
-    fun setInbox(taskId: Long, inbox: Boolean) {
-        runOperation("Updating Inbox…", if (inbox) "Moved to Inbox" else "Task triaged") {
-            repository.setInbox(taskId, inbox)
-        }
-    }
-
     fun duplicate(taskId: Long) {
         runOperation("Duplicating task…", "Copy added to Inbox") { repository.duplicate(taskId) }
     }
@@ -317,12 +308,11 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             "Planning today…",
             "${selected.size} tasks added to Today · $selectedMinutes min of $capacityMinutes daily capacity$assumption",
         ) {
-            val inboxTaskIds = selected.filter { it.task.inbox }.mapTo(linkedSetOf()) { it.task.id }
             repository.planAll(selected, clock.today())
             selected.map { it.task.id }.distinct().forEach { reminders.syncTask(it) }
             offerUndo(
                 "Plan My Day can be undone",
-                TaskUndoAction.PlanMyDay(selected, inboxTaskIds),
+                TaskUndoAction.PlanMyDay(selected),
             )
         }
     }
@@ -407,7 +397,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                 is TaskUndoAction.Restore -> action.taskIds.forEach { repository.restore(it) }
                 is TaskUndoAction.DeleteCreated -> repository.deletePermanently(action.taskId)
                 is TaskUndoAction.PlanMyDay -> {
-                    repository.restorePlan(action.items, action.originalInboxTaskIds)
+                    repository.restorePlan(action.items)
                 }
                 is TaskUndoAction.Promote -> repository.undoPromoteStep(
                     action.promotedTaskId,
@@ -483,7 +473,6 @@ private sealed interface TaskUndoAction {
     data class DeleteCreated(val taskId: Long) : TaskUndoAction
     data class PlanMyDay(
         val items: List<ScheduledTask>,
-        val originalInboxTaskIds: Set<Long>,
     ) : TaskUndoAction
     data class Promote(
         val promotedTaskId: Long,
@@ -520,7 +509,6 @@ internal fun buildUiState(
     val inboxItems = mutableListOf<ScheduledTask>()
     val todayItems = mutableListOf<ScheduledTask>()
     val upcomingItems = mutableListOf<ScheduledTask>()
-    val anytimeItems = mutableListOf<ScheduledTask>()
     val completedItems = mutableListOf<ScheduledTask>()
     val archivedItems = mutableListOf<ScheduledTask>()
     val planningItems = mutableListOf<ScheduledTask>()
@@ -622,8 +610,11 @@ internal fun buildUiState(
 
         when (task.scheduleKind) {
             ScheduleKind.Anytime -> {
-                val item = ScheduledTask(task, null, null).withStepProgress()
-                if (task.inbox) inboxItems += item else anytimeItems += item
+                // `ScheduleKind.Anytime` remains the persisted, backward-compatible
+                // representation of "no date". Inbox is now the single product surface
+                // for every undated Task, including records created before consolidation.
+                val item = ScheduledTask(task.copy(inbox = true), null, null).withStepProgress()
+                inboxItems += item
             }
             ScheduleKind.Once -> {
                 val date = requireNotNull(task.date)
@@ -792,7 +783,6 @@ internal fun buildUiState(
                 .thenBy { it.task.createdAtMillis },
         ),
         upcoming = sortedUpcoming,
-        anytime = anytimeItems.sortedWith(compareByDescending<ScheduledTask> { it.task.pinned }.thenByDescending { it.task.priority.ordinal }.thenBy { it.task.createdAtMillis }),
         completed = completedItems
             .sortedByDescending(ScheduledTask::completedAtMillis),
         archived = archivedItems.sortedByDescending { it.task.updatedAtMillis },

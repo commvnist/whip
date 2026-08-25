@@ -268,7 +268,7 @@ fun WhipApp(
         if (state.loading || habitState.loading || goalState.loading) return@LaunchedEffect
         val targetAreaId = when (initialAction) {
             WhipLaunchActions.ACTION_OPEN_TASK ->
-                (state.inbox + state.today + state.upcoming + state.planning + state.anytime + state.completed + state.archived)
+                (state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived)
                     .firstOrNull { it.task.id == initialEntityId }?.task?.areaId
             WhipLaunchActions.ACTION_OPEN_HABIT ->
                 (habitState.today + habitState.all).firstOrNull { it.habit.id == initialEntityId }?.habit?.areaId
@@ -375,11 +375,11 @@ fun WhipApp(
             onSaveTaskWithResult = { id, draft, from, onFinished ->
                 taskViewModel.saveTask(id, draft, from, onFinished)
             },
-            onQuickAddTask = { capture, date, inbox, areaId ->
-                taskViewModel.quickAddTask(capture, date, inbox, areaId)
+            onQuickAddTask = { capture, date, areaId ->
+                taskViewModel.quickAddTask(capture, date, areaId)
             },
-            onQuickAddTaskWithResult = { capture, date, inbox, areaId, onFinished ->
-                taskViewModel.quickAddTask(capture, date, inbox, areaId, onFinished)
+            onQuickAddTaskWithResult = { capture, date, areaId, onFinished ->
+                taskViewModel.quickAddTask(capture, date, areaId, onFinished)
             },
             onComplete = taskViewModel::complete,
             onSkip = taskViewModel::skip,
@@ -404,7 +404,6 @@ fun WhipApp(
             onBulkEditTasks = taskViewModel::editAll,
             onReorderTasks = taskViewModel::reorder,
             onPlanMyDay = taskViewModel::planMyDay,
-            onSetTaskInbox = taskViewModel::setInbox,
             onDuplicateTask = taskViewModel::duplicate,
             onRequestNotificationPermission = onRequestNotificationPermission,
             initialAction = initialAction,
@@ -468,9 +467,9 @@ fun WhipScreen(
         onSaveTask(id, draft, from)
         onFinished(true)
     },
-    onQuickAddTask: (String, LocalDate?, Boolean, String?) -> Unit = { _, _, _, _ -> },
-    onQuickAddTaskWithResult: (String, LocalDate?, Boolean, String?, (Boolean) -> Unit) -> Unit = { capture, date, inbox, areaId, onFinished ->
-        onQuickAddTask(capture, date, inbox, areaId)
+    onQuickAddTask: (String, LocalDate?, String?) -> Unit = { _, _, _ -> },
+    onQuickAddTaskWithResult: (String, LocalDate?, String?, (Boolean) -> Unit) -> Unit = { capture, date, areaId, onFinished ->
+        onQuickAddTask(capture, date, areaId)
         onFinished(true)
     },
     onComplete: (ScheduledTask) -> Unit,
@@ -496,7 +495,6 @@ fun WhipScreen(
     onBulkEditTasks: (List<ScheduledTask>, TaskBulkEdit) -> Unit = { _, _ -> },
     onReorderTasks: (List<ScheduledTask>) -> Unit = {},
     onPlanMyDay: (List<ScheduledTask>, Int) -> Unit = { _, _ -> },
-    onSetTaskInbox: (Long, Boolean) -> Unit = { _, _ -> },
     onDuplicateTask: (Long) -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     initialAction: String? = null,
@@ -579,7 +577,7 @@ fun WhipScreen(
     var searchPreviouslyOpen by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val transientFeedbackScope = rememberCoroutineScope()
-    val allScheduledTasks = state.inbox + state.today + state.upcoming + state.planning + state.anytime + state.completed + state.archived
+    val allScheduledTasks = state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived
     val scheduledTaskByKey = allScheduledTasks.associateBy(ScheduledTask::stableKey)
     val actionItem = actionItemKey?.let(scheduledTaskByKey::get)
     val completedItem = completedItemKey?.let(scheduledTaskByKey::get)
@@ -693,7 +691,7 @@ fun WhipScreen(
             }
             WhipLaunchActions.ACTION_OPEN_TASK -> {
                 val id = initialEntityId ?: return@LaunchedEffect
-                val found = (state.inbox + state.today + state.upcoming + state.planning + state.anytime + state.completed + state.archived)
+                val found = (state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived)
                     .firstOrNull {
                         it.task.id == id && (
                             initialOccurrenceEpochDay == null ||
@@ -701,7 +699,13 @@ fun WhipScreen(
                             )
                     } ?: return@LaunchedEffect
                 appDestination = AppDestination.Tasks
-                if (found in state.completed) completedItemKey = found.stableKey else actionItemKey = found.stableKey
+                if (found in state.completed) {
+                    completedItemKey = found.stableKey
+                } else {
+                    if (found in state.inbox) taskDestination = TaskDestination.Inbox
+                    else if (found in state.planning) taskDestination = TaskDestination.Upcoming
+                    actionItemKey = found.stableKey
+                }
                 consumedLaunchDeliveryId = launchDeliveryId
             }
             WhipLaunchActions.ACTION_OPEN_HABIT -> {
@@ -1159,7 +1163,7 @@ fun WhipScreen(
                         SupportPaneItem(
                             item.stableKey,
                             item.task.title,
-                            item.scheduledDate?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "Anytime",
+                            item.scheduledDate?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "Inbox",
                         )
                     },
                     emptyText = "No Tasks need attention today.",
@@ -1634,7 +1638,6 @@ fun WhipScreen(
                     onOpenPlanningHabit = { habitId -> openHabitIdRequested = habitId; appDestination = AppDestination.Habits },
                     onReorder = onReorderTasks,
                     onPlanMyDay = onPlanMyDay,
-                    onBulkTriage = { items -> items.map { it.task.id }.distinct().forEach { id -> onSetTaskInbox(id, false) } },
                     onStopFocus = { settingsViewModel?.stopFocusTimer() },
                     onQuickCapture = onQuickAddTaskWithResult,
                     onAddDetails = { capture ->
@@ -1910,11 +1913,12 @@ fun WhipScreen(
             when (result.domain) {
                 SearchDomain.Task -> {
                     appDestination = AppDestination.Tasks
-                    (unscopedTaskState.inbox + unscopedTaskState.today + unscopedTaskState.upcoming + unscopedTaskState.planning + unscopedTaskState.anytime + unscopedTaskState.completed + unscopedTaskState.archived)
+                    (unscopedTaskState.inbox + unscopedTaskState.today + unscopedTaskState.upcoming + unscopedTaskState.planning + unscopedTaskState.completed + unscopedTaskState.archived)
                         .firstOrNull { it.task.id == result.id }
                         ?.let { found ->
                             if (found in unscopedTaskState.completed) completedItemKey = found.stableKey else {
-                                if (found in unscopedTaskState.planning) taskDestination = TaskDestination.Upcoming
+                                if (found in unscopedTaskState.inbox) taskDestination = TaskDestination.Inbox
+                                else if (found in unscopedTaskState.planning) taskDestination = TaskDestination.Upcoming
                                 actionItemKey = found.stableKey
                             }
                         }
@@ -2037,7 +2041,7 @@ fun WhipScreen(
                 ?: settingsState.areas.firstOrNull { !it.archived }?.id,
             inheritedAreaFromScope = areaScope is AreaScope.One,
             onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
-            knownTags = (state.inbox + state.today + state.upcoming + state.planning + state.anytime + state.completed + state.archived)
+            knownTags = (state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived)
                 .flatMap { it.task.tags }.distinct().sorted(),
             customIdentityEmojis = settingsState.settings.customIdentityEmojis,
             onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
@@ -2082,10 +2086,6 @@ fun WhipScreen(
             },
             onDuplicate = {
                 onDuplicateTask(item.task.id)
-                actionItemKey = null
-            },
-            onToggleInbox = {
-                onSetTaskInbox(item.task.id, !item.task.inbox)
                 actionItemKey = null
             },
             onStartFocus = { minutes ->
@@ -3592,9 +3592,8 @@ private fun TaskAreaContent(
     onOpenPlanningHabit: (Long) -> Unit,
     onReorder: (List<ScheduledTask>) -> Unit,
     onPlanMyDay: (List<ScheduledTask>, Int) -> Unit,
-    onBulkTriage: (List<ScheduledTask>) -> Unit,
     onStopFocus: () -> Unit,
-    onQuickCapture: (String, LocalDate?, Boolean, String?, (Boolean) -> Unit) -> Unit,
+    onQuickCapture: (String, LocalDate?, String?, (Boolean) -> Unit) -> Unit,
     onAddDetails: (String) -> Unit,
     modifier: Modifier = Modifier,
     areas: List<Area> = emptyList(),
@@ -3690,7 +3689,7 @@ private fun TaskAreaContent(
         }
         focusClockMillis = System.currentTimeMillis()
     }
-    val allTasks = state.inbox + state.today + state.upcoming + state.planning + state.anytime + state.completed + state.archived
+    val allTasks = state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived
     val availableAreas = areas.filterNot(Area::archived)
     val availableTags = allTasks.flatMap { it.task.tags }.distinct().sorted()
     val currentFilter = SavedTaskFilter(
@@ -3793,7 +3792,6 @@ private fun TaskAreaContent(
         onQuickCapture(
             submittedQuickCapture,
             state.currentDate.takeIf { destination == TaskDestination.Today },
-            destination == TaskDestination.Inbox,
             (areaScope as? AreaScope.One)?.areaId ?: availableAreas.firstOrNull()?.id,
         ) { succeeded ->
             if (succeeded && quickCapture == submittedQuickCapture) quickCapture = ""
@@ -4038,7 +4036,7 @@ private fun TaskAreaContent(
         if (
             !selectionMode &&
             filtered.isNotEmpty() &&
-            destination in setOf(TaskDestination.Inbox, TaskDestination.Anytime)
+            destination == TaskDestination.Inbox
         ) {
             item {
                 DisclosureRow(
@@ -4195,7 +4193,7 @@ private fun TaskAreaContent(
                 .distinct().sortedWith(java.util.Comparator.nullsLast(naturalOrder<LocalDate>()))
                 .forEach { date ->
                 val tasks = tasksByDate[date].orEmpty()
-                item(key = "agenda-${date ?: "anytime"}") {
+                item(key = "agenda-${date ?: "unscheduled"}") {
                     Text(
                         date?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)) ?: "No date",
                         style = MaterialTheme.typography.titleMedium,
@@ -4345,9 +4343,6 @@ private fun TaskAreaContent(
                                     })
                                     DropdownMenuItem(text = { Text("Choose Date") }, onClick = {
                                         bulkDatePickerOpen = true; selectionActionsOpen = false
-                                    })
-                                    if (destination == TaskDestination.Inbox) DropdownMenuItem(text = { Text("Move to Anytime") }, onClick = {
-                                        onBulkTriage(selectedItems); selectedKeys = emptySet(); selectionActionsOpen = false
                                     })
                                 }
                             }
@@ -4609,8 +4604,7 @@ private fun TaskBulkEditDialog(
     var tags by rememberSaveable { mutableStateOf("") }
     var priority by rememberSaveable { mutableStateOf("") }
     var effort by rememberSaveable { mutableStateOf("") }
-    var inbox by rememberSaveable { mutableStateOf("") }
-    val canApply = applyArea || applyTags || priority.isNotBlank() || effort.isNotBlank() || inbox.isNotBlank()
+    val canApply = applyArea || applyTags || priority.isNotBlank() || effort.isNotBlank()
     PaneAwareAlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
@@ -4659,12 +4653,6 @@ private fun TaskBulkEditDialog(
                     WhipFilterChip(effort.isBlank(), { effort = "" }, { Text("Keep") })
                     TaskEffort.entries.forEach { value -> WhipFilterChip(effort == value.name, { effort = value.name }, { Text(value.label) }) }
                 }
-                Text("Inbox · ${when (inbox) { "true" -> "Move to Inbox Where Possible"; "false" -> "Move to Anytime"; else -> "Keep Existing" }}", fontWeight = FontWeight.SemiBold)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    WhipFilterChip(inbox.isBlank(), { inbox = "" }, { Text("Keep") })
-                    WhipFilterChip(inbox == "true", { inbox = "true" }, { Text("Move to Inbox") })
-                    WhipFilterChip(inbox == "false", { inbox = "false" }, { Text("Move to Anytime") })
-                }
             }
         },
         confirmButton = {
@@ -4679,7 +4667,6 @@ private fun TaskBulkEditDialog(
                             tags = tags.split(',').map(String::trim).filter(String::isNotBlank).toSet().takeIf { applyTags },
                             priority = priority.takeIf(String::isNotBlank)?.let(TaskPriority::valueOf),
                             effort = effort.takeIf(String::isNotBlank)?.let(TaskEffort::valueOf),
-                            inbox = inbox.toBooleanStrictOrNull(),
                         ),
                     )
                 },
@@ -5006,7 +4993,6 @@ private fun taskDestinationSupportingText(destination: TaskDestination, count: I
     TaskDestination.Inbox -> "Captured and waiting for a decision · ${count.itemCount("task")}"
     TaskDestination.Today -> "What needs your attention now · ${count.itemCount("task")}"
     TaskDestination.Upcoming -> "The next 30 days · ${count.itemCount("task")}"
-    TaskDestination.Anytime -> "Unscheduled tasks · ${count.itemCount("task")}"
     TaskDestination.Completed -> "Your latest completed tasks · ${count.itemCount("task")}"
     TaskDestination.Archived -> "Stored safely until you restore them · ${count.itemCount("task")}"
 }
@@ -5031,7 +5017,6 @@ private fun EmptyTasks(destination: TaskDestination, areaLabel: String? = null, 
             TaskDestination.Inbox -> areaLabel?.let { "No Inbox tasks in $it." } ?: "No tasks in Inbox. Quick captures can wait here until you triage them."
             TaskDestination.Today -> areaLabel?.let { "Nothing scheduled or carried over in $it." } ?: "Nothing scheduled or carried over today."
             TaskDestination.Upcoming -> areaLabel?.let { "No tasks in $it over the next 30 days." } ?: "No tasks in the next 30 days."
-            TaskDestination.Anytime -> areaLabel?.let { "No anytime tasks in $it." } ?: "No anytime tasks yet."
             TaskDestination.Completed -> areaLabel?.let { "No completed tasks in $it." } ?: "Completed tasks will appear here."
             TaskDestination.Archived -> areaLabel?.let { "No archived tasks in $it." } ?: "Archived tasks will appear here and can be restored."
         }
@@ -5049,7 +5034,6 @@ internal fun TaskUiState.tasksFor(destination: TaskDestination): List<ScheduledT
     TaskDestination.Inbox -> inbox
     TaskDestination.Today -> today
     TaskDestination.Upcoming -> upcoming
-    TaskDestination.Anytime -> anytime
     TaskDestination.Completed -> completed
     TaskDestination.Archived -> archived
 }
@@ -5067,7 +5051,6 @@ private val TaskDestination.label: String
         TaskDestination.Inbox -> "Inbox"
         TaskDestination.Today -> "Today"
         TaskDestination.Upcoming -> "Upcoming"
-        TaskDestination.Anytime -> "Anytime"
         TaskDestination.Completed -> "Completed"
         TaskDestination.Archived -> "Archived"
     }
@@ -5075,7 +5058,6 @@ private val TaskDestination.label: String
 internal fun TaskDestination.creationPlacement(): TaskPlacement = when (this) {
     TaskDestination.Inbox -> TaskPlacement.Inbox
     TaskDestination.Today, TaskDestination.Upcoming -> TaskPlacement.Scheduled
-    TaskDestination.Anytime -> TaskPlacement.Anytime
     TaskDestination.Completed, TaskDestination.Archived -> TaskPlacement.Inbox
 }
 

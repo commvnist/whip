@@ -131,7 +131,6 @@ data class TaskEditorRequest(
 
 enum class TaskPlacement(val label: String) {
     Inbox("Inbox"),
-    Anytime("Anytime"),
     Scheduled("Scheduled"),
 }
 
@@ -187,7 +186,7 @@ fun TaskEditorDialog(
         showSubtaskProgress = captureLines.size > 1,
         repeatStepPolicy = defaultRepeatStepPolicy,
         scheduleKind = when (requestedPlacement) {
-            TaskPlacement.Inbox, TaskPlacement.Anytime -> ScheduleKind.Anytime
+            TaskPlacement.Inbox -> ScheduleKind.Anytime
             TaskPlacement.Scheduled -> ScheduleKind.Once
         },
         date = request.initialScheduleDate,
@@ -234,7 +233,6 @@ fun TaskEditorDialog(
     }
     var customReminderText by rememberSaveable(editorKey) { mutableStateOf("") }
     var priority by rememberSaveable(editorKey) { mutableStateOf(initial.priority) }
-    var inbox by rememberSaveable(editorKey) { mutableStateOf(initial.inbox) }
     var durationMinutes by rememberSaveable(editorKey) { mutableStateOf(initial.durationMinutes?.toString().orEmpty()) }
     var effort by rememberSaveable(editorKey) { mutableStateOf(initial.effort) }
     var areaId by rememberSaveable(editorKey) { mutableStateOf(initial.areaId) }
@@ -317,7 +315,7 @@ fun TaskEditorDialog(
         hasTime != (initial.timeMinutes != null) ||
         (hasTime && timeMinutes != (initial.timeMinutes ?: 9 * 60)) ||
         reminderEnabled != initial.reminderEnabled || reminderOffsets != initialOffsets ||
-        priority != initial.priority || inbox != initial.inbox ||
+        priority != initial.priority ||
         durationMinutes != initial.durationMinutes?.toString().orEmpty() || effort != initial.effort ||
         areaId != initial.areaId || area != initial.area || tagsText != initial.tags.joinToString(", ") ||
         hasDeadline != (initial.deadline != null) ||
@@ -384,7 +382,7 @@ fun TaskEditorDialog(
         deadline = deadline.takeIf { scheduleKind == ScheduleKind.Once && hasDeadline },
         reminderOffsetsMinutes = reminderOffsets.toList().takeIf { scheduleKind != ScheduleKind.Anytime }.orEmpty(),
         missedOccurrencePolicy = missedOccurrencePolicy,
-        inbox = inbox && scheduleKind == ScheduleKind.Anytime,
+        inbox = scheduleKind == ScheduleKind.Anytime,
         durationMinutes = durationMinutes.toIntOrNull()?.coerceIn(1, 1_440), effort = effort,
     )
     val nestedDialogModifier = Modifier
@@ -392,16 +390,14 @@ fun TaskEditorDialog(
         .width(minOf(paneMaxWidth * 0.9f, 560.dp))
     val placement = when {
         scheduleKind != ScheduleKind.Anytime -> TaskPlacement.Scheduled
-        inbox -> TaskPlacement.Inbox
-        else -> TaskPlacement.Anytime
+        else -> TaskPlacement.Inbox
     }
     fun applyPlacement(next: TaskPlacement) {
         scheduleKind = when (next) {
-            TaskPlacement.Inbox, TaskPlacement.Anytime -> ScheduleKind.Anytime
+            TaskPlacement.Inbox -> ScheduleKind.Anytime
             TaskPlacement.Scheduled -> ScheduleKind.Once
         }
-        inbox = next == TaskPlacement.Inbox
-        if (next in setOf(TaskPlacement.Inbox, TaskPlacement.Anytime)) {
+        if (next == TaskPlacement.Inbox) {
             hasTime = false
             reminderEnabled = false
             reminderOffsets = emptySet()
@@ -410,7 +406,6 @@ fun TaskEditorDialog(
     }
     fun setRepeatEnabled(enabled: Boolean) {
         scheduleKind = if (enabled) ScheduleKind.Recurring else ScheduleKind.Once
-        inbox = false
     }
 
     Dialog(
@@ -578,7 +573,7 @@ fun TaskEditorDialog(
                                 selected = placement == value,
                                 onClick = {
                                     if (
-                                        value in setOf(TaskPlacement.Inbox, TaskPlacement.Anytime) &&
+                                        value == TaskPlacement.Inbox &&
                                         placement == TaskPlacement.Scheduled
                                     ) {
                                         pendingUndatedPlacement = value
@@ -592,11 +587,8 @@ fun TaskEditorDialog(
                     }
                     DependentSettingsNotice(
                         message = when (scheduleKind) {
-                            ScheduleKind.Anytime -> if (inbox) {
-                                "Inbox keeps this capture untriaged until you decide where it belongs."
-                            } else {
-                                "Anytime keeps this Task ready but unscheduled."
-                            }
+                            ScheduleKind.Anytime ->
+                                "Inbox keeps this Task unscheduled until you decide when it belongs."
                             ScheduleKind.Once -> "Scheduled Date places this Task on one day. Time, reminders, and an optional Deadline appear below."
                             ScheduleKind.Recurring -> "This Task repeats from its start date. Configure the pattern directly below."
                         },
@@ -1218,7 +1210,6 @@ fun TaskEditorDialog(
                 reminderEnabled = draft.reminderEnabled
                 reminderOffsets = draft.reminderOffsetsMinutes.toSet()
                 priority = draft.priority
-                inbox = draft.inbox
                 durationMinutes = draft.durationMinutes?.toString().orEmpty()
                 effort = draft.effort
                 if (draft.areaId != null || draft.area.isNotBlank()) {

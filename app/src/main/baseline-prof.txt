@@ -3445,7 +3445,6 @@ SPLcom/whip/app/ui/TaskUiState;-><clinit>()V
 SPLcom/whip/app/ui/TaskUiState;-><init>(Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/time/LocalDate;Z)V
 SPLcom/whip/app/ui/TaskUiState;-><init>(Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/time/LocalDate;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 SPLcom/whip/app/ui/TaskUiState;->equals(Ljava/lang/Object;)Z
-SPLcom/whip/app/ui/TaskUiState;->getAnytime()Ljava/util/List;
 SPLcom/whip/app/ui/TaskUiState;->getArchived()Ljava/util/List;
 SPLcom/whip/app/ui/TaskUiState;->getCompleted()Ljava/util/List;
 SPLcom/whip/app/ui/TaskUiState;->getCurrentDate()Ljava/time/LocalDate;

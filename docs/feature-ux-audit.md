@@ -61,7 +61,7 @@ privacy and complexity model rather than merely fill a feature gap.
 
 | User job | Current support | Audit result |
 | --- | --- | --- |
-| Capture an unscheduled or dated task | Global add, Anytime and Due date modes | Strong; the editor exposes more fields than a first-time user needs |
+| Capture an unscheduled or dated task | Global add, Inbox and Scheduled date modes | Strong; the editor exposes more fields than a first-time user needs |
 | Repeat a task daily, every N days/weeks/months/years, on chosen weekdays, or relative to completion | Per-occurrence completion, move, skip, end date/count, schedule/completion anchor, next-only Upcoming | Strong with compact defaults and power-user cadence controls |
 | Break work into steps and see progress | Equal-weight subtasks, notes, reorder, promote, percentage/fraction, reset/carry policy | Strong; one-level nesting is an intentional simplicity boundary |
 | Recover from a task mistake | Restore archive, reopen one-shot task, unified recurring history, undo skip/reset move, explicit permanent-delete confirmation | Strong; each occurrence can be recovered without shifting the series |

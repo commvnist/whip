@@ -2,7 +2,8 @@
 
 ## Five core sections
 
-- **Tasks** are finite work. They can be anytime, one-shot, daily, every N
+- **Tasks** are finite work. Unscheduled tasks live in **Inbox**; tasks can also
+  be one-shot, daily, every N
   days/weeks/months/years, or scheduled on selected weekdays. Recurrence can
   stay anchored to calendar slots or start the next interval when the current
   occurrence is completed. Recurring occurrences can be moved

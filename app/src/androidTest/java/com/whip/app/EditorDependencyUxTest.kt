@@ -123,13 +123,13 @@ class EditorDependencyUxTest {
     }
 
     @Test
-    fun sourcePlacementIsVisibleAndAnytimeCannotSaveHiddenReminderData() {
+    fun inboxPlacementIsVisibleAndCannotSaveHiddenReminderData() {
         val saved = AtomicReference<TaskDraft?>(null)
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 TaskEditorDialog(
                     request = TaskEditorRequest(
-                        initialPlacement = TaskPlacement.Anytime,
+                        initialPlacement = TaskPlacement.Inbox,
                         sessionId = 84L,
                     ),
                     onDismiss = {},
@@ -140,13 +140,14 @@ class EditorDependencyUxTest {
         }
 
         compose.onNodeWithTag("task-editor-title").performTextInput("Unscheduled Errand")
-        compose.onNodeWithText("Anytime keeps this Task ready but unscheduled.").assertIsDisplayed()
+        compose.onNodeWithText("Inbox keeps this Task unscheduled", substring = true).assertIsDisplayed()
+        compose.onAllNodesWithText("Anytime").assertCountEquals(0)
         compose.onAllNodesWithTag("task-time-toggle").assertCountEquals(0)
         compose.onNodeWithText("Save").performClick()
 
         compose.runOnIdle {
             assertEquals(ScheduleKind.Anytime, saved.get()?.scheduleKind)
-            assertEquals(false, saved.get()?.inbox)
+            assertEquals(true, saved.get()?.inbox)
             assertEquals(null, saved.get()?.timeMinutes)
             assertEquals(false, saved.get()?.reminderEnabled)
         }
@@ -175,7 +176,7 @@ class EditorDependencyUxTest {
     }
 
     @Test
-    fun movingScheduledTaskToAnytimePreviewsAndClearsConsequences() {
+    fun movingScheduledTaskToInboxPreviewsAndClearsConsequences() {
         val saved = AtomicReference<TaskDraft?>(null)
         compose.setContent {
             WhipTheme(dynamicColor = false) {
@@ -193,14 +194,15 @@ class EditorDependencyUxTest {
 
         compose.onNodeWithTag("task-editor-title").performTextInput("Move Me")
         compose.onNodeWithTag("task-time-toggle").performScrollTo().performClick()
-        compose.onNodeWithText("Anytime").performScrollTo().performClick()
+        compose.onNodeWithText("Inbox").performScrollTo().performClick()
         compose.onNodeWithText("Remove Scheduling Details?").assertIsDisplayed()
         compose.onNodeWithText("The Scheduled Date will be removed.", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("Move to Anytime").performClick()
+        compose.onNodeWithText("Move to Inbox").performClick()
         compose.onNodeWithText("Save").performClick()
 
         compose.runOnIdle {
             assertEquals(ScheduleKind.Anytime, saved.get()?.scheduleKind)
+            assertEquals(true, saved.get()?.inbox)
             assertEquals(null, saved.get()?.timeMinutes)
             assertEquals(false, saved.get()?.reminderEnabled)
         }

@@ -40,9 +40,10 @@ data class SavedReviewFilter(
 
 /** Keeps saved navigation values within the routes supported by the current workspace. */
 internal fun SavedTaskFilter.normalizedNavigation(): SavedTaskFilter {
-    val knownDestinations = setOf("Inbox", "Today", "Upcoming", "Anytime", "Completed", "Archived")
+    val knownDestinations = setOf("Inbox", "Today", "Upcoming", "Completed", "Archived")
     val safeDestination = when {
         destination.isBlank() -> ""
+        destination == "Anytime" -> "Inbox"
         destination in knownDestinations -> destination
         else -> "Today"
     }

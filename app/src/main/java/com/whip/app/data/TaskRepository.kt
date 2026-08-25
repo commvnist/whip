@@ -44,17 +44,15 @@ interface TaskRepository {
     suspend fun reopenOccurrence(item: ScheduledTask)
     suspend fun resetOccurrence(taskId: Long, originalDate: LocalDate): Boolean
     suspend fun setPinned(taskId: Long, pinned: Boolean)
-    suspend fun setInbox(taskId: Long, inbox: Boolean)
     suspend fun duplicate(taskId: Long): Long
     suspend fun completeAll(items: List<ScheduledTask>)
     suspend fun rescheduleAll(items: List<ScheduledTask>, newDate: LocalDate)
     suspend fun planAll(items: List<ScheduledTask>, newDate: LocalDate)
     suspend fun restoreSchedules(items: List<ScheduledTask>)
-    suspend fun restorePlan(items: List<ScheduledTask>, originalInboxTaskIds: Set<Long>)
+    suspend fun restorePlan(items: List<ScheduledTask>)
     suspend fun archiveAll(taskIds: List<Long>)
     suspend fun restoreAll(taskIds: List<Long>)
     suspend fun setPinnedAll(taskIds: List<Long>, pinned: Boolean)
-    suspend fun setInboxAll(taskIds: List<Long>, inbox: Boolean)
     suspend fun updateMetadataAll(taskIds: List<Long>, edit: TaskBulkEdit)
     suspend fun reorderAll(taskIdsInOrder: List<Long>)
     suspend fun getTask(taskId: Long): WhipTask?
@@ -70,7 +68,6 @@ data class TaskBulkEdit(
     val tags: Set<String>? = null,
     val priority: TaskPriority? = null,
     val effort: TaskEffort? = null,
-    val inbox: Boolean? = null,
 )
 
 class RoomTaskRepository(
@@ -258,6 +255,7 @@ class RoomTaskRepository(
                     existing.copy(
                         scheduleKind = ScheduleKind.Once.name,
                         dateEpochDay = newDate.toEpochDay(),
+                        inbox = false,
                         completedAtMillis = null,
                         updatedAtMillis = clock.now().toEpochMilli(),
                     ),
@@ -391,16 +389,6 @@ class RoomTaskRepository(
         dao.updateTask(existing.copy(pinned = pinned, updatedAtMillis = clock.now().toEpochMilli()))
     }
 
-    override suspend fun setInbox(taskId: Long, inbox: Boolean) {
-        val existing = dao.getTask(taskId) ?: return
-        dao.updateTask(
-            existing.copy(
-                inbox = inbox && existing.scheduleKind == ScheduleKind.Anytime.name,
-                updatedAtMillis = clock.now().toEpochMilli(),
-            ),
-        )
-    }
-
     override suspend fun duplicate(taskId: Long): Long = database.withTransaction {
         val existing = requireNotNull(dao.getTask(taskId)) { "Task no longer exists" }
         val now = clock.now().toEpochMilli()
@@ -431,7 +419,6 @@ class RoomTaskRepository(
     override suspend fun planAll(items: List<ScheduledTask>, newDate: LocalDate) = database.withTransaction {
         val unique = items.distinctBy(ScheduledTask::stableKey)
         unique.forEach { reschedule(it, newDate) }
-        unique.map { it.task.id }.distinct().forEach { setInbox(it, false) }
     }
 
     override suspend fun restoreSchedules(items: List<ScheduledTask>) = database.withTransaction {
@@ -458,6 +445,7 @@ class RoomTaskRepository(
                     existing.copy(
                         scheduleKind = item.task.scheduleKind.name,
                         dateEpochDay = item.task.date?.toEpochDay(),
+                        inbox = item.task.scheduleKind == ScheduleKind.Anytime,
                         completedAtMillis = item.task.completedAtMillis,
                         updatedAtMillis = now,
                     ),
@@ -466,14 +454,8 @@ class RoomTaskRepository(
         }
     }
 
-    override suspend fun restorePlan(
-        items: List<ScheduledTask>,
-        originalInboxTaskIds: Set<Long>,
-    ) = database.withTransaction {
+    override suspend fun restorePlan(items: List<ScheduledTask>) = database.withTransaction {
         restoreSchedules(items)
-        val ids = items.map { it.task.id }.distinct()
-        ids.forEach { setInbox(it, false) }
-        originalInboxTaskIds.forEach { setInbox(it, true) }
     }
 
     override suspend fun archiveAll(taskIds: List<Long>) = database.withTransaction {
@@ -486,10 +468,6 @@ class RoomTaskRepository(
 
     override suspend fun setPinnedAll(taskIds: List<Long>, pinned: Boolean) = database.withTransaction {
         taskIds.distinct().forEach { setPinned(it, pinned) }
-    }
-
-    override suspend fun setInboxAll(taskIds: List<Long>, inbox: Boolean) = database.withTransaction {
-        taskIds.distinct().forEach { setInbox(it, inbox) }
     }
 
     override suspend fun updateMetadataAll(taskIds: List<Long>, edit: TaskBulkEdit) = database.withTransaction {
@@ -505,9 +483,6 @@ class RoomTaskRepository(
                         ?.distinctBy(String::lowercase)?.joinToString(",") ?: existing.tagsCsv,
                     priority = edit.priority?.name ?: existing.priority,
                     effort = edit.effort?.name ?: existing.effort,
-                    inbox = edit.inbox?.let { requested ->
-                        requested && existing.scheduleKind == ScheduleKind.Anytime.name
-                    } ?: existing.inbox,
                     updatedAtMillis = now,
                 ),
             )

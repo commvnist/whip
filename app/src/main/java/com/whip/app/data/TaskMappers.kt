@@ -70,7 +70,7 @@ fun TaskEntity.toDomain(): WhipTask {
             .mapNotNull(String::toIntOrNull).distinct().sortedDescending(),
         missedOccurrencePolicy = runCatching { MissedOccurrencePolicy.valueOf(missedOccurrencePolicy) }
             .getOrDefault(MissedOccurrencePolicy.KeepLatest),
-        inbox = inbox && kind == ScheduleKind.Anytime,
+        inbox = kind == ScheduleKind.Anytime,
         durationMinutes = durationMinutes,
         effort = runCatching { TaskEffort.valueOf(effort) }.getOrDefault(TaskEffort.Unspecified),
         manualPosition = manualPosition,
@@ -127,7 +127,7 @@ fun TaskDraft.toEntity(
         reminderOffsetsMinutesCsv = reminderOffsetsMinutes.filter { it >= 0 }.distinct()
             .sortedDescending().joinToString(","),
         missedOccurrencePolicy = missedOccurrencePolicy.name,
-        inbox = inbox && scheduleKind == ScheduleKind.Anytime,
+        inbox = scheduleKind == ScheduleKind.Anytime,
         durationMinutes = durationMinutes?.coerceIn(1, 1_440),
         effort = effort.name,
         manualPosition = manualPosition,

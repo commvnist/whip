@@ -85,7 +85,7 @@ internal fun UnifiedSearchDialog(
     val queryFocusRequester = remember { FocusRequester() }
     val all = remember(taskState, habitState, goalState, gymState, trackState) {
         buildList {
-            (taskState.inbox + taskState.today + taskState.upcoming + taskState.planning + taskState.anytime + taskState.completed + taskState.archived)
+            (taskState.inbox + taskState.today + taskState.upcoming + taskState.planning + taskState.completed + taskState.archived)
                 .distinctBy { it.task.id }
                 .forEach { item ->
                     add(
@@ -104,7 +104,7 @@ internal fun UnifiedSearchDialog(
                             status = when {
                                 item.task.archived -> "archived"
                                 item.completedAtMillis != null -> "completed"
-                                item.task.inbox -> "inbox"
+                                item.task.scheduleKind == com.whip.app.domain.ScheduleKind.Anytime -> "inbox"
                                 item.isDeadlineOverdue -> "deadline overdue"
                                 item.isPastScheduledDate -> "past scheduled date"
                                 else -> "active"

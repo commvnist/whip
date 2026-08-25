@@ -238,7 +238,7 @@ Required design:
 **Severity:** P2  
 **Lenses:** UX, control semantics
 
-The compact Task editor clearly places repeat-specific settings directly below Repeat, which fixes the earlier dependency-order problem. However, Inbox, Anytime, Scheduled Date, and Repeat still share the same chip treatment even though the first three are mutually exclusive placement choices and Repeat is an independent modifier.
+The compact Task editor clearly places repeat-specific settings directly below Repeat, which fixes the earlier dependency-order problem. However, Inbox, Scheduled Date, and Repeat still share the same chip treatment even though the first two are mutually exclusive placement choices and Repeat is an independent modifier. (The redundant Anytime placement identified in this historical audit has since been consolidated into Inbox.)
 
 Required design:
 

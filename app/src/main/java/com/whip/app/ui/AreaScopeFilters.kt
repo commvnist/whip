@@ -20,7 +20,7 @@ internal fun AreaScope.validFor(areas: List<Area>): AreaScope {
 internal fun TaskUiState.forArea(scope: AreaScope): TaskUiState {
     if (scope == AreaScope.All) return this
     fun List<ScheduledTask>.visible() = filter { scope.matches(it.task.areaId) }
-    val visibleTaskIds = (inbox + today + upcoming + anytime + completed + archived + planning)
+    val visibleTaskIds = (inbox + today + upcoming + completed + archived + planning)
         .asSequence()
         .filter { scope.matches(it.task.areaId) }
         .map { it.task.id }
@@ -29,7 +29,6 @@ internal fun TaskUiState.forArea(scope: AreaScope): TaskUiState {
         inbox = inbox.visible(),
         today = today.visible(),
         upcoming = upcoming.visible(),
-        anytime = anytime.visible(),
         completed = completed.visible(),
         archived = archived.visible(),
         planning = planning.visible(),

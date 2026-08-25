@@ -1,5 +1,7 @@
 # Whip Tasks live UX, design, and product audit
 
+> Historical record: on August 25, 2026, the redundant Anytime destination and placement were removed. Every undated task now appears in Inbox; references below describe the audited August 23 build.
+
 Date: 2026-08-23  
 Installed build: `commvne.com.whip.app`, version code 15, version 0.3.9  
 Evidence source: fresh screenshots from the installed release and current source code. No checked-in legacy screenshot was used.
@@ -346,4 +348,3 @@ Acceptance criteria:
    card metadata.
 5. Add integrated tests and execute the full live device/posture/accessibility
    matrix before another release build.
-

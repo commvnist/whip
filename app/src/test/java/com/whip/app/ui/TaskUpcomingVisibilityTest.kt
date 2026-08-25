@@ -102,7 +102,7 @@ class TaskUpcomingVisibilityTest {
     }
 
     @Test
-    fun inboxIsSeparateFromTriagedAnytimeAndCapacityNeverOverfills() {
+    fun inboxConsolidatesEveryUndatedTaskAndCapacityNeverOverfills() {
         val captured = task(1, ScheduleKind.Anytime).copy(inbox = true, durationMinutes = 45, priority = TaskPriority.High)
         val quick = task(2, ScheduleKind.Anytime).copy(inbox = false, durationMinutes = 30, effort = TaskEffort.Light)
         val highEffort = task(3, ScheduleKind.Anytime).copy(inbox = true, durationMinutes = 90, effort = TaskEffort.High)
@@ -116,10 +116,10 @@ class TaskUpcomingVisibilityTest {
             showAllUpcomingRecurringOccurrences = false,
         )
 
-        assertEquals(setOf(1L, 3L), state.inbox.mapTo(mutableSetOf()) { it.task.id })
-        assertEquals(listOf(2L), state.anytime.map { it.task.id })
-        assertEquals(listOf(1L, 2L), selectTasksForCapacity(state.inbox + state.anytime, 75).map { it.task.id })
-        assertEquals(75, selectTasksForCapacity(state.inbox + state.anytime, 75).sumOf { it.task.durationMinutes ?: 30 })
+        assertEquals(listOf(1L, 2L, 3L), state.inbox.map { it.task.id })
+        assertEquals(true, state.inbox.all { it.task.inbox })
+        assertEquals(listOf(1L, 2L), selectTasksForCapacity(state.inbox, 75).map { it.task.id })
+        assertEquals(75, selectTasksForCapacity(state.inbox, 75).sumOf { it.task.durationMinutes ?: 30 })
     }
 
     @Test

@@ -107,7 +107,7 @@ Every product area has fast domain coverage and at least one persisted or UI
 path. New behavior must add its regression to the narrowest applicable suite
 and update this matrix if it introduces a new feature area.
 
-Current baseline: 562 product tests—256 fast JVM tests and 306 Android
+Current baseline: 563 product tests—257 fast JVM tests and 306 Android
 instrumentation tests—plus 9 Macrobenchmark/Baseline Profile scenarios, lint,
 debug/release/benchmark builds, and the disposable API 34 emulator suite. API
 26 and API 37 compatibility runs cover the minimum and target/latest platform;
@@ -135,7 +135,7 @@ cannot replace the operating system UI.
 | --- | --- | --- | --- |
 | App launch, Home, and all primary areas | supporting projections | real application repositories | `WhipAppTest`, `WhipNavigationTest`, `CoreFeatureJourneyE2ETest` |
 | Global add, basic/advanced editors, Goal templates, and Goal-value shortcut | validation in domain/repository suites | creation paths for each domain | `WhipComposeSemanticsTest` |
-| One-shot, anytime, completed, and archived tasks | recurrence and visibility suites | `TaskRepositoryTest` | navigation, Home, and task-area journeys |
+| Inbox/undated, one-shot, completed, and archived tasks | recurrence and visibility suites | `TaskRepositoryTest` | navigation, Home, and task-area journeys |
 | Daily/every-N/weekday/month/year and completion-relative recurrence, reschedule/skip | `RecurrenceEngineTest`, `TaskUpcomingVisibilityTest` | per-occurrence rows and power fields in `TaskRepositoryTest` and full backup | task-area semantics path |
 | Task priorities, area/tags, named filters, multi-reminders, deadlines, smart capture, agenda/calendar, and bulk actions | `TaskQuickCaptureParserTest`, `TaskReminderRulesTest`, `PowerUserSettingsTest` | `TaskRepositoryTest` round trip | calendar/filter/editor semantics in `WhipComposeSemanticsTest` |
 | Subtasks, snapshots, promotion, and percentage | `TaskProgressTest` | `TaskRepositoryTest` | real Home/task rendering in the core journey |

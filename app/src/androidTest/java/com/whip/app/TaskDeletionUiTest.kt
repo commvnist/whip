@@ -83,7 +83,7 @@ class TaskDeletionUiTest {
     }
 
     @Test
-    fun anytimeTaskScheduleSectionCanAssignItsFirstDateWithoutCrashing() {
+    fun inboxTaskScheduleSectionCanAssignItsFirstDateWithoutCrashing() {
         val reschedules = AtomicInteger()
         val item = ScheduledTask(
             task = WhipTask(
@@ -116,7 +116,6 @@ class TaskDeletionUiTest {
                     onDeletePermanently = {},
                     onPin = {},
                     onDuplicate = {},
-                    onToggleInbox = {},
                     onStartFocus = {},
                     onToggleSubtask = { _, _ -> },
                     onPromoteSubtask = {},
@@ -127,7 +126,7 @@ class TaskDeletionUiTest {
         }
 
         compose.onNodeWithText("Schedule").performClick()
-        compose.onNodeWithText("This task has no scheduled date.", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("This task is in Inbox without a scheduled date.", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Choose a Date").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, reschedules.get()) }
     }
@@ -183,7 +182,6 @@ class TaskDeletionUiTest {
                         onDeletePermanently = { confirming = true },
                         onPin = {},
                         onDuplicate = {},
-                        onToggleInbox = {},
                         onStartFocus = {},
                         onToggleSubtask = { _, _ -> },
                         onPromoteSubtask = {},
@@ -293,7 +291,6 @@ class TaskDeletionUiTest {
                     onDeletePermanently = {},
                     onPin = {},
                     onDuplicate = {},
-                    onToggleInbox = {},
                     onStartFocus = {},
                     onToggleSubtask = { _, _ -> },
                     onPromoteSubtask = {},
@@ -332,7 +329,7 @@ class TaskDeletionUiTest {
                 TaskActionsDialog(
                     item = item, onDismiss = {}, onComplete = {}, onEdit = {}, onReschedule = {},
                     onSkip = {}, onArchive = {}, onDeletePermanently = {}, onPin = {},
-                    onDuplicate = {}, onToggleInbox = {}, onStartFocus = {},
+                    onDuplicate = {}, onStartFocus = {},
                     onToggleSubtask = { _, _ -> }, onPromoteSubtask = {},
                     occurrenceHistory = listOf(moved, skipped),
                     onReopenOccurrence = {},

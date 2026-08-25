@@ -133,7 +133,7 @@ class TaskRepositoryTest {
     }
 
     @Test
-    fun promoteStepCreatesAnytimeTaskAndArchivesDefinition() = runBlocking {
+    fun promoteStepCreatesInboxTaskAndArchivesDefinition() = runBlocking {
         val parentId = repository.create(recurringDraft(autoComplete = false))
         val parent = requireNotNull(repository.getTask(parentId))
 
@@ -369,15 +369,15 @@ class TaskRepositoryTest {
     }
 
     @Test
-    fun bulkMoveUndoRestoresAnytimeOnceAndRecurringSchedulesAtomically() = runBlocking {
-        val anytimeId = repository.create(TaskDraft(title = "Anytime"))
+    fun bulkMoveUndoRestoresInboxOnceAndRecurringSchedulesAtomically() = runBlocking {
+        val inboxId = repository.create(TaskDraft(title = "Inbox"))
         val onceId = repository.create(TaskDraft(title = "Once", scheduleKind = ScheduleKind.Once, date = monday))
         val recurringId = repository.create(recurringDraft(autoComplete = false))
-        val anytime = requireNotNull(repository.getTask(anytimeId))
+        val inbox = requireNotNull(repository.getTask(inboxId))
         val once = requireNotNull(repository.getTask(onceId))
         val recurring = requireNotNull(repository.getTask(recurringId))
         val originals = listOf(
-            ScheduledTask(anytime, originalDate = null, scheduledDate = null),
+            ScheduledTask(inbox, originalDate = null, scheduledDate = null),
             ScheduledTask(once, originalDate = monday, scheduledDate = monday),
             item(recurring, monday),
         )
@@ -385,35 +385,40 @@ class TaskRepositoryTest {
         repository.rescheduleAll(originals, monday.plusDays(4))
         repository.restoreSchedules(originals)
 
-        assertEquals(ScheduleKind.Anytime, requireNotNull(repository.getTask(anytimeId)).scheduleKind)
-        assertNull(requireNotNull(repository.getTask(anytimeId)).date)
+        assertEquals(ScheduleKind.Anytime, requireNotNull(repository.getTask(inboxId)).scheduleKind)
+        assertTrue(requireNotNull(repository.getTask(inboxId)).inbox)
+        assertNull(requireNotNull(repository.getTask(inboxId)).date)
         assertEquals(monday, requireNotNull(repository.getTask(onceId)).date)
         assertTrue(repository.getOccurrences(recurringId).isEmpty())
     }
 
     @Test
-    fun planMyDayAndItsUndoRestorePlacementAndInboxTogether() = runBlocking {
+    fun planMyDayAndItsUndoRestoreEveryUndatedTaskToInbox() = runBlocking {
         val inboxId = repository.create(TaskDraft(title = "Inbox", inbox = true))
-        val anytimeId = repository.create(TaskDraft(title = "Anytime", inbox = false))
+        val legacyUndatedId = repository.create(TaskDraft(title = "Legacy undated", inbox = false))
+        val storedLegacyUndated = requireNotNull(database.taskDao().getTask(legacyUndatedId))
+        database.taskDao().updateTask(storedLegacyUndated.copy(inbox = false))
+        assertFalse(requireNotNull(database.taskDao().getTask(legacyUndatedId)).inbox)
         val inbox = requireNotNull(repository.getTask(inboxId))
-        val anytime = requireNotNull(repository.getTask(anytimeId))
+        val legacyUndated = requireNotNull(repository.getTask(legacyUndatedId))
+        assertTrue(legacyUndated.inbox)
         val originals = listOf(
             ScheduledTask(inbox, originalDate = null, scheduledDate = null),
-            ScheduledTask(anytime, originalDate = null, scheduledDate = null),
+            ScheduledTask(legacyUndated, originalDate = null, scheduledDate = null),
         )
 
         repository.planAll(originals, monday)
 
         assertEquals(ScheduleKind.Once, requireNotNull(repository.getTask(inboxId)).scheduleKind)
         assertEquals(false, requireNotNull(repository.getTask(inboxId)).inbox)
-        assertEquals(ScheduleKind.Once, requireNotNull(repository.getTask(anytimeId)).scheduleKind)
+        assertEquals(ScheduleKind.Once, requireNotNull(repository.getTask(legacyUndatedId)).scheduleKind)
 
-        repository.restorePlan(originals, setOf(inboxId))
+        repository.restorePlan(originals)
 
         assertEquals(ScheduleKind.Anytime, requireNotNull(repository.getTask(inboxId)).scheduleKind)
         assertEquals(true, requireNotNull(repository.getTask(inboxId)).inbox)
-        assertEquals(ScheduleKind.Anytime, requireNotNull(repository.getTask(anytimeId)).scheduleKind)
-        assertEquals(false, requireNotNull(repository.getTask(anytimeId)).inbox)
+        assertEquals(ScheduleKind.Anytime, requireNotNull(repository.getTask(legacyUndatedId)).scheduleKind)
+        assertTrue(requireNotNull(repository.getTask(legacyUndatedId)).inbox)
     }
 
     @Test
@@ -430,29 +435,28 @@ class TaskRepositoryTest {
     }
 
     @Test
-    fun bulkMetadataReplacesOnlySelectedFieldsAndKeepsInboxSemantics() = runBlocking {
-        val anytimeId = repository.create(TaskDraft(title = "Anytime", area = "Old", tags = setOf("old")))
+    fun bulkMetadataReplacesOnlySelectedFieldsAndKeepsPlacementSemantics() = runBlocking {
+        val inboxId = repository.create(TaskDraft(title = "Inbox", area = "Old", tags = setOf("old")))
         val datedId = repository.create(TaskDraft(title = "Dated", scheduleKind = ScheduleKind.Once, date = monday, inbox = false))
 
         repository.updateMetadataAll(
-            listOf(anytimeId, datedId),
+            listOf(inboxId, datedId),
             TaskBulkEdit(
                 updateArea = true,
                 areaName = "Work",
                 tags = setOf("Deep", "deep", "Today"),
                 priority = TaskPriority.High,
                 effort = TaskEffort.High,
-                inbox = true,
             ),
         )
 
-        val anytime = requireNotNull(repository.getTask(anytimeId))
+        val inbox = requireNotNull(repository.getTask(inboxId))
         val dated = requireNotNull(repository.getTask(datedId))
-        assertEquals("Work", anytime.area)
-        assertEquals(setOf("Deep", "Today"), anytime.tags)
-        assertEquals(TaskPriority.High, anytime.priority)
-        assertEquals(TaskEffort.High, anytime.effort)
-        assertTrue(anytime.inbox)
+        assertEquals("Work", inbox.area)
+        assertEquals(setOf("Deep", "Today"), inbox.tags)
+        assertEquals(TaskPriority.High, inbox.priority)
+        assertEquals(TaskEffort.High, inbox.effort)
+        assertTrue(inbox.inbox)
         assertFalse(dated.inbox)
     }
 

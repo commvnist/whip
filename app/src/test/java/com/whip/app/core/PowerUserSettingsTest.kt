@@ -95,15 +95,15 @@ class PowerUserSettingsTest {
         assertEquals("Today", decodedInvalid.destination)
         assertEquals("List", decodedInvalid.planningView)
 
-        val anytime = listOf(
+        val removedAnytime = listOf(
             SavedTaskFilter(
                 name = "Anytime calendar",
                 destination = "Anytime",
                 planningView = "Calendar",
             ),
         ).encodeTaskFilters().decodeTaskFilters().single()
-        assertEquals("Anytime", anytime.destination)
-        assertEquals("List", anytime.planningView)
+        assertEquals("Inbox", removedAnytime.destination)
+        assertEquals("List", removedAnytime.planningView)
 
         val upcoming = listOf(
             SavedTaskFilter(

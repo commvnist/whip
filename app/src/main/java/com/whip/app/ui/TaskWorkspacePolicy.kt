@@ -13,7 +13,6 @@ internal enum class TaskWorkspaceDestination(val label: String) {
     Inbox("Inbox"),
     Today("Today"),
     Upcoming("Upcoming"),
-    Anytime("Anytime"),
     History("History"),
 }
 
@@ -21,7 +20,6 @@ internal val primaryTaskWorkspaceDestinations = listOf(
     TaskWorkspaceDestination.Today,
     TaskWorkspaceDestination.Inbox,
     TaskWorkspaceDestination.Upcoming,
-    TaskWorkspaceDestination.Anytime,
 )
 
 internal val allTaskWorkspaceDestinations = primaryTaskWorkspaceDestinations + TaskWorkspaceDestination.History
@@ -53,7 +51,6 @@ internal fun TaskDestination.toWorkspaceRoute(): TaskWorkspaceRoute = when (this
     TaskDestination.Inbox -> TaskWorkspaceRoute(TaskWorkspaceDestination.Inbox)
     TaskDestination.Today -> TaskWorkspaceRoute(TaskWorkspaceDestination.Today)
     TaskDestination.Upcoming -> TaskWorkspaceRoute(TaskWorkspaceDestination.Upcoming)
-    TaskDestination.Anytime -> TaskWorkspaceRoute(TaskWorkspaceDestination.Anytime)
     TaskDestination.Completed -> TaskWorkspaceRoute(
         TaskWorkspaceDestination.History,
         TaskHistorySection.Completed,
@@ -68,7 +65,6 @@ internal fun TaskWorkspaceRoute.dataDestination(): TaskDestination = when (desti
     TaskWorkspaceDestination.Inbox -> TaskDestination.Inbox
     TaskWorkspaceDestination.Today -> TaskDestination.Today
     TaskWorkspaceDestination.Upcoming -> TaskDestination.Upcoming
-    TaskWorkspaceDestination.Anytime -> TaskDestination.Anytime
     TaskWorkspaceDestination.History -> when (historySection) {
         TaskHistorySection.Completed -> TaskDestination.Completed
         TaskHistorySection.Archived -> TaskDestination.Archived
@@ -124,7 +120,6 @@ internal fun List<ScheduledTask>.sortedForWorkspace(
 internal fun buildQuickAddTaskDraft(
     capture: String,
     defaultDate: LocalDate?,
-    inbox: Boolean,
     areaId: String?,
 ): TaskDraft? {
     val lines = capture.lineSequence().map(String::trim).filter(String::isNotBlank).toList()
@@ -138,7 +133,7 @@ internal fun buildQuickAddTaskDraft(
         scheduleKind = scheduleKind,
         date = defaultDate,
         areaId = areaId,
-        inbox = inbox && scheduleKind == ScheduleKind.Anytime,
+        inbox = scheduleKind == ScheduleKind.Anytime,
         steps = lines.drop(1).mapIndexed { index, title ->
             TaskStepDraft(title = title, position = index)
         },

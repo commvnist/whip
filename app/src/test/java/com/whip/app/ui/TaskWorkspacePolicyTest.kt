@@ -14,7 +14,6 @@ class TaskWorkspacePolicyTest {
                 TaskWorkspaceDestination.Today,
                 TaskWorkspaceDestination.Inbox,
                 TaskWorkspaceDestination.Upcoming,
-                TaskWorkspaceDestination.Anytime,
             ),
             primaryTaskWorkspaceDestinations,
         )
@@ -25,7 +24,6 @@ class TaskWorkspacePolicyTest {
         assertEquals(TaskPlacement.Inbox, TaskDestination.Inbox.creationPlacement())
         assertEquals(TaskPlacement.Scheduled, TaskDestination.Today.creationPlacement())
         assertEquals(TaskPlacement.Scheduled, TaskDestination.Upcoming.creationPlacement())
-        assertEquals(TaskPlacement.Anytime, TaskDestination.Anytime.creationPlacement())
     }
 
     @Test
@@ -88,6 +86,22 @@ class TaskWorkspacePolicyTest {
     }
 
     @Test
+    fun removedAnytimeSavedDestinationMigratesToInboxList() {
+        assertEquals(
+            SavedTaskFilter(
+                name = "Legacy Anytime",
+                destination = TaskDestination.Inbox.name,
+                planningView = TaskPlanningView.List.name,
+            ),
+            SavedTaskFilter(
+                name = "Legacy Anytime",
+                destination = "Anytime",
+                planningView = TaskPlanningView.Calendar.name,
+            ).normalizedForWorkspace(),
+        )
+    }
+
+    @Test
     fun destinationlessFilterDoesNotNavigateButStillUsesList() {
         val normalized = SavedTaskFilter(
             name = "No route",
@@ -101,7 +115,7 @@ class TaskWorkspacePolicyTest {
     fun quickAddUsesDestinationDefaultsAndArea() {
         val today = LocalDate.of(2026, 8, 22)
         val todayDraft = requireNotNull(
-            buildQuickAddTaskDraft("Clean room", today, inbox = false, areaId = "personal"),
+            buildQuickAddTaskDraft("Clean room", today, areaId = "personal"),
         )
         assertEquals("Clean room", todayDraft.title)
         assertEquals(ScheduleKind.Once, todayDraft.scheduleKind)
@@ -110,7 +124,7 @@ class TaskWorkspacePolicyTest {
         assertEquals("personal", todayDraft.areaId)
 
         val inboxDraft = requireNotNull(
-            buildQuickAddTaskDraft("Research desk", null, inbox = true, areaId = "work"),
+            buildQuickAddTaskDraft("Research desk", null, areaId = "work"),
         )
         assertEquals(ScheduleKind.Anytime, inboxDraft.scheduleKind)
         assertEquals(null, inboxDraft.date)
@@ -123,7 +137,6 @@ class TaskWorkspacePolicyTest {
             buildQuickAddTaskDraft(
                 "Prepare report tomorrow\nDraft outline\nReview figures",
                 defaultDate = null,
-                inbox = true,
                 areaId = "work",
             ),
         )
@@ -138,7 +151,7 @@ class TaskWorkspacePolicyTest {
     fun blankQuickAddDoesNothing() {
         assertEquals(
             null,
-            buildQuickAddTaskDraft("\n  ", null, true, "main"),
+            buildQuickAddTaskDraft("\n  ", null, "main"),
         )
     }
 }

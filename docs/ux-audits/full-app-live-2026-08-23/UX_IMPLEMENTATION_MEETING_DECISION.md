@@ -182,7 +182,7 @@ Delete invisible horizontal scrolling as the only route to a page. Introduce an 
 
 | Workspace | Visible peers | Pages overflow |
 |---|---|---|
-| Tasks | Inbox, Today, Upcoming, Anytime when it fits | Task History; when active, replace Anytime |
+| Tasks | Today, Inbox, Upcoming | Task History; when active, replace Upcoming |
 | Habits | Today, All, Insights | Connections, Archived, Browse Templates; active page replaces Insights |
 | Goals | Active, Insights, Completed | Archived; active page replaces Completed |
 | Tracks detail | Entries, Insights, Automations | Options; active Options replaces Automations |
@@ -328,10 +328,10 @@ For Reach a Target: Name → Goal Type → Target → Starting Value → Unit �
 
 **Decision:** Placement is one single-choice group; Repeat is an independent switch/disclosure immediately below.
 
-- Placement: Inbox, Anytime, Scheduled.
+- Placement: Inbox or Scheduled. Inbox is the single unscheduled placement.
 - Scheduled owns date, time, reminder, and deadline.
 - Repeat owns cadence, anchor, and end.
-- Turning Repeat on from Inbox/Anytime must explain any required placement/date transition and never silently mutate unrelated values.
+- Turning Repeat on from Inbox must explain any required placement/date transition and never silently mutate unrelated values.
 - No time/reminder is editable where persistence discards it.
 - Apply enabling-control adjacency to Habit cadence/reminders, Goal automation, Track Field settings/automations, and Gym timers.
 

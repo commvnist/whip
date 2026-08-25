@@ -11,7 +11,7 @@ Evidence index: [`../artifacts/ux-planning/2026-08-22/README.md`](../artifacts/u
 The architecture in this document is now the product contract, not a future proposal. The implementation includes:
 
 - shared rectangular controls, semantic typography/spacing/shape roles, adaptive destination tabs, common page headers, filter summaries, empty states, settings rows, and danger zones;
-- the Tasks workspace (`Inbox | Today | Upcoming | Anytime | History`), valid-view normalization, compact filtering, protected selection mode, immediate Quick Add with Edit/Undo, and removal of the ambiguous calendar shortcut;
+- the Tasks workspace (`Today | Inbox | Upcoming | History`), valid-view normalization, compact filtering, protected selection mode, immediate Quick Add with Edit/Undo, and removal of the ambiguous calendar shortcut; undated tasks formerly split between Inbox and Anytime are now consolidated in Inbox;
 - one route-scoped search surface across Whip and Gym libraries, including keyboard Enter/Escape and explicit `Search All Whip` escape from a local scope;
 - causally ordered Task, Habit, and Goal editors with compact icon selection, dirty-draft protection, and save-operation ownership so stale operation state cannot dismiss a new editor;
 - Areas as destination-sized list/detail navigation with atomic move/merge/archive/delete choices and the one-active-Area invariant;
@@ -87,7 +87,7 @@ Habits, Goals, and Gym child pages migrate to this same anatomy. They may omit s
 Top-level Tasks navigation becomes:
 
 ```text
-Inbox | Today | Upcoming | Anytime | History
+Today | Inbox | Upcoming | History
 ```
 
 `History` contains an internal two-way switch:
@@ -103,11 +103,10 @@ View availability:
 | Inbox | List only |
 | Today | List only |
 | Upcoming | List, Agenda, Calendar |
-| Anytime | List only |
 | History / Completed | List only |
 | History / Archived | List only |
 
-Why: the current implementation filters an already bucketed collection. Inbox and Anytime are defined by missing planning dates, while a Today month view can only contain Today. A universal view selector is therefore misleading, not merely dense.
+Why: the current implementation filters an already bucketed collection. Inbox owns every task without a planning date, while a Today month view can only contain Today. A universal view selector is therefore misleading, not merely dense. The former Anytime destination duplicated Inbox's undated data and was removed; its persisted enum remains an internal compatibility representation only.
 
 Upcoming remains the planning destination for this release because `TaskUiState.upcoming` is already the authoritative preference-aware 30-day collection. A separate Planner is deferred until it has a purpose-built dataset rather than duplicating Upcoming.
 
@@ -421,10 +420,10 @@ Saved-filter normalization:
 
 Exit criteria:
 
-- All six old data buckets remain reachable.
+- Every legacy data bucket remains reachable; records formerly split between Inbox and Anytime are both reachable through Inbox.
 - No invalid view control is rendered.
 - Quick Add, Undo, Edit, Cancel, Area inheritance, and parser behavior pass tests.
-- The Anytime scheduling crash regression remains covered.
+- The undated-task scheduling crash regression remains covered.
 
 ### Phase 3 — Scoped unified search
 

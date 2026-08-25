@@ -21,7 +21,7 @@ This distinction preserves the warmth and flexibility requested for identity whi
 - **C-02 — Three incompatible identity pickers/defaults:** Tracks use a hard-coded chip grid; Habits and Goals use a dropdown plus a two-character custom field; defaults and templates are mostly typographic symbols. Custom multi-code-point emoji can be truncated.
 - **C-03 — Functional checks are text:** Area, unit, page, sort, and generic selection menus prepend or append `✓` as text. This repeats the same baseline problem and does not expose a consistent selected visual.
 - **C-04 — Primary editor grammar diverges:** Task and Track editors use a full content-pane surface with fixed top actions, while Habit and Goal editors use tall rounded cards with bottom actions. In the live Fold view, Goal supporting copy is clipped near the bottom action row and the editor feels like a long alert rather than a primary workflow.
-- **C-05 — Narrow pane tabs do not budget for Pages:** the live Tasks view truncates Upcoming and Anytime; Goals truncates Completed. The tab capacity calculation ignores the width consumed by the labeled Pages control.
+- **C-05 — Narrow pane tabs do not budget for Pages:** the live Tasks view truncated Upcoming and the now-removed Anytime destination; Goals truncated Completed. The tab capacity calculation ignored the width consumed by the labeled Pages control.
 - **C-06 — Gear semantics change by layout:** in the normal open-Fold workspace the gear opens a mixed “Expand Content / Open Settings” menu, although a gear conventionally means Settings. A mixed application-actions menu needs an overflow affordance.
 
 ### UX and novice findings

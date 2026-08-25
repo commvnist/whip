@@ -241,7 +241,6 @@ fun TaskActionsDialog(
     onPin: () -> Unit,
     modifier: Modifier = Modifier,
     onDuplicate: () -> Unit,
-    onToggleInbox: () -> Unit,
     onStartFocus: (Int) -> Unit,
     onToggleSubtask: (Long, Boolean) -> Unit,
     onPromoteSubtask: (Long) -> Unit,
@@ -362,11 +361,6 @@ fun TaskActionsDialog(
                         }
                         WhipTextButton(onClick = onDuplicate, modifier = Modifier.fillMaxWidth()) {
                             Text("Duplicate to Inbox")
-                        }
-                        if (item.task.scheduleKind == ScheduleKind.Anytime) {
-                            WhipTextButton(onClick = onToggleInbox, modifier = Modifier.fillMaxWidth()) {
-                                Text(if (item.task.inbox) "Move to Anytime" else "Move to Inbox")
-                            }
                         }
                         Text("Focus Timer", style = MaterialTheme.typography.labelMedium)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -667,8 +661,7 @@ private fun ScheduledTask.detailLabel(completed: Boolean): String {
     if (task.effort != TaskEffort.Unspecified) parts += "Effort: ${task.effort.label}"
     if (task.tags.isNotEmpty()) parts += task.tags.joinToString(prefix = "#", separator = " #")
     if (task.scheduleKind == ScheduleKind.Recurring) parts += task.repeatLabel()
-    if (task.inbox) parts += "Inbox"
-    else if (task.scheduleKind == ScheduleKind.Anytime && parts.isEmpty()) parts += "Anytime"
+    if (task.scheduleKind == ScheduleKind.Anytime) parts += "Inbox"
     return parts.joinToString(" • ")
 }
 
@@ -702,7 +695,7 @@ private fun WhipTask.repeatLabel(): String {
 
 private fun WhipTask.scheduleExplanation(): String {
     if (scheduleKind == ScheduleKind.Anytime) {
-        return "This task has no scheduled date. Choose one when you are ready to schedule it."
+        return "This task is in Inbox without a scheduled date. Choose one when you are ready to schedule it."
     }
     if (scheduleKind == ScheduleKind.Once) {
         return date?.let { "Scheduled for ${it.format(shortDateFormatter)}." }

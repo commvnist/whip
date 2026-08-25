@@ -99,15 +99,15 @@ class ProductivityDefaultsUiTest {
     @Test
     fun todayAndInboxQuickCaptureUseMatchingDestinationCopyAndDefaults() {
         val today = LocalDate.of(2026, 8, 25)
-        val quickCaptures = mutableListOf<Triple<String, LocalDate?, Boolean>>()
+        val quickCaptures = mutableListOf<Pair<String, LocalDate?>>()
         val detailedDraft = AtomicReference<TaskDraft?>()
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 WhipScreen(
                     state = TaskUiState(currentDate = today, loading = false),
                     onSaveTask = { _, draft, _ -> detailedDraft.set(draft) },
-                    onQuickAddTaskWithResult = { capture, date, inbox, _, onFinished ->
-                        quickCaptures += Triple(capture, date, inbox)
+                    onQuickAddTaskWithResult = { capture, date, _, onFinished ->
+                        quickCaptures += capture to date
                         onFinished(true)
                     },
                     onComplete = {},
@@ -137,8 +137,8 @@ class ProductivityDefaultsUiTest {
         compose.runOnIdle {
             assertEquals(
                 listOf(
-                    Triple("Captured from Today", today, false),
-                    Triple("Captured from Inbox", null, true),
+                    "Captured from Today" to today,
+                    "Captured from Inbox" to null,
                 ),
                 quickCaptures,
             )

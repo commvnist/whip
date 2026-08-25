@@ -113,7 +113,7 @@ data class WhipTask(
     val deadline: LocalDate? = null,
     val reminderOffsetsMinutes: List<Int> = emptyList(),
     val missedOccurrencePolicy: MissedOccurrencePolicy = MissedOccurrencePolicy.KeepLatest,
-    /** Inbox is an explicit untriaged state, not an alias for every anytime task. */
+    /** Compatibility field; every undated Task is normalized into Inbox. */
     val inbox: Boolean = false,
     val durationMinutes: Int? = null,
     val effort: TaskEffort = TaskEffort.Unspecified,

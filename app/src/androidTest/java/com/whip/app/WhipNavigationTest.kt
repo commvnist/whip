@@ -166,7 +166,7 @@ class WhipNavigationTest {
             compose.onNodeWithContentDescription("Close Review & Trends").performClick()
 
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            listOf("Today", "Inbox", "Upcoming", "Anytime").forEach { destination ->
+            listOf("Today", "Inbox", "Upcoming").forEach { destination ->
                 selectDestination("task-destination-$destination", destination)
             }
             compose.onNodeWithContentDescription("More task list actions").performClick()

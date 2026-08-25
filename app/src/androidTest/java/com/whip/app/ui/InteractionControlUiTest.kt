@@ -163,7 +163,7 @@ class InteractionControlUiTest {
                 Column {
                     DestinationTabBar(
                         selected = destination,
-                        destinations = listOf("Today", "Anytime", "Archived"),
+                        destinations = listOf("Today", "Upcoming", "Archived"),
                         onSelect = { destination = it },
                         label = { it },
                         testTagPrefix = "control-tab",
@@ -348,14 +348,14 @@ class InteractionControlUiTest {
     }
 
     @Test
-    fun fourShortTaskDestinationsFitTheCompactCoverWidthWithoutClipping() {
+    fun fourRemainingTaskDestinationsFitTheCompactCoverWidthWithoutClipping() {
         var destination by mutableStateOf("Today")
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 Box(Modifier.width(360.dp)) {
                     DestinationTabBar(
                         selected = destination,
-                        destinations = listOf("Inbox", "Today", "Upcoming", "Anytime"),
+                        destinations = listOf("Today", "Inbox", "Upcoming", "History"),
                         onSelect = { destination = it },
                         label = { it },
                         testTagPrefix = "compact-task-tab",
@@ -366,11 +366,11 @@ class InteractionControlUiTest {
 
         val leftGutter = with(compose.density) { 12.dp.toPx() }
         val rightEdge = with(compose.density) { (360.dp - 12.dp).toPx() }
-        val inbox = compose.onNodeWithTag("compact-task-tab-Inbox").fetchSemanticsNode().boundsInRoot
-        val anytime = compose.onNodeWithTag("compact-task-tab-Anytime").fetchSemanticsNode().boundsInRoot
-        assertEquals(leftGutter, inbox.left, 0.5f)
-        assertEquals(rightEdge, anytime.right, 0.5f)
-        compose.onNodeWithText("Anytime").assertIsDisplayed()
+        val today = compose.onNodeWithTag("compact-task-tab-Today").fetchSemanticsNode().boundsInRoot
+        val history = compose.onNodeWithTag("compact-task-tab-History").fetchSemanticsNode().boundsInRoot
+        assertEquals(leftGutter, today.left, 0.5f)
+        assertEquals(rightEdge, history.right, 0.5f)
+        compose.onNodeWithText("History").assertIsDisplayed()
     }
 
     @Test
