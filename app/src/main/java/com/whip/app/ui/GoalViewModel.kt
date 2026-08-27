@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.whip.app.WhipApplication
+import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 import com.whip.app.core.currentDateFlow
 import com.whip.app.data.GoalRepository
@@ -142,8 +143,15 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
             .forEach { app.measurementRepository.ensureTag(it) }
     }
     fun duplicate(id: Long) = runOperation("Duplicating goal…", "Goal duplicated") { repository.duplicate(id) }
-    fun setStatus(id: Long, status: GoalStatus) = runOperation("Updating goal…", "Goal ${status.name.lowercase()}") { repository.setStatus(id, status); reminders.syncGoal(id) }
-    fun deletePermanently(id: Long) = runOperation("Deleting goal…", "Goal permanently deleted") {
+    fun setStatus(id: Long, status: GoalStatus) = runOperation(
+        "Updating goal…",
+        "Goal ${status.name.lowercase()}",
+    ) { repository.setStatus(id, status); reminders.syncGoal(id) }
+    fun deletePermanently(id: Long) = runOperation(
+        "Deleting goal…",
+        "Goal permanently deleted",
+        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+    ) {
         app.domainDeletionCoordinator.deleteGoal(id)
         reminders.syncGoal(id)
     }
@@ -153,8 +161,15 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
     fun updateMeasurement(id: Long, entryId: String, value: Double, date: LocalDate, note: String) =
         runOperation("Updating measurement…", "Measurement updated") { repository.updateMeasurement(id, entryId, value, date, note) }
     fun deleteMeasurement(id: Long, entryId: String) =
-        runOperation("Removing measurement…", "Measurement removed") { repository.deleteMeasurement(id, entryId) }
-    fun toggleMilestone(id: Long, completed: Boolean) = runOperation("Updating milestone…", "Milestone updated") { repository.toggleMilestone(id, completed) }
+        runOperation(
+            "Removing measurement…",
+            "Measurement removed",
+        ) { repository.deleteMeasurement(id, entryId) }
+    fun toggleMilestone(id: Long, completed: Boolean) = runOperation(
+        "Updating milestone…",
+        "Milestone updated",
+        successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+    ) { repository.toggleMilestone(id, completed) }
     fun resetElapsedStart(id: Long, start: Instant) = runOperation("Resetting timer…", "Timer reset") {
         repository.resetElapsedStart(id, start)
     }
@@ -197,13 +212,14 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         running: String,
         success: String,
         onFinished: (Boolean) -> Unit = {},
+        successFeedbackPresentation: OperationFeedbackPresentation = OperationFeedbackPresentation.Inline,
         block: suspend () -> Unit,
     ) {
         _operationStatus.value = OperationStatus.Running(running)
         viewModelScope.launch {
             try {
                 block()
-                _operationStatus.value = OperationStatus.Succeeded(success)
+                _operationStatus.value = OperationStatus.Succeeded(success, successFeedbackPresentation)
                 runCatching { onFinished(true) }
             } catch (cancelled: CancellationException) {
                 throw cancelled

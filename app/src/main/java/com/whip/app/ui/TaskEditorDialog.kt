@@ -160,7 +160,7 @@ fun TaskEditorDialog(
     defaultRepeatStepPolicy: RepeatStepPolicy = RepeatStepPolicy.Reset,
     firstDayOfWeek: DayOfWeek = DayOfWeek.MONDAY,
     today: LocalDate = LocalDate.now(),
-    naturalLanguageCapture: Boolean = false,
+    naturalLanguageCapture: Boolean = true,
     powerMode: Boolean = false,
     areas: List<Area> = emptyList(),
     defaultAreaId: String? = null,
@@ -349,13 +349,15 @@ fun TaskEditorDialog(
             (recurrenceEnd != RecurrenceEnd.AfterCount || (count ?: 0) > 0)
         )
     val deadlineValid = !hasDeadline || scheduleKind == ScheduleKind.Anytime || !deadline.isBefore(mainDate)
-    val canSave = title.isNotBlank() && recurrenceValid && deadlineValid &&
+    val areaSelectionValid = request.task != null || areas.count { !it.archived } <= 1 || areaId != null
+    val canSave = title.isNotBlank() && recurrenceValid && deadlineValid && areaSelectionValid &&
         (!reminderEnabled || reminderOffsets.isNotEmpty())
     val saveProblem = when {
         title.isBlank() -> "Enter a Task title to save."
         !recurrenceValid -> "Finish the Repeat settings to save."
         !deadlineValid -> "Deadline cannot be before the Task's scheduled start."
         reminderEnabled && reminderOffsets.isEmpty() -> "Choose at least one reminder time."
+        !areaSelectionValid -> "Choose an Area for this Task."
         else -> null
     }
     val recurrence = if (scheduleKind == ScheduleKind.Recurring && recurrenceValid) {
@@ -509,6 +511,14 @@ fun TaskEditorDialog(
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
+                    Text("* Required field", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    saveProblem?.takeIf { validationRequested }?.let { problem ->
+                        FormValidationSummary(
+                            messages = listOf(problem),
+                            visible = true,
+                            testTag = "task-save-problem",
+                        )
+                    }
                     if (request.fromOccurrence != null) {
                         DependentSettingsNotice(
                             message = "Changes apply from ${request.fromOccurrence.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} forward. Earlier occurrences and history stay unchanged.",
@@ -520,7 +530,7 @@ fun TaskEditorDialog(
                         value = title,
                         onValueChange = { entered ->
                             val lines = entered.lines()
-                            title = lines.firstOrNull().orEmpty()
+                            title = lines.firstOrNull().orEmpty().replace('\r', ' ').take(100)
                             smartCaptureSummary = null
                             val pastedSteps = lines.drop(1).map(String::trim).filter(String::isNotBlank)
                             if (pastedSteps.isNotEmpty()) {
@@ -538,7 +548,14 @@ fun TaskEditorDialog(
                                 smartCaptureStateDescription?.let { stateDescription = it }
                             }
                             .testTag("task-editor-title"),
-                        label = { Text("Task") },
+                        label = { Text("Task *") },
+                        isError = validationRequested && title.isBlank(),
+                        supportingText = {
+                            Text(
+                                if (validationRequested && title.isBlank()) "Task title is required"
+                                else "${title.length}/100",
+                            )
+                        },
                         visualTransformation = SmartTaskCaptureVisualTransformation(
                             assumptions = smartCaptureAssumptions,
                             highlightColor = MaterialTheme.colorScheme.primaryContainer,
@@ -548,7 +565,7 @@ fun TaskEditorDialog(
                     )
                     SmartTaskCapturePreview(
                         assumptions = smartCaptureAssumptions,
-                        actionText = "Highlighted phrases are only a preview here. Apply them to update this Task's schedule.",
+                        actionText = "Highlighted phrases are only a preview here. Apply them to update this Task's details.",
                         modifier = Modifier.fillMaxWidth(),
                         testTag = "smart-task-editor-preview",
                     )
@@ -567,6 +584,28 @@ fun TaskEditorDialog(
                                 parsed.deadline?.let {
                                     hasDeadline = true
                                     deadline = it
+                                }
+                                parsed.timeMinutes?.let {
+                                    hasTime = true
+                                    timeMinutes = it
+                                }
+                                if (parsed.reminderEnabled) {
+                                    reminderEnabled = true
+                                    reminderOffsets = parsed.reminderOffsetsMinutes.toSet()
+                                }
+                                parsed.priority?.let { priority = it }
+                                parsed.durationMinutes?.let { durationMinutes = it.toString() }
+                                parsed.effort?.let { effort = it }
+                                if (parsed.tags.isNotEmpty()) {
+                                    tagsText = (tagsText.split(',').map(String::trim).filter(String::isNotBlank) + parsed.tags)
+                                        .distinctBy { it.lowercase() }
+                                        .joinToString(", ")
+                                }
+                                if (
+                                    parsed.timeMinutes != null || parsed.reminderEnabled || parsed.priority != null ||
+                                    parsed.durationMinutes != null || parsed.effort != null || parsed.tags.isNotEmpty()
+                                ) {
+                                    showAdvanced = true
                                 }
                                 smartCaptureSummary = parsed.recognized.joinToString(
                                     prefix = "Applied · ",
@@ -882,6 +921,13 @@ fun TaskEditorDialog(
                         dialogModifier = Modifier.absoluteOffset(x = paneOffsetX).width(paneMaxWidth),
                         inheritedFromScope = request.task == null && inheritedAreaFromScope,
                     )
+                    if (validationRequested && !areaSelectionValid) {
+                        Text(
+                            "Choose an Area before saving.",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
 
                     EditorSectionHeader("Planning", "Set urgency now and reveal estimates or subtasks only when useful.")
                     FieldLabel("Priority")
@@ -1119,18 +1165,6 @@ fun TaskEditorDialog(
 
                 }
 
-                    saveProblem?.takeIf { validationRequested }?.let {
-                        Text(
-                            it,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 6.dp)
-                                .testTag("task-save-problem")
-                                .semantics { liveRegion = LiveRegionMode.Polite },
-                        )
-                    }
                 }
             }
             }
@@ -1536,6 +1570,7 @@ fun WhipDatePickerDialog(
     ProductivityEditorDialog(
         modifier = Modifier.widthIn(min = 280.dp, max = 560.dp).then(modifier),
         testTag = "date-picker-dialog",
+        paneTitle = "Choose Date",
         onDismissRequest = onDismiss,
         title = { Text("Choose Date") },
         text = {

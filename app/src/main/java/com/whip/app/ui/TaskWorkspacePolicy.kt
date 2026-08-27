@@ -5,6 +5,8 @@ import com.whip.app.core.normalizedNavigation
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.TaskEffort
+import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskQuickCaptureParser
 import com.whip.app.domain.TaskStepDraft
 import java.time.LocalDate
@@ -141,6 +143,13 @@ internal fun buildQuickAddTaskDraft(
         },
         recurrence = parsed?.recurrence,
         deadline = parsed?.deadline,
+        timeMinutes = parsed?.timeMinutes,
+        reminderEnabled = parsed?.reminderEnabled == true,
+        reminderOffsetsMinutes = parsed?.reminderOffsetsMinutes.orEmpty(),
+        priority = parsed?.priority ?: TaskPriority.None,
+        durationMinutes = parsed?.durationMinutes,
+        effort = parsed?.effort ?: TaskEffort.Unspecified,
+        tags = parsed?.tags.orEmpty(),
         areaId = areaId,
         inbox = scheduleKind == ScheduleKind.Anytime,
         steps = lines.drop(1).mapIndexed { index, title ->

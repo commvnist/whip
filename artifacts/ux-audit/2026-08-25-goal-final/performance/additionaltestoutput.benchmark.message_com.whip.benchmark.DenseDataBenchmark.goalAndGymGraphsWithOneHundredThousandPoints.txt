@@ -1,0 +1,11 @@
+WARNING: Running on Emulator
+Benchmark is running on an emulator, which is not representative of
+real user devices. Use a physical device to benchmark. Emulator
+benchmark improvements might not carry over to a real user's
+experience (or even regress real device performance).
+
+DenseDataBenchmark_goalAndGymGraphsWithOneHundredThousandPoints
+frameCount           [min   546.0](file://DenseDataBenchmark_goalAndGymGraphsWithOneHundredThousandPoints_iter002_2026-08-26-04-48-03.perfetto-trace),   [median   566.0](file://DenseDataBenchmark_goalAndGymGraphsWithOneHundredThousandPoints_iter001_2026-08-26-04-47-48.perfetto-trace),   [max 1,330.0](file://DenseDataBenchmark_goalAndGymGraphsWithOneHundredThousandPoints_iter000_2026-08-26-04-47-29.perfetto-trace)
+frameDurationCpuMs   P50     19.2,   P90     20.9,   P95     21.9,   P99     33.8
+frameOverrunMs       P50      3.0,   P90      4.9,   P95      6.0,   P99     24.7
+Traces: Iteration [0](file://DenseDataBenchmark_goalAndGymGraphsWithOneHundredThousandPoints_iter000_2026-08-26-04-47-29.perfetto-trace) [1](file://DenseDataBenchmark_goalAndGymGraphsWithOneHundredThousandPoints_iter001_2026-08-26-04-47-48.perfetto-trace) [2](file://DenseDataBenchmark_goalAndGymGraphsWithOneHundredThousandPoints_iter002_2026-08-26-04-48-03.perfetto-trace)

@@ -5,6 +5,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
+import com.whip.app.core.TrackedGymRecord
+import com.whip.app.core.resolveForExercise
 import com.whip.app.data.RoomGymRepository
 import com.whip.app.data.RoomRoutineRepository
 import com.whip.app.data.WhipDatabase
@@ -16,6 +18,7 @@ import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
 import com.whip.app.domain.WorkoutSetDraft
+import com.whip.app.domain.massToKilograms
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -103,6 +106,30 @@ class RoutineRepositoryTest {
         assertTrue(routines.personalRecords.first().any {
             it.type == PersonalRecordType.ExerciseWorkoutVolume && it.value == 950.0 && it.current
         })
+    }
+
+    @Test
+    fun trackedRepBenchmarkIgnoresLighterHighRepSetsAndIncludesHeavierLoads() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Bench", weightUnitId = "pound"))
+        val sessionId = gym.startWorkout()
+        val workoutExerciseId = gym.addExerciseToWorkout(sessionId, exerciseId)
+        gym.addSet(workoutExerciseId, WorkoutSetDraft(weight = 135.0, weightUnitId = "pound", reps = 20, completed = true))
+        val expectedSetId = gym.addSet(
+            workoutExerciseId,
+            WorkoutSetDraft(weight = 225.0, weightUnitId = "pound", reps = 15, completed = true),
+        )
+        gym.addSet(workoutExerciseId, WorkoutSetDraft(weight = 250.0, weightUnitId = "pound", reps = 12, completed = true))
+
+        routines.rebuildPersonalRecords(exerciseId)
+        val resolved = TrackedGymRecord(
+            exerciseUuid = "bench",
+            type = PersonalRecordType.MaxRepetitionsForWeight,
+            secondaryValue = massToKilograms(225.0, "pound"),
+        ).resolveForExercise(exerciseId, routines.personalRecords.first())
+
+        assertEquals(15.0, requireNotNull(resolved).value, 0.0)
+        assertEquals(expectedSetId, resolved.sourceSetId)
+        assertEquals(massToKilograms(225.0, "pound"), requireNotNull(resolved.secondaryValue), 0.000_001)
     }
 
     @Test

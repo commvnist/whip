@@ -1,0 +1,11 @@
+WARNING: Running on Emulator
+Benchmark is running on an emulator, which is not representative of
+real user devices. Use a physical device to benchmark. Emulator
+benchmark improvements might not carry over to a real user's
+experience (or even regress real device performance).
+
+StartupBenchmark_expandedResizeFrameTiming
+frameCount           [min  29.0](file://StartupBenchmark_expandedResizeFrameTiming_iter001_2026-08-26-04-52-39.perfetto-trace),   [median  43.0](file://StartupBenchmark_expandedResizeFrameTiming_iter002_2026-08-26-04-52-48.perfetto-trace),   [max  60.0](file://StartupBenchmark_expandedResizeFrameTiming_iter000_2026-08-26-04-52-30.perfetto-trace)
+frameDurationCpuMs   P50   20.7,   P90   30.6,   P95   65.5,   P99  120.5
+frameOverrunMs       P50    5.4,   P90   61.3,   P95  101.9,   P99  122.5
+Traces: Iteration [0](file://StartupBenchmark_expandedResizeFrameTiming_iter000_2026-08-26-04-52-30.perfetto-trace) [1](file://StartupBenchmark_expandedResizeFrameTiming_iter001_2026-08-26-04-52-39.perfetto-trace) [2](file://StartupBenchmark_expandedResizeFrameTiming_iter002_2026-08-26-04-52-48.perfetto-trace) [3](file://StartupBenchmark_expandedResizeFrameTiming_iter003_2026-08-26-04-52-57.perfetto-trace) [4](file://StartupBenchmark_expandedResizeFrameTiming_iter004_2026-08-26-04-53-05.perfetto-trace)

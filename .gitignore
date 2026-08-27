@@ -10,3 +10,4 @@ build/
 **/build/
 *.jks
 *.keystore
+artifacts/releases/

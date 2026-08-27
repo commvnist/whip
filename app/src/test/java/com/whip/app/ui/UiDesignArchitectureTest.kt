@@ -88,4 +88,110 @@ class UiDesignArchitectureTest {
         assertTrue(tracks.contains("track-detail-navigation"))
         assertTrue("Gym must remain global instead of receiving a fake Area scope", app.contains("appDestination in setOf(AppDestination.Home, AppDestination.Tasks, AppDestination.Habits, AppDestination.Goals, AppDestination.Tracks)"))
     }
+
+    @Test
+    fun persistentNavigationRailDoesNotMoveWithTheKeyboardInset() {
+        val app = File(sourceRoot, "com/whip/app/ui/WhipApp.kt").readText()
+        val rail = app.substringAfter("private fun WhipNavigationRail(")
+            .substringBefore("private fun WhipBrandMark(")
+
+        assertTrue(
+            "The persistent rail must remember its largest available height so the IME cannot recenter it",
+            rail.contains("stableRailHeight") && rail.contains("stableTopOffset"),
+        )
+        assertFalse(
+            "The persistent rail must not apply an IME-derived inset",
+            rail.contains("imePadding()") || rail.contains("windowInsetsPadding(WindowInsets.safeDrawing)"),
+        )
+    }
+
+    @Test
+    fun entityDetailsUseOneAdaptiveInspectorContract() {
+        val inspector = File(sourceRoot, "com/whip/app/ui/EntityInspector.kt").readText()
+        val tasks = File(sourceRoot, "com/whip/app/ui/TaskComponents.kt").readText()
+        val habits = File(sourceRoot, "com/whip/app/ui/HabitScreens.kt").readText()
+        val goals = File(sourceRoot, "com/whip/app/ui/GoalScreens.kt").readText()
+        val tracks = File(sourceRoot, "com/whip/app/ui/TrackScreens.kt").readText()
+        val gym = File(sourceRoot, "com/whip/app/ui/GymScreens.kt").readText()
+
+        listOf(
+            "entity-inspector-header",
+            "entity-inspector-status",
+            "entity-inspector-section-selector",
+            "entity-inspector-primary-",
+            "entity-inspector-danger-zone",
+            "LocalWhipDialogPlacement.current",
+            "absoluteOffset(x = placement.offsetX)",
+        ).forEach { contract ->
+            assertTrue("Entity inspector is missing $contract", inspector.contains(contract))
+        }
+        assertTrue(
+            "Entity inspector content must fill a stable center lane instead of resizing the dialog per section",
+            inspector.contains("val inspectorHeight = minOf(maxHeight * 0.94f, 720.dp)") &&
+                inspector.contains(".height(inspectorHeight)") &&
+                inspector.contains(".weight(1f)"),
+        )
+        assertTrue(
+            "Entity inspector sections must adapt into a visible subset plus overflow",
+            inspector.contains("visibleCapacity") && inspector.contains("DropdownMenu("),
+        )
+        assertFalse(
+            "Entity inspector controls must not expose compatibility labels through zero-size text",
+            inspector.contains("Text(editLabel, modifier = Modifier.size(0.dp))") ||
+                inspector.contains("Text(section.legacyLabel, modifier = Modifier.size(0.dp))") ||
+                inspector.contains("Text(\"Close\", modifier = Modifier.size(0.dp))"),
+        )
+        listOf(tasks, habits, goals, tracks, gym).forEach { source ->
+            assertTrue("A first-class entity detail surface bypasses EntityInspector", source.contains("EntityInspector("))
+        }
+    }
+
+    @Test
+    fun workspaceCreationHasOneStableTopBarHostAndNoFab() {
+        val app = File(sourceRoot, "com/whip/app/ui/WhipApp.kt").readText()
+        val pagePatterns = File(sourceRoot, "com/whip/app/ui/WhipPagePatterns.kt").readText()
+
+        assertTrue(app.contains("workspace-add-action"))
+        assertFalse(app.contains("FloatingActionButton"))
+        assertFalse(app.contains("floatingActionButton ="))
+        assertTrue(app.contains("adaptiveLayout == WhipAdaptiveLayout.Compact ||"))
+        assertTrue(pagePatterns.contains("bottom = WhipSpacing.screenExpanded"))
+        val createShortcut = app.substringAfter("Key.N -> {").substringBefore("Key.H ->")
+        assertTrue("Ctrl+N must invoke the same contextual resolver as the visible Add control", createShortcut.contains("triggerAdd()"))
+        assertFalse("Ctrl+N must not maintain a second Gym creation route", createShortcut.contains("gymAddExpanded = true"))
+        assertFalse("Ctrl+N must not navigate away from Settings", createShortcut.contains("appDestination = AppDestination.Home"))
+
+        val gymLibraryAddMenu = app.substringAfter("DropdownMenu(expanded = gymAddExpanded")
+            .substringBefore("supportsPaneExpansion")
+        assertTrue(gymLibraryAddMenu.contains("Text(if (gymState.activeSession == null) \"Workout\" else \"Add to Workout\")"))
+        listOf("Routine", "Exercise", "Machine", "Category").forEach { item ->
+            assertTrue("Gym Library Add is missing $item", gymLibraryAddMenu.contains("Text(\"$item\")"))
+        }
+        assertTrue(app.contains("GymDestination.Library -> \"Add workout, routine, exercise, machine, or category\""))
+
+        val quickCapture = app.substringAfter("fun submitQuickCapture()")
+            .substringBefore("fun finishSelection()")
+        assertTrue(quickCapture.contains("areaScope.requiresExplicitCreationArea(availableAreas)"))
+        assertTrue(quickCapture.contains("onAddDetails(submittedQuickCapture)"))
+        assertFalse(quickCapture.contains("availableAreas.firstOrNull()?.id"))
+    }
+
+    @Test
+    fun routineSuccessFeedbackIsQuietByDefaultAcrossEveryWorkspace() {
+        val core = File(sourceRoot, "com/whip/app/core/AppRuntime.kt").readText()
+        assertTrue(core.contains("feedbackPresentation: OperationFeedbackPresentation = OperationFeedbackPresentation.Inline"))
+
+        listOf("TaskViewModel.kt", "HabitViewModel.kt", "GoalViewModel.kt", "GymViewModel.kt", "TrackViewModel.kt")
+            .forEach { fileName ->
+                val source = File(sourceRoot, "com/whip/app/ui/$fileName").readText()
+                assertTrue(
+                    "$fileName must make routine success quiet unless a call explicitly opts into a snackbar",
+                    source.contains("successFeedbackPresentation: OperationFeedbackPresentation = OperationFeedbackPresentation.Inline"),
+                )
+                assertFalse(
+                    "$fileName must not make snackbars the default success behavior",
+                    source.contains("successFeedbackPresentation: OperationFeedbackPresentation = OperationFeedbackPresentation.Snackbar"),
+                )
+            }
+    }
 }

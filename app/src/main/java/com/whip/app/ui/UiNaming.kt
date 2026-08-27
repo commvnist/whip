@@ -1,6 +1,8 @@
 package com.whip.app.ui
 
 import com.whip.app.domain.GymGraphRange
+import com.whip.app.domain.GymGraphAggregation
+import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.LinkSourceMetric
 import com.whip.app.domain.RepeatStepPolicy
@@ -76,6 +78,27 @@ internal fun GymGraphRange.uiLabel(): String = when (this) {
     GymGraphRange.Year -> "1 Year"
     GymGraphRange.All -> "All Time"
     GymGraphRange.Custom -> "Custom"
+}
+
+internal fun GymGraphAggregation.uiLabel(): String = when (this) {
+    GymGraphAggregation.Workout -> "Each Workout"
+    GymGraphAggregation.Week -> "Weekly"
+    GymGraphAggregation.Month -> "Monthly"
+}
+
+internal fun PersonalRecordType.uiLabel(): String = when (this) {
+    PersonalRecordType.MaxWeight -> "Heaviest Weight"
+    PersonalRecordType.MaxRepetitions -> "Most Repetitions"
+    PersonalRecordType.MaxRepetitionsForWeight -> "Most Repetitions at a Weight"
+    PersonalRecordType.BestWeightForRepCount -> "Heaviest Weight for a Rep Count"
+    PersonalRecordType.EstimatedOneRepMax -> "Estimated 1RM"
+    PersonalRecordType.SetVolume -> "Best Set Volume"
+    PersonalRecordType.ExerciseWorkoutVolume -> "Highest Workout Volume"
+    PersonalRecordType.MaxDistance -> "Longest Distance"
+    PersonalRecordType.MaxDuration -> "Longest Duration"
+    PersonalRecordType.MaxSpeed -> "Fastest Speed"
+    PersonalRecordType.MinPace -> "Fastest Pace"
+    PersonalRecordType.MaxMachineSetting -> "Best Machine Setting"
 }
 
 internal fun LinkSourceMetric.uiLabel(): String = when (this) {

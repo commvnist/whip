@@ -47,6 +47,8 @@ import com.whip.app.ui.WhipFoldInfo
 import com.whip.app.ui.WhipFoldOrientation
 import com.whip.app.ui.WhipScreen
 import com.whip.app.ui.theme.WhipTheme
+import com.whip.app.core.OperationFeedbackPresentation
+import com.whip.app.core.OperationStatus
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.WhipTask
@@ -72,6 +74,127 @@ import org.junit.runner.RunWith
 class AdaptiveWhipScreenTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun newerTaskUndoSnackbarKeepsItsOwnRecoveryToken() {
+        val status = mutableStateOf<OperationStatus>(OperationStatus.Idle)
+        val undoMessage = mutableStateOf<String?>(null)
+        val undoToken = mutableStateOf<Long?>(null)
+        val gymStatus = mutableStateOf<OperationStatus>(OperationStatus.Idle)
+        val machineUndoId = mutableStateOf<Long?>(null)
+        var undoDismissals = 0
+        val undoneTokens = mutableListOf<Long>()
+        val restoredMachineIds = mutableListOf<Long>()
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    operationStatus = status.value,
+                    taskUndoMessage = undoMessage.value,
+                    taskUndoToken = undoToken.value,
+                    onOperationStatusConsumed = { status.value = OperationStatus.Idle },
+                    onTaskUndo = { undoneTokens += it },
+                    onTaskUndoDismissed = { token ->
+                        undoDismissals += 1
+                        if (undoToken.value == token) {
+                            undoMessage.value = null
+                            undoToken.value = null
+                        }
+                    },
+                    gymOperationStatus = gymStatus.value,
+                    onGymOperationStatusConsumed = { gymStatus.value = OperationStatus.Idle },
+                    machineArchiveUndoId = machineUndoId.value,
+                    onMachineArchiveUndo = { restoredMachineIds += it },
+                    onMachineArchiveUndoDismissed = { id ->
+                        if (machineUndoId.value == id) machineUndoId.value = null
+                    },
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.runOnIdle {
+            undoMessage.value = "Skip can be undone"
+            undoToken.value = 1L
+            status.value = OperationStatus.Succeeded(
+                "Occurrence skipped",
+                OperationFeedbackPresentation.Snackbar,
+            )
+        }
+        compose.onNodeWithText("Occurrence skipped").assertIsDisplayed()
+
+        compose.runOnIdle {
+            undoMessage.value = "Move can be undone"
+            undoToken.value = 2L
+            status.value = OperationStatus.Succeeded(
+                "Task moved",
+                OperationFeedbackPresentation.Snackbar,
+            )
+        }
+        compose.onAllNodesWithText("Occurrence skipped").assertCountEquals(0)
+        compose.onNodeWithText("Task moved").assertIsDisplayed()
+        compose.runOnIdle {
+            gymStatus.value = OperationStatus.Succeeded("Exercise saved")
+        }
+        compose.onNodeWithText("Task moved").assertIsDisplayed()
+        compose.onNodeWithText("Undo").performClick()
+        compose.runOnIdle { check(undoneTokens == listOf(2L)) }
+        compose.runOnIdle { check(undoDismissals > 0) }
+
+        compose.runOnIdle {
+            undoMessage.value = "Skip can be undone"
+            undoToken.value = 3L
+            status.value = OperationStatus.Succeeded(
+                "Another occurrence skipped",
+                OperationFeedbackPresentation.Snackbar,
+            )
+        }
+        compose.onNodeWithText("Another occurrence skipped").assertIsDisplayed()
+        compose.runOnIdle {
+            undoMessage.value = null
+            undoToken.value = null
+            status.value = OperationStatus.Running("Completing task…")
+        }
+        compose.onAllNodesWithText("Another occurrence skipped").assertCountEquals(0)
+        compose.onAllNodesWithText("Undo").assertCountEquals(0)
+        compose.onAllNodesWithText("Completing task…").assertCountEquals(0)
+
+        compose.runOnIdle {
+            machineUndoId.value = 9L
+            gymStatus.value = OperationStatus.Succeeded(
+                "Workout saved to history",
+                OperationFeedbackPresentation.Snackbar,
+            )
+        }
+        compose.onNodeWithText("Workout saved to history").assertIsDisplayed()
+        compose.onAllNodesWithText("Undo").assertCountEquals(0)
+
+        compose.runOnIdle {
+            gymStatus.value = OperationStatus.Succeeded(
+                "Machine archived",
+                OperationFeedbackPresentation.Snackbar,
+                recoveryToken = 9L,
+            )
+        }
+        compose.onNodeWithText("Machine archived").assertIsDisplayed()
+        compose.runOnIdle {
+            machineUndoId.value = 10L
+            gymStatus.value = OperationStatus.Succeeded(
+                "Machine archived again",
+                OperationFeedbackPresentation.Snackbar,
+                recoveryToken = 10L,
+            )
+        }
+        compose.onAllNodesWithText("Machine archived", substring = false).assertCountEquals(0)
+        compose.onNodeWithText("Machine archived again").assertIsDisplayed()
+        compose.onNodeWithText("Undo").performClick()
+        compose.runOnIdle { check(restoredMachineIds == listOf(10L)) }
+    }
 
     @Test
     fun reviewUsesTheWholeWideCanvasAsAHingeAwareDashboard() {
@@ -106,7 +229,7 @@ class AdaptiveWhipScreenTest {
             }
         }
 
-        compose.onNodeWithText("Review & Trends").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("home-destination-review").assertIsDisplayed().performClick()
         compose.onNodeWithTag("review-wide-dashboard").assertIsDisplayed()
         compose.onNodeWithTag("review-control-pane").assertIsDisplayed()
         compose.onNodeWithTag("review-overview-pane").assertIsDisplayed()
@@ -183,12 +306,25 @@ class AdaptiveWhipScreenTest {
             "Dark fold top inset exposed a light/transparent background: rail=$topRailBackground overview=$topOverviewBackground"
         }
         compose.onNodeWithText("Today").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Tasks Today: 0. Open Tasks").assertIsDisplayed()
+        compose.onNodeWithText("Your Day, Brought Together").assertIsDisplayed()
+        compose.onNodeWithText("Start small. Add only what helps.").assertIsDisplayed()
+        compose.onNodeWithText("Private by default.", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("home-getting-started").assertIsDisplayed()
+        compose.onNodeWithTag("home-destination-tasks").assertIsDisplayed()
+        compose.onNodeWithTag("home-destination-gym").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("home-destination-review").performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("App actions").assertIsDisplayed().performClick()
         compose.onNodeWithTag("expand-content-pane-action").assertIsDisplayed()
             .performSemanticsAction(SemanticsActions.OnClick)
         compose.onNodeWithContentDescription("Restore split view").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Search All Whip Data").assertIsDisplayed()
+        if (compose.onAllNodesWithContentDescription("Search All Whip Data").fetchSemanticsNodes().isEmpty()) {
+            compose.onNodeWithContentDescription("App actions").performClick()
+            compose.onNodeWithTag("workspace-search-menu-action").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
+            compose.onNodeWithText("Close").performClick()
+        } else {
+            compose.onNodeWithContentDescription("Search All Whip Data").assertIsDisplayed()
+        }
         check(compose.onAllNodesWithTag("fold-support-pane").fetchSemanticsNodes().isEmpty())
         check(compose.onAllNodesWithTag("adaptive-navigation-rail").fetchSemanticsNodes().isEmpty())
         compose.onNodeWithContentDescription("Restore split view").assertIsDisplayed().performClick()
@@ -359,7 +495,7 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithContentDescription("Cancel Goal editing").performClick()
 
         compose.onNodeWithContentDescription("Tracks tab").performClick()
-        compose.onNodeWithContentDescription("Add Track").performClick()
+        compose.onNodeWithText("Create First Track").performClick()
         compose.onNodeWithTag("track-editor-surface").fetchSemanticsNode()
         check(
             compose.onNodeWithTag("app-background-shell").fetchSemanticsNode().config
@@ -367,8 +503,8 @@ class AdaptiveWhipScreenTest {
         ) { "The root-owned Track editor must hide the underlying shell from accessibility" }
         compose.onNodeWithContentDescription("Close Track Editor").performClick()
 
-        compose.onNodeWithContentDescription("Gym tab").performClick()
-        compose.onNodeWithContentDescription("Add exercise or workout").performClick()
+        compose.onNodeWithContentDescription("Go to Home").performClick()
+        compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
         compose.onNodeWithText("Exercise").performClick()
         assertEditorInsideContentPane("exercise-editor-surface")
         compose.onNodeWithText("Save").assertIsDisplayed()
@@ -544,7 +680,7 @@ class AdaptiveWhipScreenTest {
             }
         }
 
-        data class Geometry(val headerTop: Float, val headerHeight: Float, val navigationTop: Float, val navigationHeight: Float, val searchLeft: Float, val settingsLeft: Float)
+        data class Geometry(val headerTop: Float, val headerHeight: Float, val navigationTop: Float, val navigationHeight: Float, val addLeft: Float, val actionsLeft: Float)
         val snapshots = listOf(
             Triple("Tasks tab", "task-workspace-navigation", true),
             Triple("Habits tab", "habit-workspace-navigation", true),
@@ -559,11 +695,17 @@ class AdaptiveWhipScreenTest {
                 compose.onAllNodesWithTag("workspace-area-action").assertCountEquals(0)
                 compose.onAllNodesWithText("Gym").assertCountEquals(2)
             }
+            compose.onAllNodesWithTag("workspace-add-action").assertCountEquals(1)
+            compose.onAllNodesWithTag("workspace-search-action").assertCountEquals(0)
+            compose.onAllNodesWithTag("workspace-settings-action").assertCountEquals(0)
             val header = compose.onNodeWithTag("workspace-top-app-bar").fetchSemanticsNode().boundsInRoot
             val navigation = compose.onNodeWithTag(navigationTag).fetchSemanticsNode().boundsInRoot
-            val search = compose.onNodeWithTag("workspace-search-action").fetchSemanticsNode().boundsInRoot
-            val settings = compose.onNodeWithTag("workspace-settings-action").fetchSemanticsNode().boundsInRoot
-            Geometry(header.top, header.height, navigation.top, navigation.height, search.left, settings.left)
+            val add = compose.onNodeWithTag("workspace-add-action").fetchSemanticsNode().boundsInRoot
+            val actions = compose.onNodeWithContentDescription("App actions").fetchSemanticsNode().boundsInRoot
+            check(add.top >= header.top && add.bottom <= header.bottom) {
+                "Compact Add must stay inside the shared app bar: add=$add header=$header"
+            }
+            Geometry(header.top, header.height, navigation.top, navigation.height, add.left, actions.left)
         }
         val expected = snapshots.first()
         snapshots.drop(1).forEach { actual ->
@@ -571,15 +713,27 @@ class AdaptiveWhipScreenTest {
             check(kotlin.math.abs(actual.headerHeight - expected.headerHeight) <= 1f)
             check(kotlin.math.abs(actual.navigationTop - expected.navigationTop) <= 1f)
             check(kotlin.math.abs(actual.navigationHeight - expected.navigationHeight) <= 1f)
-            check(kotlin.math.abs(actual.searchLeft - expected.searchLeft) <= 1f)
-            check(kotlin.math.abs(actual.settingsLeft - expected.settingsLeft) <= 1f)
+            check(kotlin.math.abs(actual.addLeft - expected.addLeft) <= 1f)
+            check(kotlin.math.abs(actual.actionsLeft - expected.actionsLeft) <= 1f)
         }
+        compose.onNodeWithContentDescription("App actions").performClick()
+        compose.onNodeWithTag("workspace-search-menu-action").assertIsDisplayed()
+        compose.onNodeWithText("Open Settings").assertIsDisplayed()
+        compose.onAllNodesWithTag("expand-content-pane-action").assertCountEquals(0)
+        compose.onNodeWithContentDescription("App actions").performClick()
 
         compose.onNodeWithContentDescription("Tracks tab").performClick()
         compose.onNodeWithTag("track-workspace-destination-Activity").performClick().assertIsSelected()
         compose.onNodeWithText("A chronological view of Entries across visible Tracks", substring = true).assertIsDisplayed()
         compose.onNodeWithTag("track-workspace-destination-Insights").performClick().assertIsSelected()
         compose.onNodeWithText("Patterns and automation health across visible Tracks.").assertIsDisplayed()
+
+        compose.onNodeWithContentDescription("Gym tab").performClick()
+        compose.onNodeWithTag("gym-destination-Library").performClick().assertIsSelected()
+        compose.onNodeWithText("Routines").performClick()
+        compose.onAllNodesWithTag("workspace-add-action").assertCountEquals(1)
+        compose.onNodeWithContentDescription("Create routine").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("routine-builder").assertIsDisplayed()
     }
 
     @Test

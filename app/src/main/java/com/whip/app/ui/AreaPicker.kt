@@ -128,9 +128,10 @@ internal fun AreaSelectionDropdown(
     var expanded by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     val selected = areas.firstOrNull { it.id == selectedAreaId }
-        ?: areas.firstOrNull { !allowNullSelection && !it.archived }
     val effectiveSelectedAreaId = selected?.id ?: selectedAreaId
-    val label = selected?.name ?: selectedAreaName.takeIf(String::isNotBlank) ?: nullLabel
+    val label = selected?.name
+        ?: selectedAreaName.takeIf(String::isNotBlank)
+        ?: if (allowNullSelection) nullLabel else "Choose Area"
     Box(modifier.fillMaxWidth()) {
         WhipOutlinedButton(
             onClick = { expanded = true },

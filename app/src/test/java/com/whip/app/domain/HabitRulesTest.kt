@@ -13,6 +13,35 @@ class HabitRulesTest {
     private val monday = LocalDate.of(2026, 8, 17)
 
     @Test
+    fun habitDraftValidationUsesOneCompleteContract() {
+        assertTrue(HabitDraft(name = "Read", startDate = monday).validationErrors().isEmpty())
+
+        val problems = HabitDraft(
+            name = " ",
+            startDate = monday,
+            trackingMode = HabitTrackingMode.Checklist,
+            scheduleType = HabitScheduleType.SelectedWeekdays,
+            scheduleInterval = 0,
+            quickIncrement = Double.NaN,
+            precision = 7,
+            comparison = TargetComparison.WithinRange,
+            targetMin = 5.0,
+            targetMax = 2.0,
+            endType = HabitEndType.OnDate,
+            endDate = monday.minusDays(1),
+        ).validationErrors()
+
+        assertTrue(problems.contains("Habit name is required"))
+        assertTrue(problems.contains("Schedule interval must be a positive whole number"))
+        assertTrue(problems.contains("Quick increment must be a positive number"))
+        assertTrue(problems.contains("Decimal places must be between 0 and 6"))
+        assertTrue(problems.contains("Add at least one checklist item"))
+        assertTrue(problems.contains("Pick at least one weekday"))
+        assertTrue(problems.contains("Enter a valid target range"))
+        assertTrue(problems.contains("Choose an end date on or after the start date"))
+    }
+
+    @Test
     fun allTargetComparisonsHandleThresholds() {
         assertTrue(habit(TargetComparison.AtLeast, 8.0).targetSatisfied(8.0)!!)
         assertFalse(habit(TargetComparison.AtLeast, 8.0).targetSatisfied(7.0)!!)

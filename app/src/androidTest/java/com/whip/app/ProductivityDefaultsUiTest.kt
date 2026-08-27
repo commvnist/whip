@@ -6,6 +6,8 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -17,6 +19,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.input.key.Key
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -264,7 +269,7 @@ class ProductivityDefaultsUiTest {
     }
 
     @Test
-    fun onboardingKeepsBackupOutOfSetupAndMakesItsActionsExplicit() {
+    fun onboardingStartsWithValueAndKeepsPreferencesOptional() {
         val completedNotifications = AtomicReference<Boolean?>()
         val defaultsUsed = AtomicInteger()
         compose.setContent {
@@ -276,22 +281,43 @@ class ProductivityDefaultsUiTest {
             }
         }
 
-        compose.onNodeWithText("Start Using Whip").assertIsDisplayed()
-        compose.onNodeWithText("Use Defaults").assertIsDisplayed()
+        compose.onNodeWithText("Welcome to Whip").assertIsDisplayed()
+        compose.onNodeWithText("Use Recommended").assertIsDisplayed()
+        compose.onNodeWithText("Customize").assertIsDisplayed()
         compose.onAllNodesWithText("Decide Later").assertCountEquals(0)
         compose.onAllNodesWithText("Create Encrypted Backup Now").assertCountEquals(0)
-        compose.onNodeWithText("Whip stores your data locally", substring = true).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Use Defaults").performClick()
+        compose.onNodeWithText("Your data stays on this device", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Use Recommended").performClick()
         compose.runOnIdle { assertEquals(1, defaultsUsed.get()) }
+        compose.onNodeWithText("Customize").performClick()
+        compose.onNodeWithText("Customize Whip").assertIsDisplayed()
         compose.onNodeWithText("More Preferences").performClick()
         compose.onAllNodesWithText("Portable Backup Privacy").assertCountEquals(0)
-        compose.onNodeWithContentDescription("I want reminder notifications").assertHasClickAction().performClick()
-        compose.onNodeWithText("Start Using Whip").performClick()
+        compose.onNodeWithContentDescription("Ask for reminder notifications").assertHasClickAction().performClick()
+        compose.onNodeWithText("Save and Start").performClick()
         compose.runOnIdle { assertEquals(true, completedNotifications.get()) }
     }
 
     @Test
-    fun controlNFromSettingsOpensTheGlobalAddSurfaceInsteadOfDoingNothing() {
+    fun onboardingKeepsItsActionsReachableAtLargeText() {
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(compose.density.density, fontScale = 2f)) {
+                WhipTheme(dynamicColor = false) {
+                    FirstRunSetupDialog(onComplete = { _, _, _, _, _ -> }, onUseDefaults = {})
+                }
+            }
+        }
+
+        compose.onNodeWithText("Welcome to Whip").assertIsDisplayed()
+        compose.onNodeWithText("Customize").assertIsDisplayed()
+        compose.onNodeWithText("Use Recommended").assertIsDisplayed()
+        compose.onNodeWithText("Your data stays on this device", substring = true)
+            .performScrollTo()
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun controlNFromSettingsLeavesSettingsInPlaceAndDoesNotOpenGlobalAdd() {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 WhipScreen(
@@ -306,15 +332,19 @@ class ProductivityDefaultsUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Open Settings").performClick()
+        if (compose.onAllNodesWithContentDescription("Open Settings").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithContentDescription("Open Settings").performClick()
+        } else {
+            compose.onNodeWithContentDescription("App actions").performClick()
+            compose.onNodeWithText("Open Settings").performClick()
+        }
         compose.onRoot().performKeyInput {
             keyDown(Key.CtrlLeft)
             keyDown(Key.N)
             keyUp(Key.N)
             keyUp(Key.CtrlLeft)
         }
-        compose.onNodeWithText("Task").assertIsDisplayed()
-        compose.onNodeWithText("Habit").assertIsDisplayed()
-        compose.onAllNodesWithText("Track").assertCountEquals(1)
+        compose.onNodeWithText("Settings").assertIsDisplayed()
+        compose.onAllNodesWithTag("workspace-add-action").assertCountEquals(0)
     }
 }

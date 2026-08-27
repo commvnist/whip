@@ -8,6 +8,7 @@ import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.Exercise
 import com.whip.app.domain.GymRoutine
 import com.whip.app.domain.MachineLoadType
+import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.LoadInterpretation
 import com.whip.app.domain.MachineStackMode
 import com.whip.app.domain.canonicalResistanceKg
@@ -161,7 +162,9 @@ class RoomRoutineRepository(
                 requireNotNull(gymDao.getMachine(machineId)) {
                     "${routineExercise.machineNameSnapshot.ifBlank { "Routine machine" }} needs a replacement before this routine can start"
                 }.also {
-                    require(it.exerciseId == routineExercise.exerciseId) { "Routine machine belongs to a different exercise" }
+                    require(gymDao.machineSupportsExercise(it.id, routineExercise.exerciseId)) {
+                        "Routine machine is not linked to this exercise"
+                    }
                 }
             }
             routineExercise.id to machine
@@ -439,6 +442,9 @@ class RoomRoutineRepository(
             consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxSpeed, set.speedMetresPerSecond(), "distance_m/second")
             consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MinPace, set.paceSecondsPerKilometre(), "second/kilometre", lowerIsBetter = true)
             if (sourceWorkoutExercise?.machineLoadTypeSnapshot == MachineLoadType.Level.name) {
+                val lowerSettingIsStronger = machineId != null &&
+                    gymDao.getMachine(machineId)?.levelDirection ==
+                    MachineLevelDirection.HigherNumberLessResistance.name
                 consider(
                     entity,
                     sourceSessionId,
@@ -447,6 +453,7 @@ class RoomRoutineRepository(
                     PersonalRecordType.MaxMachineSetting,
                     set.machineLoadValue,
                     sourceWorkoutExercise.machineLevelLabelSnapshot.ifBlank { "level" },
+                    lowerIsBetter = lowerSettingIsStronger,
                 )
             }
         }
@@ -539,7 +546,9 @@ class RoomRoutineRepository(
                 val machine = exercise.machineId?.let { machineId ->
                     requireNotNull(gymDao.getMachine(machineId)) { "Machine no longer exists" }
                         .also {
-                            require(it.exerciseId == exercise.exerciseId) { "Machine is unavailable for this exercise" }
+                            require(gymDao.machineSupportsExercise(it.id, exercise.exerciseId)) {
+                                "Machine is unavailable for this exercise"
+                            }
                             require(isCompatibleReplacement(exercise, it)) {
                                 "Replacement equipment must use the same scale, unit, and load interpretation"
                             }

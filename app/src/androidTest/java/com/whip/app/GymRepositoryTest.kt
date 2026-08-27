@@ -10,6 +10,7 @@ import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.ExerciseTrackingType
 import com.whip.app.domain.GymMachineDraft
+import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.LoadInterpretation
 import com.whip.app.domain.WorkoutSessionState
@@ -72,6 +73,47 @@ class GymRepositoryTest {
 
         repository.finishWorkout(sessionId)
         assertEquals(WorkoutSessionState.Finished, repository.sessions.first().single().state)
+    }
+
+    @Test
+    fun machineCanBeCreatedUnattachedThenLinkedToMultipleExercises() = runBlocking {
+        val rowId = repository.createExercise(ExerciseDraft(name = "Cable row"))
+        val pressId = repository.createExercise(ExerciseDraft(name = "Cable press"))
+        val unrelatedId = repository.createExercise(ExerciseDraft(name = "Leg extension"))
+        val machineId = repository.createMachine(
+            GymMachineDraft(
+                name = "Dual cable",
+                loadType = MachineLoadType.Level,
+                levelLabel = "position",
+                availableLoads = listOf(1.0, 2.0, 3.0),
+                loadInterpretation = LoadInterpretation.OrdinalSetting,
+                levelDirection = MachineLevelDirection.HigherNumberLessResistance,
+            ),
+        )
+
+        assertTrue(repository.machines.first().single().exerciseIds.isEmpty())
+
+        repository.updateMachine(
+            machineId,
+            GymMachineDraft(
+                name = "Dual cable",
+                exerciseIds = setOf(rowId, pressId),
+                loadType = MachineLoadType.Level,
+                levelLabel = "position",
+                availableLoads = listOf(1.0, 2.0, 3.0),
+                loadInterpretation = LoadInterpretation.OrdinalSetting,
+                levelDirection = MachineLevelDirection.HigherNumberLessResistance,
+            ),
+        )
+        val linked = repository.machines.first().single()
+        assertEquals(setOf(rowId, pressId), linked.exerciseIds)
+        assertEquals(MachineLevelDirection.HigherNumberLessResistance, linked.levelDirection)
+
+        val sessionId = repository.startWorkout("Cable day")
+        repository.addExerciseToWorkout(sessionId, rowId, machineId)
+        repository.addExerciseToWorkout(sessionId, pressId, machineId)
+        assertTrue(runCatching { repository.addExerciseToWorkout(sessionId, unrelatedId, machineId) }.isFailure)
+        assertEquals(2, repository.workoutExercises.first().size)
     }
 
     @Test
@@ -176,7 +218,7 @@ class GymRepositoryTest {
     }
 
     @Test
-    fun substitutingAfterCompletedSetPreservesHistoryAndSnapshotsNewMachine() = runBlocking {
+    fun substitutingAfterCompletedSetStillReplacesPlacementAndSnapshotsNewMachine() = runBlocking {
         val press = repository.createExercise(ExerciseDraft(name = "Press"))
         val cable = repository.createExercise(ExerciseDraft(name = "Cable press"))
         val machine = repository.createMachine(
@@ -198,12 +240,12 @@ class GymRepositoryTest {
         val replacement = repository.substituteWorkoutExercise(original, cable, machine)
 
         val placements = repository.workoutExercises.first().sortedBy { it.position }
-        assertEquals(listOf(original, replacement), placements.map { it.id })
-        assertEquals("Cable tower · Public gym", placements.last().machineNameSnapshot)
-        assertEquals("pin", placements.last().machineLevelLabelSnapshot)
+        assertEquals(listOf(replacement), placements.map { it.id })
+        assertEquals("Cable tower · Public gym", placements.single().machineNameSnapshot)
+        assertEquals("pin", placements.single().machineLevelLabelSnapshot)
         val storedSets = repository.sets.first().associateBy { it.id }
-        assertTrue(requireNotNull(storedSets[completed]).completed)
-        assertNotNull(requireNotNull(storedSets[incomplete]).deletedAtMillis)
+        assertFalse(storedSets.containsKey(completed))
+        assertFalse(storedSets.containsKey(incomplete))
     }
 
     @Test

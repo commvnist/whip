@@ -116,5 +116,40 @@ The optimized target APK SHA-256 was
 the minified harness APK SHA-256 was
 `834ccdce65b33091a6c0589fcd76e1cac74c0c6aa4bc9ac285fb750c2b54fd6f`.
 
+## Full-product UX goal emulator execution — 2026-08-26
+
+The final full-product UX/UI/design implementation passed all nine scenarios
+together with zero failures and zero skips on the same disposable
+`whip_api34` software-rendered AVD. Total execution time was 11 minutes 58
+seconds. The run regenerated the Whip-only startup profile after onboarding was
+redesigned, then exercised 10,000-row Home data, 100,000-point Goal/Gym data,
+active set entry, startup, primary navigation, and expanded resize.
+
+| Scenario | Final emulator result |
+| --- | --- |
+| Cold startup, packaged profile | 1,020.3 ms median |
+| Cold startup, no compilation | 1,014.4 ms median |
+| Warm startup, packaged profile | 101.9 ms median |
+| Primary navigation | 43.9 ms p95 CPU frame |
+| Forced expanded resize | 65.5 ms p95 CPU frame |
+| Home, 10k tasks + 10k habit logs | 27.2 ms p95 CPU frame |
+| Goal/Gym, 100k history points | 21.9 ms p95 CPU frame |
+| Active workout inline input | 141.5 ms p95 CPU frame |
+
+These values are execution/regression smoke only. The AVD was software-rendered
+and ran after the complete UI test matrix; its profile/no-compilation startup
+ordering and active-input tail are noisy and are not compared with physical
+budgets. The user explicitly withheld the physical phone for this goal, so
+reference-device remeasurement is deferred rather than passed.
+
+The optimized target APK SHA-256 was
+`b598306da403d8f9db6b030797709f54aff47afae5768863f64c3dfff4457450`;
+the minified harness APK SHA-256 was
+`d6267f29ff71e5db8fb5c89573fd0ad214d714c1b2f010d3109956567ca21b5c`.
+Raw JSON, metric messages, device metadata, and the generated startup profile
+are retained in
+`artifacts/ux-audit/2026-08-25-goal-final/performance/`; Perfetto traces remain
+in the generated benchmark output tree for local inspection.
+
 References: [Android Macrobenchmark](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview)
 and [Baseline Profile generation](https://developer.android.com/topic/performance/baselineprofiles/create-baselineprofile).

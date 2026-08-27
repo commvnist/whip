@@ -20,6 +20,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.SemanticsMatcher
@@ -34,6 +35,9 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.ScheduleKind
+import com.whip.app.domain.TaskEffort
+import com.whip.app.domain.TaskPriority
+import java.time.DayOfWeek
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -64,6 +68,7 @@ class ProductivityCreationJourneyE2ETest {
                 setupCompleted = true,
                 powerMode = false,
                 naturalLanguageTaskCapture = false,
+                compactItemLayout = false,
             )
         }
     }
@@ -98,7 +103,7 @@ class ProductivityCreationJourneyE2ETest {
                 }.getOrDefault(false)
             }
             compose.onNodeWithContentDescription("Open task details for Journey task").performClick()
-            compose.onNodeWithText("Schedule").assertIsDisplayed()
+            compose.onNodeWithText("Activity").assertIsDisplayed()
             if (compose.onAllNodesWithText("Options").fetchSemanticsNodes().isEmpty()) {
                 compose.onNode(
                     hasContentDescription("Open Pages") and
@@ -107,7 +112,7 @@ class ProductivityCreationJourneyE2ETest {
             }
             compose.onNodeWithText("Options").performClick()
             compose.onNodeWithText("Pin to Home").assertIsDisplayed()
-            compose.onNodeWithText("Close").performClick()
+            compose.onNodeWithContentDescription("Close Task details").performClick()
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
             compose.onNodeWithContentDescription("Add habit").performClick()
@@ -145,14 +150,14 @@ class ProductivityCreationJourneyE2ETest {
             listOf("Today", "History").forEach { section ->
                 compose.onNodeWithTag("habit-detail-section-$section")
                     .performSemanticsAction(SemanticsActions.OnClick)
-                compose.onNodeWithText("Edit Habit").assertIsDisplayed()
+                compose.onNodeWithContentDescription("Edit Habit").assertIsDisplayed()
             }
-            selectDetailSection("habit", "Automation", "habit-detail-surface")
-            compose.onNodeWithTag("habit-detail-section-Automation").assertIsDisplayed()
-            compose.onNodeWithText("Edit Habit").assertIsDisplayed()
+            selectDetailSection("habit", "Automations", "habit-detail-surface")
+            compose.onNodeWithTag("habit-detail-section-Automations").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Edit Habit").assertIsDisplayed()
             selectDetailSection("habit", "Options", "habit-detail-surface")
-            compose.onNodeWithText("Edit Habit").assertIsDisplayed()
-            compose.onNodeWithText("Edit Habit").performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithContentDescription("Edit Habit").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Edit Habit").performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithText("Edit Habit").assertIsDisplayed()
             compose.onNodeWithContentDescription("Cancel Habit editing")
                 .performSemanticsAction(SemanticsActions.OnClick)
@@ -173,11 +178,15 @@ class ProductivityCreationJourneyE2ETest {
                         .first { it.name == "Journey target" }.id
                 }
             }
-            compose.waitUntil(5_000) { compose.onAllNodesWithText("Goal Created").fetchSemanticsNodes().isNotEmpty() }
-            compose.onNodeWithTag("goal-created-done").performClick()
+            compose.waitUntil(15_000) {
+                compose.onAllNodesWithContentDescription("Open goal details for Journey target").fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNodeWithContentDescription("Edit goal Journey target")
                 .performSemanticsAction(SemanticsActions.OnClick)
-            compose.onNodeWithText("Edit Goal").assertIsDisplayed()
+            compose.waitUntil(2_500) {
+                compose.onAllNodesWithTag("goal-editor-surface").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithTag("goal-editor-surface").assertIsDisplayed()
             compose.onNodeWithContentDescription("Cancel Goal editing")
                 .performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithContentDescription("Open goal details for Journey target")
@@ -185,15 +194,16 @@ class ProductivityCreationJourneyE2ETest {
             listOf("Overview", "History").forEach { section ->
                 compose.onNodeWithTag("goal-detail-section-$section")
                     .performSemanticsAction(SemanticsActions.OnClick)
-                compose.onNodeWithText("Edit Goal").assertIsDisplayed()
+                compose.onNodeWithContentDescription("Edit Goal").assertIsDisplayed()
             }
-            selectDetailSection("goal", "Automation", "goal-detail-surface")
-            compose.onNodeWithTag("goal-detail-section-Automation").assertIsDisplayed()
-            compose.onNodeWithText("Edit Goal").assertIsDisplayed()
+            selectDetailSection("goal", "Automations", "goal-detail-surface")
+            compose.onNodeWithTag("goal-detail-section-Automations").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Edit Goal").assertIsDisplayed()
             selectDetailSection("goal", "Options", "goal-detail-surface")
-            compose.onNodeWithText("Edit Goal").assertIsDisplayed()
-            compose.onNodeWithText("Edit Goal").performSemanticsAction(SemanticsActions.OnClick)
-            compose.onNodeWithText("Edit Goal").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Edit Goal").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Edit Goal")
+                .performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithTag("goal-editor-surface").assertIsDisplayed()
             compose.onNodeWithTag("emoji-picker-trigger").performClick()
             compose.onNodeWithTag("emoji-preset-Fitness").performClick()
             compose.onNodeWithText("Save").performClick()
@@ -222,20 +232,27 @@ class ProductivityCreationJourneyE2ETest {
             compose.onNodeWithTag("settings-smart-task-capture").performClick()
             compose.waitUntil(5_000) { app.settingsRepository.current().naturalLanguageTaskCapture }
             compose.onNodeWithTag("smart-task-capture-examples").assertIsDisplayed()
-            compose.onNodeWithText("Send the report tomorrow").assertIsDisplayed()
-            compose.onNodeWithText("Review the budget next Friday").assertIsDisplayed()
+            compose.onNodeWithText("Send report tomorrow at 9am #work").assertIsDisplayed()
+            compose.onNodeWithText("Review notes every Mon & Thu for 30m").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("Submit expenses by next Friday !high").performScrollTo().assertIsDisplayed()
             compose.onNodeWithContentDescription("Close Settings").performClick()
 
             compose.onNodeWithContentDescription("Tasks tab").performClick()
             val today = app.clock.today()
             val deadline = today.plusDays(7)
             compose.onNodeWithTag("task-quick-capture").performTextReplacement(
-                "Write report tomorrow deadline $deadline",
+                "Write report tomorrow at 9am deadline $deadline !high for 45m light effort #work remind me",
             )
             compose.onNodeWithTag("task-quick-capture").assert(
                 SemanticsMatcher("announces the assumptions applied by Quick Capture") { node ->
                     val description = node.config[SemanticsProperties.StateDescription]
                     description.contains("Tomorrow") && description.contains(deadline.toString()) &&
+                        description.contains("Time · 9:00 AM") &&
+                        description.contains("Priority · High") &&
+                        description.contains("Duration · 45 min") &&
+                        description.contains("Effort · Light") &&
+                        description.contains("Tag · #work") &&
+                        description.contains("Reminder · At scheduled time") &&
                         description.contains("will be applied")
                 },
             )
@@ -251,7 +268,32 @@ class ProductivityCreationJourneyE2ETest {
             check(smartTask.scheduleKind == ScheduleKind.Once)
             check(smartTask.date == today.plusDays(1))
             check(smartTask.deadline == deadline)
+            check(smartTask.timeMinutes == 9 * 60)
+            check(smartTask.reminderEnabled)
+            check(smartTask.reminderOffsetsMinutes == listOf(0))
+            check(smartTask.priority == TaskPriority.High)
+            check(smartTask.durationMinutes == 45)
+            check(smartTask.effort == TaskEffort.Light)
+            check(smartTask.tags == setOf("work"))
             check(!smartTask.inbox)
+
+            compose.onNodeWithTag("task-quick-capture").performTextReplacement(
+                "TRT every Monday and Thursday",
+            )
+            compose.onNodeWithTag("smart-task-quick-preview").assertIsDisplayed()
+            compose.onNodeWithText("Repeat · Monday, Thursday").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Add task now").performClick()
+            val weekdayTask = runBlocking {
+                awaitPersistence("weekday Smart Capture task") {
+                    app.taskRepository.tasks.first { tasks -> tasks.any { task -> task.title == "TRT" } }
+                        .single { task -> task.title == "TRT" }
+                }
+            }
+            check(weekdayTask.scheduleKind == ScheduleKind.Recurring)
+            check(
+                weekdayTask.recurrence?.weekdays ==
+                    setOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY),
+            )
 
             openPlanningSettings()
             compose.onNodeWithTag("settings-list")

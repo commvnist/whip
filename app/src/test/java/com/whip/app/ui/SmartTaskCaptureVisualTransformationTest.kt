@@ -10,7 +10,7 @@ import org.junit.Test
 class SmartTaskCaptureVisualTransformationTest {
     @Test
     fun everyParserAssumptionReceivesTheVisibleHighlightStyleAtItsSourceRange() {
-        val input = "Plan launch every 2 weeks on 2026-09-01 deadline 2026-10-01"
+        val input = "Plan launch every 2 weeks on 2026-09-01 at 9am deadline 2026-10-01 !high for 45m light effort #work remind me"
         val parsed = TaskQuickCaptureParser.parse(input, LocalDate.of(2026, 8, 25))
         val highlight = Color(0xFFDDD0FF)
         val foreground = Color(0xFF241047)

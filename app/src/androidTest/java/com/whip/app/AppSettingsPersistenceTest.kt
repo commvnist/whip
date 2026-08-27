@@ -9,12 +9,16 @@ import com.whip.app.core.HealthDataType
 import com.whip.app.core.HomeSection
 import com.whip.app.core.ReviewPeriod
 import com.whip.app.core.SharedPreferencesSettingsRepository
+import com.whip.app.core.TrackedGymRecord
 import com.whip.app.core.normalized
 import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.CustomIdentityEmoji
+import com.whip.app.domain.PersonalRecordType
 import java.time.DayOfWeek
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -25,6 +29,26 @@ class AppSettingsPersistenceTest {
     @After
     fun resetPreferences() {
         context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE).edit().clear().commit()
+    }
+
+    @Test
+    fun settingsMigrationsRunAndAnExplicitSmartCaptureOptOutPersists() {
+        val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
+        preferences
+            .edit()
+            .clear()
+            .putBoolean("naturalLanguageTaskCapture", false)
+            .putString("savedReviewFilters", "legacy")
+            .putString("selectedReviewFilterName", "Legacy")
+            .commit()
+
+        val migrated = SharedPreferencesSettingsRepository(context)
+        assertTrue(migrated.current().naturalLanguageTaskCapture)
+        assertFalse(preferences.contains("savedReviewFilters"))
+        assertFalse(preferences.contains("selectedReviewFilterName"))
+
+        migrated.update { settings -> settings.copy(naturalLanguageTaskCapture = false) }
+        assertFalse(SharedPreferencesSettingsRepository(context).current().naturalLanguageTaskCapture)
     }
 
     @Test
@@ -80,6 +104,15 @@ class AppSettingsPersistenceTest {
                 CustomIdentityEmoji("🦄", "Unicorn"),
             ),
             gymCompactSetRows = true,
+            trackedGymRecords = listOf(
+                TrackedGymRecord("bench-uuid", PersonalRecordType.EstimatedOneRepMax),
+                TrackedGymRecord(
+                    "bench-uuid",
+                    PersonalRecordType.MaxWeight,
+                    machineProfileUuid = "rack-uuid",
+                    position = 1,
+                ),
+            ),
         ).normalized()
 
         SharedPreferencesSettingsRepository(context).update { expected }

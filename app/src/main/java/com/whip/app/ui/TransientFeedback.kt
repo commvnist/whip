@@ -1,5 +1,6 @@
 package com.whip.app.ui
 
+import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 
 /**
@@ -13,7 +14,13 @@ internal suspend fun <T> OperationStatus.deliverTransientMessage(
 ): T? {
     val message = when (this) {
         OperationStatus.Idle, is OperationStatus.Running -> return null
-        is OperationStatus.Succeeded -> message
+        is OperationStatus.Succeeded -> {
+            if (feedbackPresentation == OperationFeedbackPresentation.Inline) {
+                consume()
+                return null
+            }
+            message
+        }
         is OperationStatus.Failed -> message
     }
     consume()

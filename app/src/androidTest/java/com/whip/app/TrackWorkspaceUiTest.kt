@@ -218,7 +218,7 @@ class TrackWorkspaceUiTest {
         compose.onAllNodesWithText("Latest:", substring = true).assertCountEquals(0)
         compose.onNodeWithTag("track-expand-3", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Latest:", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("Add Title").assertIsDisplayed()
+        compose.onAllNodesWithText("Add Title").assertCountEquals(0)
         val compactEditHeight = compose.onNodeWithTag("track-edit-action-3", useUnmergedTree = true)
             .getUnclippedBoundsInRoot().let { it.bottom - it.top }
         assertTrue(

@@ -3,6 +3,7 @@ package com.whip.app.ui.theme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import java.io.File
 import org.junit.Assert.assertEquals
@@ -10,6 +11,19 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WhipVisualLanguageTest {
+    @Test
+    fun brandInkAndWarmWhiteHaveStrongTextContrast() {
+        val lighter = WhipWarmWhite.luminance() + 0.05f
+        val darker = WhipInk.luminance() + 0.05f
+
+        assertEquals(Color(0xFF090909), WhipInk)
+        assertEquals(Color(0xFFF5F3EA), WhipWarmWhite)
+        assertTrue("Brand text contrast must meet WCAG AA", lighter / darker >= 4.5f)
+        assertTrue("The fixed action color must remain tied to Whip ink", WhipPurple == WhipInk)
+        assertTrue("Semantic accents must not collapse into the action color", WhipGreen != WhipPurple)
+        assertTrue("Semantic accents must remain distinguishable", WhipAmber != WhipGreen)
+    }
+
     @Test
     fun semanticRolesRemainDistinctAndMapToTheirMaterialMeaning() {
         val source = lightColorScheme(
@@ -104,7 +118,7 @@ class WhipVisualLanguageTest {
         assertTrue(habit.contains("listOf(HabitDestination.Today, HabitDestination.All, HabitDestination.Insights)"))
         assertTrue(goal.contains("enum class GoalDestination { Active, Completed, Archived, Insights }"))
         assertTrue(goal.contains("listOf(GoalDestination.Active, GoalDestination.Completed, GoalDestination.Insights)"))
-        assertTrue(track.contains("Entries(\"Entries\"),\n    Automations(\"Rules\"),\n    Options(\"Options\"),\n    Insights(\"Insights\")"))
+        assertTrue(track.contains("Entries(\"Entries\"),\n    Automations(\"Automations\"),\n    Options(\"Options\"),\n    Insights(\"Insights\")"))
         assertTrue(track.contains("listOf(TrackDetailDestination.Entries, TrackDetailDestination.Automations, TrackDetailDestination.Insights)"))
         assertTrue(goal.contains("GoalDestination.Completed) \"Done\""))
         assertTrue(track.contains("compactLabel = TrackDetailDestination::label"))

@@ -1,0 +1,11 @@
+WARNING: Running on Emulator
+Benchmark is running on an emulator, which is not representative of
+real user devices. Use a physical device to benchmark. Emulator
+benchmark improvements might not carry over to a real user's
+experience (or even regress real device performance).
+
+DenseDataBenchmark_activeWorkoutInlineInputLatency
+frameCount           [min  18.0](file://DenseDataBenchmark_activeWorkoutInlineInputLatency_iter000_2026-08-26-04-48-49.perfetto-trace),   [median  19.0](file://DenseDataBenchmark_activeWorkoutInlineInputLatency_iter001_2026-08-26-04-49-30.perfetto-trace),   [max  21.0](file://DenseDataBenchmark_activeWorkoutInlineInputLatency_iter001_2026-08-26-04-49-30.perfetto-trace)
+frameDurationCpuMs   P50   20.0,   P90   65.3,   P95  141.5,   P99  153.7
+frameOverrunMs       P50    4.5,   P90  123.8,   P95  130.6,   P99  139.9
+Traces: Iteration [0](file://DenseDataBenchmark_activeWorkoutInlineInputLatency_iter000_2026-08-26-04-48-49.perfetto-trace) [1](file://DenseDataBenchmark_activeWorkoutInlineInputLatency_iter001_2026-08-26-04-49-30.perfetto-trace) [2](file://DenseDataBenchmark_activeWorkoutInlineInputLatency_iter002_2026-08-26-04-50-07.perfetto-trace)

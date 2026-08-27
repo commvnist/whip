@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
@@ -84,9 +85,14 @@ class InteractionControlUiTest {
         compose.onNodeWithTag("emoji-picker-custom-input").assertIsDisplayed()
 
         compose.onNodeWithTag("emoji-picker-custom-input").performTextReplacement("🦊")
+        compose.onNodeWithTag("emoji-picker-custom-input").assertTextContains("🦊")
         compose.onNodeWithTag("emoji-picker-custom-name").performTextReplacement("Forest Work")
         compose.onNodeWithTag("emoji-picker-custom-apply").performClick()
-        assertEquals("🦊", icon)
+        assertEquals(
+            "Custom emoji code points were ${icon.codePoints().toArray().joinToString()}",
+            "🦊",
+            icon,
+        )
         assertEquals(listOf(CustomIdentityEmoji("🦊", "Forest Work")), saved)
 
         compose.onNodeWithTag("emoji-picker-trigger").performClick()
@@ -236,6 +242,56 @@ class InteractionControlUiTest {
         compose.onNodeWithTag("rtl-tab-Archived").assertIsSelected()
         compose.onNodeWithTag("rtl-tab-Today").performSemanticsAction(SemanticsActions.OnClick)
         compose.onNodeWithTag("rtl-tab-Today").assertIsSelected()
+    }
+
+    @Test
+    fun largeTextKeepsTwoDestinationsVisibleWhenTheRowHasRoom() {
+        val largeText = Density(compose.density.density, fontScale = 1.5f)
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides largeText) {
+                WhipTheme(dynamicColor = false) {
+                    Box(Modifier.width(320.dp)) {
+                        DestinationTabBar(
+                            selected = "Overview",
+                            destinations = listOf("Overview", "Options"),
+                            onSelect = {},
+                            label = { it },
+                            testTagPrefix = "roomy-tab",
+                        )
+                    }
+                }
+            }
+        }
+
+        listOf("Overview", "Options").forEach { label ->
+            compose.onNodeWithTag("roomy-tab-$label").assertIsDisplayed()
+        }
+        compose.onAllNodesWithContentDescription("Open Pages").assertCountEquals(0)
+    }
+
+    @Test
+    fun largeTextKeepsTwoSegmentChoicesVisibleWhenTheyFit() {
+        val largeText = Density(compose.density.density, fontScale = 1.5f)
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides largeText) {
+                WhipTheme(dynamicColor = false) {
+                    Box(Modifier.width(320.dp)) {
+                        SegmentedChoiceBar(
+                            selected = "Overview",
+                            choices = listOf("Overview", "Options"),
+                            onSelect = {},
+                            label = { it },
+                            modifier = Modifier.fillMaxSize(),
+                            testTagPrefix = "roomy-choice",
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("roomy-choice-Overview").assertIsDisplayed().assertIsSelected()
+        compose.onNodeWithTag("roomy-choice-Options").assertIsDisplayed()
+        compose.onAllNodesWithContentDescription("Choose view. Selected Overview").assertCountEquals(0)
     }
 
     @Test

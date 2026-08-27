@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.whip.app.WhipApplication
+import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 import com.whip.app.core.currentDateFlow
 import com.whip.app.core.WhipClock
@@ -147,7 +148,11 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         if (archived) "Archiving habit…" else "Restoring habit…",
         if (archived) "Habit archived" else "Habit restored",
     ) { repository.setArchived(id, archived); reminders.syncHabit(id) }
-    fun deletePermanently(id: Long) = runOperation("Deleting habit…", "Habit permanently deleted") {
+    fun deletePermanently(id: Long) = runOperation(
+        "Deleting habit…",
+        "Habit permanently deleted",
+        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+    ) {
         app.domainDeletionCoordinator.deleteHabit(id)
         reminders.syncHabit(id)
     }
@@ -158,16 +163,28 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         repository.addPause(id, start, end, note)
         reminders.syncHabit(id)
     }
-    fun skipDay(habitId: Long, date: LocalDate) = runOperation("Skipping today…", "Today skipped · streak protected") {
+    fun skipDay(habitId: Long, date: LocalDate) = runOperation(
+        "Skipping today…",
+        "Today skipped · streak protected",
+        successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+    ) {
         repository.skipDay(habitId, date)
         reminders.syncHabit(habitId)
     }
-    fun undoSkip(habitId: Long, date: LocalDate) = runOperation("Restoring today…", "Skip undone") {
+    fun undoSkip(habitId: Long, date: LocalDate) = runOperation(
+        "Restoring today…",
+        "Skip undone",
+        successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+    ) {
         repository.undoSkip(habitId, date)
         reminders.syncHabit(habitId)
     }
     fun log(habitId: Long, value: Double?, status: HabitLogStatus = HabitLogStatus.Recorded, date: LocalDate? = null, note: String = "") =
-        runOperation("Saving check-in…", "Habit logged") {
+        runOperation(
+            "Saving check-in…",
+            "Habit logged",
+            successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+        ) {
             repository.log(habitId, value, status, date, note = note)
             reminders.syncHabit(habitId)
         }
@@ -187,21 +204,37 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         }
         if (loggedValue != 0.0 || note.isNotBlank()) log(item.habit.id, loggedValue, date = item.date, note = note)
     }
-    fun undoLog(logId: Long, habitId: Long? = null) = runOperation("Undoing check-in…", "Check-in removed") {
+    fun undoLog(logId: Long, habitId: Long? = null) = runOperation(
+        "Undoing check-in…",
+        "Check-in removed",
+        successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+    ) {
         repository.undoLog(logId)
         habitId?.let { reminders.syncHabit(it) }
     }
     fun updateLog(logId: Long, value: Double?, status: HabitLogStatus, date: LocalDate, note: String) =
-        runOperation("Updating check-in…", "Check-in updated") {
+        runOperation(
+            "Updating check-in…",
+            "Check-in updated",
+            successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+        ) {
             repository.updateLog(logId, value, status, date, note)
         }
     fun setCheckOff(habitId: Long, date: LocalDate, completed: Boolean) =
-        runOperation("Updating habit…", if (completed) "Habit completed" else "Completion removed") {
+        runOperation(
+            "Updating habit…",
+            if (completed) "Habit completed" else "Completion removed",
+            successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+        ) {
             repository.setCheckOff(habitId, date, completed)
             reminders.syncHabit(habitId)
         }
     fun toggleChecklist(habitId: Long, itemId: Long, date: LocalDate, completed: Boolean) =
-        runOperation("Updating checklist…", "Checklist updated") {
+        runOperation(
+            "Updating checklist…",
+            "Checklist updated",
+            successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+        ) {
             repository.toggleChecklistItem(habitId, itemId, date, completed)
             reminders.syncHabit(habitId)
         }
@@ -270,13 +303,14 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         running: String,
         success: String,
         onFinished: (Boolean) -> Unit = {},
+        successFeedbackPresentation: OperationFeedbackPresentation = OperationFeedbackPresentation.Inline,
         block: suspend () -> Unit,
     ) {
         _operationStatus.value = OperationStatus.Running(running)
         viewModelScope.launch {
             try {
                 block()
-                _operationStatus.value = OperationStatus.Succeeded(success)
+                _operationStatus.value = OperationStatus.Succeeded(success, successFeedbackPresentation)
                 runCatching { onFinished(true) }
             } catch (cancelled: CancellationException) {
                 throw cancelled

@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -48,6 +49,7 @@ class PlatformEntrySurfaceE2ETest {
             waitForTaskEditor()
             compose.onNodeWithTag("task-editor-title").assertTextContains("Capture this from another app")
             compose.onNodeWithContentDescription("Cancel Task editing").performClick()
+            compose.waitUntil(10_000) { compose.onAllNodesWithText("Discard Changes").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Discard Changes").performClick()
             compose.onAllNodesWithTag("task-editor-surface").assertCountEquals(0)
             assertEquals(emptyList<Any>(), runBlocking { app.taskRepository.tasks.first() })
@@ -60,6 +62,7 @@ class PlatformEntrySurfaceE2ETest {
             waitForTaskEditor()
             compose.onNodeWithTag("task-editor-title").assertTextContains("First shared draft")
             compose.onNodeWithContentDescription("Cancel Task editing").performClick()
+            compose.waitUntil(10_000) { compose.onAllNodesWithText("Discard Changes").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Discard Changes").performClick()
 
             app.startActivity(

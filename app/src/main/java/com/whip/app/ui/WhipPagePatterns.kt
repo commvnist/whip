@@ -23,6 +23,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FilterAlt
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -62,6 +63,21 @@ internal object WhipContentWidth {
     val compactDialog = 560.dp
     val readable = 920.dp
     val dashboard = 1200.dp
+}
+
+/** A leading Up action for hierarchical child pages. */
+@Composable
+internal fun WhipBackAction(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier.size(48.dp).semantics { contentDescription = label },
+    ) {
+        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
+    }
 }
 
 /**
@@ -443,5 +459,5 @@ internal val WhipPageContentPadding = PaddingValues(
     start = WhipSpacing.screenCompact,
     top = WhipSpacing.compact,
     end = WhipSpacing.screenCompact,
-    bottom = 112.dp,
+    bottom = WhipSpacing.screenExpanded,
 )

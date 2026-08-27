@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -207,6 +208,8 @@ internal fun ProductivityEditorDialog(
     confirmButton: @Composable () -> Unit,
     dismissButton: @Composable () -> Unit,
     primary: Boolean = false,
+    paneTitle: String = "Editor",
+    stableHeight: Boolean = false,
 ) {
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -218,9 +221,15 @@ internal fun ProductivityEditorDialog(
         ) {
             Surface(
                 modifier = modifier
-                    .then(if (primary) Modifier.fillMaxHeight() else Modifier.heightIn(max = maxHeight * 0.92f))
+                    .then(
+                        when {
+                            primary -> Modifier.fillMaxHeight()
+                            stableHeight -> Modifier.height(maxHeight * 0.92f)
+                            else -> Modifier.heightIn(max = maxHeight * 0.92f)
+                        },
+                    )
                     .then(if (testTag == null) Modifier else Modifier.testTag(testTag))
-                    .semantics { paneTitle = "Editor" },
+                    .semantics { this.paneTitle = paneTitle },
                 shape = if (primary) RectangleShape else MaterialTheme.shapes.extraLarge,
                 tonalElevation = if (primary) 0.dp else 6.dp,
             ) {
@@ -246,7 +255,7 @@ internal fun ProductivityEditorDialog(
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         Box(Modifier.semantics { heading() }) { title() }
-                        Box(Modifier.weight(1f, fill = false)) { text() }
+                        Box(Modifier.weight(1f, fill = stableHeight)) { text() }
                         FlowRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End,
@@ -274,6 +283,8 @@ internal fun PaneAwareAlertDialog(
     text: @Composable () -> Unit,
     confirmButton: @Composable () -> Unit,
     dismissButton: @Composable () -> Unit = {},
+    paneTitle: String = "Dialog",
+    stableHeight: Boolean = false,
 ) {
     val placement = LocalWhipDialogPlacement.current
     val resolvedModifier = if (modifier == Modifier) {
@@ -287,6 +298,8 @@ internal fun PaneAwareAlertDialog(
         text = text,
         confirmButton = confirmButton,
         dismissButton = dismissButton,
+        paneTitle = paneTitle,
+        stableHeight = stableHeight,
     )
 }
 
@@ -312,6 +325,7 @@ internal fun ClockPickerButton(
         )
         PaneAwareAlertDialog(
             onDismissRequest = { pickerOpen = false },
+            paneTitle = label,
             title = { Text(label) },
             text = { TimePicker(state = picker) },
             confirmButton = {
@@ -416,6 +430,7 @@ internal fun WeekdayReminderEditor(
     if (choosingDay) {
         PaneAwareAlertDialog(
             onDismissRequest = { choosingDay = false },
+            paneTitle = "Choose Weekday",
             title = { Text("Choose Weekday") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -478,6 +493,7 @@ private fun ClockPickerDialog(
     )
     PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
+        paneTitle = title,
         title = { Text(title) },
         text = { TimePicker(state = picker) },
         confirmButton = { WhipTextButton(onClick = { onSet(picker.hour * 60 + picker.minute) }) { Text("Add") } },
@@ -550,4 +566,33 @@ internal fun NumericQuickActionBuilder(
             )
         }
     }
+}
+
+/**
+ * Shared recovery guard for commands that make a configured Automation
+ * disappear immediately. Naming the Automation and its consequence keeps the
+ * destructive contract consistent across Habits, Goals, and Tracks.
+ */
+@Composable
+internal fun RemoveAutomationConfirmationDialog(
+    automationName: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    PaneAwareAlertDialog(
+        onDismissRequest = onDismiss,
+        paneTitle = "Remove Automation",
+        title = { Text("Remove Automation?") },
+        text = {
+            Text(
+                "“$automationName” will stop running and its configuration will be removed. Existing history will not be changed.",
+            )
+        },
+        confirmButton = {
+            WhipTextButton(onClick = onConfirm) {
+                Text("Remove", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }

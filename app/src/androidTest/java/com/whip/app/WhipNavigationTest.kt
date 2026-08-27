@@ -3,6 +3,7 @@ package com.whip.app
 import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -26,12 +27,63 @@ import com.whip.app.domain.TrackFieldDraft
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalType
+import com.whip.app.domain.HabitDraft
 import com.whip.app.core.ReviewPeriod
 
 @RunWith(AndroidJUnit4::class)
 class WhipNavigationTest {
     @get:Rule
     val compose = createEmptyComposeRule()
+
+    @Test
+    fun homeEntityInspectorsPreserveTheHomeDestination() {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update {
+                it.copy(
+                    setupCompleted = true,
+                    hiddenHomeSections = emptySet(),
+                    collapsedHomeSections = emptySet(),
+                )
+            }
+            app.habitRepository.create(HabitDraft(name = "Home overlay habit", startDate = app.clock.today()))
+            app.goalRepository.create(
+                GoalDraft(
+                    name = "Home overlay goal",
+                    type = GoalType.ReachValue,
+                    targetMin = 10.0,
+                    startDate = app.clock.today(),
+                ),
+            )
+        }
+        val intent = Intent(app, MainActivity::class.java)
+            .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
+
+        launchMainActivity(intent).use {
+            compose.waitUntil(TIMEOUT_MS) {
+                compose.onAllNodesWithContentDescription("Open habit details for Home overlay habit")
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithContentDescription("Open habit details for Home overlay habit")
+                .performScrollTo()
+                .performClick()
+            compose.onNodeWithTag("entity-inspector").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Home").assertIsSelected()
+            compose.onNodeWithTag("home-list").assertIsDisplayed()
+            compose.onAllNodesWithTag("habit-workspace-navigation").assertCountEquals(0)
+            compose.onNodeWithContentDescription("Close Habit details").performClick()
+
+            compose.onNodeWithContentDescription("Open goal details for Home overlay goal")
+                .performScrollTo()
+                .performClick()
+            compose.onNodeWithTag("entity-inspector").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Home").assertIsSelected()
+            compose.onNodeWithTag("home-list").assertIsDisplayed()
+            compose.onAllNodesWithTag("goal-workspace-navigation").assertCountEquals(0)
+            compose.onNodeWithContentDescription("Close Goal details").performClick()
+        }
+    }
 
     @Test
     fun primaryAreasAndAccessibleTopActionsAreReachable() {
@@ -48,12 +100,20 @@ class WhipNavigationTest {
         // launches without ActivityOptions because AndroidX forbids them there.
         launchMainActivity(intent).use {
             compose.waitUntil(TIMEOUT_MS) {
-                compose.onAllNodesWithText("Review & Trends").fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithText("Build Your Day").fetchSemanticsNodes().isNotEmpty()
             }
             compose.onNodeWithContentDescription("Home").assertIsDisplayed()
-            compose.onNodeWithText("Review & Trends").assertIsDisplayed()
+            compose.onNodeWithText("Build Your Day").assertIsDisplayed()
+            compose.onNodeWithText("Start here").assertIsDisplayed()
+            compose.onNodeWithTag("home-destination-tasks").assertIsDisplayed()
+            compose.onAllNodesWithText("Review & Trends").assertCountEquals(1)
 
-            compose.onNodeWithContentDescription("Search All Whip Data").performClick()
+            if (compose.onAllNodesWithContentDescription("Search All Whip Data").fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithContentDescription("Search All Whip Data").performClick()
+            } else {
+                compose.onNodeWithContentDescription("App actions").performClick()
+                compose.onNodeWithTag("workspace-search-menu-action").performClick()
+            }
             compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
             compose.onNodeWithText("Close").performClick()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
@@ -77,9 +137,9 @@ class WhipNavigationTest {
             compose.onNodeWithContentDescription("Gym tab").performClick()
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithTag("track-workspace-destination-Tracks").assertIsSelected()
-            compose.onNodeWithTag("track-list").performScrollToNode(hasText("Create Track"))
-            compose.onNodeWithText("Define the Evidence That Matters").assertIsDisplayed()
-            compose.onNodeWithText("Create Track").assertIsDisplayed()
+            compose.onNodeWithTag("track-list").performScrollToNode(hasText("Create First Track"))
+            compose.onNodeWithText("Track What Matters").assertIsDisplayed()
+            compose.onNodeWithText("Create First Track").assertIsDisplayed()
         }
     }
 
@@ -96,7 +156,7 @@ class WhipNavigationTest {
         ).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
         launchMainActivity(intent).use {
             compose.waitUntil(TIMEOUT_MS) {
-                compose.onAllNodesWithText("Review & Trends").fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithText("Build Your Day").fetchSemanticsNodes().isNotEmpty()
             }
 
             compose.onNodeWithContentDescription("Tasks tab").performClick()
@@ -147,31 +207,26 @@ class WhipNavigationTest {
             }
 
             compose.onNodeWithText("Review & Trends").performClick()
+            if (compose.onAllNodesWithText("Review Options").fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithText("Review Options").performClick()
+            }
             compose.onNodeWithText("Included Sections").assertIsDisplayed()
             compose.onNodeWithText("Monthly").performClick()
             compose.waitUntil(TIMEOUT_MS) {
                 ApplicationProvider.getApplicationContext<WhipApplication>()
                     .settingsRepository.current().reviewPeriod == ReviewPeriod.Monthly
             }
-            compose.onNodeWithText("Save Review Filter").performScrollTo().performClick()
-            compose.waitUntil(TIMEOUT_MS) {
-                compose.onAllNodesWithTag("review-filter-name").fetchSemanticsNodes().isNotEmpty()
-            }
-            compose.onNodeWithTag("review-filter-name").performTextInput("Monthly Outcomes")
-            compose.onNodeWithText("Save").performClick()
-            compose.waitUntil(TIMEOUT_MS) {
-                ApplicationProvider.getApplicationContext<WhipApplication>()
-                    .settingsRepository.current().savedReviewFilters.any { it.name == "Monthly Outcomes" }
-            }
+            compose.onAllNodesWithText("Saved Views").assertCountEquals(0)
+            compose.onAllNodesWithText("Save Review Filter").assertCountEquals(0)
             compose.onNodeWithContentDescription("Close Review & Trends").performClick()
 
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            listOf("Today", "Inbox", "Upcoming").forEach { destination ->
+            listOf("Today", "Inbox", "Upcoming", "History").forEach { destination ->
                 selectDestination("task-destination-$destination", destination)
             }
-            compose.onNodeWithContentDescription("More task list actions").performClick()
-            compose.onNodeWithText("Task History").performClick()
             compose.onNodeWithText("Your latest completed tasks", substring = true).assertIsDisplayed()
+            compose.onAllNodesWithText("Task History").assertCountEquals(0)
+            compose.onAllNodesWithContentDescription("Back to Today").assertCountEquals(0)
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
             listOf("Today", "All", "Insights").forEach { destination ->
@@ -208,7 +263,7 @@ class WhipNavigationTest {
             compose.onNodeWithContentDescription("Navigation Track, 0 Entries. Open Track").performClick()
             compose.onNodeWithTag("track-workspace-navigation").assertIsDisplayed()
             compose.onNodeWithTag("track-detail-navigation").assertIsDisplayed()
-            listOf("Entries", "Rules", "Insights", "Options").forEach { destination ->
+            listOf("Entries", "Automations", "Insights", "Options").forEach { destination ->
                 selectDestination("track-destination-$destination", destination)
             }
             compose.onNodeWithText("Track Options").assertIsDisplayed()

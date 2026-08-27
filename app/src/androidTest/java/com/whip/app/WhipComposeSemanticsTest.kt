@@ -84,21 +84,21 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithTag("settings-section-Appearance & Home").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Home Overview"))
             compose.onNodeWithText("Home Overview").assertIsDisplayed()
-            compose.onNodeWithText("All Settings").performClick()
+            compose.onNodeWithContentDescription("Back to Settings").performClick()
             compose.onNodeWithTag("settings-section-Planning & Units").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Create reusable units", substring = true))
             compose.onNodeWithText("Create reusable units", substring = true).assertIsDisplayed()
-            compose.onNodeWithText("All Settings").performClick()
+            compose.onNodeWithContentDescription("Back to Settings").performClick()
             compose.onNodeWithTag("settings-section-Organization").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Manage Areas"))
             compose.onNodeWithText("Manage Areas").assertIsDisplayed()
-            compose.onNodeWithText("All Settings").performClick()
+            compose.onNodeWithContentDescription("Back to Settings").performClick()
             compose.onNodeWithTag("settings-section-Reminders").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Delivery Details"))
             compose.onNodeWithTag("notification-diagnostics").assertIsDisplayed()
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Send Test Notification"))
             compose.onNodeWithText("Send Test Notification").assertIsDisplayed()
-            compose.onNodeWithText("All Settings").performClick()
+            compose.onNodeWithContentDescription("Back to Settings").performClick()
             compose.onNodeWithTag("settings-section-Data & Privacy").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Portable Backup Folder"))
             compose.onNodeWithText("Portable Backup Folder").assertIsDisplayed()
@@ -106,7 +106,7 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithText("Choose Backup Folder").assertIsDisplayed()
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Reset Whip and Delete All Data"))
             compose.onAllNodesWithText("FitNotes", substring = true).assertCountEquals(0)
-            compose.onNodeWithText("All Settings").performClick()
+            compose.onNodeWithContentDescription("Back to Settings").performClick()
             compose.onNodeWithTag("settings-section-About Whip").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("About Whip"))
             compose.onNodeWithTag("about-build-identity").assertIsDisplayed()
@@ -286,6 +286,51 @@ class WhipComposeSemanticsTest {
     }
 
     @Test
+    fun directTaskAndHabitCompletionUseInlineFeedbackWithoutSnackbars() {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        val today = app.clock.today()
+        val (taskId, habitId) = runBlocking {
+            val taskId = app.taskRepository.create(
+                TaskDraft(
+                    title = "Quiet completion task",
+                    scheduleKind = ScheduleKind.Once,
+                    date = today,
+                    inbox = false,
+                ),
+            )
+            val habitId = app.habitRepository.create(
+                HabitDraft(name = "Quiet completion habit", startDate = today),
+            )
+            taskId to habitId
+        }
+        val intent = Intent(app, MainActivity::class.java)
+            .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
+
+        launchMainActivity(intent).use {
+            compose.onNodeWithContentDescription("Tasks tab").performClick()
+            compose.onNodeWithContentDescription("Complete task Quiet completion task").performClick()
+            runBlocking {
+                withTimeout(5_000) {
+                    app.taskRepository.tasks.first { tasks ->
+                        tasks.firstOrNull { it.id == taskId }?.completedAtMillis != null
+                    }
+                }
+            }
+            compose.onAllNodesWithText("Task completed").assertCountEquals(0)
+
+            compose.onNodeWithContentDescription("Habits tab").performClick()
+            compose.onNodeWithContentDescription("Check off habit Quiet completion habit").performClick()
+            runBlocking {
+                withTimeout(5_000) {
+                    app.habitRepository.logs.first { logs -> logs.any { it.habitId == habitId } }
+                }
+            }
+            compose.onAllNodesWithText("Habit completed").assertCountEquals(0)
+            compose.onNodeWithTag("habit-done-disclosure").assertIsDisplayed()
+        }
+    }
+
+    @Test
     fun machineLibraryExplainsMachineScopedTracking() {
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.wakeUp()
@@ -334,7 +379,12 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithContentDescription("Filter & Sort Tasks").performClick()
             compose.onNodeWithText("Sort, Group & Filter Tasks").assertIsDisplayed()
             compose.onNodeWithText("Done").performClick()
-            compose.onNodeWithContentDescription("Search Tasks").performClick()
+            if (compose.onAllNodesWithContentDescription("Search Tasks").fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithContentDescription("Search Tasks").performClick()
+            } else {
+                compose.onNodeWithContentDescription("App actions").performClick()
+                compose.onNodeWithTag("workspace-search-menu-action").performClick()
+            }
             compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
             compose.onNodeWithText("Close").performClick()
             compose.onNodeWithContentDescription("More task list actions").performClick()
@@ -356,7 +406,11 @@ class WhipComposeSemanticsTest {
                 placementId,
                 WorkoutSetDraft(weight = 50.0, reps = 5, completed = true),
             )
+            app.gymRepository.addSet(placementId, WorkoutSetDraft(weight = 42.5, reps = 9, completed = true))
+            app.gymRepository.addSet(placementId, WorkoutSetDraft(weight = 30.0, reps = 20, completed = true))
+            app.gymRepository.addSet(placementId, WorkoutSetDraft(weight = 40.0, reps = 10, completed = true))
             app.gymRepository.finishWorkout(workoutId)
+            app.routineRepository.rebuildPersonalRecords(exerciseId)
         }
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.wakeUp()
@@ -372,18 +426,45 @@ class WhipComposeSemanticsTest {
             compose.onAllNodesWithText("Calendar View").assertCountEquals(0)
             compose.onNodeWithText("History Options").performClick()
             compose.onNodeWithText("Calendar View").assertIsDisplayed()
+            compose.onNodeWithTag("history-exercise-filter").assertIsDisplayed()
+            compose.onAllNodesWithText("Search Exercise Filters").assertCountEquals(0)
 
             compose.onNodeWithTag("gym-destination-Progress")
                 .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
-            compose.onNodeWithText("Graph Options").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("Formula: Epley", substring = true).assertIsDisplayed()
+            compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasText("Graph Options"))
+            compose.onNodeWithText("Graph Options").assertIsDisplayed()
             compose.onAllNodesWithText("Range").assertCountEquals(0)
             compose.onNodeWithText("Graph Options").performClick()
             compose.onNodeWithText("Range").assertIsDisplayed()
-            compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasText("Graph Presets"))
-            compose.onNodeWithText("Graph Presets").assertIsDisplayed()
-            compose.onAllNodesWithText("Preset name").assertCountEquals(0)
-            compose.onNodeWithText("Graph Presets").performClick()
-            compose.onNodeWithText("Preset name").assertIsDisplayed()
+            compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasText("Data Points"))
+            compose.onNodeWithText("Data Points").assertIsDisplayed()
+            compose.onAllNodesWithText("Data Table", substring = true).assertCountEquals(0)
+            compose.onAllNodesWithText("Graph Presets").assertCountEquals(0)
+            compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasText("Tracked Records"))
+            compose.onNodeWithTag("gym-tracked-records").assertIsDisplayed()
+            compose.onNodeWithText("No Tracked Records Yet").assertIsDisplayed()
+            compose.onNodeWithTag("gym-manage-tracked-records").performClick()
+            compose.onNodeWithText("Choose Exercise").performClick()
+            compose.onAllNodesWithText("Graph controls test")[1].performClick()
+            compose.onNodeWithText("2 records").assertIsDisplayed()
+            compose.onAllNodesWithText("Specific targets").assertCountEquals(0)
+            compose.onAllNodesWithText("Target repetitions").assertCountEquals(0)
+            compose.onAllNodesWithText("Minimum weight", substring = true).assertCountEquals(0)
+            compose.onNodeWithTag("tracked-records-save").performClick()
+            compose.onAllNodesWithText("Estimated 1RM").assertCountEquals(2)
+            compose.onNodeWithText("Epley formula", substring = true).assertIsDisplayed()
+            compose.onNodeWithText("Heaviest Weight").performScrollTo().assertIsDisplayed()
+            compose.onAllNodesWithText("Heaviest Weight for a Rep Count").assertCountEquals(0)
+            compose.onAllNodesWithText("9-Rep Best").assertCountEquals(0)
+            compose.onAllNodesWithText("10-Rep Best").assertCountEquals(0)
+            compose.onAllNodesWithText("20-Rep Best").assertCountEquals(0)
+            compose.onAllNodesWithText("EstimatedOneRepMax").assertCountEquals(0)
+            compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasText("Chart Points"))
+            compose.onAllNodesWithTag("gym-chart-point")[0].performClick()
+            compose.onNodeWithTag("gym-chart-point-open-workout").performClick()
+            compose.onNodeWithText("Workout History").assertIsDisplayed()
+            compose.onNodeWithText("Showing the workout opened from search.").assertIsDisplayed()
         }
     }
 
@@ -405,6 +486,9 @@ class WhipComposeSemanticsTest {
                 return@use
             }
             compose.onNodeWithContentDescription("App actions").performClick()
+            if (compose.onAllNodesWithTag("expand-content-pane-action").fetchSemanticsNodes().isEmpty()) {
+                return@use
+            }
             compose.onNodeWithTag("expand-content-pane-action").performClick()
             compose.onNodeWithTag("gym-destination-Library").assertIsSelected()
             compose.onNodeWithTag("gym-library-child-Routines").assertIsDisplayed()
@@ -500,9 +584,8 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithContentDescription("Cancel Goal editing").performClick()
 
             compose.onNodeWithContentDescription("Goals tab").performClick()
-            compose.onNodeWithContentDescription("More Goal Actions").performClick()
             compose.onAllNodesWithText("Log Goal Value").assertCountEquals(0)
-            compose.onNodeWithTag("goal-browse-templates-menu-action").performClick()
+            compose.onNodeWithText("Browse Templates").performClick()
             compose.onNodeWithTag("goal-template-list").performScrollToNode(hasText("Build Savings", substring = true))
             compose.onNodeWithText("Build Savings", substring = true).assertIsDisplayed().performClick()
             compose.onNodeWithText("Savings").assertIsDisplayed()

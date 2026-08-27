@@ -20,6 +20,20 @@ internal data class WhipSearchScope(
     val isAllWhip: Boolean get() = domains == SearchDomain.entries.toSet()
 }
 
+internal fun WhipSearchScope.displayLabel(activeDomains: Set<SearchDomain>): String = when {
+    activeDomains == SearchDomain.entries.toSet() -> "All Whip"
+    activeDomains == domains -> label
+    else -> activeDomains.sortedBy(SearchDomain::ordinal).joinToString { domain ->
+        if (domain == SearchDomain.TrackEntry) "Track Entry" else domain.name
+    }
+}
+
+internal fun WhipSearchScope.placeholder(activeDomains: Set<SearchDomain>): String = when {
+    activeDomains == SearchDomain.entries.toSet() -> "Search all Whip"
+    activeDomains == domains -> "Search ${label.lowercase()}"
+    else -> "Search selected content"
+}
+
 internal fun WhipSearchEntryContext.defaultSearchScope(): WhipSearchScope = when (this) {
     WhipSearchEntryContext.AllWhip -> WhipSearchScope("All Whip", SearchDomain.entries.toSet())
     WhipSearchEntryContext.Tasks -> WhipSearchScope("Tasks & Steps", setOf(SearchDomain.Task))

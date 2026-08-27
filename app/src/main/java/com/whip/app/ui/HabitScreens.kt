@@ -4,6 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -99,6 +101,7 @@ import com.whip.app.domain.isScheduledOn
 import com.whip.app.domain.outcomeForPeriod
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.domain.valueInUnit
+import com.whip.app.domain.validationErrors
 import com.whip.app.domain.dayStateOn
 import com.whip.app.domain.successfulPeriodOutcomeDates
 import java.time.Instant
@@ -141,6 +144,7 @@ fun HabitAreaContent(
     areaScopeLabel: String? = null,
     onAreaChanged: (String?) -> Unit = {},
     destinationState: MutableState<HabitDestination>? = null,
+    showWorkspace: Boolean = true,
 ) {
     if (state.loading || state.errorMessage != null) {
         DomainLoadContent("habits", innerPadding, state.errorMessage, viewModel::retryLoading)
@@ -216,7 +220,7 @@ fun HabitAreaContent(
             onEditHabitRequestConsumed()
         }
     }
-    Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+    if (showWorkspace) Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
         DestinationTabBar(
             selected = destination,
             destinations = HabitDestination.entries,
@@ -231,7 +235,9 @@ fun HabitAreaContent(
                 title = "Today",
                 subtitle = "Check in, log a value, or continue a timer. Completed habits move to Done for confirmation or undo.",
                 progress = state.today,
-                empty = areaScopeLabel?.let { "No habits are due today in $it." } ?: "No habits are due today.",
+                empty = if (state.all.isEmpty()) {
+                    "Choose a simple template or use + to create a Habit from scratch."
+                } else areaScopeLabel?.let { "No habits are due today in $it." } ?: "No habits are due today.",
                 onTemplates = { templatesOpen = true },
                 onOpen = { actionsHabitId = it.habit.id },
                 onEdit = { editingHabitId = it.habit.id },
@@ -251,7 +257,9 @@ fun HabitAreaContent(
                 title = "All Habits",
                 subtitle = "Build, limit, avoid, or simply observe anything you define.",
                 progress = state.all,
-                empty = areaScopeLabel?.let { "No habits in $it." } ?: "Your habit list is empty.",
+                empty = if (state.all.isEmpty()) {
+                    "Choose a simple template or use + to create a Habit from scratch."
+                } else areaScopeLabel?.let { "No habits in $it." } ?: "Your habit list is empty.",
                 onTemplates = { templatesOpen = true },
                 onOpen = { actionsHabitId = it.habit.id },
                 onEdit = { editingHabitId = it.habit.id },
@@ -334,6 +342,14 @@ fun HabitAreaContent(
             onPin = { viewModel.setPinned(item.habit.id, !item.habit.pinned); actionsHabitId = null },
             onPause = { viewModel.setPaused(item.habit.id, !item.habit.paused); actionsHabitId = null },
             onSchedulePause = { pauseRequestHabitId = item.habit.id; actionsHabitId = null },
+            onQuick = {
+                if (item.habit.trackingMode in setOf(HabitTrackingMode.Rating, HabitTrackingMode.LogOnly)) {
+                    numericLogHabitId = item.habit.id
+                    actionsHabitId = null
+                } else {
+                    quickHabitAction(item, viewModel) { numericLogHabitId = item.habit.id }
+                }
+            },
             onSkip = { skipConfirmationHabitId = item.habit.id; actionsHabitId = null },
             onUndoSkip = { viewModel.undoSkip(item.habit.id, item.date); actionsHabitId = null },
             logs = state.logs.filter { it.habitId == item.habit.id },
@@ -458,23 +474,26 @@ private fun HabitAutomationContent(
 ) {
     var creating by rememberSaveable { mutableStateOf(false) }
     var editingRuleId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var removingRuleId by rememberSaveable { mutableStateOf<Long?>(null) }
     var savePending by rememberSaveable { mutableStateOf(false) }
     val editingRule = editingRuleId?.let { id -> state.triggerRules.firstOrNull { it.id == id } }
     val now = Instant.now()
     val pending = state.triggerOccurrences.filter { it.dismissedAt == null && !it.availableAt.isAfter(now) }
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = WhipPageContentPadding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
             WhipPageHeader(
                 title = "Automations",
-                supportingText = "Choose what should become available after a Task, Habit, or workout result. Nothing is completed automatically unless the rule says so.",
+                supportingText = "Choose what should become available after a Task, Habit, or workout result. Nothing is completed automatically unless the Automation says so.",
             ) {
-                WhipPageIconAction(Icons.Filled.Add, "Create Next-Action Automation", onClick = { creating = true })
+                WhipOutlinedButton(onClick = { creating = true }) {
+                    Text("Create Automation")
+                }
             }
         }
         if (pending.isEmpty() && state.triggerRules.isEmpty()) item {
             WhipEmptyState(
                 title = "No Next-Action Automations Yet",
-                supportingText = "Create a rule when one result should prompt the next Task or Habit.",
+                supportingText = "Create an Automation when one result should prompt the next Task or Habit.",
             )
         }
         if (pending.isNotEmpty()) item { Text("Ready Now", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
@@ -502,7 +521,7 @@ private fun HabitAutomationContent(
                 }
             }
         }
-        if (state.triggerRules.isNotEmpty()) item { Text("Rules", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
+        if (state.triggerRules.isNotEmpty()) item { Text("Configured Automations", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
         items(state.triggerRules, key = { "trigger-${it.id}" }) { rule ->
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(14.dp)) {
@@ -518,7 +537,9 @@ private fun HabitAutomationContent(
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         WhipTextButton(onClick = { viewModel.setTriggerEnabled(rule, !rule.enabled) }) { Text(if (rule.enabled) "Pause" else "Resume") }
                         WhipTextButton(onClick = { editingRuleId = rule.id }) { Text("Edit") }
-                        WhipTextButton(onClick = { viewModel.deleteTrigger(rule.id) }) { Text("Remove") }
+                        WhipTextButton(onClick = { removingRuleId = rule.id }) {
+                            Text("Remove", color = MaterialTheme.colorScheme.error)
+                        }
                     }
                 }
             }
@@ -542,6 +563,17 @@ private fun HabitAutomationContent(
             if (editingRule == null) viewModel.createTrigger(draft, onFinished) else viewModel.updateTrigger(editingRule.id, draft, onFinished)
         },
     )
+    removingRuleId?.let { ruleId ->
+        val rule = state.triggerRules.firstOrNull { it.id == ruleId }
+        RemoveAutomationConfirmationDialog(
+            automationName = rule?.name ?: "This Automation",
+            onDismiss = { removingRuleId = null },
+            onConfirm = {
+                viewModel.deleteTrigger(ruleId)
+                removingRuleId = null
+            },
+        )
+    }
 }
 
 private fun triggerSourceLabel(rule: com.whip.app.domain.TriggerRule, state: HabitUiState): String = when (rule.sourceType) {
@@ -885,7 +917,7 @@ fun HabitProgressCard(
                         },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Checkbox(checked = completed, onCheckedChange = { checked -> onChecklist(habit.id, checklistItem.id, item.date, checked) })
+                        Checkbox(checked = completed, onCheckedChange = null)
                         Text(checklistItem.name)
                     }
                 }
@@ -1026,12 +1058,12 @@ private fun HabitList(
     BackHandler(enabled = manageOrder) { manageOrder = false }
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("habit-list-$title"),
-        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
+        contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 10.dp),
     ) {
         item {
             WhipPageHeader(title = title, supportingText = subtitle) {
-                Box {
+                if (progress.isNotEmpty()) Box {
                     WhipPageIconAction(
                         icon = Icons.Outlined.MoreVert,
                         label = "More Habit Actions",
@@ -1137,7 +1169,7 @@ private fun HabitList(
 private fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
+        contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
@@ -1270,6 +1302,7 @@ private fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
 @Composable
 private fun HabitRateChart(name: String, rates: List<Double?>) {
     val values = rates.map { it?.coerceIn(0.0, 1.0) }
+    val lineColor = MaterialTheme.colorScheme.primary
     val description = values.mapIndexed { index, value ->
         "week ${index + 1}: ${value?.let { "${(it * 100).toInt()} percent" } ?: "no data"}"
     }.joinToString("; ")
@@ -1284,7 +1317,7 @@ private fun HabitRateChart(name: String, rates: List<Double?>) {
         values.zipWithNext().forEachIndexed { index, (start, end) ->
             if (start != null && end != null) {
                 drawLine(
-                    color = androidx.compose.ui.graphics.Color(0xFFFFC400),
+                    color = lineColor,
                     start = androidx.compose.ui.geometry.Offset(index * step, size.height - start.toFloat() * size.height),
                     end = androidx.compose.ui.geometry.Offset((index + 1) * step, size.height - end.toFloat() * size.height),
                     strokeWidth = 4.dp.toPx(),
@@ -1304,7 +1337,7 @@ private fun ArchivedHabitList(
     val visible = habits.filter { focusedHabitId == null || it.id == focusedHabitId }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
+        contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
@@ -1557,6 +1590,57 @@ private fun HabitEditorDialog(
         maximumValues = 24,
     )
     val quickIncrementValid = quickIncrement.toWhipDoubleOrNull()?.let { it.isFinite() && it > 0.0 } == true
+    var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
+    val currentDraft = HabitDraft(
+        name = name,
+        notes = notes,
+        areaId = areaId,
+        area = area,
+        tags = tags.split(',').map(String::trim).filter(String::isNotBlank),
+        icon = icon.ifBlank { DEFAULT_HABIT_EMOJI },
+        trackingMode = mode,
+        dimension = dimension,
+        unitId = unitId,
+        precision = precision.toIntOrNull() ?: -1,
+        comparison = comparison,
+        targetMin = targetMin.toWhipDoubleOrNull(),
+        targetMax = targetMax.toWhipDoubleOrNull(),
+        targetPeriod = targetPeriod,
+        rollingDays = rollingDays.toIntOrNull(),
+        scheduleType = schedule,
+        scheduleInterval = interval.toIntOrNull() ?: 0,
+        weekdays = weekdays,
+        flexibleTimesPerWeek = flexible.toIntOrNull(),
+        startDate = initial.startDate,
+        endType = endType,
+        endDate = endDate,
+        endValue = endValue.toWhipDoubleOrNull(),
+        quickIncrement = quickIncrement.toWhipDoubleOrNull() ?: Double.NaN,
+        quickActions = quickActionResult.values,
+        reminderMinutes = reminders.split(',').mapNotNull { parseClockMinutes(it.trim()) },
+        weekdayReminderMinutes = parseWeekdayReminderMap(weekdayReminders),
+        weekStart = weekStart,
+        checklistItems = checklistDrafts.filter { it.name.isNotBlank() }
+            .mapIndexed { index, item -> item.copy(name = item.name.trim(), position = index) },
+        autoCompleteFromItems = autoCompleteFromItems,
+        sourceMetricId = sourceMetricId,
+    )
+    val rawFieldProblems = buildList {
+        if (targetMin.isNotBlank() && targetMin.toWhipDoubleOrNull() == null) add("Target must be a valid number")
+        if (targetMax.isNotBlank() && targetMax.toWhipDoubleOrNull() == null) add("Maximum must be a valid number")
+        if (interval.toIntOrNull() == null) add("Schedule interval must be a positive whole number")
+        if (precision.toIntOrNull() == null) add("Decimal places must be between 0 and 6")
+        if (rollingDays.isNotBlank() && rollingDays.toIntOrNull() == null) add("Rolling window must be a positive whole number")
+        if (flexible.isNotBlank() && flexible.toIntOrNull() == null) add("Flexible schedule count must be a positive whole number")
+        if (endValue.isNotBlank() && endValue.toWhipDoubleOrNull() == null) add("Ending threshold must be a valid number")
+        quickActionResult.error?.let(::add)
+        if (habit == null && areas.count { !it.archived } > 1 && areaId == null) add("Choose an Area for this Habit")
+    }
+    val validationMessages = (rawFieldProblems + currentDraft.validationErrors()).distinct()
+    val validationRequester = remember { BringIntoViewRequester() }
+    LaunchedEffect(validationRequested, validationMessages) {
+        if (validationRequested && validationMessages.isNotEmpty()) validationRequester.bringIntoView()
+    }
     var showAdvanced by rememberSaveable(editorKey) {
         mutableStateOf(
             defaults.powerMode || initial.notes.isNotBlank() || initial.tags.isNotEmpty() ||
@@ -1580,6 +1664,7 @@ private fun HabitEditorDialog(
         modifier = modifier,
         testTag = "habit-editor-surface",
         primary = true,
+        paneTitle = if (habit == null) "Create Habit" else "Edit Habit",
         onDismissRequest = requestDismiss,
         title = { Text(if (habit == null) "Create Habit" else "Edit Habit") },
         text = {
@@ -1587,8 +1672,27 @@ private fun HabitEditorDialog(
                 modifier = Modifier.testTag("habit-editor-fields"),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                item { Text("* Required field", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                if (validationRequested && validationMessages.isNotEmpty()) item {
+                    FormValidationSummary(
+                        messages = validationMessages,
+                        visible = true,
+                        modifier = Modifier.bringIntoViewRequester(validationRequester),
+                        testTag = "habit-save-problem",
+                    )
+                }
                 item { EditorSectionHeader("Basics", "Name this Habit and choose the emoji used across Whip.") }
-                item { OutlinedTextField(name, { name = it }, label = { Text("Name *") }, modifier = Modifier.fillMaxWidth().testTag("habit-editor-name")) }
+                item {
+                    OutlinedTextField(
+                        name,
+                        { name = it.replace('\n', ' ').replace('\r', ' ').take(100) },
+                        label = { Text("Name *") },
+                        singleLine = true,
+                        isError = validationRequested && name.isBlank(),
+                        supportingText = if (validationRequested && name.isBlank()) {{ Text("Habit name is required") }} else {{ Text("${name.length}/100") }},
+                        modifier = Modifier.fillMaxWidth().testTag("habit-editor-name"),
+                    )
+                }
                 item {
                     WhipEmojiPicker(
                         value = icon,
@@ -1924,47 +2028,10 @@ private fun HabitEditorDialog(
         },
         confirmButton = {
             WhipButton(
-                enabled = name.isNotBlank() &&
-                    quickActionResult.error == null &&
-                    quickIncrementValid &&
-                    (mode != HabitTrackingMode.Checklist || checklistDrafts.any { it.name.isNotBlank() }) &&
-                    !saving,
+                enabled = !saving,
                 onClick = {
-                    val draft = HabitDraft(
-                            name = name,
-                            notes = notes,
-                            areaId = areaId,
-                            area = area,
-                            tags = tags.split(',').map(String::trim).filter(String::isNotBlank),
-                            icon = icon.ifBlank { DEFAULT_HABIT_EMOJI },
-                            trackingMode = mode,
-                            dimension = dimension,
-                            unitId = unitId,
-                            precision = precision.toIntOrNull()?.coerceIn(0, 6) ?: 0,
-                            comparison = comparison,
-                            targetMin = targetMin.toWhipDoubleOrNull(),
-                            targetMax = targetMax.toWhipDoubleOrNull(),
-                            targetPeriod = targetPeriod,
-                            rollingDays = rollingDays.toIntOrNull(),
-                            scheduleType = schedule,
-                            scheduleInterval = interval.toIntOrNull() ?: 1,
-                            weekdays = weekdays,
-                            flexibleTimesPerWeek = flexible.toIntOrNull(),
-                            startDate = initial.startDate,
-                            endType = endType,
-                            endDate = endDate,
-                            endValue = endValue.toWhipDoubleOrNull(),
-                            quickIncrement = quickIncrement.toWhipDoubleOrNull() ?: 1.0,
-                            quickActions = quickActionResult.values,
-                            reminderMinutes = reminders.split(',').mapNotNull { parseClockMinutes(it.trim()) },
-                            weekdayReminderMinutes = parseWeekdayReminderMap(weekdayReminders),
-                            weekStart = weekStart,
-                            checklistItems = checklistDrafts.filter { it.name.isNotBlank() }
-                                .mapIndexed { index, item -> item.copy(name = item.name.trim(), position = index) },
-                            autoCompleteFromItems = autoCompleteFromItems,
-                            sourceMetricId = sourceMetricId,
-                        )
-                    onSave(draft)
+                    validationRequested = true
+                    if (validationMessages.isEmpty()) onSave(currentDraft)
                 },
             ) { Text(if (saving) "Saving…" else "Save") }
         },
@@ -2082,6 +2149,7 @@ private fun HabitActionsDialog(
     onPin: () -> Unit,
     onPause: () -> Unit,
     onSchedulePause: () -> Unit,
+    onQuick: () -> Unit,
     onSkip: () -> Unit,
     onUndoSkip: () -> Unit,
     logs: List<HabitLog>,
@@ -2098,99 +2166,145 @@ private fun HabitActionsDialog(
     var section by rememberSaveable(item.habit.id) {
         mutableStateOf(if (item.habit.archived) HabitDetailSection.More else HabitDetailSection.Today)
     }
-    PaneAwareAlertDialog(
-        modifier = modifier.testTag("habit-detail-surface"),
-        onDismissRequest = onDismiss,
-        title = { Text(item.habit.name) },
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                DetailSectionBar(
-                    labels = HabitDetailSection.entries.map(HabitDetailSection::label),
-                    selected = section.label,
-                    onSelect = { label -> section = HabitDetailSection.entries.first { it.label == label } },
-                    testTagPrefix = "habit-detail-section",
-                )
+    val skipAvailable = item.dayState == HabitDayState.Pending &&
+        item.habit.sourceMetricId == null &&
+        item.habit.scheduleType !in setOf(
+            HabitScheduleType.FlexibleTimesPerWeek,
+            HabitScheduleType.FlexibleTimesPerMonth,
+        )
+    val primaryAction = when {
+        item.habit.archived -> EntityInspectorPrimaryAction("restore", "Restore", onArchive)
+        item.habit.sourceMetricId != null -> null
+        item.habit.paused -> EntityInspectorPrimaryAction("resume", "Resume Habit", onPause)
+        item.dayState == HabitDayState.Skipped -> EntityInspectorPrimaryAction("undo-skip", "Undo Today's Skip", onUndoSkip)
+        else -> EntityInspectorPrimaryAction("check-in", item.inspectorPrimaryActionLabel(), onQuick)
+    }
+    EntityInspector(
+        entityType = "Habit",
+        title = item.habit.name,
+        emoji = item.habit.icon,
+        context = item.habit.area.ifBlank {
+            item.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+        },
+        status = item.inspectorStatus(lowPressureMode),
+        sections = HabitDetailSection.entries.map { it.inspectorSection },
+        selectedSectionId = section.id,
+        onSelectSection = { id -> section = HabitDetailSection.entries.first { it.id == id } },
+        onDismiss = onDismiss,
+        onEdit = onEdit,
+        editLabel = "Edit Habit",
+        modifier = modifier,
+        legacySurfaceTag = "habit-detail-surface",
+        legacySectionTagPrefix = "habit-detail-section",
+        primaryAction = primaryAction,
+        content = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
                 when (section) {
                     HabitDetailSection.Today -> {
-                        Text(
-                            if (item.habit.archived) "This habit is archived. Restore it from More to resume check-ins."
-                            else if (item.dayState == HabitDayState.Skipped) "Skipped Today · Streak Protected"
-                            else if (lowPressureMode) "${formatHabitValue(item.value, item.habit.precision)} logged"
-                            else "${formatHabitValue(item.value, item.habit.precision)} logged · streak ${item.streak}",
-                        )
-                        if (!item.habit.archived) {
-                            listOf(
-                                (if (item.habit.paused) "Resume" else "Pause Indefinitely") to onPause,
-                                "Schedule Pause Dates" to onSchedulePause,
-                            ).forEach { (label, action) -> WhipTextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text(label) } }
-                            when {
-                                item.dayState == HabitDayState.Skipped -> WhipTextButton(
-                                    onClick = onUndoSkip,
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) { Text("Undo Skip") }
-                                item.dayState == HabitDayState.Pending &&
-                                    item.habit.sourceMetricId == null &&
-                                    item.habit.scheduleType !in setOf(
-                                        HabitScheduleType.FlexibleTimesPerWeek,
-                                        HabitScheduleType.FlexibleTimesPerMonth,
-                                    ) -> WhipTextButton(
-                                    onClick = onSkip,
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) { Text("Skip Today") }
+                        EntityInspectorGroup("Today's check-in") {
+                            Text(
+                                when {
+                                    item.habit.archived -> "This habit is archived. Use Restore below to resume check-ins."
+                                    item.dayState == HabitDayState.Skipped -> if (lowPressureMode) {
+                                        "Skipped today. No check-in is expected."
+                                    } else {
+                                        "Skipped today. Your streak remains protected."
+                                    }
+                                    item.dayState == HabitDayState.Paused -> "Paused today. No check-in is expected."
+                                    item.dayState == HabitDayState.NotScheduled -> "Not scheduled today."
+                                    else -> "${formatHabitValue(item.value, item.habit.precision)} logged today."
+                                },
+                            )
+                        }
+                        EntityInspectorGroup("Context") {
+                            EntityInspectorFact("Date", item.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)))
+                            if (!lowPressureMode) {
+                                EntityInspectorFact("Current streak", "${item.streak} ${if (item.streak == 1) "day" else "days"}")
+                                EntityInspectorFact("Completion rate", "${(item.completionRate * 100).toInt()}%")
+                            }
+                            item.flexibleScheduleProgress?.let { progress ->
+                                EntityInspectorFact(
+                                    "This period",
+                                    "$progress of ${item.flexibleScheduleTarget ?: 0} check-ins",
+                                )
+                            }
+                        }
+                        if (skipAvailable) {
+                            EntityInspectorGroup("Today's availability") {
+                                EntityInspectorAction("skip-today", "Skip Today", onSkip)
                             }
                         }
                     }
                     HabitDetailSection.History -> {
-                        WhipTextButton(onClick = onAddHistoricalLog, modifier = Modifier.fillMaxWidth()) { Text("Add Backdated Entry") }
+                        EntityInspectorAction("add-past-entry", "Add Past Entry", onAddHistoricalLog)
                         val events = (logs.map(HabitHistoryEvent::Log) + skips.map(HabitHistoryEvent::Skip))
                             .sortedByDescending(HabitHistoryEvent::timeMillis)
-                        if (events.isEmpty()) Text("No entries yet.") else {
-                            Text("Recent Entries", style = MaterialTheme.typography.labelMedium)
+                        EntityInspectorGroup(
+                            title = "Recent activity",
+                            supportingText = if (events.isEmpty()) "No entries yet." else null,
+                        ) {
                             events.take(visibleLogs).forEach { event ->
                                 when (event) {
-                                    is HabitHistoryEvent.Log -> WhipTextButton(onClick = { onEditLog(event.value) }, modifier = Modifier.fillMaxWidth()) {
-                                        Text(
-                                            "${event.value.localDate}: ${event.value.value?.let { formatHabitValue(it, item.habit.precision) } ?: event.value.status.name}${if (event.value.note.isBlank()) "" else " · ${event.value.note}"}",
-                                            modifier = Modifier.fillMaxWidth(),
-                                        )
-                                    }
+                                    is HabitHistoryEvent.Log -> EntityInspectorAction(
+                                        id = "log-${event.value.id}",
+                                        label = buildString {
+                                            append(event.value.localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
+                                            append(" · ")
+                                            append(
+                                                event.value.value?.let { formatHabitValue(it, item.habit.precision) }
+                                                    ?: event.value.status.humanLabel(),
+                                            )
+                                            if (event.value.note.isNotBlank()) append(" · ${event.value.note}")
+                                        },
+                                        onClick = { onEditLog(event.value) },
+                                    )
                                     is HabitHistoryEvent.Skip -> Text(
-                                        "${event.value.localDate}: Skipped",
+                                        "${event.value.localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} · Skipped",
                                         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
-                            if (visibleLogs < events.size) WhipTextButton(
+                            if (visibleLogs < events.size) EntityInspectorAction(
+                                id = "show-more-history",
+                                label = "Show ${minOf(25, events.size - visibleLogs)} More · ${events.size - visibleLogs} Remaining",
                                 onClick = { visibleLogs = (visibleLogs + 25).coerceAtMost(events.size) },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) { Text("Show 25 More · ${events.size - visibleLogs} Remaining") }
+                            )
                         }
                     }
                     HabitDetailSection.Connections -> {
-                        if (linkedGoals.isEmpty()) Text("This habit does not feed any goals yet.")
-                        else Text("Adds Progress To: ${linkedGoals.distinct().joinToString()}", style = MaterialTheme.typography.bodyMedium)
-                        if (!item.habit.archived) WhipTextButton(onClick = onLinkGoal, modifier = Modifier.fillMaxWidth()) { Text("Add Progress to a Goal") }
+                        EntityInspectorGroup("Goal progress") {
+                            if (linkedGoals.isEmpty()) Text("This habit does not add progress to a goal yet.")
+                            else EntityInspectorFact("Adds progress to", linkedGoals.distinct().joinToString())
+                            if (!item.habit.archived) EntityInspectorAction("link-goal", "Add Progress to a Goal", onLinkGoal)
+                        }
                     }
                     HabitDetailSection.More -> {
-                        if (!item.habit.archived) {
-                            listOf(
-                                "Duplicate" to onDuplicate,
-                                (if (item.habit.pinned) "Unpin" else "Pin") to onPin,
-                            ).forEach { (label, action) -> WhipTextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text(label) } }
+                        EntityInspectorGroup("Actions") {
+                            if (!item.habit.archived) EntityInspectorAction("duplicate", "Duplicate Habit", onDuplicate)
                         }
-                        WhipTextButton(onClick = onArchive, modifier = Modifier.fillMaxWidth()) {
-                            Text(if (item.habit.archived) "Restore" else "Archive")
+                        if (!item.habit.archived) EntityInspectorGroup("Availability") {
+                                EntityInspectorAction("pin", if (item.habit.pinned) "Unpin from Home" else "Pin to Home", onPin)
+                                if (!item.habit.paused) EntityInspectorAction("pause", "Pause Indefinitely", onPause)
+                                EntityInspectorAction("schedule-pause", "Schedule Pause Dates", onSchedulePause)
+                                EntityInspectorAction("archive", "Archive Habit", onArchive)
                         }
-                        WhipTextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
-                            Text("Delete Permanently", color = MaterialTheme.colorScheme.error)
+                        EntityInspectorDangerZone {
+                            EntityInspectorAction(
+                                id = "delete",
+                                label = "Delete Permanently",
+                                onClick = onDelete,
+                                modifier = Modifier.testTag("entity-inspector-delete"),
+                                danger = true,
+                            )
                         }
                     }
                 }
             }
         },
-        confirmButton = { WhipTextButton(onClick = onDismiss) { Text("Close") } },
-        dismissButton = { DetailEditButton("Edit habit", onEdit) },
     )
 }
 
@@ -2206,11 +2320,44 @@ private sealed interface HabitHistoryEvent {
     }
 }
 
-private enum class HabitDetailSection(val label: String) {
-    Today("Today"),
-    History("History"),
-    Connections("Automation"),
-    More("Options"),
+private enum class HabitDetailSection(val id: String, val label: String) {
+    Today("today", "Today"),
+    History("history", "History"),
+    Connections("automation", "Automations"),
+    More("options", "Options"),
+    ;
+
+    val inspectorSection: EntityInspectorSection
+        get() = EntityInspectorSection(id, label)
+}
+
+private fun HabitDayProgress.inspectorStatus(lowPressureMode: Boolean): String = when {
+    habit.archived -> "Archived"
+    habit.paused || dayState == HabitDayState.Paused -> "Paused"
+    dayState == HabitDayState.Skipped -> "Skipped today"
+    dayState == HabitDayState.Completed -> "Complete today"
+    dayState == HabitDayState.BelowTarget -> if (lowPressureMode) "Checked in today" else "In progress today"
+    dayState == HabitDayState.Missed -> if (lowPressureMode) "Ready for a fresh check-in" else "Missed"
+    dayState == HabitDayState.NotScheduled -> "Not scheduled today"
+    else -> "Ready today"
+}
+
+private fun HabitDayProgress.inspectorPrimaryActionLabel(): String = when (habit.trackingMode) {
+    HabitTrackingMode.CheckOff -> if (successful == true) "Undo Check-In" else "Check In"
+    HabitTrackingMode.Count, HabitTrackingMode.Decimal -> {
+        val value = formatHabitValue(habit.quickIncrement, habit.precision)
+        "Add $value ${habit.unitId.unitLabel()}".trim()
+    }
+    HabitTrackingMode.Duration -> if (habit.timerStartedAtMillis == null) "Start Timer" else "Stop and Log"
+    HabitTrackingMode.Checklist -> if (successful == true) "Undo Today's Completion" else "Mark Today Complete"
+    HabitTrackingMode.Rating -> "Rate Today"
+    HabitTrackingMode.LogOnly -> "Add Entry"
+}
+
+private fun HabitLogStatus.humanLabel(): String = when (this) {
+    HabitLogStatus.Recorded -> "Recorded"
+    HabitLogStatus.Success -> "Complete"
+    HabitLogStatus.Failed -> "Below target"
 }
 
 @Composable

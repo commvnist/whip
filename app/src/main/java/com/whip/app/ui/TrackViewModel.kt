@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.withTransaction
 import com.whip.app.WhipApplication
+import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 import com.whip.app.data.TrackRepository
 import com.whip.app.domain.DeletedTrackEntry
@@ -40,6 +41,7 @@ import com.whip.app.domain.compatibleAggregations
 import com.whip.app.domain.Contribution
 import java.time.LocalDate
 import java.util.concurrent.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -48,8 +50,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 data class TrackUiState(
     val projections: List<TrackProjection> = emptyList(),
@@ -73,6 +76,11 @@ data class TrackUiState(
         projections = projections.filter { it.track.areaId == areaId },
     )
 }
+
+data class PendingTrackEntryUndo(
+    val token: Long,
+    val deletedEntry: DeletedTrackEntry,
+)
 
 private data class TrackAutomationState(
     val linkRules: List<LinkRule>,
@@ -112,12 +120,11 @@ class TrackViewModel(application: Application) : AndroidViewModel(application) {
     private val clock = app.clock
     private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
     val operationStatus: StateFlow<OperationStatus> = _operationStatus.asStateFlow()
-    private var runningJob: Job? = null
-    private var operationGeneration: Long = 0
-    private val _lastDeletedEntry = MutableStateFlow<DeletedTrackEntry?>(null)
-    val lastDeletedEntry: StateFlow<DeletedTrackEntry?> = _lastDeletedEntry.asStateFlow()
-    private val _lastAddedEntryTrackId = MutableStateFlow<Long?>(null)
-    val lastAddedEntryTrackId: StateFlow<Long?> = _lastAddedEntryTrackId.asStateFlow()
+    private val operationMutex = Mutex()
+    private var recoveryAcknowledgement: CompletableDeferred<Unit>? = null
+    private val _lastDeletedEntry = MutableStateFlow<PendingTrackEntryUndo?>(null)
+    val lastDeletedEntry: StateFlow<PendingTrackEntryUndo?> = _lastDeletedEntry.asStateFlow()
+    private var nextEntryUndoToken = 0L
 
     private val automationState = combine(
         app.linkRepository.rules,
@@ -155,8 +162,11 @@ class TrackViewModel(application: Application) : AndroidViewModel(application) {
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TrackUiState())
 
-    fun consumeOperationStatus() { _operationStatus.value = OperationStatus.Idle }
-    fun cancelOperation() { runningJob?.cancel() }
+    fun consumeOperationStatus() {
+        _operationStatus.value = OperationStatus.Idle
+        recoveryAcknowledgement?.complete(Unit)
+        recoveryAcknowledgement = null
+    }
 
     fun saveTrack(
         id: Long?,
@@ -214,7 +224,11 @@ class TrackViewModel(application: Application) : AndroidViewModel(application) {
         app.automationPromptScheduler.syncAll()
     }
     fun reorder(ids: List<Long>) = runOperation("Reordering Tracks…", "Track order saved") { repository.reorder(ids) }
-    fun deleteTrack(id: Long) = runOperation("Deleting Track…", "Track permanently deleted") {
+    fun deleteTrack(id: Long) = runOperation(
+        "Deleting Track…",
+        "Track permanently deleted",
+        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+    ) {
         app.domainDeletionCoordinator.deleteTrack(id)
     }
 
@@ -227,33 +241,47 @@ class TrackViewModel(application: Application) : AndroidViewModel(application) {
             entryId
         }
         reconcileTrackAutomations()
-        _lastAddedEntryTrackId.value = trackId.takeIf { entryId == null }
         onSaved(savedId)
     }
-
-    fun clearAddAnotherOffer() { _lastAddedEntryTrackId.value = null }
 
     fun importEntries(trackId: Long, drafts: List<TrackEntryDraft>, onSaved: (Int) -> Unit = {}) = runOperation(
         "Importing Entries…",
         "${drafts.size} Entries imported",
+        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
     ) {
         val importedCount = repository.importEntries(trackId, drafts).size
         reconcileTrackAutomations()
         onSaved(importedCount)
     }
 
-    fun deleteEntry(entryId: Long) = runOperation("Deleting Entry…", "Entry deleted") {
-        _lastDeletedEntry.value = repository.deleteEntry(entryId)
-        reconcileTrackAutomations()
+    fun deleteEntry(entryId: Long): Unit {
+        val undoToken = ++nextEntryUndoToken
+        runOperation(
+            "Deleting Entry…",
+            "Entry deleted",
+            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+        recoveryToken = undoToken,
+        ) {
+            val deletedEntry = repository.deleteEntry(entryId) ?: error("Entry no longer exists")
+            _lastDeletedEntry.value = PendingTrackEntryUndo(undoToken, deletedEntry)
+            reconcileTrackAutomations()
+        }
     }
 
-    fun undoEntryDeletion() = runOperation("Restoring Entry…", "Entry restored") {
-        _lastDeletedEntry.value?.let { repository.restoreEntry(it) }
-        reconcileTrackAutomations()
-        _lastDeletedEntry.value = null
+    fun undoEntryDeletion(expectedToken: Long) {
+        if (_lastDeletedEntry.value?.token != expectedToken) return
+        runOperation("Restoring Entry…", "Entry restored") {
+            _lastDeletedEntry.value
+                ?.takeIf { it.token == expectedToken }
+                ?.let { repository.restoreEntry(it.deletedEntry) }
+            reconcileTrackAutomations()
+            if (_lastDeletedEntry.value?.token == expectedToken) _lastDeletedEntry.value = null
+        }
     }
 
-    fun clearEntryUndo() { _lastDeletedEntry.value = null }
+    fun clearEntryUndo(expectedToken: Long) {
+        if (_lastDeletedEntry.value?.token == expectedToken) _lastDeletedEntry.value = null
+    }
     suspend fun exportCsv(trackId: Long): String = repository.exportCsv(trackId)
     suspend fun searchEntryIds(trackId: Long, query: String): Set<Long> = repository.searchEntryIds(trackId, query)
     suspend fun entryPage(trackId: Long, offset: Int, limit: Int = 100): TrackEntryPage =
@@ -434,18 +462,31 @@ class TrackViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun runOperation(running: String, success: String, block: suspend () -> Unit) {
-        val generation = ++operationGeneration
-        runningJob?.cancel()
-        _operationStatus.value = OperationStatus.Running(running)
-        runningJob = viewModelScope.launch {
-            try {
-                block()
-                if (generation == operationGeneration) _operationStatus.value = OperationStatus.Succeeded(success)
-            } catch (cancelled: CancellationException) {
-                if (generation == operationGeneration) _operationStatus.value = OperationStatus.Succeeded("Operation cancelled")
-            } catch (error: Throwable) {
-                if (generation == operationGeneration) _operationStatus.value = OperationStatus.Failed(error.message ?: "Something went wrong", error)
+    private fun runOperation(
+        running: String,
+        success: String,
+        successFeedbackPresentation: OperationFeedbackPresentation = OperationFeedbackPresentation.Inline,
+        recoveryToken: Long? = null,
+        block: suspend () -> Unit,
+    ) {
+        viewModelScope.launch {
+            operationMutex.withLock {
+                _operationStatus.value = OperationStatus.Running(running)
+                try {
+                    block()
+                    val acknowledgement = recoveryToken?.let { CompletableDeferred<Unit>() }
+                    recoveryAcknowledgement = acknowledgement
+                    _operationStatus.value = OperationStatus.Succeeded(
+                        success,
+                        successFeedbackPresentation,
+                        recoveryToken,
+                    )
+                    acknowledgement?.await()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Throwable) {
+                    _operationStatus.value = OperationStatus.Failed(error.message ?: "Something went wrong", error)
+                }
             }
         }
     }

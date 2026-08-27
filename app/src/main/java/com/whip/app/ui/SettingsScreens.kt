@@ -207,14 +207,18 @@ internal fun SettingsContent(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    items(SettingsSection.entries.size) { index ->
-                        val choice = SettingsSection.entries[index]
-                        NavigationRow(
-                            title = choice.label,
-                            supportingText = choice.supportingText,
-                            onClick = { selectSection(choice); compactSectionOpen = true },
-                            modifier = Modifier.testTag("settings-section-${choice.label}"),
-                        )
+                    item {
+                        WhipActionList {
+                            SettingsSection.entries.forEachIndexed { index, choice ->
+                                WhipActionRow(
+                                    title = choice.label,
+                                    supportingText = choice.supportingText,
+                                    onClick = { selectSection(choice); compactSectionOpen = true },
+                                    modifier = Modifier.testTag("settings-section-${choice.label}"),
+                                )
+                                if (index < SettingsSection.entries.lastIndex) WhipActionDivider()
+                            }
+                        }
                     }
                 }
             }
@@ -228,17 +232,24 @@ internal fun SettingsContent(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            WhipPageHeader(
-                title = if (wideSettingsNavigation) "Settings" else section.label,
-                supportingText = if (wideSettingsNavigation) {
-                    "Local preferences, data controls, defaults, and export."
-                } else null,
-                actions = {
-                    if (!externalSectionNavigation && !wideSettingsNavigation) {
-                        WhipTextButton(onClick = { compactSectionOpen = false }) { Text("All Settings") }
-                    }
-                },
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+            ) {
+                if (!externalSectionNavigation && !wideSettingsNavigation) {
+                    WhipBackAction(
+                        label = "Back to Settings",
+                        onClick = { compactSectionOpen = false },
+                    )
+                }
+                WhipPageHeader(
+                    title = if (wideSettingsNavigation) "Settings" else section.label,
+                    supportingText = if (wideSettingsNavigation) {
+                        "Local preferences, data controls, defaults, and export."
+                    } else null,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
         Row(Modifier.fillMaxWidth().weight(1f)) {
         if (wideSettingsNavigation) {
@@ -431,10 +442,14 @@ internal fun SettingsContent(
                             "1 ${unit.symbol.ifBlank { unit.name }} = ${unit.toCanonicalFactor} ${canonicalUnitLabel(unit.dimension)}",
                             style = MaterialTheme.typography.bodySmall,
                         )
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            WhipTextButton(onClick = { renameUnitId = unit.id }, modifier = Modifier.weight(1f)) { Text("Rename") }
-                            WhipTextButton(onClick = { versionUnitId = unit.id }, modifier = Modifier.weight(1f)) { Text("New Version") }
-                            WhipTextButton(onClick = { viewModel.setCustomUnitArchived(unit.id, !unit.archived) }, modifier = Modifier.weight(1f)) {
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            WhipTextButton(onClick = { renameUnitId = unit.id }) { Text("Rename") }
+                            WhipTextButton(onClick = { versionUnitId = unit.id }) { Text("New Version") }
+                            WhipTextButton(onClick = { viewModel.setCustomUnitArchived(unit.id, !unit.archived) }) {
                                 Text(if (unit.archived) "Restore" else "Archive")
                             }
                         }
@@ -477,12 +492,12 @@ internal fun SettingsContent(
         item { SettingsDropdown("Repeating-task subtask default", RepeatStepPolicy.entries, settings.defaultTaskStepPolicy, RepeatStepPolicy::uiLabel) { value -> viewModel.update { it.copy(defaultTaskStepPolicy = value) } } }
         item {
             SettingsToggle(
-                label = "Enable Smart Task Capture",
+                label = "Smart Task Capture",
                 checked = settings.naturalLanguageTaskCapture,
                 modifier = Modifier.testTag("settings-smart-task-capture"),
             ) { value -> viewModel.update { it.copy(naturalLanguageTaskCapture = value) } }
             Text(
-                "Recognized date, repeat, and Deadline phrases are highlighted before anything changes. Quick Capture applies the visible assumptions when you add; Add Details lets you review and apply them explicitly. Parsing stays on this device.",
+                "On by default. Recognized scheduling, repeat, deadline, reminder, priority, duration, effort, and tag details are highlighted before saving. Quick Capture applies visible details automatically; the full editor lets you review them first. Parsing stays on this device.",
                 style = MaterialTheme.typography.bodySmall,
             )
             if (settings.naturalLanguageTaskCapture) {
@@ -494,14 +509,13 @@ internal fun SettingsContent(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text("Try Smart Capture", fontWeight = FontWeight.Bold)
-                        Text("Send the report tomorrow", style = MaterialTheme.typography.bodyMedium)
-                        Text("Review the budget next Friday", style = MaterialTheme.typography.bodyMedium)
+                        Text("Send report tomorrow at 9am #work", style = MaterialTheme.typography.bodyMedium)
+                        Text("Review notes every Mon & Thu for 30m", style = MaterialTheme.typography.bodyMedium)
+                        Text("Submit expenses by next Friday !high", style = MaterialTheme.typography.bodyMedium)
+                        Text("Join planning call at 2pm with reminder", style = MaterialTheme.typography.bodyMedium)
+                        Text("Replace filter every other month after completion", style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            "Take medication every Monday, Wednesday and Friday",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        Text(
-                            "You can also use on 2026-09-01 or deadline 2026-09-05. Only highlighted phrases are interpreted.",
+                            "Also understands named months, in 3 days, weekdays/weekends, monthly on the 1st, until Dec 31, for 10 occurrences, reminder offsets, priority: urgent, and light effort. Only highlighted phrases are interpreted.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -673,10 +687,12 @@ internal fun SettingsContent(
             if (state.tags.isEmpty()) Text("No tags yet.", style = MaterialTheme.typography.bodySmall)
             state.tags.forEach { tag ->
                 Card(Modifier.fillMaxWidth().padding(top = 6.dp)) {
-                    Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("#${tag.name}${if (tag.archived) " · Archived" else ""}", modifier = Modifier.weight(1f))
-                        WhipTextButton(onClick = { taxonomyEditKind = "Tag"; taxonomyEditId = tag.id }) { Text("Rename") }
-                        WhipTextButton(onClick = { viewModel.setTagArchived(tag.id, !tag.archived) }) { Text(if (tag.archived) "Restore" else "Archive") }
+                    Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("#${tag.name}${if (tag.archived) " · Archived" else ""}")
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            WhipTextButton(onClick = { taxonomyEditKind = "Tag"; taxonomyEditId = tag.id }) { Text("Rename") }
+                            WhipTextButton(onClick = { viewModel.setTagArchived(tag.id, !tag.archived) }) { Text(if (tag.archived) "Restore" else "Archive") }
+                        }
                     }
                 }
             }

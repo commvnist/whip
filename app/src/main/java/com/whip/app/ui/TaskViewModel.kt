@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.whip.app.WhipApplication
+import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 import com.whip.app.core.WhipClock
 import com.whip.app.core.zoneId
@@ -65,6 +66,7 @@ data class TaskUiState(
 data class TaskOperationFeedback(
     val status: OperationStatus = OperationStatus.Idle,
     val undoMessage: String? = null,
+    val undoToken: Long? = null,
     val quickAddedTaskId: Long? = null,
 )
 
@@ -78,6 +80,8 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     val operationFeedback: StateFlow<TaskOperationFeedback> = _operationFeedback.asStateFlow()
     private var pendingUndoAction: TaskUndoAction? = null
     private var pendingUndoMessage: String? = null
+    private var pendingUndoToken: Long? = null
+    private var nextUndoToken = 0L
     private var pendingQuickAddTaskId: Long? = null
     private val _taskDeletionImpact = MutableStateFlow<TaskDeletionImpact?>(null)
     val taskDeletionImpact: StateFlow<TaskDeletionImpact?> = _taskDeletionImpact.asStateFlow()
@@ -174,7 +178,12 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             onFinished(false)
             return
         }
-        runOperation("Adding task…", "Task added", onFinished) {
+        runOperation(
+            runningMessage = "Adding task…",
+            successMessage = "Task added",
+            onFinished = onFinished,
+            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+        ) {
             val taskId = repository.create(draft)
             reminders.syncTask(taskId)
             offerUndo("Quick Add can be undone", TaskUndoAction.DeleteCreated(taskId))
@@ -182,7 +191,11 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun complete(item: ScheduledTask) {
-        runOperation("Completing task…", "Task completed") {
+        runOperation(
+            "Completing task…",
+            "Task completed",
+            successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+        ) {
             repository.complete(item)
             reminders.syncTask(item.task.id)
             offerUndo("Completion can be undone", TaskUndoAction.Complete(listOf(item)))
@@ -190,7 +203,11 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun skip(item: ScheduledTask) {
-        runOperation("Skipping occurrence…", "Occurrence skipped") {
+        runOperation(
+            "Skipping occurrence…",
+            "Occurrence skipped",
+            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+        ) {
             repository.skip(item)
             reminders.syncTask(item.task.id)
             offerUndo("Skip can be undone", TaskUndoAction.ResetOccurrences(listOf(item)))
@@ -198,7 +215,11 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun reschedule(item: ScheduledTask, newDate: LocalDate) {
-        runOperation("Moving task…", "Task moved") {
+        runOperation(
+            "Moving task…",
+            "Task moved",
+            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+        ) {
             repository.reschedule(item, newDate)
             reminders.syncTask(item.task.id)
             offerUndo("Move can be undone", TaskUndoAction.Reschedule(item))
@@ -209,6 +230,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         runOperation(
             runningMessage = "Updating subtask…",
             successMessage = if (completed) "Subtask completed" else "Subtask reopened",
+            successFeedbackPresentation = OperationFeedbackPresentation.Inline,
         ) {
             repository.setStepCompleted(item, stepId, completed)
             reminders.syncTask(item.task.id)
@@ -216,7 +238,11 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun promoteStep(item: ScheduledTask, stepId: Long) {
-        runOperation("Moving subtask…", "Subtask moved to a new Inbox task") {
+        runOperation(
+            "Moving subtask…",
+            "Subtask moved to a new Inbox task",
+            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+        ) {
             val promotedTaskId = repository.promoteStep(item, stepId)
             offerUndo(
                 "Move to a new Task can be undone",
@@ -226,7 +252,11 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun archive(taskId: Long) {
-        runOperation("Archiving task…", "Task archived") {
+        runOperation(
+            "Archiving task…",
+            "Task archived",
+            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+        ) {
             repository.archive(taskId)
             reminders.syncTask(taskId)
             offerUndo("Archive can be undone", TaskUndoAction.Restore(listOf(taskId)))
@@ -241,7 +271,11 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deletePermanently(taskId: Long) {
-        runOperation("Deleting task permanently…", "Task permanently deleted") {
+        runOperation(
+            "Deleting task permanently…",
+            "Task permanently deleted",
+            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+        ) {
             val revision = _taskDeletionImpact.value?.takeIf { it.taskId == taskId }?.revisionToken
             app.taskDeletionCoordinator.delete(taskId, revision)
             _taskDeletionImpact.value = null
@@ -277,6 +311,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         runOperation(
             "Deleting ${uniqueIds.size} tasks permanently…",
             "${uniqueIds.size} tasks permanently deleted",
+            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
         ) {
             val preview = checkNotNull(
                 _taskDeletionBatchImpact.value?.takeIf {
@@ -312,14 +347,22 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun reopen(taskId: Long) {
-        runOperation("Reopening task…", "Task reopened") {
+        runOperation(
+            "Reopening task…",
+            "Task reopened",
+            successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+        ) {
             repository.reopen(taskId)
             reminders.syncTask(taskId)
         }
     }
 
     fun reopenOccurrence(item: ScheduledTask) {
-        runOperation("Reopening occurrence…", "Occurrence reopened") {
+        runOperation(
+            "Reopening occurrence…",
+            "Occurrence reopened",
+            successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+        ) {
             repository.reopenOccurrence(item)
             reminders.syncTask(item.task.id)
         }
@@ -341,7 +384,11 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun postponeAll(items: List<ScheduledTask>, newDate: LocalDate) {
-        runOperation("Postponing ${items.size} tasks…", "${items.size} tasks moved") {
+        runOperation(
+            "Postponing ${items.size} tasks…",
+            "${items.size} tasks moved",
+            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+        ) {
             val unique = items.distinctBy(ScheduledTask::stableKey)
             repository.rescheduleAll(unique, newDate)
             unique.map { it.task.id }.distinct().forEach { reminders.syncTask(it) }
@@ -357,6 +404,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         runOperation(
             "Planning today…",
             "${selected.size} tasks added to Today · $selectedMinutes min of $capacityMinutes daily capacity$assumption",
+            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
         ) {
             repository.planAll(selected, clock.today())
             selected.map { it.task.id }.distinct().forEach { reminders.syncTask(it) }
@@ -368,7 +416,11 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun completeAll(items: List<ScheduledTask>) {
-        runOperation("Completing ${items.size} tasks…", "${items.size} tasks completed") {
+        runOperation(
+            "Completing ${items.size} tasks…",
+            "${items.size} tasks completed",
+            successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+        ) {
             repository.completeAll(items)
             items.map { it.task.id }.distinct().forEach { taskId ->
                 reminders.syncTask(taskId)
@@ -378,7 +430,11 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun archiveAll(items: List<ScheduledTask>) {
-        runOperation("Archiving ${items.size} tasks…", "${items.size} tasks archived") {
+        runOperation(
+            "Archiving ${items.size} tasks…",
+            "${items.size} tasks archived",
+            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+        ) {
             val ids = items.map { it.task.id }.distinct()
             repository.archiveAll(ids)
             ids.forEach { taskId ->
@@ -431,19 +487,26 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun clearPendingUndo() {
+    fun clearPendingUndo(token: Long? = null) {
+        if (token != null && token != pendingUndoToken) return
         pendingUndoAction = null
         pendingUndoMessage = null
+        pendingUndoToken = null
         pendingQuickAddTaskId = null
-        _operationFeedback.value = _operationFeedback.value.copy(
-            undoMessage = null,
-            quickAddedTaskId = null,
-        )
+        val feedback = _operationFeedback.value
+        if (token == null || feedback.undoToken == token) {
+            _operationFeedback.value = feedback.copy(
+                undoMessage = null,
+                undoToken = null,
+                quickAddedTaskId = null,
+            )
+        }
     }
 
-    fun undoLastTaskAction() {
+    fun undoLastTaskAction(token: Long) {
+        if (token != pendingUndoToken) return
         val action = pendingUndoAction ?: return
-        clearPendingUndo()
+        clearPendingUndo(token)
         runOperation("Undoing task action…", "Task action undone") {
             when (action) {
                 is TaskUndoAction.Complete -> action.items.forEach { item ->
@@ -483,6 +546,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private fun offerUndo(message: String, action: TaskUndoAction) {
         pendingUndoAction = action
         pendingUndoMessage = message
+        pendingUndoToken = ++nextUndoToken
         pendingQuickAddTaskId = (action as? TaskUndoAction.DeleteCreated)?.taskId
     }
 
@@ -490,10 +554,12 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         runningMessage: String,
         successMessage: String,
         onFinished: (Boolean) -> Unit = {},
+        successFeedbackPresentation: OperationFeedbackPresentation = OperationFeedbackPresentation.Inline,
         block: suspend () -> Unit,
     ) {
         pendingUndoAction = null
         pendingUndoMessage = null
+        pendingUndoToken = null
         pendingQuickAddTaskId = null
         _operationFeedback.value = TaskOperationFeedback(
             status = OperationStatus.Running(runningMessage),
@@ -502,8 +568,9 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 block()
                 _operationFeedback.value = TaskOperationFeedback(
-                    status = OperationStatus.Succeeded(successMessage),
+                    status = OperationStatus.Succeeded(successMessage, successFeedbackPresentation),
                     undoMessage = pendingUndoMessage,
+                    undoToken = pendingUndoToken,
                     quickAddedTaskId = pendingQuickAddTaskId,
                 )
                 runCatching { onFinished(true) }

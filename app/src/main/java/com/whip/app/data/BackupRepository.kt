@@ -13,9 +13,9 @@ import com.whip.app.core.ReviewSection
 import com.whip.app.core.ReviewPeriod
 import com.whip.app.core.SavedTaskFilter
 import com.whip.app.core.normalizedNavigation
-import com.whip.app.core.SavedReviewFilter
 import com.whip.app.core.PlatePreset
 import com.whip.app.core.RepPrescriptionScheme
+import com.whip.app.core.TrackedGymRecord
 import com.whip.app.core.SettingsRepository
 import com.whip.app.core.SystemWhipClock
 import com.whip.app.core.UuidWhipIdGenerator
@@ -25,6 +25,7 @@ import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.CustomIdentityEmoji
+import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.DEFAULT_GOAL_EMOJI
 import com.whip.app.domain.DEFAULT_HABIT_EMOJI
 import com.whip.app.domain.DEFAULT_TASK_EMOJI
@@ -335,7 +336,11 @@ class RoomBackupRepository(
         }
         val tables = root.optJSONObject("tables") ?: error("Backup has no table data")
         val tableNames = tables.keys().asSequence().toSet()
-        val expected = if (dbVersion < BACKUP_DATABASE_VERSION) LEGACY_EXPORT_TABLES.toSet() else EXPORT_TABLES.toSet()
+        val expected = when (dbVersion) {
+            BACKUP_DATABASE_VERSION -> EXPORT_TABLES.toSet()
+            8 -> VERSION_EIGHT_EXPORT_TABLES.toSet()
+            else -> LEGACY_EXPORT_TABLES.toSet()
+        }
         require(tableNames == expected || (dbVersion < BACKUP_DATABASE_VERSION && tableNames == EXPORT_TABLES.toSet())) {
             "Backup table set does not match this build"
         }
@@ -358,51 +363,68 @@ class RoomBackupRepository(
 
     /** Upgrade a checksum-verified older envelope in memory before restore or merge. */
     private fun upgradeBackupTables(databaseVersion: Int, tables: JSONObject) {
-        if (databaseVersion >= BACKUP_DATABASE_VERSION || tables.has("habit_skips")) return
-        val logs = tables.getJSONArray("habit_logs")
-        val retainedLogs = JSONArray()
-        val skips = JSONArray()
-        val obsoleteMetricEntryIds = mutableSetOf<String>()
-        for (index in 0 until logs.length()) {
-            val row = logs.getJSONObject(index)
-            when (row.optString("status")) {
-                "Skipped", "Excused" -> {
-                    val logUuid = row.optString("uuid")
-                    skips.put(
-                        JSONObject()
-                            .put("uuid", "habit-skip-$logUuid")
-                            .put("habitId", row.getLong("habitId"))
-                            .put("localEpochDay", row.getLong("localEpochDay"))
-                            .put("skippedAtMillis", row.optLong("timestampMillis"))
-                            .put("createdAtMillis", row.optLong("createdAtMillis"))
-                            .put("updatedAtMillis", row.optLong("updatedAtMillis")),
-                    )
-                    row.optString("metricEntryId").takeIf(String::isNotBlank)?.let(obsoleteMetricEntryIds::add)
+        if (databaseVersion < 8 && !tables.has("habit_skips")) {
+            val logs = tables.getJSONArray("habit_logs")
+            val retainedLogs = JSONArray()
+            val skips = JSONArray()
+            val obsoleteMetricEntryIds = mutableSetOf<String>()
+            for (index in 0 until logs.length()) {
+                val row = logs.getJSONObject(index)
+                when (row.optString("status")) {
+                    "Skipped", "Excused" -> {
+                        val logUuid = row.optString("uuid")
+                        skips.put(
+                            JSONObject()
+                                .put("uuid", "habit-skip-$logUuid")
+                                .put("habitId", row.getLong("habitId"))
+                                .put("localEpochDay", row.getLong("localEpochDay"))
+                                .put("skippedAtMillis", row.optLong("timestampMillis"))
+                                .put("createdAtMillis", row.optLong("createdAtMillis"))
+                                .put("updatedAtMillis", row.optLong("updatedAtMillis")),
+                        )
+                        row.optString("metricEntryId").takeIf(String::isNotBlank)?.let(obsoleteMetricEntryIds::add)
+                    }
+                    "Missing" -> row.optString("metricEntryId").takeIf(String::isNotBlank)?.let(obsoleteMetricEntryIds::add)
+                    else -> retainedLogs.put(row)
                 }
-                "Missing" -> row.optString("metricEntryId").takeIf(String::isNotBlank)?.let(obsoleteMetricEntryIds::add)
-                else -> retainedLogs.put(row)
             }
+            val deduplicatedSkips = JSONArray()
+            val seenOccurrences = mutableSetOf<Pair<Long, Long>>()
+            for (index in 0 until skips.length()) {
+                val row = skips.getJSONObject(index)
+                if (seenOccurrences.add(row.getLong("habitId") to row.getLong("localEpochDay"))) deduplicatedSkips.put(row)
+            }
+            val entries = tables.getJSONArray("metric_entries")
+            val retainedEntries = JSONArray()
+            for (index in 0 until entries.length()) {
+                entries.getJSONObject(index).takeUnless { it.optString("id") in obsoleteMetricEntryIds }?.let(retainedEntries::put)
+            }
+            tables.put("habit_logs", retainedLogs)
+            tables.put("metric_entries", retainedEntries)
+            tables.put("habit_skips", deduplicatedSkips)
         }
-        val deduplicatedSkips = JSONArray()
-        val seenOccurrences = mutableSetOf<Pair<Long, Long>>()
-        for (index in 0 until skips.length()) {
-            val row = skips.getJSONObject(index)
-            if (seenOccurrences.add(row.getLong("habitId") to row.getLong("localEpochDay"))) deduplicatedSkips.put(row)
+        if (databaseVersion < 9 && !tables.has("gym_machine_exercise_joins")) {
+            val joins = JSONArray()
+            val machines = tables.getJSONArray("gym_machines")
+            for (index in 0 until machines.length()) {
+                val machine = machines.getJSONObject(index)
+                if (machine.has("exerciseId") && !machine.isNull("exerciseId")) {
+                    joins.put(
+                        JSONObject()
+                            .put("machineId", machine.getLong("id"))
+                            .put("exerciseId", machine.getLong("exerciseId")),
+                    )
+                }
+            }
+            tables.put("gym_machine_exercise_joins", joins)
         }
-        val entries = tables.getJSONArray("metric_entries")
-        val retainedEntries = JSONArray()
-        for (index in 0 until entries.length()) {
-            entries.getJSONObject(index).takeUnless { it.optString("id") in obsoleteMetricEntryIds }?.let(retainedEntries::put)
-        }
-        tables.put("habit_logs", retainedLogs)
-        tables.put("metric_entries", retainedEntries)
-        tables.put("habit_skips", deduplicatedSkips)
     }
 }
 
 private fun ContentValues.applyBackupCompatibilityDefaults(table: String) {
     if (table == "track_fields" && !containsKey("scaleStep")) put("scaleStep", 1.0)
     if (table == "tasks" && !containsKey("icon")) put("icon", DEFAULT_TASK_EMOJI)
+    if (table == "gym_machines" && !containsKey("levelDirection")) put("levelDirection", "HigherNumberMoreResistance")
 }
 
 private data class MergeForeignKey(
@@ -537,6 +559,10 @@ private fun remapPolymorphicReferences(
             remapCsv("alternativeExerciseIdsCsv", "exercises")
         }
         "personal_records" -> remap("machineId", "gym_machines")
+        "gym_machine_exercise_joins" -> {
+            remap("machineId", "gym_machines")
+            remap("exerciseId", "exercises")
+        }
         "graph_presets" -> remapCsv("exerciseIdsCsv", "exercises")
         "link_rules" -> {
             sourceParent(values.getAsString("sourceType"))?.let { remap("sourceEntityId", it) }
@@ -595,7 +621,7 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 private const val BACKUP_FORMAT = "whip-backup"
 private const val ENVELOPE_VERSION = 2
 private const val OLDEST_COMPATIBLE_DATABASE_VERSION = 5
-private const val BACKUP_DATABASE_VERSION = 8
+private const val BACKUP_DATABASE_VERSION = 9
 
 private fun ContentValues.normalizeIdentityEmoji(table: String) {
     val defaultEmoji = when (table) {
@@ -612,7 +638,7 @@ private val EXPORT_TABLES = listOf(
     "areas",
     "tasks", "task_occurrences", "task_steps", "task_step_states", "task_step_snapshots",
     "unit_definitions", "metric_definitions", "metric_entries", "tags",
-    "exercises", "exercise_categories", "exercise_category_joins", "gym_machines",
+    "exercises", "exercise_categories", "exercise_category_joins", "gym_machines", "gym_machine_exercise_joins",
     "gym_routines", "routine_days", "routine_exercises", "routine_sets",
     "workout_sessions", "workout_groups", "workout_exercises", "workout_sets",
     "personal_records", "graph_presets", "habits", "habit_checklist_items", "habit_logs",
@@ -621,7 +647,8 @@ private val EXPORT_TABLES = listOf(
     "link_rules", "link_rule_conditions", "link_condition_choices", "contributions", "trigger_rules", "trigger_rule_conditions", "trigger_condition_choices", "trigger_field_mappings", "trigger_occurrences",
 )
 
-private val LEGACY_EXPORT_TABLES = EXPORT_TABLES - "habit_skips"
+private val VERSION_EIGHT_EXPORT_TABLES = EXPORT_TABLES - "gym_machine_exercise_joins"
+private val LEGACY_EXPORT_TABLES = VERSION_EIGHT_EXPORT_TABLES - "habit_skips"
 
 private fun checksumPayload(tables: JSONObject, settings: JSONObject?): String =
     tables.toString() + "\n" + settings?.toString().orEmpty()
@@ -697,11 +724,6 @@ private fun AppSettings.toJson(): JSONObject = JSONObject()
             .put("groupMode", filter.groupMode)
     }))
     .put("homeTaskFilterName", homeTaskFilterName ?: JSONObject.NULL)
-    .put("savedReviewFilters", JSONArray(savedReviewFilters.map { filter ->
-        JSONObject().put("name", filter.name)
-            .put("sections", JSONArray(filter.sections.map(ReviewSection::name)))
-    }))
-    .put("selectedReviewFilterName", selectedReviewFilterName ?: JSONObject.NULL)
     .put("reviewSections", JSONArray(reviewSections.map(ReviewSection::name)))
     .put("gymCompactSetRows", gymCompactSetRows)
     .put("platePresets", JSONArray(platePresets.map { preset ->
@@ -717,6 +739,14 @@ private fun AppSettings.toJson(): JSONObject = JSONObject()
             .put("repetitionsMax", scheme.repetitionsMax)
             .put("classification", scheme.classification.name)
             .putNullable("restSeconds", scheme.restSeconds)
+    }))
+    .put("trackedGymRecords", JSONArray(trackedGymRecords.map { selection ->
+        JSONObject()
+            .put("exerciseUuid", selection.exerciseUuid)
+            .put("type", selection.type.name)
+            .put("secondaryValue", selection.secondaryValue ?: JSONObject.NULL)
+            .put("machineProfileUuid", selection.machineProfileUuid ?: JSONObject.NULL)
+            .put("position", selection.position)
     }))
     .putNullableLong("focusTimerDeadlineMillis", focusTimerDeadlineMillis)
     .putNullableLong("focusTimerTaskId", focusTimerTaskId)
@@ -775,7 +805,7 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     showAllUpcomingTaskOccurrences = optBoolean("showAllUpcomingTaskOccurrences", false),
     showHabitsInTaskPlanning = optBoolean("showHabitsInTaskPlanning", false),
     defaultHabitWeekStart = enumValue("defaultHabitWeekStart", DayOfWeek.MONDAY),
-    naturalLanguageTaskCapture = optBoolean("naturalLanguageTaskCapture", false),
+    naturalLanguageTaskCapture = optBoolean("naturalLanguageTaskCapture", true),
     customIdentityEmojis = optJSONArray("customIdentityEmojis").objects().mapNotNull { value ->
         val emoji = value.optString("emoji").takeIf(String::isNotBlank) ?: return@mapNotNull null
         val name = value.optString("name").takeIf(String::isNotBlank) ?: return@mapNotNull null
@@ -807,12 +837,6 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
         }
     },
     homeTaskFilterName = nullableString("homeTaskFilterName"),
-    savedReviewFilters = optJSONArray("savedReviewFilters").objects().mapNotNull { value ->
-        value.optString("name").takeIf(String::isNotBlank)?.let { name ->
-            SavedReviewFilter(name, value.optJSONArray("sections").enumNames<ReviewSection>().ifEmpty { ReviewSection.entries.toSet() })
-        }
-    },
-    selectedReviewFilterName = nullableString("selectedReviewFilterName"),
     reviewSections = optJSONArray("reviewSections").enumNames<ReviewSection>().ifEmpty { ReviewSection.entries.toSet() },
     gymCompactSetRows = optBoolean("gymCompactSetRows", false),
     platePresets = optJSONArray("platePresets").objects().mapNotNull { value ->
@@ -834,6 +858,16 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
             restSeconds = value.nullableInt("restSeconds"),
         ).takeIf(RepPrescriptionScheme::isValid)
     }.distinctBy(RepPrescriptionScheme::id),
+    trackedGymRecords = optJSONArray("trackedGymRecords").objects().mapNotNull { value ->
+        TrackedGymRecord(
+            exerciseUuid = value.optString("exerciseUuid").takeIf(String::isNotBlank) ?: return@mapNotNull null,
+            type = runCatching { PersonalRecordType.valueOf(value.optString("type")) }.getOrNull()
+                ?: return@mapNotNull null,
+            secondaryValue = value.optDouble("secondaryValue").takeUnless(Double::isNaN),
+            machineProfileUuid = value.nullableString("machineProfileUuid"),
+            position = value.optInt("position"),
+        )
+    },
     focusTimerDeadlineMillis = nullableLong("focusTimerDeadlineMillis"),
     focusTimerTaskId = nullableLong("focusTimerTaskId"),
 )

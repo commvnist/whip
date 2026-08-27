@@ -5,6 +5,7 @@ import com.whip.app.domain.CustomIdentityEmoji
 import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.WorkoutSetClassification
+import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.normalizeCustomIdentityEmojis
 import java.nio.charset.StandardCharsets
 import java.util.Base64
@@ -31,11 +32,6 @@ data class SavedTaskFilter(
     /** None, Date, Area, Priority. */
     val groupMode: String = "None",
     val areaId: String? = null,
-)
-
-data class SavedReviewFilter(
-    val name: String,
-    val sections: Set<ReviewSection> = ReviewSection.entries.toSet(),
 )
 
 /** Keeps saved navigation values within the routes supported by the current workspace. */
@@ -152,22 +148,6 @@ internal fun String?.decodeTaskFilters(): List<SavedTaskFilter> = this.orEmpty()
         ).normalizedNavigation()
     }.distinctBy { it.name.lowercase() }.toList()
 
-internal fun List<SavedReviewFilter>.encodeReviewFilters(): String = joinToString("\n") { filter ->
-    "${filter.name.encoded()}|${filter.sections.joinToString(",", transform = ReviewSection::name)}"
-}
-
-internal fun String?.decodeReviewFilters(): List<SavedReviewFilter> = this.orEmpty().lineSequence()
-    .mapNotNull { line ->
-        val parts = line.split('|')
-        if (parts.size != 2) return@mapNotNull null
-        SavedReviewFilter(
-            name = parts[0].decoded().takeIf(String::isNotBlank) ?: return@mapNotNull null,
-            sections = parts[1].split(',').mapNotNullTo(linkedSetOf()) {
-                runCatching { ReviewSection.valueOf(it) }.getOrNull()
-            }.ifEmpty { ReviewSection.entries.toSet() },
-        )
-    }.distinctBy { it.name.lowercase() }.toList()
-
 internal fun List<CustomIdentityEmoji>.encodeCustomIdentityEmojis(): String =
     normalizeCustomIdentityEmojis(this).joinToString("\n") { choice ->
         "${choice.emoji.encoded()}|${choice.name.encoded()}"
@@ -246,6 +226,31 @@ internal fun String?.decodeRepPrescriptionSchemes(): List<RepPrescriptionScheme>
             restSeconds = if (parts[6].isBlank()) null else parts[6].toIntOrNull() ?: return@mapNotNull null,
         ).takeIf(RepPrescriptionScheme::isValid)
     }.distinctBy(RepPrescriptionScheme::id).toList()
+
+internal fun List<TrackedGymRecord>.encodeTrackedGymRecords(): String =
+    normalizeTrackedGymRecords(this).joinToString("\n") { selection ->
+        listOf(
+            selection.exerciseUuid.encoded(),
+            selection.type.name,
+            selection.secondaryValue?.toString().orEmpty(),
+            selection.machineProfileUuid.orEmpty().encoded(),
+            selection.position.toString(),
+        ).joinToString("|")
+    }
+
+internal fun String?.decodeTrackedGymRecords(): List<TrackedGymRecord> = normalizeTrackedGymRecords(
+    this.orEmpty().lineSequence().mapNotNull { line ->
+        val parts = line.split('|')
+        if (parts.size != 5) return@mapNotNull null
+        TrackedGymRecord(
+            exerciseUuid = parts[0].decoded().takeIf(String::isNotBlank) ?: return@mapNotNull null,
+            type = runCatching { PersonalRecordType.valueOf(parts[1]) }.getOrNull() ?: return@mapNotNull null,
+            secondaryValue = parts[2].takeIf(String::isNotBlank)?.toDoubleOrNull() ?: if (parts[2].isBlank()) null else return@mapNotNull null,
+            machineProfileUuid = parts[3].decoded().takeIf(String::isNotBlank),
+            position = parts[4].toIntOrNull() ?: return@mapNotNull null,
+        )
+    }.toList(),
+)
 
 private fun String.encoded(): String = Base64.getUrlEncoder().withoutPadding()
     .encodeToString(toByteArray(StandardCharsets.UTF_8))

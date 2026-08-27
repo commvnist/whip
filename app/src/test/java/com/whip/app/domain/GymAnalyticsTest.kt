@@ -136,6 +136,31 @@ class GymAnalyticsTest {
         assertNull(sets.first().estimatedOneRepMaxKg(exercise))
     }
 
+    @Test fun reverseNumberedScaleTreatsTheLowerNumberAsTheStrongerSetting() {
+        val exercise = exercise()
+        val sessions = listOf(session(1, LocalDate.of(2026, 8, 17)))
+        val workoutExercises = listOf(
+            workoutExercise(1, 1).copy(machineId = 10, machineLoadTypeSnapshot = MachineLoadType.Level),
+        )
+        val sets = listOf(
+            set(1, 1, 0.0, 8).copy(canonicalWeightKg = null, enteredWeight = null, machineLoadValue = 7.0),
+            set(2, 1, 0.0, 8).copy(canonicalWeightKg = null, enteredWeight = null, machineLoadValue = 2.0),
+        )
+
+        val points = buildExerciseGraph(
+            exercise = exercise,
+            sessions = sessions,
+            workoutExercises = workoutExercises,
+            sets = sets,
+            metric = GymGraphMetric.MaxMachineSetting,
+            machineId = 10,
+            restrictToMachine = true,
+            machineLevelDirection = MachineLevelDirection.HigherNumberLessResistance,
+        )
+
+        assertEquals(2.0, points.single().value, 0.0)
+    }
+
     @Test fun deletedMachineScopeNeverMergesWithFreeWeightsOrAnotherMachine() {
         val exercise = exercise()
         val sessions = listOf(

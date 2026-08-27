@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import java.time.LocalDate
@@ -44,6 +45,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FilterAlt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 enum class SearchDomain { Task, Habit, Goal, Track, TrackEntry, Exercise, Machine, Workout, Routine }
 
@@ -78,6 +82,7 @@ internal fun UnifiedSearchDialog(
     onSelect: (WhipSearchResult) -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    var settledQuery by rememberSaveable { mutableStateOf("") }
     var domains by rememberSaveable(initialScope.label) { mutableStateOf(initialScope.domains) }
     var requireAllTerms by rememberSaveable { mutableStateOf(true) }
     var filtersExpanded by rememberSaveable { mutableStateOf(false) }
@@ -195,15 +200,40 @@ internal fun UnifiedSearchDialog(
             }
         }
     }
-    val explicitAreaOverride = query.trim().split(Regex("\\s+")).any { it.startsWith("area:", ignoreCase = true) }
-    val matchingResults = if (query.isBlank()) emptyList() else all.filter { result ->
-        val inScope = result.isVisibleInAreaScope(areaScope, explicitAreaOverride)
-        inScope && result.domain in domains && result.matchesQuery(query, requireAllTerms)
-    }.sortedWith(
-        compareBy<WhipSearchResult> { it.searchRank(query) }
-            .thenBy { it.title.lowercase() }
-            .thenBy { it.domain.ordinal },
-    )
+    LaunchedEffect(query) {
+        if (query.isBlank()) {
+            settledQuery = ""
+        } else {
+            // Avoid rebuilding and sorting the complete cross-feature result
+            // set for every intermediate key event.
+            delay(140)
+            settledQuery = query
+        }
+    }
+    val explicitAreaOverride = settledQuery.trim().split(Regex("\\s+")).any { it.startsWith("area:", ignoreCase = true) }
+    val matchingResults by produceState(
+        initialValue = emptyList<WhipSearchResult>(),
+        all,
+        settledQuery,
+        domains,
+        areaScope,
+        requireAllTerms,
+    ) {
+        value = withContext(Dispatchers.Default) {
+            if (settledQuery.isBlank()) {
+                emptyList()
+            } else {
+                all.filter { result ->
+                    val inScope = result.isVisibleInAreaScope(areaScope, explicitAreaOverride)
+                    inScope && result.domain in domains && result.matchesQuery(settledQuery, requireAllTerms)
+                }.sortedWith(
+                    compareBy<WhipSearchResult> { it.searchRank(settledQuery) }
+                        .thenBy { it.title.lowercase() }
+                        .thenBy { it.domain.ordinal },
+                )
+            }
+        }
+    }
     val results = matchingResults.take(visibleResults)
     val activeFilterCount = (if (domains != initialScope.domains) 1 else 0) + (if (!requireAllTerms) 1 else 0)
     LaunchedEffect(initialScope.label) { queryFocusRequester.requestFocus() }
@@ -211,6 +241,8 @@ internal fun UnifiedSearchDialog(
     PaneAwareAlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
+        paneTitle = "Search",
+        stableHeight = true,
         title = { Text("Search") },
         text = {
             Column(
@@ -230,7 +262,7 @@ internal fun UnifiedSearchDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        "Scope: ${if (domains == SearchDomain.entries.toSet()) "All Whip" else domains.joinToString { it.uiLabel() }}",
+                        "Scope: ${initialScope.displayLabel(domains)}",
                         style = MaterialTheme.typography.labelMedium,
                     )
                     if (domains != SearchDomain.entries.toSet()) {
@@ -242,7 +274,11 @@ internal fun UnifiedSearchDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text("Productivity: $label · Gym: All data", style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            if (explicitAreaOverride) "Productivity: All Areas (query override) · Gym: All data"
+                            else "Productivity: $label · Gym: All data",
+                            style = MaterialTheme.typography.labelMedium,
+                        )
                         WhipTextButton(onClick = onSearchAllAreas) { Text("All Areas") }
                     }
                 }
@@ -250,7 +286,7 @@ internal fun UnifiedSearchDialog(
                     value = query,
                     onValueChange = { query = it; visibleResults = 50 },
                     label = { Text("Search") },
-                    placeholder = { Text("Tasks, habits, goals, tracks…") },
+                    placeholder = { Text(initialScope.placeholder(domains)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { results.firstOrNull()?.let(onSelect) }),

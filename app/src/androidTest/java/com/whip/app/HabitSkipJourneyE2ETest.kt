@@ -23,6 +23,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.whip.app.domain.HabitDraft
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -89,7 +91,8 @@ class HabitSkipJourneyE2ETest {
             compose.onNodeWithContentDescription("Open habit details for Read Today")
                 .performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithTag("habit-detail-section-History").performClick()
-            compose.onNodeWithText("${app.clock.today()}: Skipped").assertIsDisplayed()
+            val skippedDate = app.clock.today().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+            compose.onNodeWithText("$skippedDate · Skipped").assertIsDisplayed()
             compose.onNodeWithText("Close").performClick()
 
             selectDestination("habit-destination-Insights", "Insights")

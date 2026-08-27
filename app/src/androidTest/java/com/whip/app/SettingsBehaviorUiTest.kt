@@ -60,7 +60,7 @@ class SettingsBehaviorUiTest {
     }
 
     @Test
-    fun hidingGoalsRemovesItsHomeSectionAndEmptyDayShortcut() {
+    fun hidingGoalsKeepsItDiscoverableInTheEmptyHomeGuide() {
         openAppearanceSettings()
         compose.onNodeWithTag("settings-list")
             .performScrollToNode(hasTestTag("home-section-Goals"))
@@ -71,7 +71,10 @@ class SettingsBehaviorUiTest {
 
         compose.onNodeWithContentDescription("Close Settings").performClick()
 
-        compose.onAllNodesWithTag("home-destination-goals").assertCountEquals(0)
+        // Home-section visibility controls the populated dashboard. The empty
+        // state still teaches every available component so a new user can
+        // understand and reach tools they have not enabled on Home yet.
+        compose.onNodeWithTag("home-destination-goals").fetchSemanticsNode()
         compose.onNodeWithTag("home-destination-tasks").fetchSemanticsNode()
         compose.onNodeWithTag("home-destination-habits").fetchSemanticsNode()
     }
@@ -133,8 +136,8 @@ class SettingsBehaviorUiTest {
         compose.onNodeWithTag("confirm-reset-whip").performClick()
 
         compose.waitUntil { !app.settingsRepository.current().setupCompleted }
-        compose.onNodeWithText("Set Up Whip").assertIsDisplayed()
-        compose.onNodeWithText("Use Defaults").performClick()
+        compose.onNodeWithText("Welcome to Whip").assertIsDisplayed()
+        compose.onNodeWithText("Use Recommended").performClick()
         compose.waitUntil { app.settingsRepository.current().setupCompleted }
 
         compose.onNodeWithTag("home-destination-links").assertIsDisplayed()
@@ -190,8 +193,8 @@ class SettingsBehaviorUiTest {
             selectSettingsCategory(section)
             compose.onNodeWithTag("settings-list").performScrollToNode(androidx.compose.ui.test.hasText(control))
             compose.onNodeWithText(control).assertIsDisplayed()
-            if (compose.onAllNodesWithText("All Settings").fetchSemanticsNodes().isNotEmpty()) {
-                compose.onNodeWithText("All Settings").performClick()
+            if (compose.onAllNodesWithContentDescription("Back to Settings").fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithContentDescription("Back to Settings").performClick()
             }
         }
     }

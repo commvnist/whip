@@ -73,7 +73,7 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V1_DATABASE_NAME,
-            29,
+            30,
             true,
             *allMigrations,
         ).use { database ->
@@ -165,7 +165,7 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V2_DATABASE_NAME,
-            29,
+            30,
             true,
             *allMigrations.drop(1).toTypedArray(),
         ).use { database ->
@@ -242,11 +242,12 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V8_DATABASE_NAME,
-            29,
+            30,
             true,
             WhipDatabase.migration8To9,
             WhipDatabase.migration9To28,
             WhipDatabase.migration28To29,
+            WhipDatabase.migration29To30,
         ).use { database ->
             database.query("SELECT uuid, habitId, localEpochDay, skippedAtMillis FROM habit_skips").use { cursor ->
                 check(cursor.moveToFirst())
@@ -382,10 +383,11 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V27_DATABASE_NAME,
-            29,
+            30,
             true,
             WhipDatabase.migration27To28,
             WhipDatabase.migration28To29,
+            WhipDatabase.migration29To30,
         ).use { database ->
             database.query("SELECT title, notes, icon, tagsCsv, inbox FROM tasks WHERE id = 5").use { cursor ->
                 check(cursor.moveToFirst())
@@ -476,9 +478,10 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V28_DATABASE_NAME,
-            29,
+            30,
             true,
             WhipDatabase.migration28To29,
+            WhipDatabase.migration29To30,
         ).use { database ->
             database.query(
                 "SELECT name, autoCompleteFromItems FROM habits WHERE id = 3",
@@ -490,6 +493,84 @@ class WhipDatabaseMigrationTest {
             database.query("SELECT name FROM habit_checklist_items WHERE id = 4").use { cursor ->
                 check(cursor.moveToFirst())
                 assertEquals("Medication 1", cursor.getString(0))
+            }
+        }
+    }
+
+    @Test
+    fun migrationTwentyNineToThirtyPreservesMachineLinkAndAllowsUnattachedMachines() {
+        helper.createDatabase(V29_DATABASE_NAME, 29).apply {
+            execSQL(
+                """
+                INSERT INTO exercises (
+                    id, uuid, name, trackingType, notes, equipment, primaryMuscles, secondaryMuscles,
+                    weightUnitId, weightIncrement, repetitionIncrement, defaultRestSeconds,
+                    defaultGraphMetric, oneRepMaxFormula, barWeightKg, availablePlatesKgCsv,
+                    includeInVolume, includeInPersonalRecords, bodyweightLoadPolicy,
+                    effectiveBodyweightPercent, showRpe, showRir, showTempo, favorite, position,
+                    archived, createdAtMillis, updatedAtMillis, loadInterpretation
+                ) VALUES (
+                    7, 'exercise-7', 'Cable row', 'WeightReps', '', 'Cable', 'Back', '',
+                    'kilogram', 2.5, 1, 90, 'EstimatedOneRepMax', 'Epley', NULL, '',
+                    1, 1, 'ExternalWeightOnly', 100, NULL, NULL, NULL, 0, 0,
+                    0, 100, 100, 'Total'
+                )
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO gym_machines (
+                    id, uuid, exerciseId, name, location, details, loadType, unitId,
+                    levelLabel, availableLoadsCsv, archived, createdAtMillis, updatedAtMillis,
+                    loadInterpretation, baseLoadKg, configurationGroupId, configurationVersion,
+                    seatPosition, backPosition, attachment, pulleyRatio, stackMode, addOnPlateKg,
+                    stackLabelsCsv, massMappingCsv, compatibleForComparison
+                ) VALUES (
+                    9, 'machine-9', 7, 'Cable tower', 'Gym', '', 'Level', '',
+                    'pin', '1,2,3', 0, 100, 100, 'OrdinalSetting', NULL, 'machine-9', 1,
+                    '', '', '', 1, 'Single', NULL, '', '', 0
+                )
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            V29_DATABASE_NAME,
+            30,
+            true,
+            WhipDatabase.migration29To30,
+        ).use { database ->
+            database.query("SELECT exerciseId, levelDirection FROM gym_machines WHERE id = 9").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(7L, cursor.getLong(0))
+                assertEquals("HigherNumberMoreResistance", cursor.getString(1))
+            }
+            database.query("SELECT machineId, exerciseId FROM gym_machine_exercise_joins").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(9L, cursor.getLong(0))
+                assertEquals(7L, cursor.getLong(1))
+                assertEquals(1, cursor.count)
+            }
+            database.execSQL(
+                """
+                INSERT INTO gym_machines (
+                    uuid, exerciseId, name, location, details, loadType, unitId, levelLabel,
+                    availableLoadsCsv, archived, createdAtMillis, updatedAtMillis,
+                    loadInterpretation, baseLoadKg, configurationGroupId, configurationVersion,
+                    seatPosition, backPosition, attachment, pulleyRatio, stackMode, addOnPlateKg,
+                    stackLabelsCsv, massMappingCsv, compatibleForComparison, levelDirection
+                ) VALUES (
+                    'machine-unattached', NULL, 'Unattached machine', '', '', 'Level', '', 'level',
+                    '1,2,3', 0, 200, 200, 'OrdinalSetting', NULL, 'machine-unattached', 1,
+                    '', '', '', 1, 'Single', NULL, '', '', 0, 'HigherNumberLessResistance'
+                )
+                """.trimIndent(),
+            )
+            database.query("SELECT exerciseId, levelDirection FROM gym_machines WHERE uuid = 'machine-unattached'").use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.isNull(0))
+                assertEquals("HigherNumberLessResistance", cursor.getString(1))
             }
         }
     }
@@ -568,6 +649,7 @@ class WhipDatabaseMigrationTest {
         const val V8_DATABASE_NAME = "habit-skip-v8-to-v9-migration"
         const val V27_DATABASE_NAME = "public-v27-to-v28-migration"
         const val V28_DATABASE_NAME = "checklist-v28-to-v29-migration"
+        const val V29_DATABASE_NAME = "machines-v29-to-v30-migration"
 
         val allMigrations: Array<Migration> = arrayOf(
             WhipDatabase.migration1To2,
@@ -580,6 +662,7 @@ class WhipDatabaseMigrationTest {
             WhipDatabase.migration8To9,
             WhipDatabase.migration9To28,
             WhipDatabase.migration28To29,
+            WhipDatabase.migration29To30,
         )
     }
 }

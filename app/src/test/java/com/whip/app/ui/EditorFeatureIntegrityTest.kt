@@ -113,6 +113,7 @@ class EditorFeatureIntegrityTest {
     fun tracksExposeTheCompleteTypedFeatureWithoutLegacyCapsOrCosmeticColor() {
         val trackUi = File(uiRoot, "TrackScreens.kt").readText()
         val automationUx = File(uiRoot, "AutomationUxPolicy.kt").readText()
+        val trackViewModel = File(uiRoot, "TrackViewModel.kt").readText()
         val trackDomain = File(uiRoot.parentFile, "domain/TrackModels.kt").readText()
         val trackExperience = trackUi + automationUx
 
@@ -135,7 +136,10 @@ class EditorFeatureIntegrityTest {
         assertTrue(trackUi.contains("Replace With"))
         assertTrue(trackUi.contains("TriggerOutcome.Recorded"))
         val appUi = File(uiRoot, "WhipApp.kt").readText()
-        assertTrue(appUi.contains("Add Another"))
-        assertTrue(appUi.contains("onCancelTrackOperation"))
+        assertFalse(appUi.contains("Add Another"))
+        assertFalse(appUi.contains("onCancelTrackOperation"))
+        assertFalse(trackViewModel.contains("runningJob?.cancel()"))
+        assertTrue(trackViewModel.contains("operationMutex.withLock"))
+        assertTrue(trackViewModel.contains("acknowledgement?.await()"))
     }
 }

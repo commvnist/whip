@@ -14,6 +14,7 @@ import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.ExerciseTrackingType
 import com.whip.app.domain.GymMachine
 import com.whip.app.domain.GymMachineDraft
+import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.MachineStackMode
 import com.whip.app.domain.LoadInterpretation
@@ -34,6 +35,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 interface GymRepository {
@@ -117,7 +119,11 @@ class RoomGymRepository(
 ) : GymRepository {
     private val dao = database.gymDao()
 
-    override val machines = dao.observeMachines().map { list -> list.map(GymMachineEntity::toDomain) }
+    override val machines = combine(dao.observeMachines(), dao.observeMachineExerciseJoins()) { machines, joins ->
+        val exerciseIdsByMachine = joins.groupBy(GymMachineExerciseJoinEntity::machineId)
+            .mapValues { (_, values) -> values.mapTo(linkedSetOf(), GymMachineExerciseJoinEntity::exerciseId) }
+        machines.map { machine -> machine.toDomain(exerciseIdsByMachine[machine.id].orEmpty()) }
+    }
     override val exercises = dao.observeExercises().map { list -> list.map { it.toDomain() } }
     override val categories = dao.observeCategories().map { list -> list.map { it.toDomain() } }
     override val categoryLinks = dao.observeCategoryJoins().map { list -> list.map { ExerciseCategoryLink(it.exerciseId, it.categoryId) } }
@@ -126,22 +132,26 @@ class RoomGymRepository(
     override val sets = dao.observeWorkoutSets().map { list -> list.map { it.toDomain() } }
     override val groups = dao.observeWorkoutGroups().map { list -> list.map { it.toDomain() } }
 
-    override suspend fun createMachine(draft: GymMachineDraft): Long {
+    override suspend fun createMachine(draft: GymMachineDraft): Long = database.withTransaction {
         validateMachine(draft)
-        requireNotNull(dao.getExercise(draft.exerciseId)) { "Exercise no longer exists" }
+        val exerciseIds = draft.normalizedExerciseIds()
+        exerciseIds.forEach { exerciseId ->
+            requireNotNull(dao.getExercise(exerciseId)) { "Exercise no longer exists" }
+        }
         val now = nowMillis()
         val uuid = ids.nextId()
-        return dao.insertMachine(
+        val machineId = dao.insertMachine(
             draft.copy(
                 configurationGroupId = draft.configurationGroupId.ifBlank { uuid },
                 configurationVersion = draft.configurationVersion.coerceAtLeast(1),
-            ).toEntity(uuid = uuid, createdAtMillis = now),
+            ).toEntity(uuid = uuid, createdAtMillis = now, primaryExerciseId = exerciseIds.firstOrNull()),
         )
+        syncMachineExercises(machineId, exerciseIds)
+        machineId
     }
 
     override suspend fun createMachineVersion(id: Long, draft: GymMachineDraft): Long {
         val source = dao.getMachine(id) ?: error("Machine no longer exists")
-        require(source.exerciseId == draft.exerciseId) { "A configuration version must keep the same exercise" }
         val siblings = dao.getAllMachines().filter { it.configurationGroupId == source.configurationGroupId }
         return createMachine(
             draft.copy(
@@ -151,14 +161,16 @@ class RoomGymRepository(
         )
     }
 
-    override suspend fun updateMachine(id: Long, draft: GymMachineDraft) {
+    override suspend fun updateMachine(id: Long, draft: GymMachineDraft) = database.withTransaction {
         validateMachine(draft)
-        requireNotNull(dao.getExercise(draft.exerciseId)) { "Exercise no longer exists" }
+        val exerciseIds = draft.normalizedExerciseIds()
+        exerciseIds.forEach { exerciseId ->
+            requireNotNull(dao.getExercise(exerciseId)) { "Exercise no longer exists" }
+        }
         val existing = dao.getMachine(id) ?: error("Machine no longer exists")
         if (dao.getAllWorkoutExercises().any { it.machineId == id }) {
             require(
-                draft.exerciseId == existing.exerciseId &&
-                    draft.loadType.name == existing.loadType &&
+                draft.loadType.name == existing.loadType &&
                     (draft.loadType != MachineLoadType.Mass || draft.unitId == existing.unitId) &&
                     draft.loadInterpretation.name == existing.loadInterpretation &&
                     draft.baseLoadKg == existing.baseLoadKg &&
@@ -166,9 +178,10 @@ class RoomGymRepository(
                     draft.stackMode.name == existing.stackMode &&
                     draft.addOnPlateKg == existing.addOnPlateKg &&
                     draft.massMappingKg.toStableMappingCsv() == existing.massMappingCsv &&
-                    (draft.loadType != MachineLoadType.Level || draft.levelLabel.trim() == existing.levelLabel),
+                    (draft.loadType != MachineLoadType.Level ||
+                        draft.levelLabel.trim() == existing.levelLabel && draft.levelDirection.name == existing.levelDirection),
             ) {
-                "Exercise and resistance scale are locked after this machine has workout history. Create a new machine profile for a changed stack or setup."
+                "The resistance scale is locked after this machine has workout history. Create a new machine profile for a changed stack or setup."
             }
         }
         dao.updateMachine(
@@ -178,8 +191,17 @@ class RoomGymRepository(
                 archived = existing.archived,
                 createdAtMillis = existing.createdAtMillis,
                 updatedAtMillis = nowMillis(),
+                primaryExerciseId = exerciseIds.firstOrNull(),
             ),
         )
+        syncMachineExercises(id, exerciseIds)
+    }
+
+    private suspend fun syncMachineExercises(machineId: Long, exerciseIds: Set<Long>) {
+        dao.clearMachineExercises(machineId)
+        exerciseIds.forEach { exerciseId ->
+            dao.upsertMachineExerciseJoin(GymMachineExerciseJoinEntity(machineId, exerciseId))
+        }
     }
 
     override suspend fun setMachineArchived(id: Long, archived: Boolean) {
@@ -454,7 +476,11 @@ class RoomGymRepository(
             val now = nowMillis()
             val machine = machineId?.let { selected ->
                 requireNotNull(dao.getMachine(selected)) { "Machine no longer exists" }
-                    .also { require(it.exerciseId == exerciseId && !it.archived) { "Machine is not available for this exercise" } }
+                    .also {
+                        require(dao.machineSupportsExercise(it.id, exerciseId) && !it.archived) {
+                            "Machine is not available for this exercise"
+                        }
+                    }
             }
             dao.insertWorkoutExercise(
                 WorkoutExerciseEntity(
@@ -516,7 +542,11 @@ class RoomGymRepository(
         }
         val machine = machineId?.let { selected ->
             requireNotNull(dao.getMachine(selected)) { "Machine no longer exists" }
-                .also { require(it.exerciseId == current.exerciseId && !it.archived) { "Machine is not available for this exercise" } }
+                .also {
+                    require(dao.machineSupportsExercise(it.id, current.exerciseId) && !it.archived) {
+                        "Machine is not available for this exercise"
+                    }
+                }
         }
         val exercise = requireNotNull(dao.getExercise(current.exerciseId)) { "Exercise no longer exists" }
         dao.updateWorkoutExercise(
@@ -558,11 +588,6 @@ class RoomGymRepository(
             require(session.state == WorkoutSessionState.Active.name) { "Only an active workout can be changed" }
             require(exerciseId != current.exerciseId || machineId != current.machineId) { "Choose a different exercise or machine" }
             val now = nowMillis()
-            val sets = dao.getWorkoutSets(id).filter { it.deletedAtMillis == null }
-            val hasCompletedHistory = sets.any { it.completed }
-            sets.filterNot { it.completed }.forEach { set ->
-                dao.updateWorkoutSet(set.copy(deletedAtMillis = now, updatedAtMillis = now))
-            }
             val newId = addExerciseToWorkout(current.sessionId, exerciseId, machineId)
             val oldName = dao.getExercise(current.exerciseId)?.name.orEmpty()
             dao.getWorkoutExercise(newId)?.let { replacement ->
@@ -574,13 +599,17 @@ class RoomGymRepository(
                     ),
                 )
             }
-            val before = dao.getWorkoutExercises(current.sessionId).sortedBy { it.position }.map { it.id }
-            val withoutNew = before.filterNot { it == newId || (!hasCompletedHistory && it == id) }.toMutableList()
-            val oldIndex = withoutNew.indexOf(id)
-            val insertion = if (hasCompletedHistory && oldIndex >= 0) oldIndex + 1 else current.position.coerceIn(0, withoutNew.size)
-            withoutNew.add(insertion.coerceIn(0, withoutNew.size), newId)
-            if (!hasCompletedHistory) dao.deleteWorkoutExercise(id)
-            withoutNew.forEachIndexed { index, placementId ->
+            // "Substitute" is replacement, not addition. Remove the source
+            // placement (and its sets via the foreign-key cascade), then put
+            // the replacement in the exact same workout position.
+            dao.deleteWorkoutExercise(id)
+            val orderedIds = dao.getWorkoutExercises(current.sessionId)
+                .sortedBy { it.position }
+                .map { it.id }
+                .filterNot { it == newId }
+                .toMutableList()
+                .also { ids -> ids.add(current.position.coerceIn(0, ids.size), newId) }
+            orderedIds.forEachIndexed { index, placementId ->
                 dao.getWorkoutExercise(placementId)?.let { placement ->
                     dao.updateWorkoutExercise(placement.copy(position = index, updatedAtMillis = now))
                 }
@@ -869,10 +898,11 @@ private fun GymMachineDraft.toEntity(
     archived: Boolean = false,
     createdAtMillis: Long,
     updatedAtMillis: Long = createdAtMillis,
+    primaryExerciseId: Long? = normalizedExerciseIds().firstOrNull(),
 ) = GymMachineEntity(
     id = id,
     uuid = uuid,
-    exerciseId = exerciseId,
+    exerciseId = primaryExerciseId,
     name = name.trim(),
     location = location.trim(),
     details = details.trim(),
@@ -896,9 +926,10 @@ private fun GymMachineDraft.toEntity(
     stackLabelsCsv = stackLabels.map(String::trim).filter(String::isNotBlank).joinToString("\u001f"),
     massMappingCsv = massMappingKg.toStableMappingCsv(),
     compatibleForComparison = compatibleForComparison,
+    levelDirection = levelDirection.name,
 )
 
-private fun GymMachineEntity.toDomain() = GymMachine(
+private fun GymMachineEntity.toDomain(exerciseIds: Set<Long>) = GymMachine(
     id = id,
     uuid = uuid,
     exerciseId = exerciseId,
@@ -925,7 +956,13 @@ private fun GymMachineEntity.toDomain() = GymMachine(
     stackLabels = stackLabelsCsv.split('\u001f').filter(String::isNotBlank),
     massMappingKg = massMappingCsv.parseStableMappingCsv(),
     compatibleForComparison = compatibleForComparison,
+    exerciseIds = exerciseIds,
+    levelDirection = runCatching { MachineLevelDirection.valueOf(levelDirection) }
+        .getOrDefault(MachineLevelDirection.HigherNumberMoreResistance),
 )
+
+private fun GymMachineDraft.normalizedExerciseIds(): Set<Long> =
+    (exerciseIds + listOfNotNull(exerciseId)).filterTo(linkedSetOf()) { it > 0L }
 
 internal fun GymMachineEntity.displayName() = if (location.isBlank()) name else "$name · $location"
 

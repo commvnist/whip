@@ -26,6 +26,7 @@ import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.toWeekdayMask
 import com.whip.app.domain.toWeekdays
 import com.whip.app.domain.isScheduledOn
+import com.whip.app.domain.validationErrors
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -430,30 +431,8 @@ private fun List<HabitChecklistItemEntity>.matches(drafts: List<HabitChecklistIt
 }
 
 private fun validateHabit(draft: HabitDraft) {
-    require(draft.name.isNotBlank()) { "Habit name is required" }
-    require(draft.scheduleInterval > 0) { "Schedule interval must be positive" }
-    require(draft.quickIncrement.isFinite() && draft.quickIncrement > 0.0) { "Quick increment must be positive" }
-    require(draft.quickActions.all { it.isFinite() && it >= 0.0 }) { "Quick actions must be non-negative numbers" }
-    if (draft.trackingMode == HabitTrackingMode.Checklist) {
-        require(draft.checklistItems.any { it.name.isNotBlank() }) { "Add at least one checklist item" }
-    }
-    if (draft.scheduleType == HabitScheduleType.SelectedWeekdays) require(draft.weekdays.isNotEmpty()) { "Pick at least one weekday" }
-    require(listOfNotNull(draft.targetMin, draft.targetMax).all(Double::isFinite)) { "Habit targets must be finite numbers" }
-    when (draft.comparison) {
-        TargetComparison.AtLeast, TargetComparison.Exactly -> require(draft.targetMin != null) { "Enter a target" }
-        TargetComparison.AtMost -> require(draft.targetMin != null || draft.targetMax != null) { "Enter a maximum" }
-        TargetComparison.WithinRange -> require(draft.targetMin != null && draft.targetMax != null && draft.targetMin <= draft.targetMax) { "Enter a valid target range" }
-        TargetComparison.None -> Unit
-    }
-    if (draft.targetPeriod == TargetPeriod.RollingDays) require((draft.rollingDays ?: 0) > 0) { "Enter a positive rolling window" }
-    when (draft.endType) {
-        HabitEndType.Never -> Unit
-        HabitEndType.OnDate -> require(draft.endDate != null && !draft.endDate.isBefore(draft.startDate)) { "Choose an end date on or after the start date" }
-        HabitEndType.AfterStreak, HabitEndType.AfterCompletions -> require(
-            draft.endValue?.let { it.isFinite() && it > 0.0 && it % 1.0 == 0.0 } == true,
-        ) { "Enter a positive whole-number ending threshold" }
-        HabitEndType.AfterTotal -> require(draft.endValue?.let { it.isFinite() && it > 0.0 } == true) { "Enter a positive ending total" }
-    }
+    val problems = draft.validationErrors()
+    require(problems.isEmpty()) { problems.first() }
 }
 
 private fun HabitTrackingMode.metricValueKind() = when (this) {

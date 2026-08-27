@@ -23,6 +23,8 @@ class AppSettingsTest {
         assertEquals(false, AppSettings().showAllUpcomingTaskOccurrences)
         assertEquals(false, AppSettings().showHabitsInTaskPlanning)
         assertEquals(false, AppSettings().compactItemLayout)
+        assertEquals(false, AppSettings().dynamicColor)
+        assertEquals(true, AppSettings().naturalLanguageTaskCapture)
         assertEquals(emptyList<RepPrescriptionScheme>(), AppSettings().repPrescriptionSchemes)
         assertEquals(AreaScope.All.storageKey, AppSettings().activeAreaScope)
         assertEquals(listOf(60, 90, 120, 150, 180, 300), AppSettings().restTimerPresetSeconds)

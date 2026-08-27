@@ -29,8 +29,20 @@ object UuidWhipIdGenerator : WhipIdGenerator {
 sealed interface OperationStatus {
     data object Idle : OperationStatus
     data class Running(val message: String) : OperationStatus
-    data class Succeeded(val message: String) : OperationStatus
+    data class Succeeded(
+        val message: String,
+        val feedbackPresentation: OperationFeedbackPresentation = OperationFeedbackPresentation.Inline,
+        val recoveryToken: Long? = null,
+    ) : OperationStatus
     data class Failed(val message: String, val cause: Throwable? = null) : OperationStatus
+}
+
+enum class OperationFeedbackPresentation {
+    /** The changed control or content is the acknowledgement; do not add a transient banner. */
+    Inline,
+
+    /** Reserve transient feedback for recovery, continuation, or consequential outcomes. */
+    Snackbar,
 }
 
 sealed interface WhipResult<out T> {

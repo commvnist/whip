@@ -29,6 +29,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         ExerciseCategoryEntity::class,
         ExerciseCategoryJoinEntity::class,
         GymMachineEntity::class,
+        GymMachineExerciseJoinEntity::class,
         WorkoutSessionEntity::class,
         WorkoutGroupEntity::class,
         WorkoutExerciseEntity::class,
@@ -64,7 +65,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         TrackValueEntity::class,
         TrackEntrySearchEntity::class,
     ],
-    version = 29,
+    version = 30,
     exportSchema = true,
 )
 abstract class WhipDatabase : RoomDatabase() {
@@ -314,6 +315,84 @@ abstract class WhipDatabase : RoomDatabase() {
             }
         }
 
+        val migration29To30 = object : Migration(29, 30) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS gym_machines_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        uuid TEXT NOT NULL,
+                        exerciseId INTEGER,
+                        name TEXT NOT NULL,
+                        location TEXT NOT NULL,
+                        details TEXT NOT NULL,
+                        loadType TEXT NOT NULL,
+                        unitId TEXT NOT NULL,
+                        levelLabel TEXT NOT NULL,
+                        availableLoadsCsv TEXT NOT NULL,
+                        archived INTEGER NOT NULL,
+                        createdAtMillis INTEGER NOT NULL,
+                        updatedAtMillis INTEGER NOT NULL,
+                        loadInterpretation TEXT NOT NULL,
+                        baseLoadKg REAL,
+                        configurationGroupId TEXT NOT NULL,
+                        configurationVersion INTEGER NOT NULL,
+                        seatPosition TEXT NOT NULL,
+                        backPosition TEXT NOT NULL,
+                        attachment TEXT NOT NULL,
+                        pulleyRatio REAL NOT NULL,
+                        stackMode TEXT NOT NULL,
+                        addOnPlateKg REAL,
+                        stackLabelsCsv TEXT NOT NULL,
+                        massMappingCsv TEXT NOT NULL,
+                        compatibleForComparison INTEGER NOT NULL,
+                        levelDirection TEXT NOT NULL,
+                        FOREIGN KEY(exerciseId) REFERENCES exercises(id) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO gym_machines_new (
+                        id, uuid, exerciseId, name, location, details, loadType, unitId,
+                        levelLabel, availableLoadsCsv, archived, createdAtMillis, updatedAtMillis,
+                        loadInterpretation, baseLoadKg, configurationGroupId, configurationVersion,
+                        seatPosition, backPosition, attachment, pulleyRatio, stackMode, addOnPlateKg,
+                        stackLabelsCsv, massMappingCsv, compatibleForComparison, levelDirection
+                    )
+                    SELECT id, uuid, exerciseId, name, location, details, loadType, unitId,
+                        levelLabel, availableLoadsCsv, archived, createdAtMillis, updatedAtMillis,
+                        loadInterpretation, baseLoadKg, configurationGroupId, configurationVersion,
+                        seatPosition, backPosition, attachment, pulleyRatio, stackMode, addOnPlateKg,
+                        stackLabelsCsv, massMappingCsv, compatibleForComparison,
+                        'HigherNumberMoreResistance'
+                    FROM gym_machines
+                    """.trimIndent(),
+                )
+                db.execSQL("DROP TABLE gym_machines")
+                db.execSQL("ALTER TABLE gym_machines_new RENAME TO gym_machines")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_gym_machines_uuid ON gym_machines (uuid)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_gym_machines_exerciseId ON gym_machines (exerciseId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_gym_machines_archived ON gym_machines (archived)")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS gym_machine_exercise_joins (
+                        machineId INTEGER NOT NULL,
+                        exerciseId INTEGER NOT NULL,
+                        PRIMARY KEY(machineId, exerciseId),
+                        FOREIGN KEY(machineId) REFERENCES gym_machines(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(exerciseId) REFERENCES exercises(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_gym_machine_exercise_joins_exerciseId ON gym_machine_exercise_joins (exerciseId)")
+                db.execSQL(
+                    "INSERT INTO gym_machine_exercise_joins (machineId, exerciseId) " +
+                        "SELECT id, exerciseId FROM gym_machines WHERE exerciseId IS NOT NULL",
+                )
+            }
+        }
+
         /**
          * Repository checks provide friendly errors; these triggers are the final consistency
          * boundary for concurrent writers, restored data, and any future write path.
@@ -346,6 +425,7 @@ abstract class WhipDatabase : RoomDatabase() {
                     migration9To28,
                     migration27To28,
                     migration28To29,
+                    migration29To30,
                 )
                 .addCallback(integrityGuardCallback)
                 .build()

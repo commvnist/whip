@@ -8,6 +8,7 @@ import com.whip.app.core.WhipIdGenerator
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
 import com.whip.app.core.RepPrescriptionScheme
+import com.whip.app.core.TrackedGymRecord
 import com.whip.app.core.SettingsRepository
 import com.whip.app.data.RoomBackupRepository
 import com.whip.app.data.RoomGoalRepository
@@ -22,6 +23,7 @@ import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.CustomIdentityEmoji
 import com.whip.app.domain.AreaScope
+import com.whip.app.domain.GymMachineDraft
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalType
@@ -31,6 +33,9 @@ import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.LinkRuleDraft
 import com.whip.app.domain.LinkSourceMetric
 import com.whip.app.domain.LinkSourceType
+import com.whip.app.domain.MachineLevelDirection
+import com.whip.app.domain.MachineLoadType
+import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.RecurrenceRule
 import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.RoutineDayDraft
@@ -117,6 +122,10 @@ class BackupRepositoryTest {
                         restSeconds = 90,
                     ),
                 ),
+                trackedGymRecords = listOf(
+                    TrackedGymRecord("bench-stable-id", PersonalRecordType.EstimatedOneRepMax),
+                    TrackedGymRecord("bench-stable-id", PersonalRecordType.MaxWeight, position = 1),
+                ),
             ),
         )
         backups = RoomBackupRepository(database, settings)
@@ -131,7 +140,7 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val preview = backups.previewBackup(json)
         assertEquals(2, preview.envelopeVersion)
-        assertEquals(8, preview.databaseVersion)
+        assertEquals(9, preview.databaseVersion)
         assertTrue(preview.checksumValid)
         assertTrue(preview.settingsIncluded)
         assertTrue(preview.totalRecords >= 3)
@@ -161,8 +170,56 @@ class BackupRepositoryTest {
         assertEquals(8, settings.current().repPrescriptionSchemes.single().repetitionsMin)
         assertEquals(12, settings.current().repPrescriptionSchemes.single().repetitionsMax)
         assertEquals(90, settings.current().repPrescriptionSchemes.single().restSeconds)
+        assertEquals(2, settings.current().trackedGymRecords.size)
+        assertEquals(PersonalRecordType.MaxWeight, settings.current().trackedGymRecords.last().type)
         assertTrue(backups.exportHabitsCsv().contains("\"Hydrate, safely\""))
         assertTrue(backups.exportHabitsCsv().contains("\"Skipped\""))
+    }
+
+    @Test fun machineExerciseLinksAndLevelDirectionRoundTrip() = runBlocking {
+        val rowId = gym.createExercise(ExerciseDraft(name = "Cable row"))
+        val pressId = gym.createExercise(ExerciseDraft(name = "Cable press"))
+        gym.createMachine(
+            GymMachineDraft(
+                name = "Shared cable tower",
+                exerciseIds = setOf(rowId, pressId),
+                loadType = MachineLoadType.Level,
+                levelLabel = "position",
+                availableLoads = listOf(1.0, 2.0, 3.0),
+                levelDirection = MachineLevelDirection.HigherNumberLessResistance,
+            ),
+        )
+
+        val json = backups.exportBackup()
+        backups.deleteAllData()
+        backups.restoreBackup(json)
+
+        val restored = gym.machines.first().single()
+        assertEquals(setOf("Cable row", "Cable press"), gym.exercises.first().filter { it.id in restored.exerciseIds }.mapTo(mutableSetOf()) { it.name })
+        assertEquals(MachineLevelDirection.HigherNumberLessResistance, restored.levelDirection)
+    }
+
+    @Test fun versionEightMachineLinkUpgradesToManyToManyWithSafeDirectionDefault() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft(name = "Legacy row"))
+        gym.createMachine(GymMachineDraft(exerciseId = exerciseId, name = "Legacy cable"))
+        val root = JSONObject(backups.exportBackup()).put("databaseVersion", 8)
+        val tables = root.getJSONObject("tables")
+        tables.remove("gym_machine_exercise_joins")
+        val machines = tables.getJSONArray("gym_machines")
+        for (index in 0 until machines.length()) machines.getJSONObject(index).remove("levelDirection")
+        val payload = tables.toString() + "\n" + root.optJSONObject("settings")?.toString().orEmpty()
+        root.put(
+            "checksumSha256",
+            MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) },
+        )
+
+        backups.deleteAllData()
+        backups.restoreBackup(root.toString())
+
+        val restoredExercise = gym.exercises.first().single()
+        val restoredMachine = gym.machines.first().single()
+        assertEquals(setOf(restoredExercise.id), restoredMachine.exerciseIds)
+        assertEquals(MachineLevelDirection.HigherNumberMoreResistance, restoredMachine.levelDirection)
     }
 
     @Test fun areaIdentityAndScopeRoundTripAcrossEveryProductivityDomain() = runBlocking {
@@ -429,6 +486,7 @@ class BackupRepositoryTest {
         val root = JSONObject(backups.exportBackup()).put("databaseVersion", 5)
         val tables = root.getJSONObject("tables")
         tables.remove("habit_skips")
+        tables.remove("gym_machine_exercise_joins")
         val fields = tables.getJSONArray("track_fields")
         for (index in 0 until fields.length()) fields.getJSONObject(index).remove("scaleStep")
         val taskRows = tables.getJSONArray("tasks")
@@ -471,7 +529,7 @@ class BackupRepositoryTest {
     @Test fun nonCurrentBackupVersionsOrTableSetsCannotBePreviewedOrRestored() = runBlocking {
         habits.create(HabitDraft(name = "Keep local", startDate = FixedClock.today()))
         val current = backups.exportBackup()
-        val wrongDatabase = JSONObject(current).put("databaseVersion", 9).toString()
+        val wrongDatabase = JSONObject(current).put("databaseVersion", 10).toString()
         val wrongEnvelope = JSONObject(current).put("envelopeVersion", 1).toString()
         val incompleteTables = JSONObject(current).also {
             it.getJSONObject("tables").remove("tags")

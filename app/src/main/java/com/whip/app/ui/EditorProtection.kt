@@ -14,6 +14,7 @@ internal fun UnsavedChangesDialog(
     PaneAwareAlertDialog(
         modifier = modifier,
         onDismissRequest = onKeepEditing,
+        paneTitle = "Discard Unsaved Changes",
         title = { Text("Discard Unsaved Changes?") },
         text = { Text("Your edits to this $subject have not been saved.") },
         confirmButton = { WhipTextButton(onClick = onDiscard) { Text("Discard Changes") } },

@@ -2,6 +2,7 @@ package com.whip.app.core
 
 import android.annotation.SuppressLint
 import android.content.Context
+import com.whip.app.data.migrateSmartTaskCaptureDefault
 import android.content.SharedPreferences
 import java.time.DayOfWeek
 import java.time.Instant
@@ -43,7 +44,7 @@ data class AppSettings(
     val notificationPermissionRequested: Boolean = false,
     val activeAreaScope: String = AreaScope.All.storageKey,
     val themeMode: AppThemeMode = AppThemeMode.System,
-    val dynamicColor: Boolean = true,
+    val dynamicColor: Boolean = false,
     val compactItemLayout: Boolean = false,
     val firstDayOfWeek: DayOfWeek = DayOfWeek.MONDAY,
     val timeZoneId: String? = null,
@@ -82,16 +83,15 @@ data class AppSettings(
     val showAllUpcomingTaskOccurrences: Boolean = false,
     val showHabitsInTaskPlanning: Boolean = false,
     val defaultHabitWeekStart: DayOfWeek = DayOfWeek.MONDAY,
-    val naturalLanguageTaskCapture: Boolean = false,
+    val naturalLanguageTaskCapture: Boolean = true,
     val customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
     val savedTaskFilters: List<SavedTaskFilter> = emptyList(),
     val homeTaskFilterName: String? = null,
-    val savedReviewFilters: List<SavedReviewFilter> = emptyList(),
-    val selectedReviewFilterName: String? = null,
     val reviewSections: Set<ReviewSection> = ReviewSection.entries.toSet(),
     val gymCompactSetRows: Boolean = false,
     val platePresets: List<PlatePreset> = emptyList(),
     val repPrescriptionSchemes: List<RepPrescriptionScheme> = emptyList(),
+    val trackedGymRecords: List<TrackedGymRecord> = emptyList(),
     val focusTimerDeadlineMillis: Long? = null,
     val focusTimerTaskId: Long? = null,
 )
@@ -116,6 +116,14 @@ fun SettingsRepository.currentDateFlow(clock: WhipClock): Flow<LocalDate> = comb
 class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository {
     private val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
 
+    init {
+        migrateSmartTaskCaptureDefault(preferences)
+        preferences.edit()
+            .remove("savedReviewFilters")
+            .remove("selectedReviewFilterName")
+            .apply()
+    }
+
     override val settings: Flow<AppSettings> = callbackFlow {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> trySend(current()) }
         trySend(current())
@@ -131,7 +139,7 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         activeAreaScope = preferences.getString("activeAreaScope", AreaScope.All.storageKey)
             ?: AreaScope.All.storageKey,
         themeMode = preferences.enum("theme", AppThemeMode.System),
-        dynamicColor = preferences.getBoolean("dynamicColor", true),
+        dynamicColor = preferences.getBoolean("dynamicColor", false),
         compactItemLayout = preferences.getBoolean("compactItemLayout", false),
         firstDayOfWeek = preferences.enum("firstDay", DayOfWeek.MONDAY),
         timeZoneId = preferences.getString("timeZoneId", null)?.takeIf { runCatching { ZoneId.of(it) }.isSuccess },
@@ -183,17 +191,16 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         showAllUpcomingTaskOccurrences = preferences.getBoolean("showAllUpcomingTaskOccurrences", false),
         showHabitsInTaskPlanning = preferences.getBoolean("showHabitsInTaskPlanning", false),
         defaultHabitWeekStart = preferences.enum("habitWeekStart", DayOfWeek.MONDAY),
-        naturalLanguageTaskCapture = preferences.getBoolean("naturalLanguageTaskCapture", false),
+        naturalLanguageTaskCapture = preferences.getBoolean("naturalLanguageTaskCapture", true),
         customIdentityEmojis = preferences.getString("customIdentityEmojis", null).decodeCustomIdentityEmojis(),
         savedTaskFilters = preferences.getString("savedTaskFilters", null).decodeTaskFilters(),
         homeTaskFilterName = preferences.getString("homeTaskFilterName", null),
-        savedReviewFilters = preferences.getString("savedReviewFilters", null).decodeReviewFilters(),
-        selectedReviewFilterName = preferences.getString("selectedReviewFilterName", null),
         reviewSections = preferences.enumSet("reviewSections", ReviewSection.entries)
             .ifEmpty { ReviewSection.entries.toSet() },
         gymCompactSetRows = preferences.getBoolean("gymCompactSetRows", false),
         platePresets = preferences.getString("platePresets", null).decodePlatePresets(),
         repPrescriptionSchemes = preferences.getString("repPrescriptionSchemes", null).decodeRepPrescriptionSchemes(),
+        trackedGymRecords = preferences.getString("trackedGymRecords", null).decodeTrackedGymRecords(),
         focusTimerDeadlineMillis = preferences.nullableLong("focusTimerDeadlineMillis")
             ?.takeIf { it > System.currentTimeMillis() },
         focusTimerTaskId = preferences.nullableLong("focusTimerTaskId"),
@@ -255,12 +262,13 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .putString("customIdentityEmojis", value.customIdentityEmojis.encodeCustomIdentityEmojis())
             .putString("savedTaskFilters", value.savedTaskFilters.encodeTaskFilters())
             .putNullableString("homeTaskFilterName", value.homeTaskFilterName)
-            .putString("savedReviewFilters", value.savedReviewFilters.encodeReviewFilters())
-            .putNullableString("selectedReviewFilterName", value.selectedReviewFilterName)
+            .remove("savedReviewFilters")
+            .remove("selectedReviewFilterName")
             .putStringSet("reviewSections", value.reviewSections.mapTo(mutableSetOf(), ReviewSection::name))
             .putBoolean("gymCompactSetRows", value.gymCompactSetRows)
             .putString("platePresets", value.platePresets.encodePlatePresets())
             .putString("repPrescriptionSchemes", value.repPrescriptionSchemes.encodeRepPrescriptionSchemes())
+            .putString("trackedGymRecords", value.trackedGymRecords.encodeTrackedGymRecords())
             .putNullableLong("focusTimerDeadlineMillis", value.focusTimerDeadlineMillis)
             .putNullableLong("focusTimerTaskId", value.focusTimerTaskId)
             .apply()
@@ -301,6 +309,7 @@ fun AppSettings.normalized(): AppSettings {
         healthDataTypes = healthDataTypes.intersect(HealthDataType.entries.toSet()),
         healthSyncDays = healthSyncDays.coerceIn(1, 365),
         customIdentityEmojis = normalizeCustomIdentityEmojis(customIdentityEmojis),
+        trackedGymRecords = normalizeTrackedGymRecords(trackedGymRecords),
     )
 }
 

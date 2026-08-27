@@ -52,7 +52,7 @@ internal fun UiDevice.clickObject(
 }
 
 internal fun UiDevice.completeOnboardingIfNeeded() {
-    wait(Until.findObject(By.text("Skip · simple mode")), 3_000)?.let { setup ->
+    wait(Until.findObject(By.text("Start with Recommended Setup")), 3_000)?.let { setup ->
         val center = setup.visibleCenter
         executeShellCommand("input tap ${center.x} ${center.y}")
     }

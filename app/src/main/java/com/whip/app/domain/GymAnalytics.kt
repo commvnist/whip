@@ -19,7 +19,7 @@ enum class GymGraphMetric(val label: String) {
     Duration("Duration"),
     Speed("Speed"),
     Pace("Pace"),
-    MaxMachineSetting("Highest machine setting"),
+    MaxMachineSetting("Best machine setting"),
 }
 
 enum class GymGraphAggregation { Workout, Week, Month }
@@ -62,6 +62,7 @@ fun buildExerciseGraph(
     machineScopeUuid: String? = null,
     machineScopeUuids: Set<String>? = null,
     restrictToMachine: Boolean = false,
+    machineLevelDirection: MachineLevelDirection = MachineLevelDirection.HigherNumberMoreResistance,
 ): List<GymGraphPoint> {
     val sessionById = sessions.associateBy(WorkoutSession::id)
     val placements = workoutExercises.filter {
@@ -101,7 +102,12 @@ fun buildExerciseGraph(
             GymGraphMetric.Duration -> sessionSets.sumOf { it.durationSeconds ?: 0L }.toDouble()
             GymGraphMetric.Speed -> sessionSets.mapNotNull(WorkoutSet::speedMetresPerSecond).maxOrNull()
             GymGraphMetric.Pace -> sessionSets.mapNotNull(WorkoutSet::paceSecondsPerKilometre).minOrNull()
-            GymGraphMetric.MaxMachineSetting -> sessionSets.mapNotNull(WorkoutSet::machineLoadValue).maxOrNull()
+            GymGraphMetric.MaxMachineSetting -> sessionSets.mapNotNull(WorkoutSet::machineLoadValue).let { values ->
+                when (machineLevelDirection) {
+                    MachineLevelDirection.HigherNumberMoreResistance -> values.maxOrNull()
+                    MachineLevelDirection.HigherNumberLessResistance -> values.minOrNull()
+                }
+            }
         } ?: return@mapNotNull null
         GymGraphPoint(session.localDate, value, session.id)
     }.sortedBy(GymGraphPoint::date)
@@ -122,8 +128,11 @@ fun buildExerciseGraph(
             GymGraphMetric.ActualRepMaxHistory,
             GymGraphMetric.SetVolume,
             GymGraphMetric.Speed,
-            GymGraphMetric.MaxMachineSetting,
             -> points.maxOf(GymGraphPoint::value)
+            GymGraphMetric.MaxMachineSetting -> when (machineLevelDirection) {
+                MachineLevelDirection.HigherNumberMoreResistance -> points.maxOf(GymGraphPoint::value)
+                MachineLevelDirection.HigherNumberLessResistance -> points.minOf(GymGraphPoint::value)
+            }
             else -> points.sumOf(GymGraphPoint::value)
         }
         GymGraphPoint(date, value, null, points.size)

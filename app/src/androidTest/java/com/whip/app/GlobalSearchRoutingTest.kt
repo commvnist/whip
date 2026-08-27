@@ -65,7 +65,7 @@ class GlobalSearchRoutingTest {
             compose.waitUntil(20_000) {
                 SEARCH_DESCRIPTIONS.any { description ->
                     compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
-                }
+                } || compose.onAllNodesWithContentDescription("App actions").fetchSemanticsNodes().isNotEmpty()
             }
 
             searchFor("Searchable archived habit")
@@ -108,10 +108,15 @@ class GlobalSearchRoutingTest {
             compose.onNodeWithContentDescription("Go to Home").performClick()
             compose.waitForIdle()
         }
-        val searchDescription = SEARCH_DESCRIPTIONS.first { description ->
+        val searchDescription = SEARCH_DESCRIPTIONS.firstOrNull { description ->
             compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithContentDescription(searchDescription).performClick()
+        if (searchDescription != null) {
+            compose.onNodeWithContentDescription(searchDescription).performClick()
+        } else {
+            compose.onNodeWithContentDescription("App actions").performClick()
+            compose.onNodeWithTag("workspace-search-menu-action").performClick()
+        }
         compose.waitUntil(15_000) {
             compose.onAllNodesWithTag("unified-search-query").fetchSemanticsNodes().isNotEmpty()
         }

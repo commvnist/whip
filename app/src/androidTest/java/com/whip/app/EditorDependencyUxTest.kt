@@ -24,6 +24,8 @@ import com.whip.app.domain.RecurrenceAnchor
 import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.TaskEffort
+import com.whip.app.domain.TaskPriority
 import com.whip.app.ui.theme.WhipTheme
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -74,18 +76,34 @@ class EditorDependencyUxTest {
         }
 
         compose.onNodeWithTag("task-editor-title").performTextInput(
-            "Plan launch every 2 weeks on 2026-09-01 deadline 2026-10-01",
+            "Plan launch every 2 weeks on 2026-09-01 at 9am deadline 2026-10-01 !high for 45m light effort #work remind me",
         )
         compose.onNodeWithTag("task-editor-title").assert(
             SemanticsMatcher("describes every highlighted Smart Capture assumption") { node ->
                 val description = node.config[SemanticsProperties.StateDescription]
-                listOf("every 2 weeks", "2026-09-01", "2026-10-01").all(description::contains)
+                listOf(
+                    "every 2 weeks",
+                    "2026-09-01",
+                    "9:00 AM",
+                    "2026-10-01",
+                    "Priority · High",
+                    "Duration · 45 min",
+                    "Effort · Light",
+                    "Tag · #work",
+                    "Reminder · At scheduled time",
+                ).all(description::contains)
             },
         )
         compose.onNodeWithTag("smart-task-editor-preview").assertIsDisplayed()
         compose.onNodeWithText("Repeat · every 2 weeks").assertIsDisplayed()
         compose.onNodeWithText("Schedule · 2026-09-01").assertIsDisplayed()
+        compose.onNodeWithText("Time · 9:00 AM").assertIsDisplayed()
         compose.onNodeWithText("Deadline · 2026-10-01").assertIsDisplayed()
+        compose.onNodeWithText("Priority · High").assertIsDisplayed()
+        compose.onNodeWithText("Duration · 45 min").assertIsDisplayed()
+        compose.onNodeWithText("Effort · Light").assertIsDisplayed()
+        compose.onNodeWithText("Tag · #work").assertIsDisplayed()
+        compose.onNodeWithText("Reminder · At scheduled time").assertIsDisplayed()
 
         compose.onNodeWithTag("smart-task-capture-apply").performClick()
         compose.onNodeWithTag("task-editor-title").assertTextContains("Plan launch")
@@ -101,6 +119,13 @@ class EditorDependencyUxTest {
             assertEquals(RecurrenceUnit.Weeks, draft.recurrence?.unit)
             assertEquals(2, draft.recurrence?.interval)
             assertEquals(LocalDate.of(2026, 10, 1), draft.deadline)
+            assertEquals(9 * 60, draft.timeMinutes)
+            assertEquals(true, draft.reminderEnabled)
+            assertEquals(listOf(0), draft.reminderOffsetsMinutes)
+            assertEquals(TaskPriority.High, draft.priority)
+            assertEquals(45, draft.durationMinutes)
+            assertEquals(TaskEffort.Light, draft.effort)
+            assertEquals(setOf("work"), draft.tags)
         }
     }
 

@@ -148,6 +148,8 @@ internal fun WhipEmojiPicker(
         PaneAwareAlertDialog(
             modifier = Modifier.testTag("emoji-picker-dialog"),
             onDismissRequest = ::closePicker,
+            paneTitle = "Emoji Picker",
+            stableHeight = true,
             title = { Text("Choose Emoji") },
             text = {
                 Column(
@@ -222,19 +224,6 @@ internal fun WhipEmojiPicker(
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth().testTag("emoji-picker-custom-name"),
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                        ) {
-                            WhipTextButton(
-                                onClick = { useCustom(save = false) },
-                                modifier = Modifier.testTag("emoji-picker-custom-use-once"),
-                            ) { Text("Use Once") }
-                            WhipButton(
-                                onClick = { useCustom(save = true) },
-                                modifier = Modifier.testTag("emoji-picker-custom-apply"),
-                            ) { Text("Save & Use", fontWeight = FontWeight.SemiBold) }
-                        }
                     }
 
                     EmojiSectionHeading(
@@ -287,7 +276,24 @@ internal fun WhipEmojiPicker(
                     }
                 }
             },
-            confirmButton = { WhipTextButton(onClick = ::closePicker) { Text("Close") } },
+            confirmButton = {
+                if (customOpen) {
+                    WhipButton(
+                        onClick = { useCustom(save = true) },
+                        modifier = Modifier.testTag("emoji-picker-custom-apply"),
+                    ) { Text("Save & Use", fontWeight = FontWeight.SemiBold) }
+                } else {
+                    WhipTextButton(onClick = ::closePicker) { Text("Close") }
+                }
+            },
+            dismissButton = {
+                if (customOpen) {
+                    WhipTextButton(
+                        onClick = { useCustom(save = false) },
+                        modifier = Modifier.testTag("emoji-picker-custom-use-once"),
+                    ) { Text("Use Once") }
+                }
+            },
         )
     }
 }

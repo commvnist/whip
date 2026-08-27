@@ -41,6 +41,8 @@ import com.whip.app.domain.HabitDayState
 import com.whip.app.domain.HabitEndType
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.RecurrenceRule
+import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledSubtask
 import com.whip.app.domain.ScheduledTask
@@ -213,6 +215,57 @@ class ProductivityCardDesignUiTest {
             titleBounds.bottom <= badgeBounds.top,
         )
         assertTrue("The title must retain a usable width", titleBounds.right - titleBounds.left >= 100.dp)
+    }
+
+    @Test
+    fun scheduledDateAndRecurrenceReflowWithoutTruncationInStandardOrCompactCards() {
+        val date = LocalDate.of(2026, 8, 27)
+        val compact = mutableStateOf(false)
+        val item = ScheduledTask(
+            task = WhipTask(
+                id = 18,
+                title = "Review treatment plan",
+                notes = "",
+                icon = "📋",
+                scheduleKind = ScheduleKind.Recurring,
+                date = null,
+                recurrence = RecurrenceRule(
+                    unit = RecurrenceUnit.Weeks,
+                    weekdays = setOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY),
+                    startDate = date,
+                ),
+                timeMinutes = null,
+                reminderEnabled = false,
+                archived = false,
+                completedAtMillis = null,
+                createdAtMillis = 1,
+                updatedAtMillis = 1,
+                areaId = "main",
+                area = "Main",
+            ),
+            originalDate = date,
+            scheduledDate = date,
+        )
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                val expansionState = rememberCompactItemExpansionState()
+                CompositionLocalProvider(
+                    LocalCompactItemLayout provides compact.value,
+                    LocalCompactItemExpansionState provides expansionState,
+                ) {
+                    Column(Modifier.width(300.dp).padding(12.dp)) {
+                        TaskRow(item, false, {}, {}, {})
+                    }
+                }
+            }
+        }
+
+        assertSchedulingMetadataFits("standard")
+
+        compose.runOnIdle { compact.value = true }
+        compose.waitForIdle()
+
+        assertSchedulingMetadataFits("compact")
     }
 
     @Test
@@ -841,6 +894,20 @@ class ProductivityCardDesignUiTest {
         .onNodeWithContentDescription(description)
         .getUnclippedBoundsInRoot()
         .let { it.bottom - it.top }
+
+    private fun assertSchedulingMetadataFits(mode: String) {
+        val container = compose.onNodeWithTag("task-metadata-18", useUnmergedTree = true)
+            .assertIsDisplayed()
+            .getUnclippedBoundsInRoot()
+        listOf("Scheduled · Aug 27, 2026", "Repeats · Mon, Thu").forEach { label ->
+            val bounds = compose.onNodeWithText(label, useUnmergedTree = true)
+                .assertIsDisplayed()
+                .getUnclippedBoundsInRoot()
+            assertTrue("$mode metadata must start inside its full-width lane: $bounds vs $container", bounds.left >= container.left)
+            assertTrue("$mode metadata must end inside its full-width lane: $bounds vs $container", bounds.right <= container.right)
+            assertTrue("$mode metadata must have visible height: $bounds", bounds.bottom - bounds.top > 0.dp)
+        }
+    }
 
     private fun sampleHabit(date: LocalDate) = Habit(
         id = 2,

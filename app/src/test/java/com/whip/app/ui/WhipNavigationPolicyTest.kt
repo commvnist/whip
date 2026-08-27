@@ -1,11 +1,42 @@
 package com.whip.app.ui
 
+import com.whip.app.core.SavedTaskFilter
+import com.whip.app.domain.Area
+import com.whip.app.domain.AreaScope
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WhipNavigationPolicyTest {
+    @Test
+    fun savedTaskFiltersRestoreTheirCompleteAreaScope() {
+        assertEquals(AreaScope.All, SavedTaskFilter(name = "All").restoredAreaScope())
+        assertEquals(
+            AreaScope.One("work"),
+            SavedTaskFilter(name = "Work", areaId = "work").restoredAreaScope(),
+        )
+    }
+
+    @Test
+    fun creationAreaDefaultsOnlyWhenScopeOrSoleAreaIsUnambiguous() {
+        val work = area("work")
+        val home = area("home")
+        val archived = area("old", archived = true)
+
+        assertEquals("work", AreaScope.One("work").creationDefaultAreaId(listOf(home, work)))
+        assertEquals("work", AreaScope.All.creationDefaultAreaId(listOf(work, archived)))
+        assertEquals(null, AreaScope.All.creationDefaultAreaId(listOf(work, home)))
+        assertTrue(AreaScope.All.requiresExplicitCreationArea(listOf(work, home)))
+        assertFalse(AreaScope.All.requiresExplicitCreationArea(listOf(work, archived)))
+    }
+
+    @Test
+    fun anyRawUserDataPreventsFirstRunHomeFromReturning() {
+        assertTrue(shouldShowHomeGettingStarted(hasAnyUserData = false))
+        assertFalse(shouldShowHomeGettingStarted(hasAnyUserData = true))
+    }
+
     @Test
     fun globalAddIsRemovedFromTaskSelectionModeOnEveryLayout() {
         assertTrue(
@@ -32,12 +63,29 @@ class WhipNavigationPolicyTest {
                 taskSelectionMode = false,
             ),
         )
-        assertFalse(
+        assertTrue(
             globalAddAvailable(
                 appDestination = AppDestination.Gym,
                 gymDestination = GymDestination.Routines,
                 gymRoutineEditorOpen = false,
                 taskSelectionMode = false,
+            ),
+        )
+        assertFalse(
+            globalAddAvailable(
+                appDestination = AppDestination.Gym,
+                gymDestination = GymDestination.Tools,
+                gymRoutineEditorOpen = false,
+                taskSelectionMode = false,
+            ),
+        )
+        assertFalse(
+            globalAddAvailable(
+                appDestination = AppDestination.Tracks,
+                gymDestination = GymDestination.Workout,
+                gymRoutineEditorOpen = false,
+                taskSelectionMode = false,
+                selectedTrackArchived = true,
             ),
         )
     }
@@ -65,6 +113,11 @@ class WhipNavigationPolicyTest {
             setOf(SearchDomain.Exercise, SearchDomain.Machine, SearchDomain.Workout, SearchDomain.Routine),
             WhipSearchEntryContext.Gym.defaultSearchScope().domains,
         )
+        val workouts = WhipSearchEntryContext.Workouts.defaultSearchScope()
+        assertEquals("Workouts", workouts.displayLabel(workouts.domains))
+        assertEquals("Search workouts", workouts.placeholder(workouts.domains))
+        assertEquals("All Whip", workouts.displayLabel(SearchDomain.entries.toSet()))
+        assertEquals("Search all Whip", workouts.placeholder(SearchDomain.entries.toSet()))
     }
 
     @Test
@@ -109,4 +162,15 @@ class WhipNavigationPolicyTest {
             WhipBackState(childPageOpen = true).nextAction(),
         )
     }
+
+
+    private fun area(id: String, archived: Boolean = false) = Area(
+        id = id,
+        name = id,
+        colorArgb = null,
+        position = 0,
+        archived = archived,
+        createdAtMillis = 0L,
+        updatedAtMillis = 0L,
+    )
 }

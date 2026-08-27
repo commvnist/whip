@@ -58,6 +58,76 @@ class TaskQuickCaptureParserTest {
     }
 
     @Test
+    fun parsesMedicationAcronymOnTwoNamedWeekdays() {
+        val parsed = TaskQuickCaptureParser.parse("TRT every Monday and Thursday", today)
+
+        assertEquals("TRT", parsed.title)
+        assertEquals(ScheduleKind.Recurring, parsed.scheduleKind)
+        assertEquals(
+            setOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY),
+            parsed.recurrence?.weekdays,
+        )
+        assertEquals("every Monday and Thursday", parsed.assumptions.single().sourceText)
+        assertEquals("Repeat · Monday, Thursday", parsed.assumptions.single().interpretation)
+    }
+
+    @Test
+    fun acceptsNaturalWeekdayListVariants() {
+        val variants = listOf(
+            "TRT every monday and thursday",
+            "TRT every Mon & Thu",
+            "TRT every Mon/Thu",
+            "TRT every Mondays and Thursdays",
+            "TRT every Monday, and Thursday",
+            "TRT weekly on Tuesday + Friday",
+        )
+
+        variants.forEach { capture ->
+            val parsed = TaskQuickCaptureParser.parse(capture, today)
+            assertEquals(capture, "TRT", parsed.title)
+            assertEquals(capture, ScheduleKind.Recurring, parsed.scheduleKind)
+            assertTrue(capture, parsed.recurrence?.weekdays?.size == 2)
+            assertEquals(capture, 1, parsed.assumptions.size)
+        }
+    }
+
+    @Test
+    fun parsesIntervalWeekdaysAndNamedDayGroups() {
+        val alternating = TaskQuickCaptureParser.parse(
+            "TRT every 2 weeks on Monday and Thursday",
+            today,
+        )
+        assertEquals("TRT", alternating.title)
+        assertEquals(2, alternating.recurrence?.interval)
+        assertEquals(
+            setOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY),
+            alternating.recurrence?.weekdays,
+        )
+
+        val weekdays = TaskQuickCaptureParser.parse("Walk every weekday", today)
+        assertEquals("Walk", weekdays.title)
+        assertEquals(DayOfWeek.entries.take(5).toSet(), weekdays.recurrence?.weekdays)
+
+        val weekends = TaskQuickCaptureParser.parse("Call family every weekend", today)
+        assertEquals("Call family", weekends.title)
+        assertEquals(
+            setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
+            weekends.recurrence?.weekdays,
+        )
+    }
+
+    @Test
+    fun weekdayWordsWithoutARecurrenceCueRemainLiteral() {
+        val capture = "TRT Monday and Thursday notes"
+        val parsed = TaskQuickCaptureParser.parse(capture, today)
+
+        assertEquals(capture, parsed.title)
+        assertEquals(ScheduleKind.Anytime, parsed.scheduleKind)
+        assertNull(parsed.recurrence)
+        assertTrue(parsed.assumptions.isEmpty())
+    }
+
+    @Test
     fun nextWeekdayAlwaysMeansTheFollowingWeekday() {
         val parsed = TaskQuickCaptureParser.parse("Review proposal next Tuesday", today)
 
@@ -121,5 +191,150 @@ class TaskQuickCaptureParserTest {
             listOf("on 2026-09-01", "every 2 weeks"),
             parsed.assumptions.map { capture.substring(it.start, it.endExclusive) },
         )
+    }
+
+    @Test
+    fun understandsUsefulOneTimeDateVariations() {
+        val cases = mapOf(
+            "Plan the visit on Friday" to LocalDate.of(2026, 8, 21),
+            "Plan the visit this Tuesday" to LocalDate.of(2026, 8, 18),
+            "Plan the visit in 3 weeks" to LocalDate.of(2026, 9, 8),
+            "Plan the visit on Sep 5" to LocalDate.of(2026, 9, 5),
+            "Plan the visit starting September 6, 2026" to LocalDate.of(2026, 9, 6),
+        )
+
+        cases.forEach { (capture, expected) ->
+            val parsed = TaskQuickCaptureParser.parse(capture, today)
+            assertEquals(capture, "Plan the visit", parsed.title)
+            assertEquals(capture, ScheduleKind.Once, parsed.scheduleKind)
+            assertEquals(capture, expected, parsed.date)
+        }
+    }
+
+    @Test
+    fun understandsNaturalDeadlineVariations() {
+        val cases = mapOf(
+            "Submit forms due tomorrow" to LocalDate.of(2026, 8, 19),
+            "Submit forms by next Friday" to LocalDate.of(2026, 8, 21),
+            "Submit forms deadline Sep 5" to LocalDate.of(2026, 9, 5),
+            "Submit forms due in 2 months" to LocalDate.of(2026, 10, 18),
+        )
+
+        cases.forEach { (capture, expected) ->
+            val parsed = TaskQuickCaptureParser.parse(capture, today)
+            assertEquals(capture, "Submit forms", parsed.title)
+            assertEquals(capture, expected, parsed.deadline)
+            assertEquals(capture, expected, parsed.date)
+        }
+    }
+
+    @Test
+    fun understandsTwelveAndTwentyFourHourTimes() {
+        val cases = mapOf(
+            "Call supplier at 9am" to 9 * 60,
+            "Call supplier 9:30 p.m." to 21 * 60 + 30,
+            "Call supplier @14:05" to 14 * 60 + 5,
+            "Call supplier at noon" to 12 * 60,
+            "Call supplier at midnight" to 0,
+        )
+
+        cases.forEach { (capture, expected) ->
+            val parsed = TaskQuickCaptureParser.parse(capture, today)
+            assertEquals(capture, "Call supplier", parsed.title)
+            assertEquals(capture, today, parsed.date)
+            assertEquals(capture, expected, parsed.timeMinutes)
+            assertEquals(capture, ScheduleKind.Once, parsed.scheduleKind)
+        }
+    }
+
+    @Test
+    fun understandsRecurrenceShortcutsAnchorsAndPluralWeekdays() {
+        val daily = TaskQuickCaptureParser.parse("Stretch daily", today)
+        assertEquals("Stretch", daily.title)
+        assertEquals(RecurrenceUnit.Days, daily.recurrence?.unit)
+
+        val alternate = TaskQuickCaptureParser.parse("Review plan every other week", today)
+        assertEquals("Review plan", alternate.title)
+        assertEquals(2, alternate.recurrence?.interval)
+
+        val completionAnchored = TaskQuickCaptureParser.parse("Replace filter each month after completion", today)
+        assertEquals(RecurrenceAnchor.Completion, completionAnchored.recurrence?.anchor)
+
+        val pluralDays = TaskQuickCaptureParser.parse("Publish update Mondays and Thursdays", today)
+        assertEquals("Publish update", pluralDays.title)
+        assertEquals(
+            setOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY),
+            pluralDays.recurrence?.weekdays,
+        )
+    }
+
+    @Test
+    fun understandsCalendarRecurrencesAndExplicitEnds() {
+        val monthly = TaskQuickCaptureParser.parse("Reconcile account monthly on the 31st", today)
+        assertEquals("Reconcile account", monthly.title)
+        assertEquals(RecurrenceUnit.Months, monthly.recurrence?.unit)
+        assertEquals(LocalDate.of(2026, 8, 31), monthly.recurrence?.startDate)
+
+        val yearly = TaskQuickCaptureParser.parse("Renew membership yearly on September 5", today)
+        assertEquals("Renew membership", yearly.title)
+        assertEquals(RecurrenceUnit.Years, yearly.recurrence?.unit)
+        assertEquals(LocalDate.of(2026, 9, 5), yearly.recurrence?.startDate)
+
+        val until = TaskQuickCaptureParser.parse("Review roadmap every other week until Dec 31", today)
+        assertEquals(RecurrenceEnd.OnDate, until.recurrence?.end)
+        assertEquals(LocalDate.of(2026, 12, 31), until.recurrence?.endDate)
+
+        val count = TaskQuickCaptureParser.parse("Run audit weekly for 10 occurrences", today)
+        assertEquals(RecurrenceEnd.AfterCount, count.recurrence?.end)
+        assertEquals(10, count.recurrence?.occurrenceCount)
+    }
+
+    @Test
+    fun extractsPlanningMetadataWithoutLeavingSyntaxInTheTitle() {
+        val parsed = TaskQuickCaptureParser.parse(
+            "Send proposal tomorrow at 9am by next Friday !high for 45m light effort #work #calls remind me",
+            today,
+        )
+
+        assertEquals("Send proposal", parsed.title)
+        assertEquals(LocalDate.of(2026, 8, 19), parsed.date)
+        assertEquals(9 * 60, parsed.timeMinutes)
+        assertEquals(LocalDate.of(2026, 8, 21), parsed.deadline)
+        assertEquals(TaskPriority.High, parsed.priority)
+        assertEquals(45, parsed.durationMinutes)
+        assertEquals(TaskEffort.Light, parsed.effort)
+        assertEquals(setOf("work", "calls"), parsed.tags)
+        assertTrue(parsed.reminderEnabled)
+        assertEquals(listOf(0), parsed.reminderOffsetsMinutes)
+        assertEquals(9, parsed.assumptions.size)
+    }
+
+    @Test
+    fun supportsReminderOffsetsWhenAScheduledTimeExists() {
+        val parsed = TaskQuickCaptureParser.parse(
+            "Join planning call tomorrow at 2pm remind me 30m before",
+            today,
+        )
+
+        assertEquals("Join planning call", parsed.title)
+        assertEquals(14 * 60, parsed.timeMinutes)
+        assertTrue(parsed.reminderEnabled)
+        assertEquals(listOf(30), parsed.reminderOffsetsMinutes)
+        assertEquals("Reminder · 30 min before", parsed.assumptions.last().interpretation)
+    }
+
+    @Test
+    fun avoidsCommonNaturalLanguageFalsePositives() {
+        listOf(
+            "Weekly report outline",
+            "Discuss today's plan",
+            "Ask about priority seating",
+            "Meet at length",
+            "Remind me to choose a time",
+        ).forEach { capture ->
+            val parsed = TaskQuickCaptureParser.parse(capture, today)
+            assertEquals(capture, capture, parsed.title)
+            assertTrue(capture, parsed.assumptions.isEmpty())
+        }
     }
 }

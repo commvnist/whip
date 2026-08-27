@@ -33,9 +33,6 @@ class PowerUserSettingsTest {
         )
         assertEquals(filters, filters.encodeTaskFilters().decodeTaskFilters())
 
-        val reviews = listOf(SavedReviewFilter("Training + habits", setOf(ReviewSection.Gym, ReviewSection.Habits)))
-        assertEquals(reviews, reviews.encodeReviewFilters().decodeReviewFilters())
-
         val plates = listOf(PlatePreset("Garage | lb", "pound", 45.0, listOf(45.0, 25.0, 10.0)))
         assertEquals(plates, plates.encodePlatePresets().decodePlatePresets())
 

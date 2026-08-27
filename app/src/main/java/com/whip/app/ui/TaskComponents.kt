@@ -96,7 +96,7 @@ fun TaskRow(
 ) {
     val compact = LocalCompactItemLayout.current
     val disclosure = rememberCompactItemDisclosure("task:${item.stableKey}")
-    val compactSummary = item.detailLabel(completed)
+    val metadata = item.detailSegments(completed)
     ProductivityItemCard(
         modifier = Modifier.then(
             when {
@@ -153,41 +153,13 @@ fun TaskRow(
                     }
                 }
             } else null,
-            supportingContent = {
-                Text(
-                    item.detailLabel(completed),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = if (compact) 2 else 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (item.task.notes.isNotBlank()) Text(
-                    item.task.notes,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                )
-            },
-            compactSummaryContent = {
-                if (compactSummary.isNotBlank()) {
-                    Text(
-                        compactSummary,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            },
             compactExpanded = disclosure.expanded,
             onCompactExpansionToggle = disclosure.toggle.takeIf { compact },
             compactExpansionTag = "task-expand-${item.task.id}",
             primaryAction = {
                 Checkbox(
                     checked = if (selectionMode) selected else completed,
-                    onCheckedChange = {
-                        if (selectionMode) onSelectionToggle?.invoke() else onComplete?.invoke()
-                    },
+                    onCheckedChange = if (selectionMode) null else { _ -> onComplete?.invoke() },
                     enabled = if (selectionMode) onSelectionToggle != null else onComplete != null,
                     modifier = Modifier.semantics {
                         contentDescription = if (selectionMode) {
@@ -200,6 +172,41 @@ fun TaskRow(
                 )
             },
         )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = if (compact) 56.dp else 58.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().testTag("task-metadata-${item.task.id}"),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                metadata.forEach { label ->
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    ) {
+                        Text(
+                            label,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            if ((!compact || disclosure.expanded) && item.task.notes.isNotBlank()) {
+                Text(
+                    item.task.notes,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
         if ((!compact || disclosure.expanded) && item.task.showSubtaskProgress && item.totalSubtasks > 0) {
             if (compact) {
                 Row(
@@ -250,149 +257,169 @@ fun TaskActionsDialog(
 ) {
     var section by rememberSaveable(item.stableKey) { mutableStateOf(TaskDetailSection.Overview) }
     var pendingMoveStepId by rememberSaveable(item.stableKey) { mutableStateOf<Long?>(null) }
-    ProductivityEditorDialog(
-        modifier = modifier.widthIn(min = 280.dp, max = 560.dp),
-        testTag = "task-actions-surface",
-        onDismissRequest = onDismiss,
-        title = { Text(item.task.title) },
-        text = {
+    EntityInspector(
+        entityType = "Task",
+        title = item.task.title,
+        emoji = item.task.icon,
+        context = item.inspectorContext(),
+        status = item.inspectorStatus(completed = false),
+        sections = TaskDetailSection.entries.map { it.inspectorSection },
+        selectedSectionId = section.id,
+        onSelectSection = { id -> section = TaskDetailSection.entries.first { it.id == id } },
+        onDismiss = onDismiss,
+        onEdit = onEdit,
+        editLabel = if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit This and Future" else "Edit Task",
+        modifier = modifier,
+        legacySurfaceTag = "task-actions-surface",
+        legacySectionTagPrefix = "task-detail-section",
+        primaryAction = EntityInspectorPrimaryAction(
+            id = "complete",
+            label = "Complete Task",
+            onClick = onComplete,
+            enabled = !item.task.archived,
+        ).takeUnless { item.task.archived },
+        content = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                DetailSectionBar(
-                    labels = TaskDetailSection.entries.map(TaskDetailSection::label),
-                    selected = section.label,
-                    onSelect = { label -> section = TaskDetailSection.entries.first { it.label == label } },
-                    testTagPrefix = "task-detail-section",
-                )
                 if (section == TaskDetailSection.Overview) {
-                    if (item.subtasks.isEmpty()) Text("No subtasks. Edit this task to add them.")
-                    else {
-                    Text(
-                        "Subtasks · ${item.completedSubtasks}/${item.totalSubtasks}",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    item.subtasks.forEach { subtask ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .then(
-                                    if (item.task.archived) Modifier else Modifier.clickable(onClickLabel = "Toggle ${subtask.step.title}") {
-                                        onToggleSubtask(subtask.step.id, !subtask.completed)
-                                    },
-                                ),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Checkbox(
-                                checked = subtask.completed,
-                                enabled = !item.task.archived,
-                                onCheckedChange = { checked ->
-                                    onToggleSubtask(subtask.step.id, checked)
-                                },
-                                modifier = Modifier.semantics {
-                                    contentDescription = if (subtask.completed) {
-                                        "Mark Subtask ${subtask.step.title} incomplete"
-                                    } else "Complete Subtask ${subtask.step.title}"
-                                },
+                    EntityInspectorGroup("Context") {
+                        EntityInspectorFact("Timing", item.task.scheduleExplanation())
+                        item.task.notes.takeIf(String::isNotBlank)?.let { EntityInspectorFact("Notes", it) }
+                        item.task.deadline?.let { deadline ->
+                            EntityInspectorFact(
+                                "Deadline",
+                                deadline.format(shortDateFormatter) + if (item.isDeadlineOverdue) " · overdue" else "",
                             )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    subtask.title,
-                                    textDecoration = TextDecoration.LineThrough.takeIf {
-                                        subtask.completed
+                        }
+                    }
+                    EntityInspectorGroup(
+                        title = "Subtasks",
+                        supportingText = if (item.subtasks.isEmpty()) {
+                            "No subtasks yet. Use Edit to break this task into smaller steps."
+                        } else "${item.completedSubtasks} of ${item.totalSubtasks} complete",
+                    ) {
+                        item.subtasks.forEach { subtask ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 48.dp)
+                                    .then(
+                                        if (item.task.archived) Modifier else Modifier.clickable(onClickLabel = "Toggle ${subtask.step.title}") {
+                                            onToggleSubtask(subtask.step.id, !subtask.completed)
+                                        },
+                                    ),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Checkbox(
+                                    checked = subtask.completed,
+                                    enabled = !item.task.archived,
+                                    onCheckedChange = null,
+                                    modifier = Modifier.semantics {
+                                        contentDescription = if (subtask.completed) {
+                                            "Mark Subtask ${subtask.step.title} incomplete"
+                                        } else "Complete Subtask ${subtask.step.title}"
                                     },
                                 )
-                                if (subtask.notes.isNotBlank()) {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        subtask.notes,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 2,
+                                        subtask.title,
+                                        textDecoration = TextDecoration.LineThrough.takeIf { subtask.completed },
                                     )
+                                    if (subtask.notes.isNotBlank()) {
+                                        Text(
+                                            subtask.notes,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 2,
+                                        )
+                                    }
                                 }
-                            }
-                            WhipTextButton(enabled = !item.task.archived, onClick = { pendingMoveStepId = subtask.step.id }) {
-                                Text("Move to New Task")
+                                WhipTextButton(enabled = !item.task.archived, onClick = { pendingMoveStepId = subtask.step.id }) {
+                                    Text("Move")
+                                }
                             }
                         }
                     }
-                    Spacer(Modifier.height(6.dp))
-                    }
-                    if (!item.task.archived) {
-                    WhipButton(onClick = onComplete, modifier = Modifier.fillMaxWidth()) {
-                        Text("Complete")
-                    }
-                    }
                 }
-                if (section == TaskDetailSection.Schedule) {
-                    if (item.task.scheduleKind == ScheduleKind.Recurring) {
-                        SeriesHistory(
-                            occurrences = occurrenceHistory,
-                            scheduleExplanation = item.task.scheduleExplanation(),
-                            actionsEnabled = !item.task.archived,
-                            onReopenOccurrence = onReopenOccurrence,
-                            onResetOccurrence = onResetOccurrence,
-                        )
-                    } else Text(item.task.scheduleExplanation())
-                    if (!item.task.archived) {
-                        WhipTextButton(onClick = onReschedule, modifier = Modifier.fillMaxWidth()) {
-                            Text(
+                if (section == TaskDetailSection.Activity) {
+                    EntityInspectorGroup(
+                        "Schedule",
+                        supportingText = item.task.scheduleExplanation().takeUnless {
+                            item.task.scheduleKind == ScheduleKind.Recurring
+                        },
+                    ) {
+                        if (!item.task.archived) EntityInspectorAction(
+                            id = "reschedule",
+                            label =
                                 when (item.task.scheduleKind) {
                                     ScheduleKind.Anytime -> "Choose a Date"
                                     ScheduleKind.Once -> "Change Scheduled Date"
                                     ScheduleKind.Recurring -> "Move This Occurrence"
                                 },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
+                            onClick = onReschedule,
+                        )
+                        if (!item.task.archived && item.task.scheduleKind == ScheduleKind.Recurring) {
+                            EntityInspectorAction("skip-occurrence", "Skip This Occurrence", onSkip)
                         }
                     }
-                    if (!item.task.archived && item.task.scheduleKind == ScheduleKind.Recurring) {
-                        WhipTextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
-                            Text("Skip This Occurrence")
+                    if (item.task.scheduleKind == ScheduleKind.Recurring) {
+                        EntityInspectorGroup("Activity") {
+                            SeriesHistory(
+                                occurrences = occurrenceHistory,
+                                scheduleExplanation = item.task.scheduleExplanation(),
+                                actionsEnabled = !item.task.archived,
+                                onReopenOccurrence = onReopenOccurrence,
+                                onResetOccurrence = onResetOccurrence,
+                            )
                         }
+                    } else {
+                        EntityInspectorFact(
+                            "Recorded activity",
+                            item.completedAtMillis?.let { "Completed" } ?: "No completed activity yet",
+                        )
                     }
                 }
                 if (section == TaskDetailSection.More) {
-                    if (!item.task.archived) {
-                        WhipTextButton(onClick = onPin, modifier = Modifier.fillMaxWidth()) {
-                            Text(if (item.task.pinned) "Unpin from Home" else "Pin to Home")
-                        }
-                        WhipTextButton(onClick = onDuplicate, modifier = Modifier.fillMaxWidth()) {
-                            Text("Duplicate to Inbox")
-                        }
-                        Text("Focus Timer", style = MaterialTheme.typography.labelMedium)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf(15, 25, 45, 60).forEach { minutes ->
-                                WhipOutlinedButton(onClick = { onStartFocus(minutes) }) { Text("$minutes min") }
+                    EntityInspectorGroup("Actions") {
+                        if (!item.task.archived) {
+                            EntityInspectorAction("duplicate", "Duplicate to Inbox", onDuplicate)
+                            Text("Start a Focus Timer", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf(15, 25, 45, 60).forEach { minutes ->
+                                    WhipOutlinedButton(
+                                        onClick = { onStartFocus(minutes) },
+                                        modifier = Modifier.heightIn(min = 48.dp),
+                                    ) { Text("$minutes min") }
+                                }
                             }
                         }
                     }
-                    WhipTextButton(onClick = onArchive, modifier = Modifier.fillMaxWidth()) {
-                        Text(
+                    EntityInspectorGroup("Availability") {
+                        if (!item.task.archived) EntityInspectorAction(
+                            "pin",
+                            if (item.task.pinned) "Unpin from Home" else "Pin to Home",
+                            onPin,
+                        )
+                        EntityInspectorAction(
+                            "archive",
                             if (item.task.archived) "Restore Task" else if (item.task.scheduleKind == ScheduleKind.Recurring) "Stop Series (Archive)" else "Archive Task",
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.primary,
+                            onArchive,
                         )
                     }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
-                    WhipTextButton(onClick = onDeletePermanently, modifier = Modifier.fillMaxWidth()) {
-                        Text(
+                    EntityInspectorDangerZone {
+                        EntityInspectorAction(
+                            id = "delete",
+                            label =
                             if (item.task.scheduleKind == ScheduleKind.Recurring) "Delete Entire Series Permanently" else "Delete Permanently",
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.error,
+                            onClick = onDeletePermanently,
+                            modifier = Modifier.testTag("entity-inspector-delete"),
+                            danger = true,
                         )
                     }
                 }
             }
-        },
-        confirmButton = { WhipTextButton(onClick = onDismiss) { Text("Close") } },
-        dismissButton = {
-            DetailEditButton(
-                if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit This and Future" else "Edit Task",
-                onEdit,
-            )
         },
     )
     pendingMoveStepId?.let { stepId ->
@@ -422,10 +449,18 @@ fun TaskActionsDialog(
     }
 }
 
-private enum class TaskDetailSection(val label: String) {
-    Overview("Overview"),
-    Schedule("Schedule"),
-    More("Options"),
+private enum class TaskDetailSection(
+    val id: String,
+    val label: String,
+    val legacyLabel: String = label,
+) {
+    Overview("overview", "Overview"),
+    Activity("activity", "Activity", "Schedule"),
+    More("options", "Options"),
+    ;
+
+    val inspectorSection: EntityInspectorSection
+        get() = EntityInspectorSection(id, label, legacyLabel)
 }
 
 @Composable
@@ -440,61 +475,78 @@ fun CompletedTaskDialog(
     onReopenOccurrence: (TaskOccurrence) -> Unit,
     onResetOccurrence: (TaskOccurrence) -> Unit,
 ) {
-    ProductivityEditorDialog(
-        modifier = modifier.widthIn(min = 280.dp, max = 560.dp),
-        testTag = "completed-task-surface",
-        onDismissRequest = onDismiss,
-        title = { Text(item.task.title) },
-        text = {
+    var section by rememberSaveable(item.stableKey) { mutableStateOf(TaskDetailSection.Overview) }
+    EntityInspector(
+        entityType = "Task",
+        title = item.task.title,
+        emoji = item.task.icon,
+        context = item.inspectorContext(),
+        status = item.inspectorStatus(completed = true),
+        sections = TaskDetailSection.entries.map { it.inspectorSection },
+        selectedSectionId = section.id,
+        onSelectSection = { id -> section = TaskDetailSection.entries.first { it.id == id } },
+        onDismiss = onDismiss,
+        onEdit = onEdit,
+        editLabel = if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit This and Future" else "Edit Task",
+        modifier = modifier,
+        legacySurfaceTag = "completed-task-surface",
+        legacySectionTagPrefix = "completed-task-detail-section",
+        primaryAction = EntityInspectorPrimaryAction(
+            id = "reopen",
+            label = if (item.task.scheduleKind == ScheduleKind.Recurring) "Reopen Occurrence" else "Reopen Task",
+            onClick = onReopen,
+        ),
+        content = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Text(
-                    if (item.task.scheduleKind == ScheduleKind.Recurring) {
-                        "This completed occurrence is kept in your history."
-                    } else {
-                        "This task is complete. You can put it back on your list."
-                    },
-                )
-                WhipTextButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit This and Future" else "Edit Task",
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                when (section) {
+                    TaskDetailSection.Overview -> {
+                        EntityInspectorGroup("Outcome") {
+                            Text(
+                                if (item.task.scheduleKind == ScheduleKind.Recurring) {
+                                    "This occurrence is complete and remains available in the series history."
+                                } else {
+                                    "This task is complete. Reopen it when more work is needed."
+                                },
+                            )
+                        }
+                        EntityInspectorGroup("Context") {
+                            EntityInspectorFact("Timing", item.task.scheduleExplanation())
+                            item.task.notes.takeIf(String::isNotBlank)?.let { EntityInspectorFact("Notes", it) }
+                            if (item.totalSubtasks > 0) {
+                                EntityInspectorFact("Subtasks", "${item.completedSubtasks} of ${item.totalSubtasks} complete")
+                            }
+                        }
+                    }
+                    TaskDetailSection.Activity -> {
+                        if (item.task.scheduleKind == ScheduleKind.Recurring) {
+                            SeriesHistory(
+                                occurrences = occurrenceHistory,
+                                scheduleExplanation = item.task.scheduleExplanation(),
+                                actionsEnabled = true,
+                                onReopenOccurrence = onReopenOccurrence,
+                                onResetOccurrence = onResetOccurrence,
+                            )
+                        } else {
+                            EntityInspectorFact("Recorded activity", "Completed")
+                        }
+                    }
+                    TaskDetailSection.More -> {
+                        EntityInspectorDangerZone {
+                            EntityInspectorAction(
+                                id = "delete",
+                                label = if (item.task.scheduleKind == ScheduleKind.Recurring) {
+                                    "Delete Entire Series Permanently"
+                                } else "Delete Permanently",
+                                onClick = onDeletePermanently,
+                                modifier = Modifier.testTag("entity-inspector-delete"),
+                                danger = true,
+                            )
+                        }
+                    }
                 }
-                if (item.task.scheduleKind == ScheduleKind.Recurring) {
-                    SeriesHistory(
-                        occurrences = occurrenceHistory,
-                        scheduleExplanation = item.task.scheduleExplanation(),
-                        actionsEnabled = true,
-                        onReopenOccurrence = onReopenOccurrence,
-                        onResetOccurrence = onResetOccurrence,
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            WhipTextButton(onClick = onReopen) {
-                Text(
-                    if (item.task.scheduleKind == ScheduleKind.Recurring) {
-                        "Reopen Occurrence"
-                    } else {
-                        "Reopen"
-                    },
-                )
-            }
-        },
-        dismissButton = {
-            WhipTextButton(onClick = onDeletePermanently) {
-                Text(
-                    if (item.task.scheduleKind == ScheduleKind.Recurring) {
-                        "Delete Entire Series"
-                    } else {
-                        "Delete Permanently"
-                    },
-                    color = MaterialTheme.colorScheme.error,
-                )
             }
         },
     )
@@ -577,6 +629,24 @@ private fun SeriesHistory(
 
 private const val SERIES_HISTORY_PAGE_SIZE = 20
 
+private fun ScheduledTask.inspectorStatus(completed: Boolean): String = when {
+    task.archived -> "Archived"
+    completed -> "Completed"
+    isDeadlineOverdue -> "Deadline overdue"
+    isPastScheduledDate -> "Past scheduled date"
+    task.scheduleKind == ScheduleKind.Anytime -> "Ready in Inbox"
+    task.scheduleKind == ScheduleKind.Recurring -> "Active series"
+    else -> "Scheduled"
+}
+
+private fun ScheduledTask.inspectorContext(): String = task.area.ifBlank {
+    when (task.scheduleKind) {
+        ScheduleKind.Anytime -> "Inbox"
+        ScheduleKind.Once -> scheduledDate?.format(shortDateFormatter) ?: "Scheduled task"
+        ScheduleKind.Recurring -> "Recurring task"
+    }
+}
+
 @Composable
 fun PermanentTaskDeleteDialog(
     item: ScheduledTask,
@@ -629,16 +699,16 @@ fun PermanentTaskDeleteDialog(
     )
 }
 
-private fun ScheduledTask.detailLabel(completed: Boolean): String {
+private fun ScheduledTask.detailSegments(completed: Boolean): List<String> {
     val parts = mutableListOf<String>()
     if (completed) {
         parts += "Completed"
     } else {
         scheduledDate?.let {
             parts += if (isPastScheduledDate) {
-                "Past Scheduled Date ${it.format(shortDateFormatter)}"
+                "Past date · ${it.format(shortDateFormatter)}"
             } else {
-                "Scheduled ${it.format(shortDateFormatter)}"
+                "Scheduled · ${it.format(shortDateFormatter)}"
             }
         }
     }
@@ -648,21 +718,21 @@ private fun ScheduledTask.detailLabel(completed: Boolean): String {
         parts += java.time.LocalTime.of(hour, minute)
             .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
     }
-    if (task.reminderEnabled && !completed) parts += "Reminder"
+    if (task.reminderEnabled && !completed) parts += "Reminder on"
     if (!completed && task.deadline != null) {
         parts += if (isDeadlineOverdue) {
-            "Deadline Overdue ${task.deadline.format(shortDateFormatter)}"
+            "Deadline overdue · ${task.deadline.format(shortDateFormatter)}"
         } else {
-            "Deadline ${task.deadline.format(shortDateFormatter)}"
+            "Deadline · ${task.deadline.format(shortDateFormatter)}"
         }
     }
-    if (task.priority != TaskPriority.None) parts += "Priority: ${task.priority.name}"
+    if (task.priority != TaskPriority.None) parts += "${task.priority.name} priority"
     task.durationMinutes?.let { parts += "$it min" }
-    if (task.effort != TaskEffort.Unspecified) parts += "Effort: ${task.effort.label}"
-    if (task.tags.isNotEmpty()) parts += task.tags.joinToString(prefix = "#", separator = " #")
-    if (task.scheduleKind == ScheduleKind.Recurring) parts += task.repeatLabel()
+    if (task.effort != TaskEffort.Unspecified) parts += "${task.effort.label} effort"
+    task.tags.sorted().forEach { parts += "#$it" }
+    if (task.scheduleKind == ScheduleKind.Recurring) parts += "Repeats · ${task.repeatLabel()}"
     if (task.scheduleKind == ScheduleKind.Anytime) parts += "Inbox"
-    return parts.joinToString(" • ")
+    return parts
 }
 
 private fun ScheduledTask.progressLabel(): String = when (task.progressDisplay) {

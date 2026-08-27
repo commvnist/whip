@@ -24,7 +24,7 @@ class HomeDestinationLinksTest {
     val compose = createComposeRule()
 
     @Test
-    fun fiveDestinationsUseCenteredThreeOverTwoLayout() {
+    fun fiveDestinationsUseConsistentOrderedIntroductionCards() {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 Box(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
@@ -40,13 +40,11 @@ class HomeDestinationLinksTest {
         val tracks = bounds("tracks")
         val gym = bounds("gym")
 
-        assertNear(tasks.center.y, habits.center.y, "Tasks and Habits must share the first row")
-        assertNear(habits.center.y, goals.center.y, "Habits and Goals must share the first row")
-        assertNear(tracks.center.y, gym.center.y, "Tracks and Gym must share the second row")
-        check(tracks.top > tasks.bottom) { "The two destination rows must not overlap" }
-
-        assertNear((tasks.left + goals.right) / 2f, container.center.x, "The three-item row must be centered")
-        assertNear((tracks.left + gym.right) / 2f, container.center.x, "The two-item row must be centered")
+        check(listOf(tasks, habits, goals, tracks, gym).zipWithNext().all { (first, second) -> first.bottom < second.top }) {
+            "Component cards must be presented in a clear vertical reading order"
+        }
+        assertNear(tasks.left, container.left, "Cards must align to the container's leading edge")
+        assertNear(tasks.right, container.right, "Cards must align to the container's trailing edge")
         listOf(tasks, habits, goals, tracks, gym).zipWithNext().forEach { (first, second) ->
             assertNear(first.width, second.width, "All destination controls must have equal width")
         }

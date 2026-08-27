@@ -12,7 +12,7 @@ import androidx.room.PrimaryKey
             entity = ExerciseEntity::class,
             parentColumns = ["id"],
             childColumns = ["exerciseId"],
-            onDelete = ForeignKey.CASCADE,
+            onDelete = ForeignKey.SET_NULL,
         ),
     ],
     indices = [Index("uuid", unique = true), Index("exerciseId"), Index("archived")],
@@ -20,7 +20,7 @@ import androidx.room.PrimaryKey
 data class GymMachineEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val uuid: String,
-    val exerciseId: Long,
+    val exerciseId: Long?,
     val name: String,
     val location: String,
     val details: String,
@@ -44,6 +44,31 @@ data class GymMachineEntity(
     val stackLabelsCsv: String = "",
     val massMappingCsv: String = "",
     val compatibleForComparison: Boolean = false,
+    val levelDirection: String = "HigherNumberMoreResistance",
+)
+
+@Entity(
+    tableName = "gym_machine_exercise_joins",
+    primaryKeys = ["machineId", "exerciseId"],
+    foreignKeys = [
+        ForeignKey(
+            entity = GymMachineEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["machineId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+        ForeignKey(
+            entity = ExerciseEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["exerciseId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("exerciseId")],
+)
+data class GymMachineExerciseJoinEntity(
+    val machineId: Long,
+    val exerciseId: Long,
 )
 
 @Entity(

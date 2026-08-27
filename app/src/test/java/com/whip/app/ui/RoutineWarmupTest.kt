@@ -6,6 +6,7 @@ import com.whip.app.domain.Exercise
 import com.whip.app.domain.ExerciseTrackingType
 import com.whip.app.domain.GymMachine
 import com.whip.app.domain.LoadInterpretation
+import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.WorkoutSetClassification
 import org.junit.Assert.assertEquals
@@ -64,6 +65,40 @@ class RoutineWarmupTest {
         assertEquals(listOf("3", "5", "7", "9"), result.map { it.load })
         assertEquals(1, result.count { it.classification == WorkoutSetClassification.Working.name })
         assertEquals(4, result.map { it.key }.distinct().size)
+    }
+
+    @Test
+    fun `reverse numbered machine ramps from higher numbers toward a lower working setting`() {
+        val placement = RoutineBuilderPlacementState(
+            key = 1,
+            exerciseId = 1,
+            exerciseNameSnapshot = "Reverse stack press",
+            sets = listOf(
+                RoutineBuilderSetState(9, load = "1", repetitionsMin = "8", classification = WorkoutSetClassification.Working.name),
+            ),
+        )
+        val machine = GymMachine(
+            id = 4,
+            uuid = "reverse-machine",
+            exerciseId = 1,
+            name = "Reverse numbered stack",
+            location = "Home",
+            details = "",
+            loadType = MachineLoadType.Level,
+            unitId = "count",
+            levelLabel = "level",
+            availableLoads = listOf(1.0, 3.0, 5.0, 7.0, 9.0),
+            loadInterpretation = LoadInterpretation.OrdinalSetting,
+            baseLoadKg = null,
+            archived = false,
+            createdAtMillis = 0,
+            updatedAtMillis = 0,
+            levelDirection = MachineLevelDirection.HigherNumberLessResistance,
+        )
+
+        val result = generateWarmupSets(placement, exercise(increment = 1.0), machine)
+
+        assertEquals(listOf("7", "5", "3", "1"), result.map { it.load })
     }
 
     private fun exercise(increment: Double) = Exercise(

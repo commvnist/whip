@@ -37,8 +37,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -71,6 +73,36 @@ import com.whip.app.R
 
 /** User-selected collection density; unrelated to window-size or fold posture. */
 internal val LocalCompactItemLayout = staticCompositionLocalOf { false }
+
+internal enum class WhipMenuItemRole { Normal, Destructive }
+
+/** Low-frequency commands use one menu grammar; irreversible commands are red and remain last. */
+@Composable
+internal fun WhipMenuItem(
+    label: String,
+    onClick: () -> Unit,
+    icon: ImageVector? = null,
+    enabled: Boolean = true,
+    selected: Boolean = false,
+    role: WhipMenuItemRole = WhipMenuItemRole.Normal,
+    modifier: Modifier = Modifier,
+) {
+    val destructive = role == WhipMenuItemRole.Destructive
+    DropdownMenuItem(
+        modifier = modifier,
+        text = { Text(label) },
+        onClick = onClick,
+        enabled = enabled,
+        leadingIcon = icon?.let { image -> { Icon(image, contentDescription = null) } },
+        trailingIcon = if (selected) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
+        colors = if (destructive) {
+            MenuDefaults.itemColors(
+                textColor = MaterialTheme.colorScheme.error,
+                leadingIconColor = MaterialTheme.colorScheme.error,
+            )
+        } else MenuDefaults.itemColors(),
+    )
+}
 
 /** Coordinates independently expanded compact collection rows. */
 @Stable
@@ -401,8 +433,10 @@ internal fun <T> DestinationTabBar(
     ) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val visibleCapacity = when {
-                fontScale >= 2f -> 2
-                fontScale >= 1.5f || maxWidth < 340.dp -> 2
+                destinations.size <= 2 -> destinations.size
+                fontScale >= 2f && maxWidth < 520.dp -> 2
+                fontScale >= 1.5f && maxWidth < 440.dp -> 2
+                maxWidth < 340.dp -> 2
                 maxWidth < 380.dp && destinations.any { compactLabel(it).length > 10 } -> 3
                 destinations.size <= 4 -> 4
                 maxWidth < 520.dp -> 3
@@ -495,27 +529,62 @@ internal fun <T> SegmentedChoiceBar(
     resetCompactItemExpansionOnChange: Boolean = false,
 ) {
     val compactItemExpansionState = LocalCompactItemExpansionState.current
-    SingleChoiceSegmentedButtonRow(modifier = modifier) {
-        choices.forEachIndexed { index, choice ->
-            SegmentedButton(
-                selected = selected == choice,
-                onClick = {
-                    if (resetCompactItemExpansionOnChange && choice != selected) {
-                        compactItemExpansionState?.collapseAll()
+    var menuExpanded by rememberSaveable { mutableStateOf(false) }
+    BoxWithConstraints(modifier) {
+        val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 1.5f)
+        // Keep peer choices visible whenever the available row can actually
+        // accommodate them. Large text alone is not a reason to hide controls.
+        val useMenu = maxWidth < 96.dp * choices.size * fontScale
+        if (useMenu) {
+            Box(Modifier.fillMaxWidth()) {
+                WhipOutlinedButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .semantics { contentDescription = "Choose view. Selected ${label(selected)}" }
+                        .then(testTagPrefix?.let { Modifier.testTag("$it-${label(selected)}") } ?: Modifier),
+                ) {
+                    Text(label(selected).uiTitleCase(), modifier = Modifier.weight(1f), maxLines = 2)
+                    Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)
+                }
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    choices.forEach { choice ->
+                        DropdownMenuItem(
+                            text = { Text(label(choice).uiTitleCase()) },
+                            leadingIcon = if (choice == selected) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
+                            modifier = testTagPrefix?.let { Modifier.testTag("$it-${label(choice)}") } ?: Modifier,
+                            onClick = {
+                                if (resetCompactItemExpansionOnChange && choice != selected) compactItemExpansionState?.collapseAll()
+                                menuExpanded = false
+                                onSelect(choice)
+                            },
+                        )
                     }
-                    onSelect(choice)
-                },
-                shape = RoundedCornerShape(
-                    topStart = if (index == 0) 6.dp else 0.dp,
-                    bottomStart = if (index == 0) 6.dp else 0.dp,
-                    topEnd = if (index == choices.lastIndex) 6.dp else 0.dp,
-                    bottomEnd = if (index == choices.lastIndex) 6.dp else 0.dp,
-                ),
-                modifier = Modifier
-                    .heightIn(min = 48.dp)
-                    .then(testTagPrefix?.let { Modifier.testTag("$it-${label(choice)}") } ?: Modifier),
-                label = { Text(label(choice).uiTitleCase(), maxLines = 1) },
-            )
+                }
+            }
+        } else SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            choices.forEachIndexed { index, choice ->
+                SegmentedButton(
+                    selected = selected == choice,
+                    onClick = {
+                        if (resetCompactItemExpansionOnChange && choice != selected) {
+                            compactItemExpansionState?.collapseAll()
+                        }
+                        onSelect(choice)
+                    },
+                    shape = RoundedCornerShape(
+                        topStart = if (index == 0) 6.dp else 0.dp,
+                        bottomStart = if (index == 0) 6.dp else 0.dp,
+                        topEnd = if (index == choices.lastIndex) 6.dp else 0.dp,
+                        bottomEnd = if (index == choices.lastIndex) 6.dp else 0.dp,
+                    ),
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .then(testTagPrefix?.let { Modifier.testTag("$it-${label(choice)}") } ?: Modifier),
+                    label = { Text(label(choice).uiTitleCase(), maxLines = 1) },
+                )
+            }
         }
     }
 }
@@ -667,6 +736,55 @@ internal fun NavigationRow(
             Icon(Icons.Outlined.ChevronRight, contentDescription = null)
         }
     }
+}
+
+/** A visually grouped list of related navigation or low-frequency commands. */
+@Composable
+internal fun WhipActionList(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(content = content)
+    }
+}
+
+@Composable
+internal fun WhipActionRow(
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    supportingText: String? = null,
+    icon: ImageVector? = null,
+    enabled: Boolean = true,
+    navigates: Boolean = true,
+    danger: Boolean = false,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClickLabel = title, onClick = onClick)
+            .heightIn(min = 56.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        icon?.let { Icon(it, contentDescription = null, tint = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant) }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title.uiTitleCase(), color = if (danger) MaterialTheme.colorScheme.error else Color.Unspecified)
+            supportingText?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
+        if (navigates) Icon(Icons.Outlined.ChevronRight, contentDescription = null)
+    }
+}
+
+@Composable
+internal fun WhipActionDivider() {
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 /**

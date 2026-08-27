@@ -12,6 +12,9 @@ interface GymDao {
     @Query("SELECT * FROM gym_machines ORDER BY archived, name")
     fun observeMachines(): Flow<List<GymMachineEntity>>
 
+    @Query("SELECT * FROM gym_machine_exercise_joins")
+    fun observeMachineExerciseJoins(): Flow<List<GymMachineExerciseJoinEntity>>
+
     @Query("SELECT * FROM exercises ORDER BY favorite DESC, position, name")
     fun observeExercises(): Flow<List<ExerciseEntity>>
 
@@ -53,6 +56,12 @@ interface GymDao {
 
     @Query("SELECT * FROM gym_machines WHERE id = :id")
     suspend fun getMachine(id: Long): GymMachineEntity?
+
+    @Query("SELECT * FROM gym_machine_exercise_joins WHERE machineId = :machineId")
+    suspend fun getMachineExerciseJoins(machineId: Long): List<GymMachineExerciseJoinEntity>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM gym_machine_exercise_joins WHERE machineId = :machineId AND exerciseId = :exerciseId)")
+    suspend fun machineSupportsExercise(machineId: Long, exerciseId: Long): Boolean
 
     @Query("SELECT * FROM exercise_categories WHERE id = :id")
     suspend fun getCategory(id: Long): ExerciseCategoryEntity?
@@ -144,9 +153,13 @@ interface GymDao {
     @Update suspend fun updateWorkoutGroup(entity: WorkoutGroupEntity)
 
     @Upsert suspend fun upsertCategoryJoin(entity: ExerciseCategoryJoinEntity)
+    @Upsert suspend fun upsertMachineExerciseJoin(entity: GymMachineExerciseJoinEntity)
 
     @Query("DELETE FROM exercise_category_joins WHERE exerciseId = :exerciseId")
     suspend fun clearExerciseCategories(exerciseId: Long)
+
+    @Query("DELETE FROM gym_machine_exercise_joins WHERE machineId = :machineId")
+    suspend fun clearMachineExercises(machineId: Long)
 
     @Query("DELETE FROM workout_groups WHERE id = :id")
     suspend fun deleteWorkoutGroup(id: Long)

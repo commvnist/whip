@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.whip.app.WhipApplication
+import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 import com.whip.app.data.GymRepository
 import com.whip.app.data.RoutineRepository
@@ -22,7 +23,6 @@ import com.whip.app.domain.WorkoutSummary
 import com.whip.app.domain.GymRoutine
 import com.whip.app.domain.GymMachine
 import com.whip.app.domain.GymMachineDraft
-import com.whip.app.domain.GraphPreset
 import com.whip.app.domain.PersonalRecord
 import com.whip.app.domain.RoutineDay
 import com.whip.app.domain.RoutineDraft
@@ -34,6 +34,7 @@ import com.whip.app.data.MachineDeletionImpact
 import com.whip.app.core.AppSettings
 import com.whip.app.core.PlatePreset
 import com.whip.app.core.RepPrescriptionScheme
+import com.whip.app.core.TrackedGymRecord
 import com.whip.app.core.normalizeRestTimerPresets
 import java.time.Instant
 import java.time.LocalDate
@@ -114,7 +115,6 @@ data class GymUiState(
     val routineExercises: List<RoutineExercise> = emptyList(),
     val routineSets: List<RoutineSet> = emptyList(),
     val personalRecords: List<PersonalRecord> = emptyList(),
-    val graphPresets: List<GraphPreset> = emptyList(),
     val categories: List<ExerciseCategory> = emptyList(),
     val archivedCategories: List<ExerciseCategory> = emptyList(),
     val categoryLinks: List<ExerciseCategoryLink> = emptyList(),
@@ -156,6 +156,8 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
     val machineDeletionInProgress: StateFlow<Boolean> = _machineDeletionInProgress.asStateFlow()
     private val _pendingMachineArchiveUndo = MutableStateFlow<Long?>(null)
     val pendingMachineArchiveUndo: StateFlow<Long?> = _pendingMachineArchiveUndo.asStateFlow()
+    private var pendingMachineArchiveId: Long? = null
+    private var nextMachineArchiveUndoToken = 0L
     private val reloadKey = MutableStateFlow(0)
     private val savingQuickSetIds = mutableSetOf<Long>()
 
@@ -185,13 +187,8 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         ::RoutineBaseData,
     )
 
-    private val routineData = combine(
-        routineBaseData,
-        routineRepository.graphPresets,
-    ) { base, presets -> RoutineData(base, presets) }
-
     private val calculatedUiState = reloadKey.flatMapLatest {
-        val dataState = combine(gymData, routineData, app.settingsRepository.settings) { data, routines, settings ->
+        val dataState = combine(gymData, routineBaseData, app.settingsRepository.settings) { data, routines, settings ->
             buildGymUiState(data, routines, clock.now().toEpochMilli(), settings)
         }.flowOn(Dispatchers.Default)
         combine(dataState, currentTimeFlow()) { state, now -> state.withClockTick(now) }
@@ -232,6 +229,10 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
                 },
             )
         }
+    }
+
+    fun updateTrackedGymRecords(records: List<TrackedGymRecord>) {
+        app.settingsRepository.update { current -> current.copy(trackedGymRecords = records) }
     }
 
     fun deleteRepPrescriptionScheme(id: String) {
@@ -280,6 +281,11 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setMachineArchived(id: Long, archived: Boolean) {
+        if (!archived && pendingMachineArchiveId == id) {
+            pendingMachineArchiveId = null
+            _pendingMachineArchiveUndo.value = null
+        }
+        val undoToken = (++nextMachineArchiveUndoToken).takeIf { archived }
         val routineReferences = uiState.value.routineExercises.count { it.machineId == id }
         val success = when {
             !archived -> "Machine restored"
@@ -289,19 +295,33 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         runOperation(
             if (archived) "Archiving machine…" else "Restoring machine…",
             success,
+            successFeedbackPresentation = if (archived) {
+                OperationFeedbackPresentation.Snackbar
+            } else {
+                OperationFeedbackPresentation.Inline
+            },
+            recoveryToken = undoToken,
         ) {
             repository.setMachineArchived(id, archived)
-            _pendingMachineArchiveUndo.value = id.takeIf { archived }
+            pendingMachineArchiveId = id.takeIf { archived }
+            _pendingMachineArchiveUndo.value = undoToken
         }
     }
 
-    fun undoLastMachineArchive() {
-        val id = _pendingMachineArchiveUndo.value ?: return
+    fun undoLastMachineArchive(expectedToken: Long) {
+        if (_pendingMachineArchiveUndo.value != expectedToken) return
+        val id = pendingMachineArchiveId ?: return
         _pendingMachineArchiveUndo.value = null
+        pendingMachineArchiveId = null
         runOperation("Restoring machine…", "Machine restored") { repository.setMachineArchived(id, false) }
     }
 
-    fun clearPendingMachineArchiveUndo() { _pendingMachineArchiveUndo.value = null }
+    fun clearPendingMachineArchiveUndo(expectedToken: Long) {
+        if (_pendingMachineArchiveUndo.value == expectedToken) {
+            _pendingMachineArchiveUndo.value = null
+            pendingMachineArchiveId = null
+        }
+    }
 
     fun previewMachineDeletion(id: Long) {
         viewModelScope.launch {
@@ -322,7 +342,11 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         val impact = _machineDeletionImpact.value ?: return
         if (_machineDeletionInProgress.value) return
         _machineDeletionInProgress.value = true
-        runOperation("Deleting machine profile…", "Machine profile permanently deleted; workout history was preserved") {
+        runOperation(
+            "Deleting machine profile…",
+            "Machine profile permanently deleted; workout history was preserved",
+            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+        ) {
             try {
                 app.domainDeletionCoordinator.deleteMachine(impact.machineId, impact.revisionToken)
                 _machineDeletionImpact.value = null
@@ -362,6 +386,22 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun createExerciseForMachine(draft: ExerciseDraft, onCreated: (Long?) -> Unit) {
+        viewModelScope.launch {
+            _operationStatus.value = OperationStatus.Running("Creating exercise…")
+            try {
+                val id = repository.createExercise(draft)
+                onCreated(id)
+                _operationStatus.value = OperationStatus.Succeeded("Exercise created and linked")
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                onCreated(null)
+                _operationStatus.value = OperationStatus.Failed(error.message ?: "Could not create exercise", error)
+            }
+        }
+    }
+
     fun createExerciseAndAdd(sessionId: Long, draft: ExerciseDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
         "Creating exercise…",
         "Exercise added to workout",
@@ -388,8 +428,19 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         if (archived) "Exercise archived" else "Exercise restored",
     ) { repository.setExerciseArchived(id, archived) }
 
-    fun deleteExercisePermanently(id: Long) = runOperation("Deleting exercise…", "Exercise permanently deleted") {
+    fun deleteExercisePermanently(id: Long) = runOperation(
+        "Deleting exercise…",
+        "Exercise permanently deleted",
+        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+    ) {
+        val exerciseUuid = (uiState.value.exercises + uiState.value.archivedExercises)
+            .firstOrNull { it.id == id }?.uuid
         app.domainDeletionCoordinator.deleteExercise(id)
+        if (exerciseUuid != null) {
+            app.settingsRepository.update { current ->
+                current.copy(trackedGymRecords = current.trackedGymRecords.filterNot { it.exerciseUuid == exerciseUuid })
+            }
+        }
     }
 
     fun setExerciseFavorite(id: Long, favorite: Boolean) = runOperation(
@@ -409,7 +460,10 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         else repository.updateCategory(id, name, kind)
     }
 
-    fun setCategoryArchived(id: Long, archived: Boolean) = runOperation("Updating category…", "Category updated") {
+    fun setCategoryArchived(id: Long, archived: Boolean) = runOperation(
+        "Updating category…",
+        "Category updated",
+    ) {
         repository.setCategoryArchived(id, archived)
     }
 
@@ -422,7 +476,8 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         notes: String = "",
         date: LocalDate? = null,
         keepScreenAwake: Boolean? = null,
-    ) = runOperation("Starting workout…", "Workout started") {
+        onFinished: (Boolean) -> Unit = {},
+    ) = runOperation("Starting workout…", "Workout started", onFinished) {
         repository.startWorkout(
             name,
             notes,
@@ -437,7 +492,11 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         "Workout saved",
     ) { repository.updateWorkout(id, name, notes, keepAwake) }
 
-    fun finishWorkout(id: Long) = runOperation("Finishing workout…", "Workout saved to history") {
+    fun finishWorkout(id: Long, onFinished: (Boolean) -> Unit = {}) = runOperation(
+        "Finishing workout…",
+        "Workout saved to history",
+        onFinished = onFinished,
+    ) {
         val exerciseIds = uiState.value.activeWorkoutExercises.map { it.exercise.id }.distinct()
         repository.finishWorkout(id)
         restTimerScheduler.cancel(id)
@@ -450,7 +509,11 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         app.linkRepository.rebuildAll()
     }
 
-    fun discardWorkout(id: Long) = runOperation("Discarding workout…", "Workout discarded") {
+    fun discardWorkout(id: Long) = runOperation(
+        "Discarding workout…",
+        "Workout discarded",
+        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+    ) {
         repository.discardWorkout(id)
         restTimerScheduler.cancel(id)
         app.linkRepository.rebuildAll()
@@ -461,7 +524,11 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         app.linkRepository.rebuildAll()
     }
 
-    fun deleteWorkoutPermanently(id: Long) = runOperation("Deleting workout…", "Workout permanently deleted") {
+    fun deleteWorkoutPermanently(id: Long) = runOperation(
+        "Deleting workout…",
+        "Workout permanently deleted",
+        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+    ) {
         restTimerScheduler.cancel(id)
         app.domainDeletionCoordinator.deleteWorkout(id)
     }
@@ -474,9 +541,15 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         repository.copyWorkoutExerciseToActive(id)
     }
 
-    fun addExercise(sessionId: Long, exerciseId: Long, machineId: Long? = null) = runOperation(
+    fun addExercise(
+        sessionId: Long,
+        exerciseId: Long,
+        machineId: Long? = null,
+        onFinished: (Boolean) -> Unit = {},
+    ) = runOperation(
         "Adding exercise…",
         "Exercise added",
+        onFinished,
     ) { repository.addExerciseToWorkout(sessionId, exerciseId, machineId) }
 
     fun updateWorkoutExercise(id: Long, notes: String, groupId: Long?) = runOperation(
@@ -491,10 +564,13 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
 
     fun substituteWorkoutExercise(id: Long, exerciseId: Long, machineId: Long?) = runOperation(
         "Substituting exercise…",
-        "Substitution added · completed history preserved",
+        "Exercise replaced",
     ) { repository.substituteWorkoutExercise(id, exerciseId, machineId) }
 
-    fun removeWorkoutExercise(id: Long) = runOperation("Removing exercise…", "Exercise removed from workout") {
+    fun removeWorkoutExercise(id: Long) = runOperation(
+        "Removing exercise…",
+        "Exercise removed from workout",
+    ) {
         repository.removeWorkoutExercise(id)
     }
 
@@ -580,6 +656,7 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
     fun completeSet(id: Long, completed: Boolean) = runOperation(
         "Updating set…",
         if (completed) "Set completed" else "Set reopened",
+        successFeedbackPresentation = OperationFeedbackPresentation.Inline,
     ) {
         repository.setSetCompleted(id, completed, app.settingsRepository.current().restTimerAutoStart)
         rebuildRecordsForSet(id)
@@ -663,7 +740,11 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         if (archived) "Routine archived" else "Routine restored",
     ) { routineRepository.setRoutineArchived(id, archived) }
 
-    fun deleteRoutinePermanently(id: Long) = runOperation("Deleting routine…", "Routine permanently deleted") {
+    fun deleteRoutinePermanently(id: Long) = runOperation(
+        "Deleting routine…",
+        "Routine permanently deleted",
+        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+    ) {
         app.domainDeletionCoordinator.deleteRoutine(id)
     }
 
@@ -679,20 +760,6 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         "Saving routine…",
         "Workout saved as a routine",
     ) { routineRepository.saveWorkoutAsRoutine(sessionId, name) }
-
-    fun saveGraphPreset(name: String, exerciseIds: List<Long>, metric: String, dateRange: String, aggregation: String) =
-        runOperation("Saving graph preset…", "Graph preset saved") {
-            routineRepository.saveGraphPreset(name, exerciseIds, metric, dateRange, aggregation)
-        }
-
-    fun updateGraphPreset(id: Long, name: String, exerciseIds: List<Long>, metric: String, dateRange: String, aggregation: String) =
-        runOperation("Updating graph preset…", "Graph preset updated") {
-            routineRepository.updateGraphPreset(id, name, exerciseIds, metric, dateRange, aggregation)
-        }
-
-    fun deleteGraphPreset(id: Long) = runOperation("Deleting graph preset…", "Graph preset deleted") {
-        routineRepository.deleteGraphPreset(id)
-    }
 
     private suspend fun rebuildRecordsForSet(setId: Long) {
         val state = uiState.value
@@ -724,13 +791,19 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         running: String,
         success: String,
         onFinished: (Boolean) -> Unit = {},
+        successFeedbackPresentation: OperationFeedbackPresentation = OperationFeedbackPresentation.Inline,
+        recoveryToken: Long? = null,
         block: suspend () -> Unit,
     ) {
         _operationStatus.value = OperationStatus.Running(running)
         viewModelScope.launch {
             try {
                 block()
-                _operationStatus.value = OperationStatus.Succeeded(success)
+                _operationStatus.value = OperationStatus.Succeeded(
+                    success,
+                    successFeedbackPresentation,
+                    recoveryToken,
+                )
                 runCatching { onFinished(true) }
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -771,12 +844,7 @@ private data class RoutineBaseData(
     val personalRecords: List<PersonalRecord>,
 )
 
-private data class RoutineData(
-    val base: RoutineBaseData,
-    val graphPresets: List<GraphPreset>,
-)
-
-private fun buildGymUiState(data: GymData, routineData: RoutineData, nowMillis: Long, appSettings: AppSettings): GymUiState {
+private fun buildGymUiState(data: GymData, routineData: RoutineBaseData, nowMillis: Long, appSettings: AppSettings): GymUiState {
     val exercisesById = data.exercises.associateBy(Exercise::id)
     val active = data.sessions.firstOrNull { it.state == WorkoutSessionState.Active }
     val activeWorkoutExercises = active?.let { session ->
@@ -848,13 +916,12 @@ private fun buildGymUiState(data: GymData, routineData: RoutineData, nowMillis: 
         restSecondsRemaining = remaining,
         nowMillis = nowMillis,
         loading = false,
-        routines = routineData.base.routines.filterNot(GymRoutine::archived),
-        archivedRoutines = routineData.base.routines.filter(GymRoutine::archived),
-        routineDays = routineData.base.days,
-        routineExercises = routineData.base.exercises,
-        routineSets = routineData.base.sets,
-        personalRecords = routineData.base.personalRecords,
-        graphPresets = routineData.graphPresets.filterNot(GraphPreset::archived),
+        routines = routineData.routines.filterNot(GymRoutine::archived),
+        archivedRoutines = routineData.routines.filter(GymRoutine::archived),
+        routineDays = routineData.days,
+        routineExercises = routineData.exercises,
+        routineSets = routineData.sets,
+        personalRecords = routineData.personalRecords,
         categories = data.categories.filterNot(ExerciseCategory::archived),
         archivedCategories = data.categories.filter(ExerciseCategory::archived),
         categoryLinks = data.categoryLinks,

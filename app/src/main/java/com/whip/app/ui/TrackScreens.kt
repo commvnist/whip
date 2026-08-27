@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DeleteForever
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -159,7 +160,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 
 internal enum class TrackDetailDestination(val label: String) {
     Entries("Entries"),
-    Automations("Rules"),
+    Automations("Automations"),
     Options("Options"),
     Insights("Insights"),
 }
@@ -176,6 +177,12 @@ internal enum class TrackSort(val label: String) {
     Identity("Entry Identity"),
     Created("Created"),
 }
+
+private data class TrackEntrySortChoice(
+    val label: String,
+    val sort: TrackSort? = null,
+    val fieldId: Long? = null,
+)
 
 private enum class TrackGoalHistory(val label: String) {
     NewEntriesOnly("New Entries Only"),
@@ -263,7 +270,6 @@ internal fun TrackAreaContent(
     val activeDestinationState = destinationState ?: localDestinationState
     var destination by activeDestinationState
     var deleteTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var deleteEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
     var setGoalTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
     var connectGoalTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
     var importTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -404,7 +410,7 @@ internal fun TrackAreaContent(
             onEditTrack = { onEditorRequest(TrackEditorIntent.Definition(projection.track.id)) },
             onAddEntry = { onEditorRequest(TrackEditorIntent.Entry(projection.track.id)) },
             onEditEntry = { onEditorRequest(TrackEditorIntent.Entry(projection.track.id, it)) },
-            onDeleteEntry = { deleteEntryId = it },
+            onDeleteEntry = viewModel::deleteEntry,
             onSetPinned = { viewModel.setPinned(projection.track.id, it) },
             onSetArchived = { viewModel.setArchived(projection.track.id, it) },
             onDuplicate = { viewModel.duplicate(projection.track.id) },
@@ -457,7 +463,7 @@ internal fun TrackAreaContent(
                                 Modifier.fillMaxSize().padding(24.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                WhipEmptyState("Choose a Track", "Select a Track to review Entries, Rules, Insights, and Options.")
+                                WhipEmptyState("Choose a Track", "Select a Track to review Entries, Automations, Insights, and Options.")
                             }
                         }
                     }
@@ -478,7 +484,7 @@ internal fun TrackAreaContent(
                     onEditEntry = { trackId, entryId ->
                         onEditorRequest(TrackEditorIntent.Entry(trackId, entryId))
                     },
-                    onDeleteEntry = { deleteEntryId = it },
+                    onDeleteEntry = viewModel::deleteEntry,
                     dialogModifier = dialogModifier,
                 )
                 TrackWorkspaceDestination.Insights -> TrackWorkspaceInsightsPage(
@@ -518,19 +524,6 @@ internal fun TrackAreaContent(
             },
             confirmButton = { WhipTextButton(onClick = { viewModel.deleteTrack(id); deleteTrackId = null; selectedTrackId = null }) { Text("Delete Permanently", color = MaterialTheme.colorScheme.error) } },
             dismissButton = { WhipTextButton(onClick = { deleteTrackId = null }) { Text("Cancel") } },
-        )
-    }
-    deleteEntryId?.let { id ->
-        val impact = selected?.let { projection ->
-            projection.entries.firstOrNull { it.entry.id == id }?.let { projection.primaryText(it) }
-        }.orEmpty()
-        PaneAwareAlertDialog(
-            modifier = dialogModifier,
-            onDismissRequest = { deleteEntryId = null },
-            title = { Text("Delete Entry?") },
-            text = { Text("$impact will be removed. Goal progress created from this entry will be reconciled automatically.") },
-            confirmButton = { WhipTextButton(onClick = { viewModel.deleteEntry(id); deleteEntryId = null }) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
-            dismissButton = { WhipTextButton(onClick = { deleteEntryId = null }) { Text("Cancel") } },
         )
     }
     setGoalTrackId?.let { id ->
@@ -625,8 +618,6 @@ private fun TrackActivityPage(
     var trackFilterId by rememberSaveable { mutableStateOf<Long?>(null) }
     var areaFilterId by rememberSaveable { mutableStateOf<String?>(null) }
     var dateRange by rememberSaveable { mutableStateOf(TrackActivityDateRange.AnyDate) }
-    var trackMenuOpen by rememberSaveable { mutableStateOf(false) }
-    var areaMenuOpen by rememberSaveable { mutableStateOf(false) }
     var viewedEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
     val units = BuiltInUnits.all + customUnits
     val activeTracks = state.active
@@ -656,13 +647,10 @@ private fun TrackActivityPage(
         areaFilterId != null,
         dateRange != TrackActivityDateRange.AnyDate,
     ).count { it }
-    val selectedTrackLabel = activeTracks.firstOrNull { it.track.id == trackFilterId }?.track?.name ?: "All Tracks"
-    val selectedAreaLabel = availableAreas.firstOrNull { it.id == areaFilterId }?.name ?: "All Areas"
-
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().widthIn(max = 1040.dp).align(Alignment.TopCenter),
-            contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
+            contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
@@ -720,33 +708,26 @@ private fun TrackActivityPage(
                                 )
                             }
                         }
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Box {
-                                WhipOutlinedButton(onClick = { trackMenuOpen = true }, modifier = Modifier.testTag("track-activity-track-filter")) {
-                                    Text(selectedTrackLabel, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
-                                DropdownMenu(trackMenuOpen, { trackMenuOpen = false }) {
-                                    DropdownMenuItem(text = { Text("All Tracks") }, onClick = { trackFilterId = null; trackMenuOpen = false })
-                                    activeTracks.forEach { projection ->
-                                        DropdownMenuItem(
-                                            text = { Text("${projection.track.icon} ${projection.track.name}") },
-                                            onClick = { trackFilterId = projection.track.id; trackMenuOpen = false },
-                                        )
-                                    }
-                                }
-                            }
-                            Box {
-                                WhipOutlinedButton(onClick = { areaMenuOpen = true }, modifier = Modifier.testTag("track-activity-area-filter")) {
-                                    Text(selectedAreaLabel, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
-                                DropdownMenu(areaMenuOpen, { areaMenuOpen = false }) {
-                                    DropdownMenuItem(text = { Text("All Areas") }, onClick = { areaFilterId = null; areaMenuOpen = false })
-                                    availableAreas.forEach { area ->
-                                        DropdownMenuItem(text = { Text(area.name) }, onClick = { areaFilterId = area.id; areaMenuOpen = false })
-                                    }
-                                }
-                            }
-                        }
+                        SelectionField(
+                            label = "Track",
+                            values = listOf<Long?>(null) + activeTracks.map { it.track.id },
+                            selected = trackFilterId,
+                            valueText = { id ->
+                                activeTracks.firstOrNull { it.track.id == id }?.track
+                                    ?.let { "${it.icon} ${it.name}" }
+                                    ?: "All Tracks"
+                            },
+                            onSelect = { trackFilterId = it },
+                            modifier = Modifier.fillMaxWidth().testTag("track-activity-track-filter"),
+                        )
+                        SelectionField(
+                            label = "Area",
+                            values = listOf<String?>(null) + availableAreas.map { it.id },
+                            selected = areaFilterId,
+                            valueText = { id -> availableAreas.firstOrNull { it.id == id }?.name ?: "All Areas" },
+                            onSelect = { areaFilterId = it },
+                            modifier = Modifier.fillMaxWidth().testTag("track-activity-area-filter"),
+                        )
                     }
                 }
             }
@@ -835,10 +816,12 @@ private fun TrackActivityRow(
             Box {
                 IconButton(onClick = { moreOpen = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More Actions for ${projection.primaryText(entry)}") }
                 DropdownMenu(moreOpen, { moreOpen = false }) {
-                    DropdownMenuItem(text = { Text("Open Track") }, onClick = { moreOpen = false; onOpenTrack() })
-                    DropdownMenuItem(
-                        text = { Text("Delete Entry") },
-                        leadingIcon = { Icon(Icons.Outlined.DeleteForever, contentDescription = null) },
+                    WhipMenuItem(label = "Open Track", onClick = { moreOpen = false; onOpenTrack() })
+                    HorizontalDivider()
+                    WhipMenuItem(
+                        label = "Delete Entry",
+                        icon = Icons.Outlined.DeleteOutline,
+                        role = WhipMenuItemRole.Destructive,
                         onClick = { moreOpen = false; onDelete() },
                     )
                 }
@@ -895,7 +878,7 @@ private fun TrackWorkspaceInsightsPage(
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().widthIn(max = 1040.dp).align(Alignment.TopCenter).testTag("track-workspace-insights-list"),
-            contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
+            contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item { WhipPageHeader("Insights", "Patterns and automation health across visible Tracks.") }
@@ -925,8 +908,8 @@ private fun TrackWorkspaceInsightsPage(
                     InsightCard(
                         "Automation Status",
                         listOf(
-                            "Goal Rules" to "${progressRules.count(LinkRule::enabled)} of ${progressRules.size} enabled",
-                            "Action Rules" to "${actionRules.count(TriggerRule::enabled)} of ${actionRules.size} enabled",
+                            "Goal Automations" to "${progressRules.count(LinkRule::enabled)} of ${progressRules.size} enabled",
+                            "Next-Action Automations" to "${actionRules.count(TriggerRule::enabled)} of ${actionRules.size} enabled",
                             "Pending Entries" to pendingPrompts.toString(),
                         ),
                     )
@@ -1458,27 +1441,37 @@ private fun AllTracksPage(
     }
     LazyColumn(
         Modifier.fillMaxSize().padding(innerPadding).testTag("track-list"),
-        contentPadding = PaddingValues(if (masterPane) 12.dp else 20.dp, 16.dp, if (masterPane) 12.dp else 20.dp, 112.dp),
+        contentPadding = PaddingValues(
+            start = if (masterPane) 12.dp else 20.dp,
+            top = 16.dp,
+            end = if (masterPane) 12.dp else 20.dp,
+            bottom = WhipSpacing.screenExpanded,
+        ),
         verticalArrangement = Arrangement.spacedBy(if (userCompact) 4.dp else 12.dp),
     ) {
         item {
             WhipPageHeader(
                 title = if (showArchived) "Archived Tracks" else "Tracks",
-                supportingText = if (masterPane) "${quantityLabel(shown.size, "Track")}" else "Structured logs that can support actions and goals · ${shown.size}",
+                supportingText = "Structured logs that can support actions and goals.",
             ) {
+                Text(
+                    quantityLabel(shown.size, "Track"),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Box {
                     WhipPageIconAction(Icons.Outlined.MoreVert, "More Track Options", { moreOpen = true })
                     DropdownMenu(moreOpen, { moreOpen = false }) {
-                        DropdownMenuItem(
-                            text = { Text(if (showArchived) "Show Active Tracks" else "Show Archived Tracks") },
+                        WhipMenuItem(
+                            label = if (showArchived) "Show Active Tracks" else "Show Archived Tracks",
                             onClick = { reordering = false; onShowArchivedChange(!showArchived); moreOpen = false },
                         )
-                        if (!showArchived && state.active.size > 1 && query.isBlank()) DropdownMenuItem(
-                            text = { Text(if (reordering) "Finish Reordering" else "Reorder Tracks") },
+                        if (!showArchived && state.active.size > 1 && query.isBlank()) WhipMenuItem(
+                            label = if (reordering) "Finish Reordering" else "Reorder Tracks",
                             onClick = { reordering = !reordering; moreOpen = false },
                         )
-                        if (shown.isNotEmpty()) DropdownMenuItem(
-                            text = { Text(if (selecting) "Cancel Selection" else "Select Tracks") },
+                        if (shown.isNotEmpty()) WhipMenuItem(
+                            label = if (selecting) "Cancel Selection" else "Select Tracks",
                             onClick = {
                                 selecting = !selecting
                                 reordering = false
@@ -1537,18 +1530,17 @@ private fun AllTracksPage(
                 title = when {
                     query.isNotBlank() -> "No Matching Tracks"
                     showArchived -> "No Archived Tracks"
-                    else -> "Define the Evidence That Matters"
+                    else -> "Track What Matters"
                 },
                 supportingText = when {
                     query.isNotBlank() -> "Try a different name, tag, or description."
                     showArchived -> "Archived Tracks appear here and can be restored."
-                    else -> "Create a reusable structured log, then connect its entries to actions and goals."
+                    else -> "Create a reusable log for anything you want to record, compare, or connect to a Goal."
                 },
                 modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
+                primaryActionLabel = "Create First Track".takeUnless { showArchived || query.isNotBlank() },
+                onPrimaryAction = onCreate.takeUnless { showArchived || query.isNotBlank() },
             )
-            if (!showArchived && query.isBlank()) WhipButton(onClick = onCreate, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Outlined.Add, contentDescription = null); Spacer(Modifier.width(8.dp)); Text("Create Track")
-            }
         } else {
             if (pinned.isNotEmpty() && !showArchived) {
                 item { Text("Pinned", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
@@ -1642,7 +1634,7 @@ internal fun TrackRow(
             verticalArrangement = Arrangement.spacedBy(if (dense) 2.dp else 8.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (selectable) Checkbox(selected, { onSelectionToggle.invoke() })
+                if (selectable) Checkbox(selected, onCheckedChange = null)
                 WhipIdentityEmoji(projection.track.icon)
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -1791,42 +1783,14 @@ private fun CompactTrackRow(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    BoxWithConstraints(Modifier.fillMaxWidth()) {
-                        val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
-                        if (stacked) {
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                WhipOutlinedButton(
-                                    onClick = { onAddEntry(projection.track.id) },
-                                    enabled = !projection.track.archived,
-                                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                                ) { Icon(Icons.Outlined.Add, contentDescription = null); Spacer(Modifier.width(6.dp)); Text(addLabel) }
-                                WhipTextButton(
-                                    onClick = { onEdit(projection.track.id) },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(48.dp)
-                                        .testTag("track-edit-action-${projection.track.id}")
-                                        .semantics { contentDescription = "Edit Track ${projection.track.name}" },
-                                ) { Icon(Icons.Outlined.Edit, contentDescription = null); Spacer(Modifier.width(6.dp)); Text("Edit") }
-                            }
-                        } else {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                WhipOutlinedButton(
-                                    onClick = { onAddEntry(projection.track.id) },
-                                    enabled = !projection.track.archived,
-                                    modifier = Modifier.weight(1f).height(48.dp),
-                                ) { Icon(Icons.Outlined.Add, contentDescription = null); Spacer(Modifier.width(6.dp)); Text(addLabel) }
-                                WhipTextButton(
-                                    onClick = { onEdit(projection.track.id) },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp)
-                                        .testTag("track-edit-action-${projection.track.id}")
-                                        .semantics { contentDescription = "Edit Track ${projection.track.name}" },
-                                ) { Icon(Icons.Outlined.Edit, contentDescription = null); Spacer(Modifier.width(6.dp)); Text("Edit") }
-                            }
-                        }
-                    }
+                    WhipTextButton(
+                        onClick = { onEdit(projection.track.id) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("track-edit-action-${projection.track.id}")
+                            .semantics { contentDescription = "Edit Track ${projection.track.name}" },
+                    ) { Icon(Icons.Outlined.Edit, contentDescription = null); Spacer(Modifier.width(6.dp)); Text("Edit") }
                 }
             }
         }
@@ -2017,7 +1981,7 @@ private fun TrackEntriesPage(
     }
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, 112.dp),
+        contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, WhipSpacing.screenExpanded),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (projection.track.archived) item {
@@ -2040,50 +2004,17 @@ private fun TrackEntriesPage(
             }
         }
         item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                WhipButton(
-                    onClick = onAddEntry,
-                    enabled = !projection.track.archived,
-                    modifier = Modifier.weight(1f).testTag("track-add-entry"),
-                ) {
-                    Icon(Icons.Outlined.Add, contentDescription = null); Spacer(Modifier.width(8.dp)); Text(projection.addEntryLabel())
-                }
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End,
+            ) {
                 WhipPageIconAction(Icons.Outlined.FilterAlt, "Filter Entries", { filterOpen = true }, badgeCount = conditions.size, active = conditions.isNotEmpty())
-                Box {
-                    WhipPageIconAction(
-                        Icons.AutoMirrored.Outlined.Sort,
-                        "Sort Entries by ${sortField?.name ?: sort.label}, ${sortDirection.label}",
-                        { sortOpen = true },
-                    )
-                    DropdownMenu(sortOpen, { sortOpen = false }) {
-                        DropdownMenuItem(text = { Text("Sort By", fontWeight = FontWeight.SemiBold) }, enabled = false, onClick = {})
-                        TrackSort.entries.forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(option.label) },
-                                leadingIcon = if (option == sort && sortFieldId == null) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
-                                onClick = { sort = option; sortFieldId = null; sortOpen = false },
-                            )
-                        }
-                        HorizontalDivider()
-                        DropdownMenuItem(text = { Text("Fields", fontWeight = FontWeight.SemiBold) }, enabled = false, onClick = {})
-                        projection.sortableFields().forEach { field ->
-                            DropdownMenuItem(
-                                text = { Text(field.name) },
-                                leadingIcon = if (field.id == sortFieldId) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
-                                onClick = { sortFieldId = field.id; sortOpen = false },
-                            )
-                        }
-                        HorizontalDivider()
-                        DropdownMenuItem(text = { Text("Order", fontWeight = FontWeight.SemiBold) }, enabled = false, onClick = {})
-                        SortDirection.entries.forEach { direction ->
-                            DropdownMenuItem(
-                                text = { Text(direction.label) },
-                                leadingIcon = if (direction == sortDirection) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
-                                onClick = { sortDirection = direction; sortOpen = false },
-                            )
-                        }
-                    }
-                }
+                WhipPageIconAction(
+                    Icons.AutoMirrored.Outlined.Sort,
+                    "Sort Entries by ${sortField?.name ?: sort.label}, ${sortDirection.label}",
+                    { sortOpen = true },
+                )
             }
         }
         if (conditions.isNotEmpty()) item {
@@ -2145,6 +2076,43 @@ private fun TrackEntriesPage(
                 Text(if (pageLoading) "Loading…" else "Show ${minOf(TRACK_ENTRY_PAGE_SIZE, totalEntryCount - pagedEntries.size)} More · ${totalEntryCount - pagedEntries.size} Remaining")
             }
         }
+    }
+    if (sortOpen) {
+        val choices = TrackSort.entries.map { TrackEntrySortChoice(it.label, sort = it) } +
+            projection.sortableFields().map { TrackEntrySortChoice(it.name, fieldId = it.id) }
+        val selectedChoice = choices.first { choice ->
+            if (sortFieldId != null) choice.fieldId == sortFieldId else choice.sort == sort
+        }
+        PaneAwareAlertDialog(
+            modifier = dialogModifier,
+            onDismissRequest = { sortOpen = false },
+            paneTitle = "Sort Entries",
+            title = { Text("Sort Entries") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SelectionField(
+                        label = "Sort by",
+                        values = choices,
+                        selected = selectedChoice,
+                        valueText = TrackEntrySortChoice::label,
+                        onSelect = { choice ->
+                            sortFieldId = choice.fieldId
+                            choice.sort?.let { sort = it }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    SelectionField(
+                        label = "Order",
+                        values = SortDirection.entries,
+                        selected = sortDirection,
+                        valueText = SortDirection::label,
+                        onSelect = { sortDirection = it },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = { WhipTextButton(onClick = { sortOpen = false }) { Text("Done") } },
+        )
     }
     if (filterOpen) TrackFilterDialog(
         modifier = dialogModifier,
@@ -2229,7 +2197,12 @@ private fun TrackEntryRow(
             Box {
                 IconButton(onClick = { moreOpen = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More Actions for ${projection.primaryText(entry)}") }
                 DropdownMenu(moreOpen, { moreOpen = false }) {
-                    DropdownMenuItem(text = { Text("Delete Entry") }, leadingIcon = { Icon(Icons.Outlined.DeleteForever, null) }, onClick = { moreOpen = false; onDelete() })
+                    WhipMenuItem(
+                        label = "Delete Entry",
+                        icon = Icons.Outlined.DeleteOutline,
+                        role = WhipMenuItemRole.Destructive,
+                        onClick = { moreOpen = false; onDelete() },
+                    )
                 }
             }
         }
@@ -2247,38 +2220,41 @@ private fun TrackEntryDetailsDialog(
     onEdit: () -> Unit,
 ) {
     val units = BuiltInUnits.all + customUnits
-    PaneAwareAlertDialog(
+    EntityInspector(
+        entityType = "Track Entry",
+        title = projection.primaryText(entry),
+        emoji = projection.track.icon,
+        context = "${projection.track.name} · ${entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
+        status = "Recorded",
+        sections = listOf(EntityInspectorSection("overview", "Overview")),
+        selectedSectionId = "overview",
+        onSelectSection = {},
+        onDismiss = onDismiss,
+        onEdit = onEdit.takeIf { editable },
+        editLabel = "Edit Entry",
         modifier = modifier,
-        onDismissRequest = onDismiss,
-        title = { Text(projection.primaryText(entry)) },
-        text = {
+        legacySurfaceTag = "track-entry-detail-surface",
+        legacySectionTagPrefix = "track-entry-detail-section",
+        content = {
             LazyColumn(
-                modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 item {
-                    Text(
-                        entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    EntityInspectorGroup("Recorded evidence") {
+                        EntityInspectorFact(
+                            "Date",
+                            entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)),
+                        )
+                    }
                 }
                 items(projection.fields, key = TrackField::id) { field ->
                     val value = projection.formattedValue(entry, field, units).ifBlank { "—" }
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(field.name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(value)
-                    }
+                    EntityInspectorFact(field.name, value)
                 }
                 if (entry.entry.sourceExplanation.isNotBlank()) item {
-                    Text(entry.entry.sourceExplanation, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    EntityInspectorFact("How this entry was added", entry.entry.sourceExplanation)
                 }
-            }
-        },
-        confirmButton = { WhipTextButton(onClick = onDismiss) { Text("Close") } },
-        dismissButton = {
-            if (editable) WhipTextButton(onClick = onEdit) {
-                Icon(Icons.Outlined.Edit, contentDescription = null)
-                Text("Edit Entry")
             }
         },
     )
@@ -2298,7 +2274,7 @@ private fun TrackInsightsPage(
     val dates = scoped.entries.map { it.entry.entryDate }
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, 112.dp),
+        contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, WhipSpacing.screenExpanded),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
@@ -2446,14 +2422,16 @@ private fun TrackAutomationsOverview(
     var creatingKind by rememberSaveable(projection.track.id) { mutableStateOf<TrackAutomationKind?>(null) }
     var editingRuleId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
     var editingProgressRuleId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
+    var removingTriggerRuleId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
+    var removingProgressRuleId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
     val editingRule = editingRuleId?.let { id -> state.triggerRules.firstOrNull { it.id == id } }
     val connectableGoals = projection.compatibleAutomationGoals(state.goals)
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, 112.dp),
+        contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, WhipSpacing.screenExpanded),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        item { WhipPageHeader("Rules", "Choose how Entries update Goals or prompt a next action.") }
+        item { WhipPageHeader("Automations", "Choose how Entries update Goals or prompt a next action.") }
         item {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -2490,7 +2468,7 @@ private fun TrackAutomationsOverview(
                 projection = projection,
                 onEdit = { editingProgressRuleId = it.id },
                 onToggle = { viewModel.setProgressAutomationEnabled(it.id, !it.enabled) },
-                onDelete = { viewModel.deleteProgressAutomation(it.id) },
+                onDelete = { removingProgressRuleId = it.id },
             )
         }
         if (pendingPrompts.isNotEmpty()) {
@@ -2514,7 +2492,7 @@ private fun TrackAutomationsOverview(
                 onAdd = { creatingKind = TrackAutomationKind.CaptureIntoTrack },
                 onEdit = { editingRuleId = it.id },
                 onToggle = { rule -> viewModel.updateTrigger(rule.id, rule.toDraft(enabled = !rule.enabled)) },
-                onDelete = { viewModel.deleteTrigger(it.id) },
+                onDelete = { removingTriggerRuleId = it.id },
             )
         }
         item {
@@ -2526,7 +2504,7 @@ private fun TrackAutomationsOverview(
                 onAdd = { creatingKind = TrackAutomationKind.FollowUpFromTrack },
                 onEdit = { editingRuleId = it.id },
                 onToggle = { rule -> viewModel.updateTrigger(rule.id, rule.toDraft(enabled = !rule.enabled)) },
-                onDelete = { viewModel.deleteTrigger(it.id) },
+                onDelete = { removingTriggerRuleId = it.id },
             )
         }
     }
@@ -2562,6 +2540,28 @@ private fun TrackAutomationsOverview(
                 today = today,
             )
         }
+    }
+    removingTriggerRuleId?.let { ruleId ->
+        val rule = state.triggerRules.firstOrNull { it.id == ruleId }
+        RemoveAutomationConfirmationDialog(
+            automationName = rule?.name ?: "This Automation",
+            onDismiss = { removingTriggerRuleId = null },
+            onConfirm = {
+                viewModel.deleteTrigger(ruleId)
+                removingTriggerRuleId = null
+            },
+        )
+    }
+    removingProgressRuleId?.let { ruleId ->
+        val rule = progressRules.firstOrNull { it.id == ruleId }
+        RemoveAutomationConfirmationDialog(
+            automationName = rule?.name ?: "This Goal Automation",
+            onDismiss = { removingProgressRuleId = null },
+            onConfirm = {
+                viewModel.deleteProgressAutomation(ruleId)
+                removingProgressRuleId = null
+            },
+        )
     }
 }
 
@@ -2602,7 +2602,9 @@ private fun ProgressAutomationGroup(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     WhipTextButton(onClick = { onToggle(rule) }) { Text(if (rule.enabled) "Pause" else "Resume") }
                     WhipTextButton(onClick = { onEdit(rule) }) { Text("Edit") }
-                    WhipTextButton(onClick = { onDelete(rule) }) { Text("Remove") }
+                    WhipTextButton(onClick = { onDelete(rule) }) {
+                        Text("Remove", color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         }
@@ -2697,7 +2699,7 @@ private fun TrackProgressAutomationEditorDialog(
                     )
                 }
                 if (showAdvanced) {
-                    item { OutlinedTextField(name, { name = it }, label = { Text("Automation Name") }, modifier = Modifier.fillMaxWidth()) }
+                    item { OutlinedTextField(name, { name = it.replace('\n', ' ').replace('\r', ' ').take(100) }, label = { Text("Automation Name") }, supportingText = { Text("${name.length}/100") }, singleLine = true, modifier = Modifier.fillMaxWidth()) }
                     item { Text("Multiplier and offset are applied after unit conversion. Leave them at 1 and 0 to preserve the source value.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     item { ResponsiveFieldPair(
                         first = { modifier -> OutlinedTextField(multiplier, { multiplier = it }, label = { Text("Multiplier") }, modifier = modifier) },
@@ -2789,7 +2791,9 @@ private fun AutomationGroup(
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 WhipTextButton(enabled = staleReason == null, onClick = { onToggle(rule) }) { Text(if (rule.enabled) "Pause" else "Resume") }
                 WhipTextButton(onClick = { onEdit(rule) }) { Text("Edit") }
-                WhipTextButton(onClick = { onDelete(rule) }) { Text("Remove") }
+                WhipTextButton(onClick = { onDelete(rule) }) {
+                    Text("Remove", color = MaterialTheme.colorScheme.error)
+                }
             }
         }
     } }
@@ -2870,7 +2874,7 @@ private fun TrackAutomationEditorDialog(
         title = { Text(if (initialRule == null) "Create Automation" else "Edit Automation") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                item { OutlinedTextField(name, { name = it }, label = { Text("Automation Name") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(name, { name = it.replace('\n', ' ').replace('\r', ' ').take(100) }, label = { Text("Automation Name") }, supportingText = { Text("${name.length}/100") }, singleLine = true, modifier = Modifier.fillMaxWidth()) }
                 if (kind == TrackAutomationKind.CaptureIntoTrack) {
                     item { Text("When This Happens", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold) }
                     item {
@@ -3187,19 +3191,28 @@ private fun TrackOptionsPage(
 ) {
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, 112.dp),
+        contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, WhipSpacing.screenExpanded),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item { WhipPageHeader("Track Options", "Manage this Track's identity, visibility, structure, and data.") }
-        item { NavigationRow("Edit Track", onEdit, supportingText = "Change identity, Fields, Area, and tags.") }
-        item { NavigationRow(if (projection.track.pinned) "Unpin From Home" else "Pin to Home", { onSetPinned(!projection.track.pinned) }, supportingText = "Pinned Tracks provide quick Entry capture from Home.") }
-        item { NavigationRow("Duplicate Structure", onDuplicate, supportingText = "Copies Fields and Choice options, but not Entries or Automations.") }
-        item { NavigationRow("Export Track CSV", onExport, supportingText = "One column per Field, with stable Entry identity and dates.") }
-        if (!projection.track.archived) item { NavigationRow("Import Entries From CSV", onImport, supportingText = "Map columns to Fields and validate every row before one atomic import.") }
-        item { NavigationRow(if (projection.track.archived) "Restore Track" else "Archive Track", { onSetArchived(!projection.track.archived) }, supportingText = if (projection.track.archived) "Allow new Entries again." else "Pause new capture while preserving history and Goal evidence.") }
-        item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
-        item { Text("Danger Zone", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) }
-        item { WhipOutlinedButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.DeleteForever, null); Spacer(Modifier.width(8.dp)); Text("Delete Track Permanently") } }
+        item {
+            WhipActionList {
+                WhipActionRow("Edit Track", onEdit, supportingText = "Change identity, Fields, Area, and tags.")
+                WhipActionDivider()
+                WhipActionRow(if (projection.track.pinned) "Unpin From Home" else "Pin to Home", { onSetPinned(!projection.track.pinned) }, supportingText = "Pinned Tracks provide quick Entry capture from Home.", navigates = false)
+                WhipActionDivider()
+                WhipActionRow("Duplicate Structure", onDuplicate, supportingText = "Copies Fields and Choice options, but not Entries or Automations.", navigates = false)
+                WhipActionDivider()
+                WhipActionRow("Export Track CSV", onExport, supportingText = "One column per Field, with stable Entry identity and dates.", navigates = false)
+                if (!projection.track.archived) {
+                    WhipActionDivider()
+                    WhipActionRow("Import Entries From CSV", onImport, supportingText = "Map columns to Fields and validate every row before one atomic import.", navigates = false)
+                }
+                WhipActionDivider()
+                WhipActionRow(if (projection.track.archived) "Restore Track" else "Archive Track", { onSetArchived(!projection.track.archived) }, supportingText = if (projection.track.archived) "Allow new Entries again." else "Pause new capture while preserving history and Goal evidence.", navigates = false)
+            }
+        }
+        item { WhipDangerZone { WhipActionRow("Delete Track Permanently", onDelete, icon = Icons.Outlined.DeleteForever, navigates = false, danger = true) } }
     }
 }
 
@@ -3274,7 +3287,19 @@ internal fun TrackEditor(
                 TopAppBar(
                     title = { Text(if (initial == null) "Create Track" else "Edit Track") },
                     navigationIcon = { IconButton(onClick = ::requestDismiss) { Icon(Icons.Outlined.Close, "Close Track Editor") } },
-                    actions = { WhipTextButton(enabled = !saving && draft.name.isNotBlank() && fields.isNotEmpty(), onClick = {
+                    actions = { WhipTextButton(enabled = !saving, onClick = {
+                        if (draft.name.isBlank()) {
+                            validationError = "Track name is required."
+                            return@WhipTextButton
+                        }
+                        if (fields.isEmpty()) {
+                            validationError = "Add at least one Entry Field."
+                            return@WhipTextButton
+                        }
+                        if (initial == null && areas.count { !it.archived } > 1 && draft.areaId == null) {
+                            validationError = "Choose an Area for this Track."
+                            return@WhipTextButton
+                        }
                         val valid = runCatching { currentDraft().validated() }
                             .onFailure { validationError = it.message ?: "Review the track fields." }
                             .getOrNull()
@@ -3296,8 +3321,10 @@ internal fun TrackEditor(
                 contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, 96.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                item { WhipPageHeader("Identity", "Name this structured log and choose a simple visual identifier.") }
-                item { OutlinedTextField(draft.name, { value -> stateHolder.updateDraft { it.copy(name = value.take(100)) } }, label = { Text("Track Name *") }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("track-editor-name"), supportingText = { Text("${draft.name.length}/100") }) }
+                item { Text("* Required field", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                validationError?.let { message -> item { FormValidationSummary(listOf(message), visible = true, testTag = "track-save-problem") } }
+                item { EditorSectionHeader("Identity", "Name this structured log and choose a simple visual identifier.") }
+                item { OutlinedTextField(draft.name, { value -> stateHolder.updateDraft { it.copy(name = value.replace('\n', ' ').replace('\r', ' ').take(100)) } }, label = { Text("Track Name *") }, singleLine = true, isError = validationError != null && draft.name.isBlank(), modifier = Modifier.fillMaxWidth().testTag("track-editor-name"), supportingText = if (validationError != null && draft.name.isBlank()) {{ Text("Track name is required") }} else {{ Text("${draft.name.length}/100") }}) }
                 item { OutlinedTextField(draft.description, { value -> stateHolder.updateDraft { it.copy(description = value.take(500)) } }, label = { Text("Description") }, minLines = 2, maxLines = 5, modifier = Modifier.fillMaxWidth()) }
                 item {
                     WhipEmojiPicker(
@@ -3311,7 +3338,7 @@ internal fun TrackEditor(
                     )
                 }
                 item { HorizontalDivider() }
-                item { WhipPageHeader("Entry Fields", "Every Entry follows this order. One or more Entry Identity Fields create its readable name.") }
+                item { EditorSectionHeader("Entry Fields", "Every Entry follows this order. One or more Entry Identity Fields create its readable name.") }
                 itemsIndexed(fields, key = { index, field -> field.uuid ?: field.id?.toString() ?: "new-field-$index-${field.name}" }) { index, field ->
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -3337,9 +3364,8 @@ internal fun TrackEditor(
                     }
                 }
                 item { WhipOutlinedButton(onClick = { addingField = true }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Add, null); Spacer(Modifier.width(8.dp)); Text("Add Field") } }
-                validationError?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) } }
                 item { HorizontalDivider() }
-                item { WhipPageHeader("Organization", "Every track belongs to one area. Tags help search without changing the entry form.") }
+                item { EditorSectionHeader("Organization", "Every Track belongs to one Area. Tags help search without changing the Entry form.") }
                 item {
                     AreaPicker(
                         areas = areas,
@@ -3432,7 +3458,7 @@ internal fun TrackEditor(
                             },
                         )
                     }
-                    if (unresolvedAutomation) item { Text("Replace every Choice used by an Automation, or choose Review Automations to edit or remove those rules first.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+                    if (unresolvedAutomation) item { Text("Replace every Choice used by an Automation, or choose Review Automations to edit or remove those Automations first.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
                 }
             },
             confirmButton = { WhipTextButton(enabled = !unresolvedAutomation, onClick = {
@@ -3628,7 +3654,6 @@ internal fun TrackEntryEditor(
     var attempted by rememberSaveable { mutableStateOf(false) }
     var unsavedConfirm by rememberSaveable { mutableStateOf(false) }
     var possibleMatchId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var deleteConfirm by rememberSaveable { mutableStateOf(false) }
     val dirty = draft != initialDraft
     fun dismissAndClear() { stateHolder.clear(); onDismiss() }
     fun requestDismiss() { if (dirty) unsavedConfirm = true else dismissAndClear() }
@@ -3700,7 +3725,10 @@ internal fun TrackEntryEditor(
                 }
                 onDelete?.let { action -> item {
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                    WhipTextButton(onClick = { deleteConfirm = true }, modifier = Modifier.fillMaxWidth()) { Text("Delete Entry", color = MaterialTheme.colorScheme.error) }
+                    WhipTextButton(
+                        onClick = { stateHolder.clear(); action() },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Delete Entry", color = MaterialTheme.colorScheme.error) }
                 } }
             }
         }
@@ -3712,17 +3740,6 @@ internal fun TrackEntryEditor(
         text = { Text("Your changes to this Entry have not been saved.") },
         confirmButton = { WhipTextButton(onClick = { unsavedConfirm = false; dismissAndClear() }) { Text("Discard", color = MaterialTheme.colorScheme.error) } },
         dismissButton = { WhipTextButton(onClick = { unsavedConfirm = false }) { Text("Keep Editing") } },
-    )
-    if (deleteConfirm && onDelete != null) PaneAwareAlertDialog(
-        onDismissRequest = { deleteConfirm = false },
-        title = { Text("Delete Entry?") },
-        text = { Text("This entry and its saved field values will be removed. Linked goal progress will be reconciled automatically.") },
-        confirmButton = {
-            WhipTextButton(onClick = { deleteConfirm = false; stateHolder.clear(); onDelete() }) {
-                Text("Delete", color = MaterialTheme.colorScheme.error)
-            }
-        },
-        dismissButton = { WhipTextButton(onClick = { deleteConfirm = false }) { Text("Cancel") } },
     )
     possibleMatchId?.let { matchId -> projection.entries.firstOrNull { it.entry.id == matchId }?.let { match ->
         PaneAwareAlertDialog(

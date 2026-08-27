@@ -147,6 +147,7 @@ fun GoalAreaContent(
     areaScopeLabel: String? = null,
     onAreaChanged: (String?) -> Unit = {},
     destinationState: MutableState<GoalDestination>? = null,
+    showWorkspace: Boolean = true,
 ) {
     if (state.loading || state.errorMessage != null) {
         DomainLoadContent("goals", innerPadding, state.errorMessage, viewModel::retryLoading)
@@ -172,9 +173,6 @@ fun GoalAreaContent(
     var templatesOpen by rememberSaveable { mutableStateOf(false) }
     var templateDraft by rememberSaveable { mutableStateOf<GoalDraft?>(null) }
     var editorSavePending by rememberSaveable { mutableStateOf(false) }
-    var creationBaselineIds by rememberSaveable { mutableStateOf(emptyList<Long>()) }
-    var awaitingCreatedGoal by rememberSaveable { mutableStateOf(false) }
-    var postSaveGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var linkSavePending by rememberSaveable { mutableStateOf(false) }
     val projectionById = (state.active + state.completed + state.archived).associateBy { it.goal.id }
     val editing = editingGoalId?.let(projectionById::get)
@@ -209,13 +207,6 @@ fun GoalAreaContent(
             onExternalRequestConsumed()
         }
     }
-    LaunchedEffect(state.active, awaitingCreatedGoal) {
-        if (awaitingCreatedGoal && !editorSavePending) {
-            state.active.filterNot { it.goal.id in creationBaselineIds }
-                .maxByOrNull { it.goal.createdAtMillis }
-                ?.let { postSaveGoalId = it.goal.id; awaitingCreatedGoal = false }
-        }
-    }
     LaunchedEffect(openGoalIdRequest, state.active, state.completed, state.archived) {
         val requestedId = openGoalIdRequest ?: return@LaunchedEffect
         val projection = (state.active + state.completed + state.archived)
@@ -247,8 +238,8 @@ fun GoalAreaContent(
         GoalDestination.Completed -> state.completed
         GoalDestination.Archived -> state.archived
     }
-    BackHandler(enabled = manageOrder) { manageOrder = false }
-    Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+    BackHandler(enabled = showWorkspace && manageOrder) { manageOrder = false }
+    if (showWorkspace) Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
         DestinationTabBar(
             selected = destination,
             destinations = GoalDestination.entries,
@@ -262,12 +253,12 @@ fun GoalAreaContent(
         if (destination == GoalDestination.Insights) {
             GoalInsightsContent(
                 projections = state.active,
-                innerPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
+                innerPadding = WhipPageContentPadding,
                 onOpen = { actionsGoalId = it.goal.id },
             )
         } else LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 112.dp),
+            contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(if (compactItemLayout) 4.dp else 10.dp),
         ) {
             item {
@@ -275,7 +266,7 @@ fun GoalAreaContent(
                     title = destination.name + " Goals",
                     supportingText = "Long-term measurements, consistency, ranges, totals, and project milestones.",
                 ) {
-                    if (destination == GoalDestination.Active) Box {
+                    if (destination == GoalDestination.Active && list.isNotEmpty()) Box {
                         WhipPageIconAction(
                             icon = Icons.Outlined.MoreVert,
                             label = "More Goal Actions",
@@ -304,10 +295,13 @@ fun GoalAreaContent(
                 )
             }
             if (list.isEmpty()) item {
+                val firstUse = state.active.isEmpty() && state.completed.isEmpty() && state.archived.isEmpty()
                 WhipEmptyState(
-                    title = "No Goals Here",
+                    title = if (firstUse && destination == GoalDestination.Active) "Start Your First Goal" else "No Goals Here",
                     supportingText = if (destination == GoalDestination.Active) {
-                        areaScopeLabel?.let { "No active goals in $it." } ?: "Create a goal or start from a template."
+                        if (firstUse) {
+                            "Choose a template for a fast start, or use + to define an outcome from scratch."
+                        } else areaScopeLabel?.let { "No active goals in $it." } ?: "Create a goal or start from a template."
                     } else areaScopeLabel?.let { "Nothing in $it yet." } ?: "Nothing here yet.",
                     primaryActionLabel = "Browse Templates".takeIf { destination == GoalDestination.Active },
                     onPrimaryAction = { templatesOpen = true }.takeIf { destination == GoalDestination.Active },
@@ -368,10 +362,6 @@ fun GoalAreaContent(
                 editorSavePending = false
             },
             onSave = { draft ->
-                if (editing == null) {
-                    creationBaselineIds = state.active.map { it.goal.id }
-                    awaitingCreatedGoal = true
-                }
                 editorSavePending = true
                 viewModel.saveGoal(editing?.goal?.id, draft) { succeeded ->
                     editorSavePending = false
@@ -379,51 +369,9 @@ fun GoalAreaContent(
                         creating = false
                         editingGoalId = null
                         templateDraft = null
-                    } else {
-                        awaitingCreatedGoal = false
                     }
                 }
                 onAreaChanged(draft.areaId)
-            },
-        )
-    }
-    postSaveGoalId?.let { goalId ->
-        val created = projectionById[goalId]
-        if (created != null) PaneAwareAlertDialog(
-            modifier = modifier,
-            onDismissRequest = { postSaveGoalId = null },
-            title = { Text("Goal Created") },
-            text = {
-                Text(
-                    if (created.goal.type == GoalType.ElapsedSince) {
-                        "${created.goal.name} is counting from the chosen start time. You can reset or change that time from the Goal card."
-                    } else if (created.goal.baseline != null) {
-                        "${created.goal.name} is ready with its starting value. You can connect future progress from another part of Whip, or continue."
-                    } else {
-                        "${created.goal.name} is ready. Add a starting value now, connect progress from another part of Whip, or continue."
-                    },
-                )
-            },
-            confirmButton = {
-                if (created.goal.type == GoalType.ElapsedSince) {
-                    WhipTextButton(
-                        onClick = { postSaveGoalId = null },
-                        modifier = Modifier.testTag("goal-created-done"),
-                    ) { Text("Done") }
-                } else if (created.goal.baseline == null) {
-                    WhipTextButton(onClick = { recordingGoalId = goalId; postSaveGoalId = null }) { Text("Log First Value") }
-                } else {
-                    WhipTextButton(onClick = { linkingGoalId = goalId; editingLinkRuleId = null; postSaveGoalId = null; viewModel.clearLinkPreview() }) { Text("Add Goal Automation") }
-                }
-            },
-            dismissButton = {
-                if (created.goal.type != GoalType.ElapsedSince) FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (created.goal.baseline == null) WhipTextButton(onClick = { linkingGoalId = goalId; editingLinkRuleId = null; postSaveGoalId = null; viewModel.clearLinkPreview() }) { Text("Add Goal Automation") }
-                    WhipTextButton(
-                        onClick = { postSaveGoalId = null },
-                        modifier = Modifier.testTag("goal-created-done"),
-                    ) { Text("Done") }
-                }
             },
         )
     }
@@ -497,12 +445,15 @@ fun GoalAreaContent(
             onSetContributionExcluded = viewModel::setContributionExcluded,
             onOverrideContribution = { contribution -> overridingContributionId = contribution.id; actionsGoalId = null },
             onEditMeasurement = { entry -> editingMeasurementGoalId = projection.goal.id; editingMeasurementId = entry.id; actionsGoalId = null },
+            onRecordProgress = { recordingGoalId = projection.goal.id; actionsGoalId = null },
+            onResetElapsed = { resettingElapsedGoalId = projection.goal.id; actionsGoalId = null },
             onEdit = { editingGoalId = projection.goal.id; actionsGoalId = null },
             onDuplicate = { viewModel.duplicate(projection.goal.id); actionsGoalId = null },
             onPin = { viewModel.setPinned(projection.goal.id, !projection.goal.pinned); actionsGoalId = null },
             onPause = { viewModel.setStatus(projection.goal.id, if (projection.goal.status == GoalStatus.Paused) GoalStatus.Active else GoalStatus.Paused); actionsGoalId = null },
             onComplete = { viewModel.setStatus(projection.goal.id, GoalStatus.Completed); actionsGoalId = null },
             onAbandon = { viewModel.setStatus(projection.goal.id, GoalStatus.Abandoned); actionsGoalId = null },
+            onReopen = { viewModel.setStatus(projection.goal.id, GoalStatus.Active); actionsGoalId = null },
             onArchive = { viewModel.setStatus(projection.goal.id, if (projection.goal.status == GoalStatus.Archived) GoalStatus.Active else GoalStatus.Archived); actionsGoalId = null },
             onDelete = { deleteCandidateGoalId = projection.goal.id; actionsGoalId = null },
         )
@@ -693,7 +644,7 @@ fun GoalCard(
                     if (stacked) {
                         Column(milestoneModifier) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(checked = milestone.completed, onCheckedChange = { onToggleMilestone(milestone.id, it) })
+                                Checkbox(checked = milestone.completed, onCheckedChange = null)
                                 Text(milestone.name, modifier = Modifier.weight(1f))
                             }
                             if (milestone.reward.isNotBlank()) {
@@ -702,7 +653,7 @@ fun GoalCard(
                         }
                     } else {
                         Row(milestoneModifier, verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = milestone.completed, onCheckedChange = { onToggleMilestone(milestone.id, it) })
+                            Checkbox(checked = milestone.completed, onCheckedChange = null)
                             Text(milestone.name, modifier = Modifier.weight(1f))
                             if (milestone.reward.isNotBlank()) Text(milestone.reward, style = MaterialTheme.typography.labelSmall)
                         }
@@ -710,7 +661,7 @@ fun GoalCard(
                 }
             } else {
                 Row(milestoneModifier, verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = milestone.completed, onCheckedChange = { onToggleMilestone(milestone.id, it) })
+                    Checkbox(checked = milestone.completed, onCheckedChange = null)
                     Text(milestone.name, modifier = Modifier.weight(1f))
                     if (milestone.reward.isNotBlank()) Text(milestone.reward, style = MaterialTheme.typography.labelSmall)
                 }
@@ -1072,6 +1023,7 @@ private fun GoalEditorDialog(
         elapsedDisplayUnit = elapsedDisplayUnit,
     )
     val rawFieldProblems = buildList {
+        if (goal == null && areas.count { !it.archived } > 1 && areaId == null) add("Choose an Area for this Goal")
         if (
             type !in setOf(GoalType.Consistency, GoalType.WeightedMilestones, GoalType.ElapsedSince) &&
             baseline.isNotBlank() && baseline.toWhipDoubleOrNull() == null
@@ -1097,6 +1049,7 @@ private fun GoalEditorDialog(
         modifier = modifier,
         testTag = "goal-editor-surface",
         primary = true,
+        paneTitle = if (goal == null) "Create Goal" else "Edit Goal",
         onDismissRequest = requestDismiss,
         title = { Text(if (goal == null) "Create Goal" else "Edit Goal") },
         text = {
@@ -1119,12 +1072,13 @@ private fun GoalEditorDialog(
                 item {
                     OutlinedTextField(
                         name,
-                        { name = it },
+                        { name = it.replace('\n', ' ').replace('\r', ' ').take(100) },
                         label = { Text("Name *") },
                         isError = validationRequested && name.isBlank(),
                         supportingText = if (validationRequested && name.isBlank()) {
                             { Text("Goal name is required") }
-                        } else null,
+                        } else {{ Text("${name.length}/100") }},
+                        singleLine = true,
                         modifier = Modifier.fillMaxWidth().testTag("goal-editor-name"),
                     )
                 }
@@ -1506,6 +1460,7 @@ private fun GoalMeasurementDialog(
     var note by rememberSaveable(editorKey) { mutableStateOf(entry?.note.orEmpty()) }
     var date by rememberSaveable(editorKey) { mutableStateOf(entry?.localDate ?: today) }
     var showDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var confirmDelete by rememberSaveable(editorKey) { mutableStateOf(false) }
     var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
     val parsedValue = value.toWhipDoubleOrNull()
     PaneAwareAlertDialog(
@@ -1537,12 +1492,25 @@ private fun GoalMeasurementDialog(
         },
         dismissButton = {
             Row {
-                if (onDelete != null) WhipTextButton(onClick = onDelete) { Text("Delete") }
+                if (onDelete != null) WhipTextButton(onClick = { confirmDelete = true }) { Text("Delete") }
                 WhipTextButton(onClick = onDismiss) { Text("Cancel") }
             }
         },
     )
     if (showDatePicker) WhipDatePickerDialog(date, { showDatePicker = false }, { date = it; showDatePicker = false })
+    if (confirmDelete && onDelete != null) {
+        PaneAwareAlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Delete Measurement?") },
+            text = { Text("This removes this measurement from the Goal's history and recalculates its progress.") },
+            confirmButton = {
+                WhipTextButton(onClick = { confirmDelete = false; onDelete() }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { WhipTextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+        )
+    }
 }
 
 @Composable
@@ -1562,37 +1530,72 @@ private fun GoalActionsDialog(
     onSetContributionExcluded: (Long, Boolean) -> Unit,
     onOverrideContribution: (Contribution) -> Unit,
     onEditMeasurement: (MetricEntry) -> Unit,
+    onRecordProgress: () -> Unit,
+    onResetElapsed: () -> Unit,
     onEdit: () -> Unit,
     onDuplicate: () -> Unit,
     onPin: () -> Unit,
     onPause: () -> Unit,
     onComplete: () -> Unit,
     onAbandon: () -> Unit,
+    onReopen: () -> Unit,
     onArchive: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var visibleMeasurements by rememberSaveable(projection.goal.id) { mutableIntStateOf(25) }
     var showAccessibleTable by rememberSaveable(projection.goal.id) { mutableStateOf(false) }
     var visibleContributions by rememberSaveable(projection.goal.id) { mutableIntStateOf(10) }
+    var removingAutomationId by rememberSaveable(projection.goal.id) { mutableStateOf<Long?>(null) }
     var section by rememberSaveable(projection.goal.id) { mutableStateOf(GoalDetailSection.Overview) }
     val insights = remember(projection) { buildGoalInsights(projection.goal, projection.entries, projection.milestones) }
-    PaneAwareAlertDialog(
-        modifier = modifier.testTag("goal-detail-surface"),
-        onDismissRequest = onDismiss,
-        title = { Text(projection.goal.name) },
-        text = {
-            LazyColumn {
-                item {
-                    DetailSectionBar(
-                        labels = GoalDetailSection.entries.map(GoalDetailSection::label),
-                        selected = section.label,
-                        onSelect = { label -> section = GoalDetailSection.entries.first { it.label == label } },
-                        testTagPrefix = "goal-detail-section",
-                    )
-                }
+    val primaryAction = when (projection.goal.status) {
+        GoalStatus.Active -> when (projection.goal.type) {
+            GoalType.WeightedMilestones -> null
+            GoalType.ElapsedSince -> EntityInspectorPrimaryAction("reset-timer", "Reset Timer", onResetElapsed)
+            GoalType.OpenEndedTrend -> EntityInspectorPrimaryAction("add-measurement", "Add Measurement", onRecordProgress)
+            else -> EntityInspectorPrimaryAction("log-progress", "Log Progress", onRecordProgress)
+        }
+        GoalStatus.Paused -> EntityInspectorPrimaryAction("resume", "Resume Goal", onPause)
+        GoalStatus.Archived -> EntityInspectorPrimaryAction("restore", "Restore Goal", onArchive)
+        GoalStatus.Completed, GoalStatus.Abandoned -> EntityInspectorPrimaryAction("reopen", "Reopen Goal", onReopen)
+    }
+    EntityInspector(
+        entityType = "Goal",
+        title = projection.goal.name,
+        emoji = projection.goal.icon,
+        context = projection.goal.area.ifBlank { projection.goal.type.displayLabel() },
+        status = projection.goal.status.inspectorLabel(),
+        sections = GoalDetailSection.entries.map { it.inspectorSection },
+        selectedSectionId = section.id,
+        onSelectSection = { id -> section = GoalDetailSection.entries.first { it.id == id } },
+        onDismiss = onDismiss,
+        onEdit = onEdit,
+        editLabel = "Edit Goal",
+        modifier = modifier,
+        legacySurfaceTag = "goal-detail-surface",
+        legacySectionTagPrefix = "goal-detail-section",
+        primaryAction = primaryAction,
+        content = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (section == GoalDetailSection.Overview) {
                 item {
-                    Text(if (projection.goal.type == GoalType.ElapsedSince) "Elapsed Time" else "Progress Insight", fontWeight = FontWeight.Bold)
+                    EntityInspectorGroup("Outcome") {
+                        Text(
+                            projection.inspectorOutcome(),
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        projection.goal.description.takeIf(String::isNotBlank)?.let {
+                            Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        projection.goal.deadline?.let {
+                            EntityInspectorFact("Target date", it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
+                        }
+                    }
+                }
+                item {
+                    Text(if (projection.goal.type == GoalType.ElapsedSince) "Elapsed Time" else "Progress insight", fontWeight = FontWeight.Bold)
                     val chartValues = insights.points.mapNotNull { it.progress ?: it.canonicalValue }
                     if (projection.goal.type == GoalType.ElapsedSince) {
                         projection.goal.elapsedStartMillis?.let { started ->
@@ -1602,13 +1605,17 @@ private fun GoalActionsDialog(
                     } else if (chartValues.size >= 2) {
                         GoalLineChart(
                             values = chartValues,
-                            description = "${projection.goal.name} progress chart with ${chartValues.size} points from ${insights.points.first().date} to ${insights.points.last().date}",
+                            description = "${projection.goal.name} progress chart with ${chartValues.size} points from " +
+                                "${insights.points.first().date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} to " +
+                                insights.points.last().date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
                         )
                     } else Text("More observations are needed for a trend line.")
                     if (projection.goal.type != GoalType.ElapsedSince) Text(
                         listOfNotNull(
                             insights.ratePerDay?.let { "Rate ${formatGoalValue(it, projection.goal.precision)} per day" },
-                            insights.forecastDate?.let { "Forecast $it (${insights.confidence} confidence)" },
+                            insights.forecastDate?.let {
+                                "Forecast ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} (${insights.confidence} confidence)"
+                            },
                         ).joinToString(" · ").ifBlank { "Rate and forecast unavailable" },
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -1625,7 +1632,7 @@ private fun GoalActionsDialog(
                 if (showAccessibleTable) {
                     items(insights.points.takeLast(visibleMeasurements), key = { "insight-${it.date}" }) { point ->
                         Text(
-                            "${point.date}: value ${formatGoalValue(point.canonicalValue, projection.goal.precision)}, " +
+                            "${point.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}: value ${formatGoalValue(point.canonicalValue, projection.goal.precision)}, " +
                                 "progress ${point.progress?.let { "${(it * 100).toInt()}%" } ?: "not applicable"}, ${point.recordedEntries} source entries",
                             style = MaterialTheme.typography.bodySmall,
                         )
@@ -1636,14 +1643,11 @@ private fun GoalActionsDialog(
                 if (projection.goal.type == GoalType.ElapsedSince) item { Text("Elapsed-time Goals use one editable start instant rather than measurement history.") }
                 item { Text("${projection.entries.size} measurements", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
                 items(projection.entries.take(visibleMeasurements), key = { it.id }) { entry ->
-                    WhipTextButton(onClick = { onEditMeasurement(entry) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            "${entry.localDate}: ${entry.enteredValue?.let(::editableNumericValue) ?: entry.status.name} ${entry.enteredUnitId.orEmpty()}" +
-                                " · ${entry.sourceType.name}${entry.sourceId?.let { " ($it)" }.orEmpty()}" +
-                                if (entry.note.isBlank()) "" else " · ${entry.note}",
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
+                    EntityInspectorAction(
+                        id = "measurement-${entry.id}",
+                        label = entry.historyLabel(),
+                        onClick = { onEditMeasurement(entry) },
+                    )
                 }
                 if (visibleMeasurements < projection.entries.size) item {
                     WhipOutlinedButton(
@@ -1665,15 +1669,25 @@ private fun GoalActionsDialog(
                                 Text(rule.progressSourceSummary(sourceGoals, sourceHabits, sourceMetrics), style = MaterialTheme.typography.labelSmall)
                             }
                             WhipTextButton(onClick = { onEditLink(rule) }) { Text("Edit") }
-                            WhipTextButton(onClick = { onDeleteLink(rule.id) }) { Text("Remove") }
+                            WhipTextButton(onClick = { removingAutomationId = rule.id }) {
+                                Text("Remove", color = MaterialTheme.colorScheme.error)
+                            }
                         }
                         val ruleContributions = contributions.filter { it.linkRuleId == rule.id }
                         ruleContributions.take(visibleContributions).forEach { contribution ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Checkbox(checked = !contribution.excluded, onCheckedChange = { onSetContributionExcluded(contribution.id, !it) })
                                 Column(Modifier.weight(1f)) {
-                                    Text("${contribution.localDate}: ${contribution.explanation}", style = MaterialTheme.typography.bodySmall)
-                                    contribution.overrideValue?.let { Text("Override: $it canonical", style = MaterialTheme.typography.labelSmall) }
+                                    Text(
+                                        "${contribution.localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}: ${contribution.explanation}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                    contribution.overrideValue?.let {
+                                        Text(
+                                            "Adjusted value: ${formatGoalValue(it, projection.goal.precision)} ${projection.goal.unitId.goalUnitLabel()}".trim(),
+                                            style = MaterialTheme.typography.labelSmall,
+                                        )
+                                    }
                                 }
                                 WhipTextButton(onClick = { onOverrideContribution(contribution) }) { Text("Override") }
                             }
@@ -1690,26 +1704,103 @@ private fun GoalActionsDialog(
                 }
                 if (section == GoalDetailSection.More) {
                 item {
-                    listOf("Duplicate" to onDuplicate, (if (projection.goal.pinned) "Unpin" else "Pin") to onPin, (if (projection.goal.status == GoalStatus.Paused) "Resume" else "Pause") to onPause, "Complete" to onComplete, "Abandon" to onAbandon, (if (projection.goal.status == GoalStatus.Archived) "Restore" else "Archive") to onArchive).forEach { (label, action) ->
-                        WhipTextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text(label) }
-                    }
-                    WhipTextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
-                        Text("Delete Permanently", color = MaterialTheme.colorScheme.error)
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        EntityInspectorGroup("Actions") {
+                            EntityInspectorAction("duplicate", "Duplicate Goal", onDuplicate)
+                        }
+                        EntityInspectorGroup("Availability") {
+                            EntityInspectorAction("pin", if (projection.goal.pinned) "Unpin from Home" else "Pin to Home", onPin)
+                            if (projection.goal.status == GoalStatus.Active) {
+                                EntityInspectorAction("pause", "Pause Goal", onPause)
+                                EntityInspectorAction("complete", "Complete Goal", onComplete)
+                                EntityInspectorAction("abandon", "Abandon Goal", onAbandon)
+                            }
+                            if (projection.goal.status != GoalStatus.Archived) {
+                                EntityInspectorAction("archive", "Archive Goal", onArchive)
+                            }
+                        }
+                        EntityInspectorDangerZone {
+                            EntityInspectorAction(
+                                id = "delete",
+                                label = "Delete Permanently",
+                                onClick = onDelete,
+                                modifier = Modifier.testTag("entity-inspector-delete"),
+                                danger = true,
+                            )
+                        }
                     }
                 }
                 }
             }
         },
-        confirmButton = { WhipTextButton(onClick = onDismiss) { Text("Close") } },
-        dismissButton = { DetailEditButton("Edit goal", onEdit) },
     )
+    removingAutomationId?.let { automationId ->
+        val automation = rules.firstOrNull { it.id == automationId }
+        RemoveAutomationConfirmationDialog(
+            automationName = automation?.name ?: "This Automation",
+            onDismiss = { removingAutomationId = null },
+            onConfirm = {
+                onDeleteLink(automationId)
+                removingAutomationId = null
+            },
+        )
+    }
 }
 
-private enum class GoalDetailSection(val label: String) {
-    Overview("Overview"),
-    History("History"),
-    Connections("Automation"),
-    More("Options"),
+private enum class GoalDetailSection(val id: String, val label: String) {
+    Overview("overview", "Overview"),
+    History("history", "History"),
+    Connections("automation", "Automations"),
+    More("options", "Options"),
+    ;
+
+    val inspectorSection: EntityInspectorSection
+        get() = EntityInspectorSection(id, label)
+}
+
+private fun GoalStatus.inspectorLabel(): String = when (this) {
+    GoalStatus.Active -> "Active"
+    GoalStatus.Paused -> "Paused"
+    GoalStatus.Completed -> "Completed"
+    GoalStatus.Abandoned -> "Abandoned"
+    GoalStatus.Archived -> "Archived"
+}
+
+private fun GoalProjection.inspectorOutcome(): String = when {
+    goal.type == GoalType.ElapsedSince && goal.elapsedStartMillis != null ->
+        elapsedCounter(goal.elapsedStartMillis, System.currentTimeMillis(), goal.elapsedDisplayUnit).label()
+    goal.type == GoalType.WeightedMilestones ->
+        "${milestones.count { it.completed }} of ${milestones.size} milestones complete"
+    progress != null -> "${(progress * 100).toInt()}% complete"
+    consistency != null -> with(requireNotNull(consistency)) {
+        "$successfulPeriods of $requiredPeriods ${period.name.lowercase()} periods complete"
+    }
+    currentValue != null -> {
+        val unit = BuiltInUnits.get(goal.unitId)?.symbol.orEmpty()
+        "Current ${formatGoalValue(currentValue, goal.precision)} $unit".trim()
+    }
+    else -> "Ready to begin"
+}
+
+private fun MetricEntry.historyLabel(): String {
+    val date = localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+    val valueLabel = enteredValue?.let(::editableNumericValue) ?: when (status.name) {
+        "Missing" -> "No value recorded"
+        "Failed" -> "Below target"
+        "Skipped" -> "Skipped"
+        "Excused" -> "Excused"
+        else -> "Recorded"
+    }
+    val unit = enteredUnitId?.let(BuiltInUnits::get)?.symbol.orEmpty()
+    val source = sourceType.name
+        .replace(Regex("([a-z])([A-Z])"), "$1 $2")
+        .replaceFirstChar(Char::uppercase)
+    return buildString {
+        append("$date · $valueLabel")
+        if (unit.isNotBlank()) append(" $unit")
+        append(" · $source")
+        if (note.isNotBlank()) append(" · $note")
+    }
 }
 
 @Composable
@@ -1719,6 +1810,7 @@ private fun GoalLineChart(values: List<Double>, description: String) {
     val min = finite.min()
     val max = finite.max()
     val span = (max - min).takeIf { it > 0.0 } ?: 1.0
+    val lineColor = MaterialTheme.colorScheme.primary
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
@@ -1728,7 +1820,7 @@ private fun GoalLineChart(values: List<Double>, description: String) {
         val step = size.width / (finite.size - 1).coerceAtLeast(1)
         finite.zipWithNext().forEachIndexed { index, (start, end) ->
             drawLine(
-                color = androidx.compose.ui.graphics.Color(0xFFFFC400),
+                color = lineColor,
                 start = androidx.compose.ui.geometry.Offset(index * step, size.height - ((start - min) / span * size.height).toFloat()),
                 end = androidx.compose.ui.geometry.Offset((index + 1) * step, size.height - ((end - min) / span * size.height).toFloat()),
                 strokeWidth = 4.dp.toPx(),

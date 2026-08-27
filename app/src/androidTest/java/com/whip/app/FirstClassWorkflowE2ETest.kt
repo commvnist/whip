@@ -56,8 +56,8 @@ class FirstClassWorkflowE2ETest {
         launch().use { scenario ->
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Tracks tab").performClick()
-            compose.onNodeWithTag("track-list").performScrollToNode(hasText("Create Track"))
-            compose.onNodeWithText("Create Track").performClick()
+            compose.onNodeWithTag("track-list").performScrollToNode(hasText("Create First Track"))
+            compose.onNodeWithText("Create First Track").performClick()
             compose.waitUntil(10_000) {
                 compose.onAllNodesWithTag("track-editor-name").fetchSemanticsNodes().isNotEmpty()
             }
@@ -75,7 +75,7 @@ class FirstClassWorkflowE2ETest {
             compose.waitUntil(5_000) {
                 compose.onAllNodesWithText("Reading Log").fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithTag("track-add-entry").performClick()
+            compose.onNodeWithTag("workspace-add-action").performClick()
             compose.onNodeWithTag("track-entry-short-text-${projection.primaryField.uuid}")
                 .performTextInput("The Left Hand of Darkness")
             compose.onNodeWithText("Add").performClick()
@@ -162,11 +162,6 @@ class FirstClassWorkflowE2ETest {
             checkNotNull(setCompleted) { "Set completion did not reach the repository" }
 
             compose.onNodeWithText("Finish").performClick()
-            compose.onNodeWithText("Review and Finish Workout?").assertIsDisplayed()
-            compose.onAllNodesWithText("Finish")[1].performClick()
-            compose.onNodeWithText("Workout Saved").assertIsDisplayed()
-            compose.onNodeWithText("View History").performClick()
-
             val workoutFinished = runBlocking {
                 withTimeoutOrNull(5_000) {
                     app.gymRepository.sessions.first { rows ->
@@ -175,6 +170,7 @@ class FirstClassWorkflowE2ETest {
                 }
             }
             checkNotNull(workoutFinished) { "Workout finish did not reach the repository" }
+            compose.onNodeWithText("History").performClick()
             // Expanded Fold layouts can show the History heading and its row at
             // the same time. Either visible instance proves the saved workout
             // reached History; a singular text lookup is invalid in that layout.

@@ -50,6 +50,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.ArrowDownward
+import androidx.compose.material.icons.outlined.ArrowUpward
+import androidx.compose.material.icons.outlined.DeleteForever
+import androidx.compose.material.icons.outlined.DriveFileMove
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Merge
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import com.whip.app.domain.Area
 import kotlinx.coroutines.launch
@@ -431,14 +439,22 @@ private fun AreaManagerRow(
                     modifier = Modifier.semantics { contentDescription = "More options for ${area.name}" },
                 ) { Icon(Icons.Outlined.MoreVert, contentDescription = null) }
                 DropdownMenu(menu, { menu = false }) {
-                    DropdownMenuItem({ Text("Move All Items…") }, { menu = false; onMoveItems() }, enabled = usage.total > 0)
-                    DropdownMenuItem({ Text("Rename") }, { menu = false; onRename() })
-                    DropdownMenuItem({ Text("Choose Color") }, { menu = false; onColor() })
-                    DropdownMenuItem({ Text("Move Up") }, { menu = false; onMove(-1) }, enabled = canMoveUp)
-                    DropdownMenuItem({ Text("Move Down") }, { menu = false; onMove(1) }, enabled = canMoveDown)
-                    DropdownMenuItem({ Text("Merge Into…") }, { menu = false; onMerge() })
-                    DropdownMenuItem({ Text("Archive") }, { menu = false; onArchive() })
-                    DropdownMenuItem({ Text("Delete Permanently") }, { menu = false; onDelete() })
+                    WhipMenuItem("Rename", { menu = false; onRename() }, Icons.Outlined.Edit)
+                    WhipMenuItem("Choose Color", { menu = false; onColor() }, Icons.Outlined.Palette)
+                    HorizontalDivider()
+                    WhipMenuItem("Move All Items…", { menu = false; onMoveItems() }, Icons.Outlined.DriveFileMove, enabled = usage.total > 0)
+                    WhipMenuItem("Move Up", { menu = false; onMove(-1) }, Icons.Outlined.ArrowUpward, enabled = canMoveUp)
+                    WhipMenuItem("Move Down", { menu = false; onMove(1) }, Icons.Outlined.ArrowDownward, enabled = canMoveDown)
+                    WhipMenuItem("Merge Into…", { menu = false; onMerge() }, Icons.Outlined.Merge)
+                    HorizontalDivider()
+                    WhipMenuItem("Archive", { menu = false; onArchive() }, Icons.Outlined.Archive)
+                    HorizontalDivider()
+                    WhipMenuItem(
+                        "Delete Permanently",
+                        { menu = false; onDelete() },
+                        Icons.Outlined.DeleteForever,
+                        role = WhipMenuItemRole.Destructive,
+                    )
                 }
             }
         }

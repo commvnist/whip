@@ -41,7 +41,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
@@ -54,6 +53,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarVisuals
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -61,11 +61,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.movableContentOf
@@ -81,9 +83,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.semantics.hideFromAccessibility
@@ -116,7 +116,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -125,11 +124,11 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.FilterList
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Fullscreen
 import androidx.compose.material.icons.outlined.FullscreenExit
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Insights
+import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
@@ -140,6 +139,7 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.whip.app.R
+import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
@@ -169,6 +169,7 @@ import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.TriggerTargetType
 import com.whip.app.domain.HabitDayProgress
 import com.whip.app.core.zoneId
+import com.whip.app.core.supportedTrackedRecordTypes
 import com.whip.app.core.WhipLaunchActions
 import com.whip.app.data.TaskBulkEdit
 import com.whip.app.data.TaskDeletionBatchImpact
@@ -177,6 +178,7 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import com.whip.app.widget.WhipWidgetProvider
 
 internal enum class AppDestination {
@@ -189,16 +191,50 @@ internal enum class AppDestination {
     Settings,
 }
 
+private data class TaskSnackbarVisuals(
+    override val message: String,
+    override val actionLabel: String?,
+    override val withDismissAction: Boolean,
+    override val duration: SnackbarDuration,
+    val undoToken: Long?,
+    val quickAdd: Boolean,
+) : SnackbarVisuals
+
+private data class TransientFeedbackRequest(
+    val source: String,
+    val priority: Int,
+    val recoverable: Boolean,
+    val show: suspend () -> Unit,
+)
+
+internal fun transientFeedbackSurvivesDestinationChange(recoverable: Boolean): Boolean = recoverable
+
+internal fun SavedTaskFilter.restoredAreaScope(): AreaScope =
+    areaId?.let(AreaScope::One) ?: AreaScope.All
+
+internal fun AreaScope.creationDefaultAreaId(areas: List<Area>): String? = when (this) {
+    is AreaScope.One -> areaId
+    AreaScope.All -> areas.filterNot(Area::archived).singleOrNull()?.id
+    AreaScope.Unassigned -> null
+}
+
+internal fun AreaScope.requiresExplicitCreationArea(areas: List<Area>): Boolean =
+    this == AreaScope.All && areas.count { !it.archived } > 1
+
+internal fun shouldShowHomeGettingStarted(hasAnyUserData: Boolean): Boolean = !hasAnyUserData
+
 internal fun globalAddAvailable(
     appDestination: AppDestination,
     gymDestination: GymDestination,
     gymRoutineEditorOpen: Boolean,
     taskSelectionMode: Boolean,
+    selectedTrackArchived: Boolean = false,
 ): Boolean =
     !gymRoutineEditorOpen &&
         appDestination != AppDestination.Settings &&
-        !(appDestination == AppDestination.Gym && gymDestination in libraryGymDestinations) &&
-        !(appDestination == AppDestination.Tasks && taskSelectionMode)
+        !(appDestination == AppDestination.Gym && gymDestination == GymDestination.Tools) &&
+        !(appDestination == AppDestination.Tasks && taskSelectionMode) &&
+        !(appDestination == AppDestination.Tracks && selectedTrackArchived)
 
 private val primaryAppDestinations = listOf(
     AppDestination.Tasks,
@@ -237,13 +273,14 @@ fun WhipApp(
     val taskDeletionImpact by taskViewModel.taskDeletionImpact.collectAsStateWithLifecycle()
     val taskDeletionBatchImpact by taskViewModel.taskDeletionBatchImpact.collectAsStateWithLifecycle()
     val pendingTaskUndoMessage = taskOperationFeedback.undoMessage
+    val pendingTaskUndoToken = taskOperationFeedback.undoToken
     val pendingQuickAddTaskId = taskOperationFeedback.quickAddedTaskId
     val gymOperationStatus by gymViewModel.operationStatus.collectAsStateWithLifecycle()
     val pendingMachineArchiveUndo by gymViewModel.pendingMachineArchiveUndo.collectAsStateWithLifecycle()
     val habitOperationStatus by habitViewModel.operationStatus.collectAsStateWithLifecycle()
     val goalOperationStatus by goalViewModel.operationStatus.collectAsStateWithLifecycle()
     val trackOperationStatus by trackViewModel.operationStatus.collectAsStateWithLifecycle()
-    val lastAddedEntryTrackId by trackViewModel.lastAddedEntryTrackId.collectAsStateWithLifecycle()
+    val lastDeletedTrackEntry by trackViewModel.lastDeletedEntry.collectAsStateWithLifecycle()
     val persistedAreaScope = AreaScope.fromStorageKey(settingsState.settings.activeAreaScope)
     var transientAreaScopeKey by rememberSaveable { mutableStateOf<String?>(null) }
     var transientAreaScopeDelivery by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -357,23 +394,24 @@ fun WhipApp(
             operationStatus = operationStatus,
             onOperationStatusConsumed = taskViewModel::consumeOperationStatus,
             taskUndoMessage = pendingTaskUndoMessage,
+            taskUndoToken = pendingTaskUndoToken,
             quickAddedTaskId = pendingQuickAddTaskId,
-            onTaskUndo = taskViewModel::undoLastTaskAction,
-            onTaskUndoDismissed = taskViewModel::clearPendingUndo,
+            onTaskUndo = { token -> taskViewModel.undoLastTaskAction(token) },
+            onTaskUndoDismissed = { token -> taskViewModel.clearPendingUndo(token) },
             gymOperationStatus = gymOperationStatus,
             onGymOperationStatusConsumed = gymViewModel::consumeOperationStatus,
-            machineArchiveUndoAvailable = pendingMachineArchiveUndo != null,
-            onMachineArchiveUndo = gymViewModel::undoLastMachineArchive,
-            onMachineArchiveUndoDismissed = gymViewModel::clearPendingMachineArchiveUndo,
+            machineArchiveUndoId = pendingMachineArchiveUndo,
+            onMachineArchiveUndo = { id -> gymViewModel.undoLastMachineArchive(id) },
+            onMachineArchiveUndoDismissed = { id -> gymViewModel.clearPendingMachineArchiveUndo(id) },
             habitOperationStatus = habitOperationStatus,
             onHabitOperationStatusConsumed = habitViewModel::consumeOperationStatus,
             goalOperationStatus = goalOperationStatus,
             onGoalOperationStatusConsumed = goalViewModel::consumeOperationStatus,
             trackOperationStatus = trackOperationStatus,
             onTrackOperationStatusConsumed = trackViewModel::consumeOperationStatus,
-            onCancelTrackOperation = trackViewModel::cancelOperation,
-            lastAddedEntryTrackId = lastAddedEntryTrackId,
-            onAddAnotherOfferConsumed = trackViewModel::clearAddAnotherOffer,
+            trackEntryUndoId = lastDeletedTrackEntry?.token,
+            onTrackEntryUndo = { id -> trackViewModel.undoEntryDeletion(id) },
+            onTrackEntryUndoDismissed = { id -> trackViewModel.clearEntryUndo(id) },
             onSaveTask = { id, draft, from -> taskViewModel.saveTask(id, draft, from) },
             onSaveTaskWithResult = { id, draft, from, onFinished ->
                 taskViewModel.saveTask(id, draft, from, onFinished)
@@ -453,23 +491,24 @@ fun WhipScreen(
     operationStatus: OperationStatus = OperationStatus.Idle,
     onOperationStatusConsumed: () -> Unit = {},
     taskUndoMessage: String? = null,
+    taskUndoToken: Long? = null,
     quickAddedTaskId: Long? = null,
-    onTaskUndo: () -> Unit = {},
-    onTaskUndoDismissed: () -> Unit = {},
+    onTaskUndo: (Long) -> Unit = {},
+    onTaskUndoDismissed: (Long) -> Unit = {},
     gymOperationStatus: OperationStatus = OperationStatus.Idle,
     onGymOperationStatusConsumed: () -> Unit = {},
-    machineArchiveUndoAvailable: Boolean = false,
-    onMachineArchiveUndo: () -> Unit = {},
-    onMachineArchiveUndoDismissed: () -> Unit = {},
+    machineArchiveUndoId: Long? = null,
+    onMachineArchiveUndo: (Long) -> Unit = {},
+    onMachineArchiveUndoDismissed: (Long) -> Unit = {},
     habitOperationStatus: OperationStatus = OperationStatus.Idle,
     onHabitOperationStatusConsumed: () -> Unit = {},
     goalOperationStatus: OperationStatus = OperationStatus.Idle,
     onGoalOperationStatusConsumed: () -> Unit = {},
     trackOperationStatus: OperationStatus = OperationStatus.Idle,
     onTrackOperationStatusConsumed: () -> Unit = {},
-    onCancelTrackOperation: () -> Unit = {},
-    lastAddedEntryTrackId: Long? = null,
-    onAddAnotherOfferConsumed: () -> Unit = {},
+    trackEntryUndoId: Long? = null,
+    onTrackEntryUndo: (Long) -> Unit = {},
+    onTrackEntryUndoDismissed: (Long) -> Unit = {},
     onSaveTask: (Long?, TaskDraft, LocalDate?) -> Unit,
     onSaveTaskWithResult: (Long?, TaskDraft, LocalDate?, (Boolean) -> Unit) -> Unit = { id, draft, from, onFinished ->
         onSaveTask(id, draft, from)
@@ -546,13 +585,11 @@ fun WhipScreen(
     var deleteItemKey by rememberSaveable { mutableStateOf<String?>(null) }
     var globalAddExpanded by rememberSaveable { mutableStateOf(false) }
     var secondaryAppActionsExpanded by rememberSaveable { mutableStateOf(false) }
-    var globalAddPending by rememberSaveable { mutableStateOf(false) }
     var gymAddExpanded by rememberSaveable { mutableStateOf(false) }
     var createHabitRequested by rememberSaveable { mutableStateOf(false) }
     var createGoalRequested by rememberSaveable { mutableStateOf(false) }
     var createTrackRequested by rememberSaveable { mutableStateOf(false) }
-    var createExerciseRequested by rememberSaveable { mutableStateOf(false) }
-    var startWorkoutRequested by rememberSaveable { mutableStateOf(false) }
+    var gymAddRequest by rememberSaveable { mutableStateOf<GymAddRequest?>(null) }
     var recordGoalIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var resetElapsedGoalIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var searchOpen by rememberSaveable { mutableStateOf(false) }
@@ -591,6 +628,112 @@ fun WhipScreen(
     var searchPreviouslyOpen by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val transientFeedbackScope = rememberCoroutineScope()
+    var transientFeedbackJob by remember { mutableStateOf<Job?>(null) }
+    var activeTransientFeedback by remember { mutableStateOf<TransientFeedbackRequest?>(null) }
+    var transientFeedbackGeneration by remember { mutableLongStateOf(0L) }
+    val pendingTransientFeedback = remember { ArrayDeque<TransientFeedbackRequest>() }
+    fun startTransientFeedback(request: TransientFeedbackRequest) {
+        val generation = ++transientFeedbackGeneration
+        activeTransientFeedback = request
+        transientFeedbackJob = transientFeedbackScope.launch {
+            try {
+                request.show()
+            } finally {
+                if (generation == transientFeedbackGeneration) {
+                    transientFeedbackJob = null
+                    activeTransientFeedback = null
+                    pendingTransientFeedback.removeFirstOrNull()?.let(::startTransientFeedback)
+                }
+            }
+        }
+    }
+    fun presentTransientFeedback(
+        source: String,
+        priority: Int,
+        recoverable: Boolean = false,
+        block: suspend () -> Unit,
+    ) {
+        val request = TransientFeedbackRequest(source, priority, recoverable, block)
+        val active = activeTransientFeedback
+        if (transientFeedbackJob?.isActive != true || active == null) {
+            startTransientFeedback(request)
+            return
+        }
+        when {
+            recoverable && active.recoverable && source == active.source -> {
+                transientFeedbackJob?.cancel()
+                snackbarHostState.currentSnackbarData?.dismiss()
+                startTransientFeedback(request)
+            }
+            active.recoverable -> {
+                if (priority >= 2) {
+                    pendingTransientFeedback.removeAll {
+                        it.source == source && it.recoverable == recoverable
+                    }
+                    pendingTransientFeedback.addLast(request)
+                }
+            }
+            recoverable -> {
+                transientFeedbackJob?.cancel()
+                snackbarHostState.currentSnackbarData?.dismiss()
+                startTransientFeedback(request)
+            }
+            active.priority >= 3 -> {
+                if (priority >= 3) pendingTransientFeedback.addLast(request)
+            }
+            priority >= 3 -> {
+                transientFeedbackJob?.cancel()
+                snackbarHostState.currentSnackbarData?.dismiss()
+                startTransientFeedback(request)
+            }
+            else -> {
+                transientFeedbackJob?.cancel()
+                snackbarHostState.currentSnackbarData?.dismiss()
+                startTransientFeedback(request)
+            }
+        }
+    }
+    fun invalidateTransientFeedback(source: String, preserveRecoveries: Boolean = false) {
+        pendingTransientFeedback.removeAll {
+            it.source == source && (!preserveRecoveries || !it.recoverable)
+        }
+        val active = activeTransientFeedback
+        if (active?.source != source || (preserveRecoveries && active.recoverable)) return
+        transientFeedbackGeneration++
+        transientFeedbackJob?.cancel()
+        transientFeedbackJob = null
+        activeTransientFeedback = null
+        snackbarHostState.currentSnackbarData?.dismiss()
+        pendingTransientFeedback.removeFirstOrNull()?.let(::startTransientFeedback)
+    }
+    fun invalidateTransientRecovery(source: String) {
+        pendingTransientFeedback.removeAll { it.source == source && it.recoverable }
+        val active = activeTransientFeedback
+        if (active?.source != source || !active.recoverable) return
+        transientFeedbackGeneration++
+        transientFeedbackJob?.cancel()
+        transientFeedbackJob = null
+        activeTransientFeedback = null
+        snackbarHostState.currentSnackbarData?.dismiss()
+        pendingTransientFeedback.removeFirstOrNull()?.let(::startTransientFeedback)
+    }
+    LaunchedEffect(appDestination) {
+        pendingTransientFeedback.removeAll {
+            !transientFeedbackSurvivesDestinationChange(it.recoverable)
+        }
+        if (activeTransientFeedback?.let {
+                transientFeedbackSurvivesDestinationChange(it.recoverable)
+            } == true
+        ) {
+            return@LaunchedEffect
+        }
+        transientFeedbackGeneration++
+        transientFeedbackJob?.cancel()
+        transientFeedbackJob = null
+        activeTransientFeedback = null
+        snackbarHostState.currentSnackbarData?.dismiss()
+        pendingTransientFeedback.removeFirstOrNull()?.let(::startTransientFeedback)
+    }
     val allScheduledTasks = state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived
     val scheduledTaskByKey = allScheduledTasks.associateBy(ScheduledTask::stableKey)
     val actionItem = actionItemKey?.let(scheduledTaskByKey::get)
@@ -626,12 +769,6 @@ fun WhipScreen(
     }
     val homeHabitValueItem = homeHabitValueItemId?.let { id ->
         (habitState.today + habitState.all).firstOrNull { it.habit.id == id }
-    }
-    LaunchedEffect(appDestination, globalAddPending) {
-        if (appDestination == AppDestination.Home && globalAddPending) {
-            globalAddPending = false
-            globalAddExpanded = true
-        }
     }
     LaunchedEffect(shortcutFocusRequester) {
         shortcutFocusRequester.requestFocus()
@@ -746,22 +883,43 @@ fun WhipScreen(
     }
 
     LaunchedEffect(operationStatus) {
+        if (
+            operationStatus is OperationStatus.Running ||
+            (operationStatus is OperationStatus.Succeeded &&
+                operationStatus.feedbackPresentation == OperationFeedbackPresentation.Inline)
+        ) {
+            invalidateTransientFeedback("tasks")
+        }
         operationStatus.deliverTransientMessage(onOperationStatusConsumed) { message ->
             val quickAddedId = quickAddedTaskId
             val undoMessage = taskUndoMessage
+            val undoToken = taskUndoToken
             val succeeded = operationStatus is OperationStatus.Succeeded
-            transientFeedbackScope.launch {
-                val result = snackbarHostState.showSnackbar(
-                    message = message,
-                    actionLabel = when {
-                        !succeeded || undoMessage == null -> null
-                        quickAddedId != null -> "Edit"
-                        else -> "Undo"
-                    },
-                    withDismissAction = undoMessage != null,
-                    duration = SnackbarDuration.Long,
-                )
-                if (undoMessage != null) {
+            presentTransientFeedback(
+                source = "tasks",
+                priority = when {
+                    operationStatus is OperationStatus.Failed -> 3
+                    undoMessage != null -> 2
+                    else -> 1
+                },
+                recoverable = undoToken != null,
+            ) {
+                try {
+                    val result = snackbarHostState.showSnackbar(
+                        TaskSnackbarVisuals(
+                            message = message,
+                            actionLabel = when {
+                            !succeeded || undoMessage == null -> null
+                            quickAddedId != null -> "Edit"
+                            else -> "Undo"
+                            },
+                            withDismissAction = undoToken != null || !succeeded,
+                            duration = if (succeeded) SnackbarDuration.Long else SnackbarDuration.Indefinite,
+                            undoToken = undoToken,
+                            quickAdd = quickAddedId != null,
+                        ),
+                    )
+                    if (undoToken == null) return@presentTransientFeedback
                     when {
                         quickAddedId != null && result == SnackbarResult.ActionPerformed -> {
                             val item = allScheduledTasks.firstOrNull { it.task.id == quickAddedId }
@@ -774,78 +932,147 @@ fun WhipScreen(
                                 taskEditorInitialPlacement = null
                                 taskEditorSessionId++
                             }
-                            onTaskUndoDismissed()
+                            onTaskUndoDismissed(undoToken)
                         }
-                        quickAddedId == null && result == SnackbarResult.ActionPerformed -> onTaskUndo()
-                        else -> onTaskUndoDismissed()
+                        quickAddedId == null && result == SnackbarResult.ActionPerformed -> onTaskUndo(undoToken)
+                        else -> Unit
                     }
+                } finally {
+                    undoToken?.let(onTaskUndoDismissed)
                 }
             }
         }
     }
 
     LaunchedEffect(gymOperationStatus) {
+        if (
+            gymOperationStatus is OperationStatus.Running ||
+            (gymOperationStatus is OperationStatus.Succeeded &&
+                gymOperationStatus.feedbackPresentation == OperationFeedbackPresentation.Inline)
+        ) {
+            invalidateTransientFeedback("gym", preserveRecoveries = true)
+        }
         gymOperationStatus.deliverTransientMessage(onGymOperationStatusConsumed) { message ->
-            val archiveUndoAvailable = machineArchiveUndoAvailable
+            val archiveUndoId = (gymOperationStatus as? OperationStatus.Succeeded)
+                ?.recoveryToken
+                ?.takeIf { it == machineArchiveUndoId }
+            val archiveUndoAvailable = archiveUndoId != null
             val succeeded = gymOperationStatus is OperationStatus.Succeeded
-            transientFeedbackScope.launch {
-                if (message.startsWith("Timer ", ignoreCase = true)) {
-                    snackbarHostState.currentSnackbarData
-                        ?.takeIf { it.visuals.message.startsWith("Timer ", ignoreCase = true) }
-                        ?.dismiss()
-                }
-                val result = snackbarHostState.showSnackbar(
-                    message = message,
-                    actionLabel = "Undo".takeIf { succeeded && archiveUndoAvailable },
-                    withDismissAction = archiveUndoAvailable,
-                    duration = SnackbarDuration.Short,
-                )
-                if (archiveUndoAvailable) {
-                    if (result == SnackbarResult.ActionPerformed) onMachineArchiveUndo()
-                    else onMachineArchiveUndoDismissed()
+            presentTransientFeedback(
+                source = "gym",
+                priority = when {
+                    gymOperationStatus is OperationStatus.Failed -> 3
+                    archiveUndoAvailable -> 2
+                    else -> 1
+                },
+                recoverable = archiveUndoAvailable,
+            ) {
+                try {
+                    val result = snackbarHostState.showSnackbar(
+                        message = message,
+                        actionLabel = "Undo".takeIf { succeeded && archiveUndoAvailable },
+                        withDismissAction = archiveUndoAvailable || gymOperationStatus is OperationStatus.Failed,
+                        duration = if (gymOperationStatus is OperationStatus.Failed) SnackbarDuration.Indefinite else SnackbarDuration.Long,
+                    )
+                    if (result == SnackbarResult.ActionPerformed && archiveUndoId != null) onMachineArchiveUndo(archiveUndoId)
+                } finally {
+                    archiveUndoId?.let(onMachineArchiveUndoDismissed)
                 }
             }
         }
     }
     LaunchedEffect(habitOperationStatus) {
+        if (
+            habitOperationStatus is OperationStatus.Running ||
+            (habitOperationStatus is OperationStatus.Succeeded &&
+                habitOperationStatus.feedbackPresentation == OperationFeedbackPresentation.Inline)
+        ) {
+            invalidateTransientFeedback("habits")
+        }
         habitOperationStatus.deliverTransientMessage(onHabitOperationStatusConsumed) { message ->
-            transientFeedbackScope.launch { snackbarHostState.showSnackbar(message) }
+            presentTransientFeedback(source = "habits", priority = if (habitOperationStatus is OperationStatus.Failed) 3 else 1) {
+                snackbarHostState.showSnackbar(
+                    message = message,
+                    withDismissAction = habitOperationStatus is OperationStatus.Failed,
+                    duration = if (habitOperationStatus is OperationStatus.Failed) SnackbarDuration.Indefinite else SnackbarDuration.Long,
+                )
+            }
         }
     }
     LaunchedEffect(goalOperationStatus) {
+        if (
+            goalOperationStatus is OperationStatus.Running ||
+            (goalOperationStatus is OperationStatus.Succeeded &&
+                goalOperationStatus.feedbackPresentation == OperationFeedbackPresentation.Inline)
+        ) {
+            invalidateTransientFeedback("goals")
+        }
         goalOperationStatus.deliverTransientMessage(onGoalOperationStatusConsumed) { message ->
-            transientFeedbackScope.launch { snackbarHostState.showSnackbar(message) }
+            presentTransientFeedback(source = "goals", priority = if (goalOperationStatus is OperationStatus.Failed) 3 else 1) {
+                snackbarHostState.showSnackbar(
+                    message = message,
+                    withDismissAction = goalOperationStatus is OperationStatus.Failed,
+                    duration = if (goalOperationStatus is OperationStatus.Failed) SnackbarDuration.Indefinite else SnackbarDuration.Long,
+                )
+            }
         }
     }
     LaunchedEffect(trackOperationStatus) {
+        if (
+            trackOperationStatus is OperationStatus.Running ||
+            (trackOperationStatus is OperationStatus.Succeeded &&
+                trackOperationStatus.feedbackPresentation == OperationFeedbackPresentation.Inline)
+        ) {
+            invalidateTransientFeedback("tracks", preserveRecoveries = true)
+        }
         trackOperationStatus.deliverTransientMessage(onTrackOperationStatusConsumed) { message ->
-            val addAnotherTrackId = lastAddedEntryTrackId.takeIf {
-                trackOperationStatus is OperationStatus.Succeeded && trackOperationStatus.message == "Entry added"
-            }
-            transientFeedbackScope.launch {
-                val result = snackbarHostState.showSnackbar(
-                    message,
-                    actionLabel = "Add Another".takeIf { addAnotherTrackId != null },
-                    withDismissAction = addAnotherTrackId != null,
-                )
-                if (addAnotherTrackId != null && result == SnackbarResult.ActionPerformed) {
-                    openTrackIdRequested = addAnotherTrackId
-                    addTrackEntryRequestedForId = addAnotherTrackId
-                    appDestination = AppDestination.Tracks
+            val succeeded = trackOperationStatus is OperationStatus.Succeeded
+            val undoEntryId = (trackOperationStatus as? OperationStatus.Succeeded)
+                ?.recoveryToken
+                ?.takeIf { succeeded && it == trackEntryUndoId }
+            val undoAvailable = undoEntryId != null
+            presentTransientFeedback(
+                source = "tracks",
+                priority = when {
+                    trackOperationStatus is OperationStatus.Failed -> 3
+                    undoAvailable -> 2
+                    else -> 1
+                },
+                recoverable = undoAvailable,
+            ) {
+                try {
+                    val result = snackbarHostState.showSnackbar(
+                        message,
+                        actionLabel = "Undo".takeIf { undoAvailable },
+                        withDismissAction = undoAvailable || trackOperationStatus is OperationStatus.Failed,
+                        duration = if (trackOperationStatus is OperationStatus.Failed) SnackbarDuration.Indefinite else SnackbarDuration.Long,
+                    )
+                    if (result == SnackbarResult.ActionPerformed && undoEntryId != null) onTrackEntryUndo(undoEntryId)
+                } finally {
+                    undoEntryId?.let(onTrackEntryUndoDismissed)
                 }
-                if (addAnotherTrackId != null) onAddAnotherOfferConsumed()
             }
         }
     }
 
+    LaunchedEffect(machineArchiveUndoId) {
+        if (machineArchiveUndoId == null) invalidateTransientRecovery("gym")
+    }
+    LaunchedEffect(trackEntryUndoId) {
+        if (trackEntryUndoId == null) invalidateTransientRecovery("tracks")
+    }
+
     LaunchedEffect(areaMoveNotice) {
         val message = areaMoveNotice ?: return@LaunchedEffect
-        val result = snackbarHostState.showSnackbar(message, actionLabel = "Restore view", withDismissAction = true)
-        if (result == SnackbarResult.ActionPerformed) {
-            onSelectAreaScope(AreaScope.fromStorageKey(areaMoveRestoreScope))
-        }
+        val restoreScope = areaMoveRestoreScope
         areaMoveNotice = null
         areaMoveRestoreScope = null
+        presentTransientFeedback(source = "area-move", priority = 2, recoverable = true) {
+            val result = snackbarHostState.showSnackbar(message, actionLabel = "Restore view", withDismissAction = true)
+            if (result == SnackbarResult.ActionPerformed) {
+                onSelectAreaScope(AreaScope.fromStorageKey(restoreScope))
+            }
+        }
     }
 
     LaunchedEffect(pendingAreaBadgeId) {
@@ -854,8 +1081,10 @@ fun WhipScreen(
         onAreaBadgeConsumed()
         if (area != null) {
             onSelectAreaScope(AreaScope.One(id))
-            val result = snackbarHostState.showSnackbar("Showing ${area.name}", actionLabel = "Show all", withDismissAction = true)
-            if (result == SnackbarResult.ActionPerformed) onSelectAreaScope(AreaScope.All)
+            presentTransientFeedback(source = "area-badge", priority = 2) {
+                val result = snackbarHostState.showSnackbar("Showing ${area.name}", actionLabel = "Show all", withDismissAction = true)
+                if (result == SnackbarResult.ActionPerformed) onSelectAreaScope(AreaScope.All)
+            }
         }
     }
 
@@ -925,7 +1154,7 @@ fun WhipScreen(
         gymContextTitle = when (gymDestination) {
             GymDestination.Workout -> "Workout Context"
             GymDestination.History -> "Recent Workouts"
-            GymDestination.Progress -> "Current Records"
+            GymDestination.Progress -> "Tracked Records"
             GymDestination.Routines -> "Routines"
             GymDestination.Exercises -> "Exercise Library"
             GymDestination.Machines -> "Machine Profiles"
@@ -942,13 +1171,22 @@ fun WhipScreen(
             GymDestination.History -> gymState.history.sortedByDescending { it.localDate }.take(6)
                 .map { it.name.ifBlank { "Workout · ${it.localDate}" } }
                 .ifEmpty { listOf("Completed workouts will appear here") }
-            GymDestination.Progress -> gymState.personalRecords.filter { it.current }.take(6).map { record ->
-                val exerciseName = gymState.exercises.firstOrNull { it.id == record.exerciseId }?.name ?: "Exercise"
-                "$exerciseName · ${record.type.name.replace(Regex("([a-z])([A-Z])"), "$1 $2") }"
-            }.ifEmpty {
+            GymDestination.Progress -> gymState.appSettings.trackedGymRecords
+                .filter { selection ->
+                    gymState.exercises.firstOrNull { it.uuid == selection.exerciseUuid }
+                        ?.let { exercise -> selection.type in exercise.supportedTrackedRecordTypes() } == true
+                }
+                .groupBy { it.exerciseUuid }
+                .entries
+                .take(6)
+                .mapNotNull { (exerciseUuid, records) ->
+                    val exerciseName = gymState.exercises.firstOrNull { it.uuid == exerciseUuid }?.name
+                        ?: return@mapNotNull null
+                    "$exerciseName · ${records.size} tracked record${if (records.size == 1) "" else "s"}"
+                }.ifEmpty {
                 listOf(
                     quantityLabel(gymState.history.size, "completed workout"),
-                    "Records appear after eligible completed sets",
+                    "Choose records to keep at a glance",
                 )
             }
             GymDestination.Routines -> gymState.routines.take(6).map { it.name }
@@ -977,8 +1215,12 @@ fun WhipScreen(
     // particular, opening Settings from a split/fold layout must not replace the
     // persistent rail with compact bottom navigation.
     val contentPaneIsExpanded = supportsPaneExpansion && contentPaneExpanded
+    val topBarWidth = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
+    val topBarFontScale = LocalDensity.current.fontScale.coerceIn(1f, 1.5f)
     val useSecondaryAppActionsMenu =
-        adaptiveLayout == WhipAdaptiveLayout.BookFold && !contentPaneIsExpanded
+        adaptiveLayout == WhipAdaptiveLayout.Compact ||
+            (adaptiveLayout == WhipAdaptiveLayout.BookFold && !contentPaneIsExpanded) ||
+            topBarWidth < 600.dp * topBarFontScale
     LaunchedEffect(useSecondaryAppActionsMenu) {
         if (!useSecondaryAppActionsMenu) secondaryAppActionsExpanded = false
     }
@@ -1020,17 +1262,15 @@ fun WhipScreen(
             ?: 0.dp
     }
     val dialogPaneWidth = minOf(dialogContentWidth * 0.94f, 720.dp)
-    val collapseSearchIntoAppActions = useSecondaryAppActionsMenu && dialogContentWidth < 420.dp
+    val collapseSearchIntoAppActions =
+        adaptiveLayout == WhipAdaptiveLayout.Compact ||
+            (useSecondaryAppActionsMenu && dialogContentWidth < 420.dp)
     val paneDialogModifier = Modifier
         .absoluteOffset(x = dialogPaneOffset)
         .width(dialogPaneWidth)
     val primaryEditorPaneModifier = Modifier
         .absoluteOffset(x = dialogPaneOffset)
         .width(dialogContentWidth)
-    val runningMessage = listOf(operationStatus, gymOperationStatus, habitOperationStatus, goalOperationStatus, trackOperationStatus)
-        .filterIsInstance<OperationStatus.Running>()
-        .firstOrNull()
-        ?.message
     var gymRoutineEditorOpen by rememberSaveable { mutableStateOf(false) }
     var taskSelectionMode by rememberSaveable { mutableStateOf(false) }
     fun returnToHomeAfterDataReset() {
@@ -1046,13 +1286,11 @@ fun WhipScreen(
         deleteItemKey = null
         globalAddExpanded = false
         secondaryAppActionsExpanded = false
-        globalAddPending = false
         gymAddExpanded = false
         createHabitRequested = false
         createGoalRequested = false
         createTrackRequested = false
-        createExerciseRequested = false
-        startWorkoutRequested = false
+        gymAddRequest = null
         recordGoalIdRequested = null
         searchOpen = false
         openHabitIdRequested = null
@@ -1085,8 +1323,21 @@ fun WhipScreen(
         AppDestination.Tasks -> "Add task"
         AppDestination.Habits -> "Add habit"
         AppDestination.Goals -> "Add goal"
-        AppDestination.Gym -> "Add exercise or workout"
-        AppDestination.Tracks -> "Add Track"
+        AppDestination.Gym -> when (gymDestination) {
+            GymDestination.Workout -> if (gymState.activeSession == null) "Start workout" else "Add exercise to workout"
+            GymDestination.History, GymDestination.Progress -> {
+                if (gymState.activeSession == null) "Start workout" else "Add exercise to workout"
+            }
+            GymDestination.Library -> "Add workout, routine, exercise, machine, or category"
+            GymDestination.Routines -> "Create routine"
+            GymDestination.Exercises -> "Create exercise"
+            GymDestination.Machines -> "Create machine"
+            GymDestination.Categories -> "Create category"
+            GymDestination.Tools -> "Add"
+        }
+        AppDestination.Tracks -> selectedTrackState.value?.let { id ->
+            trackState.track(id)?.track?.name?.let { "Add entry to $it" }
+        } ?: "Add track"
         AppDestination.Settings -> "Add"
     }
     val triggerAdd: () -> Unit = {
@@ -1102,8 +1353,37 @@ fun WhipScreen(
             )
             AppDestination.Habits -> createHabitRequested = true
             AppDestination.Goals -> createGoalRequested = true
-            AppDestination.Gym -> gymAddExpanded = true
-            AppDestination.Tracks -> createTrackRequested = true
+            AppDestination.Gym -> when (gymDestination) {
+                GymDestination.Workout -> {
+                    gymAddRequest = if (gymState.activeSession == null) {
+                        GymAddRequest.StartWorkout
+                    } else {
+                        GymAddRequest.AddWorkoutExercise
+                    }
+                }
+                GymDestination.History, GymDestination.Progress -> {
+                    gymAddRequest = if (gymState.activeSession == null) {
+                        GymAddRequest.StartWorkout
+                    } else {
+                        GymAddRequest.AddWorkoutExercise
+                    }
+                }
+                GymDestination.Library -> gymAddExpanded = true
+                GymDestination.Routines -> gymAddRequest = GymAddRequest.CreateRoutine
+                GymDestination.Exercises -> gymAddRequest = GymAddRequest.CreateExercise
+                GymDestination.Machines -> gymAddRequest = GymAddRequest.CreateMachine
+                GymDestination.Categories -> gymAddRequest = GymAddRequest.CreateCategory
+                GymDestination.Tools -> Unit
+            }
+            AppDestination.Tracks -> {
+                val selectedTrackId = selectedTrackState.value
+                val selectedTrack = selectedTrackId?.let(trackState::track)
+                if (selectedTrack != null && !selectedTrack.track.archived) {
+                    openTrackEditor(TrackEditorIntent.Entry(selectedTrackId))
+                } else if (selectedTrack == null) {
+                    createTrackRequested = true
+                }
+            }
             AppDestination.Settings -> Unit
         }
     }
@@ -1129,23 +1409,19 @@ fun WhipScreen(
                         searchEntryContext = appDestination.searchEntryContext(gymDestination)
                         searchOpen = true
                     }
-                    Key.N -> when (appDestination) {
-                        AppDestination.Home -> globalAddExpanded = true
-                        AppDestination.Tasks -> openTaskEditor(
-                            scheduleDate = when (taskDestination) {
-                                TaskDestination.Today -> state.currentDate
-                                TaskDestination.Upcoming -> state.currentDate.plusDays(1)
-                                else -> null
-                            },
-                            placement = taskDestination.creationPlacement(),
-                        )
-                        AppDestination.Habits -> createHabitRequested = true
-                        AppDestination.Goals -> createGoalRequested = true
-                        AppDestination.Gym -> gymAddExpanded = true
-                        AppDestination.Tracks -> createTrackRequested = true
-                        AppDestination.Settings -> {
-                            appDestination = AppDestination.Home
-                            globalAddPending = true
+                    Key.N -> {
+                        if (
+                            globalAddAvailable(
+                                appDestination,
+                                gymDestination,
+                                gymRoutineEditorOpen,
+                                taskSelectionMode,
+                                selectedTrackState.value?.let(trackState::track)?.track?.archived == true,
+                            )
+                        ) {
+                            triggerAdd()
+                        } else {
+                            return@onPreviewKeyEvent false
                         }
                     }
                     Key.H -> appDestination = AppDestination.Home
@@ -1306,41 +1582,91 @@ fun WhipScreen(
                 ),
                 actions = {
                     if (
-                        adaptiveLayout != WhipAdaptiveLayout.Compact &&
                         globalAddAvailable(
                             appDestination = appDestination,
                             gymDestination = gymDestination,
                             gymRoutineEditorOpen = gymRoutineEditorOpen,
                             taskSelectionMode = taskSelectionMode,
+                            selectedTrackArchived = selectedTrackState.value?.let(trackState::track)?.track?.archived == true,
                         )
                     ) {
                         Box {
                             IconButton(
                                 onClick = triggerAdd,
-                                modifier = Modifier.size(52.dp).semantics { contentDescription = addDescription },
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .testTag("workspace-add-action")
+                                    .semantics { contentDescription = addDescription },
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(28.dp))
-                                    if (appDestination == AppDestination.Home || appDestination == AppDestination.Gym) {
+                                    if (appDestination == AppDestination.Home || (appDestination == AppDestination.Gym && gymDestination == GymDestination.Library)) {
                                         Icon(Icons.Outlined.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
                                     }
                                 }
                             }
                             DropdownMenu(expanded = globalAddExpanded && appDestination == AppDestination.Home, onDismissRequest = { globalAddExpanded = false }) {
-                                DropdownMenuItem(text = { Text("Task") }, onClick = { openTaskEditor(placement = TaskPlacement.Inbox); globalAddExpanded = false })
+                                DropdownMenuItem(
+                                    text = { Text("Task") },
+                                    onClick = {
+                                        openTaskEditor(
+                                            scheduleDate = state.currentDate,
+                                            placement = TaskPlacement.Scheduled,
+                                        )
+                                        globalAddExpanded = false
+                                    },
+                                )
                                 DropdownMenuItem(text = { Text("Habit") }, onClick = { appDestination = AppDestination.Habits; createHabitRequested = true; globalAddExpanded = false })
                                 DropdownMenuItem(text = { Text("Goal") }, onClick = { appDestination = AppDestination.Goals; createGoalRequested = true; globalAddExpanded = false })
                                 DropdownMenuItem(text = { Text("Track") }, onClick = { appDestination = AppDestination.Tracks; createTrackRequested = true; globalAddExpanded = false })
-                                DropdownMenuItem(text = { Text("Exercise") }, onClick = { appDestination = AppDestination.Gym; createExerciseRequested = true; globalAddExpanded = false })
-                                DropdownMenuItem(text = { Text("Workout") }, onClick = { appDestination = AppDestination.Gym; startWorkoutRequested = true; globalAddExpanded = false })
+                                DropdownMenuItem(
+                                    text = { Text("Exercise") },
+                                    onClick = {
+                                        appDestination = AppDestination.Gym
+                                        gymDestination = GymDestination.Exercises
+                                        gymAddRequest = GymAddRequest.CreateExercise
+                                        globalAddExpanded = false
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(if (gymState.activeSession == null) "Workout" else "Add to Workout") },
+                                    onClick = {
+                                        appDestination = AppDestination.Gym
+                                        gymDestination = GymDestination.Workout
+                                        gymAddRequest = if (gymState.activeSession == null) {
+                                            GymAddRequest.StartWorkout
+                                        } else {
+                                            GymAddRequest.AddWorkoutExercise
+                                        }
+                                        globalAddExpanded = false
+                                    },
+                                )
                             }
                             DropdownMenu(expanded = gymAddExpanded && appDestination == AppDestination.Gym, onDismissRequest = { gymAddExpanded = false }) {
-                                DropdownMenuItem(text = { Text("Exercise") }, onClick = { createExerciseRequested = true; gymAddExpanded = false })
-                                DropdownMenuItem(text = { Text("Workout") }, onClick = { startWorkoutRequested = true; gymAddExpanded = false })
+                                DropdownMenuItem(
+                                    text = { Text(if (gymState.activeSession == null) "Workout" else "Add to Workout") },
+                                    onClick = {
+                                        gymDestination = GymDestination.Workout
+                                        gymAddRequest = if (gymState.activeSession == null) {
+                                            GymAddRequest.StartWorkout
+                                        } else {
+                                            GymAddRequest.AddWorkoutExercise
+                                        }
+                                        gymAddExpanded = false
+                                    },
+                                )
+                                DropdownMenuItem(text = { Text("Routine") }, onClick = { gymDestination = GymDestination.Routines; gymAddRequest = GymAddRequest.CreateRoutine; gymAddExpanded = false })
+                                DropdownMenuItem(text = { Text("Exercise") }, onClick = { gymDestination = GymDestination.Exercises; gymAddRequest = GymAddRequest.CreateExercise; gymAddExpanded = false })
+                                DropdownMenuItem(text = { Text("Machine") }, onClick = { gymDestination = GymDestination.Machines; gymAddRequest = GymAddRequest.CreateMachine; gymAddExpanded = false })
+                                DropdownMenuItem(text = { Text("Category") }, onClick = { gymDestination = GymDestination.Categories; gymAddRequest = GymAddRequest.CreateCategory; gymAddExpanded = false })
                             }
                         }
                     }
-                    if (supportsPaneExpansion && !useSecondaryAppActionsMenu && appDestination != AppDestination.Settings) {
+                    if (
+                        supportsPaneExpansion &&
+                        (!useSecondaryAppActionsMenu || contentPaneIsExpanded) &&
+                        appDestination != AppDestination.Settings
+                    ) {
                         IconButton(
                             onClick = { contentPaneExpanded = !contentPaneExpanded },
                             modifier = Modifier
@@ -1371,7 +1697,7 @@ fun WhipScreen(
                             },
                         ) { Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(28.dp)) }
                     }
-                    if (useSecondaryAppActionsMenu) {
+                    if (useSecondaryAppActionsMenu && appDestination != AppDestination.Settings) {
                         Box {
                             IconButton(
                                 onClick = { secondaryAppActionsExpanded = true },
@@ -1384,10 +1710,10 @@ fun WhipScreen(
                                 onDismissRequest = { secondaryAppActionsExpanded = false },
                             ) {
                                 if (collapseSearchIntoAppActions && appDestination != AppDestination.Settings) {
-                                    DropdownMenuItem(
+                                    WhipMenuItem(
                                         modifier = Modifier.testTag("workspace-search-menu-action"),
-                                        text = { Text(if (appDestination == AppDestination.Home) "Search All Whip Data" else "Search ${appDestination.label}") },
-                                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                                        label = if (appDestination == AppDestination.Home) "Search All Whip Data" else "Search ${appDestination.label}",
+                                        icon = Icons.Outlined.Search,
                                         onClick = {
                                             secondaryAppActionsExpanded = false
                                             searchEntryContext = appDestination.searchEntryContext(gymDestination)
@@ -1395,19 +1721,21 @@ fun WhipScreen(
                                         },
                                     )
                                 }
-                                DropdownMenuItem(
-                                    modifier = Modifier.testTag("expand-content-pane-action"),
-                                    text = { Text("Expand Content") },
-                                    leadingIcon = { Icon(Icons.Outlined.Fullscreen, contentDescription = null) },
-                                    onClick = {
-                                        secondaryAppActionsExpanded = false
-                                        contentPaneExpanded = true
-                                    },
-                                )
+                                if (supportsPaneExpansion && !contentPaneIsExpanded) {
+                                    WhipMenuItem(
+                                        modifier = Modifier.testTag("expand-content-pane-action"),
+                                        label = "Expand Content",
+                                        icon = Icons.Outlined.Fullscreen,
+                                        onClick = {
+                                            secondaryAppActionsExpanded = false
+                                            contentPaneExpanded = true
+                                        },
+                                    )
+                                }
                                 if (appDestination != AppDestination.Settings) {
-                                    DropdownMenuItem(
-                                        text = { Text("Open Settings") },
-                                        leadingIcon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
+                                    WhipMenuItem(
+                                        label = "Open Settings",
+                                        icon = Icons.Outlined.Settings,
                                         onClick = {
                                             secondaryAppActionsExpanded = false
                                             openSettings()
@@ -1457,7 +1785,8 @@ fun WhipScreen(
                     bottom = if (gymState.activeSession != null && appDestination == AppDestination.Gym) 104.dp else 12.dp,
                 ),
             ) { data ->
-                if (quickAddedTaskId != null && data.visuals.actionLabel == "Edit") {
+                val taskVisuals = data.visuals as? TaskSnackbarVisuals
+                if (taskVisuals?.quickAdd == true && taskVisuals.actionLabel == "Edit") {
                     Snackbar(
                         action = {
                             WhipTextButton(onClick = data::performAction) { Text("Edit") }
@@ -1465,7 +1794,7 @@ fun WhipScreen(
                         dismissAction = {
                             WhipTextButton(
                                 onClick = {
-                                    onTaskUndo()
+                                    taskVisuals.undoToken?.let(onTaskUndo)
                                     data.dismiss()
                                 },
                             ) { Text("Undo") }
@@ -1473,53 +1802,6 @@ fun WhipScreen(
                     ) { Text(data.visuals.message) }
                 } else {
                     Snackbar(data)
-                }
-            }
-        },
-        floatingActionButton = {
-            if (
-                adaptiveLayout == WhipAdaptiveLayout.Compact &&
-                globalAddAvailable(
-                    appDestination = appDestination,
-                    gymDestination = gymDestination,
-                    gymRoutineEditorOpen = gymRoutineEditorOpen,
-                    taskSelectionMode = taskSelectionMode,
-                )
-            ) {
-                Box {
-                    FloatingActionButton(
-                        onClick = triggerAdd,
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.semantics { contentDescription = addDescription },
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(30.dp))
-                            if (appDestination == AppDestination.Home || appDestination == AppDestination.Gym) {
-                                Icon(Icons.Outlined.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
-                            }
-                        }
-                    }
-                    DropdownMenu(expanded = globalAddExpanded && appDestination == AppDestination.Home, onDismissRequest = { globalAddExpanded = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Task") },
-                            onClick = {
-                                openTaskEditor(
-                                    scheduleDate = state.currentDate,
-                                    placement = TaskPlacement.Scheduled,
-                                )
-                                globalAddExpanded = false
-                            },
-                        )
-                        DropdownMenuItem(text = { Text("Habit") }, onClick = { appDestination = AppDestination.Habits; createHabitRequested = true; globalAddExpanded = false })
-                        DropdownMenuItem(text = { Text("Goal") }, onClick = { appDestination = AppDestination.Goals; createGoalRequested = true; globalAddExpanded = false })
-                        DropdownMenuItem(text = { Text("Track") }, onClick = { appDestination = AppDestination.Tracks; createTrackRequested = true; globalAddExpanded = false })
-                        DropdownMenuItem(text = { Text("Exercise") }, onClick = { appDestination = AppDestination.Gym; createExerciseRequested = true; globalAddExpanded = false })
-                        DropdownMenuItem(text = { Text("Workout") }, onClick = { appDestination = AppDestination.Gym; startWorkoutRequested = true; globalAddExpanded = false })
-                    }
-                    DropdownMenu(expanded = gymAddExpanded && appDestination == AppDestination.Gym, onDismissRequest = { gymAddExpanded = false }) {
-                        DropdownMenuItem(text = { Text("Exercise") }, onClick = { createExerciseRequested = true; gymAddExpanded = false })
-                        DropdownMenuItem(text = { Text("Workout") }, onClick = { startWorkoutRequested = true; gymAddExpanded = false })
-                    }
                 }
             }
         },
@@ -1539,7 +1821,7 @@ fun WhipScreen(
                     innerPadding = innerPadding,
                     onQuickHabit = { item ->
                         habitViewModel?.let { vm ->
-                            quickHabitAction(item, vm) { appDestination = AppDestination.Habits }
+                            quickHabitAction(item, vm) { homeHabitValueItemId = item.habit.id }
                         }
                     },
                     onHabitValue = { item, value -> habitViewModel?.addValue(item, value) },
@@ -1559,14 +1841,8 @@ fun WhipScreen(
                         habitViewModel?.toggleChecklist(habitId, itemId, date, completed)
                     },
                     onOpenHabits = { appDestination = AppDestination.Habits },
-                    onOpenHabit = { item ->
-                        openHabitIdRequested = item.habit.id
-                        appDestination = AppDestination.Habits
-                    },
-                    onEditHabit = { item ->
-                        editHabitIdRequested = item.habit.id
-                        appDestination = AppDestination.Habits
-                    },
+                    onOpenHabit = { item -> openHabitIdRequested = item.habit.id },
+                    onEditHabit = { item -> editHabitIdRequested = item.habit.id },
                     onOpenTasks = { appDestination = AppDestination.Tasks; taskDestination = TaskDestination.Today },
                     onCompleteTask = ::requestCompletion,
                     onOpenTask = { actionItemKey = it.stableKey },
@@ -1574,22 +1850,10 @@ fun WhipScreen(
                     onOpenGym = { appDestination = AppDestination.Gym },
                     onStartRoutine = { routineId, dayId -> gymViewModel?.startRoutine(routineId, dayId) },
                     onOpenGoals = { appDestination = AppDestination.Goals },
-                    onOpenGoal = { projection ->
-                        openGoalIdRequested = projection.goal.id
-                        appDestination = AppDestination.Goals
-                    },
-                    onEditGoal = { projection ->
-                        editGoalIdRequested = projection.goal.id
-                        appDestination = AppDestination.Goals
-                    },
-                    onRecordGoal = { projection ->
-                        recordGoalIdRequested = projection.goal.id
-                        appDestination = AppDestination.Goals
-                    },
-                    onResetElapsedGoal = { projection ->
-                        resetElapsedGoalIdRequested = projection.goal.id
-                        appDestination = AppDestination.Goals
-                    },
+                    onOpenGoal = { projection -> openGoalIdRequested = projection.goal.id },
+                    onEditGoal = { projection -> editGoalIdRequested = projection.goal.id },
+                    onRecordGoal = { projection -> recordGoalIdRequested = projection.goal.id },
+                    onResetElapsedGoal = { projection -> resetElapsedGoalIdRequested = projection.goal.id },
                     onToggleMilestone = { milestoneId, completed ->
                         goalViewModel?.toggleMilestone(milestoneId, completed)
                     },
@@ -1599,8 +1863,10 @@ fun WhipScreen(
                     onAddTrackEntry = { projection -> addTrackEntryRequestedForId = projection.track.id; appDestination = AppDestination.Tracks },
                     onSelectHomeTaskFilter = { name ->
                         settingsViewModel?.selectHomeTaskFilter(name)
-                        settingsState.settings.savedTaskFilters.firstOrNull { it.name == name }?.let { filter ->
-                            filter.areaId?.let { onSelectAreaScope(AreaScope.One(it)) }
+                        val selectedFilter = settingsState.settings.savedTaskFilters.firstOrNull { it.name == name }
+                        when {
+                            name == null -> onSelectAreaScope(AreaScope.All)
+                            selectedFilter != null -> onSelectAreaScope(selectedFilter.restoredAreaScope())
                         }
                     },
                     onOpenReview = { reviewOpen = true },
@@ -1611,6 +1877,66 @@ fun WhipScreen(
                         is AreaScope.One -> settingsState.areas.firstOrNull { it.id == areaScope.areaId }?.name
                     },
                     onShowAllAreas = { onSelectAreaScope(AreaScope.All) },
+                )
+                if (habitViewModel != null) HabitAreaContent(
+                    state = habitState,
+                    innerPadding = PaddingValues(),
+                    viewModel = habitViewModel,
+                    modifier = paneDialogModifier,
+                    editorModifier = primaryEditorPaneModifier,
+                    goalState = goalState,
+                    openHabitIdRequest = openHabitIdRequested,
+                    onOpenHabitRequestConsumed = { openHabitIdRequested = null },
+                    editHabitIdRequest = editHabitIdRequested,
+                    onEditHabitRequestConsumed = { editHabitIdRequested = null },
+                    onRequestNotificationPermission = onRequestNotificationPermission,
+                    lowPressureMode = settingsState.settings.lowPressureMode,
+                    onOpenTask = { taskId ->
+                        allScheduledTasks.firstOrNull { it.task.id == taskId }
+                            ?.let { actionItemKey = it.stableKey }
+                    },
+                    areas = settingsState.areas,
+                    defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
+                    onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
+                    onCreateCustomUnit = { name, symbol, dimension, factor, result ->
+                        settingsViewModel?.createCustomUnit(name, symbol, dimension, factor, result)
+                            ?: result(Result.failure(IllegalStateException("Settings are unavailable")))
+                    },
+                    customIdentityEmojis = settingsState.settings.customIdentityEmojis,
+                    onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
+                    onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
+                    onAreaChanged = ::keepSavedItemVisible,
+                    showWorkspace = false,
+                )
+                if (goalViewModel != null) GoalAreaContent(
+                    state = goalState,
+                    innerPadding = PaddingValues(),
+                    viewModel = goalViewModel,
+                    modifier = paneDialogModifier,
+                    editorModifier = primaryEditorPaneModifier,
+                    recordGoalIdRequest = recordGoalIdRequested,
+                    resetElapsedGoalIdRequest = resetElapsedGoalIdRequested,
+                    onExternalRequestConsumed = {
+                        recordGoalIdRequested = null
+                        resetElapsedGoalIdRequested = null
+                    },
+                    openGoalIdRequest = openGoalIdRequested,
+                    onOpenGoalRequestConsumed = { openGoalIdRequested = null },
+                    editGoalIdRequest = editGoalIdRequested,
+                    onEditGoalRequestConsumed = { editGoalIdRequested = null },
+                    onRequestNotificationPermission = onRequestNotificationPermission,
+                    areas = settingsState.areas,
+                    defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
+                    onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
+                    onCreateCustomUnit = { name, symbol, dimension, factor, result ->
+                        settingsViewModel?.createCustomUnit(name, symbol, dimension, factor, result)
+                            ?: result(Result.failure(IllegalStateException("Settings are unavailable")))
+                    },
+                    customIdentityEmojis = settingsState.settings.customIdentityEmojis,
+                    onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
+                    onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
+                    onAreaChanged = ::keepSavedItemVisible,
+                    showWorkspace = false,
                 )
             }
             AppDestination.Tasks -> {
@@ -1687,8 +2013,7 @@ fun WhipScreen(
                                 ?.let { actionItemKey = it.stableKey }
                         },
                         areas = settingsState.areas,
-                        defaultAreaId = (areaScope as? AreaScope.One)?.areaId
-                            ?: settingsState.areas.firstOrNull { !it.archived }?.id,
+                        defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
                         onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
                         onCreateCustomUnit = { name, symbol, dimension, factor, result ->
                             settingsViewModel?.createCustomUnit(name, symbol, dimension, factor, result)
@@ -1713,9 +2038,8 @@ fun WhipScreen(
                         state = gymState,
                         innerPadding = innerPadding,
                         viewModel = gymViewModel,
-                        createExerciseRequested = createExerciseRequested,
-                        startWorkoutRequested = startWorkoutRequested,
-                        onExternalRequestConsumed = { createExerciseRequested = false; startWorkoutRequested = false },
+                        addRequest = gymAddRequest,
+                        onExternalRequestConsumed = { gymAddRequest = null },
                         openSearchRequest = openGymSearchRequested,
                         onOpenSearchRequestConsumed = { openGymSearchDomain = null; openGymSearchId = null },
                         onRequestNotificationPermission = onRequestNotificationPermission,
@@ -1753,8 +2077,7 @@ fun WhipScreen(
                     modifier = paneDialogModifier,
                     editorModifier = primaryEditorPaneModifier,
                     areas = settingsState.areas,
-                    defaultAreaId = (areaScope as? AreaScope.One)?.areaId
-                        ?: settingsState.areas.firstOrNull { !it.archived }?.id,
+                    defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
                     onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
                         onCreateCustomUnit = { name, symbol, dimension, factor, result ->
                             settingsViewModel?.createCustomUnit(name, symbol, dimension, factor, result)
@@ -1780,8 +2103,7 @@ fun WhipScreen(
                     innerPadding = innerPadding,
                     areas = settingsState.areas,
                     customUnits = settingsState.customUnits,
-                    defaultAreaId = (areaScope as? AreaScope.One)?.areaId
-                        ?: settingsState.areas.firstOrNull { !it.archived }?.id,
+                    defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
                     createRequested = createTrackRequested,
                     onCreateRequestConsumed = { createTrackRequested = false },
                     openTrackIdRequest = openTrackIdRequested,
@@ -1847,32 +2169,6 @@ fun WhipScreen(
                     ) {
                         Text("Temporarily showing $temporaryLabel", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
                         WhipTextButton(onClick = onRestoreAreaScope) { Text("Restore") }
-                    }
-                }
-            }
-            runningMessage?.let { message ->
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(innerPadding)
-                        .padding(8.dp)
-                        .semantics {
-                            liveRegion = LiveRegionMode.Polite
-                            contentDescription = message
-                        },
-                    tonalElevation = 4.dp,
-                    shape = MaterialTheme.shapes.medium,
-                ) {
-                    Row(
-                        Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        LinearProgressIndicator(Modifier.width(56.dp))
-                        Text(message)
-                        if (trackOperationStatus is OperationStatus.Running) {
-                            WhipTextButton(onClick = onCancelTrackOperation) { Text("Cancel") }
-                        }
                     }
                 }
             }
@@ -1967,12 +2263,7 @@ fun WhipScreen(
             onPeriodChange = { period -> settingsViewModel?.update { it.copy(reviewPeriod = period) } },
             onDismiss = { reviewOpen = false },
             sections = settingsState.settings.reviewSections,
-            savedFilters = settingsState.settings.savedReviewFilters,
-            selectedFilterName = settingsState.settings.selectedReviewFilterName,
             onSectionsChange = { settingsViewModel?.setReviewSections(it) },
-            onSaveFilter = { settingsViewModel?.saveReviewFilter(it) },
-            onSelectFilter = { settingsViewModel?.selectReviewFilter(it) },
-            onDeleteFilter = { settingsViewModel?.deleteReviewFilter(it) },
             onDrillDown = { section ->
                 reviewOpen = false
                 appDestination = when (section) {
@@ -2041,8 +2332,7 @@ fun WhipScreen(
             naturalLanguageCapture = settingsState.settings.naturalLanguageTaskCapture,
             powerMode = settingsState.settings.powerMode,
             areas = settingsState.areas,
-            defaultAreaId = (areaScope as? AreaScope.One)?.areaId
-                ?: settingsState.areas.firstOrNull { !it.archived }?.id,
+            defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
             inheritedAreaFromScope = areaScope is AreaScope.One,
             onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
             knownTags = (state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived)
@@ -2227,8 +2517,7 @@ fun WhipScreen(
                         areas = settingsState.areas,
                         customUnits = settingsState.customUnits,
                         automationChoiceReferenceCounts = trackState.choiceAutomationReferenceCounts(),
-                        defaultAreaId = (areaScope as? AreaScope.One)?.areaId
-                            ?: settingsState.areas.firstOrNull { !it.archived }?.id,
+                        defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
                         saving = trackOperationStatus is OperationStatus.Running,
                         modifier = editorModifier,
                         sessionId = route.sessionId,
@@ -2352,8 +2641,8 @@ internal fun AreaScopeMenu(
                     },
                 )
                 if (areas.any(Area::archived)) {
-                    DropdownMenuItem(
-                        text = { Text("Manage Archived Areas…") },
+                    WhipMenuItem(
+                        label = "Manage Archived Areas…",
                         onClick = { expanded = false; onManage() },
                     )
                 }
@@ -2367,10 +2656,14 @@ internal fun AreaScopeMenu(
                 )
             }
             if (activeAreas.size > 8) {
-                DropdownMenuItem(
-                    text = { OutlinedTextField(query, { query = it.take(40) }, label = { Text("Find area") }, singleLine = true) },
-                    onClick = {},
-                )
+                Box(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it.take(40) },
+                        label = { Text("Find area") },
+                        singleLine = true,
+                    )
+                }
             }
             areas.filter { (!it.archived || it.id == selectedArea?.id) && (query.isBlank() || it.name.contains(query, true)) }.forEach { area ->
                 DropdownMenuItem(
@@ -2390,12 +2683,12 @@ internal fun AreaScopeMenu(
                 )
             }
             HorizontalDivider()
-            DropdownMenuItem(
-                text = { Text("Create Area…") },
+            WhipMenuItem(
+                label = "Create Area…",
                 onClick = { expanded = false; creating = true },
             )
-            DropdownMenuItem(
-                text = { Text("Manage Areas") },
+            WhipMenuItem(
+                label = "Manage Areas",
                 onClick = { expanded = false; onManage() },
             )
         }
@@ -2639,6 +2932,7 @@ private fun RowScope.WhipNavigationBarItem(
     label: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    showLabel: Boolean = true,
 ) {
     val itemColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     Column(
@@ -2667,8 +2961,10 @@ private fun RowScope.WhipNavigationBarItem(
                 icon()
             }
         }
-        Surface(color = Color.Transparent, contentColor = itemColor) {
-            label()
+        if (showLabel) {
+            Surface(color = Color.Transparent, contentColor = itemColor) {
+                label()
+            }
         }
     }
 }
@@ -2681,12 +2977,13 @@ private fun WhipNavigationRailItem(
     label: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    showLabel: Boolean = true,
 ) {
     val itemColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         modifier = modifier
             .width(80.dp)
-            .heightIn(min = 72.dp)
+            .heightIn(min = if (showLabel) 72.dp else 56.dp)
             .selectable(
                 selected = selected,
                 enabled = enabled,
@@ -2709,8 +3006,10 @@ private fun WhipNavigationRailItem(
                 icon()
             }
         }
-        Surface(color = Color.Transparent, contentColor = itemColor) {
-            label()
+        if (showLabel) {
+            Surface(color = Color.Transparent, contentColor = itemColor) {
+                label()
+            }
         }
     }
 }
@@ -2728,16 +3027,31 @@ private fun WhipNavigationRail(
             .testTag("adaptive-navigation-rail"),
         color = railColor,
     ) {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxHeight()
-                .windowInsetsPadding(WindowInsets.safeDrawing)
+                // Persistent navigation must not follow the IME. The active
+                // content pane owns keyboard avoidance while the rail keeps
+                // the same position users established before typing.
                 .width(80.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
+            var stableRailHeight by remember { mutableStateOf(maxHeight) }
+            LaunchedEffect(maxHeight) {
+                if (maxHeight > stableRailHeight) stableRailHeight = maxHeight
+            }
+            // Large text must not turn the primary navigation into a row of
+            // symbols that users have to memorize. The rail has a fixed width
+            // and enough stable pre-IME height for its one-line labels.
+            val showLabels = stableRailHeight >= 560.dp
+            val destinationHeight = if (showLabels) 72.dp else 56.dp
+            val stableTopOffset = (
+                (stableRailHeight - destinationHeight * (primaryAppDestinations.size + 1)) / 2
+            ).coerceAtLeast(12.dp)
             Column(
-                modifier = Modifier.testTag("adaptive-navigation-rail-destinations"),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = stableTopOffset)
+                    .testTag("adaptive-navigation-rail-destinations"),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 WhipNavigationRailItem(
@@ -2746,9 +3060,17 @@ private fun WhipNavigationRail(
                     },
                     selected = selected == AppDestination.Home,
                     enabled = enabled,
+                    showLabel = showLabels,
                     onClick = { onSelect(AppDestination.Home) },
                     icon = { WhipBrandMark(Modifier.size(34.dp)) },
-                    label = { Text(stringResource(R.string.nav_home), style = MaterialTheme.typography.labelMedium) },
+                    label = {
+                        Text(
+                            stringResource(R.string.nav_home),
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
                 )
                 primaryAppDestinations.forEach { destination ->
                     val destinationLabel = stringResource(destination.labelRes)
@@ -2757,9 +3079,17 @@ private fun WhipNavigationRail(
                         modifier = Modifier.semantics { contentDescription = destinationTabDescription },
                         selected = destination == selected,
                         enabled = enabled,
+                        showLabel = showLabels,
                         onClick = { onSelect(destination) },
                         icon = { Icon(destination.icon, contentDescription = null, modifier = Modifier.size(28.dp)) },
-                        label = { Text(destinationLabel, style = MaterialTheme.typography.labelMedium) },
+                        label = {
+                            Text(
+                                destinationLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
                     )
                 }
             }
@@ -2800,6 +3130,18 @@ private fun PrimaryDestinationNavigationBar(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val largeTextNavigation = LocalDensity.current.fontScale >= 1.3f
+    var moreExpanded by rememberSaveable { mutableStateOf(false) }
+    val directlyVisibleDestinations = if (largeTextNavigation) {
+        primaryAppDestinations.take(2)
+    } else {
+        primaryAppDestinations
+    }
+    val overflowDestinations = if (largeTextNavigation) {
+        primaryAppDestinations.drop(2)
+    } else {
+        emptyList()
+    }
     NavigationBar(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -2810,6 +3152,7 @@ private fun PrimaryDestinationNavigationBar(
             },
             selected = selected == AppDestination.Home,
             enabled = enabled,
+            showLabel = true,
             onClick = { onSelect(AppDestination.Home) },
             icon = { WhipBrandMark(Modifier.size(28.dp)) },
             label = {
@@ -2821,13 +3164,14 @@ private fun PrimaryDestinationNavigationBar(
                 )
             },
         )
-        primaryAppDestinations.forEach { destination ->
+        directlyVisibleDestinations.forEach { destination ->
             val destinationLabel = stringResource(destination.labelRes)
             val destinationTabDescription = stringResource(R.string.nav_tab_description, destinationLabel)
             WhipNavigationBarItem(
                 modifier = Modifier.semantics { contentDescription = destinationTabDescription },
                 selected = destination == selected,
                 enabled = enabled,
+                showLabel = true,
                 onClick = { onSelect(destination) },
                 icon = { Icon(destination.icon, contentDescription = null, modifier = Modifier.size(26.dp)) },
                 label = {
@@ -2836,6 +3180,59 @@ private fun PrimaryDestinationNavigationBar(
                         style = MaterialTheme.typography.labelSmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                    )
+                },
+            )
+        }
+        if (overflowDestinations.isNotEmpty()) {
+            WhipNavigationBarItem(
+                modifier = Modifier
+                    .testTag("primary-navigation-more")
+                    .semantics { contentDescription = "More destinations" },
+                selected = selected in overflowDestinations,
+                enabled = enabled,
+                showLabel = true,
+                onClick = { moreExpanded = true },
+                icon = {
+                    Box {
+                        Icon(Icons.Outlined.MoreHoriz, contentDescription = null, modifier = Modifier.size(26.dp))
+                        DropdownMenu(
+                            expanded = moreExpanded,
+                            onDismissRequest = { moreExpanded = false },
+                        ) {
+                            overflowDestinations.forEach { destination ->
+                                val destinationLabel = stringResource(destination.labelRes)
+                                val destinationTabDescription = stringResource(
+                                    R.string.nav_tab_description,
+                                    destinationLabel,
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(destinationLabel) },
+                                    leadingIcon = {
+                                        Icon(destination.icon, contentDescription = null, modifier = Modifier.size(22.dp))
+                                    },
+                                    trailingIcon = if (destination == selected) {
+                                        { Icon(Icons.Outlined.Check, contentDescription = "Selected") }
+                                    } else {
+                                        null
+                                    },
+                                    onClick = {
+                                        moreExpanded = false
+                                        onSelect(destination)
+                                    },
+                                    modifier = Modifier.semantics {
+                                        contentDescription = destinationTabDescription
+                                    },
+                                )
+                            }
+                        }
+                    }
+                },
+                label = {
+                    Text(
+                        "More",
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
                     )
                 },
             )
@@ -2882,10 +3279,54 @@ private fun HomeSupportPane(
     ) {
         SupportPaneTitle("Today")
         Text(summary.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        AdaptiveSummaryCard("Tasks Today", summary.dueTasks.toString(), AppDestination.Tasks, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Tasks) })
-        AdaptiveSummaryCard("Habits Remaining", summary.dueHabits.toString(), AppDestination.Habits, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Habits) })
-        AdaptiveSummaryCard("Active Goals", summary.activeGoals.toString(), AppDestination.Goals, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Goals) })
-        AdaptiveSummaryCard("Workout", if (summary.activeWorkout) "In progress" else "Ready", AppDestination.Gym, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Gym) })
+        val hasContext = summary.dueTasks > 0 || summary.dueHabits > 0 || summary.activeGoals > 0 || summary.activeWorkout
+        if (!hasContext) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 18.dp)
+                    .testTag("home-support-introduction"),
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.Home,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        "Your Day, Brought Together",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        "Home gathers the work and routines that need your attention now. " +
+                            "Start with Tasks or Habits; Goals, Tracks, and Gym join in as you use them.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        "Start small. Add only what helps.",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+            Text(
+                "Private by default. Your data stays on this device unless you choose to export or sync it.",
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            AdaptiveSummaryCard("Tasks Today", summary.dueTasks.toString(), AppDestination.Tasks, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Tasks) })
+            AdaptiveSummaryCard("Habits Remaining", summary.dueHabits.toString(), AppDestination.Habits, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Habits) })
+            AdaptiveSummaryCard("Active Goals", summary.activeGoals.toString(), AppDestination.Goals, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Goals) })
+            AdaptiveSummaryCard("Workout", if (summary.activeWorkout) "In progress" else "Ready", AppDestination.Gym, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Gym) })
+        }
     }
 }
 
@@ -2935,7 +3376,7 @@ private fun TrackSupportPane(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         SupportPaneTitle(stringResource(R.string.nav_tracks))
-        Text("Choose a Track to view its Entries and Rules.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Choose a Track to view its Entries and Automations.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (projections.isEmpty()) {
             WhipEmptyState("No Tracks Yet", "Create a Track from the content pane.")
         } else {
@@ -3009,8 +3450,8 @@ private fun TrackOverviewSupportPane(
                 listOf(
                     "Active Tracks" to state.active.size.toString(),
                     "Entries" to state.active.sumOf { it.entries.size }.toString(),
-                    "Goal Rules" to progressRules.toString(),
-                    "Action Rules" to actionRules.toString(),
+                    "Goal Automations" to progressRules.toString(),
+                    "Next-Action Automations" to actionRules.toString(),
                 ).forEach { (label, value) ->
                     Row(Modifier.fillMaxWidth()) {
                         Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -3307,12 +3748,28 @@ private fun HomeContent(
             (HomeSection.Goals in visibleHomeSections && goalState.active.isNotEmpty()) ||
             (HomeSection.Tracks in visibleHomeSections && trackState.pinned.isNotEmpty()) ||
             (HomeSection.Gym in visibleHomeSections && gymState.activeSession != null)
+    val hasReviewEvidence =
+        state.completed.isNotEmpty() ||
+            habitState.logs.isNotEmpty() ||
+            (goalState.active + goalState.completed + goalState.archived).any { it.entries.isNotEmpty() } ||
+            gymState.history.any { it.state == com.whip.app.domain.WorkoutSessionState.Finished }
+    val hasAnyUserData =
+        (state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived).isNotEmpty() ||
+            habitState.all.isNotEmpty() || habitState.today.isNotEmpty() || habitState.archived.isNotEmpty() ||
+            habitState.logs.isNotEmpty() ||
+            (goalState.active + goalState.completed + goalState.archived).isNotEmpty() ||
+            trackState.projections.isNotEmpty() ||
+            gymState.activeSession != null || gymState.allSessions.isNotEmpty() ||
+            gymState.exercises.isNotEmpty() || gymState.archivedExercises.isNotEmpty() ||
+            gymState.machines.isNotEmpty() || gymState.archivedMachines.isNotEmpty() ||
+            gymState.routines.isNotEmpty() || gymState.archivedRoutines.isNotEmpty()
+    val showGettingStarted = shouldShowHomeGettingStarted(hasAnyUserData)
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(innerPadding)
             .testTag("home-list"),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 112.dp),
+        contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         areaScopeLabel?.let { label -> item {
@@ -3330,23 +3787,37 @@ private fun HomeContent(
                 showFullHeader,
             )
         }
-        item { NavigationRow("Review & Trends", onOpenReview, supportingText = "Reflect on outcomes and recent progress.") }
+        if (hasReviewEvidence) {
+            item { NavigationRow("Review & Trends", onOpenReview, supportingText = "Reflect on outcomes and recent progress.") }
+        }
         if (!hasHomeContent) {
-            item {
-                WhipEmptyState(
-                    title = "Your Day Is Clear",
-                    supportingText = "Nothing needs attention right now. Open a module to plan, practice, pursue an outcome, record evidence, or train.",
-                )
-            }
-            item {
-                HomeDestinationLinks(
-                    sections = visibleHomeSections,
-                    onOpenTasks = onOpenTasks,
-                    onOpenHabits = onOpenHabits,
-                    onOpenGoals = onOpenGoals,
-                    onOpenTracks = onOpenTracks,
-                    onOpenGym = onOpenGym,
-                )
+            if (hasReviewEvidence) {
+                item {
+                    WhipEmptyState(
+                        title = "Your Day Is Clear",
+                        supportingText = "Nothing needs attention right now. Review your progress or plan what comes next.",
+                        primaryActionLabel = "Review Progress",
+                        onPrimaryAction = onOpenReview,
+                    )
+                }
+            } else if (showGettingStarted) {
+                item {
+                    HomeGettingStarted(
+                        onOpenTasks = onOpenTasks,
+                        onOpenHabits = onOpenHabits,
+                        onOpenGoals = onOpenGoals,
+                        onOpenTracks = onOpenTracks,
+                        onOpenGym = onOpenGym,
+                        onOpenReview = onOpenReview,
+                    )
+                }
+            } else {
+                item {
+                    WhipEmptyState(
+                        title = "Your Day Is Clear",
+                        supportingText = "Nothing needs attention right now. Your existing Tasks, Habits, Goals, Tracks, and Gym plans remain available from navigation.",
+                    )
+                }
             }
         }
         if (hasHomeContent) visibleHomeSections.forEach { section ->
@@ -3534,6 +4005,68 @@ private fun HomeContent(
 }
 
 @Composable
+private fun HomeGettingStarted(
+    onOpenTasks: () -> Unit,
+    onOpenHabits: () -> Unit,
+    onOpenGoals: () -> Unit,
+    onOpenTracks: () -> Unit,
+    onOpenGym: () -> Unit,
+    onOpenReview: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag("home-getting-started"),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                "Build Your Day",
+                modifier = Modifier.semantics { heading() },
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                "Whip gives each kind of progress a clear home. Start with what helps now; Home brings it all together.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        HomeDestinationLinks(
+            onOpenTasks = onOpenTasks,
+            onOpenHabits = onOpenHabits,
+            onOpenGoals = onOpenGoals,
+            onOpenTracks = onOpenTracks,
+            onOpenGym = onOpenGym,
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "Learn from your progress",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            HomeComponentCard(
+                title = "Review & Trends",
+                supportingText = "Reflect on completed work and spot patterns as your history grows.",
+                icon = Icons.Outlined.Insights,
+                onClick = onOpenReview,
+                modifier = Modifier.testTag("home-destination-review"),
+            )
+        }
+    }
+}
+
+private data class HomeComponentItem(
+    val title: String,
+    val supportingText: String,
+    val icon: ImageVector,
+    val onClick: () -> Unit,
+)
+
+/*
+ * Home's first-run component guide intentionally shows every primary tool,
+ * even when a user has hidden some sections from the populated Home feed.
+ * Section visibility controls the dashboard, not what Whip teaches here.
+ */
+@Composable
 internal fun HomeDestinationLinks(
     onOpenTasks: () -> Unit,
     onOpenHabits: () -> Unit,
@@ -3543,43 +4076,115 @@ internal fun HomeDestinationLinks(
     sections: List<HomeSection> = HomeSection.entries,
     modifier: Modifier = Modifier,
 ) {
-    BoxWithConstraints(modifier.fillMaxWidth().testTag("home-destination-links")) {
-        val horizontalGap = 6.dp
-        val destinationWidth = ((maxWidth - horizontalGap * 2) / 3).coerceAtMost(112.dp)
-        val destinations = sections.map { section ->
-            when (section) {
-                HomeSection.Tasks -> "Tasks" to onOpenTasks
-                HomeSection.Habits -> "Habits" to onOpenHabits
-                HomeSection.Goals -> "Goals" to onOpenGoals
-                HomeSection.Tracks -> "Tracks" to onOpenTracks
-                HomeSection.Gym -> "Gym" to onOpenGym
-            }
+    val destinations = sections.distinct().map { section ->
+        when (section) {
+            HomeSection.Tasks -> HomeComponentItem(
+                title = "Tasks",
+                supportingText = "Capture one-off actions and decide when they need attention.",
+                icon = Icons.Outlined.CheckCircle,
+                onClick = onOpenTasks,
+            )
+            HomeSection.Habits -> HomeComponentItem(
+                title = "Habits",
+                supportingText = "Build repeatable practices with check-ins, values, and timers.",
+                icon = Icons.Outlined.Autorenew,
+                onClick = onOpenHabits,
+            )
+            HomeSection.Goals -> HomeComponentItem(
+                title = "Goals",
+                supportingText = "Turn longer-term outcomes into measurable progress or milestones.",
+                icon = Icons.Outlined.Flag,
+                onClick = onOpenGoals,
+            )
+            HomeSection.Tracks -> HomeComponentItem(
+                title = "Tracks",
+                supportingText = "Create structured logs for anything worth observing over time.",
+                icon = Icons.Outlined.TableRows,
+                onClick = onOpenTracks,
+            )
+            HomeSection.Gym -> HomeComponentItem(
+                title = "Gym",
+                supportingText = "Plan routines, run workouts, and keep your training history.",
+                icon = Icons.Outlined.FitnessCenter,
+                onClick = onOpenGym,
+            )
         }
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            destinations.chunked(3).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(horizontalGap)) {
-                    row.forEach { (label, onClick) ->
-                        HomeDestinationLink(label, destinationWidth, onClick)
-                    }
-                }
-            }
+    }
+    val startingComponents = destinations.filter { it.title == "Tasks" || it.title == "Habits" }
+    val expandingComponents = destinations - startingComponents.toSet()
+    Column(
+        modifier = modifier.fillMaxWidth().testTag("home-destination-links"),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        if (startingComponents.isNotEmpty()) {
+            HomeComponentGroup("Start here", startingComponents)
+        }
+        if (expandingComponents.isNotEmpty()) {
+            HomeComponentGroup("Add when useful", expandingComponents)
         }
     }
 }
 
 @Composable
-private fun HomeDestinationLink(label: String, width: Dp, onClick: () -> Unit) {
-    WhipTextButton(
-        onClick = onClick,
-        modifier = Modifier
-            .width(width)
-            .testTag("home-destination-${label.lowercase()}"),
+private fun HomeComponentGroup(title: String, components: List<HomeComponentItem>) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        components.forEach { component ->
+            HomeComponentCard(
+                title = component.title,
+                supportingText = component.supportingText,
+                icon = component.icon,
+                onClick = component.onClick,
+                modifier = Modifier.testTag("home-destination-${component.title.lowercase()}"),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeComponentCard(
+    title: String,
+    supportingText: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = "Open $title", role = Role.Button, onClick = onClick),
     ) {
-        Text(label, maxLines = 1)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ) {
+                Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                    Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    supportingText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(Icons.Outlined.ChevronRight, contentDescription = null)
+        }
     }
 }
 
@@ -3801,9 +4406,7 @@ private fun TaskAreaContent(
     fun applyFilter(filter: SavedTaskFilter) {
         val normalized = filter.normalizedForWorkspace()
         priorities = normalized.priorities
-        normalized.areaId?.let {
-            onSelectAreaScope(AreaScope.One(it))
-        }
+        onSelectAreaScope(normalized.restoredAreaScope())
         pinnedOnly = normalized.pinnedOnly
         selectedTags = normalized.tags
         requireAllTags = normalized.requireAllTags
@@ -3823,11 +4426,17 @@ private fun TaskAreaContent(
     fun submitQuickCapture() {
         if (quickCapture.isBlank() || quickCaptureSubmitting) return
         submittedQuickCapture = quickCapture.trim()
+        if (areaScope.requiresExplicitCreationArea(availableAreas)) {
+            onAddDetails(submittedQuickCapture)
+            quickCapture = ""
+            submittedQuickCapture = ""
+            return
+        }
         quickCaptureSubmitting = true
         onQuickCapture(
             submittedQuickCapture,
             state.currentDate.takeIf { destination == TaskDestination.Today },
-            (areaScope as? AreaScope.One)?.areaId ?: availableAreas.firstOrNull()?.id,
+            areaScope.creationDefaultAreaId(availableAreas),
         ) { succeeded ->
             if (succeeded && quickCapture == submittedQuickCapture) quickCapture = ""
             quickCaptureSubmitting = false
@@ -3880,19 +4489,12 @@ private fun TaskAreaContent(
                     title = destination.label,
                     supportingText = taskDestinationSupportingText(destination, visibleTasks.size),
                 ) {
-                if (workspaceDestination == TaskWorkspaceDestination.History) {
-                    WhipPageIconAction(
-                        icon = Icons.AutoMirrored.Outlined.ArrowBack,
-                        label = "Back to Today",
-                        onClick = { onDestinationChange(TaskDestination.Today) },
-                    )
-                }
                 WhipPageIconAction(
                     icon = Icons.Outlined.FilterList,
                     label = if (activeFilterCount == 0) "Filter & Sort Tasks" else "Filter & Sort Tasks · $activeFilterCount active",
                     onClick = { showFilters = true },
                 )
-                if (visibleTasks.isNotEmpty() || workspaceDestination != TaskWorkspaceDestination.History) Box {
+                if (visibleTasks.isNotEmpty()) Box {
                     IconButton(
                         onClick = { taskToolsExpanded = true },
                         modifier = Modifier.size(48.dp).semantics { contentDescription = "More task list actions" },
@@ -3904,22 +4506,12 @@ private fun TaskAreaContent(
                         onDismissRequest = { taskToolsExpanded = false },
                     ) {
                         if (visibleTasks.isNotEmpty()) {
-                            DropdownMenuItem(
-                                text = { Text("Select Tasks") },
+                            WhipMenuItem(
+                                label = "Select Tasks",
                                 onClick = {
                                     selectionMode = true
                                     planningView = TaskPlanningView.List
                                     selectedKeys = emptySet()
-                                    taskToolsExpanded = false
-                                },
-                            )
-                        }
-                        if (workspaceDestination != TaskWorkspaceDestination.History) {
-                            DropdownMenuItem(
-                                text = { Text("Task History") },
-                                leadingIcon = { Icon(Icons.Outlined.History, contentDescription = null) },
-                                onClick = {
-                                    onDestinationChange(TaskDestination.Completed)
                                     taskToolsExpanded = false
                                 },
                             )
@@ -4014,19 +4606,19 @@ private fun TaskAreaContent(
                                         expanded = selectionActionsOpen,
                                         onDismissRequest = { selectionActionsOpen = false },
                                     ) {
-                                        DropdownMenuItem(text = { Text("Pin") }, onClick = {
+                                        WhipMenuItem(label = "Pin", onClick = {
                                             onBulkPin(selectedItems, true); finishSelection()
                                         })
-                                        DropdownMenuItem(text = { Text("Unpin") }, onClick = {
+                                        WhipMenuItem(label = "Unpin", onClick = {
                                             onBulkPin(selectedItems, false); finishSelection()
                                         })
-                                        DropdownMenuItem(text = { Text("Move to Tomorrow") }, onClick = {
+                                        WhipMenuItem(label = "Move to Tomorrow", onClick = {
                                             onBulkPostpone(selectedItems, state.currentDate.plusDays(1)); finishSelection()
                                         })
-                                        DropdownMenuItem(text = { Text("Move to Next Week") }, onClick = {
+                                        WhipMenuItem(label = "Move to Next Week", onClick = {
                                             onBulkPostpone(selectedItems, state.currentDate.plusWeeks(1)); finishSelection()
                                         })
-                                        DropdownMenuItem(text = { Text("Choose Date") }, onClick = {
+                                        WhipMenuItem(label = "Choose Date", onClick = {
                                             bulkDatePickerOpen = true; selectionActionsOpen = false
                                         })
                                     }
@@ -4096,7 +4688,7 @@ private fun TaskAreaContent(
         }
         LazyColumn(
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 112.dp),
+            contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(if (appSettings.compactItemLayout) 4.dp else 12.dp),
         ) {
         appSettings.focusTimerDeadlineMillis?.takeIf { it > focusClockMillis && !selectionMode }?.let { deadline ->
@@ -4127,6 +4719,15 @@ private fun TaskAreaContent(
                         value = quickCapture,
                         onValueChange = { quickCapture = it },
                         label = { Text("Quick Capture to ${destination.label}") },
+                        placeholder = {
+                            Text(
+                                if (appSettings.naturalLanguageTaskCapture) {
+                                    "Try: Send report tomorrow at 9am #work"
+                                } else {
+                                    "What needs doing?"
+                                },
+                            )
+                        },
                         visualTransformation = SmartTaskCaptureVisualTransformation(
                             assumptions = quickCaptureAssumptions,
                             highlightColor = MaterialTheme.colorScheme.primaryContainer,
@@ -4318,7 +4919,10 @@ private fun TaskAreaContent(
         }
         if (state.loading) {
             item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
-        } else if (visibleTasks.isEmpty()) {
+        } else if (
+            visibleTasks.isEmpty() &&
+            !(allTasks.isEmpty() && destination in setOf(TaskDestination.Today, TaskDestination.Inbox))
+        ) {
             item {
                 EmptyTasks(destination, areaScope.takeUnless { it == AreaScope.All }?.let {
                     when (it) {
@@ -5152,7 +5756,11 @@ private fun String.taskDateModeLabel(): String = when (this) {
 }
 
 @Composable
-private fun EmptyTasks(destination: TaskDestination, areaLabel: String? = null, constrained: Boolean = false) {
+private fun EmptyTasks(
+    destination: TaskDestination,
+    areaLabel: String? = null,
+    constrained: Boolean = false,
+) {
     val supportingText = if (constrained) {
         "No tasks match the current view or filters. Change the view or remove a filter to see more."
     } else when (destination) {

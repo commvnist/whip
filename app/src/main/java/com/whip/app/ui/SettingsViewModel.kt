@@ -11,7 +11,6 @@ import com.whip.app.core.HomeSection
 import com.whip.app.core.ReviewSection
 import com.whip.app.core.HealthDataType
 import com.whip.app.core.SavedTaskFilter
-import com.whip.app.core.SavedReviewFilter
 import com.whip.app.core.PlatePreset
 import com.whip.app.core.withoutAreaReferences
 import com.whip.app.data.BackupPreview
@@ -324,7 +323,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
     fun setAreaColor(id: String, colorArgb: Long?) = runIo("Area color updated") { app.areaRepository.setColor(id, colorArgb) }
     fun renameTag(id: String, name: String) = runIo("Tag updated") { app.measurementRepository.renameTag(id, name) }
-    fun setAreaArchived(id: String, archived: Boolean) = runIo(if (archived) "Area archived" else "Area restored") {
+    fun setAreaArchived(id: String, archived: Boolean) = runIo(
+        success = if (archived) "Area archived" else "Area restored",
+        showSuccess = false,
+    ) {
         app.areaRepository.setArchived(id, archived)
         if (archived && repository.current().activeAreaScope == AreaScope.One(id).storageKey) {
             repository.update { it.copy(activeAreaScope = AreaScope.All.storageKey) }
@@ -351,32 +353,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         WhipWidgetProvider.clearAreaScope(app, id)
     }
 
-    fun saveReviewFilter(filter: SavedReviewFilter) = update { current ->
-        current.copy(
-            savedReviewFilters = (current.savedReviewFilters.filterNot { it.name.equals(filter.name, true) } + filter)
-                .sortedBy { it.name.lowercase() },
-            selectedReviewFilterName = filter.name,
-            reviewSections = filter.sections,
-        )
-    }
-
-    fun selectReviewFilter(name: String?) = update { current ->
-        val selected = current.savedReviewFilters.firstOrNull { it.name == name }
-        current.copy(
-            selectedReviewFilterName = selected?.name,
-            reviewSections = selected?.sections ?: ReviewSection.entries.toSet(),
-        )
-    }
-
-    fun deleteReviewFilter(name: String) = update { current ->
-        current.copy(
-            savedReviewFilters = current.savedReviewFilters.filterNot { it.name == name },
-            selectedReviewFilterName = current.selectedReviewFilterName.takeUnless { it == name },
-        )
-    }
-
     fun setReviewSections(sections: Set<ReviewSection>) = update { current ->
-        current.copy(reviewSections = sections, selectedReviewFilterName = null)
+        current.copy(reviewSections = sections)
     }
 
     fun savePlatePreset(preset: PlatePreset) = update { current ->
@@ -600,13 +578,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private fun runIo(
         success: String,
         onSuccess: () -> Unit = {},
+        showSuccess: Boolean = true,
         block: suspend () -> Unit,
     ) {
         viewModelScope.launch {
             runtime.value = runtime.value.copy(busy = true, message = null)
             try {
                 withContext(Dispatchers.IO) { block() }
-                runtime.value = runtime.value.copy(busy = false, message = success)
+                runtime.value = runtime.value.copy(busy = false, message = success.takeIf { showSuccess })
                 onSuccess()
             } catch (error: Throwable) {
                 runtime.value = runtime.value.copy(busy = false, message = error.message ?: "Operation failed")

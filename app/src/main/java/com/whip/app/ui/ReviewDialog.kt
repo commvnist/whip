@@ -25,7 +25,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,7 +44,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.whip.app.core.ReviewPeriod
 import com.whip.app.core.ReviewSection
-import com.whip.app.core.SavedReviewFilter
 import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.isScheduledOn
@@ -90,19 +88,13 @@ fun ReviewDialog(
     onPeriodChange: (ReviewPeriod) -> Unit,
     onDismiss: () -> Unit,
     sections: Set<ReviewSection> = ReviewSection.entries.toSet(),
-    savedFilters: List<SavedReviewFilter> = emptyList(),
-    selectedFilterName: String? = null,
     onSectionsChange: (Set<ReviewSection>) -> Unit = {},
-    onSaveFilter: (SavedReviewFilter) -> Unit = {},
-    onSelectFilter: (String?) -> Unit = {},
-    onDeleteFilter: (String) -> Unit = {},
     onDrillDown: (ReviewSection) -> Unit = {},
     productivityAreaLabel: String? = null,
     trackState: TrackUiState = TrackUiState(loading = false),
     onOpenTracks: () -> Unit = {},
 ) {
-    var saveFilterOpen by rememberSaveable { mutableStateOf(false) }
-    var filterName by rememberSaveable { mutableStateOf("") }
+    var compactOptionsExpanded by rememberSaveable { mutableStateOf(false) }
     val locale = LocalConfiguration.current.locales[0]
     val through = taskState.currentDate
     val start = reviewStartDate(period, through)
@@ -172,14 +164,9 @@ fun ReviewDialog(
             period = period,
             rangeLabel = rangeLabel,
             sections = sections,
-            savedFilters = savedFilters,
-            selectedFilterName = selectedFilterName,
             productivityAreaLabel = productivityAreaLabel,
             onPeriodChange = onPeriodChange,
             onSectionsChange = onSectionsChange,
-            onSelectFilter = onSelectFilter,
-            onDeleteFilter = onDeleteFilter,
-            onSaveFilter = { saveFilterOpen = true },
         )
     }
     val overview: @Composable () -> Unit = {
@@ -212,37 +199,14 @@ fun ReviewDialog(
             } else {
                 ReviewCompactDashboard(
                     onDismiss = onDismiss,
+                    hasReviewData = hasReviewData,
+                    optionsExpanded = compactOptionsExpanded,
+                    onOptionsExpandedChange = { compactOptionsExpanded = it },
                     controls = controls,
                     overview = overview,
                 )
             }
         }
-    }
-    if (saveFilterOpen) {
-        PaneAwareAlertDialog(
-            modifier = modifier,
-            onDismissRequest = { saveFilterOpen = false },
-            title = { Text("Save Review Filter") },
-            text = {
-                OutlinedTextField(
-                    filterName,
-                    { filterName = it },
-                    label = { Text("Filter Name") },
-                    modifier = Modifier.testTag("review-filter-name"),
-                )
-            },
-            confirmButton = {
-                WhipTextButton(
-                    enabled = filterName.isNotBlank(),
-                    onClick = {
-                        onSaveFilter(SavedReviewFilter(filterName.trim(), sections))
-                        filterName = ""
-                        saveFilterOpen = false
-                    },
-                ) { Text("Save") }
-            },
-            dismissButton = { WhipTextButton(onClick = { saveFilterOpen = false }) { Text("Cancel") } },
-        )
     }
 }
 
@@ -315,6 +279,9 @@ private fun ReviewWideDashboard(
 @Composable
 private fun ReviewCompactDashboard(
     onDismiss: () -> Unit,
+    hasReviewData: Boolean,
+    optionsExpanded: Boolean,
+    onOptionsExpandedChange: (Boolean) -> Unit,
     controls: @Composable () -> Unit,
     overview: @Composable () -> Unit,
 ) {
@@ -331,8 +298,21 @@ private fun ReviewCompactDashboard(
             ),
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.major),
         ) {
-            item { controls() }
-            item { overview() }
+            if (hasReviewData) {
+                item { controls() }
+                item { overview() }
+            } else {
+                item { overview() }
+                item {
+                    DisclosureRow(
+                        title = "Review Options",
+                        supportingText = "Change the period or included sections.",
+                        expanded = optionsExpanded,
+                        onClick = { onOptionsExpandedChange(!optionsExpanded) },
+                    )
+                }
+                if (optionsExpanded) item { controls() }
+            }
         }
     }
 }
@@ -378,14 +358,9 @@ private fun ReviewControlPanel(
     period: ReviewPeriod,
     rangeLabel: String,
     sections: Set<ReviewSection>,
-    savedFilters: List<SavedReviewFilter>,
-    selectedFilterName: String?,
     productivityAreaLabel: String?,
     onPeriodChange: (ReviewPeriod) -> Unit,
     onSectionsChange: (Set<ReviewSection>) -> Unit,
-    onSelectFilter: (String?) -> Unit,
-    onDeleteFilter: (String) -> Unit,
-    onSaveFilter: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().testTag("review-controls"),
@@ -442,36 +417,6 @@ private fun ReviewControlPanel(
                     )
                 }
             }
-        }
-        HorizontalDivider()
-        Text("Saved Views", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-        if (savedFilters.isEmpty()) {
-            Text(
-                "Save the current section combination for quick reuse.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
-                verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
-            ) {
-                WhipFilterChip(selectedFilterName == null, { onSelectFilter(null) }, { Text("Custom") })
-                savedFilters.forEach { filter ->
-                    WhipFilterChip(
-                        selectedFilterName == filter.name,
-                        { onSelectFilter(filter.name) },
-                        { Text(filter.name) },
-                    )
-                }
-            }
-            selectedFilterName?.let { name ->
-                WhipTextButton(onClick = { onDeleteFilter(name) }) { Text("Delete “$name”") }
-            }
-        }
-        WhipOutlinedButton(onClick = onSaveFilter, modifier = Modifier.fillMaxWidth()) {
-            Text("Save Review Filter")
         }
     }
 }

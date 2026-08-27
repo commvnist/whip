@@ -74,6 +74,7 @@ import com.whip.app.domain.ExerciseTrackingType
 import com.whip.app.domain.GymMachine
 import com.whip.app.domain.GymMachineDraft
 import com.whip.app.domain.LoadInterpretation
+import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
@@ -581,8 +582,9 @@ private fun RoutineOutlinePane(
     Column(modifier) {
         OutlinedTextField(
             value = builder.name,
-            onValueChange = { value -> onBuilderChange { it.copy(name = value) } },
+            onValueChange = { value -> onBuilderChange { it.copy(name = value.replace('\n', ' ').replace('\r', ' ').take(100)) } },
             label = { Text("Routine name *") },
+            supportingText = { Text("${builder.name.length}/100") },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).testTag("routine-editor-name"),
             singleLine = true,
         )
@@ -782,10 +784,16 @@ private fun RoutinePlacementCard(
                     Icon(Icons.Outlined.MoreVert, contentDescription = null)
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(text = { Text("Move Up") }, onClick = { menu = false; onMove(-1) })
-                    DropdownMenuItem(text = { Text("Move Down") }, onClick = { menu = false; onMove(1) })
-                    DropdownMenuItem(text = { Text("Duplicate") }, onClick = { menu = false; onDuplicate() }, leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) })
-                    DropdownMenuItem(text = { Text("Remove") }, onClick = { menu = false; onRemove() }, leadingIcon = { Icon(Icons.Outlined.Delete, null) })
+                    WhipMenuItem(label = "Move Up", onClick = { menu = false; onMove(-1) })
+                    WhipMenuItem(label = "Move Down", onClick = { menu = false; onMove(1) })
+                    WhipMenuItem(label = "Duplicate", icon = Icons.Outlined.ContentCopy, onClick = { menu = false; onDuplicate() })
+                    HorizontalDivider()
+                    WhipMenuItem(
+                        label = "Remove",
+                        icon = Icons.Outlined.Delete,
+                        role = WhipMenuItemRole.Destructive,
+                        onClick = { menu = false; onRemove() },
+                    )
                 }
             }
         }
@@ -1354,7 +1362,7 @@ private fun ExercisePickerPage(
             exerciseMatchesQuery(
                 exercise,
                 query,
-                gymState.machines.filter { it.exerciseId == exercise.id }.joinToString(" ") { it.displayName },
+                gymState.machines.filter { it.supportsExercise(exercise.id) }.joinToString(" ") { it.displayName },
             )
         }
         .filter { !favouritesOnly || it.favorite }
@@ -1395,7 +1403,7 @@ private fun ExercisePickerPage(
                     }.padding(vertical = 5.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Checkbox(checked, { value -> onSelectionChange(if (value) selectedIds + exercise.id else selectedIds - exercise.id) })
+                    Checkbox(checked, onCheckedChange = null)
                     Column(Modifier.weight(1f)) {
                         Text(exercise.name, fontWeight = FontWeight.SemiBold)
                         Text(listOfNotNull(exercise.equipment.takeIf(String::isNotBlank), exercise.primaryMuscles.takeIf(String::isNotBlank)).joinToString(" · ").ifBlank { exercise.trackingType.label.uiTitleCase() }, style = MaterialTheme.typography.bodySmall)
@@ -1448,12 +1456,12 @@ private fun EquipmentPickerPane(
 ) {
     var query by rememberSaveable(placement.key) { mutableStateOf("") }
     val machines = (gymState.machines + gymState.archivedMachines).filter {
-        it.exerciseId == placement.exerciseId && it.displayName.contains(query, true)
+        it.supportsExercise(placement.exerciseId) && it.displayName.contains(query, true)
     }.sortedWith(compareBy<GymMachine> { it.archived }.thenBy { it.location.lowercase() }.thenBy { it.name.lowercase() })
     LazyColumn(modifier, contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
             Text("Choose Equipment", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text("Equipment is scoped to this exercise so its history and progression remain comparable.")
+            Text("This list shows machines linked to the exercise; one machine can support many movements.")
         }
         item { OutlinedTextField(query, { query = it }, label = { Text("Search machine or location") }, modifier = Modifier.fillMaxWidth()) }
         item { WhipOutlinedButton(onClick = onNoMachine, modifier = Modifier.fillMaxWidth()) { Text("No Machine / Free Weights") } }
@@ -1483,6 +1491,9 @@ private fun QuickMachineDialog(modifier: Modifier = Modifier, exercise: Exercise
     var maximum by rememberSaveable(exercise.id) { mutableStateOf(if (loadType == MachineLoadType.Level) "10" else "100") }
     var increment by rememberSaveable(exercise.id) { mutableStateOf(if (loadType == MachineLoadType.Level) "1" else "5") }
     var levelLabel by rememberSaveable(exercise.id) { mutableStateOf("level") }
+    var levelDirection by rememberSaveable(exercise.id) {
+        mutableStateOf(MachineLevelDirection.HigherNumberMoreResistance)
+    }
     val min = minimum.toWhipDoubleOrNull()
     val max = maximum.toWhipDoubleOrNull()
     val step = increment.toWhipDoubleOrNull()
@@ -1494,14 +1505,23 @@ private fun QuickMachineDialog(modifier: Modifier = Modifier, exercise: Exercise
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("For ${exercise.name}. Add advanced setup details later from the machine library.")
-                OutlinedTextField(name, { name = it }, label = { Text("Machine name *") }, modifier = Modifier.fillMaxWidth().testTag("routine-quick-machine-name"))
+                OutlinedTextField(name, { name = it.replace('\n', ' ').replace('\r', ' ').take(100) }, label = { Text("Machine name *") }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("routine-quick-machine-name"))
                 OutlinedTextField(location, { location = it }, label = { Text("Location") }, modifier = Modifier.fillMaxWidth())
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     MachineLoadType.entries.forEach { type -> WhipFilterChip(loadType == type, { loadType = type; minimum = if (type == MachineLoadType.Level) "1" else "5"; maximum = if (type == MachineLoadType.Level) "10" else "100"; increment = if (type == MachineLoadType.Level) "1" else "5" }, { Text(type.label.uiTitleCase()) }) }
                 }
                 if (loadType == MachineLoadType.Mass) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("kilogram", "pound").forEach { unit -> WhipFilterChip(unitId == unit, { unitId = unit }, { Text(unitSymbol(unit)) }) }
-                } else OutlinedTextField(levelLabel, { levelLabel = it }, label = { Text("Setting label") }, modifier = Modifier.fillMaxWidth())
+                } else {
+                    OutlinedTextField(levelLabel, { levelLabel = it }, label = { Text("Setting label") }, modifier = Modifier.fillMaxWidth())
+                    MachineLevelDirection.entries.forEach { direction ->
+                        WhipFilterChip(
+                            selected = levelDirection == direction,
+                            onClick = { levelDirection = direction },
+                            label = { Text(direction.label) },
+                        )
+                    }
+                }
                 ResponsiveFieldPair(
                     first = { field -> OutlinedTextField(minimum, { minimum = it.numericInput() }, label = { Text("Minimum") }, modifier = field) },
                     second = { field -> OutlinedTextField(maximum, { maximum = it.numericInput() }, label = { Text("Maximum") }, modifier = field) },
@@ -1521,6 +1541,7 @@ private fun QuickMachineDialog(modifier: Modifier = Modifier, exercise: Exercise
                         levelLabel = levelLabel.trim().ifBlank { "level" },
                         availableLoads = numericRange(requireNotNull(min), requireNotNull(max), requireNotNull(step)),
                         loadInterpretation = if (loadType == MachineLoadType.Level) LoadInterpretation.OrdinalSetting else LoadInterpretation.MachineDisplayedMass,
+                        levelDirection = levelDirection,
                     ),
                 )
             }, modifier = Modifier.testTag("routine-quick-machine-create")) { Text("Create and Select") }
@@ -1909,9 +1930,27 @@ internal fun generateWarmupSets(
         val increment = exercise.weightIncrement.takeIf { it > 0.0 } ?: 1.0
         return ((target / increment).toInt() * increment).coerceAtLeast(increment)
     }
-    val generated = listOf(0.4 to 8, 0.6 to 5, 0.8 to 3).mapNotNull { (fraction, reps) ->
-        val load = snapped(workingLoad * fraction)
-        if (load >= workingLoad) return@mapNotNull null
+    val ramp = listOf(0.4 to 8, 0.6 to 5, 0.8 to 3)
+    val ordinalWarmups = machine?.takeIf { it.loadType == MachineLoadType.Level }?.let { selectedMachine ->
+        val resistanceOrder = selectedMachine.availableLoads.distinct().sorted().let { values ->
+            when (selectedMachine.levelDirection) {
+                MachineLevelDirection.HigherNumberMoreResistance -> values
+                MachineLevelDirection.HigherNumberLessResistance -> values.reversed()
+            }
+        }
+        val workingIndex = resistanceOrder.indexOfFirst { (it - workingLoad).absoluteValue < 1e-9 }
+        if (workingIndex <= 0) emptyList() else ramp.map { (fraction, _) ->
+            val index = (((workingIndex + 1) * fraction).toInt() - 1).coerceIn(0, workingIndex - 1)
+            resistanceOrder[index]
+        }
+    }
+    val generated = ramp.mapIndexedNotNull { index, (fraction, reps) ->
+        val load = if (ordinalWarmups != null) {
+            ordinalWarmups.getOrNull(index) ?: return@mapIndexedNotNull null
+        } else {
+            snapped(workingLoad * fraction)
+        }
+        if (machine?.loadType != MachineLoadType.Level && load >= workingLoad) return@mapIndexedNotNull null
         while (nextKey in usedKeys) nextKey++
         RoutineBuilderSetState(
             key = nextKey++,

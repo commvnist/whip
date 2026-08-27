@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -11,10 +12,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +28,8 @@ import com.whip.app.domain.EstimatedOneRepMaxFormula
 import com.whip.app.domain.Exercise
 import com.whip.app.domain.ExerciseTrackingType
 import com.whip.app.domain.LoadInterpretation
+import com.whip.app.domain.GymMachineDraft
+import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.WorkoutExercise
 import com.whip.app.domain.WorkoutSession
 import com.whip.app.domain.WorkoutSessionState
@@ -38,6 +43,7 @@ import com.whip.app.ui.QuickSetEntry
 import com.whip.app.ui.RestTimerCard
 import com.whip.app.ui.WorkoutExerciseCard
 import com.whip.app.ui.WorkoutExerciseUi
+import com.whip.app.ui.WorkoutHistoryCard
 import com.whip.app.data.MachineDeletionImpact
 import com.whip.app.ui.theme.WhipTheme
 import org.junit.Rule
@@ -106,6 +112,71 @@ class GymPowerInputUiTest {
         compose.onNodeWithTag("machine-load-increment").assertTextContains("1")
         compose.onNodeWithTag("machine-editor-list").performScrollToNode(hasTestTag("machine-load-preview"))
         compose.onNodeWithTag("machine-load-preview").assertIsDisplayed().assertTextContains("Preview · 10 values · 1-10 by 1")
+    }
+
+    @Test
+    fun machineCanBeSavedWithoutExercises() {
+        var saved: GymMachineDraft? = null
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                MachineEditorDialog(
+                    machine = null,
+                    exercises = emptyList(),
+                    definitionLocked = false,
+                    onDismiss = {},
+                    onSave = { saved = it },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("machine-editor-name").performTextInput("Standalone cable")
+        compose.onNodeWithText("Save").assertIsEnabled().performClick()
+
+        compose.runOnIdle { assertEquals(emptySet<Long>(), saved?.exerciseIds) }
+    }
+
+    @Test
+    fun machineDraftSurvivesCreatingAndLinkingAnExerciseAndSavesReverseLevels() {
+        val existing = testExercise().copy(id = 1, name = "Cable row")
+        val created = testExercise().copy(id = 2, name = "Cable press")
+        var createdRequest by mutableStateOf<Long?>(null)
+        var saved: GymMachineDraft? = null
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                MachineEditorDialog(
+                    machine = null,
+                    exercises = listOf(existing, created),
+                    definitionLocked = false,
+                    createdExerciseIdRequest = createdRequest,
+                    onCreatedExerciseRequestConsumed = { createdRequest = null },
+                    onCreateExercise = { createdRequest = created.id },
+                    onDismiss = {},
+                    onSave = { saved = it },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("machine-editor-name").performTextInput("Shared cable")
+        compose.onNodeWithTag("machine-editor-list").performScrollToNode(hasTestTag("machine-choose-exercises"))
+        compose.onNodeWithTag("machine-choose-exercises").performClick()
+        compose.onNodeWithTag("machine-create-exercise").performClick()
+        compose.onNodeWithTag("machine-editor-name").assertTextContains("Shared cable")
+        compose.onNodeWithTag("machine-editor-list").performScrollToNode(hasTestTag("machine-choose-exercises"))
+        compose.onNodeWithTag("machine-choose-exercises").performClick()
+        compose.onNodeWithTag("machine-exercise-picker-list").performScrollToNode(hasText("Cable row"))
+        compose.onNodeWithText("Cable row").performClick()
+        compose.onNodeWithText("Done").performClick()
+
+        compose.onNodeWithTag("machine-editor-list").performScrollToNode(hasText("Numbered Stack / Level"))
+        compose.onNodeWithText("Numbered Stack / Level").performClick()
+        compose.onNodeWithTag("machine-editor-list").performScrollToNode(hasText("Higher number = less resistance"))
+        compose.onNodeWithText("Higher number = less resistance").performClick()
+        compose.onNodeWithText("Save").performClick()
+
+        compose.runOnIdle {
+            assertEquals(setOf(1L, 2L), saved?.exerciseIds)
+            assertEquals(MachineLevelDirection.HigherNumberLessResistance, saved?.levelDirection)
+        }
     }
 
     @Test
@@ -328,6 +399,53 @@ class GymPowerInputUiTest {
     }
 
     @Test
+    fun substitutingAnExerciseWithSavedSetsDisclosesReplacementBeforeOpeningPicker() {
+        val exercise = testExercise().copy(name = "Bench press")
+        val workoutExercise = testWorkoutExercise(exercise)
+        val savedSet = testWorkoutSet(4, workoutExercise.id).copy(completed = true, completedAtMillis = 2)
+        var substitutionRequested = false
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WorkoutExerciseCard(
+                    item = WorkoutExerciseUi(workoutExercise, exercise, listOf(savedSet), emptyList(), 0, null, null),
+                    preferredWeightUnitId = "kilogram",
+                    preferredDistanceUnitId = "kilometre",
+                    numberPrecision = 1,
+                    compactRows = false,
+                    showRpe = false,
+                    showRir = false,
+                    nextSetId = null,
+                    nextInGroup = false,
+                    canMoveUp = false,
+                    canMoveDown = false,
+                    onMoveUp = {},
+                    onMoveDown = {},
+                    onRemoveExercise = {},
+                    onSubstituteExercise = { substitutionRequested = true },
+                    onAddSet = {},
+                    onEditSet = {},
+                    onEditNotes = {},
+                    onCompleteSet = { _, _ -> },
+                    onSaveQuickSet = { _, _, _ -> },
+                    onDuplicateSet = {},
+                    onDeleteSet = {},
+                    onUndoDeleteSet = {},
+                    onReorderSets = {},
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("More options for Bench press").performClick()
+        compose.onNodeWithText("Substitute Exercise").performClick()
+        compose.onNodeWithText("Replace Bench press?").assertIsDisplayed()
+        compose.onNodeWithText("Choosing a replacement removes 1 saved set from this workout. This cannot be undone.")
+            .assertIsDisplayed()
+        compose.runOnIdle { assertEquals(false, substitutionRequested) }
+        compose.onNodeWithText("Choose Replacement").performClick()
+        compose.runOnIdle { assertEquals(true, substitutionRequested) }
+    }
+
+    @Test
     fun completedSetsStayQuietUntilTheUserExpandsThem() {
         val exercise = testExercise().copy(name = "Bench press")
         val workoutExercise = testWorkoutExercise(exercise)
@@ -468,6 +586,93 @@ class GymPowerInputUiTest {
         compose.onNodeWithText("RPE (1–10)").assertIsDisplayed()
         compose.onAllNodes(hasText("RIR (0–10)")).assertCountEquals(0)
     }
+
+    @Test
+    fun workoutHistoryCardUsesOneStableActionPerExerciseAndMovesSecondaryActionsToMenu() {
+        val exercises = listOf(
+            testExercise().copy(id = 1, name = "Flat Barbell Bench Press"),
+            testExercise().copy(id = 2, name = "Lat Pulldown"),
+            testExercise().copy(id = 3, name = "Dumbbell Bicep Curl"),
+        )
+        val placements = exercises.mapIndexed { index, exercise ->
+            testWorkoutExercise(exercise).copy(id = (index + 10).toLong(), exerciseId = exercise.id, position = index)
+        }
+        val sets = placements.flatMapIndexed { index, placement ->
+            List(index + 1) { setIndex ->
+                testWorkoutSet((index * 10 + setIndex + 1).toLong(), placement.id).copy(completed = true)
+            }
+        }
+        val session = testHistorySession()
+        compose.setContent {
+            var expanded by remember { mutableStateOf(false) }
+            var menuExpanded by remember { mutableStateOf(false) }
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                WorkoutHistoryCard(
+                    session = session,
+                    workoutExercises = placements,
+                    sets = sets,
+                    exerciseById = exercises.associateBy(Exercise::id),
+                    expanded = expanded,
+                    archivedView = false,
+                    hasActiveWorkout = false,
+                    menuExpanded = menuExpanded,
+                    onToggleExpanded = { expanded = !expanded },
+                    onMenuExpandedChange = { menuExpanded = it },
+                    onRepeatWorkout = {},
+                    onOpenActiveWorkout = {},
+                    onEditDetails = {},
+                    onResume = {},
+                    onSaveAsRoutine = {},
+                    onShare = {},
+                    onRestore = {},
+                    onDelete = {},
+                    onReuseExercise = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("history-workout-preview-${session.id}").assertIsDisplayed()
+        compose.onNodeWithText("Flat Barbell Bench Press · Lat Pulldown · Dumbbell Bicep Curl").assertIsDisplayed()
+        compose.onAllNodesWithText("View Details").assertCountEquals(0)
+        compose.onAllNodesWithText("Use Again").assertCountEquals(0)
+
+        compose.onNodeWithTag("history-workout-toggle-${session.id}").performClick()
+        compose.onAllNodesWithText("Use Again").assertCountEquals(3)
+        compose.onNodeWithText("Repeat Workout").assertIsDisplayed()
+        compose.onAllNodesWithText("Copy Flat Barbell Bench Press Sets").assertCountEquals(0)
+        compose.onAllNodesWithText("Edit Details").assertCountEquals(0)
+        compose.onAllNodesWithText("Resume Workout").assertCountEquals(0)
+        placements.forEach { placement ->
+            val row = compose.onNodeWithTag("history-exercise-row-${placement.id}").fetchSemanticsNode().boundsInRoot
+            val action = compose.onNodeWithTag("history-exercise-reuse-${placement.id}").fetchSemanticsNode().boundsInRoot
+            check(action.left >= row.left && action.right <= row.right && action.top >= row.top && action.bottom <= row.bottom) {
+                "Exercise reuse action must remain inside its row: row=$row action=$action"
+            }
+        }
+
+        compose.onNodeWithTag("history-workout-menu-${session.id}").performClick()
+        compose.onNodeWithText("Edit Details").assertIsDisplayed()
+        compose.onNodeWithText("Resume Original Workout").assertIsDisplayed()
+        compose.onNodeWithText("Save as Routine").assertIsDisplayed()
+    }
+
+    private fun testHistorySession() = WorkoutSession(
+        id = 50,
+        uuid = "history-session",
+        name = "Upper Body",
+        notes = "Controlled reps",
+        startedAt = Instant.parse("2026-08-26T22:00:00Z"),
+        endedAt = Instant.parse("2026-08-26T22:47:00Z"),
+        localDate = LocalDate.of(2026, 8, 26),
+        zoneId = "UTC",
+        state = WorkoutSessionState.Finished,
+        keepScreenAwake = false,
+        restTimerDeadlineMillis = null,
+        restTimerDurationSeconds = null,
+        archived = false,
+        createdAtMillis = 1,
+        updatedAtMillis = 1,
+    )
 
     private fun testWorkoutExercise(exercise: Exercise) = WorkoutExercise(
         id = 2,

@@ -48,6 +48,45 @@ data class HabitDraft(
     val sourceMetricId: String? = null,
 ) : java.io.Serializable
 
+/** One validation contract shared by the editor and persistence layer. */
+fun HabitDraft.validationErrors(): List<String> = buildList {
+    if (name.isBlank()) add("Habit name is required")
+    if (scheduleInterval <= 0) add("Schedule interval must be a positive whole number")
+    if (!quickIncrement.isFinite() || quickIncrement <= 0.0) add("Quick increment must be a positive number")
+    if (quickActions.any { !it.isFinite() || it < 0.0 }) add("Quick actions must be non-negative numbers")
+    if (precision !in 0..6) add("Decimal places must be between 0 and 6")
+    if (trackingMode == HabitTrackingMode.Checklist && checklistItems.none { it.name.isNotBlank() }) {
+        add("Add at least one checklist item")
+    }
+    if (scheduleType == HabitScheduleType.SelectedWeekdays && weekdays.isEmpty()) add("Pick at least one weekday")
+    if (
+        scheduleType in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth) &&
+        (flexibleTimesPerWeek ?: 0) <= 0
+    ) add("Flexible schedule count must be a positive whole number")
+    if (listOfNotNull(targetMin, targetMax).any { !it.isFinite() }) add("Habit targets must be valid numbers")
+    when (comparison) {
+        TargetComparison.AtLeast, TargetComparison.Exactly -> if (targetMin == null) add("Enter a target")
+        TargetComparison.AtMost -> if (targetMin == null && targetMax == null) add("Enter a maximum")
+        TargetComparison.WithinRange -> if (targetMin == null || targetMax == null || targetMin > targetMax) {
+            add("Enter a valid target range")
+        }
+        TargetComparison.None -> Unit
+    }
+    if (targetPeriod == TargetPeriod.RollingDays && (rollingDays ?: 0) <= 0) add("Enter a positive rolling window")
+    when (endType) {
+        HabitEndType.Never -> Unit
+        HabitEndType.OnDate -> if (endDate == null || endDate.isBefore(startDate)) {
+            add("Choose an end date on or after the start date")
+        }
+        HabitEndType.AfterStreak, HabitEndType.AfterCompletions -> if (
+            endValue?.let { it.isFinite() && it > 0.0 && it % 1.0 == 0.0 } != true
+        ) add("Enter a positive whole-number ending threshold")
+        HabitEndType.AfterTotal -> if (endValue?.let { it.isFinite() && it > 0.0 } != true) {
+            add("Enter a positive ending total")
+        }
+    }
+}
+
 data class Habit(
     val id: Long,
     val uuid: String,

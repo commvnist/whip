@@ -3,6 +3,9 @@ package com.whip.app.ui
 import com.whip.app.core.SavedTaskFilter
 import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.ScheduleKind
+import com.whip.app.domain.TaskEffort
+import com.whip.app.domain.TaskPriority
+import java.time.DayOfWeek
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -169,6 +172,56 @@ class TaskWorkspacePolicyTest {
         assertEquals(LocalDate.of(2026, 10, 1), draft.deadline)
         assertEquals(false, draft.inbox)
         assertEquals("work", draft.areaId)
+    }
+
+    @Test
+    fun enabledSmartCapturePersistsNamedWeekdaySchedule() {
+        val today = LocalDate.of(2026, 8, 26)
+        val draft = requireNotNull(
+            buildQuickAddTaskDraft(
+                capture = "TRT every Monday and Thursday",
+                defaultDate = today,
+                areaId = "health",
+                smartCaptureToday = today,
+            ),
+        )
+
+        assertEquals("TRT", draft.title)
+        assertEquals(ScheduleKind.Recurring, draft.scheduleKind)
+        assertEquals(null, draft.date)
+        assertEquals(RecurrenceUnit.Weeks, draft.recurrence?.unit)
+        assertEquals(
+            setOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY),
+            draft.recurrence?.weekdays,
+        )
+        assertEquals(today, draft.recurrence?.startDate)
+        assertEquals(false, draft.inbox)
+    }
+
+    @Test
+    fun enabledSmartCapturePersistsEveryRecognizedPlanningDetail() {
+        val today = LocalDate.of(2026, 8, 26)
+        val draft = requireNotNull(
+            buildQuickAddTaskDraft(
+                capture = "Send proposal tomorrow at 9am by next Friday !high for 45m light effort #work remind me",
+                defaultDate = null,
+                areaId = "main",
+                smartCaptureToday = today,
+            ),
+        )
+
+        assertEquals("Send proposal", draft.title)
+        assertEquals(ScheduleKind.Once, draft.scheduleKind)
+        assertEquals(LocalDate.of(2026, 8, 27), draft.date)
+        assertEquals(LocalDate.of(2026, 8, 28), draft.deadline)
+        assertEquals(9 * 60, draft.timeMinutes)
+        assertEquals(true, draft.reminderEnabled)
+        assertEquals(listOf(0), draft.reminderOffsetsMinutes)
+        assertEquals(TaskPriority.High, draft.priority)
+        assertEquals(45, draft.durationMinutes)
+        assertEquals(TaskEffort.Light, draft.effort)
+        assertEquals(setOf("work"), draft.tags)
+        assertEquals(false, draft.inbox)
     }
 
     @Test

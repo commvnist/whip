@@ -203,6 +203,24 @@ class DomainDeletionCoordinatorTest {
         assertTrue(routines.graphPresets.first().isEmpty())
     }
 
+    @Test fun exerciseDeleteDetachesOnlyThatExerciseFromSharedMachine() = runBlocking {
+        val rowId = gym.createExercise(ExerciseDraft("Cable row"))
+        val pressId = gym.createExercise(ExerciseDraft("Cable press"))
+        gym.createMachine(
+            GymMachineDraft(
+                name = "Shared cable",
+                exerciseIds = setOf(rowId, pressId),
+            ),
+        )
+
+        coordinator.deleteExercise(rowId)
+
+        val machine = gym.machines.first().single()
+        assertEquals(setOf(pressId), machine.exerciseIds)
+        assertTrue(machine.supportsExercise(pressId))
+        assertFalse(machine.supportsExercise(rowId))
+    }
+
     @Test fun routineDeletePreservesWorkoutAndWorkoutDeleteRebuildsDerivedState() = runBlocking {
         val exerciseId = gym.createExercise(ExerciseDraft("Squat"))
         val routineId = routines.createRoutine(

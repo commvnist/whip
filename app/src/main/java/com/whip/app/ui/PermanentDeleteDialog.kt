@@ -19,6 +19,7 @@ fun PermanentDeleteDialog(
     PaneAwareAlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
+        paneTitle = title,
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

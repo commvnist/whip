@@ -51,8 +51,13 @@ enum class MachineStackMode(val label: String) {
     DualIndependent("Independent stacks / arms"),
 }
 
+enum class MachineLevelDirection(val label: String) {
+    HigherNumberMoreResistance("Higher number = more resistance"),
+    HigherNumberLessResistance("Higher number = less resistance"),
+}
+
 data class GymMachineDraft(
-    val exerciseId: Long,
+    val exerciseId: Long? = null,
     val name: String,
     val location: String = "",
     val details: String = "",
@@ -74,12 +79,14 @@ data class GymMachineDraft(
     /** Displayed setting -> actual canonical kilograms. */
     val massMappingKg: Map<Double, Double> = emptyMap(),
     val compatibleForComparison: Boolean = false,
+    val exerciseIds: Set<Long> = exerciseId?.let(::setOf).orEmpty(),
+    val levelDirection: MachineLevelDirection = MachineLevelDirection.HigherNumberMoreResistance,
 )
 
 data class GymMachine(
     val id: Long,
     val uuid: String,
-    val exerciseId: Long,
+    val exerciseId: Long?,
     val name: String,
     val location: String,
     val details: String,
@@ -103,9 +110,13 @@ data class GymMachine(
     val stackLabels: List<String> = emptyList(),
     val massMappingKg: Map<Double, Double> = emptyMap(),
     val compatibleForComparison: Boolean = false,
+    val exerciseIds: Set<Long> = exerciseId?.let(::setOf).orEmpty(),
+    val levelDirection: MachineLevelDirection = MachineLevelDirection.HigherNumberMoreResistance,
 ) {
     val displayName: String
         get() = if (location.isBlank()) name else "$name · $location"
+
+    fun supportsExercise(exerciseId: Long): Boolean = exerciseId in exerciseIds
 }
 
 enum class WorkoutSessionState {
