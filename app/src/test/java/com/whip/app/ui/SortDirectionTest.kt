@@ -55,6 +55,20 @@ class SortDirectionTest {
         assertEquals(listOf("Alpha", "Zulu", "Middle"), projection.sortedEntries(entries, TrackSort.Identity, score, SortDirection.Descending).map(projection::primaryText))
     }
 
+    @Test fun customTaskOrderKeepsPinnedAndOtherTasksInStableSections() {
+        val tasks = listOf(
+            scheduledTask(1, "Other First", null, TaskPriority.None, manualPosition = 0),
+            scheduledTask(2, "Pinned Second", null, TaskPriority.None, pinned = true, manualPosition = 1),
+            scheduledTask(3, "Pinned First", null, TaskPriority.None, pinned = true, manualPosition = 0),
+            scheduledTask(4, "Other Second", null, TaskPriority.None, manualPosition = 1),
+        )
+
+        assertEquals(
+            listOf("Pinned First", "Pinned Second", "Other First", "Other Second"),
+            tasks.sortedForWorkspace("Manual", SortDirection.Descending).map { it.task.title },
+        )
+    }
+
     @Test fun exerciseLibrarySortsHonorDirectionAndKeepNeverUsedExercisesLast() {
         val exercises = listOf(
             exercise(1, "Zulu", favorite = false),
@@ -70,7 +84,14 @@ class SortDirectionTest {
         assertEquals("Bravo", exercises.sortedForLibrary(ExerciseLibrarySort.FavoritesFirst, SortDirection.Descending).first().name)
     }
 
-    private fun scheduledTask(id: Long, title: String, date: LocalDate?, priority: TaskPriority) = ScheduledTask(
+    private fun scheduledTask(
+        id: Long,
+        title: String,
+        date: LocalDate?,
+        priority: TaskPriority,
+        pinned: Boolean = false,
+        manualPosition: Int = 0,
+    ) = ScheduledTask(
         task = WhipTask(
             id = id,
             title = title,
@@ -85,6 +106,8 @@ class SortDirectionTest {
             createdAtMillis = id,
             updatedAtMillis = id,
             priority = priority,
+            pinned = pinned,
+            manualPosition = manualPosition,
         ),
         originalDate = date,
         scheduledDate = date,

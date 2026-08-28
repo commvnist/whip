@@ -49,14 +49,19 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 data class WorkoutExerciseUi(
     val workoutExercise: WorkoutExercise,
@@ -203,6 +208,19 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         initialValue = GymUiState(nowMillis = clock.now().toEpochMilli()),
     )
 
+    init {
+        // Repair group invariants for a workout created by an older build before
+        // the UI or rest-timer policy consumes its ordering.
+        viewModelScope.launch {
+            repository.sessions
+                .map { sessions -> sessions.firstOrNull { it.state == WorkoutSessionState.Active }?.id }
+                .distinctUntilChanged()
+                .collectLatest { sessionId ->
+                    if (sessionId != null) repository.normalizeWorkoutGroups(sessionId)
+                }
+        }
+    }
+
     fun consumeOperationStatus() {
         _operationStatus.value = OperationStatus.Idle
     }
@@ -228,6 +246,12 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
                     current.repPrescriptionSchemes + scheme
                 },
             )
+        }
+    }
+
+    fun reorderRepPrescriptionSchemes(schemes: List<RepPrescriptionScheme>) {
+        app.settingsRepository.update { current ->
+            current.copy(repPrescriptionSchemes = schemes)
         }
     }
 
@@ -448,7 +472,7 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         if (favorite) "Exercise favorited" else "Favorite removed",
     ) { repository.setExerciseFavorite(id, favorite) }
 
-    fun reorderExercises(ids: List<Long>) = runOperation("Reordering exercises…", "Exercises reordered") {
+    fun reorderExercises(ids: List<Long>) = runSilentReorder {
         repository.reorderExercises(ids)
     }
 
@@ -467,7 +491,7 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         repository.setCategoryArchived(id, archived)
     }
 
-    fun reorderCategories(ids: List<Long>) = runOperation("Reordering categories…", "Categories reordered") {
+    fun reorderCategories(ids: List<Long>) = runSilentReorder {
         repository.reorderCategories(ids)
     }
 
@@ -574,10 +598,16 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         repository.removeWorkoutExercise(id)
     }
 
-    fun reorderWorkoutExercises(sessionId: Long, ids: List<Long>) = runOperation(
-        "Reordering exercises…",
-        "Exercises reordered",
-    ) { repository.reorderWorkoutExercises(sessionId, ids) }
+    fun removeWorkoutExerciseFromGroup(id: Long) = runOperation(
+        "Removing exercise from group…",
+        "Exercise is now independent",
+    ) {
+        repository.removeWorkoutExerciseFromGroup(id)
+    }
+
+    fun reorderWorkoutExercises(sessionId: Long, ids: List<Long>) = runSilentReorder {
+        repository.reorderWorkoutExercises(sessionId, ids)
+    }
 
     fun createGroup(
         sessionId: Long,
@@ -634,7 +664,6 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
                     restOverrideSeconds,
                 )
                 rebuildRecordsForSet(id)
-                schedulePersistedRestTimer()
                 if (appendAfterSave) {
                     repository.addSet(
                         workoutExerciseId,
@@ -647,6 +676,7 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
                         ),
                     )
                 }
+                schedulePersistedRestTimer()
             } finally {
                 savingQuickSetIds.remove(id)
             }
@@ -677,10 +707,9 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         rebuildRecordsForSet(id)
     }
 
-    fun reorderSets(workoutExerciseId: Long, ids: List<Long>) = runOperation(
-        "Reordering sets…",
-        "Sets reordered",
-    ) { repository.reorderSets(workoutExerciseId, ids) }
+    fun reorderSets(workoutExerciseId: Long, ids: List<Long>) = runSilentReorder {
+        repository.reorderSets(workoutExerciseId, ids)
+    }
 
     fun startRestTimer(sessionId: Long, seconds: Int) = runOperation("Starting timer…", "Rest timer started") {
         repository.startRestTimer(sessionId, seconds)
@@ -752,7 +781,7 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         routineRepository.setRoutinePinned(id, pinned)
     }
 
-    fun reorderRoutines(ids: List<Long>) = runOperation("Reordering routines…", "Routines reordered") {
+    fun reorderRoutines(ids: List<Long>) = runSilentReorder {
         routineRepository.reorderRoutines(ids)
     }
 
@@ -779,12 +808,49 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         restTimerScheduler.schedule(session.id, remaining, nextExerciseLabel())
     }
 
-    private fun nextExerciseLabel(): String? {
-        val state = uiState.value
-        val next = state.activeWorkoutExercises.firstOrNull { item ->
-            item.sets.any { !it.completed && it.deletedAtMillis == null }
+    private suspend fun nextExerciseLabel(): String? {
+        // Read the just-committed Room state. uiState may still be one emission
+        // behind when a completion transaction immediately schedules its timer.
+        val sessionId = repository.sessions.first()
+            .firstOrNull { it.state == WorkoutSessionState.Active }
+            ?.id
+            ?: return null
+        val exercises = repository.exercises.first().associateBy(Exercise::id)
+        val setsByPlacement = repository.sets.first().groupBy(WorkoutSet::workoutExerciseId)
+        val groups = repository.groups.first().associateBy(WorkoutGroup::id)
+        val items = repository.workoutExercises.first()
+            .filter { it.sessionId == sessionId }
+            .mapNotNull { placement ->
+                val exercise = exercises[placement.exerciseId] ?: return@mapNotNull null
+                WorkoutExerciseUi(
+                    workoutExercise = placement,
+                    exercise = exercise,
+                    sets = setsByPlacement[placement.id].orEmpty(),
+                    previousSets = emptyList(),
+                    previousSetCount = 0,
+                    group = placement.groupId?.let(groups::get),
+                    machine = null,
+                )
+            }
+        return selectNextWorkoutSet(items)
+            ?.first
+            ?.let { "Next: ${it.exercise.name}" }
+    }
+
+    private val reorderMutex = Mutex()
+
+    private fun runSilentReorder(block: suspend () -> Unit) {
+        viewModelScope.launch {
+            reorderMutex.withLock {
+                try {
+                    block()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Throwable) {
+                    _operationStatus.value = OperationStatus.Failed(error.message ?: "Could not save the new order", error)
+                }
+            }
         }
-        return next?.let { "Next: ${it.exercise.name}" }
     }
 
     private fun runOperation(

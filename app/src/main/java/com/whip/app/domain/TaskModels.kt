@@ -137,6 +137,9 @@ data class TaskStepDraft(
     val title: String,
     val position: Int,
     val notes: String = "",
+    /** Editor-only identity keeps focus and reorder announcements attached to
+     * the logical draft before it has a database id. Repositories ignore it. */
+    val uiKey: String = "",
 )
 
 data class TaskStepState(

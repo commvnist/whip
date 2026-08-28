@@ -149,6 +149,22 @@ class GymUxRulesTest {
 
         val completedFirst = item(1, 0, completed = true)
         assertEquals(second.workoutExercise.id, selectNextWorkoutSet(listOf(completedFirst, second), mapOf(group.id to first.workoutExercise.id))?.first?.workoutExercise?.id)
+
+        val independent = item(3, 1).let { candidate ->
+            candidate.copy(
+                workoutExercise = candidate.workoutExercise.copy(position = 1, groupId = null),
+                group = null,
+            )
+        }
+        val trailingGroupMember = second.copy(workoutExercise = second.workoutExercise.copy(position = 2))
+        assertEquals(
+            trailingGroupMember.workoutExercise.id,
+            selectNextWorkoutSet(
+                listOf(first, independent, trailingGroupMember),
+                mapOf(group.id to trailingGroupMember.workoutExercise.id),
+            )?.first?.workoutExercise?.id,
+        )
+        assertEquals(second.workoutExercise.id, selectNextWorkoutSet(listOf(completedFirst, second))?.first?.workoutExercise?.id)
     }
 
     private fun testExercise(

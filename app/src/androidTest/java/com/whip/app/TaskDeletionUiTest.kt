@@ -125,7 +125,7 @@ class TaskDeletionUiTest {
             }
         }
 
-        compose.onNodeWithText("Schedule").performClick()
+        compose.onNodeWithText("Activity").performClick()
         compose.onNodeWithText("This task is in Inbox without a scheduled date.", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Choose a Date").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, reschedules.get()) }
@@ -250,7 +250,7 @@ class TaskDeletionUiTest {
             }
         }
 
-        compose.onNodeWithText("Edit This and Future").assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription("Edit This and Future").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, edits.get()) }
         compose.onNodeWithText("Reopen Occurrence").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, reopens.get()) }
@@ -300,11 +300,11 @@ class TaskDeletionUiTest {
             }
         }
 
-        compose.onNodeWithText("Edit This and Future").assertIsDisplayed()
-        compose.onNodeWithText("Schedule").performClick()
-        compose.onNodeWithText("Edit This and Future").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Edit This and Future").assertIsDisplayed()
+        compose.onNodeWithText("Activity").performClick()
+        compose.onNodeWithContentDescription("Edit This and Future").assertIsDisplayed()
         compose.onNodeWithText("Options").performClick()
-        compose.onNodeWithText("Edit This and Future").assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription("Edit This and Future").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, edits.get()) }
     }
 
@@ -338,7 +338,7 @@ class TaskDeletionUiTest {
             }
         }
 
-        compose.onNodeWithText("Schedule").performClick()
+        compose.onNodeWithText("Activity").performClick()
         compose.onNodeWithText("Series History").assertIsDisplayed()
         compose.onNodeWithText("Moved to", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Skipped", substring = true).assertIsDisplayed()

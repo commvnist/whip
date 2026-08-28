@@ -58,8 +58,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowDownward
-import androidx.compose.material.icons.outlined.ArrowUpward
 import com.whip.app.core.AppThemeMode
 import com.whip.app.core.HomeSection
 import com.whip.app.core.HealthDataType
@@ -268,7 +266,7 @@ internal fun SettingsContent(
             }
             VerticalDivider()
         }
-        LazyColumn(
+        WhipReorderLazyColumn(
             modifier = Modifier.weight(1f).fillMaxHeight().testTag("settings-list"),
             contentPadding = PaddingValues(20.dp, 0.dp, 20.dp, 96.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -318,7 +316,7 @@ internal fun SettingsContent(
         item {
             SettingsHeading("Home Overview")
             Text(
-                "Choose which sections and empty-day shortcuts appear on Home. Main navigation and saved data remain unchanged. Home Details controls whether a visible section starts expanded.",
+                "Choose which sections and empty-day shortcuts appear on Home. Main navigation and saved data remain unchanged. Show Details by Default controls whether a visible section starts expanded.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -327,7 +325,14 @@ internal fun SettingsContent(
             item(key = "home-${section.name}") {
                 val visible = section !in settings.hiddenHomeSections
                 val expanded = section !in settings.collapsedHomeSections
-                Card(Modifier.fillMaxWidth()) {
+                val reorderInteraction = rememberWhipReorderInteractionState()
+                Card(
+                    Modifier.fillMaxWidth().whipReorderItem(
+                        reorderInteraction,
+                        layoutPosition = index + 1,
+                        layoutScope = "settings-home-sections",
+                    ),
+                ) {
                     Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                         WhipSettingsRow(
                             title = "Show ${section.name} on Home",
@@ -360,18 +365,23 @@ internal fun SettingsContent(
                         }
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             DisclosureButton(
-                                label = "Home Details",
+                                label = "Show Details by Default",
                                 expanded = expanded,
                                 onClick = { viewModel.update { current -> current.copy(collapsedHomeSections = if (section in current.collapsedHomeSections) current.collapsedHomeSections - section else current.collapsedHomeSections + section) } },
                                 enabled = visible,
                             )
                             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
-                            IconButton(enabled = index > 0, onClick = { viewModel.moveHomeSection(section, -1) }, modifier = Modifier.size(48.dp)) {
-                                Icon(Icons.Outlined.ArrowUpward, contentDescription = "Move ${section.name} up", modifier = Modifier.size(26.dp))
-                            }
-                            IconButton(enabled = index < settings.homeSections.lastIndex, onClick = { viewModel.moveHomeSection(section, 1) }, modifier = Modifier.size(48.dp)) {
-                                Icon(Icons.Outlined.ArrowDownward, contentDescription = "Move ${section.name} down", modifier = Modifier.size(26.dp))
-                            }
+                                WhipReorderHandle(
+                                    label = "${section.name} Home section",
+                                    canMovePrevious = index > 0,
+                                    canMoveNext = index < settings.homeSections.lastIndex,
+                                    position = index + 1,
+                                    total = settings.homeSections.size,
+                                    interactionState = reorderInteraction,
+                                    moveWholeItem = true,
+                                    layoutScope = "settings-home-sections",
+                                    onMove = { viewModel.moveHomeSection(section, it) },
+                                )
                             }
                         }
                     }
@@ -650,11 +660,29 @@ internal fun SettingsContent(
                     if (settings.customIdentityEmojis.isEmpty()) {
                         Text("No custom emojis yet.", style = MaterialTheme.typography.bodySmall)
                     }
-                    settings.customIdentityEmojis.forEach { choice ->
+                    settings.customIdentityEmojis.forEachIndexed { index, choice ->
+                        val reorderInteraction = rememberWhipReorderInteractionState()
                         Row(
-                            modifier = Modifier.fillMaxWidth().testTag("custom-emoji-${choice.emoji}"),
+                            modifier = Modifier.fillMaxWidth()
+                                .whipReorderItem(
+                                    reorderInteraction,
+                                    layoutPosition = index + 1,
+                                    layoutScope = "settings-custom-emojis",
+                                )
+                                .testTag("custom-emoji-${choice.emoji}"),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            WhipReorderHandle(
+                                label = "${choice.name} custom emoji",
+                                canMovePrevious = index > 0,
+                                canMoveNext = index < settings.customIdentityEmojis.lastIndex,
+                                position = index + 1,
+                                total = settings.customIdentityEmojis.size,
+                                interactionState = reorderInteraction,
+                                moveWholeItem = true,
+                                layoutScope = "settings-custom-emojis",
+                                onMove = { delta -> viewModel.moveCustomIdentityEmoji(choice.emoji, delta) },
+                            )
                             WhipIdentityEmoji(choice.emoji, contentDescription = "${choice.name} emoji")
                             Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
                                 Text(choice.name, fontWeight = FontWeight.SemiBold)

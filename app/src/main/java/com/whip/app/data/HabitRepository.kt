@@ -161,7 +161,16 @@ class RoomHabitRepository(
     override suspend fun setPaused(id: Long, paused: Boolean) = updateFlags(id) { it.copy(paused = paused) }
 
     override suspend fun reorder(ids: List<Long>) = database.withTransaction {
-        ids.forEachIndexed { index, id -> updateFlags(id) { it.copy(position = index) } }
+        val requested = ids.distinct()
+        val all = dao.getAllHabits()
+        require(requested.all { id -> all.any { it.id == id } }) { "Habit no longer exists" }
+        val byId = all.associateBy(HabitEntity::id)
+        val order = requested + all.filterNot { it.id in requested }.sortedBy(HabitEntity::position).map(HabitEntity::id)
+        val now = clock.now().toEpochMilli()
+        order.forEachIndexed { index, id ->
+            val current = requireNotNull(byId[id])
+            if (current.position != index) dao.updateHabit(current.copy(position = index, updatedAtMillis = now))
+        }
     }
 
     override suspend fun addPause(id: Long, start: LocalDate, end: LocalDate?, note: String) {

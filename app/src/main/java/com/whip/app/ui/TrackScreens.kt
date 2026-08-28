@@ -32,8 +32,6 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Archive
-import androidx.compose.material.icons.outlined.ArrowDownward
-import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DeleteForever
@@ -67,6 +65,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -257,6 +256,10 @@ internal fun TrackAreaContent(
     workspaceDestinationState: MutableState<TrackWorkspaceDestination>? = null,
     destinationState: MutableState<TrackDetailDestination>? = null,
     dialogModifier: Modifier = Modifier,
+    reorderEnabled: Boolean = true,
+    onShowAllAreasForReorder: () -> Unit = {},
+    onReorderModeChange: (Boolean) -> Unit = {},
+    reorderDismissRequest: Int = 0,
 ) {
     val localSelectedTrackState = rememberSaveable { mutableStateOf<Long?>(null) }
     val activeSelectedTrackState = selectedTrackState ?: localSelectedTrackState
@@ -385,6 +388,8 @@ internal fun TrackAreaContent(
             onAddEntry = { selectedTrackId = it; onEditorRequest(TrackEditorIntent.Entry(it)) },
             onCreate = { onEditorRequest(TrackEditorIntent.Definition(null)) },
             onReorder = viewModel::reorder,
+            reorderEnabled = reorderEnabled,
+            onShowAllAreasForReorder = onShowAllAreasForReorder,
             onSetPinned = viewModel::setPinned,
             onSetArchived = viewModel::setArchived,
             onOpenPrompt = { occurrenceId ->
@@ -398,6 +403,8 @@ internal fun TrackAreaContent(
             onRemindPrompt = { viewModel.remindPrompt(it, Instant.now().plus(1, ChronoUnit.HOURS)) },
             onDismissPrompt = viewModel::dismissPrompt,
             masterPane = masterPane,
+            onReorderModeChange = onReorderModeChange,
+            reorderDismissRequest = reorderDismissRequest,
         )
     }
     @Composable fun trackDetail(projection: TrackProjection) {
@@ -1404,12 +1411,16 @@ private fun AllTracksPage(
     onAddEntry: (Long) -> Unit,
     onCreate: () -> Unit,
     onReorder: (List<Long>) -> Unit,
+    reorderEnabled: Boolean,
+    onShowAllAreasForReorder: () -> Unit,
     onSetPinned: (Collection<Long>, Boolean) -> Unit,
     onSetArchived: (Collection<Long>, Boolean) -> Unit,
     onOpenPrompt: (Long) -> Unit,
     onRemindPrompt: (Long) -> Unit,
     onDismissPrompt: (Long) -> Unit,
     masterPane: Boolean,
+    onReorderModeChange: (Boolean) -> Unit = {},
+    reorderDismissRequest: Int = 0,
 ) {
     val userCompact = LocalCompactItemLayout.current
     var moreOpen by rememberSaveable { mutableStateOf(false) }
@@ -1423,6 +1434,18 @@ private fun AllTracksPage(
     }
     val pinned = if (showArchived) emptyList() else shown.filter { it.track.pinned }
     val unpinned = if (showArchived) shown else shown.filterNot { it.track.pinned }
+    BackHandler(enabled = reordering) { reordering = false }
+    BackHandler(enabled = selecting) { selecting = false; selectedIds = emptySet() }
+    DisposableEffect(reordering) {
+        onReorderModeChange(reordering)
+        onDispose { if (reordering) onReorderModeChange(false) }
+    }
+    LaunchedEffect(reorderDismissRequest) {
+        if (reorderDismissRequest > 0) reordering = false
+    }
+    LaunchedEffect(query, reorderEnabled, showArchived) {
+        if (query.isNotBlank() || !reorderEnabled || showArchived) reordering = false
+    }
     val visibleTrackIds = source.mapTo(mutableSetOf()) { it.track.id }
     val captureRules = state.triggerRules.filter { it.targetType == TriggerTargetType.Track && it.targetEntityId in visibleTrackIds }
     val captureRuleIds = captureRules.mapTo(mutableSetOf(), TriggerRule::id)
@@ -1432,14 +1455,13 @@ private fun AllTracksPage(
             !(occurrence.remindAt ?: occurrence.availableAt).isAfter(now)
     }
     fun moveWithin(group: List<TrackProjection>, index: Int, delta: Int) {
-        val target = index + delta
-        if (target !in group.indices) return
-        val moved = group.toMutableList().also { java.util.Collections.swap(it, index, target) }
+        val moved = moveListItem(group, index, delta)
+        if (moved == group) return
         val all = if (group.firstOrNull()?.track?.pinned == true) moved + state.active.filterNot { it.track.pinned }
         else state.active.filter { it.track.pinned } + moved
         onReorder(all.map { it.track.id })
     }
-    LazyColumn(
+    WhipReorderLazyColumn(
         Modifier.fillMaxSize().padding(innerPadding).testTag("track-list"),
         contentPadding = PaddingValues(
             start = if (masterPane) 12.dp else 20.dp,
@@ -1459,16 +1481,28 @@ private fun AllTracksPage(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Box {
+                if (!reordering) Box {
                     WhipPageIconAction(Icons.Outlined.MoreVert, "More Track Options", { moreOpen = true })
                     DropdownMenu(moreOpen, { moreOpen = false }) {
                         WhipMenuItem(
                             label = if (showArchived) "Show Active Tracks" else "Show Archived Tracks",
                             onClick = { reordering = false; onShowArchivedChange(!showArchived); moreOpen = false },
                         )
-                        if (!showArchived && state.active.size > 1 && query.isBlank()) WhipMenuItem(
-                            label = if (reordering) "Finish Reordering" else "Reorder Tracks",
-                            onClick = { reordering = !reordering; moreOpen = false },
+                        if (!showArchived && (state.active.size > 1 || query.isNotBlank() || !reorderEnabled)) WhipMenuItem(
+                            label = when {
+                                query.isNotBlank() && !reorderEnabled -> "Clear Search, Show All Areas & Reorder"
+                                query.isNotBlank() -> "Clear Search & Reorder All"
+                                !reorderEnabled -> "Show All Areas & Reorder"
+                                else -> "Reorder Tracks"
+                            },
+                            onClick = {
+                                onQueryChange("")
+                                if (!reorderEnabled) onShowAllAreasForReorder()
+                                selecting = false
+                                selectedIds = emptySet()
+                                reordering = true
+                                moreOpen = false
+                            },
                         )
                         if (shown.isNotEmpty()) WhipMenuItem(
                             label = if (selecting) "Cancel Selection" else "Select Tracks",
@@ -1482,6 +1516,13 @@ private fun AllTracksPage(
                     }
                 }
             }
+        }
+        if (reordering) item {
+            WhipReorderModeBar(
+                itemLabel = "Tracks",
+                onDone = { reordering = false },
+                boundaryNote = "Pinned and other Tracks reorder separately.",
+            )
         }
         if (selecting) item {
             Card(Modifier.fillMaxWidth()) {
@@ -1512,7 +1553,7 @@ private fun AllTracksPage(
                 }
             }
         }
-        if (!showArchived && readyPrompts.isNotEmpty()) {
+        if (!reordering && !showArchived && readyPrompts.isNotEmpty()) {
             item { Text("Pending Entries", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
             items(readyPrompts, key = { "all-track-prompt-${it.id}" }) { occurrence ->
                 TrackPromptCard(
@@ -1543,12 +1584,15 @@ private fun AllTracksPage(
             )
         } else {
             if (pinned.isNotEmpty() && !showArchived) {
-                item { Text("Pinned", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+                item { Text("Pinned Tracks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
                 itemsIndexed(pinned, key = { _, item -> "track-pinned-${item.track.id}" }) { index, item ->
                     TrackRow(
                         item, onOpen, onEdit, onAddEntry,
-                        onMoveEarlier = if (reordering && index > 0) {{ moveWithin(pinned, index, -1) }} else null,
-                        onMoveLater = if (reordering && index < pinned.lastIndex) {{ moveWithin(pinned, index, 1) }} else null,
+                        onMove = if (reordering) {{ delta -> moveWithin(pinned, index, delta) }} else null,
+                        canMoveEarlier = index > 0,
+                        canMoveLater = index < pinned.lastIndex,
+                        reorderPosition = index + 1,
+                        reorderTotal = pinned.size,
                         reordering = reordering,
                         selectionMode = selecting,
                         selected = item.track.id in selectedIds,
@@ -1557,13 +1601,16 @@ private fun AllTracksPage(
                         compact = masterPane,
                     )
                 }
-                item { Text("All Tracks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+                item { Text("Other Tracks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
             }
             itemsIndexed(unpinned, key = { _, item -> "track-${item.track.id}" }) { index, item ->
                 TrackRow(
                     item, onOpen, onEdit, onAddEntry,
-                    onMoveEarlier = if (reordering && index > 0) {{ moveWithin(unpinned, index, -1) }} else null,
-                    onMoveLater = if (reordering && index < unpinned.lastIndex) {{ moveWithin(unpinned, index, 1) }} else null,
+                    onMove = if (reordering) {{ delta -> moveWithin(unpinned, index, delta) }} else null,
+                    canMoveEarlier = index > 0,
+                    canMoveLater = index < unpinned.lastIndex,
+                    reorderPosition = index + 1,
+                    reorderTotal = unpinned.size,
                     reordering = reordering,
                     selectionMode = selecting,
                     selected = item.track.id in selectedIds,
@@ -1583,8 +1630,11 @@ internal fun TrackRow(
     onOpen: (Long) -> Unit,
     onEdit: (Long) -> Unit,
     onAddEntry: (Long) -> Unit,
-    onMoveEarlier: (() -> Unit)? = null,
-    onMoveLater: (() -> Unit)? = null,
+    onMove: ((Int) -> Unit)? = null,
+    canMoveEarlier: Boolean = false,
+    canMoveLater: Boolean = false,
+    reorderPosition: Int? = null,
+    reorderTotal: Int? = null,
     reordering: Boolean = false,
     selectionMode: Boolean = false,
     selected: Boolean = false,
@@ -1594,6 +1644,7 @@ internal fun TrackRow(
 ) {
     val userCompact = LocalCompactItemLayout.current
     val dense = compact || userCompact
+    val reorderInteraction = rememberWhipReorderInteractionState()
     val selectable = selectionMode && onSelectionToggle != null
     val latest = projection.entries.maxWithOrNull(compareBy<TrackEntryProjection> { it.entry.entryDate }.thenBy { it.entry.createdAtMillis })
     if (dense && !selectable && !reordering) {
@@ -1608,7 +1659,13 @@ internal fun TrackRow(
         return
     }
     Card(
-        modifier = Modifier.fillMaxWidth().testTag("track-card-${projection.track.id}").combinedClickable(
+        modifier = Modifier.fillMaxWidth()
+            .whipReorderItem(
+                reorderInteraction,
+                layoutPosition = reorderPosition,
+                layoutScope = "track-browse-${projection.track.pinned}",
+            )
+            .testTag("track-card-${projection.track.id}").combinedClickable(
             enabled = !reordering,
             onClickLabel = if (selectable) "${if (selected) "Deselect" else "Select"} ${projection.track.name}" else "Open ${projection.track.name}",
             onLongClickLabel = onEnterSelection?.let { "Select ${projection.track.name}" },
@@ -1616,13 +1673,19 @@ internal fun TrackRow(
             onLongClick = onEnterSelection,
         )
             .semantics {
-                role = Role.Button
+                if (!reordering) role = Role.Button
                 contentDescription = buildString {
                     append("${projection.track.name}, ${projection.entries.size} Entries")
                     latest?.let {
                         append(", latest ${projection.primaryText(it)}, ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
                     }
-                    append(if (selectable) ". ${if (selected) "Selected" else "Not selected"}. Select Track" else ". Open Track")
+                    append(
+                        when {
+                            reordering -> ". Reordering"
+                            selectable -> ". ${if (selected) "Selected" else "Not selected"}. Select Track"
+                            else -> ". Open Track"
+                        },
+                    )
                 }
             },
     ) {
@@ -1635,6 +1698,20 @@ internal fun TrackRow(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (selectable) Checkbox(selected, onCheckedChange = null)
+                if (reordering && onMove != null) {
+                    WhipReorderHandle(
+                        label = projection.track.name,
+                        canMovePrevious = canMoveEarlier,
+                        canMoveNext = canMoveLater,
+                        position = reorderPosition,
+                        total = reorderTotal,
+                        interactionState = reorderInteraction,
+                        moveWholeItem = true,
+                        layoutScope = "track-browse-${projection.track.pinned}",
+                        reserveWhenUnavailable = true,
+                        onMove = onMove,
+                    )
+                }
                 WhipIdentityEmoji(projection.track.icon)
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -1648,10 +1725,7 @@ internal fun TrackRow(
                 }
                 if (selectable) {
                     Text(if (selected) "Selected" else "Not Selected", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else if (reordering) {
-                    IconButton(enabled = onMoveEarlier != null, onClick = { onMoveEarlier?.invoke() }) { Icon(Icons.Outlined.ArrowUpward, "Move ${projection.track.name} Earlier") }
-                    IconButton(enabled = onMoveLater != null, onClick = { onMoveLater?.invoke() }) { Icon(Icons.Outlined.ArrowDownward, "Move ${projection.track.name} Later") }
-                } else {
+                } else if (!reordering) {
                     ItemEditButton(
                         "Track",
                         projection.track.name,
@@ -3316,7 +3390,7 @@ internal fun TrackEditor(
                 )
             },
         ) { padding ->
-            LazyColumn(
+            WhipReorderLazyColumn(
                 Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, 96.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -3340,23 +3414,31 @@ internal fun TrackEditor(
                 item { HorizontalDivider() }
                 item { EditorSectionHeader("Entry Fields", "Every Entry follows this order. One or more Entry Identity Fields create its readable name.") }
                 itemsIndexed(fields, key = { index, field -> field.uuid ?: field.id?.toString() ?: "new-field-$index-${field.name}" }) { index, field ->
-                    Card(Modifier.fillMaxWidth()) {
+                    val reorderInteraction = rememberWhipReorderInteractionState()
+                    Card(
+                        Modifier.fillMaxWidth().whipReorderItem(
+                            reorderInteraction,
+                            layoutPosition = index + 1,
+                            layoutScope = "track-editor-fields",
+                        ),
+                    ) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                WhipReorderHandle(
+                                    label = field.name.ifBlank { "field ${index + 1}" },
+                                    canMovePrevious = index > 0,
+                                    canMoveNext = index < fields.lastIndex,
+                                    position = index + 1,
+                                    total = fields.size,
+                                    interactionState = reorderInteraction,
+                                    moveWholeItem = true,
+                                    layoutScope = "track-editor-fields",
+                                    onMove = { delta -> stateHolder.updateDraft { current -> current.copy(fields = moveListItem(current.fields, index, delta)) } },
+                                )
                                 Column(Modifier.weight(1f)) {
                                     Text(field.name.ifBlank { "Untitled Field" }, fontWeight = FontWeight.SemiBold)
                                     Text(listOfNotNull(field.configurationLabel(), "Identity".takeIf { field.primary }, "Required".takeIf { field.required && !field.primary }, "Label Shown".takeIf { field.showInList }).joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                IconButton(
-                                    enabled = index > 0,
-                                    onClick = { stateHolder.updateDraft { current -> current.copy(fields = current.fields.toMutableList().also { java.util.Collections.swap(it, index, index - 1) }) } },
-                                    modifier = Modifier.semantics { contentDescription = "Move ${field.name} Earlier" },
-                                ) { Icon(Icons.Outlined.ArrowUpward, contentDescription = null) }
-                                IconButton(
-                                    enabled = index < fields.lastIndex,
-                                    onClick = { stateHolder.updateDraft { current -> current.copy(fields = current.fields.toMutableList().also { java.util.Collections.swap(it, index, index + 1) }) } },
-                                    modifier = Modifier.semantics { contentDescription = "Move ${field.name} Later" },
-                                ) { Icon(Icons.Outlined.ArrowDownward, contentDescription = null) }
                                 IconButton(onClick = { editingFieldIndex = index }) { Icon(Icons.Outlined.Edit, "Edit Field ${field.name}") }
                             }
                             if (fields.size > 20 && index == fields.lastIndex) Text("Long entry forms take more time to fill.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -3529,7 +3611,7 @@ private fun TrackFieldEditor(
         onDismissRequest = onDismiss,
         title = { Text(if (initial.id == null && initial.uuid == null) "Add Field" else "Edit Field") },
         text = {
-            LazyColumn(Modifier.fillMaxWidth().fillMaxHeight(0.72f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            WhipReorderLazyColumn(Modifier.fillMaxWidth().fillMaxHeight(0.72f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item { OutlinedTextField(name, { name = it.take(80) }, label = { Text("Field Name *") }, singleLine = true, modifier = Modifier.fillMaxWidth()) }
                 item { SelectionField("Field Type", TrackFieldType.entries, type, TrackFieldType::uiLabel, { type = it }, enabled = !existingHasValues) }
                 if (existingHasValues) item { Text("A Field type can change only before it has saved values. Delete this Field and add another to change its type.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
@@ -3545,7 +3627,26 @@ private fun TrackFieldEditor(
                     TrackFieldType.SingleChoice -> {
                         item { Text("Choice Options", style = MaterialTheme.typography.labelLarge) }
                         itemsIndexed(choices, key = { index, option -> option.uuid ?: option.id?.toString() ?: "choice-$index" }) { index, option ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            val reorderInteraction = rememberWhipReorderInteractionState()
+                            Row(
+                                modifier = Modifier.whipReorderItem(
+                                    reorderInteraction,
+                                    layoutPosition = index + 1,
+                                    layoutScope = "track-field-choice-options",
+                                ),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                WhipReorderHandle(
+                                    label = option.label.ifBlank { "choice option ${index + 1}" },
+                                    canMovePrevious = index > 0,
+                                    canMoveNext = index < choices.lastIndex,
+                                    position = index + 1,
+                                    total = choices.size,
+                                    interactionState = reorderInteraction,
+                                    moveWholeItem = true,
+                                    layoutScope = "track-field-choice-options",
+                                    onMove = { delta -> choices = moveListItem(choices, index, delta) },
+                                )
                                 OutlinedTextField(option.label, { label -> choices = choices.toMutableList().also { it[index] = option.copy(label = label.take(80)) } }, label = { Text("Option ${index + 1}") }, singleLine = true, modifier = Modifier.weight(1f))
                                 IconButton(enabled = choices.size > 1, onClick = { choices = choices.toMutableList().also { it.removeAt(index) } }) { Icon(Icons.Outlined.Close, "Remove Option ${option.label}") }
                             }

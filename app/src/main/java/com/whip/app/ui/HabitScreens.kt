@@ -39,9 +39,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -58,8 +60,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.ArrowDownward
-import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.MoreVert
@@ -142,9 +142,12 @@ fun HabitAreaContent(
     onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
     areaScopeLabel: String? = null,
+    onShowAllAreasForReorder: () -> Unit = {},
     onAreaChanged: (String?) -> Unit = {},
     destinationState: MutableState<HabitDestination>? = null,
     showWorkspace: Boolean = true,
+    onReorderModeChange: (Boolean) -> Unit = {},
+    reorderDismissRequest: Int = 0,
 ) {
     if (state.loading || state.errorMessage != null) {
         DomainLoadContent("habits", innerPadding, state.errorMessage, viewModel::retryLoading)
@@ -159,6 +162,7 @@ fun HabitAreaContent(
     var numericLogHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var pauseRequestHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var templatesOpen by rememberSaveable { mutableStateOf(false) }
+    var reorderAllRequested by rememberSaveable { mutableStateOf(false) }
     var templateDraft by rememberSaveable { mutableStateOf<HabitDraft?>(null) }
     var editorSavePending by rememberSaveable { mutableStateOf(false) }
     var linkingHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -250,8 +254,15 @@ fun HabitAreaContent(
                 onUndoSkip = { item -> viewModel.undoSkip(item.habit.id, item.date) },
                 onChecklist = viewModel::toggleChecklist,
                 onReorder = null,
+                onShowAllForReorder = {
+                    if (areaScopeLabel != null) onShowAllAreasForReorder()
+                    destination = HabitDestination.All
+                    reorderAllRequested = true
+                },
                 lowPressureMode = lowPressureMode,
                 separateCompleted = true,
+                onReorderModeChange = onReorderModeChange,
+                reorderDismissRequest = reorderDismissRequest,
             )
             HabitDestination.All -> HabitList(
                 title = "All Habits",
@@ -271,8 +282,13 @@ fun HabitAreaContent(
                 canUndo = { latestPeriodLog(it) != null },
                 onUndoSkip = { item -> viewModel.undoSkip(item.habit.id, item.date) },
                 onChecklist = viewModel::toggleChecklist,
-                onReorder = viewModel::reorder,
+                onReorder = if (areaScopeLabel == null) viewModel::reorder else null,
+                onShowAllAreasForReorder = onShowAllAreasForReorder.takeIf { areaScopeLabel != null },
+                reorderRequested = reorderAllRequested,
+                onReorderRequestConsumed = { reorderAllRequested = false },
                 lowPressureMode = lowPressureMode,
+                onReorderModeChange = onReorderModeChange,
+                reorderDismissRequest = reorderDismissRequest,
             )
             HabitDestination.Insights -> HabitInsights(state, lowPressureMode)
             HabitDestination.Connections -> HabitAutomationContent(
@@ -727,6 +743,7 @@ fun HabitProgressCard(
     onUndoSkip: () -> Unit,
     onChecklist: (Long, Long, LocalDate, Boolean) -> Unit,
     lowPressureMode: Boolean = false,
+    reorderMode: Boolean = false,
 ) {
     val habit = item.habit
     val compact = LocalCompactItemLayout.current
@@ -745,6 +762,7 @@ fun HabitProgressCard(
     ) "recent periods" else "30d"
     val compactStatus = item.compactCollectionStatus()
     val primaryAction: (@Composable () -> Unit)? = when {
+        reorderMode -> null
         skipped -> if (compact) {{ ItemPrimaryTextButton("Undo", onUndoSkip) }} else {{ Text("Skipped", color = MaterialTheme.whipColors.warning, fontWeight = FontWeight.SemiBold) }}
         habit.sourceMetricId != null -> if (compact) null else {{ Text("Synced", color = MaterialTheme.whipColors.success, fontWeight = FontWeight.SemiBold) }}
         habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) -> {{
@@ -782,9 +800,15 @@ fun HabitProgressCard(
     }
     ProductivityItemCard(
         modifier = Modifier
-            .clickable(onClickLabel = "Open habit details for ${habit.name}", onClick = onOpen)
+            .then(
+                if (reorderMode) Modifier
+                else Modifier.clickable(onClickLabel = "Open habit details for ${habit.name}", onClick = onOpen),
+            )
             .testTag("habit-card-${habit.id}")
-            .semantics { contentDescription = "Open habit details for ${habit.name}" },
+            .then(
+                if (reorderMode) Modifier
+                else Modifier.semantics { contentDescription = "Open habit details for ${habit.name}" },
+            ),
         containerColor = if (item.isDoneForToday()) {
             MaterialTheme.colorScheme.surfaceContainerLow
         } else {
@@ -797,7 +821,7 @@ fun HabitProgressCard(
             emoji = habit.icon,
             areaId = habit.areaId,
             areaName = habit.area,
-            onEdit = onEdit,
+            onEdit = onEdit.takeUnless { reorderMode },
             identityModifier = Modifier.testTag("habit-icon-${habit.id}"),
             primaryActionModifier = Modifier.testTag("habit-primary-action-${habit.id}"),
             editModifier = Modifier.testTag("habit-edit-action-${habit.id}"),
@@ -821,14 +845,14 @@ fun HabitProgressCard(
                 )
             },
             compactExpanded = disclosure.expanded,
-            onCompactExpansionToggle = disclosure.toggle.takeIf { compact },
+            onCompactExpansionToggle = disclosure.toggle.takeIf { compact && !reorderMode },
             compactExpansionTag = "habit-expand-${habit.id}",
             compactPrimaryActionWidth = if (
                 skipped || habit.trackingMode in setOf(HabitTrackingMode.Duration, HabitTrackingMode.Rating, HabitTrackingMode.LogOnly)
             ) 72.dp else 64.dp,
             primaryAction = primaryAction,
         )
-        if (!compact || disclosure.expanded) {
+        if (!reorderMode && (!compact || disclosure.expanded)) {
             if (skipped) {
                 if (compact) {
                     BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -1037,8 +1061,14 @@ private fun HabitList(
     onUndoSkip: (HabitDayProgress) -> Unit,
     onChecklist: (Long, Long, LocalDate, Boolean) -> Unit,
     onReorder: ((List<Long>) -> Unit)?,
+    onShowAllAreasForReorder: (() -> Unit)? = null,
+    onShowAllForReorder: (() -> Unit)? = null,
+    reorderRequested: Boolean = false,
+    onReorderRequestConsumed: () -> Unit = {},
     lowPressureMode: Boolean,
     separateCompleted: Boolean = false,
+    onReorderModeChange: (Boolean) -> Unit = {},
+    reorderDismissRequest: Int = 0,
 ) {
     val compact = LocalCompactItemLayout.current
     var manageOrder by rememberSaveable { mutableStateOf(false) }
@@ -1055,39 +1085,61 @@ private fun HabitList(
         if (doneIds.isEmpty()) doneExpanded = false
         knownDoneIds = doneIds
     }
+    LaunchedEffect(reorderRequested, onReorder) {
+        if (reorderRequested && onReorder != null) {
+            manageOrder = true
+            onReorderRequestConsumed()
+        }
+    }
     BackHandler(enabled = manageOrder) { manageOrder = false }
-    LazyColumn(
+    DisposableEffect(manageOrder) {
+        onReorderModeChange(manageOrder)
+        onDispose { if (manageOrder) onReorderModeChange(false) }
+    }
+    LaunchedEffect(reorderDismissRequest) {
+        if (reorderDismissRequest > 0) manageOrder = false
+    }
+    WhipReorderLazyColumn(
         modifier = Modifier.fillMaxSize().testTag("habit-list-$title"),
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 10.dp),
     ) {
         item {
             WhipPageHeader(title = title, supportingText = subtitle) {
-                if (progress.isNotEmpty()) Box {
+                if (!manageOrder && (progress.isNotEmpty() || onShowAllAreasForReorder != null || onShowAllForReorder != null)) Box {
                     WhipPageIconAction(
                         icon = Icons.Outlined.MoreVert,
                         label = "More Habit Actions",
                         onClick = { toolsExpanded = true },
                     )
                     DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Browse Templates") },
+                        WhipMenuItem(
+                            label = "Browse Templates",
                             onClick = { toolsExpanded = false; onTemplates() },
                         )
-                        if (onReorder != null && progress.size > 1) DropdownMenuItem(
-                            text = { Text("Reorder Habits") },
-                            onClick = { toolsExpanded = false; manageOrder = true },
+                        onShowAllForReorder?.let { showAll ->
+                            WhipMenuItem(
+                                label = "Reorder All Habits",
+                                onClick = { toolsExpanded = false; showAll() },
+                            )
+                        }
+                        if ((onReorder != null && progress.size > 1) || onShowAllAreasForReorder != null) WhipMenuItem(
+                            label = if (onShowAllAreasForReorder == null) "Reorder Habits" else "Show All Areas & Reorder",
+                            onClick = {
+                                toolsExpanded = false
+                                onShowAllAreasForReorder?.invoke()
+                                manageOrder = true
+                            },
                         )
                     }
                 }
             }
         }
         if (manageOrder) item {
-            ModeButton(
-                label = "Reorder Habits",
-                active = true,
-                onClick = { manageOrder = false },
-                modifier = Modifier.fillMaxWidth(),
+            WhipReorderModeBar(
+                itemLabel = "Habits",
+                onDone = { manageOrder = false },
+                boundaryNote = "Pinned and other Habits reorder separately.",
             )
         }
         if (progress.isEmpty()) item {
@@ -1107,7 +1159,19 @@ private fun HabitList(
         items(sections.remaining, key = { it.habit.id }) { item ->
             val index = sections.remaining.indexOfFirst { it.habit.id == item.habit.id }
             Column {
-                HabitProgressCard(
+                if (
+                    manageOrder &&
+                    (index == 0 || sections.remaining[index - 1].habit.pinned != item.habit.pinned)
+                ) {
+                    Text(
+                        if (item.habit.pinned) "Pinned Habits" else "Other Habits",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 4.dp),
+                    )
+                }
+                val card: @Composable () -> Unit = {
+                    HabitProgressCard(
                     item = item,
                     onOpen = { onOpen(item) },
                     onEdit = { onEdit(item) },
@@ -1120,24 +1184,45 @@ private fun HabitList(
                     onUndoSkip = { onUndoSkip(item) },
                     onChecklist = onChecklist,
                     lowPressureMode = lowPressureMode,
-                )
-                if (manageOrder && onReorder != null) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        WhipTextButton(enabled = index > 0, onClick = {
-                            val ids = sections.remaining.map { it.habit.id }.toMutableList()
-                            java.util.Collections.swap(ids, index, index - 1)
-                            onReorder(ids)
-                        }) { Icon(Icons.Outlined.ArrowUpward, contentDescription = null, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(4.dp)); Text("Earlier") }
-                        WhipTextButton(enabled = index in 0 until sections.remaining.lastIndex, onClick = {
-                            val ids = sections.remaining.map { it.habit.id }.toMutableList()
-                            java.util.Collections.swap(ids, index, index + 1)
-                            onReorder(ids)
-                        }) { Icon(Icons.Outlined.ArrowDownward, contentDescription = null, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(4.dp)); Text("Later") }
-                    }
+                    reorderMode = manageOrder,
+                    )
                 }
+                if (manageOrder && onReorder != null) {
+                    val partition = sections.remaining.filter { it.habit.pinned == item.habit.pinned }
+                    val partitionIndex = partition.indexOfFirst { it.habit.id == item.habit.id }
+                    val reorderInteraction = rememberWhipReorderInteractionState()
+                    Row(
+                        modifier = Modifier.whipReorderItem(
+                            reorderInteraction,
+                            layoutPosition = partitionIndex + 1,
+                            layoutScope = "habit-browse-${item.habit.pinned}",
+                        ),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        WhipReorderHandle(
+                            label = item.habit.name,
+                            canMovePrevious = partitionIndex > 0,
+                            canMoveNext = partitionIndex in 0 until partition.lastIndex,
+                            position = partitionIndex + 1,
+                            total = partition.size,
+                            interactionState = reorderInteraction,
+                            moveWholeItem = true,
+                            layoutScope = "habit-browse-${item.habit.pinned}",
+                            reserveWhenUnavailable = true,
+                            onMove = { delta ->
+                                val moved = moveListItem(partition, partitionIndex, delta)
+                                val iterator = moved.iterator()
+                                onReorder(sections.remaining.map { current ->
+                                    if (current.habit.pinned == item.habit.pinned) iterator.next().habit.id else current.habit.id
+                                })
+                            },
+                        )
+                        Box(Modifier.weight(1f)) { card() }
+                    }
+                } else card()
             }
         }
-        if (sections.done.isNotEmpty()) {
+        if (!manageOrder && sections.done.isNotEmpty()) {
             item {
                 DoneHabitsDisclosure(
                     count = sections.done.size,
@@ -1579,7 +1664,12 @@ private fun HabitEditorDialog(
     var precision by rememberSaveable(editorKey) { mutableStateOf(initial.precision.toString()) }
     var sourceMetricId by rememberSaveable(editorKey) { mutableStateOf(initial.sourceMetricId) }
     var checklistDrafts by rememberSaveable(editorKey) {
-        mutableStateOf<List<HabitChecklistItemDraft>>(initial.checklistItems.toList())
+        mutableStateOf<List<HabitChecklistItemDraft>>(
+            initial.checklistItems.map { draft ->
+                if (draft.uuid != null || draft.id != null) draft
+                else draft.copy(uuid = java.util.UUID.randomUUID().toString())
+            },
+        )
     }
     var autoCompleteFromItems by rememberSaveable(editorKey) {
         mutableStateOf(initial.autoCompleteFromItems)
@@ -1668,7 +1758,7 @@ private fun HabitEditorDialog(
         onDismissRequest = requestDismiss,
         title = { Text(if (habit == null) "Create Habit" else "Edit Habit") },
         text = {
-            LazyColumn(
+            WhipReorderLazyColumn(
                 modifier = Modifier.testTag("habit-editor-fields"),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
@@ -1769,8 +1859,29 @@ private fun HabitEditorDialog(
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("Checklist Items", fontWeight = FontWeight.Bold)
+                            WhipReorderLayout(itemSpacing = 6.dp) {
                             checklistDrafts.forEachIndexed { index, draft ->
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                key(draft.uuid ?: "habit-checklist-${draft.id ?: index}") {
+                                val reorderInteraction = rememberWhipReorderInteractionState()
+                                Row(
+                                    modifier = Modifier.whipReorderItem(
+                                        reorderInteraction,
+                                        layoutPosition = index + 1,
+                                        layoutScope = "habit-editor-checklist",
+                                    ),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    WhipReorderHandle(
+                                        label = draft.name.ifBlank { "checklist item ${index + 1}" },
+                                        canMovePrevious = index > 0,
+                                        canMoveNext = index < checklistDrafts.lastIndex,
+                                        position = index + 1,
+                                        total = checklistDrafts.size,
+                                        interactionState = reorderInteraction,
+                                        moveWholeItem = true,
+                                        layoutScope = "habit-editor-checklist",
+                                        onMove = { delta -> checklistDrafts = ArrayList(moveListItem(checklistDrafts, index, delta)) },
+                                    )
                                     OutlinedTextField(
                                         value = draft.name,
                                         onValueChange = { name ->
@@ -1782,29 +1893,13 @@ private fun HabitEditorDialog(
                                         modifier = Modifier.weight(1f),
                                     )
                                     IconButton(
-                                        enabled = index > 0,
-                                        onClick = {
-                                            checklistDrafts = ArrayList(checklistDrafts).also {
-                                                val moved = it.removeAt(index)
-                                                it.add(index - 1, moved)
-                                            }
-                                        },
-                                    ) { Icon(Icons.Outlined.ArrowUpward, contentDescription = "Move ${draft.name.ifBlank { "item ${index + 1}" }} up") }
-                                    IconButton(
-                                        enabled = index < checklistDrafts.lastIndex,
-                                        onClick = {
-                                            checklistDrafts = ArrayList(checklistDrafts).also {
-                                                val moved = it.removeAt(index)
-                                                it.add(index + 1, moved)
-                                            }
-                                        },
-                                    ) { Icon(Icons.Outlined.ArrowDownward, contentDescription = "Move ${draft.name.ifBlank { "item ${index + 1}" }} down") }
-                                    IconButton(
                                         onClick = {
                                             checklistDrafts = ArrayList(checklistDrafts).also { it.removeAt(index) }
                                         },
                                     ) { Icon(Icons.Outlined.DeleteOutline, contentDescription = "Remove ${draft.name.ifBlank { "item ${index + 1}" }}") }
                                 }
+                                }
+                            }
                             }
                             WhipOutlinedButton(
                                 onClick = {

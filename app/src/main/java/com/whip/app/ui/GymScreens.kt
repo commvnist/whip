@@ -5,9 +5,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import android.content.Intent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
@@ -45,8 +45,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -60,10 +60,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.stateDescription
@@ -79,7 +77,6 @@ import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.ExpandLess
@@ -97,6 +94,7 @@ import com.whip.app.domain.ExerciseTrackingType
 import com.whip.app.domain.BodyweightLoadPolicy
 import com.whip.app.domain.WorkoutSession
 import com.whip.app.domain.WorkoutExercise
+import com.whip.app.domain.WorkoutGroup
 import com.whip.app.domain.WorkoutGroupType
 import com.whip.app.domain.WorkoutSet
 import com.whip.app.domain.WorkoutSetClassification
@@ -201,6 +199,7 @@ internal val libraryGymDestinations = GymDestination.entries.filterNot(primaryGy
 private enum class WorkoutHistoryRange { Month, ThreeMonths, Year, All }
 
 internal enum class ExerciseLibrarySort(val label: String) {
+    Manual("Custom Order"),
     Name("Name"),
     RecentlyUsed("Last Used"),
     RecentlyAdded("Date Added"),
@@ -214,6 +213,10 @@ internal fun List<Exercise>.sortedForLibrary(
 ): List<Exercise> {
     val ascending = direction == SortDirection.Ascending
     return when (sort) {
+        ExerciseLibrarySort.Manual -> sortedWith(
+            if (ascending) compareBy<Exercise>(Exercise::position).thenBy(Exercise::id)
+            else compareByDescending<Exercise>(Exercise::position).thenByDescending(Exercise::id),
+        )
         ExerciseLibrarySort.Name -> sortedWith(
             if (ascending) compareBy { it.name.lowercase() } else compareByDescending { it.name.lowercase() },
         )
@@ -241,6 +244,11 @@ private fun WorkoutHistoryRange.uiLabel(): String = when (this) {
     WorkoutHistoryRange.ThreeMonths -> "3 Months"
     WorkoutHistoryRange.Year -> "1 Year"
     WorkoutHistoryRange.All -> "All Time"
+}
+
+private fun WorkoutGroupType.uiLabel(): String = when (this) {
+    WorkoutGroupType.Superset -> "Superset"
+    WorkoutGroupType.Circuit -> "Circuit"
 }
 
 @Composable
@@ -411,6 +419,8 @@ fun GymAreaContent(
     onDestinationChange: (GymDestination) -> Unit = {},
     requestedWorkoutExerciseId: Long? = null,
     onRequestedWorkoutExerciseConsumed: () -> Unit = {},
+    onReorderModeChange: (Boolean) -> Unit = {},
+    reorderDismissRequest: Int = 0,
 ) {
     val dialogModifier = modifier
     if (state.loading || state.errorMessage != null) {
@@ -453,6 +463,11 @@ fun GymAreaContent(
     var catalogSavePending by rememberSaveable { mutableStateOf(false) }
     var trackedRecordsManagerOpen by rememberSaveable { mutableStateOf(false) }
     var trackedRecordsInitialExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var browseReordering by rememberSaveable { mutableStateOf(false) }
+    val reportBrowseReordering: (Boolean) -> Unit = { active ->
+        browseReordering = active
+        onReorderModeChange(active)
+    }
     val allExercises = state.exercises + state.archivedExercises
     val exerciseEditor = exerciseEditorId?.let { id -> allExercises.firstOrNull { it.id == id } }
     val exerciseActions = exerciseActionsId?.let { id -> allExercises.firstOrNull { it.id == id } }
@@ -550,7 +565,7 @@ fun GymAreaContent(
             .fillMaxSize()
             .padding(innerPadding),
     ) {
-        if (!routineEditorOpen) DestinationTabBar(
+        if (!routineEditorOpen && !browseReordering) DestinationTabBar(
             selected = destination.takeUnless { it in libraryGymDestinations } ?: GymDestination.Library,
             destinations = primaryGymDestinations,
             onSelect = {
@@ -562,7 +577,7 @@ fun GymAreaContent(
             testTagPrefix = "gym-destination",
             barTestTag = "gym-workspace-navigation",
         )
-        if (!routineEditorOpen && destination in libraryGymDestinations) {
+        if (!routineEditorOpen && !browseReordering && destination in libraryGymDestinations) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -598,6 +613,7 @@ fun GymAreaContent(
                 onDeleteSet = viewModel::deleteSet,
                 onUndoDeleteSet = viewModel::undoDeleteSet,
                 onRemoveExercise = viewModel::removeWorkoutExercise,
+                onRemoveFromGroup = viewModel::removeWorkoutExerciseFromGroup,
                 onSubstituteExercise = { workoutExerciseId ->
                     substituteWorkoutExerciseId = workoutExerciseId
                     showExercisePicker = true
@@ -626,6 +642,9 @@ fun GymAreaContent(
                 onCreate = { creatingExercise = true },
                 onOpen = { exerciseActionsId = it.id },
                 onEdit = { exerciseEditorId = it.id },
+                onReorder = viewModel::reorderExercises,
+                onReorderModeChange = reportBrowseReordering,
+                reorderDismissRequest = reorderDismissRequest,
             )
             GymDestination.Machines -> MachineLibraryContent(
                 state = state,
@@ -641,6 +660,8 @@ fun GymAreaContent(
                 modifier = dialogModifier,
                 createRequested = addRequest == GymAddRequest.CreateCategory,
                 onCreateRequestConsumed = onExternalRequestConsumed,
+                onReorderModeChange = reportBrowseReordering,
+                reorderDismissRequest = reorderDismissRequest,
             )
             GymDestination.History -> WorkoutHistoryContent(
                 history = state.history,
@@ -684,6 +705,8 @@ fun GymAreaContent(
                 },
                 createRequested = addRequest == GymAddRequest.CreateRoutine,
                 onCreateRequestConsumed = onExternalRequestConsumed,
+                onReorderModeChange = reportBrowseReordering,
+                reorderDismissRequest = reorderDismissRequest,
             )
             GymDestination.Tools -> GymToolsContent(
                 state,
@@ -1144,20 +1167,97 @@ private fun GymLibraryLanding(onOpen: (GymDestination) -> Unit) {
 
 internal fun selectNextWorkoutSet(
     items: List<WorkoutExerciseUi>,
-    nextExerciseByGroup: Map<Long, Long?>,
+    nextExerciseByGroup: Map<Long, Long?> = nextExerciseRotation(items),
 ): Pair<WorkoutExerciseUi, WorkoutSet>? {
     fun firstIncomplete(item: WorkoutExerciseUi) = item.sets.sortedBy(WorkoutSet::position)
         .firstOrNull { set -> !set.completed && set.deletedAtMillis == null }
 
-    return items.asSequence()
+    val executionOrder = buildWorkoutExerciseBlocks(items).flatMap(WorkoutExerciseBlock::exercises)
+    return executionOrder.asSequence()
         .mapNotNull { item ->
             val designatedGroupMemberId = item.group?.let { nextExerciseByGroup[it.id] }
             if (designatedGroupMemberId != null && designatedGroupMemberId != item.workoutExercise.id) return@mapNotNull null
             firstIncomplete(item)?.let { set -> item to set }
         }
         .firstOrNull()
-        ?: items.asSequence().mapNotNull { item -> firstIncomplete(item)?.let { set -> item to set } }.firstOrNull()
+        ?: executionOrder.asSequence().mapNotNull { item -> firstIncomplete(item)?.let { set -> item to set } }.firstOrNull()
 }
+
+internal fun nextExerciseRotation(items: List<WorkoutExerciseUi>): Map<Long, Long?> = items
+    .filter { it.group != null }
+    .groupBy { requireNotNull(it.group).id }
+    .filterValues { members -> members.size >= 2 }
+    .mapValues { (_, members) ->
+        val ordered = members.sortedBy { it.workoutExercise.position }
+        val lastCompletedMember = ordered.mapNotNull { member ->
+            member.sets.filter { it.completed && it.deletedAtMillis == null }
+                .maxOfOrNull { it.completedAtMillis ?: it.updatedAtMillis }
+                ?.let { completedAt -> member to completedAt }
+        }.maxByOrNull { it.second }?.first
+        if (lastCompletedMember == null) ordered.firstOrNull()?.workoutExercise?.id
+        else ordered[(ordered.indexOf(lastCompletedMember) + 1) % ordered.size].workoutExercise.id
+    }
+
+internal data class WorkoutExerciseBlock(
+    val group: WorkoutGroup?,
+    val exercises: List<WorkoutExerciseUi>,
+) {
+    val key: String = group?.let { "group-${it.id}" }
+        ?: "exercise-${exercises.single().workoutExercise.id}"
+}
+
+internal fun buildWorkoutExerciseBlocks(items: List<WorkoutExerciseUi>): List<WorkoutExerciseBlock> {
+    val ordered = items.sortedBy { it.workoutExercise.position }
+    val groupCounts = ordered.mapNotNull { it.group?.id }.groupingBy { it }.eachCount()
+    val emittedGroupIds = mutableSetOf<Long>()
+    return buildList {
+        ordered.forEach { item ->
+            val group = item.group?.takeIf { (groupCounts[it.id] ?: 0) >= 2 }
+            if (group == null) {
+                add(WorkoutExerciseBlock(group = null, exercises = listOf(item)))
+            } else if (emittedGroupIds.add(group.id)) {
+                add(
+                    WorkoutExerciseBlock(
+                        group = group,
+                        exercises = ordered.filter { it.group?.id == group.id },
+                    ),
+                )
+            }
+        }
+    }
+}
+
+internal fun WorkoutGroup.customDisplayName(): String? = name.trim()
+    .takeIf(String::isNotBlank)
+    ?.takeUnless { candidate -> WorkoutGroupType.entries.any { candidate.equals(it.name, ignoreCase = true) } }
+
+internal fun reorderWorkoutBlock(
+    blocks: List<WorkoutExerciseBlock>,
+    blockIndex: Int,
+    delta: Int,
+): List<Long> {
+    if (blockIndex !in blocks.indices) return blocks.flattenWorkoutExerciseIds()
+    return moveListItem(blocks, blockIndex, delta).flattenWorkoutExerciseIds()
+}
+
+internal fun reorderWorkoutGroupMember(
+    blocks: List<WorkoutExerciseBlock>,
+    blockIndex: Int,
+    memberIndex: Int,
+    delta: Int,
+): List<Long> {
+    val block = blocks.getOrNull(blockIndex) ?: return blocks.flattenWorkoutExerciseIds()
+    if (memberIndex !in block.exercises.indices) {
+        return blocks.flattenWorkoutExerciseIds()
+    }
+    val reorderedMembers = moveListItem(block.exercises, memberIndex, delta)
+    return blocks.mapIndexed { index, candidate ->
+        if (index == blockIndex) candidate.copy(exercises = reorderedMembers) else candidate
+    }.flattenWorkoutExerciseIds()
+}
+
+private fun List<WorkoutExerciseBlock>.flattenWorkoutExerciseIds(): List<Long> =
+    flatMap { block -> block.exercises.map { it.workoutExercise.id } }
 
 @Composable
 private fun WorkoutContent(
@@ -1177,6 +1277,7 @@ private fun WorkoutContent(
     onDeleteSet: (Long) -> Unit,
     onUndoDeleteSet: (Long) -> Unit,
     onRemoveExercise: (Long) -> Unit,
+    onRemoveFromGroup: (Long) -> Unit,
     onSubstituteExercise: (Long) -> Unit,
     onReorderExercises: (Long, List<Long>) -> Unit,
     onReorderSets: (Long, List<Long>) -> Unit,
@@ -1217,42 +1318,35 @@ private fun WorkoutContent(
         return
     }
 
-    val nextExerciseByGroup = state.activeWorkoutExercises
-        .filter { it.group != null }
-        .groupBy { requireNotNull(it.group).id }
-        .mapValues { (_, members) ->
-            val ordered = members.sortedBy { it.workoutExercise.position }
-            val lastCompletedMember = ordered.mapNotNull { member ->
-                member.sets.filter { it.completed && it.deletedAtMillis == null }
-                    .maxOfOrNull { it.completedAtMillis ?: it.updatedAtMillis }
-                    ?.let { completedAt -> member to completedAt }
-            }.maxByOrNull { it.second }?.first
-            if (lastCompletedMember == null) ordered.firstOrNull()?.workoutExercise?.id
-            else ordered[(ordered.indexOf(lastCompletedMember) + 1) % ordered.size].workoutExercise.id
-        }
+    val nextExerciseByGroup = nextExerciseRotation(state.activeWorkoutExercises)
     val nextSet = selectNextWorkoutSet(state.activeWorkoutExercises, nextExerciseByGroup)
+    val workoutBlocks = remember(state.activeWorkoutExercises) {
+        buildWorkoutExerciseBlocks(state.activeWorkoutExercises)
+    }
     val workoutListState = rememberLazyListState()
     val workoutScrollScope = rememberCoroutineScope()
-    LaunchedEffect(requestedWorkoutExerciseId, state.activeWorkoutExercises) {
+    LaunchedEffect(requestedWorkoutExerciseId, workoutBlocks) {
         val requestedId = requestedWorkoutExerciseId ?: return@LaunchedEffect
-        val exerciseIndex = state.activeWorkoutExercises.indexOfFirst { it.workoutExercise.id == requestedId }
-        if (exerciseIndex >= 0) workoutListState.scrollToItem(exerciseIndex + 2)
+        val blockIndex = workoutBlocks.indexOfFirst { block ->
+            block.exercises.any { it.workoutExercise.id == requestedId }
+        }
+        if (blockIndex >= 0) workoutListState.scrollToItem(blockIndex + 2)
         onRequestedWorkoutExerciseConsumed()
     }
     var lastFocusedSetId by rememberSaveable(session.id) { mutableStateOf(nextSet?.second?.id) }
     LaunchedEffect(nextSet?.second?.id) {
         val next = nextSet ?: return@LaunchedEffect
         if (lastFocusedSetId != null && lastFocusedSetId != next.second.id) {
-            val exerciseIndex = state.activeWorkoutExercises.indexOfFirst {
-                it.workoutExercise.id == next.first.workoutExercise.id
+            val blockIndex = workoutBlocks.indexOfFirst { block ->
+                block.exercises.any { it.workoutExercise.id == next.first.workoutExercise.id }
             }
-            if (exerciseIndex >= 0) workoutListState.animateScrollToItem(exerciseIndex + 2)
+            if (blockIndex >= 0) workoutListState.animateScrollToItem(blockIndex + 2)
         }
         lastFocusedSetId = next.second.id
     }
     var workoutRestOverrideSeconds by rememberSaveable(session.id) { mutableStateOf<Int?>(null) }
 
-    LazyColumn(
+    WhipReorderLazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = workoutListState,
         contentPadding = WhipPageContentPadding,
@@ -1290,11 +1384,11 @@ private fun WorkoutContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable(onClickLabel = "Jump to next incomplete set") {
-                                    val exerciseIndex = state.activeWorkoutExercises.indexOfFirst {
-                                        it.workoutExercise.id == exerciseItem.workoutExercise.id
+                                    val blockIndex = workoutBlocks.indexOfFirst { block ->
+                                        block.exercises.any { it.workoutExercise.id == exerciseItem.workoutExercise.id }
                                     }
-                                    if (exerciseIndex >= 0) workoutScrollScope.launch {
-                                        workoutListState.scrollToItem(exerciseIndex + 2)
+                                    if (blockIndex >= 0) workoutScrollScope.launch {
+                                        workoutListState.scrollToItem(blockIndex + 2)
                                     }
                                 }
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -1330,51 +1424,87 @@ private fun WorkoutContent(
                 )
             }
         }
-        items(state.activeWorkoutExercises.size, key = { state.activeWorkoutExercises[it].workoutExercise.id }) { itemIndex ->
-            val item = state.activeWorkoutExercises[itemIndex]
-            val effectiveShowRpe = item.exercise.showRpe ?: state.appSettings.showGymRpe
-            WorkoutExerciseCard(
-                item = item,
-                preferredWeightUnitId = state.appSettings.gymWeightUnitId,
-                preferredDistanceUnitId = state.appSettings.distanceUnitId,
-                numberPrecision = state.appSettings.numberPrecision,
-                compactRows = state.appSettings.gymCompactSetRows,
-                showRpe = effectiveShowRpe,
-                showRir = (item.exercise.showRir ?: state.appSettings.showGymRir) && !effectiveShowRpe,
-                nextSetId = nextSet?.second?.id,
-                nextInGroup = item.group?.let { nextExerciseByGroup[it.id] == item.workoutExercise.id } == true,
-                canMoveUp = itemIndex > 0,
-                canMoveDown = itemIndex < state.activeWorkoutExercises.lastIndex,
-                onMoveUp = {
-                    val ids = state.activeWorkoutExercises.map { it.workoutExercise.id }.toMutableList()
-                    java.util.Collections.swap(ids, itemIndex, itemIndex - 1)
+        items(workoutBlocks, key = WorkoutExerciseBlock::key) { block ->
+            val blockIndex = workoutBlocks.indexOf(block)
+            val renderExercise: @Composable (WorkoutExerciseUi, Int) -> Unit = { item, memberIndex ->
+                val effectiveShowRpe = item.exercise.showRpe ?: state.appSettings.showGymRpe
+                val isGrouped = block.group != null
+                val canMoveUp = if (isGrouped) memberIndex > 0 else blockIndex > 0
+                val canMoveDown = if (isGrouped) memberIndex < block.exercises.lastIndex else blockIndex < workoutBlocks.lastIndex
+                val reorder: (Int) -> Unit = { delta ->
+                    val ids = if (isGrouped) {
+                        reorderWorkoutGroupMember(workoutBlocks, blockIndex, memberIndex, delta)
+                    } else {
+                        reorderWorkoutBlock(workoutBlocks, blockIndex, delta)
+                    }
                     onReorderExercises(session.id, ids)
-                },
-                onMoveDown = {
-                    val ids = state.activeWorkoutExercises.map { it.workoutExercise.id }.toMutableList()
-                    java.util.Collections.swap(ids, itemIndex, itemIndex + 1)
-                    onReorderExercises(session.id, ids)
-                },
-                onRemoveExercise = { onRemoveExercise(item.workoutExercise.id) },
-                onSubstituteExercise = { onSubstituteExercise(item.workoutExercise.id) },
-                onAddSet = { onAddSet(item.workoutExercise.id) },
-                onEditSet = { onEditSet(it, item) },
-                onEditNotes = { onEditExerciseNotes(item) },
-                onCompleteSet = onCompleteSet,
-                onSaveQuickSet = { setId, draft, addNext ->
-                    onSaveQuickSet(
-                        setId,
-                        item.workoutExercise.id,
-                        draft,
-                        addNext,
-                        workoutRestOverrideSeconds,
-                    )
-                },
-                onDuplicateSet = onDuplicateSet,
-                onDeleteSet = onDeleteSet,
-                onUndoDeleteSet = onUndoDeleteSet,
-                onReorderSets = { ids -> onReorderSets(item.workoutExercise.id, ids) },
-            )
+                }
+                WorkoutExerciseCard(
+                    item = item,
+                    preferredWeightUnitId = state.appSettings.gymWeightUnitId,
+                    preferredDistanceUnitId = state.appSettings.distanceUnitId,
+                    numberPrecision = state.appSettings.numberPrecision,
+                    compactRows = state.appSettings.gymCompactSetRows,
+                    showRpe = effectiveShowRpe,
+                    showRir = (item.exercise.showRir ?: state.appSettings.showGymRir) && !effectiveShowRpe,
+                    nextSetId = nextSet?.second?.id,
+                    nextInGroup = item.group?.let { nextExerciseByGroup[it.id] == item.workoutExercise.id } == true,
+                    canMoveUp = canMoveUp,
+                    canMoveDown = canMoveDown,
+                    reorderPosition = if (isGrouped) memberIndex + 1 else blockIndex + 1,
+                    reorderTotal = if (isGrouped) block.exercises.size else workoutBlocks.size,
+                    onMoveUp = { reorder(-1) },
+                    onMoveDown = { reorder(1) },
+                    onMoveBy = reorder,
+                    onRemoveExercise = { onRemoveExercise(item.workoutExercise.id) },
+                    onRemoveFromGroup = { onRemoveFromGroup(item.workoutExercise.id) },
+                    onSubstituteExercise = { onSubstituteExercise(item.workoutExercise.id) },
+                    onAddSet = { onAddSet(item.workoutExercise.id) },
+                    onEditSet = { onEditSet(it, item) },
+                    onEditNotes = { onEditExerciseNotes(item) },
+                    onCompleteSet = onCompleteSet,
+                    onSaveQuickSet = { setId, draft, addNext ->
+                        onSaveQuickSet(
+                            setId,
+                            item.workoutExercise.id,
+                            draft,
+                            addNext,
+                            workoutRestOverrideSeconds,
+                        )
+                    },
+                    onDuplicateSet = onDuplicateSet,
+                    onDeleteSet = onDeleteSet,
+                    onUndoDeleteSet = onUndoDeleteSet,
+                    onReorderSets = { ids -> onReorderSets(item.workoutExercise.id, ids) },
+                )
+            }
+
+            val group = block.group
+            if (group == null) {
+                renderExercise(block.exercises.single(), 0)
+            } else {
+                WorkoutExerciseGroupSurface(
+                    group = group,
+                    exerciseCount = block.exercises.size,
+                    canMoveUp = blockIndex > 0,
+                    canMoveDown = blockIndex < workoutBlocks.lastIndex,
+                    position = blockIndex + 1,
+                    total = workoutBlocks.size,
+                    onMoveUp = {
+                        onReorderExercises(session.id, reorderWorkoutBlock(workoutBlocks, blockIndex, -1))
+                    },
+                    onMoveDown = {
+                        onReorderExercises(session.id, reorderWorkoutBlock(workoutBlocks, blockIndex, 1))
+                    },
+                    onMoveBy = { delta ->
+                        onReorderExercises(session.id, reorderWorkoutBlock(workoutBlocks, blockIndex, delta))
+                    },
+                ) {
+                    block.exercises.forEachIndexed { memberIndex, item ->
+                        renderExercise(item, memberIndex)
+                    }
+                }
+            }
         }
         if (state.activeWorkoutExercises.size >= 2) {
             item {
@@ -1393,6 +1523,71 @@ private fun WorkoutContent(
 }
 
 @Composable
+internal fun WorkoutExerciseGroupSurface(
+    group: WorkoutGroup,
+    exerciseCount: Int,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    position: Int? = null,
+    total: Int? = null,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onMoveBy: (Int) -> Unit = { delta -> if (delta < 0) onMoveUp() else onMoveDown() },
+    content: @Composable () -> Unit,
+) {
+    val reorderInteraction = rememberWhipReorderInteractionState()
+    val groupLabel = group.type.uiLabel()
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .whipReorderItem(
+                reorderInteraction,
+                layoutPosition = position,
+                layoutScope = "workout-blocks",
+            )
+            .testTag("workout-group-${group.id}")
+            .semantics {
+                contentDescription = "$groupLabel group, ${quantityLabel(exerciseCount, "exercise")}"
+            },
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.18f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                WhipReorderHandle(
+                    label = "$groupLabel group",
+                    canMovePrevious = canMoveUp,
+                    canMoveNext = canMoveDown,
+                    position = position,
+                    total = total,
+                    interactionState = reorderInteraction,
+                    moveWholeItem = true,
+                    layoutScope = "workout-blocks",
+                    onMove = onMoveBy,
+                )
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(groupLabel, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        listOfNotNull(
+                            group.customDisplayName(),
+                            quantityLabel(exerciseCount, "exercise"),
+                        ).joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+            WhipReorderLayout(itemSpacing = 8.dp) { content() }
+        }
+    }
+}
+
+@Composable
 internal fun WorkoutExerciseCard(
     item: WorkoutExerciseUi,
     preferredWeightUnitId: String,
@@ -1405,9 +1600,13 @@ internal fun WorkoutExerciseCard(
     nextInGroup: Boolean,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
+    reorderPosition: Int? = null,
+    reorderTotal: Int? = null,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
+    onMoveBy: (Int) -> Unit = { delta -> if (delta < 0) onMoveUp() else onMoveDown() },
     onRemoveExercise: () -> Unit,
+    onRemoveFromGroup: () -> Unit = {},
     onSubstituteExercise: () -> Unit,
     onAddSet: () -> Unit,
     onEditSet: (WorkoutSet) -> Unit,
@@ -1425,9 +1624,28 @@ internal fun WorkoutExerciseCard(
     var setMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
     var setupExpanded by rememberSaveable(item.workoutExercise.id) { mutableStateOf(false) }
     var completedSetsExpanded by rememberSaveable(item.workoutExercise.id) { mutableStateOf(false) }
-    Card(modifier = Modifier.fillMaxWidth()) {
+    val reorderInteraction = rememberWhipReorderInteractionState()
+    val exerciseReorderScope = item.group?.let { "workout-group-${it.id}" } ?: "workout-blocks"
+    Card(
+        modifier = Modifier.fillMaxWidth().whipReorderItem(
+            reorderInteraction,
+            layoutPosition = reorderPosition,
+            layoutScope = exerciseReorderScope,
+        ),
+    ) {
         Column(modifier = Modifier.padding(if (compactRows) 9.dp else 14.dp), verticalArrangement = Arrangement.spacedBy(if (compactRows) 4.dp else 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                WhipReorderHandle(
+                    label = item.exercise.name,
+                    canMovePrevious = canMoveUp,
+                    canMoveNext = canMoveDown,
+                    position = reorderPosition,
+                    total = reorderTotal,
+                    interactionState = reorderInteraction,
+                    moveWholeItem = true,
+                    layoutScope = exerciseReorderScope,
+                    onMove = onMoveBy,
+                )
                 Text(item.exercise.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Box {
                     IconButton(onClick = { actionMenuExpanded = true }, modifier = Modifier.size(48.dp)) {
@@ -1446,6 +1664,15 @@ internal fun WorkoutExerciseCard(
                             icon = Icons.Outlined.ArrowDownward,
                             onClick = { actionMenuExpanded = false; onMoveDown() },
                         )
+                        item.group?.let { group ->
+                            WhipMenuItem(
+                                label = "Remove from ${group.type.uiLabel()}",
+                                onClick = {
+                                    actionMenuExpanded = false
+                                    onRemoveFromGroup()
+                                },
+                            )
+                        }
                         WhipMenuItem(
                             label = "Substitute Exercise",
                             onClick = {
@@ -1471,95 +1698,28 @@ internal fun WorkoutExerciseCard(
                     fontWeight = FontWeight.SemiBold,
                 )
             }
-            item.group?.let {
+            if (nextInGroup) {
                 Text(
-                    "${it.type.name}: ${it.name}${if (nextInGroup) " · Next in rotation" else ""}",
+                    "Next in rotation",
                     color = MaterialTheme.colorScheme.tertiary,
-                    fontWeight = if (nextInGroup) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = FontWeight.Bold,
                 )
             }
             val orderedSets = item.sets.sortedBy(WorkoutSet::position)
             val completedSetCount = orderedSets.count { it.completed && it.deletedAtMillis == null }
             val hasIncompleteSet = orderedSets.any { !it.completed && it.deletedAtMillis == null }
-            val focusedEntry = orderedSets.withIndex().firstOrNull { (_, set) ->
-                set.id == nextSetId && set.deletedAtMillis == null
+            val visibleReorderSets = orderedSets.filter { set ->
+                set.deletedAtMillis == null && (!set.completed || completedSetsExpanded || !hasIncompleteSet)
             }
-            focusedEntry?.let { (index, set) ->
-                val suggestedSet = orderedSets.take(index).lastOrNull { candidate ->
-                    candidate.completed && candidate.deletedAtMillis == null
-                } ?: item.previousSets.maxByOrNull { previous ->
-                    previous.completedAtMillis ?: previous.updatedAtMillis
-                }
-                Surface(
-                    modifier = Modifier.fillMaxWidth().testTag("active-set-composer"),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.34f),
-                    shape = MaterialTheme.shapes.small,
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    "Up Next · Set ${index + 1}${set.classification.uiLabel().takeUnless { it == "Working" }?.let { " · $it" }.orEmpty()}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                                set.prescriptionLabel(preferredWeightUnitId, numberPrecision, item.workoutExercise)?.let { target ->
-                                    Text(
-                                        "Target · $target",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                            Box {
-                                IconButton(onClick = { setMenuId = set.id }, modifier = Modifier.size(48.dp)) {
-                                    Icon(
-                                        Icons.Outlined.MoreVert,
-                                        contentDescription = "More options for set ${index + 1}",
-                                        modifier = Modifier.size(26.dp),
-                                    )
-                                }
-                                WorkoutSetActionsMenu(
-                                    expanded = setMenuId == set.id,
-                                    onDismiss = { setMenuId = null },
-                                    canMoveUp = index > 0,
-                                    canMoveDown = index < orderedSets.lastIndex,
-                                    onDuplicate = { setMenuId = null; onDuplicateSet(set.id) },
-                                    onMoveUp = {
-                                        setMenuId = null
-                                        val ids = orderedSets.map(WorkoutSet::id).toMutableList()
-                                        java.util.Collections.swap(ids, index, index - 1)
-                                        onReorderSets(ids)
-                                    },
-                                    onMoveDown = {
-                                        setMenuId = null
-                                        val ids = orderedSets.map(WorkoutSet::id).toMutableList()
-                                        java.util.Collections.swap(ids, index, index + 1)
-                                        onReorderSets(ids)
-                                    },
-                                    onRemove = { setMenuId = null; onDeleteSet(set.id) },
-                                )
-                            }
-                        }
-                        QuickSetEntry(
-                            set = set,
-                            exercise = item.exercise,
-                            workoutExercise = item.workoutExercise,
-                            machine = item.machine,
-                            preferredWeightUnitId = preferredWeightUnitId,
-                            preferredDistanceUnitId = preferredDistanceUnitId,
-                            showRpe = showRpe,
-                            showRir = showRir,
-                            suggestedSet = suggestedSet,
-                            onMoreDetails = { onEditSet(set) },
-                            onSave = { draft, addNext -> onSaveQuickSet(set.id, draft, addNext) },
-                        )
-                    }
-                }
+            fun reorderVisibleSet(set: WorkoutSet, delta: Int) {
+                val visibleIndex = visibleReorderSets.indexOfFirst { it.id == set.id }
+                if (visibleIndex < 0) return
+                val moved = moveListItem(visibleReorderSets, visibleIndex, delta)
+                val iterator = moved.iterator()
+                val visibleIds = visibleReorderSets.mapTo(mutableSetOf(), WorkoutSet::id)
+                onReorderSets(orderedSets.map { candidate ->
+                    if (candidate.id in visibleIds) iterator.next().id else candidate.id
+                })
             }
             if (completedSetCount > 0 && hasIncompleteSet) {
                 DisclosureButton(
@@ -1569,24 +1729,138 @@ internal fun WorkoutExerciseCard(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+            WhipReorderLayout(itemSpacing = if (compactRows) 4.dp else 8.dp) {
             orderedSets.withIndex()
                 .filter { (_, set) ->
-                    set.id != focusedEntry?.value?.id &&
-                        (!set.completed || completedSetsExpanded || !hasIncompleteSet)
+                    !set.completed || completedSetsExpanded || !hasIncompleteSet
                 }
                 .forEach { (index, set) ->
+                key(set.id) {
                 if (set.deletedAtMillis != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Set ${index + 1} removed", modifier = Modifier.weight(1f))
                         WhipTextButton(onClick = { onUndoDeleteSet(set.id) }) { Text("Undo") }
                     }
+                } else if (set.id == nextSetId) {
+                    val setReorderInteraction = rememberWhipReorderInteractionState()
+                    val suggestedSet = orderedSets.take(index).lastOrNull { candidate ->
+                        candidate.completed && candidate.deletedAtMillis == null
+                    } ?: item.previousSets.maxByOrNull { previous ->
+                        previous.completedAtMillis ?: previous.updatedAtMillis
+                    }
+                    Surface(
+                        modifier = Modifier.fillMaxWidth()
+                            .whipReorderItem(
+                                setReorderInteraction,
+                                layoutPosition = visibleReorderSets.indexOfFirst { it.id == set.id } + 1,
+                                layoutScope = "workout-sets-${item.workoutExercise.id}",
+                            )
+                            .testTag("active-set-composer"),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.34f),
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val visibleIndex = visibleReorderSets.indexOfFirst { it.id == set.id }
+                                WhipReorderHandle(
+                                    label = "set ${index + 1}",
+                                    canMovePrevious = visibleIndex > 0,
+                                    canMoveNext = visibleIndex in 0 until visibleReorderSets.lastIndex,
+                                    position = visibleIndex + 1,
+                                    total = visibleReorderSets.size,
+                                    interactionState = setReorderInteraction,
+                                    moveWholeItem = true,
+                                    layoutScope = "workout-sets-${item.workoutExercise.id}",
+                                    onMove = { delta -> reorderVisibleSet(set, delta) },
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "Up Next · Set ${index + 1}${set.classification.uiLabel().takeUnless { it == "Working" }?.let { " · $it" }.orEmpty()}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                    set.prescriptionLabel(preferredWeightUnitId, numberPrecision, item.workoutExercise)?.let { target ->
+                                        Text(
+                                            "Target · $target",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                                Box {
+                                    IconButton(onClick = { setMenuId = set.id }, modifier = Modifier.size(48.dp)) {
+                                        Icon(
+                                            Icons.Outlined.MoreVert,
+                                            contentDescription = "More options for set ${index + 1}",
+                                            modifier = Modifier.size(26.dp),
+                                        )
+                                    }
+                                    WorkoutSetActionsMenu(
+                                        expanded = setMenuId == set.id,
+                                        onDismiss = { setMenuId = null },
+                                        canMoveUp = index > 0,
+                                        canMoveDown = index < orderedSets.lastIndex,
+                                        onDuplicate = { setMenuId = null; onDuplicateSet(set.id) },
+                                        onMoveUp = {
+                                            setMenuId = null
+                                            val ids = orderedSets.map(WorkoutSet::id).toMutableList()
+                                            java.util.Collections.swap(ids, index, index - 1)
+                                            onReorderSets(ids)
+                                        },
+                                        onMoveDown = {
+                                            setMenuId = null
+                                            val ids = orderedSets.map(WorkoutSet::id).toMutableList()
+                                            java.util.Collections.swap(ids, index, index + 1)
+                                            onReorderSets(ids)
+                                        },
+                                        onRemove = { setMenuId = null; onDeleteSet(set.id) },
+                                    )
+                                }
+                            }
+                            QuickSetEntry(
+                                set = set,
+                                exercise = item.exercise,
+                                workoutExercise = item.workoutExercise,
+                                machine = item.machine,
+                                preferredWeightUnitId = preferredWeightUnitId,
+                                preferredDistanceUnitId = preferredDistanceUnitId,
+                                showRpe = showRpe,
+                                showRir = showRir,
+                                suggestedSet = suggestedSet,
+                                onMoreDetails = { onEditSet(set) },
+                                onSave = { draft, addNext -> onSaveQuickSet(set.id, draft, addNext) },
+                            )
+                        }
+                    }
                 } else {
+                    val setReorderInteraction = rememberWhipReorderInteractionState()
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .whipReorderItem(
+                                setReorderInteraction,
+                                layoutPosition = visibleReorderSets.indexOfFirst { it.id == set.id } + 1,
+                                layoutScope = "workout-sets-${item.workoutExercise.id}",
+                            )
                             .clickable(onClickLabel = "Edit set ${index + 1}") { onEditSet(set) },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        val visibleIndex = visibleReorderSets.indexOfFirst { it.id == set.id }
+                        WhipReorderHandle(
+                            label = "set ${index + 1}",
+                            canMovePrevious = visibleIndex > 0,
+                            canMoveNext = visibleIndex in 0 until visibleReorderSets.lastIndex,
+                            position = visibleIndex + 1,
+                            total = visibleReorderSets.size,
+                            interactionState = setReorderInteraction,
+                            moveWholeItem = true,
+                            layoutScope = "workout-sets-${item.workoutExercise.id}",
+                            onMove = { delta -> reorderVisibleSet(set, delta) },
+                        )
                         if (set.completed) {
                             Checkbox(
                                 checked = true,
@@ -1647,6 +1921,8 @@ internal fun WorkoutExerciseCard(
                         }
                     }
                 }
+                }
+            }
             }
             WhipTextButton(onClick = onAddSet) {
                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(22.dp))
@@ -1757,52 +2033,6 @@ private fun WorkoutSetActionsMenu(
             onClick = onRemove,
         )
     }
-}
-
-@Composable
-private fun ReorderHandle(
-    label: String,
-    canMoveUp: Boolean,
-    canMoveDown: Boolean,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
-) {
-    var accumulatedDrag by remember { mutableFloatStateOf(0f) }
-    val thresholdPx = with(LocalDensity.current) { 40.dp.toPx() }
-    Icon(
-        imageVector = Icons.Outlined.DragHandle,
-        contentDescription = null,
-        modifier = Modifier
-            .size(48.dp)
-            .pointerInput(canMoveUp, canMoveDown) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { accumulatedDrag = 0f },
-                    onDragCancel = { accumulatedDrag = 0f },
-                    onDragEnd = { accumulatedDrag = 0f },
-                    onDrag = { change, amount ->
-                        change.consume()
-                        accumulatedDrag += amount.y
-                        when {
-                            accumulatedDrag <= -thresholdPx && canMoveUp -> {
-                                onMoveUp()
-                                accumulatedDrag = 0f
-                            }
-                            accumulatedDrag >= thresholdPx && canMoveDown -> {
-                                onMoveDown()
-                                accumulatedDrag = 0f
-                            }
-                        }
-                    },
-                )
-            }
-            .semantics {
-                contentDescription = "Reorder $label"
-                customActions = buildList {
-                    if (canMoveUp) add(CustomAccessibilityAction("Move $label up") { onMoveUp(); true })
-                    if (canMoveDown) add(CustomAccessibilityAction("Move $label down") { onMoveDown(); true })
-                }
-            },
-    )
 }
 
 @Composable
@@ -2321,6 +2551,9 @@ private fun ExerciseLibraryContent(
     onCreate: () -> Unit,
     onOpen: (Exercise) -> Unit,
     onEdit: (Exercise) -> Unit,
+    onReorder: (List<Long>) -> Unit,
+    onReorderModeChange: (Boolean) -> Unit = {},
+    reorderDismissRequest: Int = 0,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var showArchived by rememberSaveable { mutableStateOf(false) }
@@ -2331,6 +2564,8 @@ private fun ExerciseLibraryContent(
     var selectedEquipment by rememberSaveable { mutableStateOf<String?>(null) }
     var sort by rememberSaveable { mutableStateOf(ExerciseLibrarySort.Name) }
     var sortDirection by rememberSaveable { mutableStateOf(SortDirection.Ascending) }
+    var reordering by rememberSaveable { mutableStateOf(false) }
+    var toolsExpanded by rememberSaveable { mutableStateOf(false) }
     val source = if (showArchived) state.archivedExercises else state.exercises
     val machineNamesByExercise = (state.machines + state.archivedMachines).groupBy(GymMachine::exerciseId)
         .mapValues { (_, machines) -> machines.joinToString(" ") { it.displayName } }
@@ -2347,7 +2582,20 @@ private fun ExerciseLibraryContent(
             (selectedCategoryId == null || state.categoryLinks.any { it.exerciseId == exercise.id && it.categoryId == selectedCategoryId })
     }.sortedForLibrary(sort, sortDirection, lastUsedAtByExercise)
     val activeFilterCount = listOf(favoritesOnly, showArchived, selectedCategoryId != null, selectedTrackingType != null, selectedEquipment != null).count { it }
-    LazyColumn(
+    val reorderHasConstraints = query.isNotBlank() || activeFilterCount > 0
+    val manualReorderEnabled = reordering && sort == ExerciseLibrarySort.Manual && !reorderHasConstraints
+    BackHandler(enabled = reordering) { reordering = false }
+    DisposableEffect(reordering) {
+        onReorderModeChange(reordering)
+        onDispose { if (reordering) onReorderModeChange(false) }
+    }
+    LaunchedEffect(reorderDismissRequest) {
+        if (reorderDismissRequest > 0) reordering = false
+    }
+    LaunchedEffect(sort, reorderHasConstraints) {
+        if (sort != ExerciseLibrarySort.Manual || reorderHasConstraints) reordering = false
+    }
+    WhipReorderLazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -2356,9 +2604,37 @@ private fun ExerciseLibraryContent(
             WhipPageHeader(
                 title = "Exercise Library",
                 supportingText = "Only your exercises appear here—Whip never seeds a movement list.",
-            )
+            ) {
+                if (!reordering && state.exercises.size > 1) Box {
+                    WhipPageIconAction(
+                        icon = Icons.Outlined.MoreVert,
+                        label = "More Exercise Library Actions",
+                        onClick = { toolsExpanded = true },
+                    )
+                    DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
+                        WhipMenuItem(
+                            label = if (reorderHasConstraints) "Clear Filters & Reorder All" else "Reorder Exercises",
+                            onClick = {
+                                query = ""
+                                favoritesOnly = false
+                                showArchived = false
+                                selectedCategoryId = null
+                                selectedTrackingType = null
+                                selectedEquipment = null
+                                sort = ExerciseLibrarySort.Manual
+                                sortDirection = SortDirection.Ascending
+                                reordering = true
+                                toolsExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
         }
-        item {
+        if (reordering) item {
+            WhipReorderModeBar(itemLabel = "Exercises", onDone = { reordering = false })
+        }
+        if (!reordering) item {
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
@@ -2367,7 +2643,7 @@ private fun ExerciseLibraryContent(
                 modifier = Modifier.fillMaxWidth().testTag("exercise-library-search"),
             )
         }
-        item {
+        if (!reordering) item {
             DisclosureRow(
                 title = "Filters and Sort",
                 supportingText = listOfNotNull(
@@ -2379,7 +2655,7 @@ private fun ExerciseLibraryContent(
                 onClick = { filtersExpanded = !filtersExpanded },
             )
         }
-        if (filtersExpanded) item {
+        if (!reordering && filtersExpanded) item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ToggleRow("Favorites only", favoritesOnly) { favoritesOnly = it }
                 ToggleRow("Show archived", showArchived) { showArchived = it }
@@ -2408,11 +2684,33 @@ private fun ExerciseLibraryContent(
                     } },
                     titleCaseValues = false,
                 ) { selectedEquipment = it }
-                GymEnumDropdown("Sort By", ExerciseLibrarySort.entries, sort, ExerciseLibrarySort::label) { sort = it }
-                GymEnumDropdown("Order", SortDirection.entries, sortDirection, SortDirection::label) { sortDirection = it }
+                GymEnumDropdown("Sort By", ExerciseLibrarySort.entries, sort, ExerciseLibrarySort::label) { selected ->
+                    sort = selected
+                    if (selected == ExerciseLibrarySort.Manual) {
+                        sortDirection = SortDirection.Ascending
+                        if (!reorderHasConstraints) {
+                            filtersExpanded = false
+                            reordering = true
+                        }
+                    }
+                }
+                if (sort != ExerciseLibrarySort.Manual) {
+                    GymEnumDropdown("Order", SortDirection.entries, sortDirection, SortDirection::label) { sortDirection = it }
+                }
             }
         }
-        if (activeFilterCount > 0) item {
+        if (!reordering && sort == ExerciseLibrarySort.Manual && !manualReorderEnabled) item {
+            Text(
+                if (reorderHasConstraints) {
+                    "Clear search and filters to reorder the complete Exercise Library without moving hidden items."
+                } else {
+                    "Select Custom Order to reorder exercises."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (!reordering && activeFilterCount > 0) item {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (favoritesOnly) WhipFilterChip(true, { favoritesOnly = false }, { Text("Favorites ×") })
                 if (showArchived) WhipFilterChip(true, { showArchived = false }, { Text("Archived ×") })
@@ -2439,13 +2737,37 @@ private fun ExerciseLibraryContent(
                 )
             }
         }
-        items(visible, key = Exercise::id) { exercise ->
+        items(visible.size, key = { visible[it].id }) { index ->
+            val exercise = visible[index]
+            val reorderInteraction = rememberWhipReorderInteractionState()
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClickLabel = "Open ${exercise.name}") { onOpen(exercise) },
+                    .whipReorderItem(
+                        reorderInteraction,
+                        layoutPosition = index + 1,
+                        layoutScope = "exercise-browse",
+                    )
+                    .then(
+                        if (manualReorderEnabled) Modifier
+                        else Modifier.clickable(onClickLabel = "Open ${exercise.name}") { onOpen(exercise) },
+                    ),
             ) {
                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (manualReorderEnabled) {
+                        WhipReorderHandle(
+                            label = exercise.name,
+                            canMovePrevious = index > 0,
+                            canMoveNext = index < visible.lastIndex,
+                            position = index + 1,
+                            total = visible.size,
+                            interactionState = reorderInteraction,
+                            moveWholeItem = true,
+                            layoutScope = "exercise-browse",
+                            reserveWhenUnavailable = true,
+                            onMove = { delta -> onReorder(moveListItem(visible, index, delta).map(Exercise::id)) },
+                        )
+                    }
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             (if (exercise.favorite) "★ " else "") + exercise.name,
@@ -2474,7 +2796,7 @@ private fun ExerciseLibraryContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    ItemEditButton("exercise", exercise.name, onEdit = { onEdit(exercise) })
+                    if (!manualReorderEnabled) ItemEditButton("exercise", exercise.name, onEdit = { onEdit(exercise) })
                 }
             }
         }
@@ -2502,7 +2824,7 @@ private fun MachineLibraryContent(
         item {
             WhipPageHeader(
                 title = "Machines",
-                supportingText = "Give each physical machine its own profile, then link every exercise you perform on it.",
+                supportingText = "Give each physical machine its own profile, then link every exercise you perform on it. Each profile keeps its history and progress tied to the equipment you used.",
             )
         }
         item { ToggleRow("Show archived", showArchived) { showArchived = it } }
@@ -3175,6 +3497,8 @@ private fun ExerciseCategoryContent(
     modifier: Modifier = Modifier,
     createRequested: Boolean = false,
     onCreateRequestConsumed: () -> Unit = {},
+    onReorderModeChange: (Boolean) -> Unit = {},
+    reorderDismissRequest: Int = 0,
 ) {
     val dialogModifier = modifier
     var editingCategoryId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -3191,15 +3515,51 @@ private fun ExerciseCategoryContent(
     var kind by rememberSaveable(editorKey) { mutableStateOf(editing?.kind ?: "Category") }
     var showArchived by rememberSaveable { mutableStateOf(false) }
     var categoryMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var reordering by rememberSaveable { mutableStateOf(false) }
+    var toolsExpanded by rememberSaveable { mutableStateOf(false) }
     val visible = if (showArchived) state.archivedCategories else state.categories
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = WhipPageContentPadding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    BackHandler(enabled = reordering) { reordering = false }
+    DisposableEffect(reordering) {
+        onReorderModeChange(reordering)
+        onDispose { if (reordering) onReorderModeChange(false) }
+    }
+    LaunchedEffect(reorderDismissRequest) {
+        if (reorderDismissRequest > 0) reordering = false
+    }
+    LaunchedEffect(showArchived) { if (showArchived) reordering = false }
+    WhipReorderLazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = WhipPageContentPadding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
             WhipPageHeader(
                 title = "Exercise Categories",
                 supportingText = "Create your own muscle, equipment, movement, or training tags.",
+            ) {
+                if (!reordering && state.categories.size > 1) Box {
+                    WhipPageIconAction(
+                        icon = Icons.Outlined.MoreVert,
+                        label = "More Category Actions",
+                        onClick = { toolsExpanded = true },
+                    )
+                    DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
+                        WhipMenuItem(
+                            label = if (showArchived) "Show Active & Reorder All" else "Reorder Categories",
+                            onClick = {
+                                showArchived = false
+                                reordering = true
+                                toolsExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
+        }
+        if (!reordering) item { ToggleRow("Show archived", showArchived) { showArchived = it } }
+        if (reordering) item {
+            WhipReorderModeBar(
+                itemLabel = "Categories",
+                onDone = { reordering = false },
+                boundaryNote = "Archived Categories stay outside this order.",
             )
         }
-        item { ToggleRow("Show archived", showArchived) { showArchived = it } }
         if (visible.isEmpty()) item {
             WhipEmptyState(
                 title = if (showArchived) "No Archived Categories" else "No Categories Yet",
@@ -3210,17 +3570,40 @@ private fun ExerciseCategoryContent(
         }
         items(visible.size, key = { visible[it].id }) { index ->
             val category = visible[index]
-            Card(Modifier.fillMaxWidth()) {
+            val reorderInteraction = rememberWhipReorderInteractionState()
+            Card(
+                Modifier.fillMaxWidth().whipReorderItem(
+                    reorderInteraction,
+                    layoutPosition = index + 1,
+                    layoutScope = "category-browse",
+                ),
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(start = 14.dp, top = 10.dp, bottom = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    if (reordering && !showArchived) {
+                        WhipReorderHandle(
+                            label = category.name,
+                            canMovePrevious = index > 0,
+                            canMoveNext = index < visible.lastIndex,
+                            position = index + 1,
+                            total = visible.size,
+                            interactionState = reorderInteraction,
+                            moveWholeItem = true,
+                            layoutScope = "category-browse",
+                            reserveWhenUnavailable = true,
+                            onMove = { delta ->
+                                viewModel.reorderCategories(moveListItem(visible, index, delta).map(ExerciseCategory::id))
+                            },
+                        )
+                    }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(category.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         Text(category.kind, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    ItemEditButton("category", category.name, onEdit = { editingCategoryId = category.id })
-                    Box {
+                    if (!reordering) ItemEditButton("category", category.name, onEdit = { editingCategoryId = category.id })
+                    if (!reordering) Box {
                         IconButton(
                             onClick = { categoryMenuId = category.id },
                             modifier = Modifier.size(48.dp),
@@ -3316,6 +3699,9 @@ private fun WorkoutHistoryContent(
     var actionMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
     var expandedSessionId by rememberSaveable { mutableStateOf<Long?>(null) }
     var resumeCandidateId by rememberSaveable { mutableStateOf<Long?>(null) }
+    LaunchedEffect(focusedWorkoutId) {
+        if (focusedWorkoutId != null) expandedSessionId = focusedWorkoutId
+    }
     LaunchedEffect(focusedWorkoutId, state.archivedWorkouts) {
         if (focusedWorkoutId != null) {
             showArchived = state.archivedWorkouts.any { it.id == focusedWorkoutId }
@@ -3328,7 +3714,13 @@ private fun WorkoutHistoryContent(
             calendarView = false
         }
     }
-    val sourceHistory = if (showArchived) state.archivedWorkouts else history
+    // An exact route (search, record source, deep link) owns its own visibility.
+    // Do not wait for the browse-mode "show archived" toggle to catch up before
+    // rendering a discarded workout the user explicitly selected.
+    val focusedSession = focusedWorkoutId?.let { id -> state.allSessions.firstOrNull { it.id == id } }
+    val effectiveShowArchived = focusedSession?.archived ?: showArchived
+    val sourceHistory = focusedSession?.let(::listOf)
+        ?: if (showArchived) state.archivedWorkouts else history
     val exerciseById = (state.exercises + state.archivedExercises).associateBy(Exercise::id)
     val through = LocalDate.now(state.appSettings.zoneId())
     var calendarMonth by rememberSaveable(through) { mutableStateOf(YearMonth.from(through)) }
@@ -3391,7 +3783,7 @@ private fun WorkoutHistoryContent(
                 supportingText = buildString {
                     append(historyRange.uiLabel())
                     append(if (calendarView) " · Calendar" else " · List")
-                    if (showArchived) append(" · Archived")
+                    if (effectiveShowArchived) append(" · Archived")
                     if (recordsOnly) append(" · Records only")
                     state.exercises.firstOrNull { it.id == selectedExerciseId }?.let { append(" · ${it.name}") }
                     state.categories.firstOrNull { it.id == selectedCategoryId }?.let { append(" · ${it.name}") }
@@ -3472,12 +3864,12 @@ private fun WorkoutHistoryContent(
             WhipEmptyState(
                 title = when {
                     filteredHistory.isEmpty() && sourceHistory.isNotEmpty() -> "No Matching Workouts"
-                    showArchived -> "No Archived Workouts"
+                    effectiveShowArchived -> "No Archived Workouts"
                     else -> "No Workout History"
                 },
                 supportingText = when {
                     sourceHistory.isNotEmpty() -> "Change the history options or clear the filter to see more workouts."
-                    showArchived -> "Workouts you archive will appear here."
+                    effectiveShowArchived -> "Workouts you archive will appear here."
                     else -> "Finished workouts will appear here."
                 },
             )
@@ -3491,7 +3883,7 @@ private fun WorkoutHistoryContent(
                 sets = state.allSets,
                 exerciseById = exerciseById,
                 expanded = expanded,
-                archivedView = showArchived,
+                archivedView = session.archived,
                 hasActiveWorkout = state.activeSession != null,
                 menuExpanded = actionMenuId == session.id,
                 onToggleExpanded = { expandedSessionId = session.id.takeUnless { expanded } },
@@ -4067,6 +4459,16 @@ private fun TrackedRecordsManagerDialog(
     val trackedExerciseUuids = draft.mapTo(linkedSetOf(), TrackedGymRecord::exerciseUuid)
     val editingExercise = allExercises.firstOrNull { it.uuid == editingExerciseUuid }
     val groupedDraft = draft.groupBy(TrackedGymRecord::exerciseUuid)
+    val orderedTrackedExercises = allExercises.filter { it.uuid in trackedExerciseUuids }.sortedBy { exercise ->
+        draft.filter { it.exerciseUuid == exercise.uuid }.minOfOrNull(TrackedGymRecord::position) ?: Int.MAX_VALUE
+    }
+
+    fun replaceExerciseRecords(exerciseUuid: String, records: List<TrackedGymRecord>) {
+        val insertionIndex = draft.indexOfFirst { it.exerciseUuid == exerciseUuid }.let { if (it < 0) draft.size else it }
+        val remaining = draft.filterNot { it.exerciseUuid == exerciseUuid }.toMutableList()
+        remaining.addAll(insertionIndex.coerceAtMost(remaining.size), records)
+        draft = remaining.mapIndexed { index, selection -> selection.copy(position = index) }
+    }
 
     ProductivityEditorDialog(
         modifier = modifier,
@@ -4076,7 +4478,7 @@ private fun TrackedRecordsManagerDialog(
         onDismissRequest = onDismiss,
         title = { Text("Manage Tracked Records") },
         text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            WhipReorderLazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item {
                     Text(
                         if (draft.isEmpty()) "Choose exercises and records to keep at a glance."
@@ -4104,29 +4506,50 @@ private fun TrackedRecordsManagerDialog(
                         supportingText = "Add an exercise to choose its progress records.",
                     )
                 }
-                items(
-                    allExercises.filter { it.uuid in trackedExerciseUuids }.sortedBy { exercise ->
-                        draft.filter { it.exerciseUuid == exercise.uuid }.minOfOrNull(TrackedGymRecord::position) ?: Int.MAX_VALUE
-                    },
-                    key = Exercise::uuid,
-                ) { exercise ->
+                items(orderedTrackedExercises.size, key = { orderedTrackedExercises[it].uuid }) { exerciseIndex ->
+                    val exercise = orderedTrackedExercises[exerciseIndex]
                     val selectedRecords = draft.filter { it.exerciseUuid == exercise.uuid }
                     val expanded = editingExerciseUuid == exercise.uuid
+                    val reorderInteraction = rememberWhipReorderInteractionState()
                     Surface(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().whipReorderItem(
+                            reorderInteraction,
+                            layoutPosition = exerciseIndex + 1,
+                            layoutScope = "tracked-record-exercises",
+                        ),
                         color = MaterialTheme.colorScheme.surfaceContainerLow,
                         shape = MaterialTheme.shapes.medium,
                     ) {
                         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
-                            DisclosureRow(
-                                title = exercise.name,
-                                supportingText = buildString {
-                                    append("${selectedRecords.size} record${if (selectedRecords.size == 1) "" else "s"}")
-                                    if (exercise.archived) append(" · Archived")
-                                },
-                                expanded = expanded,
-                                onClick = { editingExerciseUuid = if (expanded) null else exercise.uuid },
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                WhipReorderHandle(
+                                    label = "${exercise.name} tracked records",
+                                    canMovePrevious = exerciseIndex > 0,
+                                    canMoveNext = exerciseIndex < orderedTrackedExercises.lastIndex,
+                                    position = exerciseIndex + 1,
+                                    total = orderedTrackedExercises.size,
+                                    interactionState = reorderInteraction,
+                                    moveWholeItem = true,
+                                    layoutScope = "tracked-record-exercises",
+                                    onMove = { delta ->
+                                        val moved = moveListItem(orderedTrackedExercises, exerciseIndex, delta)
+                                        draft = moved.flatMap { movedExercise ->
+                                            draft.filter { it.exerciseUuid == movedExercise.uuid }
+                                        }.mapIndexed { index, selection -> selection.copy(position = index) }
+                                    },
+                                )
+                                Box(Modifier.weight(1f)) {
+                                    DisclosureRow(
+                                        title = exercise.name,
+                                        supportingText = buildString {
+                                            append("${selectedRecords.size} record${if (selectedRecords.size == 1) "" else "s"}")
+                                            if (exercise.archived) append(" · Archived")
+                                        },
+                                        expanded = expanded,
+                                        onClick = { editingExerciseUuid = if (expanded) null else exercise.uuid },
+                                    )
+                                }
+                            }
                             if (expanded) {
                                 if (!exercise.includeInPersonalRecords) {
                                     Text(
@@ -4141,8 +4564,15 @@ private fun TrackedRecordsManagerDialog(
                                     style = MaterialTheme.typography.labelLarge,
                                     modifier = Modifier.padding(top = 8.dp),
                                 )
-                                availableTrackedRecords(exercise, state).forEach { choice ->
+                                val availableChoices = availableTrackedRecords(exercise, state)
+                                val orderedChoices = selectedRecords + availableChoices.filterNot { choice ->
+                                    selectedRecords.any { it.sameTrackedChoice(choice) }
+                                }
+                                orderedChoices.forEach { choice ->
+                                    androidx.compose.runtime.key(choice) {
+                                    val recordReorderInteraction = rememberWhipReorderInteractionState()
                                     val isSelected = selectedRecords.any { it.sameTrackedChoice(choice) }
+                                    val selectedIndex = selectedRecords.indexOfFirst { it.sameTrackedChoice(choice) }
                                     val scopeName = choice.machineProfileUuid?.let { scope ->
                                         (state.machines + state.archivedMachines).firstOrNull { it.uuid == scope }?.displayName
                                             ?: "Saved equipment"
@@ -4150,15 +4580,23 @@ private fun TrackedRecordsManagerDialog(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
+                                            .whipReorderItem(
+                                                recordReorderInteraction,
+                                                layoutPosition = (selectedIndex + 1).takeIf { isSelected },
+                                                layoutScope = "tracked-records-${exercise.uuid}".takeIf { isSelected },
+                                            )
                                             .heightIn(min = 48.dp)
                                             .clickable(
                                                 onClickLabel = "${if (isSelected) "Stop tracking" else "Track"} ${choice.trackedRecordLabel()}",
                                                 role = Role.Checkbox,
                                             ) {
-                                                draft = if (isSelected) {
-                                                    draft.filterNot { it.sameTrackedChoice(choice) }
+                                                if (isSelected) {
+                                                    replaceExerciseRecords(
+                                                        exercise.uuid,
+                                                        selectedRecords.filterNot { it.sameTrackedChoice(choice) },
+                                                    )
                                                 } else {
-                                                    draft + choice.copy(position = draft.size)
+                                                    replaceExerciseRecords(exercise.uuid, selectedRecords + choice)
                                                 }
                                             }
                                             .semantics {
@@ -4167,6 +4605,24 @@ private fun TrackedRecordsManagerDialog(
                                             },
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
+                                        if (isSelected) {
+                                            WhipReorderHandle(
+                                                label = "${choice.trackedRecordLabel()} for ${exercise.name}",
+                                                canMovePrevious = selectedIndex > 0,
+                                                canMoveNext = selectedIndex in 0 until selectedRecords.lastIndex,
+                                                position = selectedIndex + 1,
+                                                total = selectedRecords.size,
+                                                interactionState = recordReorderInteraction,
+                                                moveWholeItem = true,
+                                                layoutScope = "tracked-records-${exercise.uuid}",
+                                                onMove = { delta ->
+                                                    replaceExerciseRecords(
+                                                        exercise.uuid,
+                                                        moveListItem(selectedRecords, selectedIndex, delta),
+                                                    )
+                                                },
+                                            )
+                                        }
                                         Column(Modifier.weight(1f)) {
                                             Text(choice.trackedRecordLabel())
                                             val description = when {
@@ -4180,6 +4636,7 @@ private fun TrackedRecordsManagerDialog(
                                             }
                                         }
                                         Checkbox(checked = isSelected, onCheckedChange = null)
+                                    }
                                     }
                                 }
                                 WhipTextButton(
@@ -4942,6 +5399,8 @@ private fun RoutineContent(
     onEditorStateChange: (Boolean) -> Unit = {},
     createRequested: Boolean = false,
     onCreateRequestConsumed: () -> Unit = {},
+    onReorderModeChange: (Boolean) -> Unit = {},
+    reorderDismissRequest: Int = 0,
 ) {
     val dialogModifier = modifier
     var showEditor by rememberSaveable { mutableStateOf(false) }
@@ -4949,6 +5408,8 @@ private fun RoutineContent(
     val editing = editingRoutineId?.let { id -> (state.routines + state.archivedRoutines).firstOrNull { it.id == id } }
     var showArchived by rememberSaveable { mutableStateOf(false) }
     var actionMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var reordering by rememberSaveable { mutableStateOf(false) }
+    var toolsExpanded by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(createRequested) {
         if (createRequested) {
             showEditor = true
@@ -4964,6 +5425,17 @@ private fun RoutineContent(
     val source = if (showArchived) state.archivedRoutines else state.routines
     val visible = source.filter {
         focusedRoutineId == null || it.id == focusedRoutineId
+    }
+    BackHandler(enabled = reordering) { reordering = false }
+    DisposableEffect(reordering) {
+        onReorderModeChange(reordering)
+        onDispose { if (reordering) onReorderModeChange(false) }
+    }
+    LaunchedEffect(reorderDismissRequest) {
+        if (reorderDismissRequest > 0) reordering = false
+    }
+    LaunchedEffect(showArchived, focusedRoutineId) {
+        if (showArchived || focusedRoutineId != null) reordering = false
     }
     if (showEditor || editing != null) {
         val initial = editing?.let { routine ->
@@ -5011,11 +5483,12 @@ private fun RoutineContent(
             onCreateExercise = viewModel::createExerciseForRoutine,
             onCreateMachine = viewModel::createMachineForRoutine,
             onSavePrescriptionScheme = viewModel::saveRepPrescriptionScheme,
+            onReorderPrescriptionSchemes = viewModel::reorderRepPrescriptionSchemes,
             onDeletePrescriptionScheme = viewModel::deleteRepPrescriptionScheme,
         )
         return
     }
-    LazyColumn(
+    WhipReorderLazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -5026,10 +5499,35 @@ private fun RoutineContent(
                 supportingText = if (focusedRoutineId == null) {
                     "Reusable multi-day templates. Starting one copies it into a new workout without changing the template."
                 } else "Showing the routine opened from search.",
-            )
+            ) {
+                if (!reordering && focusedRoutineId == null && state.routines.size > 1) Box {
+                    WhipPageIconAction(
+                        icon = Icons.Outlined.MoreVert,
+                        label = "More Routine Actions",
+                        onClick = { toolsExpanded = true },
+                    )
+                    DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
+                        WhipMenuItem(
+                            label = if (showArchived) "Show Active & Reorder All" else "Reorder Routines",
+                            onClick = {
+                                showArchived = false
+                                reordering = true
+                                toolsExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
         }
-        if (focusedRoutineId == null) {
+        if (!reordering && focusedRoutineId == null) {
         item { ToggleRow("Show archived", showArchived) { showArchived = it } }
+        }
+        if (reordering) item {
+            WhipReorderModeBar(
+                itemLabel = "Routines",
+                onDone = { reordering = false },
+                boundaryNote = "Archived Routines stay outside this order.",
+            )
         }
         if (visible.isEmpty()) item {
             WhipEmptyState(
@@ -5045,15 +5543,38 @@ private fun RoutineContent(
         items(visible.size, key = { visible[it].id }) { routineIndex ->
             val routine = visible[routineIndex]
             val days = state.routineDays.filter { it.routineId == routine.id }
-            Card(modifier = Modifier.fillMaxWidth()) {
+            val reorderInteraction = rememberWhipReorderInteractionState()
+            Card(
+                modifier = Modifier.fillMaxWidth().whipReorderItem(
+                    reorderInteraction,
+                    layoutPosition = routineIndex + 1,
+                    layoutScope = "routine-browse",
+                ),
+            ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (reordering && !showArchived) {
+                            WhipReorderHandle(
+                                label = routine.name,
+                                canMovePrevious = routineIndex > 0,
+                                canMoveNext = routineIndex < visible.lastIndex,
+                                position = routineIndex + 1,
+                                total = visible.size,
+                                interactionState = reorderInteraction,
+                                moveWholeItem = true,
+                                layoutScope = "routine-browse",
+                                reserveWhenUnavailable = true,
+                                onMove = { delta ->
+                                    viewModel.reorderRoutines(moveListItem(visible, routineIndex, delta).map(GymRoutine::id))
+                                },
+                            )
+                        }
                         Text(routine.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        ItemEditButton("routine", routine.name, onEdit = {
+                        if (!reordering) ItemEditButton("routine", routine.name, onEdit = {
                             editingRoutineId = routine.id
                             onEditorStateChange(true)
                         })
-                        Box {
+                        if (!reordering) Box {
                             IconButton(onClick = { actionMenuId = routine.id }, modifier = Modifier.size(48.dp)) {
                                 Icon(Icons.Outlined.MoreVert, contentDescription = "More options for routine ${routine.name}", modifier = Modifier.size(28.dp))
                             }
@@ -5101,7 +5622,7 @@ private fun RoutineContent(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    days.forEach { day ->
+                    if (!reordering) days.forEach { day ->
                         val dayExercises = state.routineExercises.filter { it.routineDayId == day.id }
                         val count = dayExercises.size
                         val needsEquipment = dayExercises.filter {
@@ -5145,346 +5666,6 @@ private fun RoutineContent(
                 }
             }
         }
-    }
-}
-
-private data class EditableRoutineExercise(
-    val exerciseId: Long,
-    val plannedSetsText: String = "",
-    val copyPrevious: Boolean = true,
-    val groupKey: String = "",
-    val machineId: Long? = null,
-    val equipmentBindingState: RoutineEquipmentBindingState = if (machineId == null) RoutineEquipmentBindingState.None else RoutineEquipmentBindingState.Resolved,
-    val machineProfileUuidSnapshot: String? = null,
-    val machineNameSnapshot: String = "",
-    val machineLoadTypeSnapshot: MachineLoadType? = null,
-    val machineUnitIdSnapshot: String = "",
-    val machineLevelLabelSnapshot: String = "",
-    val machineLoadInterpretationSnapshot: LoadInterpretation = LoadInterpretation.Total,
-    val machineConfigurationGroupSnapshot: String = "",
-    val machineConfigurationVersionSnapshot: Int = 1,
-    val machineConfigurationSnapshot: String = "",
-) : Serializable
-
-private data class EditableRoutineDay(
-    val key: Int,
-    val name: String,
-    val exercises: Map<Long, EditableRoutineExercise>,
-    val exerciseOrder: List<Long> = exercises.keys.toList(),
-) : Serializable
-
-@Composable
-private fun RoutineEditorDialog(
-    modifier: Modifier = Modifier,
-    exercises: List<Exercise>,
-    machines: List<GymMachine>,
-    initial: RoutineDraft?,
-    preferredWeightUnitId: String,
-    onDismiss: () -> Unit,
-    onSave: (RoutineDraft) -> Unit,
-) {
-    val editorKey = "routine-${initial?.name ?: "new"}"
-    var name by rememberSaveable(editorKey) { mutableStateOf(initial?.name.orEmpty()) }
-    var notes by rememberSaveable(editorKey) { mutableStateOf(initial?.notes.orEmpty()) }
-    var machineMenuExerciseId by rememberSaveable(editorKey) { mutableStateOf<Long?>(null) }
-    var exerciseQuery by rememberSaveable(editorKey) { mutableStateOf("") }
-    var selectedOnly by rememberSaveable(editorKey) { mutableStateOf(false) }
-    var days by rememberSaveable(editorKey) {
-        mutableStateOf(
-            buildList {
-            val source = initial?.days.orEmpty()
-            if (source.isEmpty()) add(EditableRoutineDay(0, "Day A", emptyMap()))
-            else source.forEachIndexed { index, day ->
-                add(
-                    EditableRoutineDay(
-                        index,
-                        day.name,
-                        day.exercises.associate { routineExercise ->
-                            val exerciseWeightUnit = exercises.firstOrNull { it.id == routineExercise.exerciseId }
-                                ?.weightUnitId ?: preferredWeightUnitId
-                            routineExercise.exerciseId to EditableRoutineExercise(
-                                exerciseId = routineExercise.exerciseId,
-                                plannedSetsText = routineExercise.plannedSets.joinToString("\n") { set ->
-                                    listOfNotNull(
-                                        set.machineLoadValue?.let(::editableNumber)
-                                            ?: set.weight?.let { editableNumber(massFromKilograms(massToKilograms(it, set.weightUnitId), exerciseWeightUnit)) },
-                                        set.reps?.toString(),
-                                    ).joinToString(" x ")
-                                },
-                                copyPrevious = routineExercise.copyPreviousWorkout,
-                                groupKey = routineExercise.groupKey.orEmpty(),
-                                machineId = routineExercise.machineId,
-                                equipmentBindingState = routineExercise.equipmentBindingState,
-                                machineProfileUuidSnapshot = routineExercise.machineProfileUuidSnapshot,
-                                machineNameSnapshot = routineExercise.machineNameSnapshot,
-                                machineLoadTypeSnapshot = routineExercise.machineLoadTypeSnapshot,
-                                machineUnitIdSnapshot = routineExercise.machineUnitIdSnapshot,
-                                machineLevelLabelSnapshot = routineExercise.machineLevelLabelSnapshot,
-                                machineLoadInterpretationSnapshot = routineExercise.machineLoadInterpretationSnapshot,
-                                machineConfigurationGroupSnapshot = routineExercise.machineConfigurationGroupSnapshot,
-                                machineConfigurationVersionSnapshot = routineExercise.machineConfigurationVersionSnapshot,
-                                machineConfigurationSnapshot = routineExercise.machineConfigurationSnapshot,
-                            )
-                        },
-                        day.exercises.map(RoutineExerciseDraft::exerciseId),
-                    ),
-                )
-            }
-            },
-        )
-    }
-    fun updateDay(index: Int, transform: (EditableRoutineDay) -> EditableRoutineDay) {
-        days = days.toMutableList().also { updated -> updated[index] = transform(updated[index]) }
-    }
-    val editorFingerprint = listOf(name, notes, days).joinToString("\u001f")
-    val initialFingerprint by rememberSaveable(editorKey) { mutableStateOf(editorFingerprint) }
-    var showDiscardConfirmation by rememberSaveable(editorKey) { mutableStateOf(false) }
-    val requestDismiss = { if (editorFingerprint != initialFingerprint) showDiscardConfirmation = true else onDismiss() }
-    BackHandler(enabled = !showDiscardConfirmation, onBack = requestDismiss)
-    ProductivityEditorDialog(
-        modifier = modifier,
-        testTag = "legacy-routine-editor",
-        primary = true,
-        paneTitle = "Create Routine",
-        onDismissRequest = requestDismiss,
-        title = { Text("Create Routine") },
-        text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                item { OutlinedTextField(name, { name = it.replace('\n', ' ').replace('\r', ' ').take(100) }, label = { Text("Routine name *") }, supportingText = { Text("${name.length}/100") }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("routine-editor-name")) }
-                item { OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth()) }
-                item {
-                    OutlinedTextField(exerciseQuery, { exerciseQuery = it }, label = { Text("Search exercises") }, modifier = Modifier.fillMaxWidth())
-                    ToggleRow("Show selected exercises only", selectedOnly) { selectedOnly = it }
-                }
-                days.forEachIndexed { dayIndex, day ->
-                    item(key = "day-${day.key}") {
-                        Column {
-                            OutlinedTextField(
-                                day.name,
-                                { value -> updateDay(dayIndex) { it.copy(name = value) } },
-                                label = { Text("Day / section name") },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            val visibleExercises = exercises.filter { exercise ->
-                                exerciseMatchesQuery(exercise, exerciseQuery) && (!selectedOnly || exercise.id in day.exercises)
-                            }.sortedWith(compareBy<Exercise> { day.exerciseOrder.indexOf(it.id).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE }.thenBy { it.name.lowercase() })
-                            visibleExercises.forEach { exercise ->
-                                val selectedExercise = day.exercises[exercise.id]
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable(onClickLabel = if (selectedExercise != null) "Remove ${exercise.name}" else "Add ${exercise.name}") {
-                                            val selected = if (selectedExercise != null) day.exercises - exercise.id else day.exercises + (exercise.id to EditableRoutineExercise(exercise.id))
-                                            updateDay(dayIndex) { current -> current.copy(exercises = selected, exerciseOrder = if (selectedExercise != null) current.exerciseOrder - exercise.id else current.exerciseOrder + exercise.id) }
-                                        },
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Checkbox(
-                                        checked = selectedExercise != null,
-                                        onCheckedChange = null,
-                                    )
-                                    Text(exercise.name)
-                                }
-                                if (selectedExercise != null) {
-                                    val orderIndex = day.exerciseOrder.indexOf(exercise.id)
-                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        WhipTextButton(enabled = orderIndex > 0, onClick = {
-                                            updateDay(dayIndex) { current ->
-                                                val order = current.exerciseOrder.toMutableList()
-                                                java.util.Collections.swap(order, orderIndex, orderIndex - 1)
-                                                current.copy(exerciseOrder = order)
-                                            }
-                                        }) { Text("Move Up") }
-                                        WhipTextButton(enabled = orderIndex in 0 until day.exerciseOrder.lastIndex, onClick = {
-                                            updateDay(dayIndex) { current ->
-                                                val order = current.exerciseOrder.toMutableList()
-                                                java.util.Collections.swap(order, orderIndex, orderIndex + 1)
-                                                current.copy(exerciseOrder = order)
-                                            }
-                                        }) { Text("Move Down") }
-                                    }
-                                    val compatibleMachines = machines.filter { candidate ->
-                                        candidate.supportsExercise(exercise.id) &&
-                                            (!candidate.archived || candidate.id == selectedExercise.machineId) &&
-                                            (selectedExercise.equipmentBindingState != RoutineEquipmentBindingState.NeedsEquipment ||
-                                                selectedExercise.machineLoadTypeSnapshot == null ||
-                                                (candidate.loadType == selectedExercise.machineLoadTypeSnapshot &&
-                                                    (candidate.loadType != MachineLoadType.Mass || selectedExercise.machineUnitIdSnapshot.isBlank() || candidate.unitId == selectedExercise.machineUnitIdSnapshot) &&
-                                                    candidate.loadInterpretation == selectedExercise.machineLoadInterpretationSnapshot))
-                                    }
-                                    if (selectedExercise.equipmentBindingState == RoutineEquipmentBindingState.NeedsEquipment) {
-                                        Text(
-                                            "Needs equipment · formerly ${selectedExercise.machineNameSnapshot.ifBlank { "machine profile" }}" +
-                                                " v${selectedExercise.machineConfigurationVersionSnapshot}",
-                                            color = MaterialTheme.colorScheme.error,
-                                            fontWeight = FontWeight.Bold,
-                                        )
-                                        if (compatibleMachines.isEmpty()) Text(
-                                            "Create a compatible ${selectedExercise.machineLoadTypeSnapshot?.label.orEmpty()} profile for this exercise, or remove and re-add the exercise as free weight.",
-                                            style = MaterialTheme.typography.bodySmall,
-                                        )
-                                    }
-                                    if (compatibleMachines.isNotEmpty()) {
-                                        WhipOutlinedButton(
-                                            onClick = { machineMenuExerciseId = exercise.id },
-                                            modifier = Modifier.fillMaxWidth(),
-                                        ) {
-                                            Text(
-                                                compatibleMachines.firstOrNull { it.id == selectedExercise.machineId }?.displayName
-                                                    ?: if (selectedExercise.equipmentBindingState == RoutineEquipmentBindingState.NeedsEquipment) "Choose replacement equipment"
-                                                    else "No Machine / Free Weights",
-                                                modifier = Modifier.weight(1f),
-                                            )
-                                            Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)
-                                        }
-                                        DropdownMenu(
-                                            expanded = machineMenuExerciseId == exercise.id,
-                                            onDismissRequest = { machineMenuExerciseId = null },
-                                        ) {
-                                            if (selectedExercise.equipmentBindingState != RoutineEquipmentBindingState.NeedsEquipment) {
-                                                DropdownMenuItem(
-                                                    text = { Text("No Machine / Free Weights") },
-                                                    onClick = {
-                                                        updateDay(dayIndex) {
-                                                            it.copy(exercises = it.exercises + (exercise.id to selectedExercise.copy(
-                                                                machineId = null,
-                                                                equipmentBindingState = RoutineEquipmentBindingState.None,
-                                                                machineProfileUuidSnapshot = null,
-                                                                machineNameSnapshot = "",
-                                                                machineLoadTypeSnapshot = null,
-                                                            )))
-                                                        }
-                                                        machineMenuExerciseId = null
-                                                    },
-                                                )
-                                            }
-                                            compatibleMachines.forEach { machine ->
-                                                DropdownMenuItem(
-                                                    text = { Text(machine.displayName) },
-                                                    onClick = {
-                                                        updateDay(dayIndex) {
-                                                            it.copy(exercises = it.exercises + (exercise.id to selectedExercise.copy(
-                                                                machineId = machine.id,
-                                                                equipmentBindingState = RoutineEquipmentBindingState.Resolved,
-                                                            )))
-                                                        }
-                                                        machineMenuExerciseId = null
-                                                    },
-                                                )
-                                            }
-                                        }
-                                    }
-                                    val selectedMachine = machines.firstOrNull { it.id == selectedExercise.machineId }
-                                    OutlinedTextField(
-                                        selectedExercise.plannedSetsText,
-                                        { text -> updateDay(dayIndex) { it.copy(exercises = it.exercises + (exercise.id to selectedExercise.copy(plannedSetsText = text))) } },
-                                        label = {
-                                            Text(
-                                                if (selectedMachine?.loadType == MachineLoadType.Level) {
-                                                    "Planned sets (${selectedMachine.levelLabel}), one per line: setting x reps"
-                                                } else {
-                                                    "Planned sets (${unitSymbol(selectedMachine?.unitId ?: exercise.weightUnitId)}), one per line: weight x reps"
-                                                },
-                                            )
-                                        },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                    if (selectedMachine?.availableLoads?.isNotEmpty() == true) {
-                                        Text(
-                                            "Available ${if (selectedMachine.loadType == MachineLoadType.Level) selectedMachine.levelLabel else unitSymbol(selectedMachine.unitId)}: ${machineLoadSummary(selectedMachine.availableLoads)}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                        )
-                                    }
-                                    ToggleRow("Copy previous set when no plan", selectedExercise.copyPrevious) { checked ->
-                                        updateDay(dayIndex) { it.copy(exercises = it.exercises + (exercise.id to selectedExercise.copy(copyPrevious = checked))) }
-                                    }
-                                    OutlinedTextField(
-                                        selectedExercise.groupKey,
-                                        { text -> updateDay(dayIndex) { it.copy(exercises = it.exercises + (exercise.id to selectedExercise.copy(groupKey = text))) } },
-                                        label = { Text("Superset/circuit group name (optional)") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    item(key = "duplicate-${day.key}") {
-                        WhipTextButton(onClick = {
-                            val key = (days.maxOfOrNull { it.key } ?: -1) + 1
-                            days = days.toMutableList().also { list ->
-                                list.add(dayIndex + 1, day.copy(key = key, name = "${day.name} copy"))
-                            }
-                        }) { Text("Duplicate ${day.name}") }
-                    }
-                }
-                item {
-                    WhipTextButton(onClick = {
-                        val key = (days.maxOfOrNull { it.key } ?: -1) + 1
-                        days = days + EditableRoutineDay(key, "Day ${('A'.code + key).toChar()}", emptyMap())
-                    }) {
-                        Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(22.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Add Day / Section")
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            WhipTextButton(
-                enabled = name.isNotBlank() && days.all { it.name.isNotBlank() },
-                onClick = {
-                    onSave(
-                        RoutineDraft(
-                            name = name,
-                            notes = notes,
-                            days = days.map { day ->
-                                RoutineDayDraft(
-                                    name = day.name,
-                                    exercises = day.exerciseOrder.mapNotNull(day.exercises::get).map { editable ->
-                                        RoutineExerciseDraft(
-                                            exerciseId = editable.exerciseId,
-                                            groupKey = editable.groupKey.trim().ifBlank { null },
-                                            copyPreviousWorkout = editable.copyPrevious,
-                                            machineId = editable.machineId,
-                                            equipmentBindingState = editable.equipmentBindingState,
-                                            machineProfileUuidSnapshot = editable.machineProfileUuidSnapshot,
-                                            machineNameSnapshot = editable.machineNameSnapshot,
-                                            machineLoadTypeSnapshot = editable.machineLoadTypeSnapshot,
-                                            machineUnitIdSnapshot = editable.machineUnitIdSnapshot,
-                                            machineLevelLabelSnapshot = editable.machineLevelLabelSnapshot,
-                                            machineLoadInterpretationSnapshot = editable.machineLoadInterpretationSnapshot,
-                                            machineConfigurationGroupSnapshot = editable.machineConfigurationGroupSnapshot,
-                                            machineConfigurationVersionSnapshot = editable.machineConfigurationVersionSnapshot,
-                                            machineConfigurationSnapshot = editable.machineConfigurationSnapshot,
-                                            plannedSets = editable.plannedSetsText.lines().mapNotNull { line ->
-                                                val parts = line.lowercase().split('x').map(String::trim)
-                                                val selectedMachine = machines.firstOrNull { it.id == editable.machineId }
-                                                val selectedExercise = exercises.firstOrNull { it.id == editable.exerciseId }
-                                                if (parts.all(String::isBlank)) null else WorkoutSetDraft(
-                                                    weight = parts.getOrNull(0)?.toWhipDoubleOrNull()
-                                                        .takeUnless { selectedMachine?.loadType == MachineLoadType.Level },
-                                                    weightUnitId = selectedMachine?.unitId?.takeIf(String::isNotBlank)
-                                                        ?: selectedExercise?.weightUnitId
-                                                        ?: preferredWeightUnitId,
-                                                    reps = parts.getOrNull(1)?.toIntOrNull(),
-                                                    planned = true,
-                                                    machineLoadValue = parts.getOrNull(0)?.toWhipDoubleOrNull()
-                                                        .takeIf { selectedMachine != null },
-                                                )
-                                            },
-                                        )
-                                    },
-                                )
-                            },
-                        ),
-                    )
-                },
-            ) { Text("Save") }
-        },
-        dismissButton = { WhipTextButton(onClick = requestDismiss) { Text("Cancel") } },
-    )
-    if (showDiscardConfirmation) {
-        UnsavedChangesDialog("routine", { showDiscardConfirmation = false }, onDismiss, modifier)
     }
 }
 
@@ -6536,7 +6717,7 @@ private fun WorkoutGroupDialog(
     onDismiss: () -> Unit,
     onCreate: (String, WorkoutGroupType, List<Long>) -> Unit,
 ) {
-    var name by rememberSaveable { mutableStateOf("Superset") }
+    var name by rememberSaveable { mutableStateOf("") }
     var type by rememberSaveable { mutableStateOf(WorkoutGroupType.Superset) }
     var selectedIds by rememberSaveable {
         mutableStateOf<Set<Long>>(exercises.take(2).mapTo(linkedSetOf()) { it.workoutExercise.id })
@@ -6549,7 +6730,13 @@ private fun WorkoutGroupDialog(
         title = { Text("Group Workout Exercises") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(name, { name = it.replace('\n', ' ').replace('\r', ' ').take(80) }, label = { Text("Group name") }, singleLine = true)
+                OutlinedTextField(
+                    name,
+                    { name = it.replace('\n', ' ').replace('\r', ' ').take(80) },
+                    label = { Text("Group name (optional)") },
+                    supportingText = { Text("Use a name only when it helps distinguish this group.") },
+                    singleLine = true,
+                )
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -6580,8 +6767,8 @@ private fun WorkoutGroupDialog(
         },
         confirmButton = {
             WhipTextButton(
-                enabled = name.isNotBlank() && selectedIds.size >= 2,
-                onClick = { onCreate(name.trim(), type, selectedIds.toList()) },
+                enabled = selectedIds.size >= 2,
+                onClick = { onCreate(name.trim().ifBlank { type.name }, type, selectedIds.toList()) },
             ) { Text("Create") }
         },
         dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },

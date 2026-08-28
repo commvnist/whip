@@ -65,6 +65,25 @@ class GoalRepositoryTest {
         assertEquals(GoalStatus.Completed, repository.goals.first().single().status)
     }
 
+    @Test fun reorderNormalizesOmittedCompletedGoalsWithoutDuplicatePositions() = runBlocking {
+        fun draft(name: String) = GoalDraft(
+            name = name,
+            type = GoalType.AccumulateTotal,
+            targetMin = 1.0,
+            startDate = FixedClock.today(),
+        )
+        val first = repository.create(draft("First"))
+        val second = repository.create(draft("Second"))
+        val completed = repository.create(draft("Completed"))
+        repository.setStatus(completed, GoalStatus.Completed)
+
+        repository.reorder(listOf(second, first))
+
+        val stored = database.goalDao().getAllGoals()
+        assertEquals(stored.size, stored.map { it.position }.distinct().size)
+        assertEquals(listOf(second, first), stored.sortedBy { it.position }.take(2).map { it.id })
+    }
+
     @Test fun goalTypeOwnsCalculationDirectionAndDeadlinePace() = runBlocking {
         repository.create(
             GoalDraft(

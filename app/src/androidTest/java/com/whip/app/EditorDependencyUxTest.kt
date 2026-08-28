@@ -54,7 +54,8 @@ class EditorDependencyUxTest {
 
         compose.onAllNodesWithText("Enter a Task title to save.").assertCountEquals(0)
         compose.onNodeWithText("Save").assertIsEnabled().performClick()
-        compose.onNodeWithText("Enter a Task title to save.").assertIsDisplayed()
+        compose.onNodeWithTag("task-save-problem").assertExists()
+        compose.onNodeWithText("Task title is required").assertIsDisplayed()
         compose.runOnIdle { assertEquals(null, saved.get()) }
     }
 

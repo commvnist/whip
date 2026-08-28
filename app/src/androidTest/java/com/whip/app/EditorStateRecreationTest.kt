@@ -216,7 +216,7 @@ class EditorStateRecreationTest {
             compose.onNodeWithContentDescription("Home").performClick()
         }
         compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
-        compose.onNodeWithText(label).performClick()
+        compose.onNodeWithText("New $label").performClick()
     }
 
     private fun pressSystemBack() {

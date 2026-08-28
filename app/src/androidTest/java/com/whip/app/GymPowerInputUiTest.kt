@@ -31,6 +31,8 @@ import com.whip.app.domain.LoadInterpretation
 import com.whip.app.domain.GymMachineDraft
 import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.WorkoutExercise
+import com.whip.app.domain.WorkoutGroup
+import com.whip.app.domain.WorkoutGroupType
 import com.whip.app.domain.WorkoutSession
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.WorkoutSet
@@ -42,14 +44,20 @@ import com.whip.app.ui.MachinePermanentDeleteDialog
 import com.whip.app.ui.QuickSetEntry
 import com.whip.app.ui.RestTimerCard
 import com.whip.app.ui.WorkoutExerciseCard
+import com.whip.app.ui.WorkoutExerciseGroupSurface
 import com.whip.app.ui.WorkoutExerciseUi
 import com.whip.app.ui.WorkoutHistoryCard
+import com.whip.app.ui.buildWorkoutExerciseBlocks
+import com.whip.app.ui.customDisplayName
+import com.whip.app.ui.reorderWorkoutBlock
+import com.whip.app.ui.reorderWorkoutGroupMember
 import com.whip.app.data.MachineDeletionImpact
 import com.whip.app.ui.theme.WhipTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import java.time.LocalDate
 import java.time.Instant
 
@@ -355,7 +363,7 @@ class GymPowerInputUiTest {
     }
 
     @Test
-    fun activeWorkoutUsesOneFocusedComposerWithoutExecutionTimeSetHandles() {
+    fun activeWorkoutUsesOneFocusedComposerWithExerciseAndSetReordering() {
         val exercise = testExercise().copy(name = "Bench press")
         val workoutExercise = testWorkoutExercise(exercise)
         val first = testWorkoutSet(4, workoutExercise.id)
@@ -370,7 +378,7 @@ class GymPowerInputUiTest {
                     compactRows = false,
                     showRpe = false,
                     showRir = false,
-                    nextSetId = first.id,
+                    nextSetId = second.id,
                     nextInGroup = false,
                     canMoveUp = false,
                     canMoveDown = true,
@@ -391,11 +399,16 @@ class GymPowerInputUiTest {
             }
         }
 
-        compose.onAllNodesWithContentDescription("Reorder Bench press").assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("Reorder Bench press").assertCountEquals(1)
         compose.onAllNodes(hasTestTag("active-set-composer")).assertCountEquals(1)
-        compose.onAllNodesWithContentDescription("Reorder set 1").assertCountEquals(0)
-        compose.onAllNodesWithContentDescription("Reorder set 2").assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("Reorder set 1").assertCountEquals(1)
+        compose.onAllNodesWithContentDescription("Reorder set 2").assertCountEquals(1)
         compose.onNodeWithText("Set 2", substring = true).assertIsDisplayed()
+        val firstBounds = compose.onNodeWithContentDescription("Reorder set 1").fetchSemanticsNode().boundsInRoot
+        val focusedBounds = compose.onNodeWithTag("active-set-composer").fetchSemanticsNode().boundsInRoot
+        check(firstBounds.bottom <= focusedBounds.top) {
+            "Up Next composer must remain in set order instead of being extracted above set 1: first=$firstBounds focused=$focusedBounds"
+        }
     }
 
     @Test
@@ -446,6 +459,145 @@ class GymPowerInputUiTest {
     }
 
     @Test
+    fun groupedExerciseUsesOneClearHeaderAndCanRemoveItsDesignation() {
+        val exercise = testExercise().copy(name = "Bench press")
+        val group = WorkoutGroup(
+            id = 20,
+            uuid = "upper-superset",
+            sessionId = 3,
+            name = "Upper A",
+            type = WorkoutGroupType.Superset,
+            position = 0,
+            createdAtMillis = 1,
+            updatedAtMillis = 1,
+        )
+        val workoutExercise = testWorkoutExercise(exercise).copy(groupId = group.id)
+        var removalRequested = false
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WorkoutExerciseGroupSurface(
+                    group = group,
+                    exerciseCount = 2,
+                    canMoveUp = false,
+                    canMoveDown = true,
+                    onMoveUp = {},
+                    onMoveDown = {},
+                ) {
+                    WorkoutExerciseCard(
+                        item = WorkoutExerciseUi(workoutExercise, exercise, emptyList(), emptyList(), 0, group, null),
+                        preferredWeightUnitId = "kilogram",
+                        preferredDistanceUnitId = "kilometre",
+                        numberPrecision = 1,
+                        compactRows = false,
+                        showRpe = false,
+                        showRir = false,
+                        nextSetId = null,
+                        nextInGroup = false,
+                        canMoveUp = false,
+                        canMoveDown = false,
+                        onMoveUp = {},
+                        onMoveDown = {},
+                        onRemoveExercise = {},
+                        onRemoveFromGroup = { removalRequested = true },
+                        onSubstituteExercise = {},
+                        onAddSet = {},
+                        onEditSet = {},
+                        onEditNotes = {},
+                        onCompleteSet = { _, _ -> },
+                        onSaveQuickSet = { _, _, _ -> },
+                        onDuplicateSet = {},
+                        onDeleteSet = {},
+                        onUndoDeleteSet = {},
+                        onReorderSets = {},
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithText("Superset").assertIsDisplayed()
+        compose.onNodeWithText("Upper A · 2 exercises").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Superset group, 2 exercises").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Reorder Superset group").assertIsDisplayed()
+        compose.onNodeWithContentDescription("More options for Bench press").performClick()
+        compose.onNodeWithText("Remove from Superset").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertTrue(removalRequested) }
+    }
+
+    @Test
+    fun genericGroupNamesNeverRepeatOrConflictWithTheSelectedType() {
+        val group = WorkoutGroup(
+            id = 20,
+            uuid = "circuit",
+            sessionId = 3,
+            name = "Superset",
+            type = WorkoutGroupType.Circuit,
+            position = 0,
+            createdAtMillis = 1,
+            updatedAtMillis = 1,
+        )
+        assertEquals(null, group.customDisplayName())
+
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WorkoutExerciseGroupSurface(
+                    group = group,
+                    exerciseCount = 3,
+                    canMoveUp = false,
+                    canMoveDown = false,
+                    onMoveUp = {},
+                    onMoveDown = {},
+                ) {}
+            }
+        }
+
+        compose.onNodeWithText("Circuit").assertIsDisplayed()
+        compose.onNodeWithText("3 exercises").assertIsDisplayed()
+        compose.onAllNodesWithText("Superset").assertCountEquals(0)
+    }
+
+    @Test
+    fun groupedWorkoutExercisesMoveAsABlockAndReorderWithinTheirGroup() {
+        val group = WorkoutGroup(
+            id = 20,
+            uuid = "circuit",
+            sessionId = 3,
+            name = "Circuit",
+            type = WorkoutGroupType.Circuit,
+            position = 0,
+            createdAtMillis = 1,
+            updatedAtMillis = 1,
+        )
+        fun item(id: Long, position: Int, grouped: Boolean): WorkoutExerciseUi {
+            val exercise = testExercise().copy(id = id, uuid = "exercise-$id", name = "Exercise $id")
+            val placement = testWorkoutExercise(exercise).copy(
+                id = id,
+                uuid = "placement-$id",
+                position = position,
+                groupId = group.id.takeIf { grouped },
+            )
+            return WorkoutExerciseUi(
+                placement,
+                exercise,
+                emptyList(),
+                emptyList(),
+                0,
+                group.takeIf { grouped },
+                null,
+            )
+        }
+        val firstMember = item(10, 0, grouped = true)
+        val independent = item(11, 1, grouped = false)
+        val secondMember = item(12, 2, grouped = true)
+
+        val blocks = buildWorkoutExerciseBlocks(listOf(firstMember, independent, secondMember))
+
+        assertEquals(2, blocks.size)
+        assertEquals(listOf(10L, 12L), blocks.first().exercises.map { it.workoutExercise.id })
+        assertEquals(listOf(11L, 10L, 12L), reorderWorkoutBlock(blocks, 0, 1))
+        assertEquals(listOf(12L, 10L, 11L), reorderWorkoutGroupMember(blocks, 0, 0, 1))
+    }
+
+    @Test
     fun completedSetsStayQuietUntilTheUserExpandsThem() {
         val exercise = testExercise().copy(name = "Bench press")
         val workoutExercise = testWorkoutExercise(exercise)
@@ -487,7 +639,7 @@ class GymPowerInputUiTest {
         compose.onNodeWithTag("active-set-composer").assertIsDisplayed()
         compose.onNodeWithText("1 Completed Set").performClick()
         compose.onNodeWithText("Set 1", substring = true).assertIsDisplayed()
-        compose.onAllNodesWithContentDescription("Reorder set 1").assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("Reorder set 1").assertCountEquals(1)
     }
 
     @Test

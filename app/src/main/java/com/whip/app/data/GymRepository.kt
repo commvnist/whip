@@ -85,7 +85,9 @@ interface GymRepository {
     suspend fun setWorkoutExerciseMachine(id: Long, machineId: Long?)
     suspend fun substituteWorkoutExercise(id: Long, exerciseId: Long, machineId: Long? = null): Long
     suspend fun removeWorkoutExercise(id: Long)
+    suspend fun removeWorkoutExerciseFromGroup(id: Long)
     suspend fun reorderWorkoutExercises(sessionId: Long, idsInOrder: List<Long>)
+    suspend fun normalizeWorkoutGroups(sessionId: Long)
     suspend fun createGroup(
         sessionId: Long,
         name: String,
@@ -256,8 +258,15 @@ class RoomGymRepository(
     }
 
     override suspend fun reorderExercises(idsInOrder: List<Long>) = database.withTransaction {
-        idsInOrder.forEachIndexed { index, id ->
-            dao.getExercise(id)?.let { dao.updateExercise(it.copy(position = index, updatedAtMillis = nowMillis())) }
+        val requested = idsInOrder.distinct()
+        val all = dao.getAllExercises()
+        require(requested.all { id -> all.any { it.id == id } }) { "Exercise no longer exists" }
+        val byId = all.associateBy(ExerciseEntity::id)
+        val order = requested + all.filterNot { it.id in requested }.sortedBy(ExerciseEntity::position).map(ExerciseEntity::id)
+        val now = nowMillis()
+        order.forEachIndexed { index, id ->
+            val exercise = requireNotNull(byId[id])
+            if (exercise.position != index) dao.updateExercise(exercise.copy(position = index, updatedAtMillis = now))
         }
     }
 
@@ -279,7 +288,16 @@ class RoomGymRepository(
     }
 
     override suspend fun reorderCategories(idsInOrder: List<Long>) = database.withTransaction {
-        idsInOrder.forEachIndexed { index, id -> dao.getCategory(id)?.let { dao.updateCategory(it.copy(position = index, updatedAtMillis = nowMillis())) } }
+        val requested = idsInOrder.distinct()
+        val all = dao.getAllCategories()
+        require(requested.all { id -> all.any { it.id == id } }) { "Category no longer exists" }
+        val byId = all.associateBy(ExerciseCategoryEntity::id)
+        val order = requested + all.filterNot { it.id in requested }.sortedBy(ExerciseCategoryEntity::position).map(ExerciseCategoryEntity::id)
+        val now = nowMillis()
+        order.forEachIndexed { index, id ->
+            val category = requireNotNull(byId[id])
+            if (category.position != index) dao.updateCategory(category.copy(position = index, updatedAtMillis = now))
+        }
     }
 
     private suspend fun syncCategories(exerciseId: Long, categoryIds: Set<Long>) {
@@ -617,8 +635,20 @@ class RoomGymRepository(
             newId
         }
 
-    override suspend fun removeWorkoutExercise(id: Long) {
+    override suspend fun removeWorkoutExercise(id: Long) = database.withTransaction {
+        val current = dao.getWorkoutExercise(id) ?: return@withTransaction
         dao.deleteWorkoutExercise(id)
+        normalizeWorkoutGroupsInSession(current.sessionId, nowMillis())
+        Unit
+    }
+
+    override suspend fun removeWorkoutExerciseFromGroup(id: Long) = database.withTransaction {
+        val current = dao.getWorkoutExercise(id) ?: return@withTransaction
+        val groupId = current.groupId ?: return@withTransaction
+        val now = nowMillis()
+        dao.updateWorkoutExercise(current.copy(groupId = null, updatedAtMillis = now))
+
+        normalizeWorkoutGroupsInSession(current.sessionId, now)
     }
 
     override suspend fun reorderWorkoutExercises(sessionId: Long, idsInOrder: List<Long>) =
@@ -630,6 +660,10 @@ class RoomGymRepository(
             }
         }
 
+    override suspend fun normalizeWorkoutGroups(sessionId: Long) = database.withTransaction {
+        normalizeWorkoutGroupsInSession(sessionId, nowMillis())
+    }
+
     override suspend fun createGroup(
         sessionId: Long,
         name: String,
@@ -637,24 +671,77 @@ class RoomGymRepository(
         workoutExerciseIds: List<Long>,
     ): Long = database.withTransaction {
         require(workoutExerciseIds.size >= 2) { "A group needs at least two exercises" }
+        require(workoutExerciseIds.distinct().size == workoutExerciseIds.size) {
+            "Choose each exercise only once"
+        }
         val now = nowMillis()
+        val ordered = dao.getWorkoutExercises(sessionId).sortedWith(compareBy({ it.position }, { it.id }))
+        val requestedIds = workoutExerciseIds.toSet()
+        val requestedMembers = ordered.filter { it.id in requestedIds }
+        require(requestedMembers.size == requestedIds.size) { "Exercise is not in this workout" }
+        val requestedName = name.trim()
+        val normalizedName = requestedName
+            .takeIf { candidate ->
+                candidate.isNotBlank() && WorkoutGroupType.entries.none { candidate.equals(it.name, ignoreCase = true) }
+            }
+            ?: type.name
         val groupId = dao.insertWorkoutGroup(
             WorkoutGroupEntity(
                 uuid = ids.nextId(),
                 sessionId = sessionId,
-                name = name.trim(),
+                name = normalizedName,
                 type = type.name,
                 position = 0,
                 createdAtMillis = now,
                 updatedAtMillis = now,
             ),
         )
-        workoutExerciseIds.forEach { workoutExerciseId ->
-            val item = dao.getWorkoutExercise(workoutExerciseId)
-            require(item?.sessionId == sessionId) { "Exercise is not in this workout" }
-            dao.updateWorkoutExercise(item.copy(groupId = groupId, updatedAtMillis = now))
+        ordered.forEach { item ->
+            if (item.id in requestedIds && item.groupId != groupId) {
+                dao.updateWorkoutExercise(
+                    item.copy(groupId = groupId, updatedAtMillis = now),
+                )
+            }
         }
+        normalizeWorkoutGroupsInSession(sessionId, now)
         groupId
+    }
+
+    private suspend fun normalizeWorkoutGroupsInSession(sessionId: Long, now: Long) {
+        var ordered = dao.getWorkoutExercises(sessionId).sortedWith(compareBy({ it.position }, { it.id }))
+        val groups = dao.getWorkoutGroups(sessionId)
+        val knownGroupIds = groups.mapTo(mutableSetOf(), WorkoutGroupEntity::id)
+
+        // Clear dangling or singleton membership and delete empty/singleton group records.
+        ordered.filter { it.groupId != null && it.groupId !in knownGroupIds }.forEach { member ->
+            dao.updateWorkoutExercise(member.copy(groupId = null, updatedAtMillis = now))
+        }
+        groups.forEach { group ->
+            val members = ordered.filter { it.groupId == group.id }
+            if (members.size < 2) {
+                members.forEach { member ->
+                    dao.updateWorkoutExercise(member.copy(groupId = null, updatedAtMillis = now))
+                }
+                dao.deleteWorkoutGroup(group.id)
+            }
+        }
+
+        // Flatten every surviving group at its first authored position. This repairs
+        // legacy sessions and prevents regrouping one member from splitting its old group.
+        ordered = dao.getWorkoutExercises(sessionId).sortedWith(compareBy({ it.position }, { it.id }))
+        val emittedGroups = mutableSetOf<Long>()
+        val normalized = buildList {
+            ordered.forEach { item ->
+                val groupId = item.groupId
+                if (groupId == null) add(item)
+                else if (emittedGroups.add(groupId)) addAll(ordered.filter { it.groupId == groupId })
+            }
+        }
+        normalized.forEachIndexed { index, item ->
+            if (item.position != index) {
+                dao.updateWorkoutExercise(item.copy(position = index, updatedAtMillis = now))
+            }
+        }
     }
 
     override suspend fun addSet(workoutExerciseId: Long, draft: WorkoutSetDraft?): Long =

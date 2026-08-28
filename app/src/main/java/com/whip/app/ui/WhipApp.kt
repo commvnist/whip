@@ -134,6 +134,7 @@ import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.TableRows
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -384,6 +385,9 @@ fun WhipApp(
                 transientAreaScopeKey = null
                 settingsViewModel.setAreaScope(selected)
             },
+            onTemporarilySelectAreaScope = { selected ->
+                transientAreaScopeKey = selected.storageKey
+            },
             transientAreaScope = transientAreaScopeKey != null,
             onRestoreAreaScope = { transientAreaScopeKey = null },
             pendingAreaBadgeId = pendingAreaBadgeId,
@@ -484,6 +488,7 @@ fun WhipScreen(
     trackViewModel: TrackViewModel? = null,
     areaScope: AreaScope = AreaScope.fromStorageKey(settingsState.settings.activeAreaScope),
     onSelectAreaScope: (AreaScope) -> Unit = { settingsViewModel?.setAreaScope(it) },
+    onTemporarilySelectAreaScope: (AreaScope) -> Unit = {},
     transientAreaScope: Boolean = false,
     onRestoreAreaScope: () -> Unit = {},
     pendingAreaBadgeId: String? = null,
@@ -1273,6 +1278,18 @@ fun WhipScreen(
         .width(dialogContentWidth)
     var gymRoutineEditorOpen by rememberSaveable { mutableStateOf(false) }
     var taskSelectionMode by rememberSaveable { mutableStateOf(false) }
+    var reorderModeActive by rememberSaveable { mutableStateOf(false) }
+    var reorderDismissRequest by rememberSaveable { mutableIntStateOf(0) }
+    var reorderOwnsTemporaryAreaScope by rememberSaveable { mutableStateOf(false) }
+    val focusedCollectionMode = taskSelectionMode || reorderModeActive
+    LaunchedEffect(reorderModeActive, transientAreaScope) {
+        if (reorderModeActive && transientAreaScope) {
+            reorderOwnsTemporaryAreaScope = true
+        } else if (!reorderModeActive && reorderOwnsTemporaryAreaScope) {
+            reorderOwnsTemporaryAreaScope = false
+            onRestoreAreaScope()
+        }
+    }
     fun returnToHomeAfterDataReset() {
         settingsCallerDestination = AppDestination.Home
         appDestination = AppDestination.Home
@@ -1316,6 +1333,8 @@ fun WhipScreen(
         contentPaneExpanded = false
         gymRoutineEditorOpen = false
         taskSelectionMode = false
+        reorderModeActive = false
+        reorderOwnsTemporaryAreaScope = false
         snackbarHostState.currentSnackbarData?.dismiss()
     }
     val addDescription = when (appDestination) {
@@ -1403,7 +1422,12 @@ fun WhipScreen(
             .semantics { if (areaManagerOpen || reviewOpen || trackEditorRoute != null) hideFromAccessibility() }
             .focusRequester(shortcutFocusRequester)
             .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown && event.key == Key.Escape && reorderModeActive) {
+                    reorderDismissRequest += 1
+                    return@onPreviewKeyEvent true
+                }
                 if (event.type != KeyEventType.KeyDown || !event.isCtrlPressed) return@onPreviewKeyEvent false
+                if (focusedCollectionMode) return@onPreviewKeyEvent true
                 when (event.key) {
                     Key.K -> {
                         searchEntryContext = appDestination.searchEntryContext(gymDestination)
@@ -1415,7 +1439,7 @@ fun WhipScreen(
                                 appDestination,
                                 gymDestination,
                                 gymRoutineEditorOpen,
-                                taskSelectionMode,
+                                focusedCollectionMode,
                                 selectedTrackState.value?.let(trackState::track)?.track?.archived == true,
                             )
                         ) {
@@ -1441,8 +1465,8 @@ fun WhipScreen(
         selected = appDestination,
         summary = adaptiveSummary,
         contentExpanded = contentPaneIsExpanded,
-        navigationEnabled = !gymRoutineEditorOpen && trackEditorRoute == null,
-        supportContent = when (appDestination) {
+        navigationEnabled = !gymRoutineEditorOpen && trackEditorRoute == null && !focusedCollectionMode,
+        supportContent = if (focusedCollectionMode) null else when (appDestination) {
             AppDestination.Home -> { supportModifier ->
                 HomeSupportPane(adaptiveSummary, ::selectPrimaryDestination, supportModifier)
             }
@@ -1520,13 +1544,13 @@ fun WhipScreen(
                     onSelect = ::selectPrimaryDestination,
                     modifier = supportModifier,
                     onGymContextSelected = openGymContext,
-                    navigationEnabled = !gymRoutineEditorOpen && trackEditorRoute == null,
+                    navigationEnabled = !gymRoutineEditorOpen && trackEditorRoute == null && !focusedCollectionMode,
                 )
             }
         },
         onGymContextSelected = openGymContext,
         onSelect = {
-            if (!gymRoutineEditorOpen) {
+            if (!gymRoutineEditorOpen && !focusedCollectionMode) {
                 if (it == AppDestination.Settings) openSettings() else selectPrimaryDestination(it)
             }
         },
@@ -1564,7 +1588,7 @@ fun WhipScreen(
                                 )
                             }
                         }
-                        if (appDestination in setOf(AppDestination.Home, AppDestination.Tasks, AppDestination.Habits, AppDestination.Goals, AppDestination.Tracks)) {
+                        if (!focusedCollectionMode && appDestination in setOf(AppDestination.Home, AppDestination.Tasks, AppDestination.Habits, AppDestination.Goals, AppDestination.Tracks)) {
                             AreaScopeMenu(
                                 scope = areaScope,
                                 areas = settingsState.areas,
@@ -1586,7 +1610,7 @@ fun WhipScreen(
                             appDestination = appDestination,
                             gymDestination = gymDestination,
                             gymRoutineEditorOpen = gymRoutineEditorOpen,
-                            taskSelectionMode = taskSelectionMode,
+                            taskSelectionMode = focusedCollectionMode,
                             selectedTrackArchived = selectedTrackState.value?.let(trackState::track)?.track?.archived == true,
                         )
                     ) {
@@ -1606,8 +1630,8 @@ fun WhipScreen(
                                 }
                             }
                             DropdownMenu(expanded = globalAddExpanded && appDestination == AppDestination.Home, onDismissRequest = { globalAddExpanded = false }) {
-                                DropdownMenuItem(
-                                    text = { Text("Task") },
+                                WhipMenuItem(
+                                    label = "New Task",
                                     onClick = {
                                         openTaskEditor(
                                             scheduleDate = state.currentDate,
@@ -1616,11 +1640,11 @@ fun WhipScreen(
                                         globalAddExpanded = false
                                     },
                                 )
-                                DropdownMenuItem(text = { Text("Habit") }, onClick = { appDestination = AppDestination.Habits; createHabitRequested = true; globalAddExpanded = false })
-                                DropdownMenuItem(text = { Text("Goal") }, onClick = { appDestination = AppDestination.Goals; createGoalRequested = true; globalAddExpanded = false })
-                                DropdownMenuItem(text = { Text("Track") }, onClick = { appDestination = AppDestination.Tracks; createTrackRequested = true; globalAddExpanded = false })
-                                DropdownMenuItem(
-                                    text = { Text("Exercise") },
+                                WhipMenuItem(label = "New Habit", onClick = { appDestination = AppDestination.Habits; createHabitRequested = true; globalAddExpanded = false })
+                                WhipMenuItem(label = "New Goal", onClick = { appDestination = AppDestination.Goals; createGoalRequested = true; globalAddExpanded = false })
+                                WhipMenuItem(label = "New Track", onClick = { appDestination = AppDestination.Tracks; createTrackRequested = true; globalAddExpanded = false })
+                                WhipMenuItem(
+                                    label = "New Exercise",
                                     onClick = {
                                         appDestination = AppDestination.Gym
                                         gymDestination = GymDestination.Exercises
@@ -1628,8 +1652,8 @@ fun WhipScreen(
                                         globalAddExpanded = false
                                     },
                                 )
-                                DropdownMenuItem(
-                                    text = { Text(if (gymState.activeSession == null) "Workout" else "Add to Workout") },
+                                WhipMenuItem(
+                                    label = if (gymState.activeSession == null) "Start Workout" else "Add to Workout",
                                     onClick = {
                                         appDestination = AppDestination.Gym
                                         gymDestination = GymDestination.Workout
@@ -1643,8 +1667,8 @@ fun WhipScreen(
                                 )
                             }
                             DropdownMenu(expanded = gymAddExpanded && appDestination == AppDestination.Gym, onDismissRequest = { gymAddExpanded = false }) {
-                                DropdownMenuItem(
-                                    text = { Text(if (gymState.activeSession == null) "Workout" else "Add to Workout") },
+                                WhipMenuItem(
+                                    label = if (gymState.activeSession == null) "Start Workout" else "Add to Workout",
                                     onClick = {
                                         gymDestination = GymDestination.Workout
                                         gymAddRequest = if (gymState.activeSession == null) {
@@ -1655,15 +1679,15 @@ fun WhipScreen(
                                         gymAddExpanded = false
                                     },
                                 )
-                                DropdownMenuItem(text = { Text("Routine") }, onClick = { gymDestination = GymDestination.Routines; gymAddRequest = GymAddRequest.CreateRoutine; gymAddExpanded = false })
-                                DropdownMenuItem(text = { Text("Exercise") }, onClick = { gymDestination = GymDestination.Exercises; gymAddRequest = GymAddRequest.CreateExercise; gymAddExpanded = false })
-                                DropdownMenuItem(text = { Text("Machine") }, onClick = { gymDestination = GymDestination.Machines; gymAddRequest = GymAddRequest.CreateMachine; gymAddExpanded = false })
-                                DropdownMenuItem(text = { Text("Category") }, onClick = { gymDestination = GymDestination.Categories; gymAddRequest = GymAddRequest.CreateCategory; gymAddExpanded = false })
+                                WhipMenuItem(label = "New Routine", onClick = { gymDestination = GymDestination.Routines; gymAddRequest = GymAddRequest.CreateRoutine; gymAddExpanded = false })
+                                WhipMenuItem(label = "New Exercise", onClick = { gymDestination = GymDestination.Exercises; gymAddRequest = GymAddRequest.CreateExercise; gymAddExpanded = false })
+                                WhipMenuItem(label = "New Machine", onClick = { gymDestination = GymDestination.Machines; gymAddRequest = GymAddRequest.CreateMachine; gymAddExpanded = false })
+                                WhipMenuItem(label = "New Category", onClick = { gymDestination = GymDestination.Categories; gymAddRequest = GymAddRequest.CreateCategory; gymAddExpanded = false })
                             }
                         }
                     }
                     if (
-                        supportsPaneExpansion &&
+                        !focusedCollectionMode && supportsPaneExpansion &&
                         (!useSecondaryAppActionsMenu || contentPaneIsExpanded) &&
                         appDestination != AppDestination.Settings
                     ) {
@@ -1686,7 +1710,7 @@ fun WhipScreen(
                             )
                         }
                     }
-                    if (useSecondaryAppActionsMenu && !collapseSearchIntoAppActions && appDestination != AppDestination.Settings) {
+                    if (!focusedCollectionMode && useSecondaryAppActionsMenu && !collapseSearchIntoAppActions && appDestination != AppDestination.Settings) {
                         IconButton(
                             onClick = {
                                 searchEntryContext = appDestination.searchEntryContext(gymDestination)
@@ -1697,7 +1721,7 @@ fun WhipScreen(
                             },
                         ) { Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(28.dp)) }
                     }
-                    if (useSecondaryAppActionsMenu && appDestination != AppDestination.Settings) {
+                    if (!focusedCollectionMode && useSecondaryAppActionsMenu && appDestination != AppDestination.Settings) {
                         Box {
                             IconButton(
                                 onClick = { secondaryAppActionsExpanded = true },
@@ -1732,6 +1756,17 @@ fun WhipScreen(
                                         },
                                     )
                                 }
+                                if (appDestination == AppDestination.Home) {
+                                    WhipMenuItem(
+                                        label = "Customize Home",
+                                        icon = Icons.Outlined.Tune,
+                                        onClick = {
+                                            secondaryAppActionsExpanded = false
+                                            settingsSection = SettingsSection.Appearance
+                                            openSettings()
+                                        },
+                                    )
+                                }
                                 if (appDestination != AppDestination.Settings) {
                                     WhipMenuItem(
                                         label = "Open Settings",
@@ -1744,7 +1779,7 @@ fun WhipScreen(
                                 }
                             }
                         }
-                    } else if (appDestination != AppDestination.Settings) {
+                    } else if (!focusedCollectionMode && appDestination != AppDestination.Settings) {
                         IconButton(
                             onClick = {
                                 searchEntryContext = appDestination.searchEntryContext(gymDestination)
@@ -1757,7 +1792,7 @@ fun WhipScreen(
                             Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(28.dp))
                         }
                     }
-                    if (!useSecondaryAppActionsMenu || appDestination == AppDestination.Settings) {
+                    if (!focusedCollectionMode && (!useSecondaryAppActionsMenu || appDestination == AppDestination.Settings)) {
                         IconButton(onClick = { if (appDestination == AppDestination.Settings) closeSettings() else openSettings() }, modifier = Modifier.size(52.dp).testTag("workspace-settings-action").semantics { contentDescription = if (appDestination == AppDestination.Settings) "Close Settings" else "Open Settings" }) {
                             Icon(
                                 if (appDestination == AppDestination.Settings) Icons.Outlined.Close else Icons.Outlined.Settings,
@@ -1774,7 +1809,7 @@ fun WhipScreen(
                 WhipBottomNavigation(
                     selected = appDestination,
                     onSelect = ::selectPrimaryDestination,
-                    enabled = trackEditorRoute == null,
+                    enabled = trackEditorRoute == null && !focusedCollectionMode,
                 )
             }
         },
@@ -1863,11 +1898,6 @@ fun WhipScreen(
                     onAddTrackEntry = { projection -> addTrackEntryRequestedForId = projection.track.id; appDestination = AppDestination.Tracks },
                     onSelectHomeTaskFilter = { name ->
                         settingsViewModel?.selectHomeTaskFilter(name)
-                        val selectedFilter = settingsState.settings.savedTaskFilters.firstOrNull { it.name == name }
-                        when {
-                            name == null -> onSelectAreaScope(AreaScope.All)
-                            selectedFilter != null -> onSelectAreaScope(selectedFilter.restoredAreaScope())
-                        }
                     },
                     onOpenReview = { reviewOpen = true },
                     showFullHeader = adaptiveLayout == WhipAdaptiveLayout.Compact || contentPaneIsExpanded,
@@ -1965,6 +1995,9 @@ fun WhipScreen(
                     onPreviewBulkDeletion = onPreviewBulkTaskDeletion,
                     onClearBulkDeletionPreview = onClearBulkTaskDeletionPreview,
                     onSetHabitPlanningOverlay = { enabled -> settingsViewModel?.update { it.copy(showHabitsInTaskPlanning = enabled) } },
+                    onActiveTaskSortModeChange = { mode ->
+                        settingsViewModel?.update { it.copy(activeTaskSortMode = mode) }
+                    },
                     onOpenPlanningHabit = { habitId -> openHabitIdRequested = habitId; appDestination = AppDestination.Habits },
                     onReorder = onReorderTasks,
                     onPlanMyDay = onPlanMyDay,
@@ -1984,10 +2017,15 @@ fun WhipScreen(
                     areas = settingsState.areas,
                     areaScope = areaScope,
                     onSelectAreaScope = onSelectAreaScope,
+                    onTemporarilySelectAreaScope = onTemporarilySelectAreaScope,
                     planningViewRequest = taskPlanningViewRequest,
                     onPlanningViewRequestConsumed = { taskPlanningViewRequest = null },
+                    allAreaTaskCount = unscopedTaskState.tasksFor(taskDestination)
+                        .distinctBy { it.task.id }.size,
                     modifier = paneDialogModifier,
                     onSelectionModeChange = { taskSelectionMode = it },
+                    onReorderModeChange = { reorderModeActive = it },
+                    reorderDismissRequest = reorderDismissRequest,
                 )
             }
             AppDestination.Habits -> {
@@ -2027,8 +2065,11 @@ fun WhipScreen(
                             AreaScope.Unassigned -> "Main"
                             is AreaScope.One -> settingsState.areas.firstOrNull { it.id == areaScope.areaId }?.name
                         },
+                        onShowAllAreasForReorder = { onTemporarilySelectAreaScope(AreaScope.All) },
                         onAreaChanged = ::keepSavedItemVisible,
                         destinationState = habitDestinationState,
+                        onReorderModeChange = { reorderModeActive = it },
+                        reorderDismissRequest = reorderDismissRequest,
                     )
                 } else RoadmapEmptyArea("Habits", "Habits are loading.", innerPadding)
             }
@@ -2051,6 +2092,8 @@ fun WhipScreen(
                         onDestinationChange = { gymDestination = it },
                         requestedWorkoutExerciseId = requestedWorkoutExerciseId,
                         onRequestedWorkoutExerciseConsumed = { requestedWorkoutExerciseId = null },
+                        onReorderModeChange = { reorderModeActive = it },
+                        reorderDismissRequest = reorderDismissRequest,
                     )
                 } else {
                     RoadmapEmptyArea("Gym", "Gym is loading.", innerPadding)
@@ -2091,8 +2134,11 @@ fun WhipScreen(
                         AreaScope.Unassigned -> "Main"
                         is AreaScope.One -> settingsState.areas.firstOrNull { it.id == areaScope.areaId }?.name
                     },
+                    onShowAllAreasForReorder = { onTemporarilySelectAreaScope(AreaScope.All) },
                     onAreaChanged = ::keepSavedItemVisible,
                     destinationState = goalDestinationState,
+                    onReorderModeChange = { reorderModeActive = it },
+                    reorderDismissRequest = reorderDismissRequest,
                 )
                 else RoadmapEmptyArea("Goals", "Goals are loading.", innerPadding)
             }
@@ -2131,6 +2177,10 @@ fun WhipScreen(
                     workspaceDestinationState = trackWorkspaceDestinationState,
                     destinationState = trackDetailDestinationState,
                     dialogModifier = paneDialogModifier,
+                    reorderEnabled = areaScope == AreaScope.All,
+                    onShowAllAreasForReorder = { onTemporarilySelectAreaScope(AreaScope.All) },
+                    onReorderModeChange = { reorderModeActive = it },
+                    reorderDismissRequest = reorderDismissRequest,
                 ) else RoadmapEmptyArea("Tracks", "Tracks are loading.", innerPadding)
             }
             AppDestination.Settings -> {
@@ -2200,11 +2250,10 @@ fun WhipScreen(
                 AreaScope.Unassigned -> "Main"
                 is AreaScope.One -> settingsState.areas.firstOrNull { it.id == scope.areaId }?.name ?: "All Areas"
             },
-            onSearchAllAreas = { onSelectAreaScope(AreaScope.All) },
             initialScope = searchEntryContext.defaultSearchScope(),
         ) { result ->
             if (result.domain in setOf(SearchDomain.Task, SearchDomain.Habit, SearchDomain.Goal, SearchDomain.Track, SearchDomain.TrackEntry) && !areaScope.matches(result.areaId)) {
-                onSelectAreaScope(
+                onTemporarilySelectAreaScope(
                     result.areaId?.let(AreaScope::One)
                         ?: settingsState.areas.firstOrNull { !it.archived }?.id?.let(AreaScope::One)
                         ?: AreaScope.All,
@@ -4214,6 +4263,7 @@ private fun TaskAreaContent(
     onPreviewBulkDeletion: (Set<Long>) -> Unit,
     onClearBulkDeletionPreview: () -> Unit,
     onSetHabitPlanningOverlay: (Boolean) -> Unit,
+    onActiveTaskSortModeChange: (String) -> Unit,
     onOpenPlanningHabit: (Long) -> Unit,
     onReorder: (List<ScheduledTask>) -> Unit,
     onPlanMyDay: (List<ScheduledTask>, Int) -> Unit,
@@ -4224,9 +4274,13 @@ private fun TaskAreaContent(
     areas: List<Area> = emptyList(),
     areaScope: AreaScope = AreaScope.All,
     onSelectAreaScope: (AreaScope) -> Unit = {},
+    onTemporarilySelectAreaScope: (AreaScope) -> Unit = {},
     planningViewRequest: TaskPlanningView? = null,
     onPlanningViewRequestConsumed: () -> Unit = {},
+    allAreaTaskCount: Int = 0,
     onSelectionModeChange: (Boolean) -> Unit = {},
+    onReorderModeChange: (Boolean) -> Unit = {},
+    reorderDismissRequest: Int = 0,
 ) {
     val dialogModifier = modifier
     var planningView by rememberSaveable { mutableStateOf(TaskPlanningView.List) }
@@ -4235,7 +4289,15 @@ private fun TaskAreaContent(
     }
     var focusClockMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var textQuery by rememberSaveable { mutableStateOf("") }
-    var sortMode by rememberSaveable { mutableStateOf("Smart") }
+    var sortMode by rememberSaveable {
+        mutableStateOf(
+            if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
+                appSettings.activeTaskSortMode
+            } else {
+                "Smart"
+            },
+        )
+    }
     var sortDirection by rememberSaveable { mutableStateOf(SortDirection.Ascending) }
     var groupMode by rememberSaveable { mutableStateOf("None") }
     var showFilters by rememberSaveable { mutableStateOf(false) }
@@ -4250,6 +4312,8 @@ private fun TaskAreaContent(
     var saveFilterOpen by rememberSaveable { mutableStateOf(false) }
     var filterName by rememberSaveable { mutableStateOf("") }
     var selectionMode by rememberSaveable { mutableStateOf(false) }
+    var reordering by rememberSaveable { mutableStateOf(false) }
+    var enterReorderWhenReady by rememberSaveable { mutableStateOf(false) }
     var selectionActionsOpen by rememberSaveable { mutableStateOf(false) }
     var selectedKeys by rememberSaveable { mutableStateOf(emptySet<String>()) }
     var archivePreviewKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
@@ -4280,14 +4344,17 @@ private fun TaskAreaContent(
         "These highlighted phrases will be applied when the Task is added",
     )
     val workspaceDestination = destination.toWorkspaceRoute().destination
-    LaunchedEffect(selectionMode) {
+    LaunchedEffect(selectionMode, reordering) {
         onSelectionModeChange(selectionMode)
+        onReorderModeChange(reordering || enterReorderWhenReady)
     }
     LaunchedEffect(destination) {
         destination.toWorkspaceRoute().takeIf { it.destination == TaskWorkspaceDestination.History }
             ?.let { historySection = it.historySection }
         planningView = workspaceDestination.normalizePlanningView(planningView)
         selectionMode = false
+        reordering = false
+        enterReorderWhenReady = false
         selectionActionsOpen = false
         selectedKeys = emptySet()
         dateMode = when (destination) {
@@ -4300,7 +4367,11 @@ private fun TaskAreaContent(
             TaskDestination.Archived -> setOf("Smart", "Archived Date", "Priority", "Title")
             else -> setOf("Smart", "Manual", "Scheduled Date", "Deadline", "Priority", "Title")
         }
-        if (sortMode !in supportedSortModes) sortMode = "Smart"
+        sortMode = if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
+            appSettings.activeTaskSortMode.takeIf { it in supportedSortModes } ?: "Smart"
+        } else {
+            sortMode.takeIf { it in supportedSortModes } ?: "Smart"
+        }
         val supportedGroupModes = when (destination) {
             TaskDestination.Completed -> setOf("None", "Completion Date", "Area", "Priority")
             TaskDestination.Archived -> setOf("None", "Archived Date", "Area", "Priority")
@@ -4318,6 +4389,16 @@ private fun TaskAreaContent(
         selectionMode = false
         selectedKeys = emptySet()
         selectionActionsOpen = false
+    }
+    BackHandler(enabled = reordering || enterReorderWhenReady) {
+        reordering = false
+        enterReorderWhenReady = false
+    }
+    LaunchedEffect(reorderDismissRequest) {
+        if (reorderDismissRequest > 0) {
+            reordering = false
+            enterReorderWhenReady = false
+        }
     }
     LaunchedEffect(areaScope) {
         if (areaScope != AreaScope.All && groupMode == "Area") groupMode = "None"
@@ -4402,6 +4483,21 @@ private fun TaskAreaContent(
         )
     }
     val activeFilterCount = activeFilters.count { it.key != "saved-query" }
+    val reorderDestinationEligible = destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)
+    val reorderHasConstraints =
+        textQuery.isNotBlank() || activeFilterCount > 0 || areaScope != AreaScope.All ||
+            groupMode != "None" || planningView != TaskPlanningView.List
+    LaunchedEffect(reordering, reorderHasConstraints, sortMode) {
+        if (reordering && (reorderHasConstraints || sortMode != "Manual")) reordering = false
+    }
+    LaunchedEffect(enterReorderWhenReady, reorderHasConstraints) {
+        if (enterReorderWhenReady && !reorderHasConstraints) {
+            sortMode = "Manual"
+            onActiveTaskSortModeChange("Manual")
+            reordering = true
+            enterReorderWhenReady = false
+        }
+    }
 
     fun applyFilter(filter: SavedTaskFilter) {
         val normalized = filter.normalizedForWorkspace()
@@ -4416,6 +4512,9 @@ private fun TaskAreaContent(
         maximumDuration = normalized.maximumDurationMinutes?.toString().orEmpty()
         textQuery = normalized.textQuery
         sortMode = normalized.sortMode
+        if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
+            onActiveTaskSortModeChange(normalized.sortMode)
+        }
         sortDirection = if (normalized.sortDescending) SortDirection.Descending else SortDirection.Ascending
         groupMode = normalized.groupMode
         runCatching { TaskDestination.valueOf(normalized.destination) }.getOrNull()?.let(onDestinationChange)
@@ -4489,12 +4588,12 @@ private fun TaskAreaContent(
                     title = destination.label,
                     supportingText = taskDestinationSupportingText(destination, visibleTasks.size),
                 ) {
-                WhipPageIconAction(
-                    icon = Icons.Outlined.FilterList,
-                    label = if (activeFilterCount == 0) "Filter & Sort Tasks" else "Filter & Sort Tasks · $activeFilterCount active",
-                    onClick = { showFilters = true },
-                )
-                if (visibleTasks.isNotEmpty()) Box {
+                if (!reordering) WhipPageIconAction(
+                        icon = Icons.Outlined.FilterList,
+                        label = if (activeFilterCount == 0) "Filter & Sort Tasks" else "Filter & Sort Tasks · $activeFilterCount active",
+                        onClick = { showFilters = true },
+                    )
+                if (!reordering && (sourceTasks.isNotEmpty() || allAreaTaskCount > 1)) Box {
                     IconButton(
                         onClick = { taskToolsExpanded = true },
                         modifier = Modifier.size(48.dp).semantics { contentDescription = "More task list actions" },
@@ -4505,6 +4604,39 @@ private fun TaskAreaContent(
                         expanded = taskToolsExpanded,
                         onDismissRequest = { taskToolsExpanded = false },
                     ) {
+                        if (
+                            reorderDestinationEligible &&
+                            maxOf(sourceTasks.distinctBy { it.task.id }.size, allAreaTaskCount) > 1
+                        ) {
+                            WhipMenuItem(
+                                label = when {
+                                    areaScope != AreaScope.All -> "Show All Areas & Reorder"
+                                    reorderHasConstraints -> "Clear Filters & Reorder All"
+                                    else -> "Reorder Tasks"
+                                },
+                                onClick = {
+                                    textQuery = ""
+                                    priorities = emptySet()
+                                    selectedTags = emptySet()
+                                    pinnedOnly = false
+                                    dateMode = "Any"
+                                    deadlineOnly = false
+                                    efforts = emptySet()
+                                    maximumDuration = ""
+                                    groupMode = "None"
+                                    planningView = TaskPlanningView.List
+                                    if (areaScope != AreaScope.All) onTemporarilySelectAreaScope(AreaScope.All)
+                                    if (reorderHasConstraints) {
+                                        enterReorderWhenReady = true
+                                    } else {
+                                        sortMode = "Manual"
+                                        onActiveTaskSortModeChange("Manual")
+                                        reordering = true
+                                    }
+                                    taskToolsExpanded = false
+                                },
+                            )
+                        }
                         if (visibleTasks.isNotEmpty()) {
                             WhipMenuItem(
                                 label = "Select Tasks",
@@ -4641,8 +4773,15 @@ private fun TaskAreaContent(
                     }
                 }
             } else {
+                if (reordering) {
+                    WhipReorderModeBar(
+                        itemLabel = "Tasks",
+                        onDone = { reordering = false },
+                        boundaryNote = "Pinned and other Tasks reorder separately.",
+                    )
+                }
                 val planningViews = workspaceDestination.allowedPlanningViews()
-                if (planningViews.size > 1) {
+                if (!reordering && planningViews.size > 1) {
                     SegmentedChoiceBar(
                         selected = planningView,
                         choices = planningViews,
@@ -4652,7 +4791,7 @@ private fun TaskAreaContent(
                         resetCompactItemExpansionOnChange = true,
                     )
                 }
-                WhipActiveFilterRow(
+                if (!reordering) WhipActiveFilterRow(
                     filters = activeFilters,
                     onClearAll = {
                         priorities = emptySet()
@@ -4669,10 +4808,20 @@ private fun TaskAreaContent(
                     Text(
                         listOfNotNull(
                             sortMode.takeIf { it != "Smart" }?.let { mode ->
-                                "Sorted by $mode" + sortDirection.label.takeIf { mode != "Manual" }?.let { " · $it" }.orEmpty()
+                                "Sorted by ${if (mode == "Manual") "Custom Order" else mode}" + sortDirection.label.takeIf { mode != "Manual" }?.let { " · $it" }.orEmpty()
                             },
                             groupMode.takeIf { it != "None" }?.let { "Grouped by $it" },
                         ).joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (
+                    reordering && sortMode == "Manual" &&
+                    (textQuery.isNotBlank() || activeFilterCount > 0 || areaScope != AreaScope.All)
+                ) {
+                    Text(
+                        "Drag ordering is available in All Areas after clearing search and filters, so hidden Tasks are never moved unexpectedly.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -4686,12 +4835,12 @@ private fun TaskAreaContent(
                 }
             }
         }
-        LazyColumn(
+        WhipReorderLazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(if (appSettings.compactItemLayout) 4.dp else 12.dp),
         ) {
-        appSettings.focusTimerDeadlineMillis?.takeIf { it > focusClockMillis && !selectionMode }?.let { deadline ->
+        appSettings.focusTimerDeadlineMillis?.takeIf { it > focusClockMillis && !selectionMode && !reordering }?.let { deadline ->
             item {
                 val taskName = allTasks.firstOrNull { it.task.id == appSettings.focusTimerTaskId }?.task?.title ?: "Focus session"
                 Card(Modifier.fillMaxWidth()) {
@@ -4712,7 +4861,7 @@ private fun TaskAreaContent(
                 }
             }
         }
-        if (!selectionMode && destination in setOf(TaskDestination.Today, TaskDestination.Inbox)) {
+        if (!selectionMode && !reordering && destination in setOf(TaskDestination.Today, TaskDestination.Inbox)) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     OutlinedTextField(
@@ -4778,7 +4927,7 @@ private fun TaskAreaContent(
             }
         }
         if (
-            !selectionMode &&
+            !selectionMode && !reordering &&
             filtered.isNotEmpty() &&
             destination == TaskDestination.Inbox
         ) {
@@ -5008,9 +5157,22 @@ private fun TaskAreaContent(
                     )
                 }
             }
-        } else items(visibleTasks, key = ScheduledTask::stableKey) { item ->
-            TaskPlanningListRow(
-                item = item,
+        } else items(visibleTasks.size, key = { visibleTasks[it].stableKey }) { index ->
+            val item = visibleTasks[index]
+            Column {
+                if (
+                    reordering &&
+                    (index == 0 || visibleTasks[index - 1].task.pinned != item.task.pinned)
+                ) {
+                    Text(
+                        if (item.task.pinned) "Pinned Tasks" else "Other Tasks",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 4.dp),
+                    )
+                }
+                TaskPlanningListRow(
+                    item = item,
                 destination = destination,
                 selectionMode = selectionMode,
                 selectedKeys = selectedKeys,
@@ -5019,9 +5181,12 @@ private fun TaskAreaContent(
                 onOpenTask = onOpenTask,
                 onEditTask = onEditTask,
                 onOpenCompleted = onOpenCompleted,
-                manualOrder = visibleTasks.takeIf { sortMode == "Manual" }.orEmpty(),
+                manualOrder = visibleTasks.takeIf {
+                    reordering && sortMode == "Manual" && textQuery.isBlank() && activeFilterCount == 0 && areaScope == AreaScope.All
+                }.orEmpty(),
                 onReorder = onReorder,
-            )
+                )
+            }
         }
         }
     }
@@ -5045,8 +5210,19 @@ private fun TaskAreaContent(
                         label = "Sort By",
                         values = sortOptions,
                         selected = sortMode.takeIf { it in sortOptions } ?: "Smart",
-                        valueText = { it },
-                        onSelect = { sortMode = it },
+                        valueText = { if (it == "Manual") "Custom Order" else it },
+                        onSelect = { selected ->
+                            sortMode = selected
+                            if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
+                                onActiveTaskSortModeChange(selected)
+                            }
+                            if (selected == "Manual" && !reorderHasConstraints && reorderDestinationEligible) {
+                                showFilters = false
+                                enterReorderWhenReady = true
+                            } else {
+                                reordering = false
+                            }
+                        },
                     )
                     if (sortMode !in setOf("Smart", "Manual")) {
                         SelectionField(
@@ -5168,6 +5344,9 @@ private fun TaskAreaContent(
             dismissButton = {
                 WhipTextButton(onClick = {
                     sortMode = "Smart"; sortDirection = SortDirection.Ascending; groupMode = "None"
+                    if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
+                        onActiveTaskSortModeChange("Smart")
+                    }
                     priorities = emptySet(); pinnedOnly = false
                     selectedTags = emptySet(); requireAllTags = true; dateMode = "Any"; deadlineOnly = false
                     efforts = emptySet(); maximumDuration = ""; textQuery = ""
@@ -5513,6 +5692,7 @@ private fun TaskPlanningRow(
     onOpenTask: (ScheduledTask) -> Unit,
     onEditTask: (ScheduledTask) -> Unit,
     onOpenCompleted: (ScheduledTask) -> Unit,
+    reorderMode: Boolean = false,
 ) {
     val completed = destination == TaskDestination.Completed
     TaskRow(
@@ -5529,6 +5709,7 @@ private fun TaskPlanningRow(
                 else selectedKeys + item.stableKey,
             )
         },
+        reorderMode = reorderMode,
     )
 }
 
@@ -5546,8 +5727,42 @@ private fun TaskPlanningListRow(
     manualOrder: List<ScheduledTask>,
     onReorder: (List<ScheduledTask>) -> Unit,
 ) {
-    Column {
-        TaskPlanningRow(
+    val unique = manualOrder.distinctBy { it.task.id }
+    val partition = unique.filter { it.task.pinned == item.task.pinned }
+    val index = partition.indexOfFirst { it.task.id == item.task.id }
+    val reorderable = index >= 0 && !selectionMode &&
+        manualOrder.indexOfFirst { it.task.id == item.task.id } == manualOrder.indexOf(item)
+    val reorderInteraction = rememberWhipReorderInteractionState()
+    Row(
+        modifier = Modifier.whipReorderItem(
+            reorderInteraction,
+            layoutPosition = index + 1,
+            layoutScope = "task-browse-${item.task.pinned}",
+        ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (reorderable) {
+            WhipReorderHandle(
+                label = item.task.title,
+                canMovePrevious = index > 0,
+                canMoveNext = index in 0 until partition.lastIndex,
+                position = index + 1,
+                total = partition.size,
+                interactionState = reorderInteraction,
+                moveWholeItem = true,
+                layoutScope = "task-browse-${item.task.pinned}",
+                reserveWhenUnavailable = true,
+                onMove = { delta ->
+                    val moved = moveListItem(partition, index, delta)
+                    val iterator = moved.iterator()
+                    onReorder(unique.map { candidate ->
+                        if (candidate.task.pinned == item.task.pinned) iterator.next() else candidate
+                    })
+                },
+            )
+        }
+        Box(Modifier.weight(1f)) {
+            TaskPlanningRow(
             item = item,
             destination = destination,
             selectionMode = selectionMode,
@@ -5557,22 +5772,8 @@ private fun TaskPlanningListRow(
             onOpenTask = onOpenTask,
             onEditTask = onEditTask,
             onOpenCompleted = onOpenCompleted,
-        )
-        if (manualOrder.isNotEmpty() && !selectionMode) {
-            val unique = manualOrder.distinctBy { it.task.id }
-            val index = unique.indexOfFirst { it.task.id == item.task.id }
-            if (index >= 0 && manualOrder.indexOfFirst { it.task.id == item.task.id } == manualOrder.indexOf(item)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    WhipTextButton(enabled = index > 0, onClick = {
-                        val reordered = unique.toMutableList().also { java.util.Collections.swap(it, index, index - 1) }
-                        onReorder(reordered)
-                    }) { Text("Move Up") }
-                    WhipTextButton(enabled = index < unique.lastIndex, onClick = {
-                        val reordered = unique.toMutableList().also { java.util.Collections.swap(it, index, index + 1) }
-                        onReorder(reordered)
-                    }) { Text("Move Down") }
-                }
-            }
+            reorderMode = manualOrder.isNotEmpty(),
+            )
         }
     }
 }

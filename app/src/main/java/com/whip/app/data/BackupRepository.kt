@@ -698,6 +698,7 @@ private fun AppSettings.toJson(): JSONObject = JSONObject()
     .put("defaultTaskStepPolicy", defaultTaskStepPolicy.name)
     .put("showAllUpcomingTaskOccurrences", showAllUpcomingTaskOccurrences)
     .put("showHabitsInTaskPlanning", showHabitsInTaskPlanning)
+    .put("activeTaskSortMode", activeTaskSortMode)
     .put("defaultHabitWeekStart", defaultHabitWeekStart.name)
     .put("naturalLanguageTaskCapture", naturalLanguageTaskCapture)
     .put("customIdentityEmojis", JSONArray(customIdentityEmojis.map { choice ->
@@ -804,6 +805,7 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     defaultTaskStepPolicy = enumValue("defaultTaskStepPolicy", RepeatStepPolicy.Reset),
     showAllUpcomingTaskOccurrences = optBoolean("showAllUpcomingTaskOccurrences", false),
     showHabitsInTaskPlanning = optBoolean("showHabitsInTaskPlanning", false),
+    activeTaskSortMode = optString("activeTaskSortMode", "Smart"),
     defaultHabitWeekStart = enumValue("defaultHabitWeekStart", DayOfWeek.MONDAY),
     naturalLanguageTaskCapture = optBoolean("naturalLanguageTaskCapture", true),
     customIdentityEmojis = optJSONArray("customIdentityEmojis").objects().mapNotNull { value ->

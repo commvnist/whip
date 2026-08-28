@@ -97,6 +97,7 @@ class AppSettingsPersistenceTest {
             defaultTaskStepPolicy = RepeatStepPolicy.CarryUnfinished,
             showAllUpcomingTaskOccurrences = true,
             showHabitsInTaskPlanning = true,
+            activeTaskSortMode = "Manual",
             defaultHabitWeekStart = DayOfWeek.SUNDAY,
             naturalLanguageTaskCapture = true,
             customIdentityEmojis = listOf(

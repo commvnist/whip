@@ -5,8 +5,6 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
-import com.whip.app.core.TrackedGymRecord
-import com.whip.app.core.resolveForExercise
 import com.whip.app.data.RoomGymRepository
 import com.whip.app.data.RoomRoutineRepository
 import com.whip.app.data.WhipDatabase
@@ -109,7 +107,7 @@ class RoutineRepositoryTest {
     }
 
     @Test
-    fun trackedRepBenchmarkIgnoresLighterHighRepSetsAndIncludesHeavierLoads() = runBlocking {
+    fun repBenchmarksPreserveEachLoadAfterSpecificTrackingTargetsWereRemoved() = runBlocking {
         val exerciseId = gym.createExercise(ExerciseDraft("Bench", weightUnitId = "pound"))
         val sessionId = gym.startWorkout()
         val workoutExerciseId = gym.addExerciseToWorkout(sessionId, exerciseId)
@@ -121,15 +119,18 @@ class RoutineRepositoryTest {
         gym.addSet(workoutExerciseId, WorkoutSetDraft(weight = 250.0, weightUnitId = "pound", reps = 12, completed = true))
 
         routines.rebuildPersonalRecords(exerciseId)
-        val resolved = TrackedGymRecord(
-            exerciseUuid = "bench",
-            type = PersonalRecordType.MaxRepetitionsForWeight,
-            secondaryValue = massToKilograms(225.0, "pound"),
-        ).resolveForExercise(exerciseId, routines.personalRecords.first())
+        val records = routines.personalRecords.first().filter {
+            it.exerciseId == exerciseId && it.type == PersonalRecordType.MaxRepetitionsForWeight
+        }
+        val benchmark = requireNotNull(records.firstOrNull {
+            it.secondaryValue?.let { weight ->
+                kotlin.math.abs(weight - massToKilograms(225.0, "pound")) < 0.000_001
+            } == true
+        })
 
-        assertEquals(15.0, requireNotNull(resolved).value, 0.0)
-        assertEquals(expectedSetId, resolved.sourceSetId)
-        assertEquals(massToKilograms(225.0, "pound"), requireNotNull(resolved.secondaryValue), 0.000_001)
+        assertEquals(3, records.count { it.current })
+        assertEquals(15.0, benchmark.value, 0.0)
+        assertEquals(expectedSetId, benchmark.sourceSetId)
     }
 
     @Test

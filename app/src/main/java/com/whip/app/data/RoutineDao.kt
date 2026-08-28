@@ -36,6 +36,9 @@ interface RoutineDao {
     @Query("SELECT * FROM gym_routines WHERE id = :id")
     suspend fun getRoutine(id: Long): GymRoutineEntity?
 
+    @Query("SELECT * FROM gym_routines")
+    suspend fun getAllRoutines(): List<GymRoutineEntity>
+
     @Query("SELECT * FROM routine_days WHERE routineId = :routineId ORDER BY position, id")
     suspend fun getDays(routineId: Long): List<RoutineDayEntity>
 

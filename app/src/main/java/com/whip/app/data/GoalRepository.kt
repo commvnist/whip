@@ -144,8 +144,15 @@ class RoomGoalRepository(
     }
 
     override suspend fun reorder(ids: List<Long>) = database.withTransaction {
-        ids.forEachIndexed { index, id ->
-            dao.getGoal(id)?.let { dao.updateGoal(it.copy(position = index, updatedAtMillis = clock.now().toEpochMilli())) }
+        val requested = ids.distinct()
+        val all = dao.getAllGoals()
+        require(requested.all { id -> all.any { it.id == id } }) { "Goal no longer exists" }
+        val byId = all.associateBy(GoalEntity::id)
+        val order = requested + all.filterNot { it.id in requested }.sortedBy(GoalEntity::position).map(GoalEntity::id)
+        val now = clock.now().toEpochMilli()
+        order.forEachIndexed { index, id ->
+            val current = requireNotNull(byId[id])
+            if (current.position != index) dao.updateGoal(current.copy(position = index, updatedAtMillis = now))
         }
     }
 

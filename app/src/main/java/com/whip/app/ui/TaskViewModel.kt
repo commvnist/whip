@@ -34,6 +34,8 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -482,8 +484,18 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun reorder(tasks: List<ScheduledTask>) {
-        runOperation("Reordering tasks…", "Task order saved") {
-            repository.reorderAll(tasks.map { it.task.id })
+        viewModelScope.launch {
+            reorderMutex.withLock {
+                try {
+                    repository.reorderAll(tasks.map { it.task.id })
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Throwable) {
+                    _operationFeedback.value = TaskOperationFeedback(
+                        status = OperationStatus.Failed(error.message ?: "Could not save the new order", error),
+                    )
+                }
+            }
         }
     }
 
@@ -549,6 +561,8 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         pendingUndoToken = ++nextUndoToken
         pendingQuickAddTaskId = (action as? TaskUndoAction.DeleteCreated)?.taskId
     }
+
+    private val reorderMutex = Mutex()
 
     private fun runOperation(
         runningMessage: String,

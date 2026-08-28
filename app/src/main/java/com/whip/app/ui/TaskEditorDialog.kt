@@ -79,8 +79,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.ArrowDownward
-import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
@@ -256,18 +254,27 @@ fun TaskEditorDialog(
         "These highlighted phrases are a preview and are only applied when Apply Highlighted Details is selected",
     )
     val stepDraftSaver = listSaver<List<TaskStepDraft>, Any>(
-        save = { drafts -> drafts.flatMap { listOf(it.id ?: Long.MIN_VALUE, it.title, it.position, it.notes) } },
-        restore = { saved -> saved.chunked(4).map { values ->
+        save = { drafts -> drafts.flatMap { listOf(it.id ?: Long.MIN_VALUE, it.title, it.position, it.notes, it.uiKey) } },
+        restore = { saved -> saved.chunked(5).map { values ->
             TaskStepDraft(
                 id = (values[0] as Long).takeUnless { it == Long.MIN_VALUE },
                 title = values[1] as String,
                 position = values[2] as Int,
                 notes = values[3] as String,
+                uiKey = values[4] as String,
             )
         } },
     )
+    val initialStepDrafts = remember(editorKey, initial.steps) {
+        initial.steps.sortedBy(TaskStepDraft::position).map { draft ->
+            if (draft.uiKey.isNotBlank()) draft else draft.copy(
+                uiKey = draft.id?.let { "saved-task-step-$it" }
+                    ?: java.util.UUID.randomUUID().toString(),
+            )
+        }
+    }
     var stepDrafts by rememberSaveable(editorKey, stateSaver = stepDraftSaver) {
-        mutableStateOf(initial.steps.sortedBy(TaskStepDraft::position))
+        mutableStateOf(initialStepDrafts)
     }
     var newStepTitle by rememberSaveable(editorKey) { mutableStateOf("") }
     var showSubtaskProgress by rememberSaveable(editorKey) {
@@ -331,7 +338,7 @@ fun TaskEditorDialog(
         areaId != initial.areaId || area != initial.area || tagsText != initial.tags.joinToString(", ") ||
         hasDeadline != (initial.deadline != null) ||
         (hasDeadline && deadline != (initial.deadline ?: (editStartDate ?: initial.date ?: today).plusDays(7))) ||
-        stepDrafts != initial.steps.sortedBy(TaskStepDraft::position) ||
+        stepDrafts.map { it.copy(uiKey = "") } != initial.steps.sortedBy(TaskStepDraft::position).map { it.copy(uiKey = "") } ||
         showSubtaskProgress != initial.showSubtaskProgress ||
         progressDisplay != initial.progressDisplay ||
         autoCompleteFromSteps != initial.autoCompleteFromSteps ||
@@ -469,8 +476,8 @@ fun TaskEditorDialog(
                                 expanded = saveMenuExpanded,
                                 onDismissRequest = { saveMenuExpanded = false },
                             ) {
-                                DropdownMenuItem(
-                                    text = { Text("Save & Create Another") },
+                                WhipMenuItem(
+                                    label = "Save & Create Another",
                                     enabled = !saving,
                                     onClick = {
                                         saveMenuExpanded = false
@@ -530,12 +537,19 @@ fun TaskEditorDialog(
                         value = title,
                         onValueChange = { entered ->
                             val lines = entered.lines()
-                            title = lines.firstOrNull().orEmpty().replace('\r', ' ').take(100)
+                            // Smart Capture accepts a compact command, not just a final title. Leave
+                            // enough room for recurrence, date, priority, tag, and reminder phrases;
+                            // applying the preview reduces this back to the parsed Task title.
+                            title = lines.firstOrNull().orEmpty().replace('\r', ' ').take(200)
                             smartCaptureSummary = null
                             val pastedSteps = lines.drop(1).map(String::trim).filter(String::isNotBlank)
                             if (pastedSteps.isNotEmpty()) {
                                 stepDrafts = (stepDrafts + pastedSteps.mapIndexed { index, step ->
-                                    TaskStepDraft(title = step, position = stepDrafts.size + index)
+                                    TaskStepDraft(
+                                        title = step,
+                                        position = stepDrafts.size + index,
+                                        uiKey = java.util.UUID.randomUUID().toString(),
+                                    )
                                 }).mapIndexed { index, step -> step.copy(position = index) }
                                 showSubtaskProgress = true
                                 showAdvanced = true
@@ -553,7 +567,7 @@ fun TaskEditorDialog(
                         supportingText = {
                             Text(
                                 if (validationRequested && title.isBlank()) "Task title is required"
-                                else "${title.length}/100",
+                                else "${title.length}/200",
                             )
                         },
                         visualTransformation = SmartTaskCaptureVisualTransformation(
@@ -981,23 +995,48 @@ fun TaskEditorDialog(
 
                     if (showAdvanced) {
                     EditorSectionHeader("Subtasks", "Break the Task into steps and choose how progress appears.")
+                    WhipReorderLayout(itemSpacing = 14.dp) {
                     stepDrafts.forEachIndexed { index, step ->
-                        Card(modifier = Modifier.fillMaxWidth()) {
+                        key(step.uiKey.ifBlank { "task-step-${step.id ?: index}" }) {
+                        val reorderInteraction = rememberWhipReorderInteractionState()
+                        Card(
+                            modifier = Modifier.fillMaxWidth().whipReorderItem(
+                                reorderInteraction,
+                                layoutPosition = index + 1,
+                                layoutScope = "task-editor-subtasks",
+                            ),
+                        ) {
                             Column(
                                 modifier = Modifier.padding(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                            OutlinedTextField(
-                                value = step.title,
-                                onValueChange = { changed ->
-                                    stepDrafts = stepDrafts.mapIndexed { stepIndex, existing ->
-                                        if (stepIndex == index) existing.copy(title = changed) else existing
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                label = { Text("Subtask ${index + 1}") },
-                                singleLine = true,
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                WhipReorderHandle(
+                                    label = step.title.ifBlank { "subtask ${index + 1}" },
+                                    canMovePrevious = index > 0,
+                                    canMoveNext = index < stepDrafts.lastIndex,
+                                    position = index + 1,
+                                    total = stepDrafts.size,
+                                    interactionState = reorderInteraction,
+                                    moveWholeItem = true,
+                                    layoutScope = "task-editor-subtasks",
+                                    onMove = { delta ->
+                                        stepDrafts = moveListItem(stepDrafts, index, delta)
+                                            .mapIndexed { position, item -> item.copy(position = position) }
+                                    },
+                                )
+                                OutlinedTextField(
+                                    value = step.title,
+                                    onValueChange = { changed ->
+                                        stepDrafts = stepDrafts.mapIndexed { stepIndex, existing ->
+                                            if (stepIndex == index) existing.copy(title = changed) else existing
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    label = { Text("Subtask ${index + 1}") },
+                                    singleLine = true,
+                                )
+                            }
                             OutlinedTextField(
                                 value = step.notes,
                                 onValueChange = { changed ->
@@ -1015,26 +1054,6 @@ fun TaskEditorDialog(
                                 horizontalArrangement = Arrangement.End,
                             ) {
                                 IconButton(
-                                    enabled = index > 0,
-                                    onClick = {
-                                        stepDrafts = stepDrafts.toMutableList().apply {
-                                            add(index - 1, removeAt(index))
-                                        }.mapIndexed { position, item -> item.copy(position = position) }
-                                    },
-                                ) {
-                                    Icon(Icons.Outlined.ArrowUpward, contentDescription = "Move subtask up", modifier = Modifier.size(26.dp))
-                                }
-                                IconButton(
-                                    enabled = index < stepDrafts.lastIndex,
-                                    onClick = {
-                                        stepDrafts = stepDrafts.toMutableList().apply {
-                                            add(index + 1, removeAt(index))
-                                        }.mapIndexed { position, item -> item.copy(position = position) }
-                                    },
-                                ) {
-                                    Icon(Icons.Outlined.ArrowDownward, contentDescription = "Move subtask down", modifier = Modifier.size(26.dp))
-                                }
-                                IconButton(
                                     onClick = {
                                         stepDrafts = stepDrafts
                                             .filterIndexed { stepIndex, _ -> stepIndex != index }
@@ -1046,6 +1065,8 @@ fun TaskEditorDialog(
                             }
                             }
                         }
+                        }
+                    }
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1064,6 +1085,7 @@ fun TaskEditorDialog(
                                 stepDrafts = stepDrafts + TaskStepDraft(
                                     title = newStepTitle.trim(),
                                     position = stepDrafts.size,
+                                    uiKey = java.util.UUID.randomUUID().toString(),
                                 )
                                 newStepTitle = ""
                             },

@@ -52,6 +52,19 @@ class HabitRepositoryTest {
         assertEquals(6.0, repository.logs.first().sumOf { it.value ?: 0.0 }, 0.0)
     }
 
+    @Test fun reorderNormalizesOmittedArchivedHabitsWithoutDuplicatePositions() = runBlocking {
+        val first = repository.create(HabitDraft(name = "First", startDate = FixedClock.today()))
+        val second = repository.create(HabitDraft(name = "Second", startDate = FixedClock.today()))
+        val archived = repository.create(HabitDraft(name = "Archived", startDate = FixedClock.today()))
+        repository.setArchived(archived, true)
+
+        repository.reorder(listOf(second, first))
+
+        val stored = database.habitDao().getAllHabits()
+        assertEquals(stored.size, stored.map { it.position }.distinct().size)
+        assertEquals(listOf(second, first), stored.sortedBy { it.position }.take(2).map { it.id })
+    }
+
     @Test fun skipIsASeparateOccurrenceThatNeverCreatesAMeasurement() = runBlocking {
         val id = repository.create(HabitDraft(name = "Observe", startDate = FixedClock.today()))
 

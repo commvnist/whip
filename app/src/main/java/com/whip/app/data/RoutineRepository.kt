@@ -135,10 +135,15 @@ class RoomRoutineRepository(
     }
 
     override suspend fun reorderRoutines(ids: List<Long>) = database.withTransaction {
-        ids.forEachIndexed { index, id ->
-            dao.getRoutine(id)?.let {
-                dao.updateRoutine(it.copy(position = index, updatedAtMillis = clock.now().toEpochMilli()))
-            }
+        val requested = ids.distinct()
+        val all = dao.getAllRoutines()
+        require(requested.all { id -> all.any { it.id == id } }) { "Routine no longer exists" }
+        val byId = all.associateBy(GymRoutineEntity::id)
+        val order = requested + all.filterNot { it.id in requested }.sortedBy(GymRoutineEntity::position).map(GymRoutineEntity::id)
+        val now = clock.now().toEpochMilli()
+        order.forEachIndexed { index, id ->
+            val routine = requireNotNull(byId[id])
+            if (routine.position != index) dao.updateRoutine(routine.copy(position = index, updatedAtMillis = now))
         }
     }
 
@@ -189,12 +194,17 @@ class RoomRoutineRepository(
                 sourceRoutineId = routineId,
             ),
         )
+        val validGroupKeys = routineExercises.mapNotNull { it.groupKey }
+            .groupingBy { it }
+            .eachCount()
+            .filterValues { count -> count >= 2 }
+            .keys
         val groupIds = mutableMapOf<String, Long>()
         routineExercises.forEach { routineExercise ->
             val sourceExercise = requireNotNull(gymDao.getExercise(routineExercise.exerciseId)) {
                 "Routine exercise no longer exists"
             }
-            val groupId = routineExercise.groupKey?.let { key ->
+            val groupId = routineExercise.groupKey?.takeIf { it in validGroupKeys }?.let { key ->
                 groupIds[key] ?: gymDao.insertWorkoutGroup(
                         WorkoutGroupEntity(
                             uuid = ids.nextId(), sessionId = sessionId, name = key,

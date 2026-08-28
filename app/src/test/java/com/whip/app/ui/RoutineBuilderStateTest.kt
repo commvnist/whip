@@ -110,6 +110,73 @@ class RoutineBuilderStateTest {
     }
 
     @Test
+    fun groupedPlacementsBecomeContiguousAndOnlyMoveWithinTheirBlock() {
+        val day = RoutineBuilderDayState(
+            1,
+            "A",
+            listOf(
+                RoutineBuilderPlacementState(10, 1, "Bench"),
+                RoutineBuilderPlacementState(11, 2, "Row"),
+                RoutineBuilderPlacementState(12, 3, "Curl"),
+                RoutineBuilderPlacementState(13, 4, "Press"),
+            ),
+        )
+
+        val grouped = day.groupPlacements(10, 12)
+        assertEquals(listOf(10L, 12L, 11L, 13L), grouped.placements.map { it.key })
+        val moved = grouped.movePlacement(12, -1)
+        assertEquals(listOf(12L, 10L, 11L, 13L), moved.placements.map { it.key })
+        assertEquals(1, moved.placements.take(2).mapNotNull { it.groupKey }.distinct().size)
+    }
+
+    @Test
+    fun removingAndRestoringAPlacementPreservesTheGroupInvariant() {
+        val grouped = RoutineBuilderDayState(
+            1,
+            "A",
+            listOf(
+                RoutineBuilderPlacementState(10, 1, "Bench", groupKey = "Superset A"),
+                RoutineBuilderPlacementState(11, 2, "Row", groupKey = "Superset A"),
+                RoutineBuilderPlacementState(12, 3, "Curl"),
+            ),
+        )
+
+        val removed = grouped.removePlacement(10)
+        assertNull(removed.placements.single { it.key == 11L }.groupKey)
+
+        val restored = removed.restorePlacement(0, grouped.placements.first(), listOf(10L, 11L))
+        assertEquals("Superset A", restored.placements.single { it.key == 10L }.groupKey)
+        assertEquals("Superset A", restored.placements.single { it.key == 11L }.groupKey)
+    }
+
+    @Test
+    fun movingOrCopyingOnePlacementBetweenDaysNeverCarriesAGroupDesignation() {
+        val groupedDay = RoutineBuilderDayState(
+            1,
+            "A",
+            listOf(
+                RoutineBuilderPlacementState(10, 1, "Bench", groupKey = "Superset A"),
+                RoutineBuilderPlacementState(11, 2, "Row", groupKey = "Superset A"),
+            ),
+        )
+        val emptyDay = RoutineBuilderDayState(2, "B")
+        val initial = RoutineBuilderState(
+            token = "routine",
+            days = listOf(groupedDay, emptyDay),
+            selectedDayKey = 1,
+            nextKey = 20,
+        )
+
+        val moved = initial.moveOrCopyPlacement(1, 2, groupedDay.placements.first(), copy = false)
+        assertNull(moved.days.single { it.key == 1L }.placements.single().groupKey)
+        assertNull(moved.days.single { it.key == 2L }.placements.single().groupKey)
+
+        val copied = initial.moveOrCopyPlacement(1, 2, groupedDay.placements.first(), copy = true)
+        assertEquals(2, copied.days.single { it.key == 1L }.placements.count { it.groupKey == "Superset A" })
+        assertNull(copied.days.single { it.key == 2L }.placements.single().groupKey)
+    }
+
+    @Test
     fun repSchemeAppliesItsMeaningWithoutOverwritingIndependentSetInputs() {
         val existing = listOf(
             RoutineBuilderSetState(key = 7, load = "135", restSeconds = "90", note = "Keep me"),

@@ -51,6 +51,16 @@ import kotlinx.coroutines.withContext
 
 enum class SearchDomain { Task, Habit, Goal, Track, TrackEntry, Exercise, Machine, Workout, Routine }
 
+private const val MaxSearchIndexResults = 10_000
+private const val MaxSearchHistoryValuesPerEntity = 100
+private const val MaxSearchEntriesPerTrack = 500
+
+internal fun <T, C : Comparable<C>> newestSearchValues(
+    values: List<T>,
+    limit: Int,
+    selector: (T) -> C,
+): List<T> = values.asSequence().sortedByDescending(selector).take(limit).toList()
+
 private fun SearchDomain.uiLabel(): String = if (this == SearchDomain.TrackEntry) "Track Entry" else name
 
 data class WhipSearchResult(
@@ -77,7 +87,6 @@ internal fun UnifiedSearchDialog(
     onDismiss: () -> Unit,
     areaScope: AreaScope = AreaScope.All,
     areaScopeLabel: String? = null,
-    onSearchAllAreas: () -> Unit = {},
     initialScope: WhipSearchScope = WhipSearchEntryContext.AllWhip.defaultSearchScope(),
     onSelect: (WhipSearchResult) -> Unit,
 ) {
@@ -85,10 +94,15 @@ internal fun UnifiedSearchDialog(
     var settledQuery by rememberSaveable { mutableStateOf("") }
     var domains by rememberSaveable(initialScope.label) { mutableStateOf(initialScope.domains) }
     var requireAllTerms by rememberSaveable { mutableStateOf(true) }
+    var searchAllAreas by rememberSaveable { mutableStateOf(false) }
     var filtersExpanded by rememberSaveable { mutableStateOf(false) }
     var visibleResults by rememberSaveable { mutableIntStateOf(50) }
     val queryFocusRequester = remember { FocusRequester() }
     val all = remember(taskState, habitState, goalState, gymState, trackState) {
+        val recentHabitLogs = habitState.logs.groupBy { it.habitId }.mapValues { (_, logs) ->
+            newestSearchValues(logs, MaxSearchHistoryValuesPerEntity) { it.timestamp }
+        }
+        val goalContributions = goalState.contributions.groupBy { it.targetGoalId }
         buildList {
             (taskState.inbox + taskState.today + taskState.upcoming + taskState.planning + taskState.completed + taskState.archived)
                 .distinctBy { it.task.id }
@@ -116,15 +130,19 @@ internal fun UnifiedSearchDialog(
                             },
                         ),
                     )
-                }
+            }
             (habitState.all.map { it.habit } + habitState.archived).distinctBy { it.id }.forEach { habit ->
-                val logText = habitState.logs.asSequence().filter { it.habitId == habit.id }
+                val logText = recentHabitLogs[habit.id].orEmpty().asSequence()
                     .joinToString(" · ") { "${it.localDate} ${it.value ?: it.status.name} ${it.note}" }
                 add(WhipSearchResult(SearchDomain.Habit, habit.id, habit.name, listOf(habit.notes, logText).filter(String::isNotBlank).joinToString(" · "), area = habit.area, areaId = habit.areaId, tags = habit.tags.toSet(), status = if (habit.archived) "archived" else "active"))
             }
             (goalState.active + goalState.completed + goalState.archived).distinctBy { it.goal.id }.forEach { item ->
-                val measurementText = item.entries.joinToString(" · ") { "${it.localDate} ${it.enteredValue ?: it.status.name} ${it.note}" }
-                val contributionText = goalState.contributions.filter { contribution -> contribution.targetGoalId == item.goal.id }
+                val measurementText = newestSearchValues(item.entries, MaxSearchHistoryValuesPerEntity) { it.timestamp }
+                    .joinToString(" · ") { "${it.localDate} ${it.enteredValue ?: it.status.name} ${it.note}" }
+                val contributionText = newestSearchValues(
+                    goalContributions[item.goal.id].orEmpty(),
+                    MaxSearchHistoryValuesPerEntity,
+                ) { it.timestamp }
                     .joinToString(" · ") { it.explanation }
                 add(WhipSearchResult(SearchDomain.Goal, item.goal.id, item.goal.name, listOf(item.goal.description, measurementText, contributionText).filter(String::isNotBlank).joinToString(" · "), area = item.goal.area, areaId = item.goal.areaId, tags = item.goal.tags.toSet(), deadline = item.goal.deadline, status = item.goal.status.name.lowercase()))
             }
@@ -142,7 +160,7 @@ internal fun UnifiedSearchDialog(
                         status = if (projection.track.archived) "archived" else "active",
                     ),
                 )
-                projection.entries.forEach { entry ->
+                newestSearchValues(projection.entries, MaxSearchEntriesPerTrack) { it.entry.createdAtMillis }.forEach { entry ->
                     add(
                         WhipSearchResult(
                             SearchDomain.TrackEntry,
@@ -198,7 +216,7 @@ internal fun UnifiedSearchDialog(
             (gymState.routines + gymState.archivedRoutines).distinctBy { it.id }.forEach { routine ->
                 add(WhipSearchResult(SearchDomain.Routine, routine.id, routine.name, routine.notes, status = if (routine.archived) "archived" else "active"))
             }
-        }
+        }.take(MaxSearchIndexResults)
     }
     LaunchedEffect(query) {
         if (query.isBlank()) {
@@ -211,12 +229,13 @@ internal fun UnifiedSearchDialog(
         }
     }
     val explicitAreaOverride = settledQuery.trim().split(Regex("\\s+")).any { it.startsWith("area:", ignoreCase = true) }
+    val effectiveAreaScope = if (searchAllAreas || explicitAreaOverride) AreaScope.All else areaScope
     val matchingResults by produceState(
         initialValue = emptyList<WhipSearchResult>(),
         all,
         settledQuery,
         domains,
-        areaScope,
+        effectiveAreaScope,
         requireAllTerms,
     ) {
         value = withContext(Dispatchers.Default) {
@@ -224,7 +243,7 @@ internal fun UnifiedSearchDialog(
                 emptyList()
             } else {
                 all.filter { result ->
-                    val inScope = result.isVisibleInAreaScope(areaScope, explicitAreaOverride)
+                    val inScope = result.isVisibleInAreaScope(effectiveAreaScope, explicitAreaOverride)
                     inScope && result.domain in domains && result.matchesQuery(settledQuery, requireAllTerms)
                 }.sortedWith(
                     compareBy<WhipSearchResult> { it.searchRank(settledQuery) }
@@ -275,11 +294,16 @@ internal fun UnifiedSearchDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(
-                            if (explicitAreaOverride) "Productivity: All Areas (query override) · Gym: All data"
-                            else "Productivity: $label · Gym: All data",
+                            when {
+                                explicitAreaOverride -> "Productivity: All Areas (query override) · Gym: All data"
+                                searchAllAreas -> "Productivity: All Areas · Gym: All data"
+                                else -> "Productivity: $label · Gym: All data"
+                            },
                             style = MaterialTheme.typography.labelMedium,
                         )
-                        WhipTextButton(onClick = onSearchAllAreas) { Text("All Areas") }
+                        WhipTextButton(onClick = { searchAllAreas = !searchAllAreas }) {
+                            Text(if (searchAllAreas) "Current Area" else "All Areas")
+                        }
                     }
                 }
                 OutlinedTextField(

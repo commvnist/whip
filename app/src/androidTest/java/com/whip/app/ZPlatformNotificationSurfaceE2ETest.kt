@@ -24,6 +24,7 @@ import androidx.test.uiautomator.Until
 import com.whip.app.reminders.ReminderNotifications
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -49,6 +50,15 @@ class ZPlatformNotificationSurfaceE2ETest {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             instrumentation.uiAutomation.grantRuntimePermission(app.packageName, Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+
+    @After
+    fun clearPostedNotifications() {
+        app.getSystemService(NotificationManager::class.java).cancelAll()
+        // Revoking a runtime permission kills the package process. Instrumentation
+        // runs inside that process, so attempting to restore the permission here
+        // destroys the runner before it can report the result. This suite is gated
+        // to a disposable emulator and the install lifecycle resets app permissions.
     }
 
     @Test

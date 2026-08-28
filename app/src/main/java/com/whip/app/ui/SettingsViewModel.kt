@@ -38,6 +38,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.CancellationException
 
 enum class ExportKind { Backup, EncryptedBackup, TasksCsv, HabitsCsv, GoalsCsv, GymCsv, TracksCsv }
 
@@ -203,14 +206,18 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         current.copy(customIdentityEmojis = current.customIdentityEmojis.filterNot { it.emoji == emoji })
     }
 
+    fun moveCustomIdentityEmoji(emoji: String, delta: Int) = update { current ->
+        val index = current.customIdentityEmojis.indexOfFirst { it.emoji == emoji }
+        if (index < 0) current else current.copy(
+            customIdentityEmojis = moveListItem(current.customIdentityEmojis, index, delta),
+        )
+    }
+
     fun setAreaScope(scope: AreaScope) = update { it.copy(activeAreaScope = scope.storageKey) }
 
     fun moveHomeSection(section: HomeSection, direction: Int) = update { settings ->
-        val list = settings.homeSections.toMutableList()
-        val from = list.indexOf(section)
-        val to = (from + direction).coerceIn(0, list.lastIndex)
-        if (from != to) java.util.Collections.swap(list, from, to)
-        settings.copy(homeSections = list)
+        val from = settings.homeSections.indexOf(section)
+        if (from < 0) settings else settings.copy(homeSections = moveListItem(settings.homeSections, from, direction))
     }
 
     fun completeSetup(
@@ -335,7 +342,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setTagArchived(id: String, archived: Boolean) = runIo(if (archived) "Tag archived" else "Tag restored") {
         app.measurementRepository.setTagArchived(id, archived)
     }
-    fun moveArea(id: String, direction: Int) = runIo("Area order updated") { app.areaRepository.move(id, direction) }
+    fun moveArea(id: String, direction: Int) {
+        viewModelScope.launch {
+            areaReorderMutex.withLock {
+                try {
+                    withContext(Dispatchers.IO) { app.areaRepository.move(id, direction) }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Throwable) {
+                    runtime.value = runtime.value.copy(message = error.message ?: "Could not save the new order")
+                }
+            }
+        }
+    }
 
     private fun clearAreaReferences(id: String, name: String, deletedTaskIds: Set<Long> = emptySet()) {
         repository.update { settings ->
@@ -574,6 +593,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             }
         }
     }
+
+    private val areaReorderMutex = Mutex()
 
     private fun runIo(
         success: String,

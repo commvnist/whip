@@ -51,7 +51,7 @@ class NotificationDeepLinkE2ETest {
             compose.waitUntil(10_000) {
                 compose.onAllNodesWithTag("habit-detail-surface").fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithText("Close").performClick()
+            compose.onNodeWithContentDescription("Close Habit details").performClick()
             compose.onNodeWithContentDescription("Go to Home").performClick()
 
             ApplicationProvider.getApplicationContext<WhipApplication>().startActivity(openHabitIntent())
@@ -60,14 +60,17 @@ class NotificationDeepLinkE2ETest {
                 compose.onAllNodesWithTag("habit-detail-surface").fetchSemanticsNodes().isNotEmpty()
             }
             compose.onNodeWithTag("habit-detail-surface").assertIsDisplayed()
-            if (compose.onAllNodesWithTag("habit-detail-section-Automation").fetchSemanticsNodes().isEmpty()) {
+            val automationsTabVisible = compose.onAllNodesWithTag("habit-detail-section-Automations")
+                .fetchSemanticsNodes()
+                .any { node -> runCatching { node.layoutInfo.isPlaced }.getOrDefault(false) }
+            if (!automationsTabVisible) {
                 compose.onNode(
                     hasContentDescription("Open Pages") and
                         hasAnyAncestor(hasTestTag("habit-detail-surface")),
                 ).performClick()
-                compose.onNodeWithText("Automation").performClick()
+                compose.onNodeWithText("Automations").performClick()
             }
-            compose.onNodeWithTag("habit-detail-section-Automation").assertIsDisplayed()
+            compose.onNodeWithTag("entity-inspector-content-automation").assertIsDisplayed()
         }
     }
 

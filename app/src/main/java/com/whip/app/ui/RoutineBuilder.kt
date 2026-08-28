@@ -3,7 +3,6 @@ package com.whip.app.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +28,6 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Star
@@ -53,12 +51,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -88,10 +84,18 @@ import com.whip.app.domain.editableNumericValue
 import com.whip.app.domain.unitSymbol
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.core.RepPrescriptionScheme
+import java.io.Serializable
 import java.util.UUID
 import kotlin.math.absoluteValue
 
 private enum class RoutineBuilderPage { Outline, ExercisePicker, WorkoutPicker }
+
+private data class DeletedPlacementUndo(
+    val dayKey: Long,
+    val index: Int,
+    val placement: RoutineBuilderPlacementState,
+    val formerGroupMemberKeys: List<Long>,
+) : Serializable
 
 @Composable
 internal fun RoutineBuilderScreen(
@@ -105,6 +109,7 @@ internal fun RoutineBuilderScreen(
     onCreateExercise: (ExerciseDraft, (Long?) -> Unit) -> Unit,
     onCreateMachine: (GymMachineDraft, (Long?) -> Unit) -> Unit,
     onSavePrescriptionScheme: (RepPrescriptionScheme) -> Unit = {},
+    onReorderPrescriptionSchemes: (List<RepPrescriptionScheme>) -> Unit = {},
     onDeletePrescriptionScheme: (String) -> Unit = {},
 ) {
     val token = "routine-${routineId ?: "new"}"
@@ -127,7 +132,7 @@ internal fun RoutineBuilderScreen(
     var showDiscardConfirmation by rememberSaveable(token) { mutableStateOf(false) }
     var showAdvancedSetFields by rememberSaveable(token) { mutableStateOf(false) }
     var deletedDayUndo by rememberSaveable(token) { mutableStateOf<Pair<Int, RoutineBuilderDayState>?>(null) }
-    var deletedPlacementUndo by rememberSaveable(token) { mutableStateOf<Triple<Long, Int, RoutineBuilderPlacementState>?>(null) }
+    var deletedPlacementUndo by rememberSaveable(token) { mutableStateOf<DeletedPlacementUndo?>(null) }
 
     val selectedDay = builder.days.firstOrNull { it.key == builder.selectedDayKey }
         ?: builder.days.firstOrNull()
@@ -260,10 +265,10 @@ internal fun RoutineBuilderScreen(
                     deletedDayUndo = null
                 }
             }
-            deletedPlacementUndo?.let { (dayKey, index, placement) ->
-                UndoRow("Removed ${placement.exerciseNameSnapshot}") {
-                    updateDay(dayKey) { day ->
-                        day.copy(placements = day.placements.toMutableList().also { it.add(index.coerceIn(0, it.size), placement) })
+            deletedPlacementUndo?.let { undo ->
+                UndoRow("Removed ${undo.placement.exerciseNameSnapshot}") {
+                    updateDay(undo.dayKey) { day ->
+                        day.restorePlacement(undo.index, undo.placement, undo.formerGroupMemberKeys)
                     }
                     deletedPlacementUndo = null
                 }
@@ -305,12 +310,16 @@ internal fun RoutineBuilderScreen(
                                     validationErrors = validationErrors,
                                     onBuilderChange = stateHolder::update,
                                     onSelectPlacement = { stateHolder.update { current -> current.copy(selectedPlacementKey = it) } },
-                                    onMovePlacement = { key, delta -> updateDay(selectedDay.key) { it.movePlacement(key, delta) } },
                                     onDuplicatePlacement = { placement -> duplicatePlacement(stateHolder, selectedDay.key, placement) },
                                     onRemovePlacement = { placement ->
                                         val index = selectedDay.placements.indexOfFirst { it.key == placement.key }
-                                        deletedPlacementUndo = Triple(selectedDay.key, index, placement)
-                                        updateDay(selectedDay.key) { it.copy(placements = it.placements.filterNot { item -> item.key == placement.key }) }
+                                        deletedPlacementUndo = DeletedPlacementUndo(
+                                            selectedDay.key,
+                                            index,
+                                            placement,
+                                            selectedDay.groupMemberKeys(placement),
+                                        )
+                                        updateDay(selectedDay.key) { it.removePlacement(placement.key) }
                                         stateHolder.update { it.copy(selectedPlacementKey = null) }
                                     },
                                     onAddExercises = { pickerSelection = emptyList(); page = RoutineBuilderPage.ExercisePicker },
@@ -356,6 +365,7 @@ internal fun RoutineBuilderScreen(
                                         onMoveToDay = { target, copy -> moveOrCopyPlacement(stateHolder, selectedDay.key, target, selectedPlacement, copy) },
                                         dialogModifier = dialogModifier,
                                         onSavePrescriptionScheme = onSavePrescriptionScheme,
+                                        onReorderPrescriptionSchemes = onReorderPrescriptionSchemes,
                                         onDeletePrescriptionScheme = onDeletePrescriptionScheme,
                                     )
                                 }
@@ -386,6 +396,7 @@ internal fun RoutineBuilderScreen(
                                     onMoveToDay = { target, copy -> moveOrCopyPlacement(stateHolder, selectedDay.key, target, selectedPlacement, copy) },
                                     dialogModifier = dialogModifier,
                                     onSavePrescriptionScheme = onSavePrescriptionScheme,
+                                    onReorderPrescriptionSchemes = onReorderPrescriptionSchemes,
                                     onDeletePrescriptionScheme = onDeletePrescriptionScheme,
                                 )
                             }
@@ -399,12 +410,16 @@ internal fun RoutineBuilderScreen(
                                 validationErrors = validationErrors,
                                 onBuilderChange = stateHolder::update,
                                 onSelectPlacement = { stateHolder.update { current -> current.copy(selectedPlacementKey = it) } },
-                                onMovePlacement = { key, delta -> updateDay(selectedDay.key) { it.movePlacement(key, delta) } },
                                 onDuplicatePlacement = { duplicatePlacement(stateHolder, selectedDay.key, it) },
                                 onRemovePlacement = { placement ->
                                     val index = selectedDay.placements.indexOfFirst { it.key == placement.key }
-                                    deletedPlacementUndo = Triple(selectedDay.key, index, placement)
-                                    updateDay(selectedDay.key) { it.copy(placements = it.placements.filterNot { item -> item.key == placement.key }) }
+                                    deletedPlacementUndo = DeletedPlacementUndo(
+                                        selectedDay.key,
+                                        index,
+                                        placement,
+                                        selectedDay.groupMemberKeys(placement),
+                                    )
+                                    updateDay(selectedDay.key) { it.removePlacement(placement.key) }
                                 },
                                 onAddExercises = { pickerSelection = emptyList(); page = RoutineBuilderPage.ExercisePicker },
                                 onAddFromWorkout = { page = RoutineBuilderPage.WorkoutPicker },
@@ -572,7 +587,6 @@ private fun RoutineOutlinePane(
     validationErrors: Map<Long, String>,
     onBuilderChange: ((RoutineBuilderState) -> RoutineBuilderState) -> Unit,
     onSelectPlacement: (Long) -> Unit,
-    onMovePlacement: (Long, Int) -> Unit,
     onDuplicatePlacement: (RoutineBuilderPlacementState) -> Unit,
     onRemovePlacement: (RoutineBuilderPlacementState) -> Unit,
     onAddExercises: () -> Unit,
@@ -615,17 +629,42 @@ private fun RoutineOutlinePane(
                 }
             }
         }
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 6.dp),
+        WhipReorderHorizontalRow(
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            builder.days.forEach { day ->
-                WhipFilterChip(
-                    selected = day.key == selectedDay.key,
-                    onClick = { onBuilderChange { it.copy(selectedDayKey = day.key, selectedPlacementKey = null) } },
-                    label = { Text("${day.name} · ${day.placements.size}") },
-                    modifier = Modifier.testTag("routine-day-${day.key}"),
-                )
+            builder.days.forEachIndexed { dayIndex, day ->
+                val reorderInteraction = rememberWhipReorderInteractionState()
+                Row(
+                    modifier = Modifier.whipReorderItem(
+                        reorderInteraction,
+                        WhipReorderAxis.Horizontal,
+                        layoutPosition = dayIndex + 1,
+                        layoutScope = "routine-days",
+                    ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (builder.days.size > 1) {
+                        WhipReorderHandle(
+                            label = day.name,
+                            canMovePrevious = dayIndex > 0,
+                            canMoveNext = dayIndex < builder.days.lastIndex,
+                            position = dayIndex + 1,
+                            total = builder.days.size,
+                            onMove = { delta -> onBuilderChange { it.moveDay(day.key, delta) } },
+                            axis = WhipReorderAxis.Horizontal,
+                            interactionState = reorderInteraction,
+                            moveWholeItem = true,
+                            layoutScope = "routine-days",
+                        )
+                    }
+                    WhipFilterChip(
+                        selected = day.key == selectedDay.key,
+                        onClick = { onBuilderChange { it.copy(selectedDayKey = day.key, selectedPlacementKey = null) } },
+                        label = { Text("${day.name} · ${day.placements.size}") },
+                        modifier = Modifier.testTag("routine-day-${day.key}"),
+                    )
+                }
             }
             WhipFilterChip(
                 selected = false,
@@ -655,18 +694,6 @@ private fun RoutineOutlinePane(
                 modifier = Modifier.weight(1f),
                 singleLine = true,
             )
-            if (builder.days.size > 1) {
-                IconButton(
-                    enabled = builder.days.indexOfFirst { it.key == selectedDay.key } > 0,
-                    onClick = { onBuilderChange { it.moveDay(selectedDay.key, -1) } },
-                    modifier = Modifier.semantics { contentDescription = "Move ${selectedDay.name} earlier" },
-                ) { Text("←") }
-                IconButton(
-                    enabled = builder.days.indexOfFirst { it.key == selectedDay.key } < builder.days.lastIndex,
-                    onClick = { onBuilderChange { it.moveDay(selectedDay.key, 1) } },
-                    modifier = Modifier.semantics { contentDescription = "Move ${selectedDay.name} later" },
-                ) { Text("→") }
-            }
             IconButton(
                 onClick = { onBuilderChange { it.duplicateDay(selectedDay.key) } },
                 modifier = Modifier.semantics { contentDescription = "Duplicate ${selectedDay.name}" },
@@ -678,7 +705,7 @@ private fun RoutineOutlinePane(
                 ) { Icon(Icons.Outlined.Delete, contentDescription = null) }
             }
         }
-        LazyColumn(
+        WhipReorderLazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth().testTag("routine-selected-exercises"),
             contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 100.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -693,17 +720,101 @@ private fun RoutineOutlinePane(
                     }
                 }
             }
-            items(selectedDay.placements, key = RoutineBuilderPlacementState::key) { placement ->
-                RoutinePlacementCard(
-                    placement = placement,
-                    selected = placement.key == selectedPlacementKey,
-                    gymState = gymState,
-                    error = validationErrors[placement.key],
-                    onOpen = { onSelectPlacement(placement.key) },
-                    onMove = { onMovePlacement(placement.key, it) },
-                    onDuplicate = { onDuplicatePlacement(placement) },
-                    onRemove = { onRemovePlacement(placement) },
-                )
+            val blocks = selectedDay.placements.routinePlacementBlocks()
+            items(blocks.size, key = { blocks[it].stableKey }) { blockIndex ->
+                val block = blocks[blockIndex]
+                if (block.groupKey != null) {
+                    val reorderInteraction = rememberWhipReorderInteractionState()
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().whipReorderItem(
+                            reorderInteraction,
+                            layoutPosition = blockIndex + 1,
+                            layoutScope = "routine-day-${selectedDay.key}-blocks",
+                        ),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f),
+                        shape = MaterialTheme.shapes.medium,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)),
+                    ) {
+                        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                WhipReorderHandle(
+                                    label = block.groupKey,
+                                    canMovePrevious = blockIndex > 0,
+                                    canMoveNext = blockIndex < blocks.lastIndex,
+                                    position = blockIndex + 1,
+                                    total = blocks.size,
+                                    interactionState = reorderInteraction,
+                                    moveWholeItem = true,
+                                    layoutScope = "routine-day-${selectedDay.key}-blocks",
+                                    onMove = { delta ->
+                                        onBuilderChange { current ->
+                                            current.copy(days = current.days.map { day ->
+                                                if (day.key == selectedDay.key) day.movePlacementBlock(blockIndex, delta) else day
+                                            })
+                                        }
+                                    },
+                                )
+                                Column(Modifier.weight(1f)) {
+                                    Text(block.groupKey, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    Text(
+                                        "${block.placements.size} exercises · moves as one block",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                            WhipReorderLayout(itemSpacing = 4.dp) {
+                            block.placements.forEachIndexed { memberIndex, placement ->
+                                RoutinePlacementCard(
+                                    placement = placement,
+                                    selected = placement.key == selectedPlacementKey,
+                                    gymState = gymState,
+                                    error = validationErrors[placement.key],
+                                    canMovePrevious = memberIndex > 0,
+                                    canMoveNext = memberIndex < block.placements.lastIndex,
+                                    position = memberIndex + 1,
+                                    total = block.placements.size,
+                                    grouped = true,
+                                    layoutScope = "routine-day-${selectedDay.key}-group-${block.groupKey}",
+                                    onOpen = { onSelectPlacement(placement.key) },
+                                    onMove = { delta ->
+                                        onBuilderChange { current ->
+                                            current.copy(days = current.days.map { day ->
+                                                if (day.key == selectedDay.key) day.movePlacementWithinGroup(placement.key, delta) else day
+                                            })
+                                        }
+                                    },
+                                    onDuplicate = { onDuplicatePlacement(placement) },
+                                    onRemove = { onRemovePlacement(placement) },
+                                )
+                            }
+                            }
+                        }
+                    }
+                } else {
+                    val placement = block.placements.single()
+                    RoutinePlacementCard(
+                        placement = placement,
+                        selected = placement.key == selectedPlacementKey,
+                        gymState = gymState,
+                        error = validationErrors[placement.key],
+                        canMovePrevious = blockIndex > 0,
+                        canMoveNext = blockIndex < blocks.lastIndex,
+                        position = blockIndex + 1,
+                        total = blocks.size,
+                        layoutScope = "routine-day-${selectedDay.key}-blocks",
+                        onOpen = { onSelectPlacement(placement.key) },
+                        onMove = { delta ->
+                            onBuilderChange { current ->
+                                current.copy(days = current.days.map { day ->
+                                    if (day.key == selectedDay.key) day.movePlacementBlock(blockIndex, delta) else day
+                                })
+                            }
+                        },
+                        onDuplicate = { onDuplicatePlacement(placement) },
+                        onRemove = { onRemovePlacement(placement) },
+                    )
+                }
             }
             item {
                 WhipButton(onClick = onAddExercises, modifier = Modifier.fillMaxWidth().testTag("routine-add-exercises")) {
@@ -717,49 +828,73 @@ private fun RoutineOutlinePane(
     }
 }
 
+private data class RoutinePlacementBlock(
+    val groupKey: String?,
+    val placements: List<RoutineBuilderPlacementState>,
+) {
+    val stableKey: String = groupKey?.let { "group-$it" } ?: "placement-${placements.single().key}"
+}
+
+private fun List<RoutineBuilderPlacementState>.routinePlacementBlocks(): List<RoutinePlacementBlock> {
+    val emittedGroups = mutableSetOf<String>()
+    return mapNotNull { placement ->
+        val group = placement.groupKey ?: return@mapNotNull RoutinePlacementBlock(null, listOf(placement))
+        if (!emittedGroups.add(group)) return@mapNotNull null
+        RoutinePlacementBlock(group, filter { it.groupKey == group })
+    }
+}
+
 @Composable
 private fun RoutinePlacementCard(
     placement: RoutineBuilderPlacementState,
     selected: Boolean,
     gymState: GymUiState,
     error: String?,
+    canMovePrevious: Boolean,
+    canMoveNext: Boolean,
+    position: Int,
+    total: Int,
+    grouped: Boolean = false,
+    layoutScope: String,
     onOpen: () -> Unit,
     onMove: (Int) -> Unit,
     onDuplicate: () -> Unit,
     onRemove: () -> Unit,
 ) {
     var menu by rememberSaveable(placement.key) { mutableStateOf(false) }
-    var dragDistance by rememberSaveable(placement.key) { mutableFloatStateOf(0f) }
     val exercise = gymState.exercises.firstOrNull { it.id == placement.exerciseId }
     val machine = (gymState.machines + gymState.archivedMachines).firstOrNull { it.id == placement.machineId }
     val border = when {
         error != null -> BorderStroke(2.dp, MaterialTheme.colorScheme.error)
-        placement.groupKey != null -> BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
         selected -> BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
         else -> null
     }
+    val reorderInteraction = rememberWhipReorderInteractionState()
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Edit ${exercise?.name ?: placement.exerciseNameSnapshot}", onClick = onOpen),
+        modifier = Modifier.fillMaxWidth()
+            .whipReorderItem(
+                reorderInteraction,
+                layoutPosition = position,
+                layoutScope = layoutScope,
+            )
+            .clickable(onClickLabel = "Edit ${exercise?.name ?: placement.exerciseNameSnapshot}", onClick = onOpen),
         border = border,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(
+            containerColor = if (grouped) MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
+            else MaterialTheme.colorScheme.surfaceContainer,
+        ),
     ) {
         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Outlined.DragHandle,
-                contentDescription = "Drag to reorder ${exercise?.name ?: placement.exerciseNameSnapshot}",
-                modifier = Modifier.size(48.dp).padding(8.dp).pointerInput(placement.key) {
-                    detectDragGesturesAfterLongPress(
-                        onDragEnd = { dragDistance = 0f },
-                        onDragCancel = { dragDistance = 0f },
-                    ) { change, amount ->
-                        change.consume()
-                        dragDistance += amount.y
-                        if (dragDistance.absoluteValue > 48.dp.toPx()) {
-                            onMove(if (dragDistance > 0f) 1 else -1)
-                            dragDistance = 0f
-                        }
-                    }
-                },
+            WhipReorderHandle(
+                label = exercise?.name ?: placement.exerciseNameSnapshot,
+                canMovePrevious = canMovePrevious,
+                canMoveNext = canMoveNext,
+                position = position,
+                total = total,
+                interactionState = reorderInteraction,
+                moveWholeItem = true,
+                layoutScope = layoutScope,
+                onMove = onMove,
             )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(exercise?.name ?: placement.exerciseNameSnapshot, fontWeight = FontWeight.Bold)
@@ -771,7 +906,6 @@ private fun RoutinePlacementCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                placement.groupKey?.let { Text(it, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium) }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             }
             ItemEditButton(
@@ -784,8 +918,8 @@ private fun RoutinePlacementCard(
                     Icon(Icons.Outlined.MoreVert, contentDescription = null)
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    WhipMenuItem(label = "Move Up", onClick = { menu = false; onMove(-1) })
-                    WhipMenuItem(label = "Move Down", onClick = { menu = false; onMove(1) })
+                    WhipMenuItem(label = "Move Up", enabled = canMovePrevious, onClick = { menu = false; onMove(-1) })
+                    WhipMenuItem(label = "Move Down", enabled = canMoveNext, onClick = { menu = false; onMove(1) })
                     WhipMenuItem(label = "Duplicate", icon = Icons.Outlined.ContentCopy, onClick = { menu = false; onDuplicate() })
                     HorizontalDivider()
                     WhipMenuItem(
@@ -815,6 +949,7 @@ private fun RoutinePlacementEditor(
     onMoveToDay: (Long, Boolean) -> Unit,
     dialogModifier: Modifier,
     onSavePrescriptionScheme: (RepPrescriptionScheme) -> Unit,
+    onReorderPrescriptionSchemes: (List<RepPrescriptionScheme>) -> Unit,
     onDeletePrescriptionScheme: (String) -> Unit,
 ) {
     val exercise = gymState.exercises.firstOrNull { it.id == placement.exerciseId }
@@ -825,7 +960,7 @@ private fun RoutinePlacementEditor(
     var editingSchemeId by rememberSaveable(placement.key) { mutableStateOf<String?>(null) }
     var pendingDeleteSchemeId by rememberSaveable(placement.key) { mutableStateOf<String?>(null) }
     var alternativeQuery by rememberSaveable(placement.key) { mutableStateOf("") }
-    LazyColumn(
+    WhipReorderLazyColumn(
         modifier = modifier.testTag("routine-placement-editor"),
         contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 100.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -853,7 +988,7 @@ private fun RoutinePlacementEditor(
         }
         if (exercise?.supportsRepPrescription() != false) item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Rep Prescription Schemes", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                Text("Saved Schemes · App-wide", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 IconButton(
                     onClick = { editingSchemeId = null; showSchemeEditor = true },
                     modifier = Modifier.testTag("routine-add-rep-scheme").semantics { contentDescription = "Add rep prescription scheme" },
@@ -868,17 +1003,44 @@ private fun RoutinePlacementEditor(
                 )
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    gymState.appSettings.repPrescriptionSchemes.forEach { scheme ->
-                        RepPrescriptionSchemeRow(
-                            scheme = scheme,
-                            onApply = { onUpdate { current -> current.copy(sets = applyRepPrescriptionScheme(current.sets, scheme)) } },
-                            onEdit = { editingSchemeId = scheme.id; showSchemeEditor = true },
-                            onDelete = { pendingDeleteSchemeId = scheme.id },
-                        )
+                    gymState.appSettings.repPrescriptionSchemes.forEachIndexed { index, scheme ->
+                        val reorderInteraction = rememberWhipReorderInteractionState()
+                        Row(
+                            modifier = Modifier.whipReorderItem(
+                                reorderInteraction,
+                                layoutPosition = index + 1,
+                                layoutScope = "routine-prescription-schemes",
+                            ),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            WhipReorderHandle(
+                                label = "${scheme.name.ifBlank { "rep prescription" }} scheme",
+                                canMovePrevious = index > 0,
+                                canMoveNext = index < gymState.appSettings.repPrescriptionSchemes.lastIndex,
+                                position = index + 1,
+                                total = gymState.appSettings.repPrescriptionSchemes.size,
+                                interactionState = reorderInteraction,
+                                moveWholeItem = true,
+                                layoutScope = "routine-prescription-schemes",
+                                onMove = { delta ->
+                                    onReorderPrescriptionSchemes(
+                                        moveListItem(gymState.appSettings.repPrescriptionSchemes, index, delta),
+                                    )
+                                },
+                            )
+                            Box(Modifier.weight(1f)) {
+                                RepPrescriptionSchemeRow(
+                                    scheme = scheme,
+                                    onApply = { onUpdate { current -> current.copy(sets = applyRepPrescriptionScheme(current.sets, scheme)) } },
+                                    onEdit = { editingSchemeId = scheme.id; showSchemeEditor = true },
+                                    onDelete = { pendingDeleteSchemeId = scheme.id },
+                                )
+                            }
+                        }
                     }
                 }
                 Text(
-                    "Schemes speed up entry. Editing or deleting one never changes routines already using it.",
+                    "Apply a saved prescription here. Its name and order are shared across every Routine; editing or deleting it never changes Routines already using it.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -928,12 +1090,21 @@ private fun RoutinePlacementEditor(
                 )
             }
         }
-        items(placement.sets, key = RoutineBuilderSetState::key) { set ->
+        items(placement.sets.size, key = { placement.sets[it].key }) { setIndex ->
+            val set = placement.sets[setIndex]
             RoutineSetEditorCard(
                 set = set,
                 exercise = exercise,
                 machine = machine,
                 showAdvanced = showAdvanced,
+                canMovePrevious = setIndex > 0,
+                canMoveNext = setIndex < placement.sets.lastIndex,
+                position = setIndex + 1,
+                total = placement.sets.size,
+                layoutScope = "routine-placement-${placement.key}-sets",
+                onMove = { delta ->
+                    onUpdate { current -> current.copy(sets = moveListItem(current.sets, setIndex, delta)) }
+                },
                 onUpdate = { transform -> onUpdate { current -> current.copy(sets = current.sets.map { if (it.key == set.key) transform(it) else it }) } },
                 onDuplicate = { onUpdate { current -> current.copy(sets = current.sets + set.copy(key = nextLocalSetKey(current.sets))) } },
                 onDelete = { onUpdate { current -> current.copy(sets = current.sets.filterNot { it.key == set.key }) } },
@@ -1003,7 +1174,7 @@ private fun RoutinePlacementEditor(
             }
         }
         item {
-            Text("Superset or Circuit", fontWeight = FontWeight.SemiBold)
+            Text("Superset", fontWeight = FontWeight.SemiBold)
             placement.groupKey?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 selectedDay.placements.filterNot { it.key == placement.key }.forEach { other ->
@@ -1243,14 +1414,38 @@ private fun RoutineSetEditorCard(
     exercise: Exercise?,
     machine: GymMachine?,
     showAdvanced: Boolean,
+    canMovePrevious: Boolean,
+    canMoveNext: Boolean,
+    position: Int,
+    total: Int,
+    layoutScope: String,
+    onMove: (Int) -> Unit,
     onUpdate: ((RoutineBuilderSetState) -> RoutineBuilderSetState) -> Unit,
     onDuplicate: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var classificationMenu by rememberSaveable(set.key) { mutableStateOf(false) }
-    OutlinedCard(Modifier.fillMaxWidth()) {
+    val reorderInteraction = rememberWhipReorderInteractionState()
+    OutlinedCard(
+        Modifier.fillMaxWidth().whipReorderItem(
+            reorderInteraction,
+            layoutPosition = position,
+            layoutScope = layoutScope,
+        ),
+    ) {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                WhipReorderHandle(
+                    label = "planned set",
+                    canMovePrevious = canMovePrevious,
+                    canMoveNext = canMoveNext,
+                    position = position,
+                    total = total,
+                    interactionState = reorderInteraction,
+                    moveWholeItem = true,
+                    layoutScope = layoutScope,
+                    onMove = onMove,
+                )
                 Box {
                     WhipTextButton(onClick = { classificationMenu = true }) {
                         Text(set.classification.workoutSetClassificationLabel())
@@ -1780,20 +1975,34 @@ private fun duplicatePlacement(holder: RoutineBuilderViewModel, dayKey: Long, so
 }
 
 private fun moveOrCopyPlacement(holder: RoutineBuilderViewModel, fromDayKey: Long, targetDayKey: Long, source: RoutineBuilderPlacementState, copy: Boolean) {
-    holder.update { state ->
-        var next = state.nextKey
-        val target = if (copy) source.copy(key = next++, sets = source.sets.map { it.copy(key = next++) }) else source
-        state.copy(
-            days = state.days.map { day -> when (day.key) {
-                fromDayKey -> if (copy) day else day.copy(placements = day.placements.filterNot { it.key == source.key })
-                targetDayKey -> day.copy(placements = day.placements + target)
-                else -> day
-            } },
-            selectedDayKey = targetDayKey,
-            selectedPlacementKey = target.key,
-            nextKey = next,
-        )
+    holder.update { state -> state.moveOrCopyPlacement(fromDayKey, targetDayKey, source, copy) }
+}
+
+internal fun RoutineBuilderState.moveOrCopyPlacement(
+    fromDayKey: Long,
+    targetDayKey: Long,
+    source: RoutineBuilderPlacementState,
+    copy: Boolean,
+): RoutineBuilderState {
+    var next = nextKey
+    val target = if (copy) {
+        source.copy(key = next++, groupKey = null, sets = source.sets.map { it.copy(key = next++) })
+    } else {
+        source.copy(groupKey = null)
     }
+    return copy(
+        days = days.map { day -> when {
+            day.key == fromDayKey && day.key == targetDayKey && copy ->
+                day.copy(placements = day.placements + target).normalizePlacementGroupsAndOrder()
+            day.key == fromDayKey && day.key == targetDayKey -> day
+            day.key == fromDayKey -> if (copy) day else day.removePlacement(source.key)
+            day.key == targetDayKey -> day.copy(placements = day.placements + target).normalizePlacementGroupsAndOrder()
+            else -> day
+        } },
+        selectedDayKey = targetDayKey,
+        selectedPlacementKey = target.key,
+        nextKey = next,
+    )
 }
 
 private fun importWorkoutIntoDay(holder: RoutineBuilderViewModel, dayKey: Long, session: WorkoutSession, gymState: GymUiState) {
@@ -1855,9 +2064,9 @@ internal fun RoutineBuilderState.withDayTemplate(names: List<String>): RoutineBu
 
 internal fun RoutineBuilderState.moveDay(key: Long, delta: Int): RoutineBuilderState {
     val index = days.indexOfFirst { it.key == key }
-    val target = (index + delta).coerceIn(0, days.lastIndex)
-    if (index < 0 || index == target) return this
-    return copy(days = days.toMutableList().also { java.util.Collections.swap(it, index, target) })
+    if (index < 0) return this
+    val moved = moveListItem(days, index, delta)
+    return if (moved == days) this else copy(days = moved)
 }
 
 internal fun RoutineBuilderState.duplicateDay(key: Long): RoutineBuilderState {
@@ -1874,10 +2083,33 @@ internal fun RoutineBuilderState.duplicateDay(key: Long): RoutineBuilderState {
 }
 
 internal fun RoutineBuilderDayState.movePlacement(key: Long, delta: Int): RoutineBuilderDayState {
+    if (placements.firstOrNull { it.key == key }?.groupKey != null) {
+        return movePlacementWithinGroup(key, delta)
+    }
     val index = placements.indexOfFirst { it.key == key }
-    val target = (index + delta).coerceIn(0, placements.lastIndex)
-    if (index < 0 || index == target) return this
-    return copy(placements = placements.toMutableList().also { java.util.Collections.swap(it, index, target) })
+    if (index < 0) return this
+    val moved = moveListItem(placements, index, delta)
+    return if (moved == placements) this else copy(placements = moved)
+}
+
+private fun RoutineBuilderDayState.movePlacementBlock(blockIndex: Int, delta: Int): RoutineBuilderDayState {
+    val blocks = placements.routinePlacementBlocks()
+    val moved = moveListItem(blocks, blockIndex, delta)
+    if (moved == blocks) return this
+    return copy(placements = moved.flatMap(RoutinePlacementBlock::placements))
+}
+
+private fun RoutineBuilderDayState.movePlacementWithinGroup(key: Long, delta: Int): RoutineBuilderDayState {
+    val group = placements.firstOrNull { it.key == key }?.groupKey ?: return movePlacement(key, delta)
+    val members = placements.filter { it.groupKey == group }
+    val memberIndex = members.indexOfFirst { it.key == key }
+    if (memberIndex < 0) return this
+    val moved = moveListItem(members, memberIndex, delta)
+    if (moved == members) return this
+    val iterator = moved.iterator()
+    return copy(placements = placements.map { placement ->
+        if (placement.groupKey == group) iterator.next() else placement
+    })
 }
 
 internal fun applyRepPrescriptionScheme(
@@ -1970,16 +2202,66 @@ internal fun RoutineBuilderDayState.groupPlacements(firstKey: Long, secondKey: L
     val second = placements.firstOrNull { it.key == secondKey } ?: return this
     val group = second.groupKey ?: first.groupKey ?: nextGroupName(this)
     val oldGroups = setOfNotNull(first.groupKey, second.groupKey) - group
-    val grouped = copy(placements = placements.map { item ->
+    val assigned = placements.map { item ->
         if (item.key == firstKey || item.key == secondKey) item.copy(groupKey = group) else item
-    })
+    }
+    val groupMembers = assigned.filter { it.groupKey == group }
+    val insertionIndex = assigned.indexOfFirst { it.groupKey == group }
+    val remaining = assigned.filterNot { it.groupKey == group }.toMutableList()
+    remaining.addAll(insertionIndex.coerceAtMost(remaining.size), groupMembers)
+    val grouped = copy(placements = remaining)
     return oldGroups.fold(grouped) { day, oldGroup -> day.clearSingletonGroup(oldGroup) }
+        .normalizePlacementGroupsAndOrder()
 }
 
 internal fun RoutineBuilderDayState.removePlacementFromGroup(key: Long): RoutineBuilderDayState {
     val group = placements.firstOrNull { it.key == key }?.groupKey ?: return this
     return copy(placements = placements.map { if (it.key == key) it.copy(groupKey = null) else it })
         .clearSingletonGroup(group)
+        .normalizePlacementGroupsAndOrder()
+}
+
+internal fun RoutineBuilderDayState.removePlacement(key: Long): RoutineBuilderDayState {
+    val removed = placements.firstOrNull { it.key == key } ?: return this
+    val remaining = copy(placements = placements.filterNot { it.key == key })
+    return removed.groupKey?.let(remaining::clearSingletonGroup)
+        ?.normalizePlacementGroupsAndOrder()
+        ?: remaining.normalizePlacementGroupsAndOrder()
+}
+
+internal fun RoutineBuilderDayState.restorePlacement(
+    index: Int,
+    placement: RoutineBuilderPlacementState,
+    formerGroupMemberKeys: List<Long>,
+): RoutineBuilderDayState {
+    val originalGroup = placement.groupKey
+    var restored = placements.toMutableList().also { items ->
+        items.add(index.coerceIn(0, items.size), placement.copy(groupKey = null))
+    }
+    if (originalGroup != null) {
+        val candidates = (formerGroupMemberKeys + placement.key).toSet()
+        val eligible = restored.filter { item ->
+            item.key in candidates && (item.key == placement.key || item.groupKey == null || item.groupKey == originalGroup)
+        }.mapTo(mutableSetOf(), RoutineBuilderPlacementState::key)
+        if (eligible.size >= 2) {
+            restored = restored.mapTo(mutableListOf()) { item ->
+                if (item.key in eligible) item.copy(groupKey = originalGroup) else item
+            }
+        }
+    }
+    return copy(placements = restored).normalizePlacementGroupsAndOrder()
+}
+
+private fun RoutineBuilderDayState.groupMemberKeys(placement: RoutineBuilderPlacementState): List<Long> =
+    placement.groupKey?.let { group -> placements.filter { it.groupKey == group }.map { it.key } }.orEmpty()
+
+private fun RoutineBuilderDayState.normalizePlacementGroupsAndOrder(): RoutineBuilderDayState {
+    val groupCounts = placements.mapNotNull(RoutineBuilderPlacementState::groupKey).groupingBy { it }.eachCount()
+    val valid = placements.map { placement ->
+        if (placement.groupKey?.let { (groupCounts[it] ?: 0) < 2 } == true) placement.copy(groupKey = null)
+        else placement
+    }
+    return copy(placements = valid.routinePlacementBlocks().flatMap(RoutinePlacementBlock::placements))
 }
 
 private fun RoutineBuilderDayState.clearSingletonGroup(group: String): RoutineBuilderDayState {

@@ -51,6 +51,8 @@ import com.whip.app.reminders.reminderDefinitionChanged
 import java.time.LocalDate
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -157,7 +159,7 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         reminders.syncHabit(id)
     }
     fun setPinned(id: Long, pinned: Boolean) = runOperation("Updating habit…", "Habit updated") { repository.setPinned(id, pinned) }
-    fun reorder(ids: List<Long>) = runOperation("Reordering habits…", "Habit order saved") { repository.reorder(ids) }
+    fun reorder(ids: List<Long>) = runSilentReorder { repository.reorder(ids) }
     fun setPaused(id: Long, paused: Boolean) = runOperation("Updating habit…", if (paused) "Habit paused" else "Habit resumed") { repository.setPaused(id, paused); reminders.syncHabit(id) }
     fun addPause(id: Long, start: LocalDate, end: LocalDate?, note: String) = runOperation("Scheduling pause…", "Pause scheduled") {
         repository.addPause(id, start, end, note)
@@ -298,6 +300,22 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
                 commitBackfill = from != null,
             )
         }
+
+    private val reorderMutex = Mutex()
+
+    private fun runSilentReorder(block: suspend () -> Unit) {
+        viewModelScope.launch {
+            reorderMutex.withLock {
+                try {
+                    block()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Throwable) {
+                    _operationStatus.value = OperationStatus.Failed(error.message ?: "Could not save the new order", error)
+                }
+            }
+        }
+    }
 
     private fun runOperation(
         running: String,

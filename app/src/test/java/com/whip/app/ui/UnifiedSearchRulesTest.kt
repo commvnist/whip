@@ -52,4 +52,12 @@ class UnifiedSearchRulesTest {
         assertTrue(workTask.isVisibleInAreaScope(AreaScope.One("personal"), explicitAreaOverride = true))
         assertTrue(workTask.copy(domain = SearchDomain.Workout).isVisibleInAreaScope(AreaScope.One("personal"), false))
     }
+
+    @Test
+    fun boundedHistoryProjectionKeepsNewestValuesRegardlessOfInputOrder() {
+        val history = (1..150).toList()
+
+        assertEquals((150 downTo 51).toList(), newestSearchValues(history, 100) { it })
+        assertEquals((150 downTo 51).toList(), newestSearchValues(history.reversed(), 100) { it })
+    }
 }

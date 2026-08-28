@@ -108,6 +108,7 @@ class BackupRepositoryTest {
                 timeZoneId = "America/Toronto",
                 dayCutoffMinutes = 180,
                 showAllUpcomingTaskOccurrences = true,
+                activeTaskSortMode = "Manual",
                 customIdentityEmojis = listOf(
                     CustomIdentityEmoji("🦊", "Fox"),
                     CustomIdentityEmoji("🦄", "Unicorn"),
@@ -162,6 +163,7 @@ class BackupRepositoryTest {
         assertEquals("America/Toronto", settings.current().timeZoneId)
         assertEquals(180, settings.current().dayCutoffMinutes)
         assertEquals(true, settings.current().showAllUpcomingTaskOccurrences)
+        assertEquals("Manual", settings.current().activeTaskSortMode)
         assertEquals(
             listOf(CustomIdentityEmoji("🦊", "Fox"), CustomIdentityEmoji("🦄", "Unicorn")),
             settings.current().customIdentityEmojis,

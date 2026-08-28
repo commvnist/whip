@@ -73,22 +73,25 @@ class GlobalSearchRoutingTest {
             compose.onNodeWithText("Restore").assertIsDisplayed()
 
             searchFor("Searchable archived goal")
-            if (compose.onAllNodesWithText("Automation").fetchSemanticsNodes().isEmpty()) {
+            if (compose.onAllNodesWithText("Automations").fetchSemanticsNodes().isEmpty()) {
                 compose.onNode(
                     hasContentDescription("Open Pages") and
                         hasAnyAncestor(hasTestTag("goal-detail-surface")),
                 ).performClick()
             }
-            compose.onNodeWithText("Automation").performClick()
+            compose.onNodeWithText("Automations").performClick()
             compose.onNodeWithText("Goal Automations").assertIsDisplayed()
-            compose.onNodeWithText("Close").performClick()
+            compose.onNodeWithContentDescription("Close Goal details").performClick()
 
             searchFor("Searchable archived exercise")
             compose.onNodeWithText("Duplicate").assertIsDisplayed()
-            compose.onNodeWithText("Close").performClick()
+            compose.onNodeWithContentDescription("Close Exercise details").performClick()
 
             searchFor("Searchable discarded workout")
             compose.onNodeWithText("Workout History").assertIsDisplayed()
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithText("Restore to History").fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNodeWithText("Restore to History").performScrollTo().assertIsDisplayed()
 
             searchFor("Searchable archived routine")
@@ -126,11 +129,16 @@ class GlobalSearchRoutingTest {
         // Search state is intentionally retained while navigating an expanded
         // pane. Replace the prior query instead of appending to it.
         compose.onNodeWithTag("unified-search-query").performTextReplacement(title.removePrefix("Searchable "))
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithText(title).assertIsDisplayed().performClick()
         compose.waitUntil(10_000) {
             compose.onAllNodesWithText("Search").fetchSemanticsNodes().isEmpty()
         }
-        compose.waitForIdle()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     private companion object {

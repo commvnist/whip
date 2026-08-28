@@ -54,11 +54,11 @@ import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.DeleteForever
-import androidx.compose.material.icons.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Merge
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import com.whip.app.domain.Area
 import kotlinx.coroutines.launch
 
@@ -324,7 +324,11 @@ private fun AreaListContent(
     onDelete: (String) -> Unit,
     onRestore: (String) -> Unit,
 ) {
-    LazyColumn(
+    var reordering by rememberSaveable { mutableStateOf(false) }
+    var toolsExpanded by rememberSaveable { mutableStateOf(false) }
+    val visibleActive = active.filter { query.isBlank() || it.name.contains(query, true) }
+    BackHandler(enabled = reordering) { reordering = false }
+    WhipReorderLazyColumn(
         modifier = modifier,
         contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp, 16.dp, 20.dp, 88.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -333,19 +337,47 @@ private fun AreaListContent(
             WhipPageHeader(
                 title = "Your Areas",
                 supportingText = "Open an Area to rename it, move its items, merge it, or manage its lifecycle.",
-            )
+            ) {
+                if (!reordering && active.size > 1) Box {
+                    WhipPageIconAction(
+                        icon = Icons.Outlined.MoreVert,
+                        label = "More Area Actions",
+                        onClick = { toolsExpanded = true },
+                    )
+                    DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
+                        WhipMenuItem(
+                            label = if (query.isBlank()) "Reorder Areas" else "Clear Search & Reorder All",
+                            onClick = {
+                                if (query.isNotBlank()) onQueryChange("")
+                                reordering = true
+                                toolsExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
         }
-        if (state.areas.size > 8) item {
+        if (!reordering && state.areas.size > 8) item {
             OutlinedTextField(
                 value = query,
-                onValueChange = { onQueryChange(it.take(40)) },
+                onValueChange = {
+                    reordering = false
+                    onQueryChange(it.take(40))
+                },
                 label = { Text("Find Area") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+        if (reordering) item {
+            WhipReorderModeBar(
+                itemLabel = "Areas",
+                onDone = { reordering = false },
+                boundaryNote = "Archived Areas stay outside this order.",
+            )
+        }
         itemsIndexed(
-            active.filter { query.isBlank() || it.name.contains(query, true) },
+            visibleActive,
             key = { _, area -> area.id },
         ) { index, area ->
             AreaManagerRow(
@@ -353,7 +385,10 @@ private fun AreaListContent(
                 usage = state.areaUsage[area.id] ?: AreaUsageCounts(),
                 selected = selectedAreaId == area.id,
                 canMoveUp = index > 0,
-                canMoveDown = index < active.lastIndex,
+                canMoveDown = index < visibleActive.lastIndex,
+                position = index + 1,
+                total = visibleActive.size,
+                reorderEnabled = reordering && query.isBlank(),
                 onRename = { onRename(area.id) },
                 onColor = { onColor(area.id) },
                 onMove = { onMove(area.id, it) },
@@ -364,7 +399,7 @@ private fun AreaListContent(
                 onOpen = { onOpen(area.id) },
             )
         }
-        if (archived.isNotEmpty()) item {
+        if (!reordering && archived.isNotEmpty()) item {
             HorizontalDivider(Modifier.padding(top = 8.dp))
             DisclosureButton(
                 label = "Archived · ${archived.size}",
@@ -373,7 +408,7 @@ private fun AreaListContent(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        if (archivedExpanded) itemsIndexed(
+        if (!reordering && archivedExpanded) itemsIndexed(
             archived.filter { query.isBlank() || it.name.contains(query, true) },
             key = { _, area -> "archived-${area.id}" },
         ) { _, area ->
@@ -406,6 +441,9 @@ private fun AreaManagerRow(
     selected: Boolean,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
+    position: Int,
+    total: Int,
+    reorderEnabled: Boolean,
     onRename: () -> Unit,
     onColor: () -> Unit,
     onMove: (Int) -> Unit,
@@ -416,24 +454,49 @@ private fun AreaManagerRow(
     onOpen: () -> Unit,
 ) {
     var menu by rememberSaveable { mutableStateOf(false) }
+    val reorderInteraction = rememberWhipReorderInteractionState()
     Surface(
         onClick = onOpen,
+        enabled = !reorderEnabled,
         tonalElevation = 1.dp,
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
         shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.semantics { contentDescription = "Open area details for ${area.name}" },
+        modifier = Modifier
+            .whipReorderItem(
+                reorderInteraction,
+                layoutPosition = position,
+                layoutScope = "area-browse",
+            )
+            .then(
+                if (reorderEnabled) Modifier
+                else Modifier.semantics { contentDescription = "Open area details for ${area.name}" },
+            ),
     ) {
         Row(
             Modifier.fillMaxWidth().padding(start = 14.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            if (reorderEnabled) {
+                WhipReorderHandle(
+                    label = "${area.name} Area",
+                    canMovePrevious = canMoveUp,
+                    canMoveNext = canMoveDown,
+                    position = position,
+                    total = total,
+                    interactionState = reorderInteraction,
+                    moveWholeItem = true,
+                    layoutScope = "area-browse",
+                    reserveWhenUnavailable = true,
+                    onMove = onMove,
+                )
+            }
             AreaDot(area)
             Column(Modifier.weight(1f)) {
                 Text(area.name, style = MaterialTheme.typography.titleMedium)
                 Text(usageText(usage), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Box {
+            if (!reorderEnabled) Box {
                 IconButton(
                     onClick = { menu = true },
                     modifier = Modifier.semantics { contentDescription = "More options for ${area.name}" },
@@ -442,9 +505,7 @@ private fun AreaManagerRow(
                     WhipMenuItem("Rename", { menu = false; onRename() }, Icons.Outlined.Edit)
                     WhipMenuItem("Choose Color", { menu = false; onColor() }, Icons.Outlined.Palette)
                     HorizontalDivider()
-                    WhipMenuItem("Move All Items…", { menu = false; onMoveItems() }, Icons.Outlined.DriveFileMove, enabled = usage.total > 0)
-                    WhipMenuItem("Move Up", { menu = false; onMove(-1) }, Icons.Outlined.ArrowUpward, enabled = canMoveUp)
-                    WhipMenuItem("Move Down", { menu = false; onMove(1) }, Icons.Outlined.ArrowDownward, enabled = canMoveDown)
+                    WhipMenuItem("Move All Items…", { menu = false; onMoveItems() }, Icons.AutoMirrored.Outlined.DriveFileMove, enabled = usage.total > 0)
                     WhipMenuItem("Merge Into…", { menu = false; onMerge() }, Icons.Outlined.Merge)
                     HorizontalDivider()
                     WhipMenuItem("Archive", { menu = false; onArchive() }, Icons.Outlined.Archive)

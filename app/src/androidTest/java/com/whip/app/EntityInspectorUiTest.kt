@@ -19,6 +19,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -126,7 +127,7 @@ class EntityInspectorUiTest {
     }
 
     @Test
-    fun narrowInspectorUsesMoreWithoutClippingAndRevealsTheSelectedSection() {
+    fun narrowInspectorUsesMoreWithoutMovingPrimarySections() {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 var selected by remember { mutableStateOf("today") }
@@ -158,9 +159,13 @@ class EntityInspectorUiTest {
         compose.onAllNodesWithText("Automation").assertCountEquals(0)
         compose.onNodeWithContentDescription("Open Pages").assertIsDisplayed().performClick()
         compose.onNodeWithText("Automation").assertIsDisplayed().performClick()
-        compose.onNodeWithTag("entity-inspector-section-automation").assertIsDisplayed()
-        compose.onNodeWithText("Automation").assertIsSelected()
+        compose.onAllNodesWithTag("entity-inspector-section-automation").assertCountEquals(0)
+        compose.onNodeWithTag("entity-inspector-section-today").assertIsDisplayed()
+        compose.onNodeWithTag("entity-inspector-section-history").assertIsDisplayed()
         compose.onNodeWithText("Selected automation").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Open Pages").performClick()
+        compose.onNodeWithText("Automation").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Selected").assertIsDisplayed()
     }
 
     @Test

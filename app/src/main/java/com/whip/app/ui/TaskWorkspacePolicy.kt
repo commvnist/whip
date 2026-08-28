@@ -115,7 +115,11 @@ internal fun List<ScheduledTask>.sortedForWorkspace(
         )
         // Manual is an authored sequence, not a scalar field. Reversing it while
         // drag-reordering would make every move appear to undo itself.
-        "Manual" -> sortedWith(compareBy<ScheduledTask> { it.task.manualPosition }.thenBy { it.task.createdAtMillis })
+        "Manual" -> sortedWith(
+            compareByDescending<ScheduledTask> { it.task.pinned }
+                .thenBy { it.task.manualPosition }
+                .thenBy { it.task.createdAtMillis },
+        )
         else -> this
     }
 }

@@ -223,7 +223,7 @@ class TrackViewModel(application: Application) : AndroidViewModel(application) {
         app.linkRepository.rebuildAll()
         app.automationPromptScheduler.syncAll()
     }
-    fun reorder(ids: List<Long>) = runOperation("Reordering Tracks…", "Track order saved") { repository.reorder(ids) }
+    fun reorder(ids: List<Long>) = runSilentReorder { repository.reorder(ids) }
     fun deleteTrack(id: Long) = runOperation(
         "Deleting Track…",
         "Track permanently deleted",
@@ -459,6 +459,20 @@ class TrackViewModel(application: Application) : AndroidViewModel(application) {
         val aligned = goal.toTrackAutomationDraft(required, draft.retroactiveFrom)
         if (goal.aggregation != aligned.aggregation || goal.startDate != aligned.startDate) {
             app.goalRepository.update(goal.id, aligned)
+        }
+    }
+
+    private fun runSilentReorder(block: suspend () -> Unit) {
+        viewModelScope.launch {
+            operationMutex.withLock {
+                try {
+                    block()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Throwable) {
+                    _operationStatus.value = OperationStatus.Failed(error.message ?: "Could not save the new order", error)
+                }
+            }
         }
     }
 

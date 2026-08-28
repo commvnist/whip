@@ -36,7 +36,7 @@ class ProductivityTemplateSafetyTest {
         launchMainActivity(intent).use {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
-            compose.onNodeWithText("Task").performClick()
+            compose.onNodeWithText("New Task").performClick()
             compose.onNodeWithText("Use a Template").performClick()
             compose.onNodeWithText("Repeat on Chosen Weekdays").performClick()
 

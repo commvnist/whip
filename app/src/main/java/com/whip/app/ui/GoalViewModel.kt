@@ -33,6 +33,8 @@ import java.time.LocalDate
 import java.time.Instant
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -156,7 +158,7 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         reminders.syncGoal(id)
     }
     fun setPinned(id: Long, pinned: Boolean) = runOperation("Updating goal…", "Goal updated") { repository.setPinned(id, pinned) }
-    fun reorder(ids: List<Long>) = runOperation("Reordering goals…", "Goal order saved") { repository.reorder(ids) }
+    fun reorder(ids: List<Long>) = runSilentReorder { repository.reorder(ids) }
     fun record(id: Long, value: Double, date: LocalDate?, note: String) = runOperation("Saving measurement…", "Measurement saved") { repository.recordMeasurement(id, value, date = date, note = note) }
     fun updateMeasurement(id: Long, entryId: String, value: Double, date: LocalDate, note: String) =
         runOperation("Updating measurement…", "Measurement updated") { repository.updateMeasurement(id, entryId, value, date, note) }
@@ -205,6 +207,22 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         val aligned = goal.toTrackAutomationDraft(required, draft.retroactiveFrom)
         if (goal.aggregation != aligned.aggregation || goal.startDate != aligned.startDate) {
             repository.update(goal.id, aligned)
+        }
+    }
+
+    private val reorderMutex = Mutex()
+
+    private fun runSilentReorder(block: suspend () -> Unit) {
+        viewModelScope.launch {
+            reorderMutex.withLock {
+                try {
+                    block()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Throwable) {
+                    _operationStatus.value = OperationStatus.Failed(error.message ?: "Could not save the new order", error)
+                }
+            }
         }
     }
 

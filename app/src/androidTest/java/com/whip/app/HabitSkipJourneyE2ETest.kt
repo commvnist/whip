@@ -93,7 +93,7 @@ class HabitSkipJourneyE2ETest {
             compose.onNodeWithTag("habit-detail-section-History").performClick()
             val skippedDate = app.clock.today().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
             compose.onNodeWithText("$skippedDate · Skipped").assertIsDisplayed()
-            compose.onNodeWithText("Close").performClick()
+            compose.onNodeWithContentDescription("Close Habit details").performClick()
 
             selectDestination("habit-destination-Insights", "Insights")
             compose.onNodeWithText("Last 30 Days: 0 Completed · 1 Skipped · 0 Missed/Below Target").assertIsDisplayed()

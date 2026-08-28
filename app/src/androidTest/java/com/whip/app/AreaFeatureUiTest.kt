@@ -1,6 +1,10 @@
 package com.whip.app.ui
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
@@ -30,17 +34,23 @@ class AreaFeatureUiTest {
         val selected = AtomicReference<Pair<String?, String>>()
         compose.setContent {
             WhipTheme(dynamicColor = false) {
+                var selectedAreaId by remember { mutableStateOf<String?>(null) }
+                var selectedAreaName by remember { mutableStateOf("") }
                 AreaPicker(
                     areas = listOf(area("work", "Work"), area("health", "Health")),
-                    selectedAreaId = null,
-                    selectedAreaName = "",
-                    onSelect = { id, name -> selected.set(id to name) },
+                    selectedAreaId = selectedAreaId,
+                    selectedAreaName = selectedAreaName,
+                    onSelect = { id, name ->
+                        selectedAreaId = id
+                        selectedAreaName = name
+                        selected.set(id to name)
+                    },
                     onCreateArea = { name, _, onCreated -> onCreated(Result.success("created-${name.lowercase()}")) },
                 )
             }
         }
 
-        compose.onNodeWithContentDescription("Area selection: Work").performClick()
+        compose.onNodeWithContentDescription("Area selection: Choose Area").performClick()
         compose.onNodeWithContentDescription("Area Work").assertIsDisplayed().performClick()
         assertEquals("work" to "Work", selected.get())
 
@@ -193,7 +203,7 @@ class AreaFeatureUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Area selection: Area 1").performClick()
+        compose.onNodeWithContentDescription("Area selection: Choose Area").performClick()
         compose.onNodeWithText("Find area").performTextInput("Area 50")
         compose.onNodeWithContentDescription("Area Area 50").performClick()
         assertEquals("area-50" to "Area 50", selected.get())

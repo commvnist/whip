@@ -85,7 +85,7 @@ class AutomationConfigurationE2ETest {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithContentDescription("Movies Watched, 0 Entries. Open Track").performClick()
-            compose.onNodeWithTag("track-destination-Rules").performClick()
+            compose.onNodeWithTag("track-destination-Automations").performClick()
             compose.onNodeWithTag("track-automation-connect-goal").performScrollTo().performClick()
 
             compose.onNodeWithText("Connect Entries to a Goal").assertIsDisplayed()
@@ -154,7 +154,7 @@ class AutomationConfigurationE2ETest {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithContentDescription("Movies Watched, 2 Entries", substring = true).performClick()
-            compose.onNodeWithTag("track-destination-Rules").performClick()
+            compose.onNodeWithTag("track-destination-Automations").performClick()
             compose.onNodeWithTag("track-automation-connect-goal").performScrollTo().performClick()
 
             compose.onNodeWithTag("track-existing-goal-content")
@@ -193,11 +193,14 @@ class AutomationConfigurationE2ETest {
             compose.onNodeWithContentDescription("Movies Watched, 0 Entries. Open Track").performClick()
             compose.onNodeWithContentDescription("Sort Entries by Entry Date, Descending").performClick()
 
-            compose.onNodeWithText("Fields").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Sort by: Entry Date").performClick()
+            compose.onNodeWithText("Entry Identity").assertIsDisplayed()
             compose.onNodeWithText("Title").assertIsDisplayed()
             compose.onNodeWithText("Notes").assertIsDisplayed()
-            compose.onNodeWithText("Ascending").assertIsDisplayed()
-            compose.onNodeWithText("Descending").assertIsDisplayed()
+            compose.onNodeWithText("Entry Identity").performClick()
+            compose.onNodeWithContentDescription("Order: Descending").performClick()
+            compose.onNodeWithText("Ascending").assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription("Order: Ascending").assertIsDisplayed()
         }
     }
 }

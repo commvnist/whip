@@ -281,18 +281,20 @@ private fun EntityInspectorSectionSelector(
             // posture or opening the same inspector on the cover display must
             // never turn one of them into a hidden "More" destination.
             sections.size <= 2 -> sections.size
-            fontScale >= 2f || maxWidth < 320.dp -> 1
+            // maxWidth is measured after the selector's horizontal padding.
+            // A 320 dp compact window still has room for the two stable
+            // primary sections plus More; only truly narrow panes collapse
+            // to one visible section.
+            fontScale >= 2f || maxWidth < 260.dp -> 1
             sections.size <= 3 && fontScale < 1.3f -> sections.size
             fontScale >= 1.3f || maxWidth < 480.dp -> 2
             else -> 3
         }.coerceAtMost(sections.size)
-        val initiallyVisible = sections.take(visibleCapacity).toMutableList()
-        val selectedSection = sections.firstOrNull { it.id == selectedSectionId }
-        if (selectedSection != null && selectedSection !in initiallyVisible) {
-            initiallyVisible[initiallyVisible.lastIndex] = selectedSection
-        }
-        val visible = initiallyVisible.distinct()
+        // Keep peer destinations stable. Selecting a page from More must not
+        // replace Overview or another primary page on the next frame.
+        val visible = sections.take(visibleCapacity)
         val hidden = sections.filterNot(visible::contains)
+        val hiddenSelection = hidden.any { it.id == selectedSectionId }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -330,7 +332,11 @@ private fun EntityInspectorSectionSelector(
                             .heightIn(min = 48.dp)
                             .semantics { contentDescription = "Open Pages" },
                     ) {
-                        Text("More", maxLines = 1)
+                        Text(
+                            "More",
+                            maxLines = 1,
+                            color = if (hiddenSelection) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Unspecified,
+                        )
                         Icon(Icons.Outlined.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
                     }
                     DropdownMenu(

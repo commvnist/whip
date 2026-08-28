@@ -226,11 +226,15 @@ class RoomTrackRepository(
     }
 
     override suspend fun reorder(ids: List<Long>) = database.withTransaction {
+        val requested = ids.distinct()
+        val all = dao.getAllTracks()
+        require(requested.all { id -> all.any { it.id == id } }) { "Track no longer exists" }
+        val byId = all.associateBy(TrackEntity::id)
+        val order = requested + all.filterNot { it.id in requested }.sortedBy(TrackEntity::position).map(TrackEntity::id)
         val now = clock.now().toEpochMilli()
-        ids.forEachIndexed { position, id ->
-            dao.getTrack(id)?.let { track ->
-                if (track.position != position) dao.updateTrack(track.copy(position = position, updatedAtMillis = now))
-            }
+        order.forEachIndexed { position, id ->
+            val track = requireNotNull(byId[id])
+            if (track.position != position) dao.updateTrack(track.copy(position = position, updatedAtMillis = now))
         }
     }
 

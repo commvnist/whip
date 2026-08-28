@@ -93,6 +93,7 @@ fun TaskRow(
     selectionMode: Boolean = false,
     selected: Boolean = false,
     onSelectionToggle: (() -> Unit)? = null,
+    reorderMode: Boolean = false,
 ) {
     val compact = LocalCompactItemLayout.current
     val disclosure = rememberCompactItemDisclosure("task:${item.stableKey}")
@@ -104,7 +105,7 @@ fun TaskRow(
                     onClickLabel = "Select ${item.task.title}",
                     onClick = onSelectionToggle,
                 )
-                onOpenActions != null -> Modifier
+                !reorderMode && onOpenActions != null -> Modifier
                     .clickable(
                         onClickLabel = "Open task details for ${item.task.title}",
                         onClick = onOpenActions,
@@ -125,7 +126,7 @@ fun TaskRow(
             emoji = item.task.icon,
             areaId = item.task.areaId,
             areaName = item.task.area,
-            onEdit = onEdit.takeUnless { selectionMode },
+            onEdit = onEdit.takeUnless { selectionMode || reorderMode },
             identityModifier = Modifier.testTag("task-icon-${item.task.id}"),
             primaryActionModifier = Modifier.testTag("task-primary-action-${item.task.id}"),
             editModifier = Modifier.testTag("task-edit-action-${item.task.id}"),
@@ -154,9 +155,9 @@ fun TaskRow(
                 }
             } else null,
             compactExpanded = disclosure.expanded,
-            onCompactExpansionToggle = disclosure.toggle.takeIf { compact },
+            onCompactExpansionToggle = disclosure.toggle.takeIf { compact && !reorderMode },
             compactExpansionTag = "task-expand-${item.task.id}",
-            primaryAction = {
+            primaryAction = if (reorderMode) null else ({
                 Checkbox(
                     checked = if (selectionMode) selected else completed,
                     onCheckedChange = if (selectionMode) null else { _ -> onComplete?.invoke() },
@@ -170,7 +171,7 @@ fun TaskRow(
                     },
                     colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.whipColors.success),
                 )
-            },
+            }),
         )
         Column(
             modifier = Modifier
@@ -337,7 +338,7 @@ fun TaskActionsDialog(
                                     }
                                 }
                                 WhipTextButton(enabled = !item.task.archived, onClick = { pendingMoveStepId = subtask.step.id }) {
-                                    Text("Move")
+                                    Text("Convert to Task")
                                 }
                             }
                         }
@@ -427,7 +428,7 @@ fun TaskActionsDialog(
         PaneAwareAlertDialog(
             modifier = modifier,
             onDismissRequest = { pendingMoveStepId = null },
-            title = { Text("Move Subtask to a New Task?") },
+            title = { Text("Convert Subtask to a Task?") },
             text = {
                 Text(
                     "“${step?.title.orEmpty()}” will become a new Inbox task and will be removed from “${item.task.title}”. You can undo this from the confirmation.",
@@ -440,7 +441,7 @@ fun TaskActionsDialog(
                         pendingMoveStepId = null
                         onPromoteSubtask(stepId)
                     },
-                ) { Text("Move to New Task") }
+                ) { Text("Convert to Inbox Task") }
             },
             dismissButton = {
                 WhipTextButton(onClick = { pendingMoveStepId = null }) { Text("Cancel") }

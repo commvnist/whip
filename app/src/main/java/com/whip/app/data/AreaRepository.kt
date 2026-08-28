@@ -5,7 +5,6 @@ import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
 import com.whip.app.domain.Area
 import java.util.Locale
-import kotlin.math.sign
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -144,11 +143,16 @@ class RoomAreaRepository(
     }
 
     override suspend fun move(id: String, direction: Int) = database.withTransaction {
-        val ordered = dao.observeAreasSnapshot().toMutableList()
-        val from = ordered.indexOfFirst { it.id == id }
+        val snapshot = dao.observeAreasSnapshot()
+        val active = snapshot.filterNot { it.archived }.toMutableList()
+        val from = active.indexOfFirst { it.id == id }
         if (from < 0 || direction == 0) return@withTransaction
-        val to = (from + direction.sign).coerceIn(0, ordered.lastIndex)
-        if (from != to) java.util.Collections.swap(ordered, from, to)
+        val to = (from + direction).coerceIn(0, active.lastIndex)
+        if (from == to) return@withTransaction
+        active.add(to, active.removeAt(from))
+        // Archived Areas are not part of the authored active order and therefore
+        // cannot be crossed by a drag from the manager.
+        val ordered = active + snapshot.filter { it.archived }
         val now = clock.now().toEpochMilli()
         ordered.forEachIndexed { index, area ->
             if (area.position != index) dao.updateArea(area.copy(position = index, updatedAtMillis = now))

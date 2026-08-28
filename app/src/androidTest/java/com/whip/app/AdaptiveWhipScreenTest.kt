@@ -20,6 +20,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -33,6 +34,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.ui.GoalUiState
+import com.whip.app.ui.DomainLoadContent
 import com.whip.app.ui.GoalViewModel
 import com.whip.app.ui.GymUiState
 import com.whip.app.ui.GymViewModel
@@ -74,6 +76,36 @@ import org.junit.runner.RunWith
 class AdaptiveWhipScreenTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun sharedLoadingErrorRetryIsActionableAndNeverShowsFalseSuccess() {
+        val error = mutableStateOf<String?>(null)
+        var retries = 0
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                DomainLoadContent(
+                    domain = "Tasks",
+                    innerPadding = PaddingValues(0.dp),
+                    errorMessage = error.value,
+                    onRetry = {
+                        retries += 1
+                        error.value = null
+                    },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Loading Tasks…").assertIsDisplayed()
+        compose.runOnIdle { error.value = "Storage is temporarily unavailable" }
+        compose.onNodeWithText("Could not load Tasks").assertIsDisplayed()
+        compose.onNodeWithText("Storage is temporarily unavailable").assertIsDisplayed()
+        compose.onAllNodesWithText("Loading Tasks…").assertCountEquals(0)
+
+        compose.onNodeWithText("Try Again").performClick()
+        compose.runOnIdle { check(retries == 1) }
+        compose.onNodeWithText("Loading Tasks…").assertIsDisplayed()
+        compose.onAllNodesWithText("Could not load Tasks").assertCountEquals(0)
+    }
 
     @Test
     fun newerTaskUndoSnackbarKeepsItsOwnRecoveryToken() {
@@ -480,12 +512,12 @@ class AdaptiveWhipScreenTest {
         }
 
         compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
-        compose.onNodeWithText("Task").performClick()
+        compose.onNodeWithText("New Task").performClick()
         assertEditorInsideContentPane("task-editor-surface")
         compose.onNodeWithContentDescription("Cancel Task editing").performClick()
 
         compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
-        compose.onNodeWithText("Habit").performClick()
+        compose.onNodeWithText("New Habit").performClick()
         assertEditorInsideContentPane("habit-editor-surface")
         compose.onNodeWithContentDescription("Cancel Habit editing").performClick()
 
@@ -505,7 +537,7 @@ class AdaptiveWhipScreenTest {
 
         compose.onNodeWithContentDescription("Go to Home").performClick()
         compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
-        compose.onNodeWithText("Exercise").performClick()
+        compose.onNodeWithText("New Exercise").performClick()
         assertEditorInsideContentPane("exercise-editor-surface")
         compose.onNodeWithText("Save").assertIsDisplayed()
         compose.onNodeWithText("Cancel").assertIsDisplayed().performClick()
@@ -864,7 +896,7 @@ class AdaptiveWhipScreenTest {
         }
 
         compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").assertIsDisplayed().performClick()
-        compose.onNodeWithText("Task").assertIsDisplayed().performClick()
+        compose.onNodeWithText("New Task").assertIsDisplayed().performClick()
         compose.onNodeWithTag("task-editor-title").assertIsDisplayed()
         compose.onNodeWithTag("task-editor-more-details").performScrollTo().assertIsDisplayed().performClick()
         compose.onNodeWithText("Planning").performScrollTo().assertIsDisplayed()
@@ -900,7 +932,7 @@ class AdaptiveWhipScreenTest {
             }
         }
         compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
-        compose.onNodeWithText("Habit").performClick()
+        compose.onNodeWithText("New Habit").performClick()
         compose.onNodeWithTag("habit-editor-name").assertIsDisplayed()
         compose.onNodeWithText("Save").assertIsDisplayed()
         compose.onNodeWithContentDescription("Cancel Habit editing").performClick()
@@ -929,7 +961,7 @@ class AdaptiveWhipScreenTest {
             }
         }
         compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
-        compose.onNodeWithText("Goal").performClick()
+        compose.onNodeWithText("New Goal").performClick()
         compose.onNodeWithTag("goal-editor-name").assertIsDisplayed()
         compose.onNodeWithText("Save").assertIsDisplayed()
         compose.onNodeWithContentDescription("Cancel Goal editing").performClick()
@@ -994,7 +1026,7 @@ class AdaptiveWhipScreenTest {
         }
 
         compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
-        compose.onNodeWithText("Goal").performClick()
+        compose.onNodeWithText("New Goal").performClick()
         val hinge = compose.onNodeWithContentDescription("Device hinge separator").fetchSemanticsNode().boundsInRoot
         val editor = compose.onNodeWithTag("goal-editor-surface").fetchSemanticsNode().boundsInRoot
         check(editor.right <= hinge.left + 1f) { "RTL goal editor crossed the hinge: editor=$editor hinge=$hinge" }

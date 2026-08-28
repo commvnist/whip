@@ -102,6 +102,21 @@ class TrackRepositoryTest {
         assertFalse(partialProjectionObserved)
     }
 
+    @Test fun reorderNormalizesOmittedArchivedTracksWithoutDuplicatePositions() = runBlocking {
+        val area = database.measurementDao().observeAreasSnapshot().first().id
+        fun draft(name: String) = booksDraft().copy(name = name, areaId = area)
+        val first = tracks.create(draft("First"))
+        val second = tracks.create(draft("Second"))
+        val archived = tracks.create(draft("Archived"))
+        tracks.setArchived(archived, true)
+
+        tracks.reorder(listOf(second, first))
+
+        val stored = database.trackDao().getAllTracks()
+        assertEquals(stored.size, stored.map { it.position }.distinct().size)
+        assertEquals(listOf(second, first), stored.sortedBy { it.position }.take(2).map { it.id })
+    }
+
     @Test fun identityOnlyEditSkipsSchemaAndAutomationInvalidation() = runBlocking {
         val id = tracks.create(booksDraft())
         val before = requireNotNull(tracks.projection(id))

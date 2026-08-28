@@ -18,6 +18,17 @@ import org.junit.Test
 
 class InteractionConsistencyTest {
     @Test
+    fun sharedReorderMovementSupportsDropDistancesAndSafeBoundaries() {
+        val items = listOf("A", "B", "C", "D")
+
+        assertEquals(listOf("B", "C", "A", "D"), moveListItem(items, 0, 2))
+        assertEquals(listOf("D", "A", "B", "C"), moveListItem(items, 3, -20))
+        assertEquals(listOf("A", "C", "D", "B"), moveListItem(items, 1, 20))
+        assertEquals(items, moveListItem(items, -1, 1))
+        assertEquals(items, moveListItem(items, 1, 0))
+    }
+
+    @Test
     fun interfaceChromeUsesTitleCaseWithoutDamagingAcronymsOrApostrophes() {
         assertEquals("Review & Trends", "review & trends".uiTitleCase())
         assertEquals("Search Goals", "search goals".uiTitleCase())

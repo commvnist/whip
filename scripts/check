@@ -44,8 +44,8 @@ fi
 
 cd "$PROJECT_ROOT"
 
-jvm_test_count="$(grep -Rho --include='*.kt' '@Test' app/src/test | wc -l | tr -d ' ')"
-android_test_count="$(grep -Rho --include='*.kt' '@Test' app/src/androidTest | wc -l | tr -d ' ')"
+jvm_test_count="$(grep -RhoE --include='*.kt' '^[[:space:]]*@Test([[:space:](]|$)' app/src/test | wc -l | tr -d ' ')"
+android_test_count="$(grep -RhoE --include='*.kt' '^[[:space:]]*@Test([[:space:](]|$)' app/src/androidTest | wc -l | tr -d ' ')"
 product_test_count="$((jvm_test_count + android_test_count))"
 documented_baseline="Current baseline: ${product_test_count} product tests—${jvm_test_count} fast JVM tests and ${android_test_count} Android"
 if ! grep -Fq "$documented_baseline" docs/testing.md; then
@@ -170,13 +170,76 @@ if [[ "$run_emulator_tests" == true ]]; then
     done
     readonly instrumentation_batch_size=10
     batch_total="$(((${#remaining_instrumentation_classes[@]} + instrumentation_batch_size - 1) / instrumentation_batch_size))"
+    instrumentation_run_dir="$(mktemp -d "${PROJECT_ROOT}/build/instrumentation-results-XXXXXX")"
+    readonly instrumentation_run_dir
+    aggregate_result="${instrumentation_run_dir}/aggregate.tsv"
+    readonly aggregate_result
+    printf 'batch\texpected_classes\texecuted_classes\texecuted\tskipped\n' > "$aggregate_result"
+    executed_test_total=0
+    skipped_test_total=0
+
+    capture_instrumentation_batch() {
+        local batch_number="$1"
+        local expected_class_argument="$2"
+        local batch_report_dir="${instrumentation_run_dir}/batch-${batch_number}"
+        mkdir -p "$batch_report_dir"
+        mapfile -t batch_xml < <(find app/build/outputs/androidTest-results/connected -name 'TEST-*.xml' -type f 2>/dev/null | sort)
+        if [[ "${#batch_xml[@]}" -eq 0 ]]; then
+            printf 'error: instrumentation batch %s produced no executable XML results\n' "$batch_number" >&2
+            exit 1
+        fi
+        for result_xml in "${batch_xml[@]}"; do
+            cp "$result_xml" "$batch_report_dir/"
+        done
+        local expected_class_file="${batch_report_dir}/expected-classes.txt"
+        local executed_class_file="${batch_report_dir}/executed-classes.txt"
+        tr ',' '\n' <<< "$expected_class_argument" | sed '/^$/d' | sort -u > "$expected_class_file"
+        (grep -Rho 'classname="[^"]*"' "$batch_report_dir" || true) \
+            | sed -E 's/^classname="([^"]*)"$/\1/' \
+            | sed '/^$/d' \
+            | sort -u > "$executed_class_file"
+        if ! cmp -s "$expected_class_file" "$executed_class_file"; then
+            printf 'error: instrumentation batch %s executed a different class set than requested\n' "$batch_number" >&2
+            diff -u "$expected_class_file" "$executed_class_file" >&2 || true
+            exit 1
+        fi
+        local expected_class_count executed_class_count executed skipped
+        expected_class_count="$(wc -l < "$expected_class_file" | tr -d ' ')"
+        executed_class_count="$(wc -l < "$executed_class_file" | tr -d ' ')"
+        executed="$( (grep -Rho '<testcase[ >]' "$batch_report_dir" || true) | wc -l | tr -d ' ')"
+        skipped="$( (grep -Rho '<skipped[ >]' "$batch_report_dir" || true) | wc -l | tr -d ' ')"
+        if [[ "$executed" -eq 0 ]]; then
+            printf 'error: instrumentation batch %s reported zero executed tests\n' "$batch_number" >&2
+            exit 1
+        fi
+        executed_test_total="$((executed_test_total + executed))"
+        skipped_test_total="$((skipped_test_total + skipped))"
+        printf '%s\t%s\t%s\t%s\t%s\n' \
+            "$batch_number" "$expected_class_count" "$executed_class_count" "$executed" "$skipped" >> "$aggregate_result"
+    }
+
+    run_instrumentation_batch() {
+        local batch_number="$1"
+        local class_argument="$2"
+        local gradle_status
+        set +e
+        ANDROID_SERIAL="$test_serial" ./gradlew :app:connectedDebugAndroidTest \
+            "-Pandroid.testInstrumentationRunnerArguments.class=${class_argument}"
+        gradle_status="$?"
+        set -e
+        capture_instrumentation_batch "$batch_number" "$class_argument"
+        if [[ "$gradle_status" -ne 0 ]]; then
+            printf 'error: instrumentation batch %s failed; results retained in %s\n' "$batch_number" "$instrumentation_run_dir" >&2
+            exit "$gradle_status"
+        fi
+        adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug >/dev/null
+        adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug.test >/dev/null
+    }
+
     if [[ "$graphics_test_found" == true ]]; then
         batch_total="$((batch_total + 1))"
         printf 'Instrumentation batch 1/%s (graphics interaction class)\n' "$batch_total"
-        ANDROID_SERIAL="$test_serial" ./gradlew :app:connectedDebugAndroidTest \
-            "-Pandroid.testInstrumentationRunnerArguments.class=${graphics_test_class}"
-        adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug >/dev/null
-        adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug.test >/dev/null
+        run_instrumentation_batch 1 "$graphics_test_class"
     fi
 
     for ((batch_start = 0; batch_start < ${#remaining_instrumentation_classes[@]}; batch_start += instrumentation_batch_size)); do
@@ -187,10 +250,17 @@ if [[ "$run_emulator_tests" == true ]]; then
             batch_number="$((batch_number + 1))"
         fi
         printf 'Instrumentation batch %s/%s (%s classes)\n' "$batch_number" "$batch_total" "${#batch[@]}"
-        ANDROID_SERIAL="$test_serial" ./gradlew :app:connectedDebugAndroidTest \
-            "-Pandroid.testInstrumentationRunnerArguments.class=${batch_classes}"
-        adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug >/dev/null
-        adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug.test >/dev/null
+        run_instrumentation_batch "$batch_number" "$batch_classes"
     done
-    printf 'All %s Android instrumentation tests passed across %s batches.\n' "$android_test_count" "$batch_total"
+    if [[ "$executed_test_total" -ne "$android_test_count" ]]; then
+        printf 'error: expected %s Android tests from source but XML proves %s executed; see %s\n' \
+            "$android_test_count" "$executed_test_total" "$aggregate_result" >&2
+        exit 1
+    fi
+    if [[ "$skipped_test_total" -ne 0 ]]; then
+        printf 'error: %s Android tests were skipped; see %s\n' "$skipped_test_total" "$aggregate_result" >&2
+        exit 1
+    fi
+    printf 'All %s Android instrumentation tests executed with zero skips across %s batches. Aggregate: %s\n' \
+        "$executed_test_total" "$batch_total" "$aggregate_result"
 fi

@@ -299,7 +299,7 @@ class RoutineBuilderUiTest {
         compose.onNodeWithTag("routine-reps-min-1").assertTextContains("8")
         compose.onNodeWithTag("routine-reps-max-1").assertTextContains("12")
 
-        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasText("Rep Prescription Schemes"))
+        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasText("Saved Schemes · App-wide"))
         compose.onNodeWithContentDescription("Edit Volume · 3 × 8–12").performClick()
         compose.onNodeWithTag("rep-scheme-name").performTextReplacement("Backoff")
         compose.onNodeWithTag("rep-scheme-reps-max").performTextReplacement("10")

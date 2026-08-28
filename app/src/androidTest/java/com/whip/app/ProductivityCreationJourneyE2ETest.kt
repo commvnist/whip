@@ -55,6 +55,8 @@ class ProductivityCreationJourneyE2ETest {
     @Before
     fun reset() = runBlocking {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+                .revokeRuntimePermission(app.packageName, Manifest.permission.POST_NOTIFICATIONS)
             check(
                 ContextCompat.checkSelfPermission(app, Manifest.permission.POST_NOTIFICATIONS) ==
                     PackageManager.PERMISSION_DENIED,
@@ -153,7 +155,7 @@ class ProductivityCreationJourneyE2ETest {
                 compose.onNodeWithContentDescription("Edit Habit").assertIsDisplayed()
             }
             selectDetailSection("habit", "Automations", "habit-detail-surface")
-            compose.onNodeWithTag("habit-detail-section-Automations").assertIsDisplayed()
+            compose.onNodeWithTag("entity-inspector-content-automation").assertIsDisplayed()
             compose.onNodeWithContentDescription("Edit Habit").assertIsDisplayed()
             selectDetailSection("habit", "Options", "habit-detail-surface")
             compose.onNodeWithContentDescription("Edit Habit").assertIsDisplayed()
@@ -197,7 +199,7 @@ class ProductivityCreationJourneyE2ETest {
                 compose.onNodeWithContentDescription("Edit Goal").assertIsDisplayed()
             }
             selectDetailSection("goal", "Automations", "goal-detail-surface")
-            compose.onNodeWithTag("goal-detail-section-Automations").assertIsDisplayed()
+            compose.onNodeWithTag("entity-inspector-content-automation").assertIsDisplayed()
             compose.onNodeWithContentDescription("Edit Goal").assertIsDisplayed()
             selectDetailSection("goal", "Options", "goal-detail-surface")
             compose.onNodeWithContentDescription("Edit Goal").assertIsDisplayed()
@@ -379,7 +381,9 @@ class ProductivityCreationJourneyE2ETest {
 
     private fun selectDetailSection(prefix: String, label: String, surfaceTag: String) {
         val sectionTag = "$prefix-detail-section-$label"
-        if (compose.onAllNodesWithTag(sectionTag).fetchSemanticsNodes().isNotEmpty()) {
+        val sectionVisible = compose.onAllNodesWithTag(sectionTag).fetchSemanticsNodes()
+            .any { node -> runCatching { node.layoutInfo.isPlaced }.getOrDefault(false) }
+        if (sectionVisible) {
             compose.onNodeWithTag(sectionTag).performSemanticsAction(SemanticsActions.OnClick)
         } else {
             compose.onNode(

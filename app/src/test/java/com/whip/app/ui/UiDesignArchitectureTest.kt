@@ -163,11 +163,16 @@ class UiDesignArchitectureTest {
 
         val gymLibraryAddMenu = app.substringAfter("DropdownMenu(expanded = gymAddExpanded")
             .substringBefore("supportsPaneExpansion")
-        assertTrue(gymLibraryAddMenu.contains("Text(if (gymState.activeSession == null) \"Workout\" else \"Add to Workout\")"))
+        assertTrue(
+            gymLibraryAddMenu.contains(
+                "label = if (gymState.activeSession == null) \"Start Workout\" else \"Add to Workout\"",
+            ),
+        )
         listOf("Routine", "Exercise", "Machine", "Category").forEach { item ->
-            assertTrue("Gym Library Add is missing $item", gymLibraryAddMenu.contains("Text(\"$item\")"))
+            assertTrue("Gym Library Add is missing $item", gymLibraryAddMenu.contains("label = \"New $item\""))
         }
         assertTrue(app.contains("GymDestination.Library -> \"Add workout, routine, exercise, machine, or category\""))
+        assertTrue("Focused collection modes must suppress all shell creation", app.contains("taskSelectionMode = focusedCollectionMode"))
 
         val quickCapture = app.substringAfter("fun submitQuickCapture()")
             .substringBefore("fun finishSelection()")

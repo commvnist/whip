@@ -164,6 +164,7 @@ class TrackWorkspaceUiTest {
             }
         }
 
+        compose.onNodeWithContentDescription("More destinations").performClick()
         compose.onNodeWithContentDescription("Tracks tab").performClick()
         compose.onNodeWithTag("track-workspace-navigation").assertIsDisplayed()
         compose.onNodeWithTag("track-workspace-destination-Activity").performClick()

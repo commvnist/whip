@@ -25,6 +25,8 @@ import androidx.test.uiautomator.Until
 import com.whip.app.core.AppSettings
 import com.whip.app.core.HomeSection
 import com.whip.app.domain.CustomIdentityEmoji
+import com.whip.app.domain.ScheduleKind
+import com.whip.app.domain.TaskDraft
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Assert.assertTrue
@@ -51,12 +53,34 @@ class SettingsBehaviorUiTest {
 
     @Test
     fun compactItemLayoutCanBeEnabledFromAppearance() {
+        val taskId = runBlocking {
+            app.taskRepository.create(
+                TaskDraft(
+                    title = "Compact consequence task",
+                    notes = "Notes shown only in the comfortable row",
+                    scheduleKind = ScheduleKind.Once,
+                    date = app.clock.today(),
+                    inbox = false,
+                ),
+            )
+        }
+        compose.waitUntil {
+            compose.onAllNodesWithText("Notes shown only in the comfortable row")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("Notes shown only in the comfortable row").assertIsDisplayed()
+
         openAppearanceSettings()
         compose.onNodeWithTag("settings-list")
             .performScrollToNode(hasTestTag("settings-compact-item-layout"))
         compose.onNodeWithTag("settings-compact-item-layout").performClick()
 
         compose.waitUntil { app.settingsRepository.current().compactItemLayout }
+        compose.onNodeWithContentDescription("Close Settings").performClick()
+
+        compose.onAllNodesWithText("Notes shown only in the comfortable row").assertCountEquals(0)
+        compose.onNodeWithTag("task-expand-$taskId").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Notes shown only in the comfortable row").assertIsDisplayed()
     }
 
     @Test

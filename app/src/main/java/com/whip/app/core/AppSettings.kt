@@ -82,6 +82,7 @@ data class AppSettings(
     val defaultTaskStepPolicy: RepeatStepPolicy = RepeatStepPolicy.Reset,
     val showAllUpcomingTaskOccurrences: Boolean = false,
     val showHabitsInTaskPlanning: Boolean = false,
+    val activeTaskSortMode: String = "Smart",
     val defaultHabitWeekStart: DayOfWeek = DayOfWeek.MONDAY,
     val naturalLanguageTaskCapture: Boolean = true,
     val customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
@@ -190,6 +191,7 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         defaultTaskStepPolicy = preferences.enum("taskStepPolicy", RepeatStepPolicy.Reset),
         showAllUpcomingTaskOccurrences = preferences.getBoolean("showAllUpcomingTaskOccurrences", false),
         showHabitsInTaskPlanning = preferences.getBoolean("showHabitsInTaskPlanning", false),
+        activeTaskSortMode = preferences.getString("activeTaskSortMode", "Smart") ?: "Smart",
         defaultHabitWeekStart = preferences.enum("habitWeekStart", DayOfWeek.MONDAY),
         naturalLanguageTaskCapture = preferences.getBoolean("naturalLanguageTaskCapture", true),
         customIdentityEmojis = preferences.getString("customIdentityEmojis", null).decodeCustomIdentityEmojis(),
@@ -256,6 +258,7 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .putString("taskStepPolicy", value.defaultTaskStepPolicy.name)
             .putBoolean("showAllUpcomingTaskOccurrences", value.showAllUpcomingTaskOccurrences)
             .putBoolean("showHabitsInTaskPlanning", value.showHabitsInTaskPlanning)
+            .putString("activeTaskSortMode", value.activeTaskSortMode)
             .putString("habitWeekStart", value.defaultHabitWeekStart.name)
             .putBoolean("naturalLanguageTaskCapture", value.naturalLanguageTaskCapture)
             .remove("savedIdentityEmojis")
@@ -308,6 +311,9 @@ fun AppSettings.normalized(): AppSettings {
         collapsedHomeSections = collapsedHomeSections.intersect(HomeSection.entries.toSet()),
         healthDataTypes = healthDataTypes.intersect(HealthDataType.entries.toSet()),
         healthSyncDays = healthSyncDays.coerceIn(1, 365),
+        activeTaskSortMode = activeTaskSortMode.takeIf {
+            it in setOf("Smart", "Manual", "Scheduled Date", "Deadline", "Priority", "Title")
+        } ?: "Smart",
         customIdentityEmojis = normalizeCustomIdentityEmojis(customIdentityEmojis),
         trackedGymRecords = normalizeTrackedGymRecords(trackedGymRecords),
     )

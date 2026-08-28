@@ -1,17 +1,28 @@
 package com.whip.app.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -31,6 +42,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Density
@@ -57,6 +69,361 @@ import org.junit.runner.RunWith
 class InteractionControlUiTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun reorderHandleHasOneConsistentTouchAndAccessibilityContract() {
+        var movement = 0
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipReorderHandle(
+                    label = "Morning routine",
+                    canMovePrevious = true,
+                    canMoveNext = true,
+                    onMove = { movement += it },
+                )
+            }
+        }
+
+        val node = compose.onNodeWithContentDescription("Reorder Morning routine").assertIsDisplayed()
+        val semantics = node.fetchSemanticsNode().config
+        assertEquals("Drag up or down", semantics[SemanticsProperties.StateDescription])
+        assertTrue(SemanticsActions.OnClick !in semantics)
+        val actions = semantics[SemanticsActions.CustomActions]
+        assertEquals(listOf("Move Morning routine up", "Move Morning routine down"), actions.map { it.label })
+        compose.runOnIdle { actions.last().action() }
+        assertEquals(1, movement)
+        val minimumPx = with(compose.density) { 48.dp.toPx() }
+        assertTrue(node.fetchSemanticsNode().boundsInRoot.height >= minimumPx)
+        assertTrue(node.fetchSemanticsNode().boundsInRoot.width >= minimumPx)
+    }
+
+    @Test
+    fun repeatedAccessibilityMovesKeepAnnouncementWithTheLogicalItem() {
+        var order by mutableStateOf(listOf("Alpha", "Beta", "Gamma"))
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipReorderLayout(itemSpacing = 8.dp) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        order.forEach { label ->
+                            key(label) {
+                                val index = order.indexOf(label)
+                                val interaction = rememberWhipReorderInteractionState()
+                                Row(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp)
+                                        .whipReorderItem(
+                                            interaction,
+                                            layoutPosition = index + 1,
+                                            layoutScope = "accessibility-identity",
+                                        ),
+                                ) {
+                                    WhipReorderHandle(
+                                        label = label,
+                                        canMovePrevious = index > 0,
+                                        canMoveNext = index < order.lastIndex,
+                                        position = index + 1,
+                                        total = order.size,
+                                        interactionState = interaction,
+                                        moveWholeItem = true,
+                                        layoutScope = "accessibility-identity",
+                                        onMove = { delta -> order = moveListItem(order, index, delta) },
+                                    )
+                                    Text(label)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        fun moveAlphaDown() {
+            val action = compose.onNodeWithContentDescription("Reorder Alpha")
+                .fetchSemanticsNode().config[SemanticsActions.CustomActions]
+                .last { it.label == "Move Alpha down" }
+            compose.runOnIdle { assertTrue(action.action()) }
+        }
+
+        moveAlphaDown()
+        compose.waitForIdle()
+        assertEquals(listOf("Beta", "Alpha", "Gamma"), order)
+        assertTrue(
+            compose.onNodeWithContentDescription("Reorder Alpha")
+                .fetchSemanticsNode().config[SemanticsProperties.StateDescription]
+                .startsWith("Position 2 of 3. Moved to position 2"),
+        )
+
+        moveAlphaDown()
+        compose.waitForIdle()
+        assertEquals(listOf("Beta", "Gamma", "Alpha"), order)
+        assertTrue(
+            compose.onNodeWithContentDescription("Reorder Alpha")
+                .fetchSemanticsNode().config[SemanticsProperties.StateDescription]
+                .startsWith("Position 3 of 3. Moved to position 3"),
+        )
+    }
+
+    @Test
+    fun reorderHandleOwnsTouchDragAndUsesTheLatestMoveCallback() {
+        var parentClicks by mutableStateOf(0)
+        var callbackVersion by mutableStateOf(1)
+        val moves = mutableListOf<Pair<Int, Int>>()
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Box(Modifier.clickable { parentClicks++ }) {
+                    WhipReorderHandle(
+                        label = "Nested item",
+                        canMovePrevious = true,
+                        canMoveNext = true,
+                        onMove = { delta -> moves += callbackVersion to delta },
+                    )
+                }
+            }
+        }
+
+        val handle = compose.onNodeWithContentDescription("Reorder Nested item")
+        handle.performTouchInput { down(center); up() }
+        compose.runOnIdle { assertEquals(0, parentClicks) }
+
+        compose.runOnIdle { callbackVersion = 2 }
+        val dragDistance = with(compose.density) { 72.dp.toPx() }
+        handle.performTouchInput {
+            down(center)
+            moveBy(Offset(0f, dragDistance), 300L)
+            up()
+        }
+        compose.runOnIdle {
+            assertEquals(0, parentClicks)
+            assertEquals(listOf(2 to 1), moves)
+        }
+    }
+
+    @Test
+    fun longReorderListScrollsAndKeepsMovingAtTheViewportEdge() {
+        var order by mutableStateOf((0 until 12).toList())
+        var observedListState: LazyListState? = null
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                val listState = rememberLazyListState()
+                observedListState = listState
+                WhipReorderLazyColumn(
+                    modifier = Modifier.width(280.dp).height(240.dp).testTag("edge-reorder-list"),
+                    state = listState,
+                ) {
+                    items(order, key = { it }) { id ->
+                        val index = order.indexOf(id)
+                        val interaction = rememberWhipReorderInteractionState()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .whipReorderItem(
+                                    interaction,
+                                    layoutPosition = index + 1,
+                                    layoutScope = "edge-test",
+                                ),
+                        ) {
+                            WhipReorderHandle(
+                                label = "Item $id",
+                                canMovePrevious = index > 0,
+                                canMoveNext = index < order.lastIndex,
+                                position = index + 1,
+                                total = order.size,
+                                interactionState = interaction,
+                                moveWholeItem = true,
+                                layoutScope = "edge-test",
+                                onMove = { delta -> order = moveListItem(order, index, delta) },
+                            )
+                            Text("Item $id")
+                        }
+                    }
+                }
+            }
+        }
+
+        val edgeDrag = with(compose.density) { 92.dp.toPx() }
+        compose.onNodeWithContentDescription("Reorder Item 2").performTouchInput {
+            down(center)
+            moveBy(Offset(0f, edgeDrag), 900L)
+            compose.mainClock.advanceTimeBy(650L)
+            up()
+        }
+        compose.runOnIdle {
+            val firstVisible = requireNotNull(observedListState).firstVisibleItemIndex
+            assertTrue("order=$order firstVisible=$firstVisible", order.indexOf(2) >= 4)
+            assertTrue("order=$order firstVisible=$firstVisible", firstVisible > 0)
+        }
+    }
+
+    @Test
+    fun longHorizontalReorderRowScrollsAndKeepsMovingAtTheViewportEdge() {
+        var order by mutableStateOf((0 until 12).toList())
+        var observedScrollState: ScrollState? = null
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                val scrollState = androidx.compose.foundation.rememberScrollState()
+                observedScrollState = scrollState
+                WhipReorderHorizontalRow(
+                    modifier = Modifier.width(240.dp).height(64.dp),
+                    state = scrollState,
+                ) {
+                    order.forEach { id ->
+                        val index = order.indexOf(id)
+                        val interaction = rememberWhipReorderInteractionState()
+                        Row(
+                            modifier = Modifier
+                                .width(64.dp)
+                                .height(64.dp)
+                                .whipReorderItem(
+                                    interaction,
+                                    axis = WhipReorderAxis.Horizontal,
+                                    layoutPosition = index + 1,
+                                    layoutScope = "horizontal-edge-test",
+                                ),
+                        ) {
+                            WhipReorderHandle(
+                                label = "Day $id",
+                                canMovePrevious = index > 0,
+                                canMoveNext = index < order.lastIndex,
+                                position = index + 1,
+                                total = order.size,
+                                interactionState = interaction,
+                                moveWholeItem = true,
+                                axis = WhipReorderAxis.Horizontal,
+                                layoutScope = "horizontal-edge-test",
+                                onMove = { delta -> order = moveListItem(order, index, delta) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        val edgeDrag = with(compose.density) { 96.dp.toPx() }
+        compose.onNodeWithContentDescription("Reorder Day 2").performTouchInput {
+            down(center)
+            moveBy(Offset(edgeDrag, 0f), 900L)
+            compose.mainClock.advanceTimeBy(650L)
+            up()
+        }
+        compose.runOnIdle {
+            val scroll = requireNotNull(observedScrollState).value
+            assertTrue("order=$order scroll=$scroll", order.indexOf(2) >= 4)
+            assertTrue("order=$order scroll=$scroll", scroll > 0)
+        }
+    }
+
+    @Test
+    fun measuredInsertionPreviewMovesSiblingsAndCancelRestoresTheirGeometry() {
+        val heights = listOf(64.dp, 112.dp, 80.dp)
+        var committedMoves = 0
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipReorderLayout(itemSpacing = 12.dp) {
+                    Column(
+                        Modifier.width(280.dp).height(330.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                    repeat(3) { index ->
+                        val interaction = rememberWhipReorderInteractionState()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(heights[index])
+                                .testTag("preview-row-$index")
+                                .whipReorderItem(
+                                    interaction,
+                                    layoutPosition = index + 1,
+                                    layoutScope = "variable-height-preview",
+                                ),
+                        ) {
+                            WhipReorderHandle(
+                                label = "Preview item $index",
+                                canMovePrevious = index > 0,
+                                canMoveNext = index < 2,
+                                position = index + 1,
+                                total = 3,
+                                interactionState = interaction,
+                                moveWholeItem = true,
+                                layoutScope = "variable-height-preview",
+                                onMove = { committedMoves += it },
+                            )
+                            Text("Preview item $index")
+                        }
+                    }
+                }
+                }
+            }
+        }
+
+        val beforeFirst = compose.onNodeWithTag("preview-row-0").fetchSemanticsNode().boundsInRoot
+        val beforeSecond = compose.onNodeWithTag("preview-row-1").fetchSemanticsNode().boundsInRoot
+        val beforeThird = compose.onNodeWithTag("preview-row-2").fetchSemanticsNode().boundsInRoot
+        // Leave enough room for Android's touch slop while remaining short of
+        // the second variable-height insertion boundary (184 dp).
+        val crossFirstTarget = with(compose.density) { 140.dp.toPx() }
+        compose.mainClock.autoAdvance = false
+        compose.onNodeWithContentDescription("Reorder Preview item 0").performTouchInput {
+            down(center)
+            moveBy(Offset(0f, crossFirstTarget), 300L)
+        }
+        compose.mainClock.advanceTimeBy(500L)
+
+        val previewSecond = compose.onNodeWithTag("preview-row-1").fetchSemanticsNode().boundsInRoot
+        val previewThird = compose.onNodeWithTag("preview-row-2").fetchSemanticsNode().boundsInRoot
+        val previewSecondOffset = compose.onNodeWithTag("preview-row-1")
+            .fetchSemanticsNode().config[WhipReorderPreviewOffsetKey]
+        val previewThirdOffset = compose.onNodeWithTag("preview-row-2")
+            .fetchSemanticsNode().config[WhipReorderPreviewOffsetKey]
+        val previewState = compose.onNodeWithContentDescription("Reorder Preview item 0")
+            .fetchSemanticsNode().config[SemanticsProperties.StateDescription]
+        assertTrue("Unexpected live reorder state: $previewState", previewState.startsWith("Position 2 of 3"))
+        val expectedDisplacement = with(compose.density) { -(64.dp + 12.dp).toPx() }
+        assertEquals(expectedDisplacement, previewSecondOffset, 1.5f)
+        assertEquals(0f, previewThirdOffset, 1.5f)
+        assertTrue(
+            "Displaced siblings overlap: second=$previewSecond third=$previewThird offset=$previewSecondOffset",
+            previewSecond.bottom + previewSecondOffset <= previewThird.top + previewThirdOffset,
+        )
+
+        compose.onNodeWithContentDescription("Reorder Preview item 0").performTouchInput { cancel() }
+        compose.mainClock.autoAdvance = true
+        compose.waitForIdle()
+        val restoredSecond = compose.onNodeWithTag("preview-row-1").fetchSemanticsNode().boundsInRoot
+        val restoredThird = compose.onNodeWithTag("preview-row-2").fetchSemanticsNode().boundsInRoot
+        val restoredSecondOffset = compose.onNodeWithTag("preview-row-1")
+            .fetchSemanticsNode().config[WhipReorderPreviewOffsetKey]
+        val restoredThirdOffset = compose.onNodeWithTag("preview-row-2")
+            .fetchSemanticsNode().config[WhipReorderPreviewOffsetKey]
+        assertEquals(beforeSecond.top, restoredSecond.top, 1.5f)
+        assertEquals(beforeThird.top, restoredThird.top, 1.5f)
+        assertEquals(0f, restoredSecondOffset, 1.5f)
+        assertEquals(0f, restoredThirdOffset, 1.5f)
+        assertEquals(0, committedMoves)
+
+        val farBeyondStart = with(compose.density) { -400.dp.toPx() }
+        compose.mainClock.autoAdvance = false
+        compose.onNodeWithContentDescription("Reorder Preview item 1").performTouchInput {
+            down(center)
+            moveBy(Offset(0f, farBeyondStart), 300L)
+        }
+        compose.mainClock.advanceTimeBy(500L)
+        val clampedMiddle = compose.onNodeWithTag("preview-row-1").fetchSemanticsNode().boundsInRoot
+        val clampedMiddleOffset = compose.onNodeWithTag("preview-row-1")
+            .fetchSemanticsNode().config[WhipReorderPreviewOffsetKey]
+        assertTrue(
+            "Dragged item escaped above its collection: item=$clampedMiddle collectionTop=${beforeFirst.top}",
+            clampedMiddle.top + clampedMiddleOffset >= beforeFirst.top - 1.5f,
+        )
+        assertTrue(
+            compose.onNodeWithContentDescription("Reorder Preview item 1")
+                .fetchSemanticsNode().config[SemanticsProperties.StateDescription]
+                .startsWith("Position 1 of 3"),
+        )
+        compose.onNodeWithContentDescription("Reorder Preview item 1").performTouchInput { cancel() }
+        compose.mainClock.autoAdvance = true
+    }
 
     @Test
     fun emojiPickerSearchesCommonChoicesAndPersistsReusableCustomEmoji() {
@@ -239,7 +606,11 @@ class InteractionControlUiTest {
 
         compose.onNodeWithContentDescription("Open Pages").performClick()
         compose.onNodeWithText("Archived").performClick()
-        compose.onNodeWithTag("rtl-tab-Archived").assertIsSelected()
+        compose.onAllNodesWithTag("rtl-tab-Archived").assertCountEquals(0)
+        compose.onNodeWithContentDescription("Open Pages").performClick()
+        compose.onNodeWithText("Archived").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Selected").assertIsDisplayed()
+        compose.onNodeWithText("Archived").performClick()
         compose.onNodeWithTag("rtl-tab-Today").performSemanticsAction(SemanticsActions.OnClick)
         compose.onNodeWithTag("rtl-tab-Today").assertIsSelected()
     }
@@ -430,7 +801,7 @@ class InteractionControlUiTest {
     }
 
     @Test
-    fun destinationTabsRevealASelectedTabWithoutLosingTheOuterGutter() {
+    fun destinationTabsKeepPrimaryPeersStableWhenSelectingFromMore() {
         var destination by mutableStateOf("General")
         compose.setContent {
             WhipTheme(dynamicColor = false) {
@@ -448,19 +819,22 @@ class InteractionControlUiTest {
 
         compose.onNodeWithContentDescription("Open Pages").performClick()
         compose.onNodeWithText("Data & Backup").performClick()
-        compose.onNodeWithTag("reveal-tab-Data & Backup").assertIsSelected()
+        compose.onAllNodesWithTag("reveal-tab-Data & Backup").assertCountEquals(0)
+        compose.onNodeWithTag("reveal-tab-General").assertIsDisplayed()
+        compose.onNodeWithTag("reveal-tab-Organization").assertIsDisplayed()
+        compose.onNodeWithTag("reveal-tab-Reminders").assertIsDisplayed()
 
         val expectedRightEdge = with(compose.density) { (320.dp - 12.dp).toPx() }
         compose.waitUntil(timeoutMillis = 5_000) {
             compose.onNodeWithContentDescription("Open Pages")
                 .fetchSemanticsNode().boundsInRoot.right <= expectedRightEdge + 0.5f
         }
-        val selectedBounds = compose.onNodeWithTag("reveal-tab-Data & Backup")
-            .fetchSemanticsNode().boundsInRoot
         val pagesBounds = compose.onNodeWithContentDescription("Open Pages")
             .fetchSemanticsNode().boundsInRoot
         assertEquals(expectedRightEdge, pagesBounds.right, 0.5f)
-        assertTrue(selectedBounds.right <= pagesBounds.left)
+        compose.onNodeWithContentDescription("Open Pages").performClick()
+        compose.onNodeWithText("Data & Backup").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Selected").assertIsDisplayed()
     }
 
     @Test

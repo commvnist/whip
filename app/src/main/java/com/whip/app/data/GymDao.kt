@@ -39,6 +39,9 @@ interface GymDao {
     @Query("SELECT * FROM exercises")
     suspend fun getAllExercises(): List<ExerciseEntity>
 
+    @Query("SELECT * FROM exercise_categories")
+    suspend fun getAllCategories(): List<ExerciseCategoryEntity>
+
     @Query("SELECT * FROM gym_machines")
     suspend fun getAllMachines(): List<GymMachineEntity>
 
@@ -83,6 +86,9 @@ interface GymDao {
 
     @Query("SELECT * FROM workout_exercises WHERE sessionId = :sessionId ORDER BY position, id")
     suspend fun getWorkoutExercises(sessionId: Long): List<WorkoutExerciseEntity>
+
+    @Query("SELECT * FROM workout_groups WHERE sessionId = :sessionId ORDER BY position, id")
+    suspend fun getWorkoutGroups(sessionId: Long): List<WorkoutGroupEntity>
 
     @Query("SELECT * FROM workout_sets WHERE id = :id")
     suspend fun getWorkoutSet(id: Long): WorkoutSetEntity?

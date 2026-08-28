@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -58,8 +59,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.ArrowDownward
-import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.MoreVert
@@ -145,9 +144,12 @@ fun GoalAreaContent(
     onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
     areaScopeLabel: String? = null,
+    onShowAllAreasForReorder: () -> Unit = {},
     onAreaChanged: (String?) -> Unit = {},
     destinationState: MutableState<GoalDestination>? = null,
     showWorkspace: Boolean = true,
+    onReorderModeChange: (Boolean) -> Unit = {},
+    reorderDismissRequest: Int = 0,
 ) {
     if (state.loading || state.errorMessage != null) {
         DomainLoadContent("goals", innerPadding, state.errorMessage, viewModel::retryLoading)
@@ -239,12 +241,19 @@ fun GoalAreaContent(
         GoalDestination.Archived -> state.archived
     }
     BackHandler(enabled = showWorkspace && manageOrder) { manageOrder = false }
+    LaunchedEffect(manageOrder) { onReorderModeChange(manageOrder) }
+    LaunchedEffect(reorderDismissRequest) {
+        if (reorderDismissRequest > 0) manageOrder = false
+    }
     if (showWorkspace) Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
         DestinationTabBar(
             selected = destination,
             destinations = GoalDestination.entries,
             primaryDestinations = listOf(GoalDestination.Active, GoalDestination.Completed, GoalDestination.Insights),
-            onSelect = { destination = it },
+            onSelect = {
+                manageOrder = false
+                destination = it
+            },
             label = GoalDestination::name,
             compactLabel = { if (it == GoalDestination.Completed) "Done" else it.name },
             testTagPrefix = "goal-destination",
@@ -256,7 +265,7 @@ fun GoalAreaContent(
                 innerPadding = WhipPageContentPadding,
                 onOpen = { actionsGoalId = it.goal.id },
             )
-        } else LazyColumn(
+        } else WhipReorderLazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(if (compactItemLayout) 4.dp else 10.dp),
@@ -266,32 +275,35 @@ fun GoalAreaContent(
                     title = destination.name + " Goals",
                     supportingText = "Long-term measurements, consistency, ranges, totals, and project milestones.",
                 ) {
-                    if (destination == GoalDestination.Active && list.isNotEmpty()) Box {
+                    if (!manageOrder && destination == GoalDestination.Active && (list.isNotEmpty() || areaScopeLabel != null)) Box {
                         WhipPageIconAction(
                             icon = Icons.Outlined.MoreVert,
                             label = "More Goal Actions",
                             onClick = { toolsExpanded = true },
                         )
                         DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
-                            DropdownMenuItem(
+                            WhipMenuItem(
                                 modifier = Modifier.testTag("goal-browse-templates-menu-action"),
-                                text = { Text("Browse Templates") },
+                                label = "Browse Templates",
                                 onClick = { toolsExpanded = false; templatesOpen = true },
                             )
-                            if (list.size > 1) DropdownMenuItem(
-                                text = { Text("Reorder Goals") },
-                                onClick = { toolsExpanded = false; manageOrder = true },
+                            if (list.size > 1 || areaScopeLabel != null) WhipMenuItem(
+                                label = if (areaScopeLabel == null) "Reorder Goals" else "Show All Areas & Reorder",
+                                onClick = {
+                                    toolsExpanded = false
+                                    if (areaScopeLabel != null) onShowAllAreasForReorder()
+                                    manageOrder = true
+                                },
                             )
                         }
                     }
                 }
             }
             if (manageOrder) item {
-                ModeButton(
-                    label = "Reorder Goals",
-                    active = true,
-                    onClick = { manageOrder = false },
-                    modifier = Modifier.fillMaxWidth(),
+                WhipReorderModeBar(
+                    itemLabel = "Goals",
+                    onDone = { manageOrder = false },
+                    boundaryNote = "Pinned and other Goals reorder separately.",
                 )
             }
             if (list.isEmpty()) item {
@@ -310,7 +322,19 @@ fun GoalAreaContent(
             items(list, key = { it.goal.id }) { projection ->
                 val index = list.indexOfFirst { it.goal.id == projection.goal.id }
                 Column {
-                    GoalCard(
+                    if (
+                        manageOrder && destination == GoalDestination.Active &&
+                        (index == 0 || list[index - 1].goal.pinned != projection.goal.pinned)
+                    ) {
+                        Text(
+                            if (projection.goal.pinned) "Pinned Goals" else "Other Goals",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 4.dp),
+                        )
+                    }
+                    val card: @Composable () -> Unit = {
+                        GoalCard(
                         projection,
                         customUnits = state.customUnits,
                         nowMillis = elapsedNowMillis,
@@ -319,21 +343,42 @@ fun GoalAreaContent(
                         onRecord = { recordingGoalId = projection.goal.id },
                         onToggleMilestone = viewModel::toggleMilestone,
                         onResetElapsed = { resettingElapsedGoalId = projection.goal.id },
-                    )
-                    if (manageOrder && destination == GoalDestination.Active) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            WhipTextButton(enabled = index > 0, onClick = {
-                                val ids = list.map { it.goal.id }.toMutableList()
-                                java.util.Collections.swap(ids, index, index - 1)
-                                viewModel.reorder(ids)
-                            }) { Icon(Icons.Outlined.ArrowUpward, contentDescription = null, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(4.dp)); Text("Earlier") }
-                            WhipTextButton(enabled = index in 0 until list.lastIndex, onClick = {
-                                val ids = list.map { it.goal.id }.toMutableList()
-                                java.util.Collections.swap(ids, index, index + 1)
-                                viewModel.reorder(ids)
-                            }) { Icon(Icons.Outlined.ArrowDownward, contentDescription = null, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(4.dp)); Text("Later") }
-                        }
+                        reorderMode = manageOrder,
+                        )
                     }
+                    if (manageOrder && destination == GoalDestination.Active && areaScopeLabel == null) {
+                        val partition = list.filter { it.goal.pinned == projection.goal.pinned }
+                        val partitionIndex = partition.indexOfFirst { it.goal.id == projection.goal.id }
+                        val reorderInteraction = rememberWhipReorderInteractionState()
+                        Row(
+                            modifier = Modifier.whipReorderItem(
+                                reorderInteraction,
+                                layoutPosition = partitionIndex + 1,
+                                layoutScope = "goal-browse-${projection.goal.pinned}",
+                            ),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            WhipReorderHandle(
+                                label = projection.goal.name,
+                                canMovePrevious = partitionIndex > 0,
+                                canMoveNext = partitionIndex in 0 until partition.lastIndex,
+                                position = partitionIndex + 1,
+                                total = partition.size,
+                                interactionState = reorderInteraction,
+                                moveWholeItem = true,
+                                layoutScope = "goal-browse-${projection.goal.pinned}",
+                                reserveWhenUnavailable = true,
+                                onMove = { delta ->
+                                    val moved = moveListItem(partition, partitionIndex, delta)
+                                    val iterator = moved.iterator()
+                                    viewModel.reorder(list.map { item ->
+                                        if (item.goal.pinned == projection.goal.pinned) iterator.next().goal.id else item.goal.id
+                                    })
+                                },
+                            )
+                            Box(Modifier.weight(1f)) { card() }
+                        }
+                    } else card()
                 }
             }
         }
@@ -538,12 +583,14 @@ fun GoalCard(
     onResetElapsed: () -> Unit,
     onToggleMilestone: (Long, Boolean) -> Unit,
     nowMillis: Long = System.currentTimeMillis(),
+    reorderMode: Boolean = false,
 ) {
     val goal = projection.goal
     val compact = LocalCompactItemLayout.current
     val disclosure = rememberCompactItemDisclosure(itemKey = "goal:${goal.id}")
     val compactStatus = projection.collectionStatus(customUnits, nowMillis)
     val primaryAction: (@Composable () -> Unit)? = when {
+        reorderMode -> null
         goal.status == GoalStatus.Active && goal.type !in setOf(GoalType.WeightedMilestones, GoalType.ElapsedSince) -> {{
             ItemPrimaryTextButton("Log", onRecord)
         }}
@@ -554,9 +601,15 @@ fun GoalCard(
     }
     ProductivityItemCard(
         modifier = Modifier
-            .clickable(onClickLabel = "Open goal details for ${goal.name}", onClick = onOpen)
+            .then(
+                if (reorderMode) Modifier
+                else Modifier.clickable(onClickLabel = "Open goal details for ${goal.name}", onClick = onOpen),
+            )
             .testTag("goal-card-${goal.id}")
-            .semantics { contentDescription = "Open goal details for ${goal.name}" },
+            .then(
+                if (reorderMode) Modifier
+                else Modifier.semantics { contentDescription = "Open goal details for ${goal.name}" },
+            ),
     ) {
         ProductivityItemHeader(
             itemType = "goal",
@@ -564,7 +617,7 @@ fun GoalCard(
             emoji = goal.icon,
             areaId = goal.areaId,
             areaName = goal.area,
-            onEdit = onEdit,
+            onEdit = onEdit.takeUnless { reorderMode },
             identityModifier = Modifier.testTag("goal-icon-${goal.id}"),
             primaryActionModifier = Modifier.testTag("goal-primary-action-${goal.id}"),
             editModifier = Modifier.testTag("goal-edit-action-${goal.id}"),
@@ -584,12 +637,12 @@ fun GoalCard(
                 )
             },
             compactExpanded = disclosure.expanded,
-            onCompactExpansionToggle = disclosure.toggle.takeIf { compact },
+            onCompactExpansionToggle = disclosure.toggle.takeIf { compact && !reorderMode },
             compactExpansionTag = "goal-expand-${goal.id}",
             compactPrimaryActionWidth = if (goal.type == GoalType.ElapsedSince) 80.dp else 64.dp,
             primaryAction = primaryAction,
         )
-        if (!compact || disclosure.expanded) {
+        if (!reorderMode && (!compact || disclosure.expanded)) {
         projection.progress?.let { progress ->
             val progressColor = if (progress >= 1.0) MaterialTheme.whipColors.success else MaterialTheme.whipColors.action
             if (compact) {
@@ -951,7 +1004,10 @@ private fun GoalEditorDialog(
                         id = it.id,
                         uuid = it.uuid,
                     )
-                } ?: initialDraft?.milestones.orEmpty(),
+                } ?: initialDraft?.milestones.orEmpty().map { draft ->
+                    if (draft.uuid != null || draft.id != null) draft
+                    else draft.copy(uuid = java.util.UUID.randomUUID().toString())
+                },
         )
     }
     var advanced by rememberSaveable(editorKey) {
@@ -1053,7 +1109,7 @@ private fun GoalEditorDialog(
         onDismissRequest = requestDismiss,
         title = { Text(if (goal == null) "Create Goal" else "Edit Goal") },
         text = {
-            LazyColumn(
+            WhipReorderLazyColumn(
                 modifier = Modifier.testTag("goal-editor-fields"),
                 verticalArrangement = Arrangement.spacedBy(9.dp),
             ) {
@@ -1280,9 +1336,39 @@ private fun GoalEditorDialog(
                                     MaterialTheme.colorScheme.error
                                 } else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            WhipReorderLayout(itemSpacing = 8.dp) {
                             milestoneDrafts.forEachIndexed { index, draft ->
-                                Card(Modifier.fillMaxWidth()) {
+                                key(draft.uuid ?: "goal-milestone-${draft.id ?: index}") {
+                                val reorderInteraction = rememberWhipReorderInteractionState()
+                                Card(
+                                    Modifier.fillMaxWidth().whipReorderItem(
+                                        reorderInteraction,
+                                        layoutPosition = index + 1,
+                                        layoutScope = "goal-editor-milestones",
+                                    ),
+                                ) {
                                     Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            WhipReorderHandle(
+                                                label = draft.name.ifBlank { "milestone ${index + 1}" },
+                                                canMovePrevious = index > 0,
+                                                canMoveNext = index < milestoneDrafts.lastIndex,
+                                                position = index + 1,
+                                                total = milestoneDrafts.size,
+                                                interactionState = reorderInteraction,
+                                                moveWholeItem = true,
+                                                layoutScope = "goal-editor-milestones",
+                                                onMove = { delta -> milestoneDrafts = ArrayList(moveListItem(milestoneDrafts, index, delta)) },
+                                            )
+                                            Text(
+                                                "Milestone ${index + 1}",
+                                                modifier = Modifier.weight(1f),
+                                                style = MaterialTheme.typography.labelLarge,
+                                            )
+                                            IconButton(
+                                                onClick = { milestoneDrafts = ArrayList(milestoneDrafts).also { it.removeAt(index) } },
+                                            ) { Icon(Icons.Outlined.DeleteOutline, contentDescription = "Remove ${draft.name.ifBlank { "milestone ${index + 1}" }}") }
+                                        }
                                         OutlinedTextField(
                                             value = draft.name,
                                             onValueChange = { name ->
@@ -1319,31 +1405,10 @@ private fun GoalEditorDialog(
                                                 )
                                             },
                                         )
-                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                            IconButton(
-                                                enabled = index > 0,
-                                                onClick = {
-                                                    milestoneDrafts = ArrayList(milestoneDrafts).also {
-                                                        val moved = it.removeAt(index)
-                                                        it.add(index - 1, moved)
-                                                    }
-                                                },
-                                            ) { Icon(Icons.Outlined.ArrowUpward, contentDescription = "Move ${draft.name.ifBlank { "milestone ${index + 1}" }} up") }
-                                            IconButton(
-                                                enabled = index < milestoneDrafts.lastIndex,
-                                                onClick = {
-                                                    milestoneDrafts = ArrayList(milestoneDrafts).also {
-                                                        val moved = it.removeAt(index)
-                                                        it.add(index + 1, moved)
-                                                    }
-                                                },
-                                            ) { Icon(Icons.Outlined.ArrowDownward, contentDescription = "Move ${draft.name.ifBlank { "milestone ${index + 1}" }} down") }
-                                            IconButton(
-                                                onClick = { milestoneDrafts = ArrayList(milestoneDrafts).also { it.removeAt(index) } },
-                                            ) { Icon(Icons.Outlined.DeleteOutline, contentDescription = "Remove ${draft.name.ifBlank { "milestone ${index + 1}" }}") }
-                                        }
                                     }
                                 }
+                                }
+                            }
                             }
                             WhipOutlinedButton(
                                 onClick = {

@@ -14,6 +14,7 @@ import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.LoadInterpretation
 import com.whip.app.domain.WorkoutSessionState
+import com.whip.app.domain.WorkoutGroupType
 import com.whip.app.domain.WorkoutSetDraft
 import java.time.Instant
 import java.time.LocalDate
@@ -246,6 +247,164 @@ class GymRepositoryTest {
         val storedSets = repository.sets.first().associateBy { it.id }
         assertFalse(storedSets.containsKey(completed))
         assertFalse(storedSets.containsKey(incomplete))
+    }
+
+    @Test
+    fun removingAGroupMemberKeepsAValidPairThenDissolvesTheLastSingleton() = runBlocking {
+        val firstExercise = repository.createExercise(ExerciseDraft(name = "Bench press"))
+        val secondExercise = repository.createExercise(ExerciseDraft(name = "Row"))
+        val thirdExercise = repository.createExercise(ExerciseDraft(name = "Shoulder press"))
+        val session = repository.startWorkout("Upper body")
+        val firstPlacement = repository.addExerciseToWorkout(session, firstExercise)
+        val secondPlacement = repository.addExerciseToWorkout(session, secondExercise)
+        val thirdPlacement = repository.addExerciseToWorkout(session, thirdExercise)
+        val groupId = repository.createGroup(
+            session,
+            "Superset",
+            WorkoutGroupType.Circuit,
+            listOf(firstPlacement, secondPlacement, thirdPlacement),
+        )
+
+        assertEquals("Circuit", repository.groups.first().single().name)
+
+        repository.removeWorkoutExerciseFromGroup(firstPlacement)
+
+        val validPair = repository.workoutExercises.first().associateBy { it.id }
+        assertEquals(null, validPair.getValue(firstPlacement).groupId)
+        assertEquals(groupId, validPair.getValue(secondPlacement).groupId)
+        assertEquals(groupId, validPair.getValue(thirdPlacement).groupId)
+        assertEquals(groupId, repository.groups.first().single().id)
+
+        repository.removeWorkoutExerciseFromGroup(secondPlacement)
+
+        assertTrue(repository.workoutExercises.first().all { it.groupId == null })
+        assertTrue(repository.groups.first().isEmpty())
+    }
+
+    @Test
+    fun groupingNonAdjacentExercisesPersistsOneContiguousBlock() = runBlocking {
+        val exerciseIds = listOf("Bench", "Row", "Press", "Curl").map { name ->
+            repository.createExercise(ExerciseDraft(name = name))
+        }
+        val session = repository.startWorkout("Block order")
+        val placements = exerciseIds.map { exerciseId -> repository.addExerciseToWorkout(session, exerciseId) }
+
+        val groupId = repository.createGroup(
+            session,
+            "Superset",
+            WorkoutGroupType.Superset,
+            listOf(placements[0], placements[2]),
+        )
+
+        val stored = repository.workoutExercises.first().sortedBy { it.position }
+        assertEquals(listOf(placements[0], placements[2], placements[1], placements[3]), stored.map { it.id })
+        assertEquals(listOf(0, 1, 2, 3), stored.map { it.position })
+        assertEquals(setOf(placements[0], placements[2]), stored.filter { it.groupId == groupId }.map { it.id }.toSet())
+    }
+
+    @Test
+    fun regroupingDissolvesTheOldSingletonAndKeepsTheNewGroupContiguous() = runBlocking {
+        val exerciseIds = listOf("Bench", "Row", "Press", "Curl").map { name ->
+            repository.createExercise(ExerciseDraft(name = name))
+        }
+        val session = repository.startWorkout("Regroup")
+        val placements = exerciseIds.map { exerciseId -> repository.addExerciseToWorkout(session, exerciseId) }
+        val oldGroupId = repository.createGroup(
+            session,
+            "First pair",
+            WorkoutGroupType.Superset,
+            listOf(placements[0], placements[1]),
+        )
+
+        val newGroupId = repository.createGroup(
+            session,
+            "Circuit",
+            WorkoutGroupType.Circuit,
+            listOf(placements[1], placements[3]),
+        )
+
+        val stored = repository.workoutExercises.first().sortedBy { it.position }
+        assertEquals(listOf(placements[0], placements[1], placements[3], placements[2]), stored.map { it.id })
+        assertEquals(null, stored.single { it.id == placements[0] }.groupId)
+        assertEquals(setOf(placements[1], placements[3]), stored.filter { it.groupId == newGroupId }.map { it.id }.toSet())
+        assertFalse(repository.groups.first().any { it.id == oldGroupId })
+    }
+
+    @Test
+    fun regroupingOneMemberKeepsTheSurvivingOldGroupContiguous() = runBlocking {
+        val exerciseIds = listOf("A", "B", "C", "D").map { name ->
+            repository.createExercise(ExerciseDraft(name = name))
+        }
+        val session = repository.startWorkout("Surviving group")
+        val placements = exerciseIds.map { exerciseId -> repository.addExerciseToWorkout(session, exerciseId) }
+        val oldGroupId = repository.createGroup(
+            session,
+            "Old circuit",
+            WorkoutGroupType.Circuit,
+            listOf(placements[0], placements[1], placements[2]),
+        )
+
+        val newGroupId = repository.createGroup(
+            session,
+            "New pair",
+            WorkoutGroupType.Superset,
+            listOf(placements[1], placements[3]),
+        )
+
+        val stored = repository.workoutExercises.first().sortedBy { it.position }
+        assertEquals(listOf(placements[0], placements[2], placements[1], placements[3]), stored.map { it.id })
+        assertEquals(setOf(placements[0], placements[2]), stored.filter { it.groupId == oldGroupId }.map { it.id }.toSet())
+        assertEquals(setOf(placements[1], placements[3]), stored.filter { it.groupId == newGroupId }.map { it.id }.toSet())
+    }
+
+    @Test
+    fun normalizationRepairsLegacySplitAndSingletonWorkoutGroups() = runBlocking {
+        val exerciseIds = listOf("A", "B", "C").map { name ->
+            repository.createExercise(ExerciseDraft(name = name))
+        }
+        val session = repository.startWorkout("Legacy repair")
+        val placements = exerciseIds.map { exerciseId -> repository.addExerciseToWorkout(session, exerciseId) }
+        val groupId = repository.createGroup(
+            session,
+            "Pair",
+            WorkoutGroupType.Superset,
+            listOf(placements[0], placements[2]),
+        )
+        repository.reorderWorkoutExercises(session, listOf(placements[0], placements[1], placements[2]))
+
+        repository.normalizeWorkoutGroups(session)
+
+        assertEquals(
+            listOf(placements[0], placements[2], placements[1]),
+            repository.workoutExercises.first().sortedBy { it.position }.map { it.id },
+        )
+
+        val second = database.gymDao().getWorkoutExercise(placements[2])!!
+        database.gymDao().updateWorkoutExercise(second.copy(groupId = null))
+        repository.normalizeWorkoutGroups(session)
+
+        assertEquals(null, repository.workoutExercises.first().single { it.id == placements[0] }.groupId)
+        assertFalse(repository.groups.first().any { it.id == groupId })
+    }
+
+    @Test
+    fun deletingAWorkoutExerciseDissolvesItsRemainingSingletonGroup() = runBlocking {
+        val firstExercise = repository.createExercise(ExerciseDraft(name = "Bench"))
+        val secondExercise = repository.createExercise(ExerciseDraft(name = "Row"))
+        val session = repository.startWorkout("Delete grouped exercise")
+        val firstPlacement = repository.addExerciseToWorkout(session, firstExercise)
+        val secondPlacement = repository.addExerciseToWorkout(session, secondExercise)
+        repository.createGroup(
+            session,
+            "Superset",
+            WorkoutGroupType.Superset,
+            listOf(firstPlacement, secondPlacement),
+        )
+
+        repository.removeWorkoutExercise(firstPlacement)
+
+        assertEquals(null, repository.workoutExercises.first().single().groupId)
+        assertTrue(repository.groups.first().isEmpty())
     }
 
     @Test
