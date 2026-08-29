@@ -1535,7 +1535,7 @@ private fun AllTracksPage(
                                 onSetPinned(selectedIds, !allPinned)
                                 selectedIds = emptySet()
                                 selecting = false
-                            }) { Text(if (allPinned) "Unpin" else "Pin") }
+                            }) { Text(if (allPinned) "Unpin from Whip Home" else "Pin to Whip Home") }
                             WhipOutlinedButton(enabled = selectedIds.isNotEmpty(), onClick = {
                                 onSetArchived(selectedIds, true)
                                 selectedIds = emptySet()
@@ -3273,7 +3273,16 @@ private fun TrackOptionsPage(
             WhipActionList {
                 WhipActionRow("Edit Track", onEdit, supportingText = "Change identity, Fields, Area, and tags.")
                 WhipActionDivider()
-                WhipActionRow(if (projection.track.pinned) "Unpin From Home" else "Pin to Home", { onSetPinned(!projection.track.pinned) }, supportingText = "Pinned Tracks provide quick Entry capture from Home.", navigates = false)
+                WhipActionRow(
+                    if (projection.track.pinned) "Unpin from Whip Home" else "Pin to Whip Home",
+                    { onSetPinned(!projection.track.pinned) },
+                    supportingText = if (projection.track.pinned) {
+                        "Removes its quick Entry shortcut; the Track and its history stay intact."
+                    } else {
+                        "Adds a quick Entry shortcut to Whip Home's Quick Log section."
+                    },
+                    navigates = false,
+                )
                 WhipActionDivider()
                 WhipActionRow("Duplicate Structure", onDuplicate, supportingText = "Copies Fields and Choice options, but not Entries or Automations.", navigates = false)
                 WhipActionDivider()

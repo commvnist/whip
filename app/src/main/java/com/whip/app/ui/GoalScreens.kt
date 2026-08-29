@@ -2,6 +2,7 @@ package com.whip.app.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +54,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -688,35 +691,63 @@ fun GoalCard(
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
                 .testTag("goal-milestone-${milestone.id}")
-                .clickable(onClickLabel = "Toggle ${milestone.name}") {
-                    onToggleMilestone(milestone.id, !milestone.completed)
+                .toggleable(
+                    value = milestone.completed,
+                    role = Role.Checkbox,
+                    onValueChange = { onToggleMilestone(milestone.id, !milestone.completed) },
+                )
+                .semantics {
+                    contentDescription = if (milestone.completed) {
+                        "Mark milestone ${milestone.name} incomplete"
+                    } else "Complete milestone ${milestone.name}"
                 }
-            if (compact) {
-                BoxWithConstraints(Modifier.fillMaxWidth()) {
-                    val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
-                    if (stacked) {
-                        Column(milestoneModifier) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(checked = milestone.completed, onCheckedChange = null)
-                                Text(milestone.name, modifier = Modifier.weight(1f))
-                            }
-                            if (milestone.reward.isNotBlank()) {
-                                Text(milestone.reward, modifier = Modifier.padding(start = 48.dp), style = MaterialTheme.typography.labelSmall)
-                            }
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
+                if (stacked) {
+                    Column(milestoneModifier) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                milestone.name,
+                                modifier = Modifier.weight(1f),
+                                color = completionTextColor(milestone.completed),
+                                textDecoration = completionTextDecoration(milestone.completed),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            WhipCompletionCheckbox(
+                                checked = milestone.completed,
+                                onCheckedChange = null,
+                                modifier = Modifier.clearAndSetSemantics { },
+                            )
                         }
-                    } else {
-                        Row(milestoneModifier, verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = milestone.completed, onCheckedChange = null)
-                            Text(milestone.name, modifier = Modifier.weight(1f))
-                            if (milestone.reward.isNotBlank()) Text(milestone.reward, style = MaterialTheme.typography.labelSmall)
+                        if (milestone.reward.isNotBlank()) {
+                            Text(
+                                milestone.reward,
+                                modifier = Modifier.padding(end = 56.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                            )
                         }
                     }
-                }
-            } else {
-                Row(milestoneModifier, verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = milestone.completed, onCheckedChange = null)
-                    Text(milestone.name, modifier = Modifier.weight(1f))
-                    if (milestone.reward.isNotBlank()) Text(milestone.reward, style = MaterialTheme.typography.labelSmall)
+                } else {
+                    Row(milestoneModifier, verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            milestone.name,
+                            modifier = Modifier.weight(1f),
+                            color = completionTextColor(milestone.completed),
+                            textDecoration = completionTextDecoration(milestone.completed),
+                        )
+                        if (milestone.reward.isNotBlank()) {
+                            Text(milestone.reward, style = MaterialTheme.typography.labelSmall)
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        WhipCompletionCheckbox(
+                            checked = milestone.completed,
+                            onCheckedChange = null,
+                            modifier = Modifier.clearAndSetSemantics { },
+                        )
+                    }
                 }
             }
         }
@@ -1774,7 +1805,16 @@ private fun GoalActionsDialog(
                             EntityInspectorAction("duplicate", "Duplicate Goal", onDuplicate)
                         }
                         EntityInspectorGroup("Availability") {
-                            EntityInspectorAction("pin", if (projection.goal.pinned) "Unpin from Home" else "Pin to Home", onPin)
+                            EntityInspectorAction(
+                                "pin",
+                                if (projection.goal.pinned) "Unpin from Whip Home" else "Pin to Whip Home",
+                                onPin,
+                                supportingText = if (projection.goal.pinned) {
+                                    "The Goal remains available in Goals."
+                                } else {
+                                    "Keeps this active Goal in Whip Home's visible Goals summary."
+                                },
+                            )
                             if (projection.goal.status == GoalStatus.Active) {
                                 EntityInspectorAction("pause", "Pause Goal", onPause)
                                 EntityInspectorAction("complete", "Complete Goal", onComplete)

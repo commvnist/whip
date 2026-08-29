@@ -2,6 +2,7 @@ package com.whip.app
 
 import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -82,6 +83,9 @@ class CoreFeatureJourneyE2ETest {
             compose.waitUntil(timeoutMillis = 5_000) {
                 compose.onAllNodesWithText("E2E task").fetchSemanticsNodes().isNotEmpty()
             }
+            compose.onNodeWithTag("home-tasks-today-record").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("task-destination-Today").assertIsSelected()
+            compose.onNodeWithContentDescription("Go to Home").performClick()
             compose.onNodeWithText("E2E task").assertIsDisplayed()
             compose.onNodeWithTag("home-list").performScrollToNode(hasText("E2E habit"))
             compose.onNodeWithText("E2E habit").assertIsDisplayed()

@@ -38,6 +38,27 @@ class WhipNavigationPolicyTest {
     }
 
     @Test
+    fun homeSummaryNeverDropsPinnedItemsAndOnlyUsesSpareSlotsForOthers() {
+        val items = listOf("pinned-a", "other-a", "pinned-b", "pinned-c", "pinned-d", "other-b")
+
+        assertEquals(
+            listOf("pinned-a", "pinned-b", "pinned-c", "pinned-d"),
+            pinnedHomeSummary(items, limit = 3) { it.startsWith("pinned") },
+        )
+        assertEquals(
+            listOf("pinned-a", "pinned-b", "other-a"),
+            pinnedHomeSummary(items.take(3), limit = 3) { it.startsWith("pinned") },
+        )
+    }
+
+    @Test
+    fun gymHomeCountUsesPinnedShortcutsWhenNoWorkoutIsActive() {
+        assertEquals(2, gymHomeItemCount(hasActiveSession = false, pinnedRoutineCount = 2))
+        assertEquals(1, gymHomeItemCount(hasActiveSession = true, pinnedRoutineCount = 2))
+        assertEquals(0, gymHomeItemCount(hasActiveSession = false, pinnedRoutineCount = 0))
+    }
+
+    @Test
     fun globalAddIsRemovedFromTaskSelectionModeOnEveryLayout() {
         assertTrue(
             globalAddAvailable(

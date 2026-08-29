@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -30,7 +31,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.ScheduleKind
+import com.whip.app.domain.ScheduledSubtask
 import com.whip.app.domain.ScheduledTask
+import com.whip.app.domain.TaskStep
 import com.whip.app.domain.WhipTask
 import com.whip.app.ui.EntityInspector
 import com.whip.app.ui.EntityInspectorPrimaryAction
@@ -40,6 +43,7 @@ import com.whip.app.ui.theme.WhipTheme
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -104,7 +108,7 @@ class EntityInspectorUiTest {
             "entity-inspector-close",
             "entity-inspector-edit",
             "entity-inspector-section-selector",
-            "entity-inspector-section-overview",
+            "task-detail-section-Overview",
             "entity-inspector-primary-complete",
         ).forEach { tag -> compose.onNodeWithTag(tag).assertIsDisplayed() }
 
@@ -116,6 +120,10 @@ class EntityInspectorUiTest {
         val inspectorBefore = compose.onNodeWithTag("entity-inspector").getUnclippedBoundsInRoot()
         val headerBefore = compose.onNodeWithTag("entity-inspector-header").getUnclippedBoundsInRoot()
         val primaryBefore = compose.onNodeWithTag("entity-inspector-primary-complete").getUnclippedBoundsInRoot()
+        assertTrue(
+            compose.onNodeWithTag("entity-inspector-close").getUnclippedBoundsInRoot().left >
+                compose.onNodeWithTag("entity-inspector-edit").getUnclippedBoundsInRoot().left,
+        )
         compose.onNodeWithTag("task-detail-section-Schedule").assertHasClickAction().performClick()
         compose.onNodeWithText("Activity").assertIsSelected()
         compose.onNodeWithTag("entity-inspector-content-activity").assertIsDisplayed()
@@ -127,7 +135,83 @@ class EntityInspectorUiTest {
     }
 
     @Test
-    fun narrowInspectorUsesMoreWithoutMovingPrimarySections() {
+    fun taskSubtasksKeepCompletionTrailingSpacedAndResponsive() {
+        val toggleCount = AtomicInteger()
+        val item = ScheduledTask(
+            task = WhipTask(
+                id = 902,
+                title = "Prepare launch notes",
+                notes = "",
+                scheduleKind = ScheduleKind.Once,
+                date = LocalDate.of(2026, 8, 26),
+                recurrence = null,
+                timeMinutes = null,
+                reminderEnabled = false,
+                archived = false,
+                completedAtMillis = null,
+                createdAtMillis = 1,
+                updatedAtMillis = 1,
+                area = "Work",
+                icon = "📝",
+            ),
+            originalDate = LocalDate.of(2026, 8, 26),
+            scheduledDate = LocalDate.of(2026, 8, 26),
+            subtasks = listOf(
+                ScheduledSubtask(
+                    step = TaskStep(
+                        id = 77,
+                        taskId = 902,
+                        title = "Confirm every launch dependency before publishing",
+                        notes = "",
+                        position = 0,
+                        createdAtMillis = 1,
+                        updatedAtMillis = 1,
+                    ),
+                    completed = true,
+                    completedAtMillis = 1,
+                    title = "Confirm every launch dependency before publishing",
+                ),
+            ),
+        )
+
+        compose.setContent {
+            val largeText = Density(compose.density.density, fontScale = 2f)
+            CompositionLocalProvider(LocalDensity provides largeText) {
+                WhipTheme(dynamicColor = false) {
+                    TaskActionsDialog(
+                        item = item,
+                        onDismiss = {},
+                        onComplete = {},
+                        onEdit = {},
+                        onReschedule = {},
+                        onSkip = {},
+                        onArchive = {},
+                        onDeletePermanently = {},
+                        onPin = {},
+                        onDuplicate = {},
+                        onStartFocus = {},
+                        onToggleSubtask = { _, _ -> toggleCount.incrementAndGet() },
+                        onPromoteSubtask = {},
+                        onReopenOccurrence = {},
+                        onResetOccurrence = {},
+                        modifier = Modifier.width(340.dp),
+                    )
+                }
+            }
+        }
+
+        val text = compose.onNodeWithTag("task-subtask-text-77", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val check = compose.onNodeWithTag("task-subtask-check-77", useUnmergedTree = true).assertIsDisplayed().getUnclippedBoundsInRoot()
+        val convert = compose.onNodeWithTag("task-subtask-convert-77", useUnmergedTree = true).assertIsDisplayed().getUnclippedBoundsInRoot()
+        assertTrue("Subtask completion must trail its text", check.left >= text.right + 8.dp)
+        assertTrue("Subtask completion target must remain 48 dp", check.bottom - check.top >= 48.dp)
+        assertTrue("Large text must place conversion below the completion line", convert.top >= check.bottom)
+        compose.onNodeWithTag("task-subtask-row-77").assertIsOn().performClick()
+        compose.runOnIdle { assertEquals(1, toggleCount.get()) }
+    }
+
+    @Test
+    fun narrowInspectorKeepsThreePrimarySectionsAndUsesMoreForTheFourth() {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 var selected by remember { mutableStateOf("today") }
@@ -156,15 +240,17 @@ class EntityInspectorUiTest {
         }
 
         compose.onNodeWithText("Today").assertIsSelected()
-        compose.onAllNodesWithText("Automation").assertCountEquals(0)
+        compose.onNodeWithText("Automation").assertIsDisplayed()
+        compose.onAllNodesWithText("Options").assertCountEquals(0)
         compose.onNodeWithContentDescription("Open Pages").assertIsDisplayed().performClick()
-        compose.onNodeWithText("Automation").assertIsDisplayed().performClick()
-        compose.onAllNodesWithTag("entity-inspector-section-automation").assertCountEquals(0)
+        compose.onNodeWithText("Options").assertIsDisplayed().performClick()
+        compose.onAllNodesWithTag("entity-inspector-section-options").assertCountEquals(0)
         compose.onNodeWithTag("entity-inspector-section-today").assertIsDisplayed()
         compose.onNodeWithTag("entity-inspector-section-history").assertIsDisplayed()
-        compose.onNodeWithText("Selected automation").assertIsDisplayed()
+        compose.onNodeWithTag("entity-inspector-section-automation").assertIsDisplayed()
+        compose.onNodeWithText("Selected options").assertIsDisplayed()
         compose.onNodeWithContentDescription("Open Pages").performClick()
-        compose.onNodeWithText("Automation").assertIsDisplayed()
+        compose.onNodeWithText("Options").assertIsDisplayed()
         compose.onNodeWithContentDescription("Selected").assertIsDisplayed()
     }
 
@@ -203,15 +289,19 @@ class EntityInspectorUiTest {
     fun fixedInspectorFrameKeepsLongCenterContentScrollable() {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
+                var selected by remember { mutableStateOf("overview") }
                 EntityInspector(
                     entityType = "Goal",
                     title = "Long goal",
                     emoji = "🎯",
                     context = "Main",
                     status = "Active",
-                    sections = listOf(EntityInspectorSection("overview", "Overview")),
-                    selectedSectionId = "overview",
-                    onSelectSection = {},
+                    sections = listOf(
+                        EntityInspectorSection("overview", "Overview"),
+                        EntityInspectorSection("options", "Options"),
+                    ),
+                    selectedSectionId = selected,
+                    onSelectSection = { selected = it },
                     onDismiss = {},
                     onEdit = {},
                     editLabel = "Edit Goal",
@@ -219,13 +309,18 @@ class EntityInspectorUiTest {
                     primaryAction = EntityInspectorPrimaryAction("log", "Log Progress", {}),
                 ) {
                     Column(Modifier.verticalScroll(rememberScrollState())) {
-                        repeat(30) { index -> Text("Evidence $index") }
+                        repeat(30) { index -> Text("$selected evidence $index") }
                     }
                 }
             }
         }
 
-        compose.onNodeWithText("Evidence 29").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("overview evidence 29").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("entity-inspector-section-options").performClick()
+        compose.onNodeWithText("options evidence 0").assertIsDisplayed()
+        compose.onNodeWithText("options evidence 29").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("entity-inspector-section-overview").performClick()
+        compose.onNodeWithText("overview evidence 29").assertIsDisplayed()
         compose.onNodeWithTag("entity-inspector-primary-log").assertIsDisplayed()
     }
 }

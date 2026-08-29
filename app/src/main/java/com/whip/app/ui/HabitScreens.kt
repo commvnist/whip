@@ -2,6 +2,7 @@ package com.whip.app.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -27,8 +28,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
@@ -52,6 +51,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
@@ -60,9 +61,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.PauseCircleOutline
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
 import com.whip.app.core.AppSettings
 import com.whip.app.domain.Habit
@@ -766,7 +773,7 @@ fun HabitProgressCard(
         skipped -> if (compact) {{ ItemPrimaryTextButton("Undo", onUndoSkip) }} else {{ Text("Skipped", color = MaterialTheme.whipColors.warning, fontWeight = FontWeight.SemiBold) }}
         habit.sourceMetricId != null -> if (compact) null else {{ Text("Synced", color = MaterialTheme.whipColors.success, fontWeight = FontWeight.SemiBold) }}
         habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) -> {{
-            Checkbox(
+            WhipCompletionCheckbox(
                 checked = item.successful == true,
                 onCheckedChange = { onQuick() },
                 modifier = Modifier.semantics {
@@ -774,7 +781,6 @@ fun HabitProgressCard(
                         "Mark habit ${habit.name} incomplete"
                     } else "Check off habit ${habit.name}"
                 },
-                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.whipColors.success),
             )
         }}
         habit.trackingMode == HabitTrackingMode.Duration -> {{
@@ -936,13 +942,37 @@ fun HabitProgressCard(
                             .fillMaxWidth()
                             .heightIn(min = 48.dp)
                             .testTag("habit-checklist-item-${checklistItem.id}")
-                            .clickable(onClickLabel = "Toggle ${checklistItem.name}") {
-                            onChecklist(habit.id, checklistItem.id, item.date, !completed)
-                        },
+                            .toggleable(
+                                value = completed,
+                                role = Role.Checkbox,
+                                onValueChange = {
+                                    onChecklist(habit.id, checklistItem.id, item.date, !completed)
+                                },
+                            )
+                            .semantics {
+                                contentDescription = if (completed) {
+                                    "Mark checklist item ${checklistItem.name} incomplete"
+                                } else "Complete checklist item ${checklistItem.name}"
+                            },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Checkbox(checked = completed, onCheckedChange = null)
-                        Text(checklistItem.name)
+                        Text(
+                            checklistItem.name,
+                            modifier = Modifier.weight(1f).testTag("habit-checklist-text-${checklistItem.id}"),
+                            color = completionTextColor(completed),
+                            textDecoration = completionTextDecoration(completed),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier.size(48.dp).testTag("habit-checklist-check-${checklistItem.id}"),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            WhipCompletionCheckbox(
+                                checked = completed,
+                                onCheckedChange = null,
+                                modifier = Modifier.clearAndSetSemantics { },
+                            )
+                        }
                     }
                 }
                 val completedItems = item.checklistItems.count { it.second }
@@ -2295,7 +2325,7 @@ private fun HabitActionsDialog(
         content = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(WhipSpacing.screenExpanded),
             ) {
                 when (section) {
                     HabitDetailSection.Today -> {
@@ -2370,31 +2400,98 @@ private fun HabitActionsDialog(
                             )
                         }
                     }
-                    HabitDetailSection.Connections -> {
-                        EntityInspectorGroup("Goal progress") {
-                            if (linkedGoals.isEmpty()) Text("This habit does not add progress to a goal yet.")
-                            else EntityInspectorFact("Adds progress to", linkedGoals.distinct().joinToString())
-                            if (!item.habit.archived) EntityInspectorAction("link-goal", "Add Progress to a Goal", onLinkGoal)
-                        }
-                    }
                     HabitDetailSection.More -> {
-                        EntityInspectorGroup("Actions") {
-                            if (!item.habit.archived) EntityInspectorAction("duplicate", "Duplicate Habit", onDuplicate)
+                        EntityInspectorGroup("Connections") {
+                            Text(
+                                if (linkedGoals.isEmpty()) {
+                                    "This Habit does not add progress to a Goal yet."
+                                } else {
+                                    "Adds progress to ${linkedGoals.distinct().joinToString()}."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            if (!item.habit.archived) WhipActionList {
+                                WhipActionRow(
+                                    title = "Add Progress to a Goal",
+                                    onClick = onLinkGoal,
+                                    modifier = Modifier.testTag("entity-inspector-action-link-goal"),
+                                    icon = Icons.Filled.Add,
+                                )
+                            }
                         }
-                        if (!item.habit.archived) EntityInspectorGroup("Availability") {
-                                EntityInspectorAction("pin", if (item.habit.pinned) "Unpin from Home" else "Pin to Home", onPin)
-                                if (!item.habit.paused) EntityInspectorAction("pause", "Pause Indefinitely", onPause)
-                                EntityInspectorAction("schedule-pause", "Schedule Pause Dates", onSchedulePause)
-                                EntityInspectorAction("archive", "Archive Habit", onArchive)
+                        if (!item.habit.archived) {
+                            EntityInspectorGroup("Whip Home") {
+                                WhipActionList {
+                                    WhipActionRow(
+                                        title = if (item.habit.pinned) "Unpin from Whip Home" else "Pin to Whip Home",
+                                        onClick = onPin,
+                                        modifier = Modifier.testTag("entity-inspector-action-pin"),
+                                        supportingText = if (item.habit.pinned) {
+                                            "The Habit keeps its schedule and remains available in Habits."
+                                        } else {
+                                            "When this Habit is due, it stays first in Whip Home's Habits section."
+                                        },
+                                        icon = Icons.Outlined.PushPin,
+                                        navigates = false,
+                                    )
+                                }
+                            }
+                            EntityInspectorGroup("Schedule and availability") {
+                                WhipActionList {
+                                    if (!item.habit.paused) {
+                                        WhipActionRow(
+                                            title = "Pause Indefinitely",
+                                            onClick = onPause,
+                                            modifier = Modifier.testTag("entity-inspector-action-pause"),
+                                            supportingText = "Stops scheduled check-ins until you resume this Habit.",
+                                            icon = Icons.Outlined.PauseCircleOutline,
+                                            navigates = false,
+                                        )
+                                        WhipActionDivider()
+                                    }
+                                    WhipActionRow(
+                                        title = "Schedule Pause Dates",
+                                        onClick = onSchedulePause,
+                                        modifier = Modifier.testTag("entity-inspector-action-schedule-pause"),
+                                        supportingText = "Choose a start and end date without changing the Habit.",
+                                        icon = Icons.Outlined.CalendarMonth,
+                                    )
+                                }
+                            }
+                            EntityInspectorGroup("Manage") {
+                                WhipActionList {
+                                    WhipActionRow(
+                                        title = "Duplicate Habit",
+                                        onClick = onDuplicate,
+                                        modifier = Modifier.testTag("entity-inspector-action-duplicate"),
+                                        icon = Icons.Outlined.ContentCopy,
+                                        navigates = false,
+                                    )
+                                    WhipActionDivider()
+                                    WhipActionRow(
+                                        title = "Archive Habit",
+                                        onClick = onArchive,
+                                        modifier = Modifier.testTag("entity-inspector-action-archive"),
+                                        supportingText = "Hides it from active Habit views without deleting its history.",
+                                        icon = Icons.Outlined.Archive,
+                                        navigates = false,
+                                    )
+                                }
+                            }
                         }
                         EntityInspectorDangerZone {
-                            EntityInspectorAction(
-                                id = "delete",
-                                label = "Delete Permanently",
-                                onClick = onDelete,
-                                modifier = Modifier.testTag("entity-inspector-delete"),
-                                danger = true,
-                            )
+                            Box(Modifier.testTag("entity-inspector-delete")) {
+                                WhipActionRow(
+                                    title = "Delete Habit Permanently",
+                                    onClick = onDelete,
+                                    modifier = Modifier.testTag("entity-inspector-action-delete"),
+                                    supportingText = "Removes this Habit, its check-ins, checklist state, and streak history.",
+                                    icon = Icons.Outlined.DeleteForever,
+                                    navigates = false,
+                                    danger = true,
+                                )
+                            }
                         }
                     }
                 }
@@ -2418,8 +2515,7 @@ private sealed interface HabitHistoryEvent {
 private enum class HabitDetailSection(val id: String, val label: String) {
     Today("today", "Today"),
     History("history", "History"),
-    Connections("automation", "Automations"),
-    More("options", "Options"),
+    More("options", "More"),
     ;
 
     val inspectorSection: EntityInspectorSection

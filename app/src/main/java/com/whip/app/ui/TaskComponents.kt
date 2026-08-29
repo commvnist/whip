@@ -1,10 +1,12 @@
 package com.whip.app.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -34,10 +36,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
@@ -94,6 +98,7 @@ fun TaskRow(
     selected: Boolean = false,
     onSelectionToggle: (() -> Unit)? = null,
     reorderMode: Boolean = false,
+    showCompletionControl: Boolean = true,
 ) {
     val compact = LocalCompactItemLayout.current
     val disclosure = rememberCompactItemDisclosure("task:${item.stableKey}")
@@ -130,7 +135,7 @@ fun TaskRow(
             identityModifier = Modifier.testTag("task-icon-${item.task.id}"),
             primaryActionModifier = Modifier.testTag("task-primary-action-${item.task.id}"),
             editModifier = Modifier.testTag("task-edit-action-${item.task.id}"),
-            titleTextDecoration = TextDecoration.LineThrough.takeIf { completed },
+            titleCompleted = completed,
             headlineAccessory = if (item.isDeadlineOverdue || item.isPastScheduledDate) {
                 {
                     Surface(
@@ -157,20 +162,36 @@ fun TaskRow(
             compactExpanded = disclosure.expanded,
             onCompactExpansionToggle = disclosure.toggle.takeIf { compact && !reorderMode },
             compactExpansionTag = "task-expand-${item.task.id}",
-            primaryAction = if (reorderMode) null else ({
-                Checkbox(
-                    checked = if (selectionMode) selected else completed,
-                    onCheckedChange = if (selectionMode) null else { _ -> onComplete?.invoke() },
-                    enabled = if (selectionMode) onSelectionToggle != null else onComplete != null,
-                    modifier = Modifier.semantics {
-                        contentDescription = if (selectionMode) {
-                            if (selected) "Deselect task ${item.task.title}" else "Select task ${item.task.title}"
-                        } else if (completed) {
-                            "Task ${item.task.title} completed"
-                        } else "Complete task ${item.task.title}"
-                    },
-                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.whipColors.success),
-                )
+            compactPrimaryActionWidth = 48.dp,
+            primaryActionWidth = 48.dp,
+            primaryAction = if (reorderMode || (!selectionMode && !showCompletionControl)) null else ({
+                if (selectionMode) {
+                    Checkbox(
+                        checked = selected,
+                        onCheckedChange = null,
+                        enabled = onSelectionToggle != null,
+                        modifier = Modifier.semantics {
+                            contentDescription = if (selected) {
+                                "Deselect task ${item.task.title}"
+                            } else "Select task ${item.task.title}"
+                        },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = MaterialTheme.colorScheme.primary,
+                            checkmarkColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                    )
+                } else {
+                    WhipCompletionCheckbox(
+                        checked = completed,
+                        onCheckedChange = { onComplete?.invoke() },
+                        enabled = onComplete != null,
+                        modifier = Modifier.semantics {
+                            contentDescription = if (completed) {
+                                "Task ${item.task.title} completed"
+                            } else "Complete task ${item.task.title}"
+                        },
+                    )
+                }
             }),
         )
         Column(
@@ -233,6 +254,107 @@ fun TaskRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun TaskSubtaskCompletionRow(
+    subtask: com.whip.app.domain.ScheduledSubtask,
+    archived: Boolean,
+    onToggle: () -> Unit,
+    onConvert: () -> Unit,
+) {
+    val actionDescription = if (subtask.completed) {
+        "Mark Subtask ${subtask.step.title} incomplete"
+    } else "Complete Subtask ${subtask.step.title}"
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .testTag("task-subtask-row-${subtask.step.id}")
+            .toggleable(
+                value = subtask.completed,
+                enabled = !archived,
+                role = Role.Checkbox,
+                onValueChange = { onToggle() },
+            )
+            .semantics { contentDescription = actionDescription },
+    ) {
+        val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
+        if (stacked) {
+            Column(Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TaskSubtaskText(subtask, Modifier.weight(1f))
+                    Spacer(Modifier.width(8.dp))
+                    TaskSubtaskCheckbox(subtask, archived)
+                }
+                WhipTextButton(
+                    enabled = !archived,
+                    onClick = onConvert,
+                    modifier = Modifier.fillMaxWidth().testTag("task-subtask-convert-${subtask.step.id}"),
+                ) {
+                    Text("Convert to Task")
+                    Spacer(Modifier.weight(1f))
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TaskSubtaskText(subtask, Modifier.weight(1f))
+                Spacer(Modifier.width(8.dp))
+                TaskSubtaskCheckbox(subtask, archived)
+                WhipTextButton(
+                    enabled = !archived,
+                    onClick = onConvert,
+                    modifier = Modifier.testTag("task-subtask-convert-${subtask.step.id}"),
+                ) { Text("Convert to Task") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TaskSubtaskText(
+    subtask: com.whip.app.domain.ScheduledSubtask,
+    modifier: Modifier,
+) {
+    Column(modifier = modifier.testTag("task-subtask-text-${subtask.step.id}")) {
+        Text(
+            subtask.title,
+            color = completionTextColor(subtask.completed),
+            textDecoration = completionTextDecoration(subtask.completed),
+        )
+        if (subtask.notes.isNotBlank()) {
+            Text(
+                subtask.notes,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+            )
+        }
+    }
+}
+
+@Composable
+private fun TaskSubtaskCheckbox(
+    subtask: com.whip.app.domain.ScheduledSubtask,
+    archived: Boolean,
+) {
+    Box(
+        modifier = Modifier.size(48.dp).testTag("task-subtask-check-${subtask.step.id}"),
+        contentAlignment = Alignment.Center,
+    ) {
+        WhipCompletionCheckbox(
+            checked = subtask.completed,
+            onCheckedChange = null,
+            enabled = !archived,
+            modifier = Modifier.clearAndSetSemantics { },
+        )
     }
 }
 
@@ -302,45 +424,12 @@ fun TaskActionsDialog(
                         } else "${item.completedSubtasks} of ${item.totalSubtasks} complete",
                     ) {
                         item.subtasks.forEach { subtask ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(min = 48.dp)
-                                    .then(
-                                        if (item.task.archived) Modifier else Modifier.clickable(onClickLabel = "Toggle ${subtask.step.title}") {
-                                            onToggleSubtask(subtask.step.id, !subtask.completed)
-                                        },
-                                    ),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Checkbox(
-                                    checked = subtask.completed,
-                                    enabled = !item.task.archived,
-                                    onCheckedChange = null,
-                                    modifier = Modifier.semantics {
-                                        contentDescription = if (subtask.completed) {
-                                            "Mark Subtask ${subtask.step.title} incomplete"
-                                        } else "Complete Subtask ${subtask.step.title}"
-                                    },
-                                )
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        subtask.title,
-                                        textDecoration = TextDecoration.LineThrough.takeIf { subtask.completed },
-                                    )
-                                    if (subtask.notes.isNotBlank()) {
-                                        Text(
-                                            subtask.notes,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 2,
-                                        )
-                                    }
-                                }
-                                WhipTextButton(enabled = !item.task.archived, onClick = { pendingMoveStepId = subtask.step.id }) {
-                                    Text("Convert to Task")
-                                }
-                            }
+                            TaskSubtaskCompletionRow(
+                                subtask = subtask,
+                                archived = item.task.archived,
+                                onToggle = { onToggleSubtask(subtask.step.id, !subtask.completed) },
+                                onConvert = { pendingMoveStepId = subtask.step.id },
+                            )
                         }
                     }
                 }
@@ -400,8 +489,13 @@ fun TaskActionsDialog(
                     EntityInspectorGroup("Availability") {
                         if (!item.task.archived) EntityInspectorAction(
                             "pin",
-                            if (item.task.pinned) "Unpin from Home" else "Pin to Home",
+                            if (item.task.pinned) "Unpin from Whip Home" else "Pin to Whip Home",
                             onPin,
+                            supportingText = if (item.task.pinned) {
+                                "The Task keeps its schedule and remains available in Tasks."
+                            } else {
+                                "When this Task is due today, it stays first in Whip Home's Tasks section."
+                            },
                         )
                         EntityInspectorAction(
                             "archive",

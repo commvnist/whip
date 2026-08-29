@@ -424,10 +424,11 @@ fun Habit.reminderNeededOn(
     date: LocalDate,
     customUnits: List<UnitDefinition> = emptyList(),
     skips: List<HabitSkip> = emptyList(),
+    pauses: List<HabitPause> = emptyList(),
 ): Boolean {
-    if (hasEnded(logs, date, customUnits = customUnits, skips = skips)) return false
-    if (isNeutralDate(date, skips = skips)) return false
-    val flexible = flexibleProgress(logs, date, skips = skips)
+    if (hasEnded(logs, date, pauses, customUnits, skips)) return false
+    if (isNeutralDate(date, pauses, skips)) return false
+    val flexible = flexibleProgress(logs, date, pauses, skips)
     val weekSuccesses = flexible?.completed.takeIf { scheduleType == HabitScheduleType.FlexibleTimesPerWeek } ?: 0
     val monthSuccesses = flexible?.completed.takeIf { scheduleType == HabitScheduleType.FlexibleTimesPerMonth } ?: 0
     if (!isScheduledOn(date, weekSuccesses, monthSuccesses)) return false

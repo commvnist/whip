@@ -43,6 +43,14 @@
         <activity
             android:name=".widget.WhipWidgetConfigureActivity"
             android:exported="true" />
+        <service
+            android:name=".widget.HabitWidgetRemoteViewsService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+        <service
+            android:name=".widget.TaskWidgetRemoteViewsService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
         <activity
             android:name=".health.HealthPermissionsRationaleActivity"
             android:exported="true">
@@ -66,6 +74,7 @@
         <receiver
             android:name=".widget.WhipWidgetProvider"
             android:exported="true"
+            android:label="@string/widget_task_agenda_name"
             android:permission="android.permission.BIND_APPWIDGET">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -73,6 +82,18 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/whip_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.HabitTrackingWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_habit_tracking_name"
+            android:permission="android.permission.BIND_APPWIDGET">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/habit_tracking_widget_info" />
         </receiver>
     </application>
 

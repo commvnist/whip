@@ -399,7 +399,12 @@ internal fun UnifiedSearchDialog(
                             Column(Modifier.padding(12.dp)) {
                                 Text(result.title, fontWeight = FontWeight.SemiBold)
                                 Text(
-                                    result.domain.uiLabel() + result.area.takeIf(String::isNotBlank)?.let { " · $it" }.orEmpty() + result.detail.takeIf(String::isNotBlank)?.let { " · $it" }.orEmpty(),
+                                    buildList {
+                                        add(result.domain.uiLabel())
+                                        result.status.takeUnless { it == "active" }?.let { add(it.uiTitleCase()) }
+                                        result.area.takeIf(String::isNotBlank)?.let { add(it) }
+                                        result.detail.takeIf(String::isNotBlank)?.let { add(it) }
+                                    }.joinToString(" · "),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 2,

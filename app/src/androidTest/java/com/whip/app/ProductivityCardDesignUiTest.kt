@@ -152,18 +152,18 @@ class ProductivityCardDesignUiTest {
         }
 
         val identityLefts = listOf("task-icon-1", "habit-icon-2", "goal-icon-3").map(::left)
-        val actionLefts = listOf(
+        val actionRights = listOf(
             "task-primary-action-1",
             "habit-primary-action-2",
             "goal-primary-action-3",
-        ).map(::left)
+        ).map(::right)
         val editLefts = listOf("task-edit-action-1", "habit-edit-action-2", "goal-edit-action-3").map(::left)
 
         identityLefts.forEach { assertEquals(identityLefts.first(), it, 0.5f) }
-        actionLefts.forEach { assertEquals(actionLefts.first(), it, 0.5f) }
+        actionRights.forEach { assertEquals(actionRights.first(), it, 0.5f) }
         editLefts.forEach { assertEquals(editLefts.first(), it, 0.5f) }
-        assertTrue(identityLefts.first() < actionLefts.first())
-        assertTrue(actionLefts.first() < editLefts.first())
+        assertTrue(identityLefts.first() < actionRights.first())
+        assertTrue(actionRights.first() <= editLefts.first())
     }
 
     @Test
@@ -623,6 +623,12 @@ class ProductivityCardDesignUiTest {
         compose.onAllNodesWithText("1").assertCountEquals(0)
         checklistItems.forEach { (item, _) -> compose.onNodeWithText(item.name).assertIsDisplayed() }
         assertTrue(height("habit-checklist-item-3") >= 48.dp)
+        val completedText = compose.onNodeWithTag("habit-checklist-text-1", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        val completedCheck = compose.onNodeWithTag("habit-checklist-check-1", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        assertTrue("Habit checklist completion must trail its text", completedCheck.left >= completedText.right + 8.dp)
+        assertTrue("Habit checklist completion target must remain 48 dp", completedCheck.bottom - completedCheck.top >= 48.dp)
         compose.onNodeWithTag("habit-checklist-item-3", useUnmergedTree = true).performClick()
         compose.runOnIdle { assertEquals(listOf(habit.id, 3L, date, true), checklistUpdate) }
 
@@ -883,6 +889,12 @@ class ProductivityCardDesignUiTest {
         .onNodeWithTag(tag, useUnmergedTree = true)
         .getUnclippedBoundsInRoot()
         .left
+        .value
+
+    private fun right(tag: String): Float = compose
+        .onNodeWithTag(tag, useUnmergedTree = true)
+        .getUnclippedBoundsInRoot()
+        .right
         .value
 
     private fun height(tag: String) = compose

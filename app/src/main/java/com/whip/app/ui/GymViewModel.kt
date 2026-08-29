@@ -4,8 +4,10 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.whip.app.WhipApplication
+import com.whip.app.core.HomeSection
 import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
+import com.whip.app.core.revealHomeSection
 import com.whip.app.data.GymRepository
 import com.whip.app.data.RoutineRepository
 import com.whip.app.domain.Exercise
@@ -777,8 +779,13 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         app.domainDeletionCoordinator.deleteRoutine(id)
     }
 
-    fun setRoutinePinned(id: Long, pinned: Boolean) = runOperation("Updating routine…", "Routine updated") {
+    fun setRoutinePinned(id: Long, pinned: Boolean) = runOperation(
+        "Updating Home shortcut…",
+        if (pinned) "Routine start shortcut added to Whip Home" else "Routine shortcut removed from Whip Home",
+        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+    ) {
         routineRepository.setRoutinePinned(id, pinned)
+        if (pinned) app.settingsRepository.revealHomeSection(HomeSection.Gym)
     }
 
     fun reorderRoutines(ids: List<Long>) = runSilentReorder {

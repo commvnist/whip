@@ -316,7 +316,7 @@ internal fun SettingsContent(
         item {
             SettingsHeading("Home Overview")
             Text(
-                "Choose which sections and empty-day shortcuts appear on Home. Main navigation and saved data remain unchanged. Show Details by Default controls whether a visible section starts expanded.",
+                "Choose which sections and empty-day shortcuts appear on Whip Home. Main navigation and saved data remain unchanged. Pinning an item reveals and expands its section so the action always has a visible destination. Show Details by Default controls whether a visible section starts expanded.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }

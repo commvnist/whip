@@ -132,8 +132,8 @@ class UiDesignArchitectureTest {
                 inspector.contains(".weight(1f)"),
         )
         assertTrue(
-            "Entity inspector sections must adapt into a visible subset plus overflow",
-            inspector.contains("visibleCapacity") && inspector.contains("DropdownMenu("),
+            "Entity inspector sections must use Whip's adaptive destination contract",
+            inspector.contains("DestinationTabBar("),
         )
         assertFalse(
             "Entity inspector controls must not expose compatibility labels through zero-size text",

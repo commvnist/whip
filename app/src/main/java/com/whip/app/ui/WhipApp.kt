@@ -224,6 +224,20 @@ internal fun AreaScope.requiresExplicitCreationArea(areas: List<Area>): Boolean 
 
 internal fun shouldShowHomeGettingStarted(hasAnyUserData: Boolean): Boolean = !hasAnyUserData
 
+/** Keeps every pinned item visible while retaining the compact default summary. */
+internal fun <T> pinnedHomeSummary(
+    items: List<T>,
+    limit: Int,
+    isPinned: (T) -> Boolean,
+): List<T> {
+    val pinned = items.filter(isPinned)
+    val remainingSlots = (limit - pinned.size).coerceAtLeast(0)
+    return pinned + items.filterNot(isPinned).take(remainingSlots)
+}
+
+internal fun gymHomeItemCount(hasActiveSession: Boolean, pinnedRoutineCount: Int): Int =
+    if (hasActiveSession) 1 else pinnedRoutineCount
+
 internal fun globalAddAvailable(
     appDestination: AppDestination,
     gymDestination: GymDestination,
@@ -828,11 +842,31 @@ fun WhipScreen(
     val launchDeliveryId = initialDeliveryId.takeIf { it != 0L }
         ?: 1L.takeIf { initialAction != null }
         ?: 0L
-    LaunchedEffect(launchDeliveryId, state.loading, settingsState.settings.activeAreaScope) {
+    LaunchedEffect(
+        launchDeliveryId,
+        state.loading,
+        settingsState.settings.activeAreaScope,
+        settingsState.settings.setupCompleted,
+    ) {
         if (launchDeliveryId == 0L || consumedLaunchDeliveryId == launchDeliveryId) return@LaunchedEffect
+        // Keep platform-entry intent pending while first-run setup is modal. It
+        // should resume after setup instead of being consumed behind the dialog.
+        if (!settingsState.settings.setupCompleted) return@LaunchedEffect
         when (initialAction) {
+            WhipWidgetProvider.ACTION_OPEN_TASK_AGENDA -> {
+                appDestination = AppDestination.Tasks
+                taskDestination = TaskDestination.Today
+                consumedLaunchDeliveryId = launchDeliveryId
+            }
+            WhipWidgetProvider.ACTION_OPEN_HABIT_TRACKING -> {
+                appDestination = AppDestination.Habits
+                consumedLaunchDeliveryId = launchDeliveryId
+            }
             WhipWidgetProvider.ACTION_ADD_TASK -> {
-                openTaskEditor()
+                appDestination = AppDestination.Tasks
+                openTaskEditor(
+                    scheduleDate = initialOccurrenceEpochDay?.let(LocalDate::ofEpochDay),
+                )
                 consumedLaunchDeliveryId = launchDeliveryId
             }
             WhipLaunchActions.ACTION_CAPTURE_SHARED_TASK -> {
@@ -3773,7 +3807,16 @@ private fun HomeContent(
 ) {
     val homeTaskFilter = appSettings.savedTaskFilters.firstOrNull { it.name == appSettings.homeTaskFilterName }
     val homeTasks = state.today.filter { homeTaskFilter == null || it.matches(homeTaskFilter, state.currentDate, appSettings.zoneId()) }
+    val homePinnedTasks = homeTasks.filter { it.task.pinned }
+    val homeOtherTasks = homeTasks.filterNot { it.task.pinned }
     val homeHabitSections = habitState.today.dailyHabitSections()
+    val homePinnedHabits = homeHabitSections.remaining.filter { it.habit.pinned }
+    val homeOtherHabits = homeHabitSections.remaining.filterNot { it.habit.pinned }
+    val homeGoals = pinnedHomeSummary(goalState.active, limit = 3) { it.goal.pinned }
+    val homePinnedGoals = homeGoals.filter { it.goal.pinned }
+    val homeOtherGoals = homeGoals.filterNot { it.goal.pinned }
+    val pinnedRoutines = gymState.routines.filter { it.pinned }
+    val gymHomeCount = gymHomeItemCount(gymState.activeSession != null, pinnedRoutines.size)
     val homeDoneHabitIds = homeHabitSections.done.mapTo(linkedSetOf()) { it.habit.id }
     var homeDoneExpanded by rememberSaveable(habitState.currentDate.toEpochDay()) {
         mutableStateOf(homeHabitSections.remaining.isEmpty() && homeHabitSections.done.isNotEmpty())
@@ -3796,7 +3839,7 @@ private fun HomeContent(
             (HomeSection.Habits in visibleHomeSections && habitState.today.isNotEmpty()) ||
             (HomeSection.Goals in visibleHomeSections && goalState.active.isNotEmpty()) ||
             (HomeSection.Tracks in visibleHomeSections && trackState.pinned.isNotEmpty()) ||
-            (HomeSection.Gym in visibleHomeSections && gymState.activeSession != null)
+            (HomeSection.Gym in visibleHomeSections && gymHomeCount > 0)
     val hasReviewEvidence =
         state.completed.isNotEmpty() ||
             habitState.logs.isNotEmpty() ||
@@ -3829,11 +3872,13 @@ private fun HomeContent(
         } }
         item {
             TodayHeader(
-                state.currentDate,
-                habitState.today.count { it.successful == true },
-                habitState.today.size,
-                onOpenHabits,
-                showFullHeader,
+                date = state.currentDate,
+                taskTotal = state.today.size,
+                habitCompleted = habitState.today.count { it.successful == true },
+                habitTotal = habitState.today.size,
+                onOpenTasks = onOpenTasks,
+                onOpenHabits = onOpenHabits,
+                showFullHeader = showFullHeader,
             )
         }
         if (hasReviewEvidence) {
@@ -3899,7 +3944,22 @@ private fun HomeContent(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        items(homeTasks, key = ScheduledTask::stableKey) { task ->
+                        if (homePinnedTasks.isNotEmpty()) item {
+                            HomeItemGroupHeading("Pinned for today", homePinnedTasks.size, pinned = true, testTag = "home-pinned-tasks")
+                        }
+                        items(homePinnedTasks, key = ScheduledTask::stableKey) { task ->
+                            TaskRow(
+                                item = task,
+                                completed = false,
+                                onComplete = { onCompleteTask(task) },
+                                onOpenActions = { onOpenTask(task) },
+                                onEdit = { onEditTask(task) },
+                            )
+                        }
+                        if (homePinnedTasks.isNotEmpty() && homeOtherTasks.isNotEmpty()) item {
+                            HomeItemGroupHeading("Other tasks for today", homeOtherTasks.size)
+                        }
+                        items(homeOtherTasks, key = ScheduledTask::stableKey) { task ->
                             TaskRow(
                                 item = task,
                                 completed = false,
@@ -3914,7 +3974,29 @@ private fun HomeContent(
                     item { SectionHeading("Habits", homeHabitSections.remaining.size, onOpenHabits) }
                     if (!collapsed) {
                         if (habitState.today.isEmpty()) item { HomeStatusCard(areaScopeLabel?.let { "No habits due in $it" } ?: "No habits due", "Create a habit on the Habits screen.", onOpenHabits) }
-                        items(homeHabitSections.remaining, key = { "home-habit-${it.habit.id}" }) { habit ->
+                        if (homePinnedHabits.isNotEmpty()) item {
+                            HomeItemGroupHeading("Pinned and due", homePinnedHabits.size, pinned = true, testTag = "home-pinned-habits")
+                        }
+                        items(homePinnedHabits, key = { "home-habit-${it.habit.id}" }) { habit ->
+                            HabitProgressCard(
+                                item = habit,
+                                onOpen = { onOpenHabit(habit) },
+                                onEdit = { onEditHabit(habit) },
+                                onQuick = { onQuickHabit(habit) },
+                                onQuickValue = { value -> onHabitValue(habit, value) },
+                                onSetValue = { onSetHabitValue(habit) },
+                                onDecrement = { onDecrementHabit(habit) },
+                                onUndo = { onUndoHabit(habit) },
+                                onUndoSkip = { onUndoHabitSkip(habit) },
+                                canUndo = canUndoHabit(habit),
+                                onChecklist = onChecklist,
+                                lowPressureMode = appSettings.lowPressureMode,
+                            )
+                        }
+                        if (homePinnedHabits.isNotEmpty() && homeOtherHabits.isNotEmpty()) item {
+                            HomeItemGroupHeading("Other habits due", homeOtherHabits.size)
+                        }
+                        items(homeOtherHabits, key = { "home-habit-${it.habit.id}" }) { habit ->
                             HabitProgressCard(
                                 item = habit,
                                 onOpen = { onOpenHabit(habit) },
@@ -3961,7 +4043,24 @@ private fun HomeContent(
                     item { SectionHeading("Goals", goalState.active.size, onOpenGoals) }
                     if (!collapsed) {
                         if (goalState.active.isEmpty()) item { HomeStatusCard(areaScopeLabel?.let { "No active goals in $it" } ?: "No active goals", "Create a measurable or milestone goal.", onOpenGoals) }
-                        items(goalState.active.take(3), key = { "home-goal-${it.goal.id}" }) { projection ->
+                        if (homePinnedGoals.isNotEmpty()) item {
+                            HomeItemGroupHeading("Pinned goals", homePinnedGoals.size, pinned = true, testTag = "home-pinned-goals")
+                        }
+                        items(homePinnedGoals, key = { "home-goal-${it.goal.id}" }) { projection ->
+                            GoalCard(
+                                projection = projection,
+                                customUnits = goalState.customUnits,
+                                onOpen = { onOpenGoal(projection) },
+                                onEdit = { onEditGoal(projection) },
+                                onRecord = { onRecordGoal(projection) },
+                                onResetElapsed = { onResetElapsedGoal(projection) },
+                                onToggleMilestone = onToggleMilestone,
+                            )
+                        }
+                        if (homePinnedGoals.isNotEmpty() && homeOtherGoals.isNotEmpty()) item {
+                            HomeItemGroupHeading("Other active goals", homeOtherGoals.size)
+                        }
+                        items(homeOtherGoals, key = { "home-goal-${it.goal.id}" }) { projection ->
                             GoalCard(
                                 projection = projection,
                                 customUnits = goalState.customUnits,
@@ -3994,7 +4093,7 @@ private fun HomeContent(
                     item {
                         SectionHeading(
                             if (areaScopeLabel == null) "Gym" else "Gym · All data",
-                            if (gymState.activeSession == null) 0 else 1,
+                            gymHomeCount,
                             onOpenGym,
                         )
                     }
@@ -4021,7 +4120,7 @@ private fun HomeContent(
                             )
                         }
                         if (!gymState.loading && gymState.activeSession == null) {
-                            items(gymState.routines.filter { it.pinned }, key = { "pinned-routine-${it.id}" }) { routine ->
+                            items(pinnedRoutines, key = { "pinned-routine-${it.id}" }) { routine ->
                                 val days = gymState.routineDays.filter { it.routineId == routine.id }.sortedBy { it.position }
                                 if (days.size <= 1) {
                                     HomeStatusCard(routine.name, "Pinned · ${days.firstOrNull()?.name ?: "Start routine"}") {
@@ -4738,10 +4837,10 @@ private fun TaskAreaContent(
                                         expanded = selectionActionsOpen,
                                         onDismissRequest = { selectionActionsOpen = false },
                                     ) {
-                                        WhipMenuItem(label = "Pin", onClick = {
+                                        WhipMenuItem(label = "Pin to Whip Home", onClick = {
                                             onBulkPin(selectedItems, true); finishSelection()
                                         })
-                                        WhipMenuItem(label = "Unpin", onClick = {
+                                        WhipMenuItem(label = "Unpin from Whip Home", onClick = {
                                             onBulkPin(selectedItems, false); finishSelection()
                                         })
                                         WhipMenuItem(label = "Move to Tomorrow", onClick = {
@@ -5694,12 +5793,14 @@ private fun TaskPlanningRow(
     onOpenCompleted: (ScheduledTask) -> Unit,
     reorderMode: Boolean = false,
 ) {
-    val completed = destination == TaskDestination.Completed
+    val completed = destination == TaskDestination.Completed ||
+        (destination == TaskDestination.Archived && item.completedAtMillis != null)
+    val completionAvailable = destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)
     TaskRow(
         item = item,
         completed = completed,
-        onComplete = if (completed) null else ({ onCompleteTask(item) }),
-        onOpenActions = if (completed) ({ onOpenCompleted(item) }) else ({ onOpenTask(item) }),
+        onComplete = if (completionAvailable) ({ onCompleteTask(item) }) else null,
+        onOpenActions = if (destination == TaskDestination.Completed) ({ onOpenCompleted(item) }) else ({ onOpenTask(item) }),
         onEdit = { onEditTask(item) },
         selectionMode = selectionMode,
         selected = item.stableKey in selectedKeys,
@@ -5710,6 +5811,7 @@ private fun TaskPlanningRow(
             )
         },
         reorderMode = reorderMode,
+        showCompletionControl = destination != TaskDestination.Archived,
     )
 }
 
@@ -5872,6 +5974,37 @@ private fun RoadmapEmptyArea(title: String, message: String, innerPadding: Paddi
 }
 
 @Composable
+private fun HomeItemGroupHeading(
+    label: String,
+    count: Int,
+    pinned: Boolean = false,
+    testTag: String? = null,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(testTag?.let(Modifier::testTag) ?: Modifier)
+            .semantics { heading() },
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (pinned) {
+            Icon(
+                Icons.Outlined.PushPin,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+        Text(
+            "$label ($count)",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
 private fun HomeStatusCard(title: String, detail: String, onClick: (() -> Unit)? = null) {
     androidx.compose.material3.Card(
         modifier = Modifier
@@ -5889,18 +6022,18 @@ private fun HomeStatusCard(title: String, detail: String, onClick: (() -> Unit)?
 }
 
 @Composable
-private fun TodayHeader(
+internal fun TodayHeader(
     date: LocalDate,
-    completed: Int,
-    total: Int,
+    taskTotal: Int,
+    habitCompleted: Int,
+    habitTotal: Int,
+    onOpenTasks: () -> Unit,
     onOpenHabits: () -> Unit,
     showFullHeader: Boolean = true,
 ) {
-    val progress = if (total == 0) 0f else completed.toFloat() / total
+    val habitProgress = if (habitTotal == 0) 0f else habitCompleted.toFloat() / habitTotal
     Column(
-        modifier = Modifier
-            .then(if (total > 0) Modifier.clickable(onClickLabel = "Open habits", onClick = onOpenHabits) else Modifier)
-            .padding(top = 12.dp, bottom = 12.dp),
+        modifier = Modifier.padding(top = 12.dp, bottom = 12.dp),
     ) {
         if (showFullHeader) {
             Text(
@@ -5912,26 +6045,61 @@ private fun TodayHeader(
             Text("Home", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(16.dp))
         }
-        if (total > 0) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Habit Progress", style = MaterialTheme.typography.titleSmall)
+        if (taskTotal > 0) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .testTag("home-tasks-today-record")
+                    .clickable(onClickLabel = "Open Tasks Today", onClick = onOpenTasks)
+                    .semantics {
+                        contentDescription = "Tasks Due Today: $taskTotal. Open Tasks Today"
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Tasks Due Today", style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "$completed of $total",
+                    taskTotal.toString(),
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f).padding(start = 8.dp),
                 )
                 Icon(Icons.Outlined.ChevronRight, contentDescription = null)
             }
-            Spacer(Modifier.height(8.dp))
-            LinearProgressIndicator(
-                progress = { progress },
+        }
+        if (taskTotal > 0 && habitTotal > 0) Spacer(Modifier.height(4.dp))
+        if (habitTotal > 0) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(CircleShape),
-                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            )
+                    .testTag("home-habit-progress-record")
+                    .clickable(onClickLabel = "Open Habits Today", onClick = onOpenHabits)
+                    .semantics {
+                        contentDescription = "Habit Progress: $habitCompleted of $habitTotal. Open Habits Today"
+                    },
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Habit Progress", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        "$habitCompleted of $habitTotal",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f).padding(start = 8.dp),
+                    )
+                    Icon(Icons.Outlined.ChevronRight, contentDescription = null)
+                }
+                LinearProgressIndicator(
+                    progress = { habitProgress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(10.dp)
+                        .clip(CircleShape),
+                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                )
+            }
         }
     }
 }

@@ -60,17 +60,8 @@ class NotificationDeepLinkE2ETest {
                 compose.onAllNodesWithTag("habit-detail-surface").fetchSemanticsNodes().isNotEmpty()
             }
             compose.onNodeWithTag("habit-detail-surface").assertIsDisplayed()
-            val automationsTabVisible = compose.onAllNodesWithTag("habit-detail-section-Automations")
-                .fetchSemanticsNodes()
-                .any { node -> runCatching { node.layoutInfo.isPlaced }.getOrDefault(false) }
-            if (!automationsTabVisible) {
-                compose.onNode(
-                    hasContentDescription("Open Pages") and
-                        hasAnyAncestor(hasTestTag("habit-detail-surface")),
-                ).performClick()
-                compose.onNodeWithText("Automations").performClick()
-            }
-            compose.onNodeWithTag("entity-inspector-content-automation").assertIsDisplayed()
+            compose.onNodeWithTag("habit-detail-section-More").performClick()
+            compose.onNodeWithTag("entity-inspector-content-options").assertIsDisplayed()
         }
     }
 

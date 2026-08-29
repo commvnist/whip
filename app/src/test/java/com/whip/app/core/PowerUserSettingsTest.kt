@@ -5,9 +5,27 @@ import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.WorkoutSetClassification
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PowerUserSettingsTest {
+    @Test
+    fun pinningRevealsAndExpandsOnlyItsOwningHomeSection() {
+        val original = AppSettings(
+            hiddenHomeSections = setOf(HomeSection.Tasks, HomeSection.Goals),
+            collapsedHomeSections = setOf(HomeSection.Tasks, HomeSection.Habits),
+        )
+
+        val revealed = original.withHomeSectionRevealed(HomeSection.Tasks)
+
+        assertFalse(HomeSection.Tasks in revealed.hiddenHomeSections)
+        assertFalse(HomeSection.Tasks in revealed.collapsedHomeSections)
+        assertTrue(HomeSection.Goals in revealed.hiddenHomeSections)
+        assertTrue(HomeSection.Habits in revealed.collapsedHomeSections)
+        assertEquals(original.homeSections, revealed.homeSections)
+    }
+
     @Test
     fun savedFiltersAndPlatePresetsRoundTripSpecialCharacters() {
         val filters = listOf(

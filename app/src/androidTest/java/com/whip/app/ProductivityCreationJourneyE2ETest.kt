@@ -37,6 +37,7 @@ import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.TaskPriority
+import com.whip.app.core.HomeSection
 import java.time.DayOfWeek
 import org.junit.After
 import org.junit.Before
@@ -71,6 +72,8 @@ class ProductivityCreationJourneyE2ETest {
                 powerMode = false,
                 naturalLanguageTaskCapture = false,
                 compactItemLayout = false,
+                hiddenHomeSections = it.hiddenHomeSections + HomeSection.Tasks,
+                collapsedHomeSections = it.collapsedHomeSections + HomeSection.Tasks,
             )
         }
     }
@@ -113,9 +116,16 @@ class ProductivityCreationJourneyE2ETest {
                 ).performClick()
             }
             compose.onNodeWithText("Options").performClick()
-            compose.onNodeWithText("Pin to Home").assertIsDisplayed()
-            compose.onNodeWithContentDescription("Close Task details").performClick()
-
+            compose.onNodeWithText("Pin to Whip Home").assertIsDisplayed().performClick()
+            runBlocking {
+                awaitPersistence("Task pin and Home reveal") {
+                    val taskPinned = app.taskRepository.tasks.first { tasks -> tasks.any { it.title == "Journey task" && it.pinned } }
+                    val settings = app.settingsRepository.current()
+                    taskPinned.any { it.title == "Journey task" && it.pinned } &&
+                        HomeSection.Tasks !in settings.hiddenHomeSections &&
+                        HomeSection.Tasks !in settings.collapsedHomeSections
+                }
+            }
             compose.onNodeWithContentDescription("Habits tab").performClick()
             compose.onNodeWithContentDescription("Add habit").performClick()
             compose.onNodeWithTag("habit-editor-name").performTextReplacement("Journey water")
@@ -154,10 +164,8 @@ class ProductivityCreationJourneyE2ETest {
                     .performSemanticsAction(SemanticsActions.OnClick)
                 compose.onNodeWithContentDescription("Edit Habit").assertIsDisplayed()
             }
-            selectDetailSection("habit", "Automations", "habit-detail-surface")
-            compose.onNodeWithTag("entity-inspector-content-automation").assertIsDisplayed()
-            compose.onNodeWithContentDescription("Edit Habit").assertIsDisplayed()
-            selectDetailSection("habit", "Options", "habit-detail-surface")
+            selectDetailSection("habit", "More", "habit-detail-surface")
+            compose.onNodeWithTag("entity-inspector-content-options").assertIsDisplayed()
             compose.onNodeWithContentDescription("Edit Habit").assertIsDisplayed()
             compose.onNodeWithContentDescription("Edit Habit").performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithText("Edit Habit").assertIsDisplayed()

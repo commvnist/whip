@@ -103,6 +103,19 @@ interface SettingsRepository {
     fun update(transform: (AppSettings) -> AppSettings)
 }
 
+/**
+ * An explicit pin action must have a visible destination. Preserve the user's
+ * Home ordering while revealing and expanding the owning component.
+ */
+fun AppSettings.withHomeSectionRevealed(section: HomeSection): AppSettings = copy(
+    hiddenHomeSections = hiddenHomeSections - section,
+    collapsedHomeSections = collapsedHomeSections - section,
+)
+
+fun SettingsRepository.revealHomeSection(section: HomeSection) {
+    update { settings -> settings.withHomeSectionRevealed(section) }
+}
+
 /** Re-evaluates Today immediately after a time-zone/cutoff change and at minute boundaries. */
 fun SettingsRepository.currentDateFlow(clock: WhipClock): Flow<LocalDate> = combine(
     flow {

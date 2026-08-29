@@ -5,8 +5,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.withTransaction
 import com.whip.app.WhipApplication
+import com.whip.app.core.HomeSection
 import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
+import com.whip.app.core.revealHomeSection
 import com.whip.app.data.TrackRepository
 import com.whip.app.domain.DeletedTrackEntry
 import com.whip.app.domain.GoalAggregation
@@ -198,14 +200,21 @@ class TrackViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun duplicate(id: Long) = runOperation("Duplicating Track…", "Track structure duplicated") { repository.duplicate(id) }
-    fun setPinned(id: Long, pinned: Boolean) = runOperation("Updating Track…", if (pinned) "Track pinned" else "Track unpinned") {
+    fun setPinned(id: Long, pinned: Boolean) = runOperation(
+        "Updating Home Quick Log…",
+        if (pinned) "Track added to Home Quick Log" else "Track removed from Home Quick Log",
+        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+    ) {
         repository.setPinned(id, pinned)
+        if (pinned) app.settingsRepository.revealHomeSection(HomeSection.Tracks)
     }
     fun setPinned(ids: Collection<Long>, pinned: Boolean) = runOperation(
-        "Updating Tracks…",
-        "${ids.size} Tracks ${if (pinned) "pinned" else "unpinned"}",
+        "Updating Home Quick Log…",
+        "${ids.size} Tracks ${if (pinned) "added to" else "removed from"} Home Quick Log",
+        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
     ) {
         app.database.withTransaction { ids.distinct().forEach { repository.setPinned(it, pinned) } }
+        if (pinned) app.settingsRepository.revealHomeSection(HomeSection.Tracks)
     }
     fun setArchived(id: Long, archived: Boolean) = runOperation(
         if (archived) "Archiving Track…" else "Restoring Track…",

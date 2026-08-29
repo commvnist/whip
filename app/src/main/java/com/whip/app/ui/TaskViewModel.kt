@@ -4,9 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.whip.app.WhipApplication
+import com.whip.app.core.HomeSection
 import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 import com.whip.app.core.WhipClock
+import com.whip.app.core.revealHomeSection
 import com.whip.app.core.zoneId
 import com.whip.app.core.currentDateFlow
 import com.whip.app.data.TaskRepository
@@ -378,7 +380,14 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setPinned(taskId: Long, pinned: Boolean) {
-        runOperation("Updating task…", "Task updated") { repository.setPinned(taskId, pinned) }
+        runOperation(
+            "Updating Home priority…",
+            if (pinned) "Task pinned · first on Whip Home when due" else "Task unpinned from Whip Home",
+            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+        ) {
+            repository.setPinned(taskId, pinned)
+            if (pinned) app.settingsRepository.revealHomeSection(HomeSection.Tasks)
+        }
     }
 
     fun duplicate(taskId: Long) {
@@ -468,8 +477,13 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun pinAll(items: List<ScheduledTask>, pinned: Boolean) {
-        runOperation("Updating ${items.size} tasks…", "${items.size} tasks updated") {
+        runOperation(
+            "Updating ${items.size} tasks…",
+            "${items.size} tasks ${if (pinned) "pinned to" else "unpinned from"} Whip Home",
+            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+        ) {
             repository.setPinnedAll(items.map { it.task.id }, pinned)
+            if (pinned) app.settingsRepository.revealHomeSection(HomeSection.Tasks)
         }
     }
 

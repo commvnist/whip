@@ -45,6 +45,8 @@ import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -111,10 +113,43 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import com.whip.app.R
+import com.whip.app.ui.theme.whipColors
 import kotlinx.coroutines.delay
 
 /** User-selected collection density; unrelated to window-size or fold posture. */
 internal val LocalCompactItemLayout = staticCompositionLocalOf { false }
+
+/**
+ * Completion is a semantic success state throughout Whip. Keep this separate
+ * from selection checkboxes, which continue to use the active selection color.
+ */
+@Composable
+internal fun WhipCompletionCheckbox(
+    checked: Boolean,
+    onCheckedChange: ((Boolean) -> Unit)?,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    Checkbox(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = modifier,
+        enabled = enabled,
+        colors = CheckboxDefaults.colors(
+            checkedColor = MaterialTheme.whipColors.success,
+            checkmarkColor = MaterialTheme.whipColors.onSuccess,
+            disabledCheckedColor = MaterialTheme.whipColors.success,
+            disabledIndeterminateColor = MaterialTheme.whipColors.success,
+        ),
+    )
+}
+
+internal fun completionTextDecoration(completed: Boolean): TextDecoration? =
+    TextDecoration.LineThrough.takeIf { completed }
+
+@Composable
+internal fun completionTextColor(completed: Boolean): Color =
+    if (completed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
 
 internal enum class WhipMenuItemRole { Normal, Destructive }
 
@@ -1033,7 +1068,7 @@ internal fun ProductivityItemHeader(
     identityModifier: Modifier = Modifier,
     primaryActionModifier: Modifier = Modifier,
     editModifier: Modifier = Modifier,
-    titleTextDecoration: TextDecoration? = null,
+    titleCompleted: Boolean = false,
     headlineAccessory: (@Composable RowScope.() -> Unit)? = null,
     supportingContent: @Composable ColumnScope.() -> Unit = {},
     compactSummaryContent: @Composable ColumnScope.() -> Unit = {},
@@ -1041,6 +1076,7 @@ internal fun ProductivityItemHeader(
     onCompactExpansionToggle: (() -> Unit)? = null,
     compactExpansionTag: String? = null,
     compactPrimaryActionWidth: Dp = 64.dp,
+    primaryActionWidth: Dp = 72.dp,
     primaryAction: (@Composable () -> Unit)? = null,
 ) {
     val compact = LocalCompactItemLayout.current
@@ -1061,7 +1097,8 @@ internal fun ProductivityItemHeader(
                         modifier = Modifier.fillMaxWidth(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        textDecoration = titleTextDecoration,
+                        color = completionTextColor(titleCompleted),
+                        textDecoration = completionTextDecoration(titleCompleted),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -1152,7 +1189,8 @@ internal fun ProductivityItemHeader(
                     modifier = Modifier.fillMaxWidth(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    textDecoration = titleTextDecoration,
+                    color = completionTextColor(titleCompleted),
+                    textDecoration = completionTextDecoration(titleCompleted),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -1170,7 +1208,7 @@ internal fun ProductivityItemHeader(
             }
             primaryAction?.let { action ->
                 Box(
-                    modifier = primaryActionModifier.width(72.dp).heightIn(min = 48.dp),
+                    modifier = primaryActionModifier.width(primaryActionWidth).heightIn(min = 48.dp),
                     contentAlignment = Alignment.Center,
                 ) { action() }
             }
@@ -1195,6 +1233,9 @@ internal fun <T> DestinationTabBar(
     label: (T) -> String,
     compactLabel: (T) -> String = label,
     testTagPrefix: String? = null,
+    testTagValue: (T) -> String = label,
+    secondaryTestTagPrefix: String? = null,
+    secondaryTestTagValue: (T) -> String = label,
     barTestTag: String? = null,
     resetCompactItemExpansionOnChange: Boolean = true,
 ) {
@@ -1256,10 +1297,24 @@ internal fun <T> DestinationTabBar(
                                     role = Role.Tab,
                                 )
                                 .semantics { contentDescription = destinationLabel }
-                                .then(testTagPrefix?.let { Modifier.testTag("$it-$destinationLabel") } ?: Modifier),
+                                .then(
+                                    testTagPrefix?.let {
+                                        Modifier.testTag("$it-${testTagValue(destination)}")
+                                    } ?: Modifier,
+                                ),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            Box(Modifier.height(45.dp).padding(horizontal = 2.dp), contentAlignment = Alignment.Center) {
+                            Box(
+                                Modifier
+                                    .height(45.dp)
+                                    .padding(horizontal = 2.dp)
+                                    .then(
+                                        secondaryTestTagPrefix?.let {
+                                            Modifier.testTag("$it-${secondaryTestTagValue(destination)}")
+                                        } ?: Modifier,
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
                                 Text(
                                     visibleLabel,
                                     color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,

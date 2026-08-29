@@ -1,9 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Whip</string>
-    <string name="widget_description">Today’s Whip tasks and habits with quick add actions</string>
-    <string name="widget_add_task">+ Task</string>
-    <string name="widget_add_habit">+ Habit</string>
+    <string name="widget_description">Tasks and habits that still need attention today, with area-aware quick add</string>
+    <string name="widget_task_agenda_name">Task Agenda</string>
+    <string name="widget_habit_tracking_name">Habit Tracking</string>
+    <string name="widget_task_agenda_description">Scroll a configurable agenda, expand subtasks, and check off Tasks</string>
+    <string name="widget_habit_tracking_description">Scroll selected Habits and expand checklists for quick tracking</string>
+    <string name="widget_add_task">Add task</string>
+    <string name="widget_expand_task">Expand Task subtasks</string>
+    <string name="widget_expand_task_named">Expand subtasks for %1$s</string>
+    <string name="widget_collapse_task_named">Collapse subtasks for %1$s</string>
+    <string name="widget_toggle_subtask">Mark %1$s %2$s in %3$s</string>
+    <string name="widget_add_habit">Add habit</string>
+    <string name="widget_task_agenda_preview_subtitle">Next 7 days · All areas</string>
+    <string name="widget_habit_preview_subtitle">Today · All areas</string>
+    <string name="widget_task_empty">Agenda clear\nAdd a Task or enjoy the space.</string>
+    <string name="widget_habit_empty">No habits scheduled today\nYour next scheduled Habits will appear here.</string>
+    <string name="widget_habits_complete">All Habits complete\nYou’re done for today.</string>
+    <string name="widget_habits_none_selected">No Habits selected\nEdit the widget to choose which Habits appear.</string>
+    <string name="widget_agenda_subtitle">%1$s · %2$s</string>
+    <string name="widget_habit_subtitle">%1$d of %2$d complete · %3$s</string>
+    <string name="widget_overdue">Overdue</string>
+    <string name="widget_today">Today</string>
+    <string name="widget_tomorrow">Tomorrow</string>
+    <string name="widget_synced">Synced</string>
+    <string name="widget_start">Start</string>
+    <string name="widget_stop">Stop</string>
+    <string name="widget_log">Log</string>
+    <string name="widget_items_progress">%1$d of %2$d items</string>
+    <string name="widget_complete_task">Complete task %1$s</string>
+    <string name="widget_open_task">Open task %1$s</string>
+    <string name="widget_open_habit">Open habit %1$s</string>
+    <string name="widget_expand_habit">Expand Habit checklist</string>
+    <string name="widget_expand_habit_named">Expand %1$s checklist</string>
+    <string name="widget_collapse_habit_named">Collapse %1$s checklist</string>
+    <string name="widget_toggle_habit">Mark habit %1$s %2$s</string>
+    <string name="widget_toggle_checklist_item">Mark %1$s %2$s in %3$s</string>
+    <string name="widget_increment_habit">Add %1$s to %2$s</string>
+    <string name="widget_start_habit">Start %1$s</string>
+    <string name="widget_stop_habit">Stop %1$s</string>
+    <string name="widget_completed_action">incomplete</string>
+    <string name="widget_incomplete_action">complete</string>
+    <plurals name="widget_more_tasks">
+        <item quantity="one">+%d more task · Open Whip</item>
+        <item quantity="other">+%d more tasks · Open Whip</item>
+    </plurals>
+    <plurals name="widget_more_habits">
+        <item quantity="one">+%d more item · Open Whip</item>
+        <item quantity="other">+%d more items · Open Whip</item>
+    </plurals>
+    <plurals name="widget_subtasks_left_plural">
+        <item quantity="one">%d subtask left</item>
+        <item quantity="other">%d subtasks left</item>
+    </plurals>
+    <plurals name="widget_review_task">
+        <item quantity="one">Review and complete task %1$s; %2$d subtask remains</item>
+        <item quantity="other">Review and complete task %1$s; %2$d subtasks remain</item>
+    </plurals>
+    <string name="widget_today_scope">Today · %1$s</string>
+    <string name="widget_today_all_areas">Today · All areas</string>
+    <string name="widget_scope_all">All areas</string>
+    <string name="widget_scope_unassigned">Unassigned</string>
+    <string name="widget_scope_unavailable">Area unavailable</string>
+    <string name="widget_scope_archived_suffix"> · Archived</string>
+    <plurals name="widget_tasks_due">
+        <item quantity="one">%d task due</item>
+        <item quantity="other">%d tasks due</item>
+    </plurals>
+    <plurals name="widget_habits_due">
+        <item quantity="one">%d habit due</item>
+        <item quantity="other">%d habits due</item>
+    </plurals>
     <string name="nav_home">Home</string>
     <string name="nav_tasks">Tasks</string>
     <string name="nav_habits">Habits</string>

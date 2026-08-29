@@ -52,6 +52,7 @@ import androidx.work.WorkManager
 import com.whip.app.reminders.ALL_WHIP_WORK_TAG
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.core.zoneId
+import com.whip.app.core.currentDateFlow
 import com.whip.app.domain.LinkSourceType
 
 @OptIn(FlowPreview::class)
@@ -191,10 +192,13 @@ class WhipApplication : Application() {
         applicationScope.launch {
             merge(
                 taskRepository.tasks.map { Unit }, taskRepository.occurrences.map { Unit },
-                habitRepository.logs.map { Unit }, habitRepository.skips.map { Unit }, gymRepository.sessions.map { Unit },
-                gymRepository.sets.map { Unit }, linkRepository.rules.map { Unit },
-                linkRepository.triggerRules.map { Unit },
-                trackRepository.tracks.map { Unit }, trackRepository.entries.map { Unit },
+                taskRepository.steps.map { Unit }, taskRepository.stepStates.map { Unit },
+                taskRepository.stepSnapshots.map { Unit },
+                habitRepository.habits.map { Unit }, habitRepository.logs.map { Unit },
+                habitRepository.checklistItems.map { Unit }, habitRepository.checklistStates.map { Unit },
+                habitRepository.pauses.map { Unit }, habitRepository.skips.map { Unit },
+                measurementRepository.entries.map { Unit }, measurementRepository.customUnits.map { Unit },
+                areaRepository.areas.map { Unit }, settingsRepository.currentDateFlow(clock).map { Unit },
             ).debounce(250).collectLatest { WhipWidgetProvider.updateAll(this@WhipApplication) }
         }
     }

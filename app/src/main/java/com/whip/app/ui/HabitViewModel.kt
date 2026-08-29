@@ -4,9 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.whip.app.WhipApplication
+import com.whip.app.core.HomeSection
 import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 import com.whip.app.core.currentDateFlow
+import com.whip.app.core.revealHomeSection
 import com.whip.app.core.WhipClock
 import com.whip.app.data.HabitRepository
 import com.whip.app.domain.Habit
@@ -158,7 +160,14 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         app.domainDeletionCoordinator.deleteHabit(id)
         reminders.syncHabit(id)
     }
-    fun setPinned(id: Long, pinned: Boolean) = runOperation("Updating habit…", "Habit updated") { repository.setPinned(id, pinned) }
+    fun setPinned(id: Long, pinned: Boolean) = runOperation(
+        "Updating Home priority…",
+        if (pinned) "Habit pinned · first on Whip Home when due" else "Habit unpinned from Whip Home",
+        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+    ) {
+        repository.setPinned(id, pinned)
+        if (pinned) app.settingsRepository.revealHomeSection(HomeSection.Habits)
+    }
     fun reorder(ids: List<Long>) = runSilentReorder { repository.reorder(ids) }
     fun setPaused(id: Long, paused: Boolean) = runOperation("Updating habit…", if (paused) "Habit paused" else "Habit resumed") { repository.setPaused(id, paused); reminders.syncHabit(id) }
     fun addPause(id: Long, start: LocalDate, end: LocalDate?, note: String) = runOperation("Scheduling pause…", "Pause scheduled") {

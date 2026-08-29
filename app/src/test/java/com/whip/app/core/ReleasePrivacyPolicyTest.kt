@@ -62,7 +62,11 @@ class ReleasePrivacyPolicyTest {
             exported("activity"),
         )
         assertEquals(setOf(".HealthPermissionUsageActivity"), exported("activity-alias"))
-        assertEquals(setOf(".widget.WhipWidgetProvider"), exported("receiver"))
+        assertEquals(
+            setOf(".widget.WhipWidgetProvider", ".widget.HabitTrackingWidgetProvider"),
+            exported("receiver"),
+        )
+        assertTrue(exported("service").isEmpty())
 
         val receiverNodes = document.getElementsByTagName("receiver")
         val receivers = (0 until receiverNodes.length).associate {
@@ -78,6 +82,23 @@ class ReleasePrivacyPolicyTest {
             "android.permission.BIND_APPWIDGET",
             receivers.getValue(".widget.WhipWidgetProvider").androidAttribute("permission"),
         )
+        assertEquals(
+            "android.permission.BIND_APPWIDGET",
+            receivers.getValue(".widget.HabitTrackingWidgetProvider").androidAttribute("permission"),
+        )
+        val serviceNodes = document.getElementsByTagName("service")
+        val services = (0 until serviceNodes.length).associate {
+            val element = serviceNodes.item(it) as Element
+            element.androidAttribute("name") to element
+        }
+        services.getValue(".widget.HabitWidgetRemoteViewsService").let { service ->
+            assertEquals("false", service.androidAttribute("exported"))
+            assertEquals("android.permission.BIND_REMOTEVIEWS", service.androidAttribute("permission"))
+        }
+        services.getValue(".widget.TaskWidgetRemoteViewsService").let { service ->
+            assertEquals("false", service.androidAttribute("exported"))
+            assertEquals("android.permission.BIND_REMOTEVIEWS", service.androidAttribute("permission"))
+        }
     }
 
     @Test

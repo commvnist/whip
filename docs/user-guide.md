@@ -41,8 +41,24 @@
 
 Home keeps these sections visibly separate while supporting quick logging. Use
 **Settings → Appearance & Home → Home Overview** to reorder, collapse, or hide
-Home sections. Pin important tasks, Habits, Goals, Tracks, and routines to
-surface them first.
+Home sections. Pinning means **Whip Home inside the app**, not the Android phone
+launcher. The exact result stays close to each domain's daily behavior:
+
+When the active Area has work due today, **Tasks Due Today** appears at the top
+of Home and opens **Tasks → Today**. It disappears when no due Tasks remain.
+**Habit Progress** follows it whenever Habits are scheduled today and likewise
+disappears when there are none; the two records are independent of hidden or
+collapsed Home sections.
+
+- a pinned Task stays first when it is due in Home's Tasks section;
+- a pinned Habit stays first when it is due in Home's Habits section;
+- every pinned active Goal remains in Home's compact Goal summary;
+- pinned Tracks become Entry shortcuts in **Quick Log**; and
+- pinned routines become start shortcuts when no workout is active.
+
+Pinned groups are labeled on Home. Pinning also reveals and expands the owning
+Home section if it was hidden or collapsed; you can hide or collapse it again
+afterward without changing the saved pin.
 
 The first-run setup chooses the Home sections you want emphasized, simple or
 power defaults, kg or lb, notification intent, and low-pressure display. **Use
@@ -57,6 +73,15 @@ Compact item layout keeps Tasks, Habits, Goals, and Tracks list-sized until you
 expand them. Every row begins collapsed, including active timers and
 elapsed-since Goals. You can keep several rows expanded at once; changing a main
 or workspace tab collapses them so the destination opens as a clean list.
+Finite completion controls use a consistent trailing lane: Tasks, subtasks,
+Habit checklist items, and Goal milestones keep their checkbox on the logical
+right in left-to-right layouts. Completed finite work keeps its full layout and
+becomes muted with a complete title strike-through, while the green check
+continues to communicate success. The entire subtask or checklist row remains a
+large toggle target; the visible checkbox is separated from its text and keeps
+a minimum 48 dp touch area. Selection checkboxes remain visually distinct from
+completion controls, and durable Habit names are not crossed out simply because
+today's occurrence is complete.
 On Home and the Habits **Today** page, habits that still need attention remain
 first. A completed occurrence moves to the subdued, collapsible **Done** section
 for confirmation or undo, then returns as pending on its next scheduled day.
@@ -105,6 +130,13 @@ cover content. App-level workspaces such as Settings, Review & Trends, and Areas
 keep their exit X at the right edge; hierarchical Area details keep Back on the
 left as a separate action.
 
+Item inspectors use that same Whip language: identity stays at the top, peer
+pages use the shared underline navigation, only the center content scrolls, and
+the primary action stays reachable at the bottom. A Habit inspector has
+**Today**, **History**, and **More**. More brings Goal connections, Whip Home
+pinning, pause scheduling, duplication, archiving, and permanent deletion into
+the same grouped action-row pattern used by Settings and Tracks.
+
 Quick captures can enter a real **Inbox** for later triage. **Plan My Day**
 selects work within a user-entered time capacity using duration, urgency, and
 effort; missing estimates count as 30 minutes. Tasks can be duplicated back to
@@ -123,6 +155,31 @@ choices **Light**, **Medium**, and **High**.
 The Home add menu creates tasks for today so they remain visible after saving.
 Capture from the Inbox tab, the share target, or the widget when the task should
 wait for later triage.
+
+Whip offers two Android home-screen widgets. **Task Agenda** shows overdue and
+scheduled Task occurrences for Today, the next 7 days, or the next 30 days;
+Inbox Tasks are not included. Its top-right **+** opens Task creation, simple
+Tasks can be checked off directly, and the agenda scrolls through every Task in
+the selected range. A trailing arrow expands a Task in place so its subtasks can
+be checked individually; tap it again to collapse them. A Task with unfinished
+subtasks shows an indeterminate completion state and expands for review instead
+of bypassing those subtasks. **Habit Tracking** shows today’s scheduled Habits,
+keeps completed Habits visible by default, and supports direct check-off,
+Checklist item, numeric increment, and timer actions while Health-synced Habits
+remain read-only. Habit rows scroll inside the widget. Checklist Habits stay
+compact until their trailing expand button is tapped, then their items can be
+checked directly; tap the button again to collapse them. Its top-right **+**
+opens Habit creation.
+
+Configure either widget for **All areas** or one Area and choose up to 80% card
+transparency. Only the outer card fades; the header, rows, text, and controls
+retain a protected contrast surface so wallpaper never makes the content
+unreadable. Habit Tracking can hide completed Habits when density matters and
+can either include all matching Habits or a per-widget selection. Long-press
+either widget and choose its edit action to reopen settings. Task Agenda’s
+**Time range** setting offers Today, the next 7 days, or the next 30 days and
+always includes overdue Tasks; Habit Tracking’s settings control completion
+visibility and the per-widget Habit selection.
 
 Habit number cards expose increment, decrement, Set, configured quick values,
 and Undo directly. A value such as 6 of 8 remains partial until the period total

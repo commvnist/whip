@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,15 +17,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowDropDown
-import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,20 +28,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,6 +84,7 @@ internal fun EntityInspector(
         Modifier.absoluteOffset(x = placement.offsetX).width(placement.maxWidth)
     } else modifier
     val paneDescription = "$entityType details for $title"
+    val sectionStateHolder = rememberSaveableStateHolder()
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -115,7 +103,10 @@ internal fun EntityInspector(
                     .then(legacySurfaceTag?.let(Modifier::testTag) ?: Modifier)
                     .semantics { paneTitle = paneDescription },
                 shape = MaterialTheme.shapes.extraLarge,
-                tonalElevation = 8.dp,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp,
+                shadowElevation = 6.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             ) {
                 Column(
                     modifier = Modifier
@@ -133,15 +124,13 @@ internal fun EntityInspector(
                         editLabel = editLabel,
                     )
                     if (sections.size > 1) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         EntityInspectorSectionSelector(
                             sections = sections,
                             selectedSectionId = selectedSectionId,
                             onSelect = onSelectSection,
                             legacySectionTagPrefix = legacySectionTagPrefix,
                         )
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    } else HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -149,7 +138,9 @@ internal fun EntityInspector(
                             .testTag("entity-inspector-content-$selectedSectionId")
                             .padding(horizontal = 20.dp, vertical = 16.dp),
                     ) {
-                        content()
+                        sectionStateHolder.SaveableStateProvider("$paneDescription::$selectedSectionId") {
+                            content()
+                        }
                     }
                     primaryAction?.let { action ->
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -188,60 +179,49 @@ private fun EntityInspectorHeader(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("entity-inspector-header")
-            .padding(horizontal = 8.dp, vertical = 10.dp),
+            .padding(start = 16.dp, top = 12.dp, end = 8.dp, bottom = 12.dp),
         verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        IconButton(
-            onClick = onDismiss,
-            modifier = Modifier
-                .size(48.dp)
-                .testTag("entity-inspector-close")
-                .semantics { contentDescription = "Close $entityType details" },
-        ) {
-            Icon(Icons.Outlined.Close, contentDescription = null)
-        }
-        Row(
+        WhipIdentityEmoji(
+            emoji = emoji,
+            modifier = Modifier.padding(top = 3.dp),
+        )
+        Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = 8.dp, vertical = 3.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.Top,
+                .padding(top = 3.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
-            Text(emoji, style = MaterialTheme.typography.headlineSmall)
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
+            Text(
+                title,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("entity-inspector-title")
+                    .semantics { heading() },
+                style = MaterialTheme.typography.titleLarge,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                listOf(entityType, context).filter(String::isNotBlank).joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val statusColors = entityInspectorStatusColors(status)
+            Surface(
+                modifier = Modifier.testTag("entity-inspector-status"),
+                shape = MaterialTheme.shapes.small,
+                color = statusColors.first,
             ) {
                 Text(
-                    title,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("entity-inspector-title")
-                        .semantics { heading() },
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    status,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = statusColors.second,
                 )
-                Text(
-                    listOf(entityType, context).filter(String::isNotBlank).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Surface(
-                    modifier = Modifier.testTag("entity-inspector-status"),
-                    shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                ) {
-                    Text(
-                        status,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                }
             }
         }
         if (onEdit != null) {
@@ -252,12 +232,40 @@ private fun EntityInspectorHeader(
                     .testTag("entity-inspector-edit")
                     .semantics { contentDescription = editLabel },
             ) {
-                Icon(Icons.Outlined.Edit, contentDescription = null)
+                Icon(
+                    Icons.Outlined.Edit,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-        } else {
-            Spacer(Modifier.width(48.dp))
+        }
+        IconButton(
+            onClick = onDismiss,
+            modifier = Modifier
+                .size(48.dp)
+                .testTag("entity-inspector-close")
+                .semantics { contentDescription = "Close $entityType details" },
+        ) {
+            Icon(
+                Icons.Outlined.Close,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
+}
+
+@Composable
+private fun entityInspectorStatusColors(status: String) = when {
+    status.contains("complete", ignoreCase = true) ||
+        status.contains("recorded", ignoreCase = true) ||
+        status.contains("checked in", ignoreCase = true) ->
+        MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+    status.contains("missed", ignoreCase = true) ->
+        MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+    status.contains("paused", ignoreCase = true) || status.contains("skipped", ignoreCase = true) ->
+        MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+    else -> MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurfaceVariant
 }
 
 @Composable
@@ -267,132 +275,23 @@ private fun EntityInspectorSectionSelector(
     onSelect: (String) -> Unit,
     legacySectionTagPrefix: String?,
 ) {
-    var overflowExpanded by rememberSaveable { mutableStateOf(false) }
-    BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .testTag("entity-inspector-section-selector"),
-    ) {
-        val fontScale = LocalDensity.current.fontScale
-        val visibleCapacity = when {
-            // A two-page inspector is the common Overview / Options contract.
-            // Both controls fit even in the compact dialog lane, so changing
-            // posture or opening the same inspector on the cover display must
-            // never turn one of them into a hidden "More" destination.
-            sections.size <= 2 -> sections.size
-            // maxWidth is measured after the selector's horizontal padding.
-            // A 320 dp compact window still has room for the two stable
-            // primary sections plus More; only truly narrow panes collapse
-            // to one visible section.
-            fontScale >= 2f || maxWidth < 260.dp -> 1
-            sections.size <= 3 && fontScale < 1.3f -> sections.size
-            fontScale >= 1.3f || maxWidth < 480.dp -> 2
-            else -> 3
-        }.coerceAtMost(sections.size)
-        // Keep peer destinations stable. Selecting a page from More must not
-        // replace Overview or another primary page on the next frame.
-        val visible = sections.take(visibleCapacity)
-        val hidden = sections.filterNot(visible::contains)
-        val hiddenSelection = hidden.any { it.id == selectedSectionId }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                modifier = Modifier.weight(1f).selectableGroup(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                visible.forEach { section ->
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("entity-inspector-section-${section.id}"),
-                    ) {
-                        EntityInspectorSectionTab(
-                            section = section,
-                            selected = section.id == selectedSectionId,
-                            onSelect = onSelect,
-                            modifier = Modifier.then(
-                                legacySectionTagPrefix?.let { prefix ->
-                                    Modifier.testTag("$prefix-${section.legacyLabel}")
-                                } ?: Modifier,
-                            ),
-                        )
-                    }
-                }
-            }
-            if (hidden.isNotEmpty()) {
-                Box {
-                    WhipTextButton(
-                        onClick = { overflowExpanded = true },
-                        modifier = Modifier
-                            .heightIn(min = 48.dp)
-                            .semantics { contentDescription = "Open Pages" },
-                    ) {
-                        Text(
-                            "More",
-                            maxLines = 1,
-                            color = if (hiddenSelection) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Unspecified,
-                        )
-                        Icon(Icons.Outlined.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
-                    }
-                    DropdownMenu(
-                        expanded = overflowExpanded,
-                        onDismissRequest = { overflowExpanded = false },
-                    ) {
-                        hidden.forEach { section ->
-                            DropdownMenuItem(
-                                text = { Text(section.label) },
-                                trailingIcon = if (section.id == selectedSectionId) {
-                                    { Icon(Icons.Outlined.Check, contentDescription = "Selected") }
-                                } else null,
-                                onClick = {
-                                    overflowExpanded = false
-                                    onSelect(section.id)
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EntityInspectorSectionTab(
-    section: EntityInspectorSection,
-    selected: Boolean,
-    onSelect: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .selectable(
-                selected = selected,
-                onClick = { onSelect(section.id) },
-                role = Role.Tab,
-            ),
-        shape = MaterialTheme.shapes.small,
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-        contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-        ),
-    ) {
-        Box(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 8.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(section.label, maxLines = 1)
-        }
-    }
+    DestinationTabBar(
+        selected = sections.first { it.id == selectedSectionId },
+        destinations = sections,
+        primaryDestinations = sections.take(4),
+        onSelect = { onSelect(it.id) },
+        label = EntityInspectorSection::label,
+        testTagPrefix = legacySectionTagPrefix ?: "entity-inspector-section",
+        testTagValue = if (legacySectionTagPrefix == null) {
+            EntityInspectorSection::id
+        } else {
+            EntityInspectorSection::legacyLabel
+        },
+        secondaryTestTagPrefix = "entity-inspector-section".takeIf { legacySectionTagPrefix != null },
+        secondaryTestTagValue = EntityInspectorSection::id,
+        barTestTag = "entity-inspector-section-selector",
+        resetCompactItemExpansionOnChange = false,
+    )
 }
 
 @Composable
@@ -410,7 +309,7 @@ internal fun EntityInspectorGroup(
             title,
             modifier = Modifier.semantics { heading() },
             style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
         )
         supportingText?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -427,7 +326,21 @@ internal fun EntityInspectorAction(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     danger: Boolean = false,
+    supportingText: String? = null,
 ) {
+    if (danger) {
+        WhipActionRow(
+            title = label,
+            onClick = onClick,
+            modifier = modifier.testTag("entity-inspector-action-$id"),
+            supportingText = supportingText,
+            icon = Icons.Outlined.DeleteForever,
+            enabled = enabled,
+            navigates = false,
+            danger = true,
+        )
+        return
+    }
     Surface(
         onClick = onClick,
         enabled = enabled,
@@ -439,35 +352,28 @@ internal fun EntityInspectorAction(
         color = if (danger) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainerLow,
         contentColor = if (danger) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface,
     ) {
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            supportingText?.let { supporting ->
+                Text(
+                    supporting,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (danger) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
 
 @Composable
 internal fun EntityInspectorDangerZone(content: @Composable ColumnScope.() -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().testTag("entity-inspector-danger-zone"),
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.34f),
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text(
-                "Danger Zone",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.error,
-            )
-            content()
-        }
-    }
+    WhipDangerZone(
+        modifier = Modifier.testTag("entity-inspector-danger-zone"),
+        content = { Column(content = content) },
+    )
 }
 
 @Composable

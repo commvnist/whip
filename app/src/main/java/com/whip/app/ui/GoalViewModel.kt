@@ -4,9 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.whip.app.WhipApplication
+import com.whip.app.core.HomeSection
 import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 import com.whip.app.core.currentDateFlow
+import com.whip.app.core.revealHomeSection
 import com.whip.app.data.GoalRepository
 import com.whip.app.data.LinkRepository
 import com.whip.app.domain.Goal
@@ -157,7 +159,14 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         app.domainDeletionCoordinator.deleteGoal(id)
         reminders.syncGoal(id)
     }
-    fun setPinned(id: Long, pinned: Boolean) = runOperation("Updating goal…", "Goal updated") { repository.setPinned(id, pinned) }
+    fun setPinned(id: Long, pinned: Boolean) = runOperation(
+        "Updating Home summary…",
+        if (pinned) "Goal pinned to Whip Home" else "Goal unpinned from Whip Home",
+        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+    ) {
+        repository.setPinned(id, pinned)
+        if (pinned) app.settingsRepository.revealHomeSection(HomeSection.Goals)
+    }
     fun reorder(ids: List<Long>) = runSilentReorder { repository.reorder(ids) }
     fun record(id: Long, value: Double, date: LocalDate?, note: String) = runOperation("Saving measurement…", "Measurement saved") { repository.recordMeasurement(id, value, date = date, note = note) }
     fun updateMeasurement(id: Long, entryId: String, value: Double, date: LocalDate, note: String) =

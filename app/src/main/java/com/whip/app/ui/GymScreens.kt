@@ -5602,7 +5602,7 @@ private fun RoutineContent(
                                     )
                                 }
                                 WhipMenuItem(label = "Duplicate", onClick = { actionMenuId = null; viewModel.duplicateRoutine(routine.id) })
-                                WhipMenuItem(label = if (routine.pinned) "Unpin from Home" else "Pin to Home", onClick = { actionMenuId = null; viewModel.setRoutinePinned(routine.id, !routine.pinned) })
+                                WhipMenuItem(label = if (routine.pinned) "Unpin from Whip Home" else "Pin to Whip Home", onClick = { actionMenuId = null; viewModel.setRoutinePinned(routine.id, !routine.pinned) })
                                 WhipMenuItem(label = if (routine.archived) "Restore" else "Archive", onClick = { actionMenuId = null; viewModel.setRoutineArchived(routine.id, !routine.archived) })
                                 HorizontalDivider()
                                 WhipMenuItem(

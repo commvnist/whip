@@ -181,6 +181,75 @@ class WhipComposeSemanticsTest {
     }
 
     @Test
+    fun pinningContractIsVisibleAndExplainedOnWhipHome() {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        val today = app.clock.today()
+        val (taskId, habitId, goalId, trackId) = runBlocking {
+            val taskId = app.taskRepository.create(
+                TaskDraft(
+                    title = "Pinned audit task",
+                    scheduleKind = ScheduleKind.Once,
+                    date = today,
+                    inbox = false,
+                ),
+            )
+            val habitId = app.habitRepository.create(HabitDraft(name = "Pinned audit habit", startDate = today))
+            val goalId = app.goalRepository.create(
+                GoalDraft(
+                    name = "Pinned audit goal",
+                    type = GoalType.ReachValue,
+                    targetMin = 10.0,
+                    startDate = today,
+                ),
+            )
+            val trackId = app.trackRepository.create(
+                TrackDraft(
+                    name = "Pinned audit track",
+                    fields = listOf(
+                        TrackFieldDraft("Note", TrackFieldType.ShortText, required = true, primary = true),
+                    ),
+                ),
+            )
+            app.taskRepository.setPinned(taskId, true)
+            app.habitRepository.setPinned(habitId, true)
+            app.goalRepository.setPinned(goalId, true)
+            app.trackRepository.setPinned(trackId, true)
+            app.settingsRepository.update {
+                it.copy(hiddenHomeSections = emptySet(), collapsedHomeSections = emptySet())
+            }
+            listOf(taskId, habitId, goalId, trackId)
+        }
+        check(taskId > 0 && habitId > 0 && goalId > 0 && trackId > 0)
+        val intent = Intent(app, MainActivity::class.java)
+            .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
+
+        launchMainActivity(intent).use {
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("home-list").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("home-pinned-tasks"))
+            compose.onNodeWithTag("home-pinned-tasks").assertIsDisplayed()
+            compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("home-pinned-habits"))
+            compose.onNodeWithTag("home-pinned-habits").assertIsDisplayed()
+            compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("home-pinned-goals"))
+            compose.onNodeWithTag("home-pinned-goals").assertIsDisplayed()
+            compose.onNodeWithTag("home-list").performScrollToNode(hasText("Quick Log"))
+            compose.onNodeWithText("Quick Log").assertIsDisplayed()
+            compose.onNodeWithTag("home-list").performScrollToNode(hasContentDescription("Open task details for Pinned audit task"))
+            compose.onNodeWithContentDescription("Open task details for Pinned audit task").performClick()
+            if (compose.onAllNodesWithText("Options").fetchSemanticsNodes().isEmpty()) {
+                compose.onNode(
+                    hasContentDescription("Open Pages") and
+                        hasAnyAncestor(hasTestTag("task-actions-surface")),
+                ).performClick()
+            }
+            compose.onNodeWithText("Options").performClick()
+            compose.onNodeWithText("Unpin from Whip Home").assertIsDisplayed()
+            compose.onNodeWithText("The Task keeps its schedule and remains available in Tasks.").assertIsDisplayed()
+        }
+    }
+
+    @Test
     fun homeCardOpenAndPrimaryCallbacksWorkOnFirstInteractionAfterLaunch() {
         val app = ApplicationProvider.getApplicationContext<WhipApplication>()
         val today = app.clock.today()
@@ -210,6 +279,9 @@ class WhipComposeSemanticsTest {
                     ),
                 ),
             )
+            app.taskRepository.setPinned(taskId, true)
+            app.habitRepository.setPinned(habitId, true)
+            app.goalRepository.setPinned(goalId, true)
             app.trackRepository.setPinned(trackId, true)
             listOf(taskId, habitId, goalId, trackId)
         }
@@ -225,9 +297,27 @@ class WhipComposeSemanticsTest {
         }
 
         launchHome {
+            compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("home-pinned-tasks"))
+            compose.onNodeWithTag("home-pinned-tasks").assertIsDisplayed()
+            compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("home-pinned-habits"))
+            compose.onNodeWithTag("home-pinned-habits").assertIsDisplayed()
+            compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("home-pinned-goals"))
+            compose.onNodeWithTag("home-pinned-goals").assertIsDisplayed()
+        }
+
+        launchHome {
             compose.onNodeWithTag("home-list").performScrollToNode(hasContentDescription("Open task details for Home Callback Task"))
             compose.onNodeWithContentDescription("Open task details for Home Callback Task").performClick()
             compose.onNodeWithTag("task-actions-surface").assertIsDisplayed()
+            if (compose.onAllNodesWithText("Options").fetchSemanticsNodes().isEmpty()) {
+                compose.onNode(
+                    hasContentDescription("Open Pages") and
+                        hasAnyAncestor(hasTestTag("task-actions-surface")),
+                ).performClick()
+            }
+            compose.onNodeWithText("Options").performClick()
+            compose.onNodeWithText("Unpin from Whip Home").assertIsDisplayed()
+            compose.onNodeWithText("The Task keeps its schedule and remains available in Tasks.").assertIsDisplayed()
         }
         launchHome {
             compose.onNodeWithTag("home-list").performScrollToNode(hasContentDescription("Complete task Home Callback Task"))

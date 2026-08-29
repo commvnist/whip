@@ -221,6 +221,14 @@ class HabitRulesTest {
     }
 
     @Test
+    fun pauseWindowSuppressesTodayAttention() {
+        val daily = habit()
+        val pause = HabitPause(1, daily.id, monday, monday.plusDays(2), "Travel")
+
+        assertFalse(daily.reminderNeededOn(emptyList(), monday, pauses = listOf(pause)))
+    }
+
+    @Test
     fun pastUnloggedDayIsMissedButPendingTodayCarriesThePriorStreak() {
         val daily = habit().copy(startDate = monday.minusDays(2))
         val yesterday = monday.minusDays(1)

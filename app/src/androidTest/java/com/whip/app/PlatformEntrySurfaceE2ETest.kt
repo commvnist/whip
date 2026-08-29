@@ -105,6 +105,19 @@ class PlatformEntrySurfaceE2ETest {
     }
 
     @Test
+    fun widgetQuickActionResumesAfterFirstRunSetup() = runBlocking {
+        app.settingsRepository.update { it.copy(setupCompleted = false) }
+        val intent = Intent(app, MainActivity::class.java)
+            .setAction(WhipWidgetProvider.ACTION_ADD_TASK)
+
+        ActivityScenario.launch<MainActivity>(intent).use {
+            compose.onNodeWithText("Welcome to Whip").assertIsDisplayed()
+            compose.onNodeWithText("Use Recommended").performClick()
+            waitForTaskEditor()
+        }
+    }
+
+    @Test
     fun widgetConfigurationPersistsTheChosenAreaAndReturnsSuccess() = runBlocking {
         val widgetId = 73_041
         app.areaRepository.create("Work")
@@ -113,16 +126,37 @@ class PlatformEntrySurfaceE2ETest {
             .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
 
         ActivityScenario.launch<WhipWidgetConfigureActivity>(intent).use { scenario ->
-            compose.onNodeWithText("Configure Whip widget").assertIsDisplayed()
+            compose.onNodeWithText("Task Agenda Widget").assertIsDisplayed()
             compose.onNodeWithContentDescription("Area selection: All areas").performClick()
             compose.onNodeWithContentDescription("Area Work").performClick()
-            compose.onNodeWithText("Add widget").performClick()
+            compose.onNodeWithText("Save Widget").assertIsDisplayed().performClick()
             compose.waitUntil(5_000) { scenario.state == Lifecycle.State.DESTROYED }
 
             val scope = WhipWidgetProvider.loadScope(app, widgetId)
             val workAreaId = app.areaRepository.areas.first().single { it.name == "Work" }.id
             assertEquals(AreaScope.One(workAreaId), scope)
         }
+        WhipWidgetProvider().onDeleted(app, intArrayOf(widgetId))
+    }
+
+    @Test
+    fun widgetReconfigurationKeepsItsExistingAreaUnlessTheUserChangesIt() = runBlocking {
+        val widgetId = 73_042
+        val workAreaId = app.areaRepository.create("Work")
+        WhipWidgetProvider.saveScope(app, widgetId, AreaScope.One(workAreaId))
+        val intent = Intent(app, WhipWidgetConfigureActivity::class.java)
+            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+
+        ActivityScenario.launch<WhipWidgetConfigureActivity>(intent).use { scenario ->
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithText("Work").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithContentDescription("Area selection: Work").assertIsDisplayed()
+            compose.onNodeWithText("Save Widget").assertIsDisplayed().performClick()
+            compose.waitUntil(5_000) { scenario.state == Lifecycle.State.DESTROYED }
+        }
+
+        assertEquals(AreaScope.One(workAreaId), WhipWidgetProvider.loadScope(app, widgetId))
         WhipWidgetProvider().onDeleted(app, intArrayOf(widgetId))
     }
 
