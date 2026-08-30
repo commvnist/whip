@@ -199,7 +199,7 @@ internal fun WhipPageHeader(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = Alignment.Top,
                 ) {
                     Box(Modifier.weight(1f)) { titleContent() }
                     actions()

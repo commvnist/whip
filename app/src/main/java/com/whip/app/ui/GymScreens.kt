@@ -1336,7 +1336,7 @@ private fun WorkoutContent(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .padding(WhipPageContentPadding),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             WhipPageHeader(

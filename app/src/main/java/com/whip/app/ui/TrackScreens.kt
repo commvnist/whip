@@ -980,7 +980,7 @@ private fun AllTracksPage(
         Modifier.fillMaxSize().padding(innerPadding).testTag("track-list"),
         contentPadding = PaddingValues(
             start = if (masterPane) 12.dp else 20.dp,
-            top = 16.dp,
+            top = WhipSpacing.compact,
             end = if (masterPane) 12.dp else 20.dp,
             bottom = WhipSpacing.screenExpanded,
         ),
@@ -1528,7 +1528,7 @@ private fun TrackEntriesPage(
     }
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, WhipSpacing.screenExpanded),
+        contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (projection.track.archived) item {
@@ -1798,7 +1798,7 @@ private fun TrackInsightsPage(
     val dates = scoped.entries.map { it.entry.entryDate }
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, WhipSpacing.screenExpanded),
+        contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
@@ -2081,7 +2081,7 @@ private fun TrackOptionsPage(
 ) {
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, WhipSpacing.screenExpanded),
+        contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item { WhipPageHeader("Track Options", "Manage this Track's identity, visibility, structure, and data.") }

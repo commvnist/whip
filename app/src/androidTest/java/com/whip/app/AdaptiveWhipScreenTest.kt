@@ -949,7 +949,15 @@ class AdaptiveWhipScreenTest {
             }
         }
 
-        data class Geometry(val headerTop: Float, val headerHeight: Float, val navigationTop: Float, val navigationHeight: Float, val addLeft: Float, val actionsLeft: Float)
+        data class Geometry(
+            val headerTop: Float,
+            val headerHeight: Float,
+            val navigationTop: Float,
+            val navigationHeight: Float,
+            val pageHeaderGap: Float,
+            val addLeft: Float,
+            val actionsLeft: Float,
+        )
         val snapshots = listOf(
             Triple("Tasks tab", "task-workspace-navigation", true),
             Triple("Habits tab", "habit-workspace-navigation", true),
@@ -969,12 +977,21 @@ class AdaptiveWhipScreenTest {
             compose.onAllNodesWithTag("workspace-settings-action").assertCountEquals(1)
             val header = compose.onNodeWithTag("workspace-top-app-bar").fetchSemanticsNode().boundsInRoot
             val navigation = compose.onNodeWithTag(navigationTag).fetchSemanticsNode().boundsInRoot
+            val pageTitle = compose.onNodeWithTag("page-title").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
             val add = compose.onNodeWithTag("workspace-add-action").fetchSemanticsNode().boundsInRoot
             val actions = compose.onNodeWithTag("workspace-settings-action").fetchSemanticsNode().boundsInRoot
             check(add.top >= header.top && add.bottom <= header.bottom) {
                 "Compact Add must stay inside the shared app bar: add=$add header=$header"
             }
-            Geometry(header.top, header.height, navigation.top, navigation.height, add.left, actions.left)
+            Geometry(
+                header.top,
+                header.height,
+                navigation.top,
+                navigation.height,
+                pageTitle.top - navigation.bottom,
+                add.left,
+                actions.left,
+            )
         }
         val expected = snapshots.first()
         snapshots.drop(1).forEach { actual ->
@@ -982,6 +999,9 @@ class AdaptiveWhipScreenTest {
             check(kotlin.math.abs(actual.headerHeight - expected.headerHeight) <= 1f)
             check(kotlin.math.abs(actual.navigationTop - expected.navigationTop) <= 1f)
             check(kotlin.math.abs(actual.navigationHeight - expected.navigationHeight) <= 1f)
+            check(kotlin.math.abs(actual.pageHeaderGap - expected.pageHeaderGap) <= 1f) {
+                "Workspace page headers must use one top inset: expected=$expected actual=$actual"
+            }
             check(kotlin.math.abs(actual.addLeft - expected.addLeft) <= 1f)
             check(kotlin.math.abs(actual.actionsLeft - expected.actionsLeft) <= 1f)
         }
