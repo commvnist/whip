@@ -37,68 +37,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class WidgetSummaryTest {
+class WidgetContentTest {
     private val today = LocalDate.of(2026, 8, 28)
-
-    @Test
-    fun taskCountRepresentsTopLevelWorkDueTodayRatherThanEveryOpenTaskRow() {
-        val due = task(1, ScheduleKind.Once, today).copy(
-            steps = listOf(TaskStep(11, 1, "Child step", 0, createdAtMillis = 1, updatedAtMillis = 1)),
-        )
-        val summary = summary(
-            tasks = listOf(
-                due,
-                task(2, ScheduleKind.Once, today.minusDays(2)),
-                task(3, ScheduleKind.Once, today.plusDays(1)),
-                task(4, ScheduleKind.Anytime),
-                task(5, ScheduleKind.Once, today).copy(completedAtMillis = 1),
-                task(6, ScheduleKind.Once, today).copy(archived = true),
-            ),
-        )
-
-        assertEquals(2, summary.tasksDue)
-    }
-
-    @Test
-    fun closedRecurringOccurrenceDoesNotRemainDueBecauseItsTaskDefinitionIsOpen() {
-        val recurring = task(1, ScheduleKind.Recurring).copy(
-            recurrence = RecurrenceRule(RecurrenceUnit.Days, startDate = today),
-        )
-        val completedToday = TaskOccurrence(1, today, today, OccurrenceState.Completed, 1)
-
-        assertEquals(0, summary(tasks = listOf(recurring), occurrences = listOf(completedToday)).tasksDue)
-    }
-
-    @Test
-    fun areaScopeAppliesToBothTaskAndHabitAttentionCounts() {
-        val summary = summary(
-            tasks = listOf(task(1, ScheduleKind.Once, today, areaId = "work"), task(2, ScheduleKind.Once, today, areaId = "home")),
-            habits = listOf(habit(1, areaId = "work"), habit(2, areaId = "home")),
-            scope = AreaScope.One("work"),
-        )
-
-        assertEquals(WidgetSummary(tasksDue = 1, habitsDue = 1), summary)
-    }
-
-    @Test
-    fun completedSkippedPausedArchivedAndHealthSatisfiedHabitsAreNotDue() {
-        val due = habit(1)
-        val completed = habit(2)
-        val skipped = habit(3)
-        val paused = habit(4)
-        val archived = habit(5).copy(archived = true)
-        val healthSatisfied = habit(6).copy(sourceMetricId = "health.steps", targetMin = 100.0)
-
-        val summary = summary(
-            habits = listOf(due, completed, skipped, paused, archived, healthSatisfied),
-            logs = listOf(log(completed.id)),
-            skips = listOf(HabitSkip("skip", skipped.id, today, 1, 1, 1)),
-            pauses = listOf(HabitPause(1, paused.id, today.minusDays(1), today.plusDays(1), "Away")),
-            metricEntries = listOf(metricEntry(100.0)),
-        )
-
-        assertEquals(1, summary.habitsDue)
-    }
 
     @Test
     fun compactWidgetHidesActionsUntilThereIsRoomForFortyEightDpTargets() {
@@ -307,29 +247,6 @@ class WidgetSummaryTest {
         assertEquals(HabitWidgetAction.StartTimer, content.rows.first { it.habit.id == duration.id }.action)
         assertEquals(HabitWidgetAction.ReadOnly, content.rows.first { it.habit.id == synced.id }.action)
     }
-
-    private fun summary(
-        tasks: List<WhipTask> = emptyList(),
-        occurrences: List<TaskOccurrence> = emptyList(),
-        habits: List<Habit> = emptyList(),
-        logs: List<HabitLog> = emptyList(),
-        pauses: List<HabitPause> = emptyList(),
-        skips: List<HabitSkip> = emptyList(),
-        metricEntries: List<MetricEntry> = emptyList(),
-        scope: AreaScope = AreaScope.All,
-    ) = calculateWidgetSummary(
-        tasks = tasks,
-        taskOccurrences = occurrences,
-        habits = habits,
-        habitLogs = logs,
-        habitPauses = pauses,
-        habitSkips = skips,
-        metricEntries = metricEntries,
-        customUnits = emptyList(),
-        today = today,
-        areaScope = scope,
-        zoneId = ZoneId.of("UTC"),
-    )
 
     private fun task(
         id: Long,

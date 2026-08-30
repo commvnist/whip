@@ -91,16 +91,23 @@ class PlatformEntrySurfaceE2ETest {
     }
 
     @Test
-    fun widgetTaskActionAppliesItsAreaBeforeOpeningTheEditor() = runBlocking {
+    fun widgetTaskActionAppliesItsAreaTransientlyAndRestoresItAfterRecreation() = runBlocking {
         val workAreaId = app.areaRepository.create("Work")
+        val persistedScope = AreaScope.All.storageKey
+        app.settingsRepository.update { it.copy(activeAreaScope = persistedScope) }
         val intent = Intent(app, MainActivity::class.java)
             .setAction(WhipWidgetProvider.ACTION_ADD_TASK)
             .putExtra(WhipWidgetProvider.EXTRA_AREA_SCOPE, AreaScope.One(workAreaId).storageKey)
 
-        ActivityScenario.launch<MainActivity>(intent).use {
+        ActivityScenario.launch<MainActivity>(intent).use { scenario ->
             waitForTaskEditor()
             compose.onNodeWithContentDescription("Area selection: Work").performScrollTo().assertIsDisplayed()
-            assertEquals(AreaScope.One(workAreaId).storageKey, app.settingsRepository.current().activeAreaScope)
+            assertEquals(persistedScope, app.settingsRepository.current().activeAreaScope)
+
+            scenario.recreate()
+            waitForTaskEditor()
+            compose.onNodeWithContentDescription("Area selection: Work").performScrollTo().assertIsDisplayed()
+            assertEquals(persistedScope, app.settingsRepository.current().activeAreaScope)
         }
     }
 
@@ -157,6 +164,23 @@ class PlatformEntrySurfaceE2ETest {
         }
 
         assertEquals(AreaScope.One(workAreaId), WhipWidgetProvider.loadScope(app, widgetId))
+        WhipWidgetProvider().onDeleted(app, intArrayOf(widgetId))
+    }
+
+    @Test
+    fun widgetConfigurationPersistsUnassignedAsADistinctAreaScope() {
+        val widgetId = 73_043
+        WhipWidgetProvider().onDeleted(app, intArrayOf(widgetId))
+        val intent = Intent(app, WhipWidgetConfigureActivity::class.java)
+            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+
+        ActivityScenario.launch<WhipWidgetConfigureActivity>(intent).use { scenario ->
+            compose.onNodeWithTag("widget-config-area-unassigned").performClick()
+            compose.onNodeWithText("Save Widget").performClick()
+            compose.waitUntil(5_000) { scenario.state == Lifecycle.State.DESTROYED }
+        }
+
+        assertEquals(AreaScope.Unassigned, WhipWidgetProvider.loadScope(app, widgetId))
         WhipWidgetProvider().onDeleted(app, intArrayOf(widgetId))
     }
 

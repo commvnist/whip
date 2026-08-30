@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -127,8 +128,8 @@ class WhipWidgetConfigureActivity : ComponentActivity() {
                 }
             }
 
-            var selectedAreaId by rememberSaveable(widgetId) {
-                mutableStateOf((existing.areaScope as? AreaScope.One)?.areaId)
+            var selectedAreaScopeKey by rememberSaveable(widgetId) {
+                mutableStateOf(existing.areaScope.storageKey)
             }
             var transparencyPercent by rememberSaveable(widgetId) {
                 mutableStateOf(
@@ -154,7 +155,14 @@ class WhipWidgetConfigureActivity : ComponentActivity() {
                 mutableStateOf(existing.selectedHabitIds.orEmpty().toList())
             }
 
-            val selectedScope = selectedAreaId?.let(AreaScope::One) ?: AreaScope.All
+            val selectedScope = AreaScope.fromStorageKey(selectedAreaScopeKey)
+            val unassignedLabel = stringResource(R.string.widget_scope_unassigned)
+            val selectedAreaId = (selectedScope as? AreaScope.One)?.areaId
+            val dropdownSelectedAreaId = if (selectedScope == AreaScope.Unassigned) {
+                "__widget_unassigned__"
+            } else {
+                selectedAreaId
+            }
             val selectableHabits = habits
                 .filter { habit -> !habit.archived && selectedScope.matches(habit.areaId) }
                 .sortedWith(
@@ -165,10 +173,10 @@ class WhipWidgetConfigureActivity : ComponentActivity() {
             val selectableHabitIds = selectableHabits.mapTo(mutableSetOf()) { it.id }
             val selectedHabitCount = selectedHabitIds.count { it in selectableHabitIds }
             val selectedArea = areas.firstOrNull { it.id == selectedAreaId }
-            val selectedAreaLabel = when {
-                selectedAreaId == null -> "All areas"
-                selectedArea != null -> selectedArea.name
-                else -> "Area unavailable"
+            val selectedAreaLabel = when (selectedScope) {
+                AreaScope.All -> "All areas"
+                AreaScope.Unassigned -> unassignedLabel
+                is AreaScope.One -> selectedArea?.name ?: "Area unavailable"
             }
             val title = if (kind == WidgetKind.TaskAgenda) "Task Agenda" else "Habit Tracking"
             val canSave = kind == WidgetKind.TaskAgenda ||
@@ -247,20 +255,30 @@ class WhipWidgetConfigureActivity : ComponentActivity() {
                                         }
                                         AreaSelectionDropdown(
                                             areas = areas.filter { !it.archived || it.id == selectedAreaId },
-                                            selectedAreaId = selectedAreaId,
-                                            selectedAreaName = if (
-                                                selectedAreaId != null && selectedArea == null
-                                            ) {
-                                                "Area unavailable"
-                                            } else {
-                                                ""
+                                            selectedAreaId = dropdownSelectedAreaId,
+                                            selectedAreaName = when {
+                                                selectedScope == AreaScope.Unassigned -> unassignedLabel
+                                                selectedAreaId != null && selectedArea == null -> "Area unavailable"
+                                                else -> ""
                                             },
-                                            onSelect = { id, _ -> selectedAreaId = id },
+                                            onSelect = { id, _ ->
+                                                selectedAreaScopeKey = (
+                                                    id?.let(AreaScope::One) ?: AreaScope.All
+                                                    ).storageKey
+                                            },
                                             modifier = Modifier
                                                 .heightIn(min = 48.dp)
                                                 .testTag("widget-config-area"),
                                             nullLabel = "All areas",
                                             allowNullSelection = true,
+                                        )
+                                        WhipFilterChip(
+                                            selected = selectedScope == AreaScope.Unassigned,
+                                            onClick = {
+                                                selectedAreaScopeKey = AreaScope.Unassigned.storageKey
+                                            },
+                                            label = { Text(unassignedLabel) },
+                                            modifier = Modifier.testTag("widget-config-area-unassigned"),
                                         )
 
                                         if (kind == WidgetKind.TaskAgenda) {
@@ -432,12 +450,11 @@ class WhipWidgetConfigureActivity : ComponentActivity() {
                         ) {
                             WhipButton(
                                 onClick = {
-                                    val scope = selectedAreaId?.let(AreaScope::One) ?: AreaScope.All
                                     WhipWidgetPreferences.save(
                                         this@WhipWidgetConfigureActivity,
                                         widgetId,
                                         WidgetPreferences(
-                                            areaScope = scope,
+                                            areaScope = selectedScope,
                                             transparencyPercent = transparencyPercent,
                                             agendaRange = agendaRange,
                                             showCompletedHabits = showCompletedHabits,
@@ -714,10 +731,10 @@ private fun WidgetConfigurationPreview(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        Icons.Outlined.CheckBoxOutlineBlank,
+                        Icons.Outlined.ExpandMore,
                         contentDescription = null,
-                        tint = outline,
-                        modifier = Modifier.size(22.dp),
+                        tint = secondaryText,
+                        modifier = Modifier.size(24.dp),
                     )
                 }
                 Box(
@@ -725,10 +742,10 @@ private fun WidgetConfigurationPreview(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        Icons.Outlined.ExpandMore,
+                        Icons.Outlined.CheckBoxOutlineBlank,
                         contentDescription = null,
-                        tint = secondaryText,
-                        modifier = Modifier.size(24.dp),
+                        tint = outline,
+                        modifier = Modifier.size(22.dp),
                     )
                 }
             }

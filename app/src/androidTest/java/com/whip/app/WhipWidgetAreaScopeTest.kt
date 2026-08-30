@@ -1,6 +1,8 @@
 package com.whip.app
 
 import android.content.Intent
+import android.text.Spanned
+import android.text.style.StrikethroughSpan
 import android.appwidget.AppWidgetManager
 import android.widget.FrameLayout
 import android.widget.RemoteViews
@@ -174,6 +176,10 @@ class WhipWidgetAreaScopeTest {
             .apply(context, FrameLayout(context))
         val habitRow = RemoteViews(context.packageName, R.layout.widget_habit_row)
             .apply(context, FrameLayout(context))
+        val taskLargeTextRow = RemoteViews(context.packageName, R.layout.widget_task_row_large_text)
+            .apply(context, FrameLayout(context))
+        val habitLargeTextRow = RemoteViews(context.packageName, R.layout.widget_habit_row_large_text)
+            .apply(context, FrameLayout(context))
         val childRow = RemoteViews(context.packageName, R.layout.widget_child_row)
             .apply(context, FrameLayout(context))
         val statusRow = RemoteViews(context.packageName, R.layout.widget_status_row)
@@ -191,6 +197,10 @@ class WhipWidgetAreaScopeTest {
         assertNotNull(habitRow.findViewById<android.view.View>(R.id.widget_row_action_icon))
         assertNotNull(habitRow.findViewById<android.view.View>(R.id.widget_row_action_label))
         assertNotNull(habitRow.findViewById<android.view.View>(R.id.widget_row_expand))
+        assertNotNull(taskLargeTextRow.findViewById<android.view.View>(R.id.widget_row_action))
+        assertNotNull(taskLargeTextRow.findViewById<android.view.View>(R.id.widget_row_expand))
+        assertNotNull(habitLargeTextRow.findViewById<android.view.View>(R.id.widget_row_action))
+        assertNotNull(habitLargeTextRow.findViewById<android.view.View>(R.id.widget_row_expand))
         assertNotNull(childRow.findViewById<android.view.View>(R.id.widget_row_action_icon))
         assertNotNull(childRow.findViewById<android.view.View>(R.id.widget_row_body))
         assertNotNull(statusRow.findViewById<android.view.View>(R.id.widget_row_action_icon))
@@ -204,6 +214,18 @@ class WhipWidgetAreaScopeTest {
         val childAction = childRow.findViewById<View>(R.id.widget_row_action_icon)
         assertTrue("Widget child completion must trail its text", childAction.left >= childBody.right)
         assertTrue("Widget child completion target must remain 48 dp", childAction.width >= 48 * context.resources.displayMetrics.density)
+
+        taskRow.findViewById<View>(R.id.widget_row_expand).visibility = View.VISIBLE
+        taskRow.measure(
+            View.MeasureSpec.makeMeasureSpec(600, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+        )
+        taskRow.layout(0, 0, taskRow.measuredWidth, taskRow.measuredHeight)
+        val taskBody = taskRow.findViewById<View>(R.id.widget_row_body)
+        val taskExpand = taskRow.findViewById<View>(R.id.widget_row_expand)
+        val taskAction = taskRow.findViewById<View>(R.id.widget_row_action)
+        assertTrue("Task disclosure must follow its body", taskExpand.left >= taskBody.right)
+        assertTrue("Task completion must be the logical trailing control", taskAction.left >= taskExpand.right)
     }
 
     @Test
@@ -298,6 +320,9 @@ class WhipWidgetAreaScopeTest {
                 .putExtra(WhipWidgetProvider.EXTRA_TASK_KEY, taskKey)
                 .putExtra(WhipWidgetProvider.EXTRA_EXPANDED, true),
         )
+        withTimeout(5_000) {
+            while (taskKey !in WhipWidgetPreferences.load(app, widgetId).expandedTaskKeys) delay(20)
+        }
         factory.onDataSetChanged()
         assertEquals(11, factory.getCount())
         factory.onDestroy()
@@ -362,6 +387,9 @@ class WhipWidgetAreaScopeTest {
                 .putExtra(HabitTrackingWidgetProvider.EXTRA_HABIT_ID, selectedId)
                 .putExtra(HabitTrackingWidgetProvider.EXTRA_EXPANDED, true),
         )
+        withTimeout(5_000) {
+            while (selectedId !in WhipWidgetPreferences.load(app, widgetId).expandedHabitIds) delay(20)
+        }
         factory.onDataSetChanged()
         assertEquals(10, factory.getCount())
         factory.onDestroy()
@@ -515,11 +543,21 @@ class WhipWidgetAreaScopeTest {
             ),
         )
         val itemId = app.habitRepository.checklistItems.first().single { it.habitId == habitId }.id
+        val widgetId = 408
+        WhipWidgetPreferences.save(
+            app,
+            widgetId,
+            WidgetPreferences(
+                selectedHabitIds = setOf(habitId),
+                expandedHabitIds = setOf(habitId),
+            ),
+        )
 
         HabitTrackingWidgetProvider().onReceive(
             app,
             Intent(app, HabitTrackingWidgetProvider::class.java)
                 .setAction(HabitTrackingWidgetProvider.ACTION_COLLECTION_CLICK)
+                .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
                 .putExtra(
                     HabitTrackingWidgetProvider.EXTRA_COLLECTION_ACTION,
                     HabitTrackingWidgetProvider.ACTION_TOGGLE_CHECKLIST_ITEM,
@@ -540,5 +578,192 @@ class WhipWidgetAreaScopeTest {
             app.habitRepository.logs.first { logs -> logs.any { it.habitId == habitId } }
         }
         assertTrue(logs.any { it.habitId == habitId && (it.value ?: 0.0) > 0.0 })
+        HabitTrackingWidgetProvider().onDeleted(app, intArrayOf(widgetId))
+    }
+
+    @Test
+    fun staleHabitWidgetActionsDoNotMutateHabitsOutsideCurrentConfiguration() = runBlocking {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        app.backupRepository.deleteAllData()
+        val today = app.clock.today()
+        val includedId = app.habitRepository.create(
+            HabitDraft(
+                name = "Included Habit",
+                trackingMode = HabitTrackingMode.CheckOff,
+                startDate = today,
+            ),
+        )
+        val excludedId = app.habitRepository.create(
+            HabitDraft(
+                name = "Excluded Habit",
+                trackingMode = HabitTrackingMode.CheckOff,
+                startDate = today,
+            ),
+        )
+        val widgetId = 409
+        WhipWidgetPreferences.save(
+            app,
+            widgetId,
+            WidgetPreferences(selectedHabitIds = setOf(includedId)),
+        )
+
+        fun toggle(habitId: Long) = HabitTrackingWidgetProvider().onReceive(
+            app,
+            Intent(app, HabitTrackingWidgetProvider::class.java)
+                .setAction(HabitTrackingWidgetProvider.ACTION_COLLECTION_CLICK)
+                .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+                .putExtra(
+                    HabitTrackingWidgetProvider.EXTRA_COLLECTION_ACTION,
+                    HabitTrackingWidgetProvider.ACTION_TOGGLE_HABIT,
+                )
+                .putExtra(HabitTrackingWidgetProvider.EXTRA_HABIT_ID, habitId)
+                .putExtra(HabitTrackingWidgetProvider.EXTRA_DATE_EPOCH_DAY, today.toEpochDay())
+                .putExtra(HabitTrackingWidgetProvider.EXTRA_COMPLETED, true),
+        )
+
+        toggle(excludedId)
+        app.habitRepository.setPaused(includedId, true)
+        toggle(includedId)
+        delay(750)
+
+        assertTrue(app.habitRepository.logs.first().none { it.habitId in setOf(includedId, excludedId) })
+        HabitTrackingWidgetProvider().onDeleted(app, intArrayOf(widgetId))
+    }
+
+    @Test
+    fun currentChecklistParentCanBeCompletedDirectlyFromItsWidgetAction() = runBlocking {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        app.backupRepository.deleteAllData()
+        val today = app.clock.today()
+        val habitId = app.habitRepository.create(
+            HabitDraft(
+                name = "Direct parent completion",
+                trackingMode = HabitTrackingMode.Checklist,
+                checklistItems = listOf(HabitChecklistItemDraft("Optional progress", 0)),
+                autoCompleteFromItems = false,
+                startDate = today,
+            ),
+        )
+        val widgetId = 412
+        WhipWidgetPreferences.save(
+            app,
+            widgetId,
+            WidgetPreferences(selectedHabitIds = setOf(habitId)),
+        )
+
+        HabitTrackingWidgetProvider().onReceive(
+            app,
+            Intent(app, HabitTrackingWidgetProvider::class.java)
+                .setAction(HabitTrackingWidgetProvider.ACTION_COLLECTION_CLICK)
+                .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+                .putExtra(
+                    HabitTrackingWidgetProvider.EXTRA_COLLECTION_ACTION,
+                    HabitTrackingWidgetProvider.ACTION_TOGGLE_HABIT,
+                )
+                .putExtra(HabitTrackingWidgetProvider.EXTRA_HABIT_ID, habitId)
+                .putExtra(HabitTrackingWidgetProvider.EXTRA_DATE_EPOCH_DAY, today.toEpochDay())
+                .putExtra(HabitTrackingWidgetProvider.EXTRA_COMPLETED, true),
+        )
+
+        val logs = withTimeout(5_000) {
+            app.habitRepository.logs.first { entries -> entries.any { it.habitId == habitId } }
+        }
+        assertTrue(logs.any { it.habitId == habitId && (it.value ?: 0.0) > 0.0 })
+        assertTrue(app.habitRepository.checklistStates.first().none { it.habitId == habitId && it.completed })
+        HabitTrackingWidgetProvider().onDeleted(app, intArrayOf(widgetId))
+    }
+
+    @Test
+    fun collectionRefreshPrunesExpansionIdsThatNoLongerIdentifyEligibleRows() = runBlocking {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        app.backupRepository.deleteAllData()
+        val today = app.clock.today()
+        val habitId = app.habitRepository.create(
+            HabitDraft(
+                name = "Checklist",
+                trackingMode = HabitTrackingMode.Checklist,
+                checklistItems = listOf(HabitChecklistItemDraft("Item", 0)),
+                startDate = today,
+            ),
+        )
+        val taskId = app.taskRepository.create(
+            TaskDraft(
+                title = "Task with step",
+                scheduleKind = ScheduleKind.Once,
+                date = today,
+                inbox = false,
+                steps = listOf(TaskStepDraft(title = "Step", position = 0)),
+            ),
+        )
+        val widgetId = 410
+        WhipWidgetPreferences.save(
+            app,
+            widgetId,
+            WidgetPreferences(
+                selectedHabitIds = emptySet(),
+                expandedHabitIds = setOf(habitId, Long.MAX_VALUE),
+                expandedTaskKeys = setOf("$taskId:${today.toEpochDay()}", "stale"),
+            ),
+        )
+
+        HabitWidgetRemoteViewsFactory(app, widgetId).onDataSetChanged()
+        assertTrue(WhipWidgetPreferences.load(app, widgetId).expandedHabitIds.isEmpty())
+
+        WhipWidgetPreferences.save(
+            app,
+            widgetId,
+            WhipWidgetPreferences.load(app, widgetId).copy(
+                agendaRange = com.whip.app.widget.AgendaRange.Today,
+                expandedTaskKeys = setOf("$taskId:${today.toEpochDay()}", "stale"),
+            ),
+        )
+        TaskWidgetRemoteViewsFactory(app, widgetId).onDataSetChanged()
+        assertEquals(
+            setOf("$taskId:${today.toEpochDay()}"),
+            WhipWidgetPreferences.load(app, widgetId).expandedTaskKeys,
+        )
+        WhipWidgetProvider().onDeleted(app, intArrayOf(widgetId))
+    }
+
+    @Test
+    fun completedHabitParentKeepsItsIdentityWhileCompletedChecklistChildIsStruck() = runBlocking {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        app.backupRepository.deleteAllData()
+        val today = app.clock.today()
+        val habitId = app.habitRepository.create(
+            HabitDraft(
+                name = "Durable identity",
+                trackingMode = HabitTrackingMode.Checklist,
+                checklistItems = listOf(HabitChecklistItemDraft("Finite child", 0)),
+                startDate = today,
+            ),
+        )
+        val itemId = app.habitRepository.checklistItems.first().single().id
+        app.habitRepository.toggleChecklistItem(habitId, itemId, today, true)
+        val widgetId = 411
+        WhipWidgetPreferences.save(
+            app,
+            widgetId,
+            WidgetPreferences(
+                selectedHabitIds = setOf(habitId),
+                expandedHabitIds = setOf(habitId),
+            ),
+        )
+        val factory = HabitWidgetRemoteViewsFactory(app, widgetId)
+        factory.onDataSetChanged()
+
+        val parent = requireNotNull(factory.getViewAt(0)).apply(app, FrameLayout(app))
+        val child = requireNotNull(factory.getViewAt(1)).apply(app, FrameLayout(app))
+        val parentTitle = parent.findViewById<android.widget.TextView>(R.id.widget_row_title).text
+        val childTitle = child.findViewById<android.widget.TextView>(R.id.widget_row_title).text as Spanned
+        assertTrue(
+            (parentTitle as? Spanned)
+                ?.getSpans(0, parentTitle.length, StrikethroughSpan::class.java)
+                .orEmpty()
+                .isEmpty(),
+        )
+        assertTrue(childTitle.getSpans(0, childTitle.length, StrikethroughSpan::class.java).isNotEmpty())
+        factory.onDestroy()
+        HabitTrackingWidgetProvider().onDeleted(app, intArrayOf(widgetId))
     }
 }

@@ -141,7 +141,6 @@
         <item quantity="one">%1$d more issue · fix the source file and preview again</item>
         <item quantity="other">%1$d more issues · fix the source file and preview again</item>
     </plurals>
-    <string name="widget_description">Tasks and habits that still need attention today, with area-aware quick add</string>
     <string name="widget_task_agenda_name">Task Agenda</string>
     <string name="widget_habit_tracking_name">Habit Tracking</string>
     <string name="widget_task_agenda_description">Scroll a configurable agenda, expand subtasks, and check off Tasks</string>
@@ -210,7 +209,6 @@
         <item quantity="other">Review and complete task %1$s; %2$d subtasks remain</item>
     </plurals>
     <string name="widget_today_scope">Today · %1$s</string>
-    <string name="widget_today_all_areas">Today · All areas</string>
     <string name="widget_scope_all">All areas</string>
     <string name="widget_scope_unassigned">Unassigned</string>
     <string name="widget_scope_unavailable">Area unavailable</string>

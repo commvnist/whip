@@ -61,6 +61,15 @@ internal class HabitWidgetRemoteViewsFactory(
                     selectedHabitIds = preferences.selectedHabitIds,
                     expandedHabitIds = preferences.expandedHabitIds,
                 )
+                WhipWidgetPreferences.pruneHabitExpansions(
+                    context = context,
+                    appWidgetId = appWidgetId,
+                    eligibleHabitIds = content.rows
+                        .asSequence()
+                        .filter { !it.isChecklistItem && it.expandable }
+                        .map { it.habit.id }
+                        .toSet(),
+                )
                 HabitWidgetSnapshot(content.rows, today)
             }
         }
@@ -133,7 +142,7 @@ private fun HabitWidgetRow.toCachedRow(context: Context): CachedWidgetRow = Cach
     title = checklistItem?.name ?: "${habit.icon} ${habit.name}",
     meta = habitMeta(context, this),
     isChild = isChecklistItem,
-    completed = completed,
+    completed = isChecklistItem && completed,
 )
 
 private fun habitCollectionRow(
@@ -141,14 +150,17 @@ private fun habitCollectionRow(
     row: HabitWidgetRow,
     today: LocalDate,
 ): RemoteViews {
-    val views = RemoteViews(
-        context.packageName,
-        if (row.isChecklistItem) R.layout.widget_child_row else R.layout.widget_habit_row,
-    )
+    val layout = when {
+        row.isChecklistItem -> R.layout.widget_child_row
+        row.expandable && useSingleLineWidgetRows(context.resources.configuration.fontScale) ->
+            R.layout.widget_habit_row_large_text
+        else -> R.layout.widget_habit_row
+    }
+    val views = RemoteViews(context.packageName, layout)
     val title = row.checklistItem?.name ?: "${row.habit.icon} ${row.habit.name}"
     views.setTextViewText(
         R.id.widget_row_title,
-        if (row.completed) SpannableString(title).apply {
+        if (row.isChecklistItem && row.completed) SpannableString(title).apply {
             setSpan(StrikethroughSpan(), 0, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         } else title,
     )

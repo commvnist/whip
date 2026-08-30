@@ -171,7 +171,7 @@ compact until their trailing expand button is tapped, then their items can be
 checked directly; tap the button again to collapse them. Its top-right **+**
 opens Habit creation.
 
-Configure either widget for **All areas** or one Area and choose up to 80% card
+Configure either widget for **All areas**, **Unassigned**, or one Area and choose up to 80% card
 transparency. Only the outer card fades; the header, rows, text, and controls
 retain a protected contrast surface so wallpaper never makes the content
 unreadable. Habit Tracking can hide completed Habits when density matters and
@@ -180,6 +180,8 @@ either widget and choose its edit action to reopen settings. Task Agenda’s
 **Time range** setting offers Today, the next 7 days, or the next 30 days and
 always includes overdue Tasks; Habit Tracking’s settings control completion
 visibility and the per-widget Habit selection.
+The Whip mark and header open the matching app section without changing your
+saved app-wide Area. A widget’s Area is temporary for that launch only.
 
 Habit number cards expose increment, decrement, Set, configured quick values,
 and Undo directly. A value such as 6 of 8 remains partial until the period total

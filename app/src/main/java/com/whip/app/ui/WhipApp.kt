@@ -528,6 +528,7 @@ fun WhipApp(
     initialEntityId: Long? = null,
     initialOccurrenceEpochDay: Long? = null,
     initialSharedText: String? = null,
+    initialAreaScopeStorageKey: String? = null,
     initialDeliveryId: Long = 0L,
     foldInfo: WhipFoldInfo? = null,
     onRequestNotificationPermission: () -> Unit = {},
@@ -583,6 +584,7 @@ fun WhipApp(
         initialAction,
         initialEntityId,
         initialOccurrenceEpochDay,
+        initialAreaScopeStorageKey,
         settingsState.settings.setupCompleted,
         state,
         habitState,
@@ -592,6 +594,11 @@ fun WhipApp(
         if (requestedLaunchDeliveryId == 0L) return@LaunchedEffect
         if (transientAreaScopeDelivery == requestedLaunchDeliveryId) return@LaunchedEffect
         if (!settingsState.settings.setupCompleted) return@LaunchedEffect
+        if (initialAreaScopeStorageKey != null) {
+            transientAreaScopeKey = AreaScope.fromStorageKey(initialAreaScopeStorageKey).storageKey
+            transientAreaScopeDelivery = requestedLaunchDeliveryId
+            return@LaunchedEffect
+        }
         val resolution = resolveLaunchTarget(
             action = initialAction,
             entityId = initialEntityId,

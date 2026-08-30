@@ -36,16 +36,16 @@ class MainActivity : ComponentActivity() {
         val entityId: Long?,
         val occurrenceEpochDay: Long?,
         val sharedText: String?,
+        val areaScopeStorageKey: String?,
         val deliveryId: Long,
     )
 
     private var deliveryCounter = 0L
-    private val launchRequest = mutableStateOf(LaunchRequest(null, null, null, null, 0L))
+    private val launchRequest = mutableStateOf(LaunchRequest(null, null, null, null, null, 0L))
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         deliveryCounter = savedInstanceState?.getLong(STATE_DELIVERY_COUNTER) ?: 0L
-        applyWidgetAreaScope(intent)
         launchRequest.value = savedInstanceState?.restoredLaunchRequest()
             ?: intent.toWhipLaunchRequest()
         val isDebuggable = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
@@ -94,6 +94,7 @@ class MainActivity : ComponentActivity() {
                     initialEntityId = request.entityId,
                     initialOccurrenceEpochDay = request.occurrenceEpochDay,
                     initialSharedText = request.sharedText,
+                    initialAreaScopeStorageKey = request.areaScopeStorageKey,
                     initialDeliveryId = request.deliveryId,
                     foldInfo = foldInfo,
                     settingsViewModel = settingsViewModel,
@@ -123,14 +124,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        applyWidgetAreaScope(intent)
         launchRequest.value = intent.toWhipLaunchRequest()
-    }
-
-    private fun applyWidgetAreaScope(intent: android.content.Intent?) {
-        intent?.getStringExtra(com.whip.app.widget.WhipWidgetProvider.EXTRA_AREA_SCOPE)?.let { storageKey ->
-            (application as WhipApplication).settingsRepository.update { it.copy(activeAreaScope = storageKey) }
-        }
     }
 
     private fun android.content.Intent?.toWhipLaunchRequest(): LaunchRequest {
@@ -155,7 +149,10 @@ class MainActivity : ComponentActivity() {
                 ?.trim()
                 ?.takeIf(String::isNotBlank)
         } else null
-        return LaunchRequest(action, id, occurrence, sharedText, ++deliveryCounter)
+        val areaScopeStorageKey = this?.getStringExtra(
+            com.whip.app.widget.WhipWidgetProvider.EXTRA_AREA_SCOPE,
+        )
+        return LaunchRequest(action, id, occurrence, sharedText, areaScopeStorageKey, ++deliveryCounter)
     }
 
     private fun LaunchRequest.saveTo(outState: Bundle) {
@@ -164,6 +161,7 @@ class MainActivity : ComponentActivity() {
         entityId?.let { outState.putLong(STATE_ACTIVE_ENTITY_ID, it) }
         occurrenceEpochDay?.let { outState.putLong(STATE_ACTIVE_OCCURRENCE_DAY, it) }
         outState.putString(STATE_ACTIVE_SHARED_TEXT, sharedText)
+        outState.putString(STATE_ACTIVE_AREA_SCOPE, areaScopeStorageKey)
     }
 
     private fun Bundle.restoredLaunchRequest(): LaunchRequest? {
@@ -175,6 +173,7 @@ class MainActivity : ComponentActivity() {
             occurrenceEpochDay = getLong(STATE_ACTIVE_OCCURRENCE_DAY)
                 .takeIf { containsKey(STATE_ACTIVE_OCCURRENCE_DAY) },
             sharedText = getString(STATE_ACTIVE_SHARED_TEXT),
+            areaScopeStorageKey = getString(STATE_ACTIVE_AREA_SCOPE),
             deliveryId = deliveryId,
         )
     }
@@ -187,5 +186,6 @@ class MainActivity : ComponentActivity() {
         const val STATE_ACTIVE_ENTITY_ID = "whip.launch.active_entity_id"
         const val STATE_ACTIVE_OCCURRENCE_DAY = "whip.launch.active_occurrence_day"
         const val STATE_ACTIVE_SHARED_TEXT = "whip.launch.active_shared_text"
+        const val STATE_ACTIVE_AREA_SCOPE = "whip.launch.active_area_scope"
     }
 }

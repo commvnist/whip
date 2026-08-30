@@ -16,7 +16,6 @@ import com.whip.app.WhipApplication
 import com.whip.app.core.WhipLaunchActions
 import com.whip.app.core.zoneId
 import com.whip.app.domain.AreaScope
-import com.whip.app.domain.HabitTrackingMode
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,17 +52,30 @@ class WhipWidgetProvider : AppWidgetProvider() {
                 AppWidgetManager.INVALID_APPWIDGET_ID,
             )
             val taskKey = intent.getStringExtra(EXTRA_TASK_KEY).orEmpty()
-            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID && taskKey.isNotBlank()) {
-                WhipWidgetPreferences.setTaskExpanded(
-                    context = context,
-                    appWidgetId = appWidgetId,
-                    taskKey = taskKey,
-                    expanded = intent.getBooleanExtra(EXTRA_EXPANDED, false),
-                )
-                AppWidgetManager.getInstance(context).notifyAppWidgetViewDataChanged(
-                    appWidgetId,
-                    R.id.widget_task_list,
-                )
+            if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID || taskKey.isBlank()) return
+            val pending = goAsync()
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                try {
+                    val eligible = runCatching {
+                        currentTaskAgendaContent(context, appWidgetId).items.any { item ->
+                            item.stableKey == taskKey && item.subtasks.isNotEmpty()
+                        }
+                    }.getOrDefault(false)
+                    if (eligible) {
+                        WhipWidgetPreferences.setTaskExpanded(
+                            context = context,
+                            appWidgetId = appWidgetId,
+                            taskKey = taskKey,
+                            expanded = intent.getBooleanExtra(EXTRA_EXPANDED, false),
+                        )
+                    }
+                    AppWidgetManager.getInstance(context).notifyAppWidgetViewDataChanged(
+                        appWidgetId,
+                        R.id.widget_task_list,
+                    )
+                } finally {
+                    pending?.finish()
+                }
             }
             return
         }
@@ -263,17 +275,31 @@ class HabitTrackingWidgetProvider : AppWidgetProvider() {
                 AppWidgetManager.INVALID_APPWIDGET_ID,
             )
             val habitId = intent.getLongExtra(EXTRA_HABIT_ID, -1L)
-            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID && habitId >= 0L) {
-                WhipWidgetPreferences.setHabitExpanded(
-                    context = context,
-                    appWidgetId = appWidgetId,
-                    habitId = habitId,
-                    expanded = intent.getBooleanExtra(EXTRA_EXPANDED, false),
-                )
-                AppWidgetManager.getInstance(context).notifyAppWidgetViewDataChanged(
-                    appWidgetId,
-                    R.id.widget_habit_list,
-                )
+            if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID || habitId < 0L) return
+            val pending = goAsync()
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                try {
+                    val current = runCatching {
+                        currentHabitTrackingContent(context, appWidgetId)
+                    }.getOrNull()
+                    val eligible = current?.rows?.any { row ->
+                        !row.isChecklistItem && row.habit.id == habitId && row.expandable
+                    } == true
+                    if (eligible) {
+                        WhipWidgetPreferences.setHabitExpanded(
+                            context = context,
+                            appWidgetId = appWidgetId,
+                            habitId = habitId,
+                            expanded = intent.getBooleanExtra(EXTRA_EXPANDED, false),
+                        )
+                    }
+                    AppWidgetManager.getInstance(context).notifyAppWidgetViewDataChanged(
+                        appWidgetId,
+                        R.id.widget_habit_list,
+                    )
+                } finally {
+                    pending?.finish()
+                }
             }
             return
         }
@@ -324,38 +350,50 @@ class HabitTrackingWidgetProvider : AppWidgetProvider() {
                     .takeUnless { it == WhipWidgetProvider.NO_DATE }
                     ?.let(LocalDate::ofEpochDay)
                 val today = app.clock.today()
-                if (habitId >= 0L && renderedDate == today) {
+                val appWidgetId = intent.getIntExtra(
+                    AppWidgetManager.EXTRA_APPWIDGET_ID,
+                    AppWidgetManager.INVALID_APPWIDGET_ID,
+                )
+                if (
+                    habitId >= 0L &&
+                    renderedDate == today &&
+                    appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID
+                ) {
                     runCatching {
-                        val habit = app.habitRepository.get(habitId) ?: return@runCatching
-                        if (habit.archived || habit.sourceMetricId != null) return@runCatching
+                        val current = currentHabitTrackingContent(context, appWidgetId)
+                        val parent = current.rows.firstOrNull { row ->
+                            !row.isChecklistItem && row.habit.id == habitId
+                        } ?: return@runCatching
+                        val habit = parent.habit
                         when (resolvedAction) {
-                            ACTION_TOGGLE_HABIT -> app.habitRepository.setCheckOff(
-                                habitId,
-                                today,
-                                intent.getBooleanExtra(EXTRA_COMPLETED, true),
-                            )
+                            ACTION_TOGGLE_HABIT -> {
+                                val completed = intent.getBooleanExtra(EXTRA_COMPLETED, true)
+                                if (parent.action != HabitWidgetAction.ToggleHabit || parent.completed == completed) {
+                                    return@runCatching
+                                }
+                                app.habitRepository.setCheckOff(habitId, today, completed)
+                            }
                             ACTION_TOGGLE_CHECKLIST_ITEM -> {
                                 val itemId = intent.getLongExtra(EXTRA_CHECKLIST_ITEM_ID, -1L)
-                                if (itemId >= 0L) {
-                                    app.habitRepository.toggleChecklistItem(
-                                        habitId,
-                                        itemId,
-                                        today,
-                                        intent.getBooleanExtra(EXTRA_COMPLETED, true),
-                                    )
-                                }
+                                val child = current.rows.firstOrNull { row ->
+                                    row.habit.id == habitId && row.checklistItem?.id == itemId
+                                } ?: return@runCatching
+                                val completed = intent.getBooleanExtra(EXTRA_COMPLETED, true)
+                                if (
+                                    child.action != HabitWidgetAction.ToggleChecklistItem ||
+                                    child.completed == completed
+                                ) return@runCatching
+                                app.habitRepository.toggleChecklistItem(habitId, itemId, today, completed)
                             }
-                            ACTION_INCREMENT_HABIT -> if (
-                                habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)
-                            ) {
+                            ACTION_INCREMENT_HABIT -> if (parent.action == HabitWidgetAction.Increment) {
                                 app.habitRepository.log(habitId, habit.quickIncrement, date = today)
                             }
-                            ACTION_START_HABIT -> if (
-                                habit.trackingMode == HabitTrackingMode.Duration && habit.timerStartedAtMillis == null
-                            ) app.habitRepository.startTimer(habitId)
-                            ACTION_STOP_HABIT -> if (
-                                habit.trackingMode == HabitTrackingMode.Duration && habit.timerStartedAtMillis != null
-                            ) app.habitRepository.stopTimer(habitId, today)
+                            ACTION_START_HABIT -> if (parent.action == HabitWidgetAction.StartTimer) {
+                                app.habitRepository.startTimer(habitId)
+                            }
+                            ACTION_STOP_HABIT -> if (parent.action == HabitWidgetAction.StopTimer) {
+                                app.habitRepository.stopTimer(habitId, today)
+                            }
                         }
                         app.habitReminderScheduler.syncHabit(habitId)
                     }
@@ -436,6 +474,7 @@ private suspend fun updateTaskAgendaWidgets(
                 context.getString(R.string.widget_agenda_subtitle, preferences.agendaRange.title, scopeLabel),
             )
             setOnClickPendingIntent(R.id.widget_header, openAgenda)
+            setOnClickPendingIntent(R.id.widget_brand, openAgenda)
             setContentDescription(
                 R.id.widget_header,
                 context.getString(R.string.widget_open_task_agenda_for, scopeLabel),
@@ -502,8 +541,20 @@ private suspend fun updateHabitTrackingWidgets(
     }.getOrNull()
     val areas = runCatching { app.areaRepository.areas.first() }.getOrNull()
     ids.forEach { id ->
-        val preferences = WhipWidgetPreferences.load(context, id)
+        var preferences = WhipWidgetPreferences.load(context, id)
         val content = calculateContent?.invoke(preferences)
+        if (content != null) {
+            val eligibleExpandedIds = content.rows
+                .asSequence()
+                .filter { !it.isChecklistItem && it.expandable }
+                .map { it.habit.id }
+                .toSet()
+            preferences = WhipWidgetPreferences.pruneHabitExpansions(
+                context,
+                id,
+                eligibleExpandedIds,
+            )
+        }
         val scopeLabel = scopeLabel(context, preferences.areaScope, areas.orEmpty())
         val openHabits = openSectionIntent(
             context,
@@ -531,6 +582,7 @@ private suspend fun updateHabitTrackingWidgets(
                 },
             )
             setOnClickPendingIntent(R.id.widget_header, openHabits)
+            setOnClickPendingIntent(R.id.widget_brand, openHabits)
             setContentDescription(
                 R.id.widget_header,
                 context.getString(R.string.widget_open_habit_tracking_for, scopeLabel),
@@ -559,6 +611,29 @@ private suspend fun updateHabitTrackingWidgets(
         manager.updateAppWidget(id, views)
         manager.notifyAppWidgetViewDataChanged(id, R.id.widget_habit_list)
     }
+}
+
+private suspend fun currentHabitTrackingContent(
+    context: Context,
+    appWidgetId: Int,
+): HabitTrackingContent {
+    val app = context.applicationContext as WhipApplication
+    val preferences = WhipWidgetPreferences.load(context, appWidgetId)
+    return calculateHabitTrackingContent(
+        habits = app.habitRepository.habits.first(),
+        habitLogs = app.habitRepository.logs.first(),
+        habitChecklistItems = app.habitRepository.checklistItems.first(),
+        habitChecklistStates = app.habitRepository.checklistStates.first(),
+        habitPauses = app.habitRepository.pauses.first(),
+        habitSkips = app.habitRepository.skips.first(),
+        metricEntries = app.measurementRepository.entries.first(),
+        customUnits = app.measurementRepository.customUnits.first(),
+        today = app.clock.today(),
+        areaScope = preferences.areaScope,
+        showCompleted = preferences.showCompletedHabits,
+        selectedHabitIds = preferences.selectedHabitIds,
+        expandedHabitIds = preferences.expandedHabitIds,
+    )
 }
 
 /**
@@ -692,9 +767,17 @@ private suspend fun currentTaskAgendaItem(
 ) = if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
     null
 } else {
+    currentTaskAgendaContent(context, appWidgetId)
+        .items.firstOrNull { it.task.id == taskId && it.originalDate == originalDate }
+}
+
+private suspend fun currentTaskAgendaContent(
+    context: Context,
+    appWidgetId: Int,
+): TaskAgendaContent {
     val app = context.applicationContext as WhipApplication
     val preferences = WhipWidgetPreferences.load(context, appWidgetId)
-    calculateTaskAgendaContent(
+    return calculateTaskAgendaContent(
         tasks = app.taskRepository.tasks.first(),
         taskOccurrences = app.taskRepository.occurrences.first(),
         taskSteps = app.taskRepository.steps.first(),
@@ -704,5 +787,5 @@ private suspend fun currentTaskAgendaItem(
         areaScope = preferences.areaScope,
         range = preferences.agendaRange,
         zoneId = app.settingsRepository.current().zoneId(),
-    ).items.firstOrNull { it.task.id == taskId && it.originalDate == originalDate }
+    )
 }

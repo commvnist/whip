@@ -36,9 +36,11 @@ The focus group was a persona-based critique, not recruited-user research.
 | Task completion | Direct for simple Tasks. A Task with subtasks expands in place; each child is directly checkable against its exact occurrence, while unfinished parents retain the safe review route. |
 | Habit population | Today’s scheduled Habits, remaining first and completed below; completed visibility and an all/custom Habit allowlist are configured per widget. |
 | Habit actions | A scrollable collection exposes CheckOff/Checklist controls, numeric increment, Duration Start/Stop, Rate/Log app routing, and Health sync read-only. Checklist children appear only while their parent is expanded. |
-| Checklist parent | Read-only progress indicator when children auto-complete the Habit; independently checkable only when auto-complete is disabled. |
+| Checklist parent | The durable Habit identity remains readable and directly checkable; completion never strikes the parent title. Only finite completed checklist children are struck. |
 | Transparency | 0–80% outer-card transparency with a live configuration preview; opaque protected header/row surfaces preserve contrast. |
-| Responsive density | Both widgets use in-widget scrolling collections with 48dp rows and 48dp expand/collapse targets, so expanded children never replace access to later parent rows. |
+| Responsive density | Both widgets use in-widget scrolling collections with 48dp rows and body → disclosure → trailing action order. At extreme text scale disclosure moves below the identity/action row instead of crushing the title. |
+| Area scope | Each widget supports All areas, Unassigned, or one Area. Opening a section, entity, or Add flow applies that scope transiently and never overwrites the app-wide saved Area. |
+| App entry | The Whip mark and header open the corresponding Task or Habit section; the top-end `+` opens scoped creation. |
 | Privacy | Widget rows expose title and necessary date/progress only; notes, tags, and history stay inside Whip. |
 
 ## Acceptance contract
@@ -48,8 +50,11 @@ The focus group was a persona-based critique, not recruited-user research.
   reconfiguration and are removed with the widget instance.
 - Task actions resolve the current Task occurrence before mutation and tolerate
   stale or duplicate delivery.
-- Habit actions validate the current Habit mode, source, item, and rendered
-  local date before mutation.
+- Habit actions validate the current widget Area, allowlist, visibility,
+  schedule/pause/archive state, tracking mode, exact row/item, current value,
+  and rendered local date before mutation.
+- Expansion IDs are pruned whenever their Task/Habit is no longer eligible for
+  the configured widget.
 - Task step/state and Habit checklist/state changes trigger immediate widget
   refreshes.
 - Every add, row, toggle, and expansion action retains a 48dp target with an

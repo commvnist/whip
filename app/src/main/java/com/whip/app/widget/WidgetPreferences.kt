@@ -122,6 +122,28 @@ internal object WhipWidgetPreferences {
         save(context, appWidgetId, current.copy(expandedTaskKeys = updated))
     }
 
+    fun pruneHabitExpansions(
+        context: Context,
+        appWidgetId: Int,
+        eligibleHabitIds: Set<Long>,
+    ): WidgetPreferences {
+        val current = load(context, appWidgetId)
+        val retained = current.expandedHabitIds.intersect(eligibleHabitIds)
+        if (retained == current.expandedHabitIds) return current
+        return current.copy(expandedHabitIds = retained).also { save(context, appWidgetId, it) }
+    }
+
+    fun pruneTaskExpansions(
+        context: Context,
+        appWidgetId: Int,
+        eligibleTaskKeys: Set<String>,
+    ): WidgetPreferences {
+        val current = load(context, appWidgetId)
+        val retained = current.expandedTaskKeys.intersect(eligibleTaskKeys)
+        if (retained == current.expandedTaskKeys) return current
+        return current.copy(expandedTaskKeys = retained).also { save(context, appWidgetId, it) }
+    }
+
     fun remove(context: Context, appWidgetIds: IntArray) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit {
             appWidgetIds.forEach { id ->
@@ -156,3 +178,19 @@ internal fun widgetRowCapacity(availableHeightDp: Int, fontScale: Float): Int {
     val rowHeight = if (fontScale >= 1.3f) 62 else 52
     return ((availableHeightDp - headerHeight) / rowHeight).coerceIn(1, 6)
 }
+
+internal fun availableWidgetHeight(
+    minHeightDp: Int,
+    maxHeightDp: Int,
+    landscape: Boolean,
+): Int = if (landscape) {
+    minHeightDp.takeIf { it > 0 } ?: maxHeightDp
+} else {
+    maxHeightDp.takeIf { it > 0 } ?: minHeightDp
+}
+
+internal fun useCompactWidgetHeader(availableHeightDp: Int, fontScale: Float): Boolean =
+    availableHeightDp in 1 until 200 || fontScale >= 1.5f
+
+/** At extreme scaling the secondary line would consume the minimum widget's collection viewport. */
+internal fun useSingleLineWidgetRows(fontScale: Float): Boolean = fontScale >= 2f

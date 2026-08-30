@@ -59,8 +59,15 @@ internal class TaskWidgetRemoteViewsFactory(
                     range = preferences.agendaRange,
                     zoneId = app.settingsRepository.current().zoneId(),
                 )
+                val preferencesWithValidExpansions = WhipWidgetPreferences.pruneTaskExpansions(
+                    context = context,
+                    appWidgetId = appWidgetId,
+                    eligibleTaskKeys = content.items
+                        .filter { it.subtasks.isNotEmpty() }
+                        .mapTo(mutableSetOf()) { it.stableKey },
+                )
                 TaskWidgetSnapshot(
-                    rows = taskWidgetRows(content.items, preferences.expandedTaskKeys),
+                    rows = taskWidgetRows(content.items, preferencesWithValidExpansions.expandedTaskKeys),
                     date = today,
                 )
             }
@@ -143,10 +150,13 @@ private fun taskCollectionRow(
     row: TaskWidgetRow,
     today: LocalDate,
 ): RemoteViews {
-    val views = RemoteViews(
-        context.packageName,
-        if (row.isSubtask) R.layout.widget_child_row else R.layout.widget_task_row,
-    )
+    val layout = when {
+        row.isSubtask -> R.layout.widget_child_row
+        row.expandable && useSingleLineWidgetRows(context.resources.configuration.fontScale) ->
+            R.layout.widget_task_row_large_text
+        else -> R.layout.widget_task_row
+    }
+    val views = RemoteViews(context.packageName, layout)
     val subtask = row.subtask
     val title = subtask?.title ?: "${row.item.task.icon} ${row.item.task.title}"
     views.setTextViewText(

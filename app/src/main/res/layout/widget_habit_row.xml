@@ -44,6 +44,16 @@
             android:textSize="12sp" />
     </LinearLayout>
 
+    <ImageView
+        android:id="@+id/widget_row_expand"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/widget_icon_button_feedback"
+        android:contentDescription="@string/widget_expand_habit"
+        android:padding="12dp"
+        android:src="@drawable/widget_ic_expand_more"
+        android:visibility="gone" />
+
     <FrameLayout
         android:id="@+id/widget_row_action"
         android:layout_width="48dp"
@@ -71,14 +81,4 @@
             android:textSize="13sp"
             android:visibility="gone" />
     </FrameLayout>
-
-    <ImageView
-        android:id="@+id/widget_row_expand"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:background="@drawable/widget_icon_button_feedback"
-        android:contentDescription="@string/widget_expand_habit"
-        android:padding="12dp"
-        android:src="@drawable/widget_ic_expand_more"
-        android:visibility="gone" />
 </LinearLayout>

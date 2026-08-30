@@ -9,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.core.graphics.ColorUtils
 import com.whip.app.domain.AreaScope
 import com.whip.app.domain.HabitDraft
+import com.whip.app.domain.HabitChecklistItemDraft
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TaskDraft
@@ -128,6 +129,49 @@ class WidgetExtremeTextTest {
         assertEquals(1, title.maxLines)
         assertEquals(View.GONE, meta.visibility)
         assertTrue("Extreme text must retain the 48 dp completion target", action.width >= 48 * scaledContext.resources.displayMetrics.density)
+        WhipWidgetPreferences.remove(app, intArrayOf(widgetId))
+    }
+
+    @Test
+    fun expandableHabitMovesDisclosureBelowInsteadOfCrushingTextAtExtremeScale() = runBlocking {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        app.backupRepository.deleteAllData()
+        val habitId = app.habitRepository.create(
+            HabitDraft(
+                name = "A long checklist Habit whose identity must stay readable",
+                trackingMode = HabitTrackingMode.Checklist,
+                checklistItems = listOf(HabitChecklistItemDraft("First item", 0)),
+                startDate = app.clock.today(),
+            ),
+        )
+        val configuration = Configuration(app.resources.configuration).apply { fontScale = 3.2f }
+        val scaledContext = app.createConfigurationContext(configuration)
+        val widgetId = 83_203
+        WhipWidgetPreferences.save(
+            app,
+            widgetId,
+            WidgetPreferences(
+                selectedHabitIds = setOf(habitId),
+                expandedHabitIds = setOf(habitId),
+            ),
+        )
+        val factory = HabitWidgetRemoteViewsFactory(scaledContext, widgetId)
+        factory.onDataSetChanged()
+
+        val row = requireNotNull(factory.getViewAt(0)).apply(scaledContext, FrameLayout(scaledContext))
+        row.measure(
+            View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+        )
+        row.layout(0, 0, row.measuredWidth, row.measuredHeight)
+        val body = row.findViewById<View>(R.id.widget_row_body)
+        val action = row.findViewById<View>(R.id.widget_row_action)
+        val disclosure = row.findViewById<View>(R.id.widget_row_expand)
+
+        assertTrue(action.left >= body.right)
+        assertTrue("Large-text disclosure belongs below the identity row", disclosure.top >= action.bottom)
+        assertTrue(disclosure.width >= row.width)
+        factory.onDestroy()
         WhipWidgetPreferences.remove(app, intArrayOf(widgetId))
     }
 }
