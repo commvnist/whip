@@ -52,7 +52,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.heading
@@ -94,6 +97,9 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 internal enum class SettingsSection(val label: String, val supportingText: String) {
     Appearance("Appearance & Home", "Theme, presentation, home sections, and keyboard shortcuts"),
@@ -477,26 +483,40 @@ internal fun SettingsContent(
             )
             if (state.customUnits.isEmpty()) Text("No custom conversion units yet.", style = MaterialTheme.typography.bodySmall)
             state.customUnits.forEach { unit ->
+                var unitMenuOpen by rememberSaveable(unit.id) { mutableStateOf(false) }
                 Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            "${unit.name}${unit.symbol.takeIf(String::isNotBlank)?.let { " ($it)" }.orEmpty()}${if (unit.archived) " · Archived" else ""}",
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            "1 ${unit.symbol.ifBlank { unit.name }} = ${unit.toCanonicalFactor} ${canonicalUnitLabel(unit.dimension)}",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 8.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f).padding(vertical = 4.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            WhipTextButton(onClick = { renameUnitId = unit.id }) { Text("Rename") }
-                            WhipTextButton(onClick = { versionUnitId = unit.id }) { Text("New Version") }
-                            WhipTextButton(onClick = { viewModel.setCustomUnitArchived(unit.id, !unit.archived) }) {
-                                Text(if (unit.archived) "Restore" else "Archive")
-                            }
+                            Text(
+                                "${unit.name}${unit.symbol.takeIf(String::isNotBlank)?.let { " ($it)" }.orEmpty()}${if (unit.archived) " · Archived" else ""}",
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                "1 ${unit.symbol.ifBlank { unit.name }} = ${unit.toCanonicalFactor} ${canonicalUnitLabel(unit.dimension)}",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        WhipOverflowMenu(
+                            label = "Options for ${unit.name}",
+                            expanded = unitMenuOpen,
+                            onExpandedChange = { unitMenuOpen = it },
+                            modifier = Modifier.testTag("custom-unit-menu-${unit.id}"),
+                        ) {
+                            WhipMenuItem("Rename", onClick = { unitMenuOpen = false; renameUnitId = unit.id })
+                            WhipMenuItem("Create New Version", onClick = { unitMenuOpen = false; versionUnitId = unit.id })
+                            WhipMenuItem(
+                                if (unit.archived) "Restore" else "Archive",
+                                onClick = {
+                                    unitMenuOpen = false
+                                    viewModel.setCustomUnitArchived(unit.id, !unit.archived)
+                                },
+                            )
                         }
                     }
                 }
@@ -697,6 +717,7 @@ internal fun SettingsContent(
                     }
                     settings.customIdentityEmojis.forEachIndexed { index, choice ->
                         val reorderInteraction = rememberWhipReorderInteractionState()
+                        var emojiMenuOpen by rememberSaveable(choice.emoji) { mutableStateOf(false) }
                         Row(
                             modifier = Modifier.fillMaxWidth()
                                 .whipReorderItem(
@@ -723,14 +744,25 @@ internal fun SettingsContent(
                                 Text(choice.name, fontWeight = FontWeight.SemiBold)
                                 Text(choice.emoji, style = MaterialTheme.typography.bodySmall)
                             }
-                            WhipTextButton(
-                                onClick = {
+                            WhipOverflowMenu(
+                                label = "Options for ${choice.name}",
+                                expanded = emojiMenuOpen,
+                                onExpandedChange = { emojiMenuOpen = it },
+                                modifier = Modifier.testTag("custom-emoji-menu-${choice.emoji}"),
+                            ) {
+                                WhipMenuItem("Edit", onClick = {
+                                    emojiMenuOpen = false
                                     customEmojiEditorOriginal = choice.emoji
                                     customEmojiEditorOpen = true
-                                },
-                            ) { Text("Edit") }
-                            WhipTextButton(onClick = { viewModel.removeCustomIdentityEmoji(choice.emoji) }) {
-                                Text("Remove", color = MaterialTheme.colorScheme.error)
+                                })
+                                WhipMenuItem(
+                                    "Remove",
+                                    onClick = {
+                                        emojiMenuOpen = false
+                                        viewModel.removeCustomIdentityEmoji(choice.emoji)
+                                    },
+                                    role = WhipMenuItemRole.Destructive,
+                                )
                             }
                         }
                     }
@@ -749,12 +781,34 @@ internal fun SettingsContent(
             Text("Tags can describe many facets of an item. Areas remain its single primary home.")
             if (state.tags.isEmpty()) Text("No tags yet.", style = MaterialTheme.typography.bodySmall)
             state.tags.forEach { tag ->
+                var tagMenuOpen by rememberSaveable(tag.id) { mutableStateOf(false) }
                 Card(Modifier.fillMaxWidth().padding(top = 6.dp)) {
-                    Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("#${tag.name}${if (tag.archived) " · Archived" else ""}")
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            WhipTextButton(onClick = { taxonomyEditKind = "Tag"; taxonomyEditId = tag.id }) { Text("Rename") }
-                            WhipTextButton(onClick = { viewModel.setTagArchived(tag.id, !tag.archived) }) { Text(if (tag.archived) "Restore" else "Archive") }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 8.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "#${tag.name}${if (tag.archived) " · Archived" else ""}",
+                            modifier = Modifier.weight(1f).padding(vertical = 4.dp),
+                        )
+                        WhipOverflowMenu(
+                            label = "Options for #${tag.name}",
+                            expanded = tagMenuOpen,
+                            onExpandedChange = { tagMenuOpen = it },
+                            modifier = Modifier.testTag("tag-menu-${tag.id}"),
+                        ) {
+                            WhipMenuItem("Rename", onClick = {
+                                tagMenuOpen = false
+                                taxonomyEditKind = "Tag"
+                                taxonomyEditId = tag.id
+                            })
+                            WhipMenuItem(
+                                if (tag.archived) "Restore" else "Archive",
+                                onClick = {
+                                    tagMenuOpen = false
+                                    viewModel.setTagArchived(tag.id, !tag.archived)
+                                },
+                            )
                         }
                     }
                 }
@@ -926,9 +980,15 @@ internal fun SettingsContent(
                     if (state.portableBackup.configured) {
                         Text("Folder: ${state.portableBackup.folderLabel ?: "Selected folder"}")
                         state.portableBackup.lastBackupAtMillis?.let { millis ->
-                            val whenSaved = Instant.ofEpochMilli(millis).atZone(settings.zoneId()).toLocalDateTime()
+                            val whenSaved = formatSettingsTimestamp(
+                                instant = Instant.ofEpochMilli(millis),
+                                zoneId = settings.zoneId(),
+                                locale = LocalConfiguration.current.locales[0],
+                            )
                             Text(
-                                "Last verified: $whenSaved${state.portableBackup.lastBackupFileName?.let { " · $it" }.orEmpty()}",
+                                state.portableBackup.lastBackupFileName?.let { fileName ->
+                                    stringResource(R.string.settings_backup_last_verified_file, whenSaved, fileName)
+                                } ?: stringResource(R.string.settings_backup_last_verified, whenSaved),
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
@@ -945,22 +1005,35 @@ internal fun SettingsContent(
                             state.portableBackup.automaticEnabled,
                             onChange = viewModel::setPortableBackupAutomatic,
                         )
+                        Text(
+                            stringResource(R.string.settings_backup_automatic_retention),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                         NumberSetting(
                             "Verified backups to keep (1–30)",
                             state.portableBackup.retentionCount,
                             viewModel::setPortableBackupRetention,
                             validRange = 1..30,
                         )
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            WhipOutlinedButton(
-                                onClick = { backupFolder.launch(state.portableBackup.folderUri?.let(android.net.Uri::parse)) },
-                                enabled = !state.busy,
-                                modifier = Modifier.weight(1f),
-                            ) { Text("Change Folder") }
-                            WhipTextButton(onClick = viewModel::clearPortableBackupFolder, enabled = !state.busy, modifier = Modifier.weight(1f)) {
-                                Text("Forget Folder")
-                            }
-                        }
+                        ResponsiveSettingsActions(
+                            first = { buttonModifier ->
+                                WhipOutlinedButton(
+                                    onClick = { backupFolder.launch(state.portableBackup.folderUri?.let(android.net.Uri::parse)) },
+                                    enabled = !state.busy,
+                                    modifier = buttonModifier,
+                                ) { Text("Change Folder") }
+                            },
+                            second = { buttonModifier ->
+                                WhipTextButton(
+                                    onClick = viewModel::clearPortableBackupFolder,
+                                    enabled = !state.busy,
+                                    modifier = buttonModifier,
+                                ) {
+                                    Text("Forget Folder")
+                                }
+                            },
+                        )
                     } else {
                         WhipButton(
                             onClick = { backupFolder.launch(null) },
@@ -1050,10 +1123,13 @@ internal fun SettingsContent(
                 }
                 if (!settings.healthConnectEnabled) {
                     Text(
-                        buildString {
-                            append("Sync is paused. No health data is read. ")
-                            if (settings.healthDataTypes.isEmpty()) append("No categories are selected.")
-                            else append("Saved for next time: ${settings.healthDataTypes.joinToString { it.name }}.")
+                        if (settings.healthDataTypes.isEmpty()) {
+                            stringResource(R.string.settings_health_sync_paused_empty)
+                        } else {
+                            stringResource(
+                                R.string.settings_health_sync_paused_saved,
+                                settings.healthDataTypes.joinToString { it.name },
+                            )
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1093,21 +1169,40 @@ internal fun SettingsContent(
                         else -> null
                     },
                 )
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    WhipOutlinedButton(
-                        onClick = { healthPermissions.launch(viewModel.requiredHealthPermissions()) },
-                        enabled = accessAvailability.enabled,
-                        modifier = Modifier.weight(1f),
-                    ) { Text("Review Access") }
-                    WhipButton(
-                        onClick = viewModel::syncHealthConnect,
-                        enabled = syncAvailability.enabled && !state.busy,
-                        modifier = Modifier.weight(1f),
-                    ) { Text("Sync Now") }
-                }
+                ResponsiveSettingsActions(
+                    first = { buttonModifier ->
+                        WhipOutlinedButton(
+                            onClick = { healthPermissions.launch(viewModel.requiredHealthPermissions()) },
+                            enabled = accessAvailability.enabled,
+                            modifier = buttonModifier,
+                        ) { Text("Review Access") }
+                    },
+                    second = { buttonModifier ->
+                        WhipButton(
+                            onClick = viewModel::syncHealthConnect,
+                            enabled = syncAvailability.enabled && !state.busy,
+                            modifier = buttonModifier,
+                        ) { Text("Sync Now") }
+                    },
+                )
                 AvailabilityNotice("Review access", accessAvailability)
                 AvailabilityNotice("Sync now", syncAvailability)
-                state.healthConnect.lastSync?.let { Text("Last sync: $it · ${state.healthConnect.importedEntries} entries", style = MaterialTheme.typography.bodySmall) }
+                state.healthConnect.lastSync?.let { lastSync ->
+                    val formatted = formatSettingsTimestamp(
+                        instant = lastSync,
+                        zoneId = settings.zoneId(),
+                        locale = LocalConfiguration.current.locales[0],
+                    )
+                    val importedEntries = pluralStringResource(
+                        R.plurals.settings_health_imported_entries,
+                        state.healthConnect.importedEntries,
+                        state.healthConnect.importedEntries,
+                    )
+                    Text(
+                        stringResource(R.string.settings_health_last_sync, formatted, importedEntries),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
             }
         }
         }
@@ -1136,6 +1231,8 @@ internal fun SettingsContent(
         BackupRestorePreviewDialogs(
             preview = preview,
             busy = state.busy,
+            zoneId = settings.zoneId(),
+            locale = LocalConfiguration.current.locales[0],
             onCancel = viewModel::cancelRestore,
             onMerge = viewModel::confirmMerge,
             onReplace = viewModel::confirmRestore,
@@ -1215,44 +1312,32 @@ internal fun SettingsContent(
     }
     if (confirmDelete) {
         val destructiveActionDescription = stringResource(R.string.state_destructive_action)
-        PaneAwareAlertDialog(
-            onDismissRequest = { if (!state.busy && !resetSubmitted) confirmDelete = false },
-            title = { Text(stringResource(R.string.settings_reset_confirm_title)) },
-            text = { Text(stringResource(R.string.settings_reset_confirm_message)) },
-            confirmButton = {
-                WhipTextButton(
-                    enabled = !state.busy && !resetSubmitted,
-                    onClick = {
-                        submitDestructiveActionOnce(
-                            alreadySubmitted = resetSubmitted,
-                            busy = state.busy,
-                            markSubmitted = { resetSubmitted = true },
-                            action = {
-                                viewModel.deleteAllData(
-                                    onSuccess = onDataReset,
-                                    onFailure = { resetSubmitted = false },
-                                )
-                            },
+        PermanentDeleteDialog(
+            title = stringResource(R.string.settings_reset_confirm_title),
+            message = stringResource(R.string.settings_reset_confirm_intro),
+            impacts = listOf(
+                stringResource(R.string.settings_reset_impact_records),
+                stringResource(R.string.settings_reset_impact_preferences),
+                stringResource(R.string.settings_reset_impact_backup_link),
+            ),
+            confirmLabel = stringResource(R.string.settings_reset_confirm_action),
+            busy = state.busy || resetSubmitted,
+            confirmModifier = Modifier.testTag("confirm-reset-whip").semantics {
+                stateDescription = destructiveActionDescription
+            },
+            onDismiss = { confirmDelete = false },
+            onConfirm = {
+                submitDestructiveActionOnce(
+                    alreadySubmitted = resetSubmitted,
+                    busy = state.busy,
+                    markSubmitted = { resetSubmitted = true },
+                    action = {
+                        viewModel.deleteAllData(
+                            onSuccess = onDataReset,
+                            onFailure = { resetSubmitted = false },
                         )
                     },
-                    modifier = Modifier.testTag("confirm-reset-whip").semantics {
-                        stateDescription = destructiveActionDescription
-                    },
-                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
-                ) {
-                    Text(
-                        if (state.busy || resetSubmitted) stringResource(R.string.settings_resetting)
-                        else stringResource(R.string.settings_reset_confirm_action),
-                    )
-                }
-            },
-            dismissButton = {
-                WhipTextButton(
-                    onClick = { confirmDelete = false },
-                    enabled = !state.busy && !resetSubmitted,
-                ) { Text(stringResource(R.string.action_cancel)) }
+                )
             },
         )
     }
@@ -1355,6 +1440,8 @@ internal fun WideSettingsSectionSidebar(
 internal fun BackupRestorePreviewDialogs(
     preview: BackupPreview,
     busy: Boolean,
+    zoneId: ZoneId = ZoneId.systemDefault(),
+    locale: Locale = Locale.getDefault(),
     onCancel: () -> Unit,
     onMerge: () -> Unit,
     onReplace: () -> Unit,
@@ -1379,8 +1466,9 @@ internal fun BackupRestorePreviewDialogs(
             onDismissRequest = { if (!busy) onCancel() },
             title = { Text("Import This Whip Backup?") },
             text = {
+                val exportedAt = formatSettingsTimestamp(preview.exportedAt, zoneId, locale)
                 Text(
-                    "Exported ${preview.exportedAt}\n${preview.totalRecords} records in ${preview.tableCounts.count { it.value > 0 }} tables\n" +
+                    "Exported $exportedAt\n${preview.totalRecords} records in ${preview.tableCounts.count { it.value > 0 }} tables\n" +
                         "Preferences: ${if (preview.settingsIncluded) "included" else "not included"}\n" +
                         "${preview.duplicateStableIds} stable IDs already exist.\n\n" +
                         (preview.compatibilityMessage ?: "MERGE adds records that are not already present, remaps their relationships, keeps current settings, and commits atomically. Re-importing the same file is safe.\n\nREPLACE snapshots the current database and preferences first, then replaces all local data, settings, and scheduled work; interruption rolls back to that snapshot."),
@@ -1407,40 +1495,25 @@ internal fun BackupRestorePreviewDialogs(
             dismissButton = { WhipTextButton(onClick = onCancel, enabled = !busy) { Text(cancelLabel) } },
         )
     } else {
-        PaneAwareAlertDialog(
-            onDismissRequest = { if (!busy && !replacementSubmitted) confirmReplacement = false },
-            paneTitle = stringResource(R.string.settings_backup_replace_pane_title),
-            title = { Text(stringResource(R.string.settings_backup_replace_title)) },
-            text = {
-                Text(stringResource(R.string.settings_backup_replace_warning))
+        PermanentDeleteDialog(
+            title = stringResource(R.string.settings_backup_replace_title),
+            message = stringResource(R.string.settings_backup_replace_intro),
+            impacts = listOf(
+                stringResource(R.string.settings_backup_replace_impact_records),
+                stringResource(R.string.settings_backup_replace_impact_preferences),
+                stringResource(R.string.settings_backup_replace_impact_recovery),
+            ),
+            confirmLabel = replaceEverythingLabel,
+            busy = busy || replacementSubmitted,
+            confirmModifier = Modifier.testTag("confirm-replace-everything").semantics {
+                stateDescription = destructiveActionDescription
             },
-            confirmButton = {
-                WhipTextButton(
-                    enabled = !busy && !replacementSubmitted,
-                    onClick = {
-                        if (!replacementSubmitted && !busy) {
-                            replacementSubmitted = true
-                            onReplace()
-                        }
-                    },
-                    modifier = Modifier.testTag("confirm-replace-everything").semantics {
-                        stateDescription = destructiveActionDescription
-                    },
-                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
-                ) {
-                    Text(
-                        if (busy || replacementSubmitted) stringResource(R.string.settings_backup_replacing)
-                        else replaceEverythingLabel,
-                    )
+            onDismiss = { confirmReplacement = false },
+            onConfirm = {
+                if (!replacementSubmitted && !busy) {
+                    replacementSubmitted = true
+                    onReplace()
                 }
-            },
-            dismissButton = {
-                WhipTextButton(
-                    onClick = { confirmReplacement = false },
-                    enabled = !busy && !replacementSubmitted,
-                ) { Text(cancelLabel) }
             },
         )
     }
@@ -1558,6 +1631,45 @@ private fun SettingsHeading(text: String) {
         modifier = Modifier.padding(top = 8.dp).semantics { heading() },
     )
 }
+
+/** Action pairs stay thumb-friendly without squeezing labels at compact widths or large text. */
+@Composable
+internal fun ResponsiveSettingsActions(
+    modifier: Modifier = Modifier,
+    first: @Composable (Modifier) -> Unit,
+    second: @Composable (Modifier) -> Unit,
+) {
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val stacked = maxWidth < 420.dp || LocalDensity.current.fontScale >= 1.5f
+        if (stacked) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                first(Modifier.fillMaxWidth())
+                second(Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                first(Modifier.weight(1f))
+                second(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+internal fun formatSettingsTimestamp(
+    instant: Instant,
+    zoneId: ZoneId,
+    locale: Locale,
+): String = DateTimeFormatter
+    .ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+    .withLocale(locale)
+    .withZone(zoneId)
+    .format(instant)
 
 @Composable
 internal fun HealthDataTypeSetting(

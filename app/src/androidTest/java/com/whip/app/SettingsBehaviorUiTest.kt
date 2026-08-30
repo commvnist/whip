@@ -136,6 +136,7 @@ class SettingsBehaviorUiTest {
                 listOf(CustomIdentityEmoji("🦊", "Forest Work"))
         }
         compose.onNodeWithTag("custom-emoji-🦊").assertIsDisplayed()
+        compose.onNodeWithTag("custom-emoji-menu-🦊").performClick()
         compose.onNodeWithText("Edit").performClick()
         compose.onNodeWithTag("custom-emoji-editor-name").performTextReplacement("Outdoor Projects")
         compose.onNodeWithTag("custom-emoji-editor-save").performClick()
@@ -143,6 +144,7 @@ class SettingsBehaviorUiTest {
             app.settingsRepository.current().customIdentityEmojis.singleOrNull()?.name == "Outdoor Projects"
         }
 
+        compose.onNodeWithTag("custom-emoji-menu-🦊").performClick()
         compose.onNodeWithText("Remove").performClick()
         compose.waitUntil { app.settingsRepository.current().customIdentityEmojis.isEmpty() }
 

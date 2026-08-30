@@ -22,6 +22,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -94,5 +95,38 @@ class SettingsResponsiveUiTest {
             assertTrue(compose.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot.height >= minimumTargetPx)
         }
         assertEquals(2, clicks)
+    }
+
+    @Test
+    fun settingsActionPairsStackAtCompactLargeTextWithoutShrinkingTargets() {
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 2f)) {
+                WhipTheme(dynamicColor = false) {
+                    Box(Modifier.width(320.dp)) {
+                        ResponsiveSettingsActions(
+                            first = { modifier ->
+                                WhipOutlinedButton(
+                                    onClick = {},
+                                    modifier = modifier.testTag("settings-action-first"),
+                                ) { androidx.compose.material3.Text("Review Access") }
+                            },
+                            second = { modifier ->
+                                WhipButton(
+                                    onClick = {},
+                                    modifier = modifier.testTag("settings-action-second"),
+                                ) { androidx.compose.material3.Text("Sync Now") }
+                            },
+                        )
+                    }
+                }
+            }
+        }
+
+        val first = compose.onNodeWithTag("settings-action-first").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val second = compose.onNodeWithTag("settings-action-second").assertIsDisplayed().getUnclippedBoundsInRoot()
+        assertTrue(first.bottom <= second.top)
+        assertTrue(first.let { it.bottom - it.top } >= 48.dp)
+        assertTrue(second.let { it.bottom - it.top } >= 48.dp)
     }
 }
