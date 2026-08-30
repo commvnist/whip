@@ -60,6 +60,9 @@ import com.whip.app.domain.TrackValueDraft
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
 import com.whip.app.ui.theme.WhipTheme
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -671,6 +674,116 @@ class InteractionControlUiTest {
             compose.onNodeWithTag("roomy-tab-$label").assertIsDisplayed()
         }
         compose.onAllNodesWithContentDescription("More destinations").assertCountEquals(0)
+    }
+
+    @Test
+    fun destinationsShareEqualWidthWhenTheirFullRowFits() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Box(Modifier.width(360.dp)) {
+                    DestinationTabBar(
+                        selected = "Today",
+                        destinations = listOf("Today", "All", "Insights"),
+                        onSelect = {},
+                        label = { it },
+                        testTagPrefix = "equal-tab",
+                    )
+                }
+            }
+        }
+
+        val widths = listOf("Today", "All", "Insights").map { label ->
+            compose.onNodeWithTag("equal-tab-$label").fetchSemanticsNode().boundsInRoot.width
+        }
+        widths.drop(1).forEach { width -> assertEquals(widths.first(), width, 0.5f) }
+        compose.onAllNodesWithContentDescription("More destinations").assertCountEquals(0)
+    }
+
+    @Test
+    fun narrowLargeTextUsesFullLabelsAndRevealsTheSelectedDestination() {
+        val largeText = Density(compose.density.density, fontScale = 2f)
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides largeText) {
+                WhipTheme(dynamicColor = false) {
+                    Box(Modifier.width(240.dp)) {
+                        DestinationTabBar(
+                            selected = "Configuration",
+                            destinations = listOf("Entries", "Insights", "Configuration"),
+                            onSelect = {},
+                            label = { it },
+                            compactLabel = { if (it == "Configuration") "Config" else it },
+                            testTagPrefix = "overflow-tab",
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithText("Configuration").assertIsDisplayed()
+        compose.onNodeWithTag("overflow-tab-Configuration").assertIsSelected()
+        compose.onAllNodesWithText("Config").assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("More destinations").assertCountEquals(0)
+        val selected = compose.onNodeWithTag("overflow-tab-Configuration").fetchSemanticsNode().boundsInRoot
+        val expectedRightEdge = with(compose.density) { (240.dp - 12.dp).toPx() }
+        assertTrue("Selected destination was not brought into view: $selected", selected.right <= expectedRightEdge + 0.5f)
+    }
+
+    @Test
+    fun compactProductivityHeaderKeepsDisclosureBeforeTheTrailingPrimaryAction() {
+        compose.setContent {
+            CompositionLocalProvider(LocalCompactItemLayout provides true) {
+                WhipTheme(dynamicColor = false) {
+                    Box(Modifier.width(320.dp)) {
+                        ProductivityItemHeader(
+                            itemType = "task",
+                            itemName = "Review release notes",
+                            emoji = "📋",
+                            areaId = null,
+                            areaName = "Main",
+                            onEdit = null,
+                            compactExpanded = false,
+                            onCompactExpansionToggle = {},
+                            compactExpansionTag = "header-disclosure",
+                            primaryAction = {
+                                Box(Modifier.size(48.dp).testTag("header-primary-action"))
+                            },
+                        )
+                    }
+                }
+            }
+        }
+
+        val disclosure = compose.onNodeWithTag("header-disclosure", useUnmergedTree = true)
+            .fetchSemanticsNode().boundsInRoot
+        val action = compose.onNodeWithTag("header-primary-action", useUnmergedTree = true)
+            .fetchSemanticsNode().boundsInRoot
+        assertTrue("Disclosure must precede the primary action: $disclosure vs $action", disclosure.right <= action.left)
+        assertTrue("Primary action must remain the logical trailing control: $action", action.right <= with(compose.density) { 320.dp.toPx() } + 0.5f)
+    }
+
+    @Test
+    fun datePickerTodayUsesTheConfiguredWhipDate() {
+        val configuredToday = LocalDate.of(2035, 1, 2)
+        var selectedDate: LocalDate? = null
+        compose.setContent {
+            CompositionLocalProvider(LocalWhipToday provides configuredToday) {
+                WhipTheme(dynamicColor = false) {
+                    WhipDatePickerDialog(
+                        initialDate = LocalDate.of(2020, 6, 15),
+                        onDismiss = {},
+                        onDateSelected = { selectedDate = it },
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("date-picker-month-year").performClick()
+        compose.onNodeWithTag("date-picker-today").performClick()
+        compose.onNodeWithTag("date-picker-selected-date").assertTextEquals(
+            configuredToday.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)),
+        )
+        compose.onNodeWithText("Set").performClick()
+        compose.runOnIdle { assertEquals(configuredToday, selectedDate) }
     }
 
     @Test

@@ -4,6 +4,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -45,6 +48,7 @@ import com.whip.app.ui.WhipScreen
 import com.whip.app.ui.theme.WhipTheme
 import java.time.LocalDate
 import org.junit.Rule
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -229,6 +233,46 @@ class TrackWorkspaceUiTest {
             assertTrue(addedTrackId == 3L)
             assertTrue(editedTrackId == 3L)
         }
+    }
+
+    @Test
+    fun trackSelectionUsesOneCheckboxSemanticOwner() {
+        val selected = mutableStateOf(false)
+        val projection = trackProjection(
+            id = 4,
+            name = "Books",
+            icon = "📚",
+            areaId = "personal",
+            area = "Personal",
+            entryId = 44,
+            title = "Kindred",
+            score = 5.0,
+            date = LocalDate.of(2026, 8, 24),
+        )
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                TrackRow(
+                    projection = projection,
+                    onOpen = {},
+                    onEdit = {},
+                    onAddEntry = {},
+                    selectionMode = true,
+                    selected = selected.value,
+                    onSelectionToggle = { selected.value = !selected.value },
+                )
+            }
+        }
+
+        val checkboxRole = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox)
+        compose.onAllNodes(checkboxRole, useUnmergedTree = true).assertCountEquals(1)
+        assertEquals(
+            Role.Checkbox,
+            compose.onNodeWithTag("track-card-4", useUnmergedTree = true)
+                .fetchSemanticsNode().config[SemanticsProperties.Role],
+        )
+        compose.onNodeWithTag("track-card-4").performClick()
+        compose.runOnIdle { assertTrue(selected.value) }
+        compose.onAllNodes(checkboxRole, useUnmergedTree = true).assertCountEquals(1)
     }
 
     private fun trackProjection(

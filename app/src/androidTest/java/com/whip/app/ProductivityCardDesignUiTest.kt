@@ -2,6 +2,7 @@ package com.whip.app
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -11,6 +12,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -24,6 +26,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.Goal
 import com.whip.app.domain.GoalAggregation
@@ -53,7 +56,11 @@ import com.whip.app.domain.TaskStep
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WhipTask
 import com.whip.app.ui.GoalCard
+import com.whip.app.ui.HabitAreaContent
+import com.whip.app.ui.HabitDestination
 import com.whip.app.ui.HabitProgressCard
+import com.whip.app.ui.HabitUiState
+import com.whip.app.ui.HabitViewModel
 import com.whip.app.ui.DestinationTabBar
 import com.whip.app.ui.LocalCompactItemLayout
 import com.whip.app.ui.LocalCompactItemExpansionState
@@ -62,6 +69,8 @@ import com.whip.app.ui.rememberCompactItemExpansionState
 import com.whip.app.ui.theme.WhipTheme
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -884,6 +893,65 @@ class ProductivityCardDesignUiTest {
 
         compose.onNodeWithText(notes).assertIsDisplayed()
         compose.onNodeWithContentDescription("Collapse task Persist expansion").assertIsDisplayed()
+    }
+
+    @Test
+    fun habitActivityGridExposesOneSpokenDateAndStatePerDay() {
+        val today = LocalDate.of(2026, 8, 30)
+        val habit = sampleHabit(today.minusDays(90))
+        val destination = mutableStateOf(HabitDestination.Insights)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                val habitViewModel: HabitViewModel = viewModel()
+                HabitAreaContent(
+                    state = HabitUiState(
+                        all = listOf(
+                            HabitDayProgress(
+                                habit = habit,
+                                date = today,
+                                scheduled = true,
+                                value = 0.0,
+                                status = null,
+                                successful = false,
+                                checklistItems = emptyList(),
+                                streak = 0,
+                                completionRate = 0.0,
+                                dayState = HabitDayState.Pending,
+                            ),
+                        ),
+                        currentDate = today,
+                        loading = false,
+                    ),
+                    innerPadding = PaddingValues(),
+                    viewModel = habitViewModel,
+                    destinationState = destination,
+                )
+            }
+        }
+
+        compose.onNodeWithTag("habit-activity-grid").performScrollTo()
+        val spokenStates = setOf(
+            "completed",
+            "skipped",
+            "missed",
+            "below target",
+            "pending",
+            "paused",
+            "not scheduled",
+        )
+        (27L downTo 0L).forEach { offset ->
+            val day = today.minusDays(offset)
+            val descriptions = compose
+                .onNodeWithTag("habit-activity-day-${day.toEpochDay()}", useUnmergedTree = true)
+                .fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
+            val dateLabel = day.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+            assertEquals("Each activity cell needs one complete spoken label", 1, descriptions.size)
+            assertTrue("Activity cell omitted its date: $descriptions", descriptions.single().startsWith("$dateLabel: "))
+            assertTrue(
+                "Activity cell omitted a recognized state: $descriptions",
+                spokenStates.any { descriptions.single().endsWith(": $it") },
+            )
+        }
     }
 
     private fun left(tag: String): Float = compose

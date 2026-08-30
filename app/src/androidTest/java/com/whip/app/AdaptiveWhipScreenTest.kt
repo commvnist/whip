@@ -124,6 +124,63 @@ class AdaptiveWhipScreenTest {
     }
 
     @Test
+    fun productivityAndGymWorkspaceNavigationStaysVisibleWhileLoadingOrFailed() {
+        val failed = mutableStateOf(false)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                val habitViewModel: HabitViewModel = viewModel()
+                val goalViewModel: GoalViewModel = viewModel()
+                val gymViewModel: GymViewModel = viewModel()
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    habitState = HabitUiState(
+                        loading = !failed.value,
+                        errorMessage = "Habit refresh failed".takeIf { failed.value },
+                    ),
+                    habitViewModel = habitViewModel,
+                    goalState = GoalUiState(
+                        loading = !failed.value,
+                        errorMessage = "Goal refresh failed".takeIf { failed.value },
+                    ),
+                    goalViewModel = goalViewModel,
+                    trackState = TrackUiState(loading = false),
+                    gymState = GymUiState(
+                        loading = !failed.value,
+                        errorMessage = "Gym refresh failed".takeIf { failed.value },
+                    ),
+                    gymViewModel = gymViewModel,
+                    settingsState = SettingsUiState(settings = AppSettings(setupCompleted = true)),
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        val workspaces = listOf(
+            "Habits tab" to "habit-workspace-navigation",
+            "Goals tab" to "goal-workspace-navigation",
+            "Gym tab" to "gym-workspace-navigation",
+        )
+        workspaces.forEach { (tab, navigation) ->
+            compose.onNodeWithContentDescription(tab).performClick()
+            compose.onNodeWithTag(navigation).assertIsDisplayed()
+            compose.onNodeWithText("Loading", substring = true).assertIsDisplayed()
+        }
+
+        compose.runOnIdle { failed.value = true }
+
+        workspaces.forEach { (tab, navigation) ->
+            compose.onNodeWithContentDescription(tab).performClick()
+            compose.onNodeWithTag(navigation).assertIsDisplayed()
+            compose.onNodeWithText("Could Not Load", substring = true).assertIsDisplayed()
+        }
+    }
+
+    @Test
     fun adaptiveDestinationSupportSeparatesErrorLoadingAndRealEmpty() {
         val today = LocalDate.of(2026, 8, 29)
         val partialTask = ScheduledTask(
