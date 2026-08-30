@@ -192,6 +192,7 @@ internal enum class TrackWorkspaceDestination(val label: String) {
     Tracks("Tracks"),
     Activity("Activity"),
     Insights("Insights"),
+    Archived("Archived"),
 }
 
 internal enum class TrackSort(val label: String) {
@@ -273,7 +274,6 @@ internal fun TrackAreaContent(
     val activeWorkspaceDestinationState = workspaceDestinationState ?: localWorkspaceDestinationState
     var workspaceDestination by activeWorkspaceDestinationState
     var query by rememberSaveable { mutableStateOf("") }
-    var showArchived by rememberSaveable { mutableStateOf(false) }
     val localDestinationState = rememberSaveable { mutableStateOf(TrackDetailDestination.Entries) }
     val activeDestinationState = destinationState ?: localDestinationState
     var destination by activeDestinationState
@@ -362,8 +362,7 @@ internal fun TrackAreaContent(
             innerPadding = PaddingValues(),
             query = query,
             onQueryChange = { query = it },
-            showArchived = showArchived,
-            onShowArchivedChange = { showArchived = it },
+            showArchived = workspaceDestination == TrackWorkspaceDestination.Archived,
             onOpen = { selectedTrackId = it },
             onEdit = { onEditorRequest(TrackEditorIntent.Definition(it)) },
             onAddEntry = { selectedTrackId = it; onEditorRequest(TrackEditorIntent.Entry(it)) },
@@ -416,8 +415,8 @@ internal fun TrackAreaContent(
             selected = workspaceDestination,
             destinations = TrackWorkspaceDestination.entries,
             onSelect = { selectedDestination ->
+                if (selectedDestination != workspaceDestination) selectedTrackId = null
                 workspaceDestination = selectedDestination
-                if (selectedDestination != TrackWorkspaceDestination.Tracks) selectedTrackId = null
             },
             label = TrackWorkspaceDestination::label,
             testTagPrefix = "track-workspace-destination",
@@ -425,7 +424,9 @@ internal fun TrackAreaContent(
         )
         BoxWithConstraints(Modifier.fillMaxSize().weight(1f)) {
             when (workspaceDestination) {
-                TrackWorkspaceDestination.Tracks -> if (maxWidth >= 760.dp) {
+                TrackWorkspaceDestination.Tracks,
+                TrackWorkspaceDestination.Archived,
+                -> if (maxWidth >= 760.dp) {
                     Row(Modifier.fillMaxSize()) {
                         Box(Modifier.weight(0.38f).fillMaxHeight()) { trackList(masterPane = true) }
                         VerticalDivider(Modifier.fillMaxHeight())
@@ -930,7 +931,6 @@ private fun AllTracksPage(
     query: String,
     onQueryChange: (String) -> Unit,
     showArchived: Boolean,
-    onShowArchivedChange: (Boolean) -> Unit,
     onOpen: (Long) -> Unit,
     onEdit: (Long) -> Unit,
     onAddEntry: (Long) -> Unit,
@@ -995,18 +995,9 @@ private fun AllTracksPage(
                     val hasAdditionalActions =
                         (!showArchived && (state.active.size > 1 || query.isNotBlank() || !reorderEnabled)) ||
                             shown.isNotEmpty()
-                    if (!hasAdditionalActions) {
-                        WhipTextButton(onClick = {
-                            reordering = false
-                            onShowArchivedChange(!showArchived)
-                        }) { Text(if (showArchived) "Active" else "Archived") }
-                    } else Box {
+                    if (hasAdditionalActions) Box {
                         WhipPageIconAction(Icons.Outlined.MoreVert, "More Track Options", { moreOpen = true })
                         DropdownMenu(moreOpen, { moreOpen = false }) {
-                        WhipMenuItem(
-                            label = if (showArchived) "Show Active Tracks" else "Show Archived Tracks",
-                            onClick = { reordering = false; onShowArchivedChange(!showArchived); moreOpen = false },
-                        )
                         if (!showArchived && (state.active.size > 1 || query.isNotBlank() || !reorderEnabled)) WhipMenuItem(
                             label = when {
                                 query.isNotBlank() && !reorderEnabled -> "Clear Search, Show All Areas & Reorder"

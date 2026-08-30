@@ -1014,6 +1014,8 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithText("A chronological view of Entries across visible Tracks", substring = true).assertIsDisplayed()
         compose.onNodeWithTag("track-workspace-destination-Insights").performClick().assertIsSelected()
         compose.onNodeWithText("Patterns across visible Tracks.").assertIsDisplayed()
+        compose.onNodeWithTag("track-workspace-destination-Archived").performClick().assertIsSelected()
+        compose.onNodeWithText("Archived Tracks").assertIsDisplayed()
 
         compose.onNodeWithContentDescription("Gym tab").performClick()
         compose.onNodeWithTag("gym-destination-Library").performClick().assertIsSelected()

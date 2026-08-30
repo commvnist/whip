@@ -85,6 +85,7 @@ class UiDesignArchitectureTest {
         assertTrue(gym.contains("gym-workspace-navigation"))
         assertTrue(tracks.contains("TrackWorkspaceDestination.Activity"))
         assertTrue(tracks.contains("TrackWorkspaceDestination.Insights"))
+        assertTrue(tracks.contains("TrackWorkspaceDestination.Archived"))
         assertTrue(tracks.contains("track-detail-navigation"))
         assertTrue("Gym must remain global instead of receiving a fake Area scope", app.contains("appDestination in setOf(AppDestination.Home, AppDestination.Tasks, AppDestination.Habits, AppDestination.Goals, AppDestination.Tracks)"))
     }
