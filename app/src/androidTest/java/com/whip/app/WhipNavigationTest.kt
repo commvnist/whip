@@ -135,6 +135,7 @@ class WhipNavigationTest {
             compose.onNodeWithTag("track-workspace-destination-Activity").assertIsSelected()
             compose.onNodeWithTag("track-workspace-destination-Tracks").performClick().assertIsSelected()
             compose.onNodeWithTag("track-list").performScrollToNode(hasText("Create First Track"))
+            compose.onAllNodesWithText("0 Tracks").assertCountEquals(0)
             compose.onNodeWithText("Track What Matters").assertIsDisplayed()
             compose.onNodeWithText("Create First Track").assertIsDisplayed()
         }

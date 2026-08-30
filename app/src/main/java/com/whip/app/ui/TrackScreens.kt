@@ -991,11 +991,6 @@ private fun AllTracksPage(
                 title = if (showArchived) "Archived Tracks" else "Tracks",
                 supportingText = "Structured logs for facts you want to record and compare.",
             ) {
-                Text(
-                    quantityLabel(shown.size, "Track"),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 if (!reordering) {
                     val hasAdditionalActions =
                         (!showArchived && (state.active.size > 1 || query.isNotBlank() || !reorderEnabled)) ||
