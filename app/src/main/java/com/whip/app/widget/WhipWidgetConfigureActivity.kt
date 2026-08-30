@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -572,13 +573,17 @@ private fun WidgetConfigurationPreview(
     } else {
         listOf(Color(0xFFD8D3C8), Color(0xFFB8C4B4), Color(0xFFD6BFA8))
     }
-    val widgetSurface = if (systemDarkTheme) Color(0xFF171715) else Color(0xFFFBF9F4)
-    val contentSurface = if (systemDarkTheme) Color(0xFF1B1B18) else Color(0xFFF5F2EC)
-    val rowSurface = if (systemDarkTheme) Color(0xFF201F1C) else Color(0xFFEFECE6)
-    val primaryText = if (systemDarkTheme) Color(0xFFE7E2DA) else Color(0xFF1D1B18)
-    val secondaryText = if (systemDarkTheme) Color(0xFFCEC7BD) else Color(0xFF4A4741)
-    val action = if (systemDarkTheme) Color(0xFFF2EEE6) else Color(0xFF090909)
-    val onAction = if (systemDarkTheme) Color(0xFF242228) else Color.White
+    // The launcher selects these day/night resources for the installed widget.
+    // Reading the same resources here keeps the preview from becoming a third
+    // independently maintained copy of the widget palette.
+    val widgetSurface = colorResource(R.color.widget_surface)
+    val contentSurface = colorResource(R.color.widget_content_surface)
+    val rowSurface = colorResource(R.color.widget_row_surface)
+    val primaryText = colorResource(R.color.widget_primary_text)
+    val secondaryText = colorResource(R.color.widget_secondary_text)
+    val action = colorResource(R.color.widget_action)
+    val onAction = colorResource(R.color.widget_on_action)
+    val outline = colorResource(R.color.widget_outline)
     val title = if (kind == WidgetKind.TaskAgenda) "Task Agenda" else "Habit Tracking"
     val subtitle = if (kind == WidgetKind.TaskAgenda) {
         "${agendaRange.title} · $areaLabel"
@@ -711,7 +716,7 @@ private fun WidgetConfigurationPreview(
                     Icon(
                         Icons.Outlined.CheckBoxOutlineBlank,
                         contentDescription = null,
-                        tint = if (systemDarkTheme) Color(0xFF99938A) else Color(0xFF7B776F),
+                        tint = outline,
                         modifier = Modifier.size(22.dp),
                     )
                 }

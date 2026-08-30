@@ -199,4 +199,49 @@ class UiDesignArchitectureTest {
                 )
             }
     }
+
+    @Test
+    fun primaryWorkspaceSwitchingPreservesEachWorkspaceContext() {
+        val app = File(sourceRoot, "com/whip/app/ui/WhipApp.kt").readText()
+        val switcher = app.substringAfter("fun selectPrimaryDestination(destination: AppDestination)")
+            .substringBefore("val collectionStatusNowMillis")
+
+        listOf(
+            "taskDestination =",
+            "habitDestinationState.value =",
+            "goalDestinationState.value =",
+            "trackWorkspaceDestinationState.value =",
+            "trackDetailDestinationState.value =",
+            "selectedTrackState.value =",
+            "gymDestination =",
+        ).forEach { reset ->
+            assertFalse("Primary navigation must not reset its workspace with $reset", switcher.contains(reset))
+        }
+        assertTrue(switcher.contains("appDestination = destination"))
+        assertTrue(
+            "Disposed workspace subtrees must retain filters, scroll-adjacent UI state, and view choices",
+            app.contains("rememberSaveableStateHolder()") &&
+                app.contains("SaveableStateProvider(appDestination.name)"),
+        )
+    }
+
+    @Test
+    fun statusColorAndTypographyAreExplicitDesignSystemContracts() {
+        val inspector = File(sourceRoot, "com/whip/app/ui/EntityInspector.kt").readText()
+        val type = File(sourceRoot, "com/whip/app/ui/theme/Type.kt").readText()
+
+        assertTrue(inspector.contains("enum class WhipStatusTone"))
+        assertTrue(inspector.contains("statusTone: WhipStatusTone"))
+        assertFalse("Status color must not be inferred from translated copy", inspector.contains("status.lowercase()"))
+        listOf("titleSmall =", "bodySmall =", "labelMedium =", "labelSmall =").forEach { role ->
+            assertTrue("Typography is missing an explicit $role role", type.contains(role))
+        }
+
+        val patterns = File(sourceRoot, "com/whip/app/ui/WhipPagePatterns.kt").readText()
+        listOf("WhipCollectionCard", "WhipMetricTile", "WhipNoticeCard", "WhipSettingsSectionCard")
+            .forEach { primitive ->
+                assertTrue("The design system is missing its canonical $primitive role", patterns.contains("fun $primitive("))
+            }
+        assertTrue("Notices must express semantic tone instead of local color guesses", patterns.contains("enum class WhipNoticeTone"))
+    }
 }

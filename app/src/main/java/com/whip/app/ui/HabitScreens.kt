@@ -2312,6 +2312,7 @@ private fun HabitActionsDialog(
             item.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
         },
         status = item.inspectorStatus(lowPressureMode),
+        statusTone = item.inspectorStatusTone(),
         sections = HabitDetailSection.entries.map { it.inspectorSection },
         selectedSectionId = section.id,
         onSelectSection = { id -> section = HabitDetailSection.entries.first { it.id == id } },
@@ -2522,7 +2523,7 @@ private enum class HabitDetailSection(val id: String, val label: String) {
         get() = EntityInspectorSection(id, label)
 }
 
-private fun HabitDayProgress.inspectorStatus(lowPressureMode: Boolean): String = when {
+internal fun HabitDayProgress.inspectorStatus(lowPressureMode: Boolean): String = when {
     habit.archived -> "Archived"
     habit.paused || dayState == HabitDayState.Paused -> "Paused"
     dayState == HabitDayState.Skipped -> "Skipped today"
@@ -2531,6 +2532,17 @@ private fun HabitDayProgress.inspectorStatus(lowPressureMode: Boolean): String =
     dayState == HabitDayState.Missed -> if (lowPressureMode) "Ready for a fresh check-in" else "Missed"
     dayState == HabitDayState.NotScheduled -> "Not scheduled today"
     else -> "Ready today"
+}
+
+internal fun HabitDayProgress.inspectorStatusTone(): WhipStatusTone = when {
+    habit.archived -> WhipStatusTone.Neutral
+    habit.paused || dayState == HabitDayState.Paused -> WhipStatusTone.Warning
+    dayState == HabitDayState.Skipped -> WhipStatusTone.Warning
+    dayState == HabitDayState.Completed -> WhipStatusTone.Success
+    dayState == HabitDayState.BelowTarget -> WhipStatusTone.Info
+    dayState == HabitDayState.Missed -> WhipStatusTone.Destructive
+    dayState == HabitDayState.NotScheduled -> WhipStatusTone.Neutral
+    else -> WhipStatusTone.Info
 }
 
 private fun HabitDayProgress.inspectorPrimaryActionLabel(): String = when (habit.trackingMode) {

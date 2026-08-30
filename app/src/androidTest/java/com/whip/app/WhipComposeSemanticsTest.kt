@@ -476,7 +476,7 @@ class WhipComposeSemanticsTest {
                 compose.onNodeWithTag("workspace-search-menu-action").performClick()
             }
             compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
-            compose.onNodeWithText("Close").performClick()
+            compose.onNodeWithContentDescription("Close Search").performClick()
             compose.onNodeWithContentDescription("More task list actions").performClick()
             compose.onNodeWithText("Select Tasks").performClick()
             compose.onNodeWithText("0 selected").assertIsDisplayed()
@@ -530,6 +530,7 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithText("Graph Options").assertIsDisplayed()
             compose.onAllNodesWithText("Range").assertCountEquals(0)
             compose.onNodeWithText("Graph Options").performClick()
+            compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasText("Range"))
             compose.onNodeWithText("Range").assertIsDisplayed()
             compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasText("Data Points"))
             compose.onNodeWithText("Data Points").assertIsDisplayed()

@@ -5,6 +5,7 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
+import android.content.res.Configuration
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -59,6 +60,19 @@ class WhipWidgetProvider : AppWidgetProvider() {
                     taskKey = taskKey,
                     expanded = intent.getBooleanExtra(EXTRA_EXPANDED, false),
                 )
+                AppWidgetManager.getInstance(context).notifyAppWidgetViewDataChanged(
+                    appWidgetId,
+                    R.id.widget_task_list,
+                )
+            }
+            return
+        }
+        if (resolvedAction == COLLECTION_REFRESH_TASKS) {
+            val appWidgetId = intent.getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID,
+            )
+            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
                 AppWidgetManager.getInstance(context).notifyAppWidgetViewDataChanged(
                     appWidgetId,
                     R.id.widget_task_list,
@@ -152,6 +166,7 @@ class WhipWidgetProvider : AppWidgetProvider() {
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         WhipWidgetPreferences.remove(context, appWidgetIds)
+        WidgetSnapshotCache.remove(context, appWidgetIds)
     }
 
     companion object {
@@ -167,6 +182,7 @@ class WhipWidgetProvider : AppWidgetProvider() {
         internal const val ACTION_TASK_COLLECTION_CLICK = "commvne.com.whip.app.widget.TASK_COLLECTION_CLICK"
         internal const val COLLECTION_OPEN_TASK = "open_task"
         internal const val COLLECTION_SET_TASK_EXPANDED = "set_task_expanded"
+        internal const val COLLECTION_REFRESH_TASKS = "refresh_tasks"
         internal const val EXTRA_TASK_ID = "commvne.com.whip.app.widget.TASK_ID"
         internal const val EXTRA_OCCURRENCE_EPOCH_DAY = "commvne.com.whip.app.widget.OCCURRENCE_EPOCH_DAY"
         internal const val EXTRA_RENDERED_DATE_EPOCH_DAY = "commvne.com.whip.app.widget.RENDERED_DATE_EPOCH_DAY"
@@ -254,6 +270,19 @@ class HabitTrackingWidgetProvider : AppWidgetProvider() {
                     habitId = habitId,
                     expanded = intent.getBooleanExtra(EXTRA_EXPANDED, false),
                 )
+                AppWidgetManager.getInstance(context).notifyAppWidgetViewDataChanged(
+                    appWidgetId,
+                    R.id.widget_habit_list,
+                )
+            }
+            return
+        }
+        if (resolvedAction == COLLECTION_REFRESH_HABITS) {
+            val appWidgetId = intent.getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID,
+            )
+            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
                 AppWidgetManager.getInstance(context).notifyAppWidgetViewDataChanged(
                     appWidgetId,
                     R.id.widget_habit_list,
@@ -349,6 +378,7 @@ class HabitTrackingWidgetProvider : AppWidgetProvider() {
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         WhipWidgetPreferences.remove(context, appWidgetIds)
+        WidgetSnapshotCache.remove(context, appWidgetIds)
     }
 
     companion object {
@@ -360,6 +390,7 @@ class HabitTrackingWidgetProvider : AppWidgetProvider() {
         internal const val ACTION_COLLECTION_CLICK = "commvne.com.whip.app.widget.HABIT_COLLECTION_CLICK"
         internal const val COLLECTION_OPEN_HABIT = "open_habit"
         internal const val COLLECTION_SET_EXPANDED = "set_expanded"
+        internal const val COLLECTION_REFRESH_HABITS = "refresh_habits"
         internal const val EXTRA_HABIT_ID = "commvne.com.whip.app.widget.HABIT_ID"
         internal const val EXTRA_CHECKLIST_ITEM_ID = "commvne.com.whip.app.widget.CHECKLIST_ITEM_ID"
         internal const val EXTRA_DATE_EPOCH_DAY = "commvne.com.whip.app.widget.DATE_EPOCH_DAY"
@@ -384,10 +415,12 @@ private suspend fun updateTaskAgendaWidgets(
 ) {
     val app = context.applicationContext as WhipApplication
     val today = app.clock.today()
-    val areas = app.areaRepository.areas.first()
+    // Header metadata is supplemental. Always bind and notify the collection so
+    // its factory can show current rows, a saved snapshot, or a retry row.
+    val areas = runCatching { app.areaRepository.areas.first() }.getOrNull()
     ids.forEach { id ->
         val preferences = WhipWidgetPreferences.load(context, id)
-        val scopeLabel = scopeLabel(context, preferences.areaScope, areas)
+        val scopeLabel = scopeLabel(context, preferences.areaScope, areas.orEmpty())
         val openAgenda = openSectionIntent(
             context,
             WhipWidgetProvider.ACTION_OPEN_TASK_AGENDA,
@@ -396,13 +429,17 @@ private suspend fun updateTaskAgendaWidgets(
             "task-agenda",
         )
         val views = RemoteViews(context.packageName, R.layout.widget_task_agenda).apply {
+            applyResponsiveWidgetHeader(context, manager, id, this)
             setInt(android.R.id.background, "setImageAlpha", widgetBackgroundAlpha(preferences.transparencyPercent))
             setTextViewText(
                 R.id.widget_subtitle,
                 context.getString(R.string.widget_agenda_subtitle, preferences.agendaRange.title, scopeLabel),
             )
             setOnClickPendingIntent(R.id.widget_header, openAgenda)
-            setContentDescription(R.id.widget_header, "Open Task Agenda for $scopeLabel")
+            setContentDescription(
+                R.id.widget_header,
+                context.getString(R.string.widget_open_task_agenda_for, scopeLabel),
+            )
             setOnClickPendingIntent(
                 R.id.widget_add,
                 openSectionIntent(
@@ -414,7 +451,7 @@ private suspend fun updateTaskAgendaWidgets(
                     occurrenceEpochDay = today.toEpochDay(),
                 ),
             )
-            setContentDescription(R.id.widget_add, "Add task to $scopeLabel")
+            setContentDescription(R.id.widget_add, context.getString(R.string.widget_add_task_to, scopeLabel))
             setRemoteAdapter(R.id.widget_task_list, taskCollectionServiceIntent(context, id))
             setPendingIntentTemplate(R.id.widget_task_list, taskCollectionPendingIntent(context, id))
             setEmptyView(R.id.widget_task_list, R.id.widget_empty)
@@ -432,33 +469,42 @@ private suspend fun updateHabitTrackingWidgets(
 ) {
     val app = context.applicationContext as WhipApplication
     val today = app.clock.today()
-    val habits = app.habitRepository.habits.first()
-    val logs = app.habitRepository.logs.first()
-    val checklistItems = app.habitRepository.checklistItems.first()
-    val checklistStates = app.habitRepository.checklistStates.first()
-    val pauses = app.habitRepository.pauses.first()
-    val skips = app.habitRepository.skips.first()
-    val units = app.measurementRepository.customUnits.first()
-    val metricEntries = app.measurementRepository.entries.first()
-    val areas = app.areaRepository.areas.first()
+    // Keep progress/header loading isolated from the RemoteViews collection.
+    // A repository failure must not prevent the adapter from displaying its
+    // cache-aware failure state and retry action.
+    val calculateContent = runCatching {
+        val habits = app.habitRepository.habits.first()
+        val logs = app.habitRepository.logs.first()
+        val checklistItems = app.habitRepository.checklistItems.first()
+        val checklistStates = app.habitRepository.checklistStates.first()
+        val pauses = app.habitRepository.pauses.first()
+        val skips = app.habitRepository.skips.first()
+        val units = app.measurementRepository.customUnits.first()
+        val metricEntries = app.measurementRepository.entries.first()
+        val contentCalculator: (WidgetPreferences) -> HabitTrackingContent = { preferences ->
+            calculateHabitTrackingContent(
+                habits = habits,
+                habitLogs = logs,
+                habitChecklistItems = checklistItems,
+                habitChecklistStates = checklistStates,
+                habitPauses = pauses,
+                habitSkips = skips,
+                metricEntries = metricEntries,
+                customUnits = units,
+                today = today,
+                areaScope = preferences.areaScope,
+                showCompleted = preferences.showCompletedHabits,
+                selectedHabitIds = preferences.selectedHabitIds,
+                expandedHabitIds = preferences.expandedHabitIds,
+            )
+        }
+        contentCalculator
+    }.getOrNull()
+    val areas = runCatching { app.areaRepository.areas.first() }.getOrNull()
     ids.forEach { id ->
         val preferences = WhipWidgetPreferences.load(context, id)
-        val content = calculateHabitTrackingContent(
-            habits = habits,
-            habitLogs = logs,
-            habitChecklistItems = checklistItems,
-            habitChecklistStates = checklistStates,
-            habitPauses = pauses,
-            habitSkips = skips,
-            metricEntries = metricEntries,
-            customUnits = units,
-            today = today,
-            areaScope = preferences.areaScope,
-            showCompleted = preferences.showCompletedHabits,
-            selectedHabitIds = preferences.selectedHabitIds,
-            expandedHabitIds = preferences.expandedHabitIds,
-        )
-        val scopeLabel = scopeLabel(context, preferences.areaScope, areas)
+        val content = calculateContent?.invoke(preferences)
+        val scopeLabel = scopeLabel(context, preferences.areaScope, areas.orEmpty())
         val openHabits = openSectionIntent(
             context,
             WhipWidgetProvider.ACTION_OPEN_HABIT_TRACKING,
@@ -467,10 +513,13 @@ private suspend fun updateHabitTrackingWidgets(
             "habit-tracking",
         )
         val views = RemoteViews(context.packageName, R.layout.widget_habit_tracking).apply {
+            applyResponsiveWidgetHeader(context, manager, id, this)
             setInt(android.R.id.background, "setImageAlpha", widgetBackgroundAlpha(preferences.transparencyPercent))
             setTextViewText(
                 R.id.widget_subtitle,
-                if (content.scheduledHabits == 0) {
+                if (content == null) {
+                    context.getString(R.string.widget_refresh_needed, scopeLabel)
+                } else if (content.scheduledHabits == 0) {
                     context.getString(R.string.widget_today_scope, scopeLabel)
                 } else {
                     context.getString(
@@ -482,12 +531,15 @@ private suspend fun updateHabitTrackingWidgets(
                 },
             )
             setOnClickPendingIntent(R.id.widget_header, openHabits)
-            setContentDescription(R.id.widget_header, "Open Habit Tracking for $scopeLabel")
+            setContentDescription(
+                R.id.widget_header,
+                context.getString(R.string.widget_open_habit_tracking_for, scopeLabel),
+            )
             setOnClickPendingIntent(
                 R.id.widget_add,
                 openSectionIntent(context, WhipWidgetProvider.ACTION_ADD_HABIT, id, preferences.areaScope, "add-habit"),
             )
-            setContentDescription(R.id.widget_add, "Add habit to $scopeLabel")
+            setContentDescription(R.id.widget_add, context.getString(R.string.widget_add_habit_to, scopeLabel))
             setRemoteAdapter(R.id.widget_habit_list, habitCollectionServiceIntent(context, id))
             setPendingIntentTemplate(R.id.widget_habit_list, habitCollectionPendingIntent(context, id))
             setEmptyView(R.id.widget_habit_list, R.id.widget_empty)
@@ -496,8 +548,9 @@ private suspend fun updateHabitTrackingWidgets(
                 when {
                     preferences.selectedHabitIds?.isEmpty() == true ->
                         context.getString(R.string.widget_habits_none_selected)
-                    content.scheduledHabits > 0 && content.completedHabits == content.scheduledHabits ->
+                    content != null && content.scheduledHabits > 0 && content.completedHabits == content.scheduledHabits ->
                         context.getString(R.string.widget_habits_complete)
+                    content == null -> context.getString(R.string.widget_refresh_failed)
                     else -> context.getString(R.string.widget_habit_empty)
                 },
             )
@@ -506,6 +559,31 @@ private suspend fun updateHabitTrackingWidgets(
         manager.updateAppWidget(id, views)
         manager.notifyAppWidgetViewDataChanged(id, R.id.widget_habit_list)
     }
+}
+
+/**
+ * Preserve one complete collection row at the launcher's supported minimum
+ * height. The title and 48 dp Add target are essential; brand and subtitle are
+ * progressive detail when height or scaled text makes the header compete with
+ * the collection.
+ */
+private fun applyResponsiveWidgetHeader(
+    context: Context,
+    manager: AppWidgetManager,
+    appWidgetId: Int,
+    views: RemoteViews,
+) {
+    val options = manager.getAppWidgetOptions(appWidgetId)
+    val configuration = context.resources.configuration
+    val availableHeightDp = availableWidgetHeight(
+        minHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 160),
+        maxHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 160),
+        landscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE,
+    )
+    val compactHeader = useCompactWidgetHeader(availableHeightDp, configuration.fontScale)
+    val detailVisibility = if (compactHeader) android.view.View.GONE else android.view.View.VISIBLE
+    views.setViewVisibility(R.id.widget_brand, detailVisibility)
+    views.setViewVisibility(R.id.widget_subtitle, detailVisibility)
 }
 
 private fun scopeLabel(

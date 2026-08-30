@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -371,6 +372,16 @@ class ProductivityCreationJourneyE2ETest {
             compose.onNodeWithContentDescription("App actions").performClick()
             compose.onNodeWithText("Open Settings").performClick()
         }
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("settings-list").fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag("settings-category-list").fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag("settings-support-list").fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag("settings-wide-section-list").fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag("settings-section-Planning & Units").fetchSemanticsNodes().isNotEmpty()
+        }
+        // Root destination state is intentionally retained. Returning to
+        // Settings may reopen the previously selected Planning detail directly.
+        if (compose.onAllNodesWithTag("settings-list").fetchSemanticsNodes().isNotEmpty()) return
         when {
             compose.onAllNodesWithTag("settings-category-list").fetchSemanticsNodes().isNotEmpty() -> {
                 compose.onNodeWithTag("settings-category-list")
@@ -381,6 +392,13 @@ class ProductivityCreationJourneyE2ETest {
                 compose.onNodeWithTag("settings-support-list")
                     .performScrollToNode(hasTestTag("settings-support-section-Planning & Units"))
                 compose.onNodeWithTag("settings-support-section-Planning & Units").performClick()
+            }
+            compose.onAllNodesWithTag("settings-wide-section-list").fetchSemanticsNodes().isNotEmpty() -> {
+                val planningSection = hasText("Planning & Units") and
+                    hasAnyAncestor(hasTestTag("settings-wide-section-list"))
+                compose.onNodeWithTag("settings-wide-section-list")
+                    .performScrollToNode(planningSection)
+                compose.onNode(planningSection).performClick()
             }
             else -> compose.onNodeWithTag("settings-section-Planning & Units").performClick()
         }

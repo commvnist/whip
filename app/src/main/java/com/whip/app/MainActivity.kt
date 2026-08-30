@@ -45,8 +45,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        deliveryCounter = savedInstanceState?.getLong(STATE_DELIVERY_COUNTER) ?: 0L
         applyWidgetAreaScope(intent)
-        launchRequest.value = intent.toWhipLaunchRequest()
+        launchRequest.value = savedInstanceState?.restoredLaunchRequest()
+            ?: intent.toWhipLaunchRequest()
         val isDebuggable = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
         if (isDebuggable && intent.getBooleanExtra(DEBUG_SHOW_WHEN_LOCKED, false)) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -114,6 +116,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putLong(STATE_DELIVERY_COUNTER, deliveryCounter)
+        launchRequest.value.saveTo(outState)
+        super.onSaveInstanceState(outState)
+    }
+
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -156,7 +164,38 @@ class MainActivity : ComponentActivity() {
         return LaunchRequest(action, id, occurrence, automationOccurrence, sharedText, ++deliveryCounter)
     }
 
+    private fun LaunchRequest.saveTo(outState: Bundle) {
+        outState.putLong(STATE_ACTIVE_DELIVERY_ID, deliveryId)
+        outState.putString(STATE_ACTIVE_ACTION, action)
+        entityId?.let { outState.putLong(STATE_ACTIVE_ENTITY_ID, it) }
+        occurrenceEpochDay?.let { outState.putLong(STATE_ACTIVE_OCCURRENCE_DAY, it) }
+        automationOccurrenceId?.let { outState.putLong(STATE_ACTIVE_AUTOMATION_OCCURRENCE_ID, it) }
+        outState.putString(STATE_ACTIVE_SHARED_TEXT, sharedText)
+    }
+
+    private fun Bundle.restoredLaunchRequest(): LaunchRequest? {
+        val deliveryId = getLong(STATE_ACTIVE_DELIVERY_ID).takeIf { it > 0L } ?: return null
+        deliveryCounter = maxOf(deliveryCounter, deliveryId)
+        return LaunchRequest(
+            action = getString(STATE_ACTIVE_ACTION),
+            entityId = getLong(STATE_ACTIVE_ENTITY_ID).takeIf { containsKey(STATE_ACTIVE_ENTITY_ID) },
+            occurrenceEpochDay = getLong(STATE_ACTIVE_OCCURRENCE_DAY)
+                .takeIf { containsKey(STATE_ACTIVE_OCCURRENCE_DAY) },
+            automationOccurrenceId = getLong(STATE_ACTIVE_AUTOMATION_OCCURRENCE_ID)
+                .takeIf { containsKey(STATE_ACTIVE_AUTOMATION_OCCURRENCE_ID) },
+            sharedText = getString(STATE_ACTIVE_SHARED_TEXT),
+            deliveryId = deliveryId,
+        )
+    }
+
     private companion object {
         const val DEBUG_SHOW_WHEN_LOCKED = "commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED"
+        const val STATE_DELIVERY_COUNTER = "whip.launch.delivery_counter"
+        const val STATE_ACTIVE_DELIVERY_ID = "whip.launch.active_delivery_id"
+        const val STATE_ACTIVE_ACTION = "whip.launch.active_action"
+        const val STATE_ACTIVE_ENTITY_ID = "whip.launch.active_entity_id"
+        const val STATE_ACTIVE_OCCURRENCE_DAY = "whip.launch.active_occurrence_day"
+        const val STATE_ACTIVE_AUTOMATION_OCCURRENCE_ID = "whip.launch.active_automation_occurrence_id"
+        const val STATE_ACTIVE_SHARED_TEXT = "whip.launch.active_shared_text"
     }
 }

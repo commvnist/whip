@@ -1661,6 +1661,7 @@ private fun GoalActionsDialog(
         emoji = projection.goal.icon,
         context = projection.goal.area.ifBlank { projection.goal.type.displayLabel() },
         status = projection.goal.status.inspectorLabel(),
+        statusTone = projection.goal.status.inspectorStatusTone(),
         sections = GoalDetailSection.entries.map { it.inspectorSection },
         selectedSectionId = section.id,
         onSelectSection = { id -> section = GoalDetailSection.entries.first { it.id == id } },
@@ -1863,12 +1864,20 @@ private enum class GoalDetailSection(val id: String, val label: String) {
         get() = EntityInspectorSection(id, label)
 }
 
-private fun GoalStatus.inspectorLabel(): String = when (this) {
+internal fun GoalStatus.inspectorLabel(): String = when (this) {
     GoalStatus.Active -> "Active"
     GoalStatus.Paused -> "Paused"
     GoalStatus.Completed -> "Completed"
     GoalStatus.Abandoned -> "Abandoned"
     GoalStatus.Archived -> "Archived"
+}
+
+internal fun GoalStatus.inspectorStatusTone(): WhipStatusTone = when (this) {
+    GoalStatus.Active -> WhipStatusTone.Info
+    GoalStatus.Paused -> WhipStatusTone.Warning
+    GoalStatus.Completed -> WhipStatusTone.Success
+    GoalStatus.Abandoned -> WhipStatusTone.Destructive
+    GoalStatus.Archived -> WhipStatusTone.Neutral
 }
 
 private fun GoalProjection.inspectorOutcome(): String = when {

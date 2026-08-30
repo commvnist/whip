@@ -8,12 +8,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
@@ -255,6 +258,32 @@ class AreaFeatureUiTest {
         compose.onNodeWithContentDescription("Move to Personal").performClick()
         compose.onNodeWithText("Move 4 Items").performClick()
         assertEquals("personal", target.get())
+    }
+
+    @Test
+    fun areaChoicesUseOneSemanticRadioNodeAndScrollWithoutMovingDialogActions() {
+        val targets = (1..40).map { area("area-$it", "Area $it") }
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 2f)) {
+                WhipTheme(dynamicColor = false) {
+                    MoveAreaItemsDialog(
+                        sourceId = "main",
+                        sourceName = "Main",
+                        usage = AreaUsageCounts(tasks = 2),
+                        targets = targets,
+                        onDismiss = {},
+                        onMove = {},
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("move-area-choice-list")
+            .performScrollToNode(hasContentDescription("Move to Area 40"))
+        compose.onNodeWithContentDescription("Move to Area 40").assertIsDisplayed().performClick().assertIsSelected()
+        compose.onNodeWithText("Move Everything from Main").assertIsDisplayed()
+        compose.onNodeWithText("Cancel").assertIsDisplayed()
     }
 
     @Test

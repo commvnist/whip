@@ -128,21 +128,13 @@ internal fun DependentSettingsNotice(
     modifier: Modifier = Modifier,
     testTag: String? = null,
 ) {
-    Surface(
+    WhipNoticeCard(
+        message = message,
         modifier = modifier
-            .fillMaxWidth()
             .then(if (testTag == null) Modifier else Modifier.testTag(testTag))
             .semantics { contentDescription = "Dependent settings. $message" },
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-    ) {
-        Text(
-            message,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+        tone = WhipNoticeTone.Neutral,
+    )
 }
 
 /** Keeps a rejected save actionable instead of leaving an enabled Save button

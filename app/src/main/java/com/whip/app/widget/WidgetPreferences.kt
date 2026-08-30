@@ -82,6 +82,9 @@ internal object WhipWidgetPreferences {
             putStringSet(expandedHabitsKey(appWidgetId), value.expandedHabitIds.map(Long::toString).toSet())
             putStringSet(expandedTasksKey(appWidgetId), value.expandedTaskKeys)
         }
+        // A display snapshot describes the previous scope/range/selection and
+        // must never be relabeled under newly saved configuration.
+        WidgetSnapshotCache.remove(context, intArrayOf(appWidgetId))
     }
 
     fun saveScope(context: Context, appWidgetId: Int, scope: AreaScope) {

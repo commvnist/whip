@@ -13,7 +13,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.whip.app.data.TaskDeletionBatchImpact
 import com.whip.app.domain.ScheduleKind
+import com.whip.app.domain.ScheduledSubtask
 import com.whip.app.domain.ScheduledTask
+import com.whip.app.domain.TaskStep
 import com.whip.app.domain.WhipTask
 import com.whip.app.ui.TaskUiState
 import com.whip.app.ui.WhipScreen
@@ -117,6 +119,39 @@ class TaskBulkSelectionUiTest {
         }
     }
 
+    @Test
+    fun bulkCompletionReviewsUnfinishedSubtasksBeforeCommitAndCancelKeepsSelection() {
+        val today = LocalDate.of(2026, 8, 25)
+        val item = scheduledTask(4, "Bulk subtask review", today, unfinishedSubtasks = 1)
+        val completed = AtomicReference<List<ScheduledTask>>(emptyList())
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(today = listOf(item), currentDate = today, loading = false),
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                    onBulkCompleteTasks = completed::set,
+                )
+            }
+        }
+
+        openSelectionFor(item.task.title)
+        compose.onNodeWithTag("task-selection-complete").performClick()
+        compose.onNodeWithTag("task-bulk-completion-review").assertIsDisplayed()
+        compose.onNodeWithText("1 unfinished subtask remains across 1 selected task", substring = true).assertIsDisplayed()
+        compose.runOnIdle { assertEquals(emptyList<ScheduledTask>(), completed.get()) }
+
+        compose.onNodeWithTag("cancel-task-bulk-completion").performClick()
+        compose.onNodeWithText("1 selected").assertIsDisplayed()
+        compose.onNodeWithTag("task-selection-complete").performClick()
+        compose.onNodeWithTag("confirm-task-bulk-completion").performClick()
+        compose.runOnIdle { assertEquals(listOf(item), completed.get()) }
+    }
+
     private fun openSelectionFor(title: String) {
         compose.onNodeWithContentDescription("Tasks tab").performClick()
         openCurrentDestinationSelection(title)
@@ -135,6 +170,7 @@ class TaskBulkSelectionUiTest {
         date: LocalDate,
         completed: Boolean = false,
         archived: Boolean = false,
+        unfinishedSubtasks: Int = 0,
     ): ScheduledTask {
         val completedAt = 1_777_000_000_000L.takeIf { completed }
         val task = WhipTask(
@@ -156,6 +192,22 @@ class TaskBulkSelectionUiTest {
             originalDate = date,
             scheduledDate = date,
             completedAtMillis = completedAt,
+            subtasks = List(unfinishedSubtasks) { index ->
+                val stepId = id * 100 + index
+                ScheduledSubtask(
+                    step = TaskStep(
+                        id = stepId,
+                        taskId = id,
+                        title = "Subtask ${index + 1}",
+                        position = index,
+                        createdAtMillis = 1,
+                        updatedAtMillis = 1,
+                    ),
+                    completed = false,
+                    completedAtMillis = null,
+                    title = "Subtask ${index + 1}",
+                )
+            },
         )
     }
 }

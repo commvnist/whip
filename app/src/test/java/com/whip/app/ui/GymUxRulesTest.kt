@@ -1,5 +1,7 @@
 package com.whip.app.ui
 
+import com.whip.app.core.OperationStatus
+import com.whip.app.core.WhipResult
 import com.whip.app.domain.BodyweightLoadPolicy
 import com.whip.app.domain.EstimatedOneRepMaxFormula
 import com.whip.app.domain.Exercise
@@ -14,6 +16,7 @@ import com.whip.app.domain.WorkoutSetClassification
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -77,6 +80,19 @@ class GymUxRulesTest {
         assertEquals("1 entry", quantityLabel(1, "entry", "entries"))
         assertEquals("2 entries", quantityLabel(2, "entry"))
         assertEquals("2 boxes", quantityLabel(2, "box"))
+    }
+
+    @Test
+    fun gymPersistenceResultPreservesFailureForTheCallingEditor() {
+        val cause = IllegalStateException("write failed")
+        val failure = gymPersistenceResult(
+            false,
+            OperationStatus.Failed("Could not persist", cause),
+        ) as WhipResult.Failure
+
+        assertEquals("Could not persist", failure.message)
+        assertSame(cause, failure.cause)
+        assertTrue(gymPersistenceResult(true, OperationStatus.Succeeded("Saved")) is WhipResult.Success)
     }
 
     @Test

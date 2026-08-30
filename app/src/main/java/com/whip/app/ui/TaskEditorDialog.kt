@@ -318,7 +318,8 @@ fun TaskEditorDialog(
     val initialOffsets = initial.reminderOffsetsMinutes.toSet().ifEmpty {
         setOf(0).takeIf { initial.reminderEnabled }.orEmpty()
     }
-    val isDirty = title != initial.title || icon != initial.icon || notes != initial.notes ||
+    val isDirty = request.initialCapture.isNotBlank() ||
+        title != initial.title || icon != initial.icon || notes != initial.notes ||
         scheduleKind != initial.scheduleKind ||
         (scheduleKind == ScheduleKind.Once && mainDate != (initial.date ?: today)) ||
         (scheduleKind == ScheduleKind.Recurring && (

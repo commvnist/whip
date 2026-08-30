@@ -42,8 +42,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -56,6 +58,8 @@ enum class TaskDestination {
 }
 
 data class TaskUiState(
+    /** Repository entities, independent of the finite schedule projection below. */
+    val taskEntities: List<WhipTask> = emptyList(),
     val inbox: List<ScheduledTask> = emptyList(),
     val today: List<ScheduledTask> = emptyList(),
     val upcoming: List<ScheduledTask> = emptyList(),
@@ -65,6 +69,7 @@ data class TaskUiState(
     val occurrences: List<TaskOccurrence> = emptyList(),
     val currentDate: LocalDate = LocalDate.now(),
     val loading: Boolean = true,
+    val errorMessage: String? = null,
 )
 
 data class TaskOperationFeedback(
@@ -91,6 +96,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     val taskDeletionImpact: StateFlow<TaskDeletionImpact?> = _taskDeletionImpact.asStateFlow()
     private val _taskDeletionBatchImpact = MutableStateFlow<TaskDeletionBatchImpact?>(null)
     val taskDeletionBatchImpact: StateFlow<TaskDeletionBatchImpact?> = _taskDeletionBatchImpact.asStateFlow()
+    private val reloadKey = MutableStateFlow(0)
 
     private val taskData = combine(
         repository.tasks,
@@ -101,21 +107,26 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         ::TaskData,
     )
 
-    val uiState = combine(
-        taskData,
-        app.settingsRepository.currentDateFlow(clock),
-        app.settingsRepository.settings,
-    ) { data, today, settings ->
-        buildUiState(
-            tasks = data.tasks,
-            occurrences = data.occurrences,
-            steps = data.steps,
-            stepStates = data.stepStates,
-            stepSnapshots = data.stepSnapshots,
-            today = today,
-            showAllUpcomingRecurringOccurrences = settings.showAllUpcomingTaskOccurrences,
-            zoneId = settings.zoneId(),
-        )
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val uiState = reloadKey.flatMapLatest {
+        combine(
+            taskData,
+            app.settingsRepository.currentDateFlow(clock),
+            app.settingsRepository.settings,
+        ) { data, today, settings ->
+            buildUiState(
+                tasks = data.tasks,
+                occurrences = data.occurrences,
+                steps = data.steps,
+                stepStates = data.stepStates,
+                stepSnapshots = data.stepSnapshots,
+                today = today,
+                showAllUpcomingRecurringOccurrences = settings.showAllUpcomingTaskOccurrences,
+                zoneId = settings.zoneId(),
+            )
+        }.catch { error ->
+            emit(TaskUiState(currentDate = clock.today(), loading = false, errorMessage = error.message ?: "Could not load tasks"))
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -131,6 +142,8 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     fun consumeOperationStatus() {
         _operationFeedback.value = _operationFeedback.value.copy(status = OperationStatus.Idle)
     }
+
+    fun retryLoading() { reloadKey.value++ }
 
     fun saveTask(
         taskId: Long?,
@@ -929,6 +942,7 @@ internal fun buildUiState(
     ).withRecurringOccurrenceVisibility(showAllUpcomingRecurringOccurrences)
 
     return TaskUiState(
+        taskEntities = tasksWithSteps,
         inbox = inboxItems.sortedBy { it.task.createdAtMillis },
         today = todayItems.sortedWith(
             compareByDescending<ScheduledTask> { it.task.pinned }

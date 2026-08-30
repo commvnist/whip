@@ -41,6 +41,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.whip.app.ui.theme.whipColors
+
+internal enum class WhipStatusTone {
+    Neutral,
+    Info,
+    Success,
+    Warning,
+    Destructive,
+}
 
 internal data class EntityInspectorSection(
     val id: String,
@@ -67,6 +76,7 @@ internal fun EntityInspector(
     emoji: String,
     context: String,
     status: String,
+    statusTone: WhipStatusTone = WhipStatusTone.Neutral,
     sections: List<EntityInspectorSection>,
     selectedSectionId: String,
     onSelectSection: (String) -> Unit,
@@ -119,6 +129,7 @@ internal fun EntityInspector(
                         emoji = emoji,
                         context = context,
                         status = status,
+                        statusTone = statusTone,
                         onDismiss = onDismiss,
                         onEdit = onEdit,
                         editLabel = editLabel,
@@ -171,6 +182,7 @@ private fun EntityInspectorHeader(
     emoji: String,
     context: String,
     status: String,
+    statusTone: WhipStatusTone,
     onDismiss: () -> Unit,
     onEdit: (() -> Unit)?,
     editLabel: String,
@@ -210,19 +222,11 @@ private fun EntityInspectorHeader(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            val statusColors = entityInspectorStatusColors(status)
-            Surface(
+            WhipStatusBadge(
+                label = status,
+                tone = statusTone,
                 modifier = Modifier.testTag("entity-inspector-status"),
-                shape = MaterialTheme.shapes.small,
-                color = statusColors.first,
-            ) {
-                Text(
-                    status,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = statusColors.second,
-                )
-            }
+            )
         }
         if (onEdit != null) {
             IconButton(
@@ -256,16 +260,32 @@ private fun EntityInspectorHeader(
 }
 
 @Composable
-private fun entityInspectorStatusColors(status: String) = when {
-    status.contains("complete", ignoreCase = true) ||
-        status.contains("recorded", ignoreCase = true) ||
-        status.contains("checked in", ignoreCase = true) ->
-        MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-    status.contains("missed", ignoreCase = true) ->
-        MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-    status.contains("paused", ignoreCase = true) || status.contains("skipped", ignoreCase = true) ->
-        MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-    else -> MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurfaceVariant
+internal fun WhipStatusBadge(
+    label: String,
+    tone: WhipStatusTone,
+    modifier: Modifier = Modifier,
+) {
+    val semanticColors = MaterialTheme.whipColors
+    val (containerColor, contentColor) = when (tone) {
+        WhipStatusTone.Neutral ->
+            MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurfaceVariant
+        WhipStatusTone.Info -> semanticColors.action.copy(alpha = 0.14f) to semanticColors.action
+        WhipStatusTone.Success -> semanticColors.success.copy(alpha = 0.16f) to semanticColors.success
+        WhipStatusTone.Warning -> semanticColors.warning.copy(alpha = 0.18f) to semanticColors.warning
+        WhipStatusTone.Destructive -> semanticColors.destructive.copy(alpha = 0.14f) to semanticColors.destructive
+    }
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.small,
+        color = containerColor,
+    ) {
+        Text(
+            label,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            style = MaterialTheme.typography.labelMedium,
+            color = contentColor,
+        )
+    }
 }
 
 @Composable

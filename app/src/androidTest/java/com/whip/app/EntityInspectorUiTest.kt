@@ -206,7 +206,7 @@ class EntityInspectorUiTest {
         assertTrue("Subtask completion must trail its text", check.left >= text.right + 8.dp)
         assertTrue("Subtask completion target must remain 48 dp", check.bottom - check.top >= 48.dp)
         assertTrue("Large text must place conversion below the completion line", convert.top >= check.bottom)
-        compose.onNodeWithTag("task-subtask-row-77").assertIsOn().performClick()
+        compose.onNodeWithTag("task-subtask-check-77", useUnmergedTree = true).assertIsOn().performClick()
         compose.runOnIdle { assertEquals(1, toggleCount.get()) }
     }
 

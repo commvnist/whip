@@ -16,10 +16,14 @@ import com.whip.app.domain.TaskDraft
 import com.whip.app.domain.TaskStepDraft
 import com.whip.app.widget.HabitTrackingWidgetProvider
 import com.whip.app.widget.HabitWidgetRemoteViewsFactory
+import com.whip.app.widget.CachedWidgetRow
 import com.whip.app.widget.TaskWidgetRemoteViewsFactory
 import com.whip.app.widget.WhipWidgetProvider
 import com.whip.app.widget.WhipWidgetPreferences
+import com.whip.app.widget.WidgetSnapshotCache
+import com.whip.app.widget.WidgetSnapshotKind
 import com.whip.app.widget.WidgetPreferences
+import com.whip.app.widget.refreshErrorRow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -33,6 +37,132 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class WhipWidgetAreaScopeTest {
     @Test
+    fun widgetRefreshFailureExplainsWhetherSavedRowsAreBeingShown() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+
+        val cached = refreshErrorRow(context, true, "action", "retry")
+            .apply(context, FrameLayout(context))
+            .findViewById<View>(R.id.widget_row)
+            .contentDescription
+            .toString()
+        val uncached = refreshErrorRow(context, false, "action", "retry")
+            .apply(context, FrameLayout(context))
+            .findViewById<View>(R.id.widget_row)
+            .contentDescription
+            .toString()
+
+        assertTrue(cached.contains("last saved", ignoreCase = true))
+        assertTrue(uncached.contains("no saved", ignoreCase = true))
+    }
+
+    @Test
+    fun collectionFactoriesRenderSuccessfulEmptyWithoutInventingAnErrorRow() = runBlocking {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        app.backupRepository.deleteAllData()
+        val taskWidgetId = 73_101
+        val habitWidgetId = 73_102
+        WhipWidgetProvider().onDeleted(app, intArrayOf(taskWidgetId))
+        HabitTrackingWidgetProvider().onDeleted(app, intArrayOf(habitWidgetId))
+
+        val taskFactory = TaskWidgetRemoteViewsFactory(app, taskWidgetId)
+        val habitFactory = HabitWidgetRemoteViewsFactory(app, habitWidgetId)
+        taskFactory.onDataSetChanged()
+        habitFactory.onDataSetChanged()
+
+        assertEquals(0, taskFactory.getCount())
+        assertEquals(0, habitFactory.getCount())
+        taskFactory.onDestroy()
+        habitFactory.onDestroy()
+        WhipWidgetProvider().onDeleted(app, intArrayOf(taskWidgetId))
+        HabitTrackingWidgetProvider().onDeleted(app, intArrayOf(habitWidgetId))
+    }
+
+    @Test
+    fun collectionFactoriesExposeFirstFailureWithoutPretendingCachedContentExists() {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        val taskWidgetId = 73_103
+        val habitWidgetId = 73_104
+        WhipWidgetProvider().onDeleted(app, intArrayOf(taskWidgetId))
+        HabitTrackingWidgetProvider().onDeleted(app, intArrayOf(habitWidgetId))
+
+        val taskFactory = TaskWidgetRemoteViewsFactory(app, taskWidgetId) {
+            error("Injected first Task refresh failure")
+        }
+        val habitFactory = HabitWidgetRemoteViewsFactory(app, habitWidgetId) {
+            error("Injected first Habit refresh failure")
+        }
+        taskFactory.onDataSetChanged()
+        habitFactory.onDataSetChanged()
+
+        assertEquals(1, taskFactory.getCount())
+        assertEquals(1, habitFactory.getCount())
+        assertEquals(Long.MIN_VALUE, taskFactory.getItemId(0))
+        assertEquals(Long.MIN_VALUE, habitFactory.getItemId(0))
+        assertNotNull(taskFactory.getViewAt(0))
+        assertNotNull(habitFactory.getViewAt(0))
+        taskFactory.onDestroy()
+        habitFactory.onDestroy()
+    }
+
+    @Test
+    fun collectionFactoriesRetainLastSuccessfulRowsAfterALaterFailure() = runBlocking {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        app.backupRepository.deleteAllData()
+        val today = app.clock.today()
+        app.taskRepository.create(
+            TaskDraft(
+                title = "Cached factory Task",
+                scheduleKind = ScheduleKind.Once,
+                date = today,
+                inbox = false,
+            ),
+        )
+        app.habitRepository.create(
+            HabitDraft(
+                name = "Cached factory Habit",
+                trackingMode = HabitTrackingMode.CheckOff,
+                startDate = today,
+            ),
+        )
+        val taskWidgetId = 73_105
+        val habitWidgetId = 73_106
+        WhipWidgetProvider().onDeleted(app, intArrayOf(taskWidgetId))
+        HabitTrackingWidgetProvider().onDeleted(app, intArrayOf(habitWidgetId))
+
+        TaskWidgetRemoteViewsFactory(app, taskWidgetId).apply {
+            onDataSetChanged()
+            assertEquals(1, getCount())
+            onDestroy()
+        }
+        HabitWidgetRemoteViewsFactory(app, habitWidgetId).apply {
+            onDataSetChanged()
+            assertEquals(1, getCount())
+            onDestroy()
+        }
+
+        val failedTaskFactory = TaskWidgetRemoteViewsFactory(app, taskWidgetId) {
+            error("Injected later Task refresh failure")
+        }
+        val failedHabitFactory = HabitWidgetRemoteViewsFactory(app, habitWidgetId) {
+            error("Injected later Habit refresh failure")
+        }
+        failedTaskFactory.onDataSetChanged()
+        failedHabitFactory.onDataSetChanged()
+
+        assertEquals(2, failedTaskFactory.getCount())
+        assertEquals(2, failedHabitFactory.getCount())
+        assertEquals(Long.MIN_VALUE, failedTaskFactory.getItemId(0))
+        assertEquals(Long.MIN_VALUE, failedHabitFactory.getItemId(0))
+        assertTrue(failedTaskFactory.getItemId(1) != Long.MIN_VALUE)
+        assertTrue(failedHabitFactory.getItemId(1) != Long.MIN_VALUE)
+        failedTaskFactory.onDestroy()
+        failedHabitFactory.onDestroy()
+        WhipWidgetProvider().onDeleted(app, intArrayOf(taskWidgetId))
+        HabitTrackingWidgetProvider().onDeleted(app, intArrayOf(habitWidgetId))
+        app.backupRepository.deleteAllData()
+    }
+
+    @Test
     fun widgetLayoutUsesOnlyRemoteViewsSafeClasses() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
 
@@ -45,6 +175,8 @@ class WhipWidgetAreaScopeTest {
         val habitRow = RemoteViews(context.packageName, R.layout.widget_habit_row)
             .apply(context, FrameLayout(context))
         val childRow = RemoteViews(context.packageName, R.layout.widget_child_row)
+            .apply(context, FrameLayout(context))
+        val statusRow = RemoteViews(context.packageName, R.layout.widget_status_row)
             .apply(context, FrameLayout(context))
         assertNotNull(taskAgenda.findViewById<android.view.View>(R.id.widget_header))
         assertNotNull(taskAgenda.findViewById<android.view.View>(R.id.widget_add))
@@ -61,6 +193,8 @@ class WhipWidgetAreaScopeTest {
         assertNotNull(habitRow.findViewById<android.view.View>(R.id.widget_row_expand))
         assertNotNull(childRow.findViewById<android.view.View>(R.id.widget_row_action_icon))
         assertNotNull(childRow.findViewById<android.view.View>(R.id.widget_row_body))
+        assertNotNull(statusRow.findViewById<android.view.View>(R.id.widget_row_action_icon))
+        assertNotNull(statusRow.findViewById<android.view.View>(R.id.widget_row_body))
         childRow.measure(
             View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
@@ -70,6 +204,20 @@ class WhipWidgetAreaScopeTest {
         val childAction = childRow.findViewById<View>(R.id.widget_row_action_icon)
         assertTrue("Widget child completion must trail its text", childAction.left >= childBody.right)
         assertTrue("Widget child completion target must remain 48 dp", childAction.width >= 48 * context.resources.displayMetrics.density)
+    }
+
+    @Test
+    fun widgetDeletionRemovesItsLastSuccessfulDisplaySnapshot() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val widgetId = 73_043
+        val rows = listOf(CachedWidgetRow("Task", "Today", isChild = false, completed = false))
+        WidgetSnapshotCache.save(context, WidgetSnapshotKind.TaskAgenda, widgetId, rows, savedAtMillis = 42L)
+
+        assertEquals(rows, WidgetSnapshotCache.load(context, WidgetSnapshotKind.TaskAgenda, widgetId)?.rows)
+
+        WhipWidgetProvider().onDeleted(context, intArrayOf(widgetId))
+
+        assertEquals(null, WidgetSnapshotCache.load(context, WidgetSnapshotKind.TaskAgenda, widgetId))
     }
 
     @Test
@@ -134,7 +282,7 @@ class WhipWidgetAreaScopeTest {
         val factory = TaskWidgetRemoteViewsFactory(app, widgetId)
 
         factory.onDataSetChanged()
-        assertEquals(2, factory.getViewTypeCount())
+        assertEquals(3, factory.getViewTypeCount())
         assertEquals(9, factory.getCount())
 
         val taskKey = "$expandableId:${today.toEpochDay()}"
@@ -199,7 +347,7 @@ class WhipWidgetAreaScopeTest {
         val factory = HabitWidgetRemoteViewsFactory(app, widgetId)
 
         factory.onDataSetChanged()
-        assertEquals(2, factory.getViewTypeCount())
+        assertEquals(3, factory.getViewTypeCount())
         assertEquals(9, factory.getCount())
 
         HabitTrackingWidgetProvider().onReceive(

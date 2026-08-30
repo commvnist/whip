@@ -35,16 +35,17 @@ class TaskWidgetRemoteViewsService : RemoteViewsService() {
 internal class TaskWidgetRemoteViewsFactory(
     private val context: Context,
     private val appWidgetId: Int,
+    private val snapshotLoaderOverride: (() -> TaskWidgetSnapshot)? = null,
 ) : RemoteViewsService.RemoteViewsFactory {
-    private var rows: List<TaskWidgetRow> = emptyList()
+    private var rows: List<TaskCollectionEntry> = emptyList()
     private var renderedDate: LocalDate = LocalDate.MIN
 
     override fun onCreate() = Unit
 
     override fun onDataSetChanged() {
         val app = context.applicationContext as WhipApplication
-        val snapshot = runCatching {
-            runBlocking(Dispatchers.IO) {
+        val result = runCatching {
+            snapshotLoaderOverride?.invoke() ?: runBlocking(Dispatchers.IO) {
                 val preferences = WhipWidgetPreferences.load(context, appWidgetId)
                 val today = app.clock.today()
                 val content = calculateTaskAgendaContent(
@@ -63,9 +64,25 @@ internal class TaskWidgetRemoteViewsFactory(
                     date = today,
                 )
             }
-        }.getOrElse { TaskWidgetSnapshot(emptyList(), app.clock.today()) }
-        rows = snapshot.rows
-        renderedDate = snapshot.date
+        }
+        val snapshot = result.getOrNull()
+        if (snapshot != null) {
+            rows = snapshot.rows.map(TaskCollectionEntry::Current)
+            renderedDate = snapshot.date
+            WidgetSnapshotCache.save(
+                context = context,
+                kind = WidgetSnapshotKind.TaskAgenda,
+                appWidgetId = appWidgetId,
+                rows = snapshot.rows.map { it.toCachedRow(context, snapshot.date) },
+            )
+        } else {
+            val cached = WidgetSnapshotCache.load(context, WidgetSnapshotKind.TaskAgenda, appWidgetId)
+            rows = buildList {
+                add(TaskCollectionEntry.RefreshError(hasCachedRows = cached?.rows?.isNotEmpty() == true))
+                cached?.rows?.mapTo(this, TaskCollectionEntry::Cached)
+            }
+            renderedDate = app.clock.today()
+        }
     }
 
     override fun onDestroy() {
@@ -74,25 +91,52 @@ internal class TaskWidgetRemoteViewsFactory(
 
     override fun getCount(): Int = rows.size
 
-    override fun getViewAt(position: Int): RemoteViews? = rows.getOrNull(position)?.let { row ->
-        taskCollectionRow(context, row, renderedDate)
+    override fun getViewAt(position: Int): RemoteViews? = rows.getOrNull(position)?.let { entry ->
+        when (entry) {
+            is TaskCollectionEntry.Current -> taskCollectionRow(context, entry.row, renderedDate)
+            is TaskCollectionEntry.Cached -> cachedCollectionRow(context, entry.row)
+            is TaskCollectionEntry.RefreshError -> refreshErrorRow(
+                context = context,
+                hasCachedRows = entry.hasCachedRows,
+                retryActionKey = WhipWidgetProvider.EXTRA_TASK_COLLECTION_ACTION,
+                retryAction = WhipWidgetProvider.COLLECTION_REFRESH_TASKS,
+            )
+        }
     }
 
     override fun getLoadingView(): RemoteViews? = null
 
-    override fun getViewTypeCount(): Int = 2
+    override fun getViewTypeCount(): Int = 3
 
-    override fun getItemId(position: Int): Long = rows.getOrNull(position)?.let { row ->
-        "${row.item.stableKey}:${row.subtask?.step?.id ?: "task"}".hashCode().toLong()
-    } ?: position.toLong()
+    override fun getItemId(position: Int): Long = when (val entry = rows.getOrNull(position)) {
+        is TaskCollectionEntry.Current ->
+            "${entry.row.item.stableKey}:${entry.row.subtask?.step?.id ?: "task"}".hashCode().toLong()
+        is TaskCollectionEntry.Cached -> "cached:${entry.row.title}:${entry.row.meta}".hashCode().toLong()
+        is TaskCollectionEntry.RefreshError -> Long.MIN_VALUE
+        null -> position.toLong()
+    }
 
     override fun hasStableIds(): Boolean = true
 }
 
-private data class TaskWidgetSnapshot(
+private sealed interface TaskCollectionEntry {
+    data class Current(val row: TaskWidgetRow) : TaskCollectionEntry
+    data class Cached(val row: CachedWidgetRow) : TaskCollectionEntry
+    data class RefreshError(val hasCachedRows: Boolean) : TaskCollectionEntry
+}
+
+internal data class TaskWidgetSnapshot(
     val rows: List<TaskWidgetRow>,
     val date: LocalDate,
 )
+
+private fun TaskWidgetRow.toCachedRow(context: Context, today: LocalDate): CachedWidgetRow =
+    CachedWidgetRow(
+        title = subtask?.title ?: "${item.task.icon} ${item.task.title}",
+        meta = subtask?.let { item.task.title } ?: taskMeta(context, this, today),
+        isChild = isSubtask,
+        completed = subtask?.completed == true,
+    )
 
 private fun taskCollectionRow(
     context: Context,
@@ -192,6 +236,7 @@ private fun taskCollectionRow(
             )
         }
     }
+    applyResponsiveCollectionRow(context, views, row.isSubtask)
     return views
 }
 

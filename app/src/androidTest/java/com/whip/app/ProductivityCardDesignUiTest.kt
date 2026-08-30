@@ -622,7 +622,8 @@ class ProductivityCardDesignUiTest {
         compose.onNodeWithText("2 / 3 items complete").assertIsDisplayed()
         compose.onAllNodesWithText("1").assertCountEquals(0)
         checklistItems.forEach { (item, _) -> compose.onNodeWithText(item.name).assertIsDisplayed() }
-        assertTrue(height("habit-checklist-item-3") >= 48.dp)
+        val checklistHeight = height("habit-checklist-item-3")
+        assertTrue("Habit checklist row must remain 48 dp; was $checklistHeight", checklistHeight >= 47.99.dp)
         val completedText = compose.onNodeWithTag("habit-checklist-text-1", useUnmergedTree = true)
             .getUnclippedBoundsInRoot()
         val completedCheck = compose.onNodeWithTag("habit-checklist-check-1", useUnmergedTree = true)

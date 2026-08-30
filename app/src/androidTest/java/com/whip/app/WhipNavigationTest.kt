@@ -115,7 +115,7 @@ class WhipNavigationTest {
                 compose.onNodeWithTag("workspace-search-menu-action").performClick()
             }
             compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
-            compose.onNodeWithText("Close").performClick()
+            compose.onNodeWithContentDescription("Close Search").performClick()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
             selectDestination("task-destination-Upcoming", "Upcoming")
             compose.onNodeWithText("The next 30 days", substring = true).assertIsDisplayed()
@@ -133,10 +133,12 @@ class WhipNavigationTest {
 
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithTag("track-workspace-destination-Tracks").assertIsSelected()
+            compose.onNodeWithTag("track-workspace-destination-Tracks").performClick().assertIsSelected()
             compose.onNodeWithTag("track-workspace-destination-Activity").performClick().assertIsSelected()
             compose.onNodeWithContentDescription("Gym tab").performClick()
             compose.onNodeWithContentDescription("Tracks tab").performClick()
-            compose.onNodeWithTag("track-workspace-destination-Tracks").assertIsSelected()
+            compose.onNodeWithTag("track-workspace-destination-Activity").assertIsSelected()
+            compose.onNodeWithTag("track-workspace-destination-Tracks").performClick().assertIsSelected()
             compose.onNodeWithTag("track-list").performScrollToNode(hasText("Create First Track"))
             compose.onNodeWithText("Track What Matters").assertIsDisplayed()
             compose.onNodeWithText("Create First Track").assertIsDisplayed()
@@ -144,7 +146,7 @@ class WhipNavigationTest {
     }
 
     @Test
-    fun switchingPrimaryAreasResetsEachAreaToItsFirstHeading() {
+    fun switchingPrimaryAreasPreservesEachAreasLastHeading() {
         runBlocking {
             val app = ApplicationProvider.getApplicationContext<WhipApplication>()
             app.backupRepository.deleteAllData()
@@ -168,10 +170,10 @@ class WhipNavigationTest {
             compose.onNodeWithTag("habit-destination-All").performClick().assertIsSelected()
 
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            compose.onNodeWithTag("task-destination-Today").assertIsSelected()
+            compose.onNodeWithTag("task-destination-Inbox").assertIsSelected()
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
-            compose.onNodeWithTag("habit-destination-Today").assertIsSelected()
+            compose.onNodeWithTag("habit-destination-All").assertIsSelected()
         }
     }
 

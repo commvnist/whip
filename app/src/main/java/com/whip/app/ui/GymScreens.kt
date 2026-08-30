@@ -59,6 +59,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -83,6 +84,7 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Remove
+import com.whip.app.R
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Restore
 import com.whip.app.domain.Exercise
@@ -143,6 +145,7 @@ import com.whip.app.domain.steppedNumericValue
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.core.PlatePreset
 import com.whip.app.core.OperationStatus
+import com.whip.app.core.WhipResult
 import com.whip.app.core.DEFAULT_REST_TIMER_PRESET_SECONDS
 import com.whip.app.core.normalizeRestTimerPresets
 import com.whip.app.core.TrackedGymRecord
@@ -177,6 +180,14 @@ enum class GymDestination {
     Categories,
     Tools,
 }
+
+internal fun gymPersistenceResult(succeeded: Boolean, status: OperationStatus): WhipResult<Unit> =
+    if (succeeded) {
+        WhipResult.Success(Unit)
+    } else {
+        val failure = status as? OperationStatus.Failed
+        WhipResult.Failure(failure?.message.orEmpty(), failure?.cause)
+    }
 
 enum class GymAddRequest {
     StartWorkout,
@@ -1024,11 +1035,11 @@ fun GymAreaContent(
             initialDate = LocalDate.now(state.appSettings.zoneId()),
             initialKeepAwake = state.appSettings.keepScreenAwake,
             onDismiss = { showStartWorkout = false },
-            onStart = { name, notes, date, keepAwake ->
+            onStart = { name, notes, date, keepAwake, onFinished ->
                 viewModel.startWorkout(name, notes, date, keepAwake) { succeeded ->
                     if (succeeded) destination = GymDestination.Workout
+                    onFinished(gymPersistenceResult(succeeded, viewModel.operationStatus.value))
                 }
-                showStartWorkout = false
             },
         )
     }
@@ -1040,9 +1051,10 @@ fun GymAreaContent(
                 session = session,
                 initialDate = session.localDate,
                 onDismiss = { showEditWorkout = false },
-                onStart = { name, notes, _, keepAwake ->
-                    viewModel.updateWorkout(session.id, name, notes, keepAwake)
-                    showEditWorkout = false
+                onStart = { name, notes, _, keepAwake, onFinished ->
+                    viewModel.updateWorkout(session.id, name, notes, keepAwake) { succeeded ->
+                        onFinished(gymPersistenceResult(succeeded, viewModel.operationStatus.value))
+                    }
                 },
             )
         }
@@ -1054,9 +1066,10 @@ fun GymAreaContent(
             session = session,
             initialDate = session.localDate,
             onDismiss = { historyWorkoutEditorId = null },
-            onStart = { name, notes, _, keepAwake ->
-                viewModel.updateWorkout(session.id, name, notes, keepAwake)
-                historyWorkoutEditorId = null
+            onStart = { name, notes, _, keepAwake, onFinished ->
+                viewModel.updateWorkout(session.id, name, notes, keepAwake) { succeeded ->
+                    onFinished(gymPersistenceResult(succeeded, viewModel.operationStatus.value))
+                }
             },
         )
     }
@@ -1119,16 +1132,20 @@ fun GymAreaContent(
             modifier = dialogModifier,
             exercises = state.activeWorkoutExercises,
             onDismiss = { showGroupDialog = false },
-            onCreate = { name, type, ids ->
-                state.activeSession?.let { session ->
+            onCreate = { name, type, ids, onFinished ->
+                val session = state.activeSession
+                if (session == null) {
+                    onFinished(WhipResult.Failure(""))
+                } else {
                     viewModel.createGroup(
                         session.id,
                         name,
                         type,
                         ids,
-                    )
+                    ) { succeeded ->
+                        onFinished(gymPersistenceResult(succeeded, viewModel.operationStatus.value))
+                    }
                 }
-                showGroupDialog = false
             },
         )
     }
@@ -6530,6 +6547,7 @@ private fun ExerciseActionsDialog(
             trackedInProgress -> "Tracked"
             else -> "Available"
         },
+        statusTone = if (exercise.archived) WhipStatusTone.Neutral else WhipStatusTone.Info,
         sections = ExerciseDetailSection.entries.map { it.inspectorSection },
         selectedSectionId = section.id,
         onSelectSection = { id -> section = ExerciseDetailSection.entries.first { it.id == id } },
@@ -6617,13 +6635,13 @@ private enum class ExerciseDetailSection(val id: String, val label: String) {
 }
 
 @Composable
-private fun WorkoutEditorDialog(
+internal fun WorkoutEditorDialog(
     modifier: Modifier = Modifier,
     session: WorkoutSession?,
     initialDate: LocalDate,
     initialKeepAwake: Boolean = false,
     onDismiss: () -> Unit,
-    onStart: (String, String, LocalDate, Boolean) -> Unit,
+    onStart: (String, String, LocalDate, Boolean, (WhipResult<Unit>) -> Unit) -> Unit,
 ) {
     val editorKey = "workout-${session?.id ?: "new"}"
     var name by rememberSaveable(editorKey) { mutableStateOf(session?.name.orEmpty()) }
@@ -6631,9 +6649,21 @@ private fun WorkoutEditorDialog(
     var date by rememberSaveable(editorKey) { mutableStateOf(initialDate) }
     var keepAwake by rememberSaveable(editorKey) { mutableStateOf(session?.keepScreenAwake ?: initialKeepAwake) }
     var showDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var showDiscardConfirmation by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var saving by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var saveError by rememberSaveable(editorKey) { mutableStateOf<String?>(null) }
+    val fallbackSaveError = stringResource(R.string.gym_workout_save_failed)
+    val editorFingerprint = listOf(name, notes, date, keepAwake).joinToString("\u001f")
+    val initialFingerprint by rememberSaveable(editorKey) { mutableStateOf(editorFingerprint) }
+    val requestDismiss = {
+        if (!saving) {
+            if (editorFingerprint != initialFingerprint) showDiscardConfirmation = true else onDismiss()
+        }
+    }
+    BackHandler(enabled = !showDiscardConfirmation && !saving, onBack = requestDismiss)
     PaneAwareAlertDialog(
         modifier = modifier,
-        onDismissRequest = onDismiss,
+        onDismissRequest = requestDismiss,
         title = { Text(if (session == null) "Start Workout" else "Workout Details") },
         text = {
             Column(
@@ -6655,23 +6685,54 @@ private fun WorkoutEditorDialog(
                     }
                 }
                 ToggleRow("Keep screen awake on workout screen", keepAwake) { keepAwake = it }
+                saveError?.let { message ->
+                    Text(
+                        message,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.testTag("workout-editor-save-error"),
+                    )
+                }
             }
         },
         confirmButton = {
             WhipTextButton(
-                onClick = { onStart(name, notes, date, keepAwake) },
+                enabled = !saving,
+                onClick = {
+                    if (!saving) {
+                        saving = true
+                        saveError = null
+                        onStart(name, notes, date, keepAwake) { result ->
+                            saving = false
+                            when (result) {
+                                is WhipResult.Success -> onDismiss()
+                                is WhipResult.Failure -> saveError = result.message.ifBlank { fallbackSaveError }
+                            }
+                        }
+                    }
+                },
                 modifier = Modifier.testTag("workout-editor-confirm"),
             ) {
-                Text(if (session == null) "Start" else "Save")
+                Text(if (saving) stringResource(R.string.gym_workout_saving) else if (session == null) "Start" else "Save")
             }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = requestDismiss, enabled = !saving) { Text("Cancel") } },
     )
     if (showDatePicker) {
         WhipDatePickerDialog(
             initialDate = date,
             onDismiss = { showDatePicker = false },
             onDateSelected = { date = it; showDatePicker = false },
+        )
+    }
+    if (showDiscardConfirmation) {
+        UnsavedChangesDialog(
+            subject = stringResource(R.string.gym_workout_discard_subject),
+            onKeepEditing = { showDiscardConfirmation = false },
+            onDiscard = {
+                showDiscardConfirmation = false
+                onDismiss()
+            },
+            modifier = modifier,
         )
     }
 }
@@ -6711,68 +6772,111 @@ private fun ConfirmationDialog(
 }
 
 @Composable
-private fun WorkoutGroupDialog(
+internal fun WorkoutGroupDialog(
     modifier: Modifier = Modifier,
     exercises: List<WorkoutExerciseUi>,
     onDismiss: () -> Unit,
-    onCreate: (String, WorkoutGroupType, List<Long>) -> Unit,
+    onCreate: (String, WorkoutGroupType, List<Long>, (WhipResult<Unit>) -> Unit) -> Unit,
 ) {
     var name by rememberSaveable { mutableStateOf("") }
     var type by rememberSaveable { mutableStateOf(WorkoutGroupType.Superset) }
     var selectedIds by rememberSaveable {
         mutableStateOf<Set<Long>>(exercises.take(2).mapTo(linkedSetOf()) { it.workoutExercise.id })
     }
+    var showDiscardConfirmation by rememberSaveable { mutableStateOf(false) }
+    var saving by rememberSaveable { mutableStateOf(false) }
+    var saveError by rememberSaveable { mutableStateOf<String?>(null) }
+    val fallbackSaveError = stringResource(R.string.gym_workout_group_save_failed)
+    val editorFingerprint = listOf(name, type, selectedIds.sorted()).joinToString("\u001f")
+    val initialFingerprint by rememberSaveable { mutableStateOf(editorFingerprint) }
+    val requestDismiss = {
+        if (!saving) {
+            if (editorFingerprint != initialFingerprint) showDiscardConfirmation = true else onDismiss()
+        }
+    }
+    BackHandler(enabled = !showDiscardConfirmation && !saving, onBack = requestDismiss)
     ProductivityEditorDialog(
         modifier = modifier,
         testTag = "workout-group-editor",
         paneTitle = "Group Workout Exercises",
-        onDismissRequest = onDismiss,
+        onDismissRequest = requestDismiss,
         title = { Text("Group Workout Exercises") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    name,
-                    { name = it.replace('\n', ' ').replace('\r', ' ').take(80) },
-                    label = { Text("Group name (optional)") },
-                    supportingText = { Text("Use a name only when it helps distinguish this group.") },
-                    singleLine = true,
-                )
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    WorkoutGroupType.entries.forEach { option ->
-                        WhipFilterChip(
-                            selected = type == option,
-                            onClick = { type = option },
-                            label = { Text(option.name) },
+            WhipChoiceList(Modifier.testTag("workout-group-choice-list")) {
+                item {
+                    OutlinedTextField(
+                        name,
+                        { name = it.replace('\n', ' ').replace('\r', ' ').take(80) },
+                        label = { Text("Group name (optional)") },
+                        supportingText = { Text("Use a name only when it helps distinguish this group.") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("workout-group-name"),
+                    )
+                }
+                saveError?.let { message ->
+                    item {
+                        Text(
+                            message,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.testTag("workout-group-save-error"),
                         )
                     }
                 }
-                Text("Choose two or more exercises. Other exercises remain independent.")
-                exercises.forEach { item ->
+                item { Text(stringResource(R.string.gym_workout_group_type), style = MaterialTheme.typography.labelLarge) }
+                items(WorkoutGroupType.entries, key = WorkoutGroupType::name) { option ->
+                    WhipSingleChoiceRow(
+                        label = option.name,
+                        selected = type == option,
+                        onSelect = { type = option },
+                        accessibilityLabel = stringResource(R.string.gym_workout_group_type_accessibility, option.name),
+                    )
+                }
+                item { Text("Choose two or more exercises. Other exercises remain independent.") }
+                items(exercises, key = { it.workoutExercise.id }) { item ->
                     val id = item.workoutExercise.id
-                    Row(
-                        Modifier.fillMaxWidth().clickable {
+                    WhipMultiChoiceRow(
+                        label = item.exercise.name,
+                        checked = id in selectedIds,
+                        onCheckedChange = {
                             selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id
                         },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Checkbox(id in selectedIds, null)
-                        Text(item.exercise.name)
-                    }
+                        accessibilityLabel = stringResource(R.string.gym_workout_group_include_accessibility, item.exercise.name),
+                    )
                 }
             }
         },
         confirmButton = {
             WhipTextButton(
-                enabled = selectedIds.size >= 2,
-                onClick = { onCreate(name.trim().ifBlank { type.name }, type, selectedIds.toList()) },
-            ) { Text("Create") }
+                enabled = selectedIds.size >= 2 && !saving,
+                onClick = {
+                    if (!saving) {
+                        saving = true
+                        saveError = null
+                        onCreate(name.trim().ifBlank { type.name }, type, selectedIds.toList()) { result ->
+                            saving = false
+                            when (result) {
+                                is WhipResult.Success -> onDismiss()
+                                is WhipResult.Failure -> saveError = result.message.ifBlank { fallbackSaveError }
+                            }
+                        }
+                    }
+                },
+                modifier = Modifier.testTag("workout-group-confirm"),
+            ) { Text(if (saving) stringResource(R.string.gym_workout_saving) else "Create") }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = requestDismiss, enabled = !saving) { Text("Cancel") } },
     )
+    if (showDiscardConfirmation) {
+        UnsavedChangesDialog(
+            subject = stringResource(R.string.gym_workout_group_discard_subject),
+            onKeepEditing = { showDiscardConfirmation = false },
+            onDiscard = {
+                showDiscardConfirmation = false
+                onDismiss()
+            },
+            modifier = modifier,
+        )
+    }
 }
 
 private fun WorkoutSet.shortLabel(

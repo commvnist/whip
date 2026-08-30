@@ -15,6 +15,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.health.connect.client.PermissionController
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -27,6 +28,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -51,6 +54,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
@@ -58,6 +64,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
+import com.whip.app.R
 import com.whip.app.core.AppThemeMode
 import com.whip.app.core.HomeSection
 import com.whip.app.core.HealthDataType
@@ -79,6 +86,7 @@ import com.whip.app.reminders.RestTimerNotifications
 import com.whip.app.reminders.AutomationPromptNotifications
 import com.whip.app.reminders.FocusTimerNotifications
 import com.whip.app.BuildConfig
+import com.whip.app.data.BackupPreview
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -97,6 +105,18 @@ internal enum class SettingsSection(val label: String, val supportingText: Strin
     AboutDiagnostics("About Whip", "App identity, version, package, and data-handling summary"),
 }
 
+internal fun submitDestructiveActionOnce(
+    alreadySubmitted: Boolean,
+    busy: Boolean,
+    markSubmitted: () -> Unit,
+    action: () -> Unit,
+): Boolean {
+    if (alreadySubmitted || busy) return false
+    markSubmitted()
+    action()
+    return true
+}
+
 @Composable
 internal fun SettingsContent(
     state: SettingsUiState,
@@ -110,6 +130,7 @@ internal fun SettingsContent(
     val context = LocalContext.current
     var pendingExport by rememberSaveable { mutableStateOf(ExportKind.Backup) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var resetSubmitted by rememberSaveable { mutableStateOf(false) }
     var createUnit by rememberSaveable { mutableStateOf(false) }
     var renameUnitId by rememberSaveable { mutableStateOf<String?>(null) }
     var versionUnitId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -251,19 +272,13 @@ internal fun SettingsContent(
         }
         Row(Modifier.fillMaxWidth().weight(1f)) {
         if (wideSettingsNavigation) {
-            Column(
-                modifier = Modifier.width(240.dp).fillMaxHeight().padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                SettingsSection.entries.forEach { choice ->
-                    NavigationDrawerItem(
-                        label = { Text(choice.label) },
-                        selected = section == choice,
-                        onClick = { selectSection(choice) },
-                        modifier = Modifier.testTag("settings-section-${choice.label}"),
-                    )
-                }
-            }
+            WideSettingsSectionSidebar(
+                selectedSection = section,
+                onSectionSelected = ::selectSection,
+                modifier = Modifier
+                    .width(240.dp)
+                    .fillMaxHeight(),
+            )
             VerticalDivider()
         }
         WhipReorderLazyColumn(
@@ -290,11 +305,9 @@ internal fun SettingsContent(
             ) { selected -> viewModel.update { it.copy(lowPressureMode = selected) } }
         }
         if (settings.powerMode) item {
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Hardware Keyboard", fontWeight = FontWeight.Bold)
-                    Text("Ctrl+H Home · Ctrl+K Search · Ctrl+N contextual add · Ctrl+1–5 switch Tasks, Habits, Goals, Tracks, Gym", style = MaterialTheme.typography.bodySmall)
-                }
+            WhipSettingsSectionCard {
+                Text("Hardware Keyboard", fontWeight = FontWeight.Bold)
+                Text("Ctrl+H Home · Ctrl+K Search · Ctrl+N contextual add · Ctrl+1–5 switch Tasks, Habits, Goals, Tracks, Gym", style = MaterialTheme.typography.bodySmall)
             }
         }
         item { SettingsDropdown("Theme", AppThemeMode.entries, settings.themeMode, { it.name }) { selected -> viewModel.update { it.copy(themeMode = selected) } } }
@@ -970,10 +983,25 @@ internal fun SettingsContent(
             }
         }
         item {
-            WhipOutlinedButton(
-                onClick = { confirmDelete = true },
-                modifier = Modifier.fillMaxWidth().testTag("reset-whip-action"),
-            ) { Text("Reset Whip and Delete All Data") }
+            val destructiveActionDescription = stringResource(R.string.state_destructive_action)
+            WhipDangerZone {
+                Text(
+                    stringResource(R.string.settings_reset_explanation),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                WhipActionRow(
+                    title = stringResource(R.string.settings_reset_entry_title),
+                    onClick = {
+                        resetSubmitted = false
+                        confirmDelete = true
+                    },
+                    modifier = Modifier.testTag("reset-whip-action").semantics {
+                        stateDescription = destructiveActionDescription
+                    },
+                    navigates = false,
+                    danger = true,
+                )
+            }
         }
         }
 
@@ -1083,28 +1111,12 @@ internal fun SettingsContent(
     }
 
     state.backupPreview?.let { preview ->
-        PaneAwareAlertDialog(
-            onDismissRequest = viewModel::cancelRestore,
-            title = { Text("Import This Whip Backup?") },
-            text = {
-                Text(
-                    "Exported ${preview.exportedAt}\n${preview.totalRecords} records in ${preview.tableCounts.count { it.value > 0 }} tables\n" +
-                        "Preferences: ${if (preview.settingsIncluded) "included" else "not included"}\n" +
-                        "${preview.duplicateStableIds} stable IDs already exist.\n\n" +
-                        (preview.compatibilityMessage ?: "MERGE adds records that are not already present, remaps their relationships, keeps current settings, and commits atomically. Re-importing the same file is safe.\n\nREPLACE snapshots the current database and preferences first, then replaces all local data, settings, and scheduled work; interruption rolls back to that snapshot."),
-                )
-            },
-            confirmButton = {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    WhipTextButton(enabled = preview.restoreCompatible, onClick = viewModel::confirmMerge) {
-                        Text(if (preview.restoreCompatible) "Merge New Data" else "Update Required")
-                    }
-                    WhipTextButton(enabled = preview.restoreCompatible, onClick = viewModel::confirmRestore) {
-                        Text("Replace Everything", color = MaterialTheme.colorScheme.error)
-                    }
-                }
-            },
-            dismissButton = { WhipTextButton(onClick = viewModel::cancelRestore) { Text("Cancel") } },
+        BackupRestorePreviewDialogs(
+            preview = preview,
+            busy = state.busy,
+            onCancel = viewModel::cancelRestore,
+            onMerge = viewModel::confirmMerge,
+            onReplace = viewModel::confirmRestore,
         )
     }
     if (showEncryptedExport) {
@@ -1180,20 +1192,46 @@ internal fun SettingsContent(
         )
     }
     if (confirmDelete) {
+        val destructiveActionDescription = stringResource(R.string.state_destructive_action)
         PaneAwareAlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text("Reset Whip and Delete All Data?") },
-            text = { Text("This deletes every task, Habit, Goal, Track, workout, and local setting; disconnects the portable backup folder; and returns Whip to setup. Existing backup files outside Whip are not deleted. This cannot be undone.") },
+            onDismissRequest = { if (!state.busy && !resetSubmitted) confirmDelete = false },
+            title = { Text(stringResource(R.string.settings_reset_confirm_title)) },
+            text = { Text(stringResource(R.string.settings_reset_confirm_message)) },
             confirmButton = {
                 WhipTextButton(
+                    enabled = !state.busy && !resetSubmitted,
                     onClick = {
-                        confirmDelete = false
-                        viewModel.deleteAllData(onSuccess = onDataReset)
+                        submitDestructiveActionOnce(
+                            alreadySubmitted = resetSubmitted,
+                            busy = state.busy,
+                            markSubmitted = { resetSubmitted = true },
+                            action = {
+                                viewModel.deleteAllData(
+                                    onSuccess = onDataReset,
+                                    onFailure = { resetSubmitted = false },
+                                )
+                            },
+                        )
                     },
-                    modifier = Modifier.testTag("confirm-reset-whip"),
-                ) { Text("Reset and Delete Everything") }
+                    modifier = Modifier.testTag("confirm-reset-whip").semantics {
+                        stateDescription = destructiveActionDescription
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text(
+                        if (state.busy || resetSubmitted) stringResource(R.string.settings_resetting)
+                        else stringResource(R.string.settings_reset_confirm_action),
+                    )
+                }
             },
-            dismissButton = { WhipTextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+            dismissButton = {
+                WhipTextButton(
+                    onClick = { confirmDelete = false },
+                    enabled = !state.busy && !resetSubmitted,
+                ) { Text(stringResource(R.string.action_cancel)) }
+            },
         )
     }
     if (customEmojiEditorOpen) {
@@ -1264,6 +1302,125 @@ internal fun SettingsContent(
                 },
             )
         }
+    }
+}
+
+@Composable
+internal fun WideSettingsSectionSidebar(
+    selectedSection: SettingsSection,
+    onSectionSelected: (SettingsSection) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier.selectableGroup().testTag("settings-wide-section-list"),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        items(SettingsSection.entries, key = SettingsSection::name) { choice ->
+            NavigationDrawerItem(
+                label = { Text(choice.label) },
+                selected = selectedSection == choice,
+                onClick = { onSectionSelected(choice) },
+                modifier = Modifier
+                    .testTag("settings-section-${choice.label}")
+                    .focusable(),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun BackupRestorePreviewDialogs(
+    preview: BackupPreview,
+    busy: Boolean,
+    onCancel: () -> Unit,
+    onMerge: () -> Unit,
+    onReplace: () -> Unit,
+) {
+    val cancelLabel = stringResource(R.string.action_cancel)
+    val destructiveActionDescription = stringResource(R.string.state_destructive_action)
+    val replaceEverythingLabel = stringResource(R.string.action_replace_everything)
+    var confirmReplacement by rememberSaveable(preview.exportedAt.toString()) { mutableStateOf(false) }
+    var replacementSubmitted by rememberSaveable(preview.exportedAt.toString()) { mutableStateOf(false) }
+    var replacementObservedBusy by rememberSaveable(preview.exportedAt.toString()) { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(busy, replacementSubmitted) {
+        when {
+            replacementSubmitted && busy -> replacementObservedBusy = true
+            replacementSubmitted && replacementObservedBusy && !busy -> {
+                replacementSubmitted = false
+                replacementObservedBusy = false
+            }
+        }
+    }
+    if (!confirmReplacement) {
+        PaneAwareAlertDialog(
+            onDismissRequest = { if (!busy) onCancel() },
+            title = { Text("Import This Whip Backup?") },
+            text = {
+                Text(
+                    "Exported ${preview.exportedAt}\n${preview.totalRecords} records in ${preview.tableCounts.count { it.value > 0 }} tables\n" +
+                        "Preferences: ${if (preview.settingsIncluded) "included" else "not included"}\n" +
+                        "${preview.duplicateStableIds} stable IDs already exist.\n\n" +
+                        (preview.compatibilityMessage ?: "MERGE adds records that are not already present, remaps their relationships, keeps current settings, and commits atomically. Re-importing the same file is safe.\n\nREPLACE snapshots the current database and preferences first, then replaces all local data, settings, and scheduled work; interruption rolls back to that snapshot."),
+                )
+            },
+            confirmButton = {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    WhipTextButton(
+                        enabled = preview.restoreCompatible && !busy,
+                        onClick = onMerge,
+                    ) { Text(if (preview.restoreCompatible) "Merge New Data" else "Update Required") }
+                    WhipTextButton(
+                        enabled = preview.restoreCompatible && !busy,
+                        onClick = { confirmReplacement = true },
+                        modifier = Modifier.testTag("request-replace-everything").semantics {
+                            stateDescription = destructiveActionDescription
+                        },
+                        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                    ) { Text(replaceEverythingLabel) }
+                }
+            },
+            dismissButton = { WhipTextButton(onClick = onCancel, enabled = !busy) { Text(cancelLabel) } },
+        )
+    } else {
+        PaneAwareAlertDialog(
+            onDismissRequest = { if (!busy && !replacementSubmitted) confirmReplacement = false },
+            paneTitle = stringResource(R.string.settings_backup_replace_pane_title),
+            title = { Text(stringResource(R.string.settings_backup_replace_title)) },
+            text = {
+                Text(stringResource(R.string.settings_backup_replace_warning))
+            },
+            confirmButton = {
+                WhipTextButton(
+                    enabled = !busy && !replacementSubmitted,
+                    onClick = {
+                        if (!replacementSubmitted && !busy) {
+                            replacementSubmitted = true
+                            onReplace()
+                        }
+                    },
+                    modifier = Modifier.testTag("confirm-replace-everything").semantics {
+                        stateDescription = destructiveActionDescription
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text(
+                        if (busy || replacementSubmitted) stringResource(R.string.settings_backup_replacing)
+                        else replaceEverythingLabel,
+                    )
+                }
+            },
+            dismissButton = {
+                WhipTextButton(
+                    onClick = { confirmReplacement = false },
+                    enabled = !busy && !replacementSubmitted,
+                ) { Text(cancelLabel) }
+            },
+        )
     }
 }
 

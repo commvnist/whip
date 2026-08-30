@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Button as MaterialButton
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
@@ -18,6 +19,7 @@ import androidx.compose.material3.SelectableChipElevation
 import androidx.compose.material3.TextButton as MaterialTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 /**
  * Whip's action controls use restrained rectangular corners. Material's
@@ -38,7 +40,7 @@ internal fun WhipButton(
 ) {
     MaterialButton(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.heightIn(min = 48.dp),
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
         colors = colors,
@@ -64,7 +66,7 @@ internal fun WhipOutlinedButton(
 ) {
     MaterialOutlinedButton(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.heightIn(min = 48.dp),
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
         colors = colors,
@@ -90,7 +92,7 @@ internal fun WhipTonalButton(
 ) {
     MaterialFilledTonalButton(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.heightIn(min = 48.dp),
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
         colors = colors,
@@ -116,7 +118,7 @@ internal fun WhipTextButton(
 ) {
     MaterialTextButton(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.heightIn(min = 48.dp),
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
         colors = colors,

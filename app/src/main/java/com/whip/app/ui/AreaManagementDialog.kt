@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.DropdownMenu
@@ -26,7 +27,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -59,6 +60,7 @@ import androidx.compose.material.icons.outlined.Merge
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
+import com.whip.app.R
 import com.whip.app.domain.Area
 import kotlinx.coroutines.launch
 
@@ -617,24 +619,21 @@ internal fun MoveAreaItemsDialog(
         onDismissRequest = onDismiss,
         title = { Text("Move Everything from $sourceName") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Move ${usageText(usage)} together. The source area and all item history will remain unchanged.")
+            WhipChoiceList(Modifier.testTag("move-area-choice-list")) {
+                item {
+                    Text("Move ${usageText(usage)} together. The source area and all item history will remain unchanged.")
+                }
                 if (options.isEmpty()) {
-                    Text("Create another active Area before moving these items.")
+                    item { Text("Create another active Area before moving these items.") }
                 } else {
-                    Text("Destination", style = MaterialTheme.typography.labelLarge)
-                    options.forEach { option ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { targetId = option.id }
-                                .semantics { contentDescription = "Move to ${option.name}" }
-                                .padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(selected = targetId == option.id, onClick = { targetId = option.id })
-                            Text(option.name)
-                        }
+                    item { Text("Destination", style = MaterialTheme.typography.labelLarge) }
+                    items(options, key = Area::id) { option ->
+                        WhipSingleChoiceRow(
+                            label = option.name,
+                            selected = targetId == option.id,
+                            onSelect = { targetId = option.id },
+                            accessibilityLabel = stringResource(R.string.area_move_to_accessibility, option.name),
+                        )
                     }
                 }
             }
@@ -672,22 +671,17 @@ internal fun PermanentAreaDeleteDialog(
         onDismissRequest = onDismiss,
         title = { Text("Delete ${area.name} Permanently?") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(explanation)
+            WhipChoiceList(Modifier.testTag("delete-area-choice-list")) {
+                item { Text(explanation) }
                 if (usage.total > 0) {
-                    Text("Move items to", style = MaterialTheme.typography.labelLarge)
-                    replacementAreas.forEach { target ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { replacementId = target.id }
-                                .semantics { contentDescription = "Move items to ${target.name}" }
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(replacementId == target.id, { replacementId = target.id })
-                            Text(target.name)
-                        }
+                    item { Text("Move items to", style = MaterialTheme.typography.labelLarge) }
+                    items(replacementAreas, key = Area::id) { target ->
+                        WhipSingleChoiceRow(
+                            label = target.name,
+                            selected = replacementId == target.id,
+                            onSelect = { replacementId = target.id },
+                            accessibilityLabel = stringResource(R.string.area_move_items_to_accessibility, target.name),
+                        )
                     }
                 }
             }

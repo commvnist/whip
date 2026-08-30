@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import androidx.compose.ui.unit.dp
 import com.whip.app.domain.AreaScope
 
 class UnifiedSearchRulesTest {
@@ -59,5 +60,67 @@ class UnifiedSearchRulesTest {
 
         assertEquals((150 downTo 51).toList(), newestSearchValues(history, 100) { it })
         assertEquals((150 downTo 51).toList(), newestSearchValues(history.reversed(), 100) { it })
+    }
+
+    @Test
+    fun adaptiveWorkspaceRequiresBothWideWidthAndAdequateHeight() {
+        assertEquals(
+            UnifiedSearchWorkspaceLayout.Compact,
+            unifiedSearchWorkspaceLayout(width = 320.dp, height = 480.dp),
+        )
+        assertEquals(
+            UnifiedSearchWorkspaceLayout.Compact,
+            unifiedSearchWorkspaceLayout(width = 900.dp, height = 439.dp),
+        )
+        assertEquals(
+            UnifiedSearchWorkspaceLayout.Wide,
+            unifiedSearchWorkspaceLayout(width = 720.dp, height = 440.dp),
+        )
+    }
+
+    @Test
+    fun readinessOnlyIncludesSourcesOwnedBySelectedDomains() {
+        val status = unifiedSearchDataStatus(
+            domains = setOf(SearchDomain.Task),
+            taskState = TaskUiState(loading = false),
+            habitState = HabitUiState(loading = true),
+            goalState = GoalUiState(loading = false, errorMessage = "Goals unavailable"),
+            trackState = TrackUiState(loading = true),
+            gymState = GymUiState(loading = false, errorMessage = "Gym unavailable"),
+        )
+
+        assertTrue(status.complete)
+        assertTrue(status.loadingSources.isEmpty())
+        assertTrue(status.failedSources.isEmpty())
+    }
+
+    @Test
+    fun readinessGroupsSharedSourcesAndTreatsFailureAsIncomplete() {
+        val status = unifiedSearchDataStatus(
+            domains = setOf(SearchDomain.Track, SearchDomain.TrackEntry, SearchDomain.Habit, SearchDomain.Workout),
+            taskState = TaskUiState(loading = true),
+            habitState = HabitUiState(loading = true, errorMessage = "Offline"),
+            goalState = GoalUiState(loading = false),
+            trackState = TrackUiState(loading = true),
+            gymState = GymUiState(loading = true),
+        )
+
+        assertFalse(status.complete)
+        assertEquals(listOf("Tracks", "Gym"), status.loadingSources)
+        assertEquals(listOf("Habits"), status.failedSources)
+    }
+
+    @Test
+    fun perDomainIndexLimitKeepsLaterDomainsVisibleAndReportsPartialSources() {
+        val tasks = (1L..5L).map { id ->
+            task.copy(id = id, title = "Task $id")
+        }
+        val track = task.copy(domain = SearchDomain.Track, id = 99, title = "Medication")
+
+        val index = boundSearchIndex(tasks + track, maxResultsPerDomain = 2)
+
+        assertEquals(listOf(1L, 2L, 99L), index.results.map(WhipSearchResult::id))
+        assertEquals(setOf(SearchDomain.Task), index.limitedDomains)
+        assertTrue(UnifiedSearchDataStatus(limitedSources = listOf("Tasks")).complete.not())
     }
 }

@@ -26,6 +26,7 @@ internal fun TaskUiState.forArea(scope: AreaScope): TaskUiState {
         .map { it.task.id }
         .toSet()
     return copy(
+        taskEntities = taskEntities.filter { scope.matches(it.areaId) },
         inbox = inbox.visible(),
         today = today.visible(),
         upcoming = upcoming.visible(),

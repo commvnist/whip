@@ -35,9 +35,9 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.NavigateNext
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.ExpandLess
@@ -1577,7 +1577,7 @@ internal fun NavigationRow(
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            Icon(Icons.Outlined.ChevronRight, contentDescription = null)
+            Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
         }
     }
 }
@@ -1622,7 +1622,7 @@ internal fun WhipActionRow(
             Text(title.uiTitleCase(), color = if (danger) MaterialTheme.colorScheme.error else Color.Unspecified)
             supportingText?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
-        if (navigates) Icon(Icons.Outlined.ChevronRight, contentDescription = null)
+        if (navigates) Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
     }
 }
 

@@ -33,16 +33,17 @@ class HabitWidgetRemoteViewsService : RemoteViewsService() {
 internal class HabitWidgetRemoteViewsFactory(
     private val context: Context,
     private val appWidgetId: Int,
+    private val snapshotLoaderOverride: (() -> HabitWidgetSnapshot)? = null,
 ) : RemoteViewsService.RemoteViewsFactory {
-    private var rows: List<HabitWidgetRow> = emptyList()
+    private var rows: List<HabitCollectionEntry> = emptyList()
     private var renderedDate: LocalDate = LocalDate.MIN
 
     override fun onCreate() = Unit
 
     override fun onDataSetChanged() {
         val app = context.applicationContext as WhipApplication
-        val snapshot = runCatching {
-            runBlocking(Dispatchers.IO) {
+        val result = runCatching {
+            snapshotLoaderOverride?.invoke() ?: runBlocking(Dispatchers.IO) {
                 val preferences = WhipWidgetPreferences.load(context, appWidgetId)
                 val today = app.clock.today()
                 val content = calculateHabitTrackingContent(
@@ -62,9 +63,25 @@ internal class HabitWidgetRemoteViewsFactory(
                 )
                 HabitWidgetSnapshot(content.rows, today)
             }
-        }.getOrElse { HabitWidgetSnapshot(emptyList(), app.clock.today()) }
-        rows = snapshot.rows
-        renderedDate = snapshot.date
+        }
+        val snapshot = result.getOrNull()
+        if (snapshot != null) {
+            rows = snapshot.rows.map(HabitCollectionEntry::Current)
+            renderedDate = snapshot.date
+            WidgetSnapshotCache.save(
+                context = context,
+                kind = WidgetSnapshotKind.HabitTracking,
+                appWidgetId = appWidgetId,
+                rows = snapshot.rows.map { it.toCachedRow(context) },
+            )
+        } else {
+            val cached = WidgetSnapshotCache.load(context, WidgetSnapshotKind.HabitTracking, appWidgetId)
+            rows = buildList {
+                add(HabitCollectionEntry.RefreshError(hasCachedRows = cached?.rows?.isNotEmpty() == true))
+                cached?.rows?.mapTo(this, HabitCollectionEntry::Cached)
+            }
+            renderedDate = app.clock.today()
+        }
     }
 
     override fun onDestroy() {
@@ -73,24 +90,50 @@ internal class HabitWidgetRemoteViewsFactory(
 
     override fun getCount(): Int = rows.size
 
-    override fun getViewAt(position: Int): RemoteViews? = rows.getOrNull(position)?.let { row ->
-        habitCollectionRow(context, row, renderedDate)
+    override fun getViewAt(position: Int): RemoteViews? = rows.getOrNull(position)?.let { entry ->
+        when (entry) {
+            is HabitCollectionEntry.Current -> habitCollectionRow(context, entry.row, renderedDate)
+            is HabitCollectionEntry.Cached -> cachedCollectionRow(context, entry.row)
+            is HabitCollectionEntry.RefreshError -> refreshErrorRow(
+                context = context,
+                hasCachedRows = entry.hasCachedRows,
+                retryActionKey = HabitTrackingWidgetProvider.EXTRA_COLLECTION_ACTION,
+                retryAction = HabitTrackingWidgetProvider.COLLECTION_REFRESH_HABITS,
+            )
+        }
     }
 
     override fun getLoadingView(): RemoteViews? = null
 
-    override fun getViewTypeCount(): Int = 2
+    override fun getViewTypeCount(): Int = 3
 
-    override fun getItemId(position: Int): Long = rows.getOrNull(position)?.let { row ->
-        "${row.habit.id}:${row.checklistItem?.id ?: "habit"}".hashCode().toLong()
-    } ?: position.toLong()
+    override fun getItemId(position: Int): Long = when (val entry = rows.getOrNull(position)) {
+        is HabitCollectionEntry.Current ->
+            "${entry.row.habit.id}:${entry.row.checklistItem?.id ?: "habit"}".hashCode().toLong()
+        is HabitCollectionEntry.Cached -> "cached:${entry.row.title}:${entry.row.meta}".hashCode().toLong()
+        is HabitCollectionEntry.RefreshError -> Long.MIN_VALUE
+        null -> position.toLong()
+    }
 
     override fun hasStableIds(): Boolean = true
 }
 
-private data class HabitWidgetSnapshot(
+private sealed interface HabitCollectionEntry {
+    data class Current(val row: HabitWidgetRow) : HabitCollectionEntry
+    data class Cached(val row: CachedWidgetRow) : HabitCollectionEntry
+    data class RefreshError(val hasCachedRows: Boolean) : HabitCollectionEntry
+}
+
+internal data class HabitWidgetSnapshot(
     val rows: List<HabitWidgetRow>,
     val date: LocalDate,
+)
+
+private fun HabitWidgetRow.toCachedRow(context: Context): CachedWidgetRow = CachedWidgetRow(
+    title = checklistItem?.name ?: "${habit.icon} ${habit.name}",
+    meta = habitMeta(context, this),
+    isChild = isChecklistItem,
+    completed = completed,
 )
 
 private fun habitCollectionRow(
@@ -105,23 +148,21 @@ private fun habitCollectionRow(
     val title = row.checklistItem?.name ?: "${row.habit.icon} ${row.habit.name}"
     views.setTextViewText(
         R.id.widget_row_title,
-        if (row.completed && row.isChecklistItem) SpannableString(title).apply {
+        if (row.completed) SpannableString(title).apply {
             setSpan(StrikethroughSpan(), 0, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         } else title,
     )
     views.setTextViewText(R.id.widget_row_meta, habitMeta(context, row))
+    views.setTextColor(
+        R.id.widget_row_title,
+        context.getColor(if (row.completed) R.color.widget_secondary_text else R.color.widget_primary_text),
+    )
 
     if (row.isChecklistItem) {
         views.setImageViewResource(
             R.id.widget_row_action_icon,
             if (row.completed) R.drawable.widget_ic_checkbox_checked
             else R.drawable.widget_ic_checkbox_unchecked,
-        )
-        views.setTextColor(
-            R.id.widget_row_title,
-            context.getColor(
-                if (row.completed) R.color.widget_secondary_text else R.color.widget_primary_text,
-            ),
         )
         collectionFillInIntent(row.action, row, today)?.let { fillIn ->
             views.setOnClickFillInIntent(R.id.widget_row, fillIn)
@@ -136,7 +177,11 @@ private fun habitCollectionRow(
             context.getString(R.string.widget_open_habit, row.habit.name),
         )
 
-        bindHabitAction(views, row)
+        bindHabitAction(
+            views,
+            row,
+            iconOnly = useSingleLineWidgetRows(context.resources.configuration.fontScale),
+        )
         views.setContentDescription(R.id.widget_row_action, habitActionDescription(context, row))
         collectionFillInIntent(row.action, row, today)?.let { fillIn ->
             views.setOnClickFillInIntent(R.id.widget_row_action, fillIn)
@@ -172,19 +217,33 @@ private fun habitCollectionRow(
             )
         }
     }
+    applyResponsiveCollectionRow(context, views, row.isChecklistItem)
     return views
 }
 
-private fun bindHabitAction(views: RemoteViews, row: HabitWidgetRow) {
-    val icon = when (row.action) {
+private fun bindHabitAction(views: RemoteViews, row: HabitWidgetRow, iconOnly: Boolean) {
+    val icon = when {
+        iconOnly -> when (row.action) {
+            HabitWidgetAction.Increment -> R.drawable.widget_ic_add
+            HabitWidgetAction.StartTimer -> R.drawable.widget_ic_play
+            HabitWidgetAction.StopTimer -> R.drawable.widget_ic_stop
+            HabitWidgetAction.Open -> R.drawable.widget_ic_chevron_right
+            HabitWidgetAction.ReadOnly -> R.drawable.widget_ic_sync
+            HabitWidgetAction.ToggleHabit,
+            HabitWidgetAction.ToggleChecklistItem,
+            -> if (row.completed) R.drawable.widget_ic_checkbox_checked
+            else R.drawable.widget_ic_checkbox_unchecked
+        }
+        else -> when (row.action) {
         HabitWidgetAction.ToggleHabit,
         HabitWidgetAction.ToggleChecklistItem,
         -> if (row.completed) R.drawable.widget_ic_checkbox_checked
         else R.drawable.widget_ic_checkbox_unchecked
         HabitWidgetAction.ReadOnly -> R.drawable.widget_ic_sync
         else -> null
+        }
     }
-    val label = when (row.action) {
+    val label = if (iconOnly) null else when (row.action) {
         HabitWidgetAction.Increment -> "+${formatWidgetNumber(row.habit.quickIncrement)}"
         HabitWidgetAction.StartTimer -> "Start"
         HabitWidgetAction.StopTimer -> "Stop"

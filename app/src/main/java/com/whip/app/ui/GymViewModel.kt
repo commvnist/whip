@@ -513,9 +513,16 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    fun updateWorkout(id: Long, name: String, notes: String, keepAwake: Boolean) = runOperation(
+    fun updateWorkout(
+        id: Long,
+        name: String,
+        notes: String,
+        keepAwake: Boolean,
+        onFinished: (Boolean) -> Unit = {},
+    ) = runOperation(
         "Saving workout…",
         "Workout saved",
+        onFinished,
     ) { repository.updateWorkout(id, name, notes, keepAwake) }
 
     fun finishWorkout(id: Long, onFinished: (Boolean) -> Unit = {}) = runOperation(
@@ -616,7 +623,8 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         name: String,
         type: WorkoutGroupType,
         workoutExerciseIds: List<Long>,
-    ) = runOperation("Creating group…", "Exercise group created") {
+        onFinished: (Boolean) -> Unit = {},
+    ) = runOperation("Creating group…", "Exercise group created", onFinished) {
         repository.createGroup(sessionId, name, type, workoutExerciseIds)
     }
 

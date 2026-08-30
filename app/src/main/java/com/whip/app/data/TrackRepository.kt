@@ -29,6 +29,35 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+
+internal const val TRACK_CSV_MAX_EXPORT_BYTES = 25 * 1024 * 1024
+
+internal suspend fun requireTrackCsvExportWithinLimit(
+    csv: String,
+    maxBytes: Int = TRACK_CSV_MAX_EXPORT_BYTES,
+) {
+    var bytes = 0
+    var index = 0
+    while (index < csv.length) {
+        if (index % 4_096 == 0) currentCoroutineContext().ensureActive()
+        val char = csv[index]
+        bytes += when {
+            char.code <= 0x7f -> 1
+            char.code <= 0x7ff -> 2
+            char.isHighSurrogate() && index + 1 < csv.length && csv[index + 1].isLowSurrogate() -> {
+                index++
+                4
+            }
+            else -> 3
+        }
+        require(bytes <= maxBytes) {
+            "This Track export is larger than 25 MB. Remove unneeded long-text values or older Entries, then try again."
+        }
+        index++
+    }
+}
 
 interface TrackRepository {
     val tracks: Flow<List<Track>>
@@ -423,33 +452,7 @@ class RoomTrackRepository(
 
     override suspend fun exportCsv(trackId: Long): String {
         val projection = projection(trackId) ?: error("Track no longer exists")
-        val columns = listOf("Entry UUID", "Entry Date") + projection.fields.flatMap { field ->
-            if (field.type == TrackFieldType.Number) {
-                listOf("${field.name} (Entered)", "${field.name} (Unit)", "${field.name} (Canonical)")
-            } else {
-                listOf(field.name)
-            }
-        }
-        return buildString {
-            appendLine(columns.joinToString(",", transform = ::csvCell))
-            projection.entries.forEach { item ->
-                val cells = buildList {
-                    add(item.entry.uuid)
-                    add(item.entry.entryDate.toString())
-                    projection.fields.forEach { field ->
-                        val value = item.value(field.id)
-                        if (field.type == TrackFieldType.Number) {
-                            add(value?.enteredNumber?.toString().orEmpty())
-                            add(value?.enteredUnitId.orEmpty())
-                            add(value?.canonicalNumber?.toString().orEmpty())
-                        } else {
-                            add(formatCsvValue(value, field, projection.optionsFor(field.id)))
-                        }
-                    }
-                }
-                appendLine(cells.joinToString(",", transform = ::csvCell))
-            }
-        }
+        return buildTrackCsv(projection)
     }
 
     override suspend fun rebuildSearchIndex(trackId: Long?) = database.withTransaction {
@@ -945,7 +948,92 @@ private fun TrackFieldValue.toEntity(entryId: Long, id: Long, updatedAtMillis: L
     updatedAtMillis = updatedAtMillis,
 )
 
-private fun csvCell(value: String): String = "\"${value.replace("\"", "\"\"")}\""
+internal suspend fun buildTrackCsv(
+    projection: TrackProjection,
+    maxBytes: Int = TRACK_CSV_MAX_EXPORT_BYTES,
+    cancellationCheckpoint: suspend () -> Unit = { currentCoroutineContext().ensureActive() },
+): String {
+    require(maxBytes >= 0)
+    val result = StringBuilder(minOf(maxBytes, 64 * 1024))
+    var bytes = 0
+
+    fun appendChecked(value: String, startIndex: Int, endIndex: Int, byteCount: Int) {
+        require(bytes + byteCount <= maxBytes) {
+            "This Track export is larger than 25 MB. Remove unneeded long-text values or older Entries, then try again."
+        }
+        result.append(value, startIndex, endIndex)
+        bytes += byteCount
+    }
+
+    fun appendAscii(char: Char) {
+        require(bytes < maxBytes) {
+            "This Track export is larger than 25 MB. Remove unneeded long-text values or older Entries, then try again."
+        }
+        result.append(char)
+        bytes++
+    }
+
+    suspend fun appendCsvCell(value: String) {
+        cancellationCheckpoint()
+        appendAscii('"')
+        var index = 0
+        while (index < value.length) {
+            if (index % 4_096 == 0) cancellationCheckpoint()
+            val char = value[index]
+            if (char == '"') {
+                appendAscii('"')
+                appendAscii('"')
+            } else {
+                val (characterCount, byteCount) = when {
+                    char.code <= 0x7f -> 1 to 1
+                    char.code <= 0x7ff -> 1 to 2
+                    char.isHighSurrogate() && index + 1 < value.length && value[index + 1].isLowSurrogate() -> 2 to 4
+                    else -> 1 to 3
+                }
+                appendChecked(value, index, index + characterCount, byteCount)
+                index += characterCount - 1
+            }
+            index++
+        }
+        appendAscii('"')
+    }
+
+    suspend fun appendRow(cells: List<String>) {
+        cancellationCheckpoint()
+        cells.forEachIndexed { index, value ->
+            if (index > 0) appendAscii(',')
+            appendCsvCell(value)
+        }
+        appendAscii('\n')
+    }
+
+    val columns = listOf("Entry UUID", "Entry Date") + projection.fields.flatMap { field ->
+        if (field.type == TrackFieldType.Number) {
+            listOf("${field.name} (Entered)", "${field.name} (Unit)", "${field.name} (Canonical)")
+        } else {
+            listOf(field.name)
+        }
+    }
+    appendRow(columns)
+    projection.entries.forEach { item ->
+        val cells = buildList {
+            add(item.entry.uuid)
+            add(item.entry.entryDate.toString())
+            projection.fields.forEach { field ->
+                val value = item.value(field.id)
+                if (field.type == TrackFieldType.Number) {
+                    add(value?.enteredNumber?.toString().orEmpty())
+                    add(value?.enteredUnitId.orEmpty())
+                    add(value?.canonicalNumber?.toString().orEmpty())
+                } else {
+                    add(formatCsvValue(value, field, projection.optionsFor(field.id)))
+                }
+            }
+        }
+        appendRow(cells)
+    }
+    return result.toString()
+}
 
 private fun formatCsvValue(
     value: TrackFieldValue?,

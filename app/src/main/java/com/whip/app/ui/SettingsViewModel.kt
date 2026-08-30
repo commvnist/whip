@@ -501,9 +501,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         app.portableBackupScheduler.sync(app.portableBackupManager.state.value)
     }
 
-    fun deleteAllData(onSuccess: () -> Unit = {}) = runIo(
+    fun deleteAllData(
+        onSuccess: () -> Unit = {},
+        onFailure: (Throwable) -> Unit = {},
+    ) = runIo(
         success = "Whip reset; local data deleted",
         onSuccess = onSuccess,
+        onFailure = onFailure,
     ) {
         app.portableBackupManager.clearFolder()
         backups.deleteAllData()
@@ -599,6 +603,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private fun runIo(
         success: String,
         onSuccess: () -> Unit = {},
+        onFailure: (Throwable) -> Unit = {},
         showSuccess: Boolean = true,
         block: suspend () -> Unit,
     ) {
@@ -610,6 +615,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 onSuccess()
             } catch (error: Throwable) {
                 runtime.value = runtime.value.copy(busy = false, message = error.message ?: "Operation failed")
+                onFailure(error)
             }
         }
     }

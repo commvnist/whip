@@ -54,6 +54,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -73,13 +74,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -92,6 +95,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.whip.app.R
 import com.whip.app.core.OperationStatus
 import com.whip.app.domain.Area
 import com.whip.app.domain.BuiltInUnits
@@ -138,8 +142,6 @@ import com.whip.app.domain.aggregate
 import com.whip.app.domain.editableNumericValue
 import com.whip.app.domain.matchingEntries
 import com.whip.app.domain.toWhipDoubleOrNull
-import com.whip.app.domain.previewTrackCsvImport
-import com.whip.app.domain.trackCsvHeaders
 import com.whip.app.domain.formatTrackScaleValue
 import com.whip.app.domain.normalizeTrackScaleValue
 import com.whip.app.domain.snapTrackScaleValue
@@ -154,8 +156,88 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.io.Serializable
 import java.util.Locale
+import java.util.Base64
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+
+private fun encodeSavedText(value: String?): String = value?.let {
+    "v" + Base64.getUrlEncoder().withoutPadding().encodeToString(it.toByteArray(Charsets.UTF_8))
+} ?: "n"
+
+private fun decodeSavedText(value: String): String? = when (value) {
+    "n" -> null
+    else -> String(Base64.getUrlDecoder().decode(value.removePrefix("v")), Charsets.UTF_8)
+}
+
+internal fun encodeTrackCondition(condition: TrackCondition): String = listOf(
+    encodeSavedText(condition.fieldUuid),
+    condition.operator.name,
+    encodeSavedText(condition.textValue),
+    condition.numberValue?.toString().orEmpty(),
+    condition.secondNumberValue?.toString().orEmpty(),
+    condition.choiceOptionUuids.sorted().joinToString(".") { encodeSavedText(it) },
+    condition.dateValue?.toString().orEmpty(),
+    condition.secondDateValue?.toString().orEmpty(),
+).joinToString("|")
+
+internal fun decodeTrackCondition(saved: String): TrackCondition {
+    val parts = saved.split('|')
+    require(parts.size == 8) { "Invalid saved Track condition" }
+    return TrackCondition(
+        fieldUuid = requireNotNull(decodeSavedText(parts[0])),
+        operator = TrackConditionOperator.valueOf(parts[1]),
+        textValue = decodeSavedText(parts[2]),
+        numberValue = parts[3].toDoubleOrNull(),
+        secondNumberValue = parts[4].toDoubleOrNull(),
+        choiceOptionUuids = parts[5].takeIf(String::isNotEmpty)?.split('.')?.mapNotNull(::decodeSavedText)?.toSet().orEmpty(),
+        dateValue = parts[6].takeIf(String::isNotEmpty)?.let(LocalDate::parse),
+        secondDateValue = parts[7].takeIf(String::isNotEmpty)?.let(LocalDate::parse),
+    )
+}
+
+private val trackConditionListSaver = listSaver<List<TrackCondition>, String>(
+    save = { it.map(::encodeTrackCondition) },
+    restore = { it.map(::decodeTrackCondition) },
+)
+
+private val triggerSourceMappingSaver = listSaver<Map<Long, TriggerSourceProperty>, String>(
+    save = { values -> values.entries.sortedBy { it.key }.map { "${it.key}|${it.value.name}" } },
+    restore = { values -> values.associate { saved -> saved.substringBefore('|').toLong() to TriggerSourceProperty.valueOf(saved.substringAfter('|')) } },
+)
+
+internal fun encodeTrackValueDraft(value: TrackValueDraft): String = listOf(
+    encodeSavedText(value.textValue),
+    value.enteredNumber?.toString().orEmpty(),
+    encodeSavedText(value.enteredUnitId),
+    value.dateValue?.toString().orEmpty(),
+    value.booleanValue?.toString().orEmpty(),
+    encodeSavedText(value.choiceOptionUuid),
+    value.scaleValue?.toString().orEmpty(),
+).joinToString("|")
+
+internal fun decodeTrackValueDraft(saved: String): TrackValueDraft {
+    val parts = saved.split('|')
+    require(parts.size == 7) { "Invalid saved Track value" }
+    return TrackValueDraft(
+        textValue = decodeSavedText(parts[0]),
+        enteredNumber = parts[1].toDoubleOrNull(),
+        enteredUnitId = decodeSavedText(parts[2]),
+        dateValue = parts[3].takeIf(String::isNotEmpty)?.let(LocalDate::parse),
+        booleanValue = parts[4].toBooleanStrictOrNull(),
+        choiceOptionUuid = decodeSavedText(parts[5]),
+        scaleValue = parts[6].toDoubleOrNull(),
+    )
+}
+
+private val trackConstantMappingSaver = listSaver<Map<Long, TrackValueDraft>, String>(
+    save = { values -> values.entries.sortedBy { it.key }.map { "${it.key}|${encodeTrackValueDraft(it.value)}" } },
+    restore = { values -> values.associate { saved -> saved.substringBefore('|').toLong() to decodeTrackValueDraft(saved.substringAfter('|')) } },
+)
+
+private val stringSetSaver = listSaver<Set<String>, String>(
+    save = { it.sorted() },
+    restore = { it.toSet() },
+)
 
 internal enum class TrackDetailDestination(val label: String) {
     Entries("Entries"),
@@ -276,38 +358,37 @@ internal fun TrackAreaContent(
     var setGoalTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
     var connectGoalTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
     var importTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var importCsvText by remember { mutableStateOf<String?>(null) }
     var exportTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var fileError by rememberSaveable { mutableStateOf<String?>(null) }
+    val csvImportState by viewModel.csvImportState.collectAsStateWithLifecycle()
+    val csvExportState by viewModel.csvExportState.collectAsStateWithLifecycle()
+    val defaultCsvFileName = stringResource(R.string.track_csv_default_export_name)
     val selected = selectedTrackId?.let(state::track)
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) {
+            viewModel.cancelCsvImport()
             importTrackId = null
         } else {
-            runCatching {
-                context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-                    ?: error("Could not read the selected CSV file")
-            }.onSuccess { importCsvText = it }.onFailure {
-                importTrackId = null
-                fileError = it.message ?: "Could not read the selected CSV file"
-            }
+            importTrackId?.let { trackId -> viewModel.prepareCsvImport(trackId, uri, state.currentDate, customUnits) }
         }
     }
     val csvExportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
         val trackId = exportTrackId
         if (uri == null || trackId == null) {
+            viewModel.cancelCsvExport()
             exportTrackId = null
         } else {
-            coroutineScope.launch {
-                runCatching {
-                    val csv = viewModel.exportCsv(trackId)
-                    context.contentResolver.openOutputStream(uri, "w")?.bufferedWriter()?.use { it.write(csv) }
-                        ?: error("Could not open the selected file")
-                }.onFailure { fileError = it.message ?: "Could not export this Track" }
-                exportTrackId = null
-            }
+            viewModel.exportCsvToUri(trackId, uri)
+        }
+    }
+    LaunchedEffect(csvExportState.phase) {
+        if (csvExportState.phase == TrackCsvExportPhase.Complete) {
+            exportTrackId = null
+            viewModel.clearCompletedCsvExport()
+        }
+    }
+    LaunchedEffect(csvImportState.trackId, csvImportState.phase) {
+        if (csvImportState.phase != TrackCsvImportPhase.Idle) {
+            csvImportState.trackId?.let { importTrackId = it }
         }
     }
 
@@ -405,6 +486,7 @@ internal fun TrackAreaContent(
             masterPane = masterPane,
             onReorderModeChange = onReorderModeChange,
             reorderDismissRequest = reorderDismissRequest,
+            onRetryLoading = viewModel::retryLoading,
         )
     }
     @Composable fun trackDetail(projection: TrackProjection) {
@@ -437,12 +519,14 @@ internal fun TrackAreaContent(
             saving = operationStatus is OperationStatus.Running,
             dialogModifier = dialogModifier,
             onImport = {
+                viewModel.cancelCsvImport()
                 importTrackId = projection.track.id
-                csvLauncher.launch("text/*")
+                csvLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain"))
             },
             onExport = {
+                viewModel.cancelCsvExport()
                 exportTrackId = projection.track.id
-                val safeName = projection.track.name.replace(Regex("[^A-Za-z0-9._ -]"), "_").trim().ifBlank { "Whip Track" }
+                val safeName = projection.track.name.replace(Regex("[^A-Za-z0-9._ -]"), "_").trim().ifBlank { defaultCsvFileName }
                 csvExportLauncher.launch("$safeName.csv")
             },
         )
@@ -493,6 +577,7 @@ internal fun TrackAreaContent(
                     },
                     onDeleteEntry = viewModel::deleteEntry,
                     dialogModifier = dialogModifier,
+                    onRetryLoading = viewModel::retryLoading,
                 )
                 TrackWorkspaceDestination.Insights -> TrackWorkspaceInsightsPage(
                     state = state,
@@ -502,6 +587,7 @@ internal fun TrackAreaContent(
                         selectedTrackId = id
                         destination = TrackDetailDestination.Insights
                     },
+                    onRetryLoading = viewModel::retryLoading,
                 )
             }
         }
@@ -564,28 +650,77 @@ internal fun TrackAreaContent(
         }
     }
     val importProjection = importTrackId?.let(state::track)
-    val csvText = importCsvText
-    if (importProjection != null && csvText != null) TrackCsvImportDialog(
+    if (
+        importProjection != null &&
+        csvImportState.trackId == importProjection.track.id &&
+        csvImportState.phase != TrackCsvImportPhase.Idle
+    ) TrackCsvImportDialog(
         projection = importProjection,
-        csv = csvText,
-        customUnits = customUnits,
+        state = csvImportState,
         saving = operationStatus is OperationStatus.Running,
-        today = state.currentDate,
-        onDismiss = { importTrackId = null; importCsvText = null },
+        onMappingChange = viewModel::updateCsvImportMapping,
+        onRetry = viewModel::retryCsvImport,
+        onChooseAnother = {
+            viewModel.cancelCsvImport()
+            csvLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain"))
+        },
+        onDismiss = {
+            viewModel.cancelCsvImport()
+            importTrackId = null
+        },
         onImport = { preview ->
             viewModel.importEntries(importProjection.track.id, preview.validDrafts) {
+                viewModel.cancelCsvImport()
                 importTrackId = null
-                importCsvText = null
             }
         },
     )
-    fileError?.let { message ->
+    if (csvExportState.phase in setOf(TrackCsvExportPhase.Writing, TrackCsvExportPhase.Error)) {
         PaneAwareAlertDialog(
             modifier = dialogModifier,
-            onDismissRequest = { fileError = null },
-            title = { Text("CSV File Error") },
-            text = { Text(message) },
-            confirmButton = { WhipTextButton(onClick = { fileError = null }) { Text("OK") } },
+            onDismissRequest = {
+                viewModel.cancelCsvExport()
+                exportTrackId = null
+            },
+            title = {
+                Text(
+                    if (csvExportState.phase == TrackCsvExportPhase.Writing) stringResource(R.string.track_csv_exporting_title)
+                    else stringResource(R.string.track_csv_export_failed_title),
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (csvExportState.phase == TrackCsvExportPhase.Writing) {
+                        LinearProgressIndicator(Modifier.fillMaxWidth())
+                        Text(stringResource(R.string.track_csv_export_progress))
+                    } else {
+                        Text(
+                            csvExportState.errorMessage ?: stringResource(R.string.track_csv_export_failed_fallback),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                        WhipOutlinedButton(onClick = {
+                            val retryTrackId = csvExportState.trackId ?: return@WhipOutlinedButton
+                            val safeName = state.track(retryTrackId)?.track?.name
+                                ?.replace(Regex("[^A-Za-z0-9._ -]"), "_")?.trim()?.ifBlank { defaultCsvFileName }
+                                ?: defaultCsvFileName
+                            viewModel.cancelCsvExport()
+                            exportTrackId = retryTrackId
+                            csvExportLauncher.launch("$safeName.csv")
+                        }) { Text(stringResource(R.string.track_csv_choose_another_destination)) }
+                    }
+                }
+            },
+            confirmButton = {
+                if (csvExportState.phase == TrackCsvExportPhase.Error) {
+                    WhipTextButton(onClick = viewModel::retryCsvExport) { Text(stringResource(R.string.action_try_again)) }
+                }
+            },
+            dismissButton = {
+                WhipTextButton(onClick = {
+                    viewModel.cancelCsvExport()
+                    exportTrackId = null
+                }) { Text(stringResource(R.string.action_cancel)) }
+            },
         )
     }
 }
@@ -618,6 +753,7 @@ private fun TrackActivityPage(
     onEditEntry: (Long, Long) -> Unit,
     onDeleteEntry: (Long) -> Unit,
     dialogModifier: Modifier,
+    onRetryLoading: () -> Unit,
 ) {
     var searchVisible by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
@@ -739,7 +875,9 @@ private fun TrackActivityPage(
                 }
             }
             when {
-                state.loading -> item { DomainLoadContent("Track Activity", PaddingValues()) }
+                state.loading || state.errorMessage != null -> item {
+                    DomainLoadContent("Track Activity", PaddingValues(), state.errorMessage, onRetryLoading)
+                }
                 items.isEmpty() -> item {
                     WhipEmptyState(
                         title = if (activeFilterCount > 0 || query.isNotBlank()) "No Matching Activity" else "No Track Activity Yet",
@@ -849,6 +987,7 @@ private fun TrackWorkspaceInsightsPage(
     state: TrackUiState,
     customUnits: List<UnitDefinition>,
     onOpenTrack: (Long) -> Unit,
+    onRetryLoading: () -> Unit,
 ) {
     val activeTracks = state.active
     val activeTrackIds = activeTracks.mapTo(mutableSetOf()) { it.track.id }
@@ -889,7 +1028,9 @@ private fun TrackWorkspaceInsightsPage(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item { WhipPageHeader("Insights", "Patterns and automation health across visible Tracks.") }
-            if (state.loading) item { DomainLoadContent("Track Insights", PaddingValues()) }
+            if (state.loading || state.errorMessage != null) item {
+                DomainLoadContent("Track Insights", PaddingValues(), state.errorMessage, onRetryLoading)
+            }
             else {
                 item {
                     InsightCard(
@@ -979,7 +1120,7 @@ private fun TrackGoalAutomationDialog(
     var aggregation by rememberSaveable(projection.track.id) { mutableStateOf(TrackAggregation.CountEntries) }
     var sourceFieldId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
     var conditionMode by rememberSaveable(projection.track.id) { mutableStateOf(TrackConditionMode.MatchAll) }
-    var conditions by remember(projection.track.id) { mutableStateOf<List<TrackCondition>>(emptyList()) }
+    var conditions by rememberSaveable(projection.track.id, stateSaver = trackConditionListSaver) { mutableStateOf<List<TrackCondition>>(emptyList()) }
     var addingCondition by rememberSaveable(projection.track.id) { mutableStateOf(false) }
     var goalName by rememberSaveable(projection.track.id) { mutableStateOf("") }
     var goalType by rememberSaveable(projection.track.id) { mutableStateOf(GoalType.ReachValue) }
@@ -1192,7 +1333,7 @@ private fun TrackExistingGoalAutomationDialog(
     var sourceFieldId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
     var fixedValue by rememberSaveable(projection.track.id) { mutableStateOf("1") }
     var conditionMode by rememberSaveable(projection.track.id) { mutableStateOf(TrackConditionMode.MatchAll) }
-    var conditions by remember(projection.track.id) { mutableStateOf<List<TrackCondition>>(emptyList()) }
+    var conditions by rememberSaveable(projection.track.id, stateSaver = trackConditionListSaver) { mutableStateOf<List<TrackCondition>>(emptyList()) }
     var addingCondition by rememberSaveable(projection.track.id) { mutableStateOf(false) }
     var history by rememberSaveable(projection.track.id) { mutableStateOf(TrackGoalHistory.NewEntriesOnly) }
     var historyDate by rememberSaveable(projection.track.id) { mutableStateOf(today) }
@@ -1421,6 +1562,7 @@ private fun AllTracksPage(
     masterPane: Boolean,
     onReorderModeChange: (Boolean) -> Unit = {},
     reorderDismissRequest: Int = 0,
+    onRetryLoading: () -> Unit = {},
 ) {
     val userCompact = LocalCompactItemLayout.current
     var moreOpen by rememberSaveable { mutableStateOf(false) }
@@ -1565,7 +1707,9 @@ private fun AllTracksPage(
                 )
             }
         }
-        if (state.loading) item { DomainLoadContent("Tracks", PaddingValues()) }
+        if (state.loading || state.errorMessage != null) item {
+            DomainLoadContent("Tracks", PaddingValues(), state.errorMessage, onRetryLoading)
+        }
         else if (shown.isEmpty()) item {
             WhipEmptyState(
                 title = when {
@@ -2018,7 +2162,7 @@ private fun TrackEntriesPage(
     var sortFieldId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
     var sortOpen by rememberSaveable(projection.track.id) { mutableStateOf(false) }
     var filterOpen by rememberSaveable(projection.track.id) { mutableStateOf(false) }
-    var conditions by remember(projection.track.id) { mutableStateOf<List<TrackCondition>>(emptyList()) }
+    var conditions by rememberSaveable(projection.track.id, stateSaver = trackConditionListSaver) { mutableStateOf<List<TrackCondition>>(emptyList()) }
     var conditionMode by rememberSaveable(projection.track.id) { mutableStateOf(TrackConditionMode.MatchAll) }
     var searchMatches by remember(projection.track.id) { mutableStateOf<Set<Long>?>(null) }
     var pagedEntries by remember(projection.track.id) { mutableStateOf<List<TrackEntryProjection>>(emptyList()) }
@@ -2300,6 +2444,7 @@ private fun TrackEntryDetailsDialog(
         emoji = projection.track.icon,
         context = "${projection.track.name} · ${entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
         status = "Recorded",
+        statusTone = WhipStatusTone.Success,
         sections = listOf(EntityInspectorSection("overview", "Overview")),
         selectedSectionId = "overview",
         onSelectSection = {},
@@ -2342,7 +2487,7 @@ private fun TrackInsightsPage(
     dialogModifier: Modifier = Modifier,
 ) {
     var filterOpen by rememberSaveable(projection.track.id) { mutableStateOf(false) }
-    var conditions by remember(projection.track.id) { mutableStateOf<List<TrackCondition>>(emptyList()) }
+    var conditions by rememberSaveable(projection.track.id, stateSaver = trackConditionListSaver) { mutableStateOf<List<TrackCondition>>(emptyList()) }
     var conditionMode by rememberSaveable(projection.track.id) { mutableStateOf(TrackConditionMode.MatchAll) }
     val scoped = projection.copy(entries = projection.matchingEntries(conditions, conditionMode))
     val dates = scoped.entries.map { it.entry.entryDate }
@@ -2705,7 +2850,7 @@ private fun TrackProgressAutomationEditorDialog(
     var multiplier by rememberSaveable(rule.id) { mutableStateOf(editableNumericValue(rule.multiplier)) }
     var offset by rememberSaveable(rule.id) { mutableStateOf(editableNumericValue(rule.offset)) }
     var conditionMode by rememberSaveable(rule.id) { mutableStateOf(rule.conditionMode) }
-    var conditions by remember(rule.id) { mutableStateOf(rule.conditions) }
+    var conditions by rememberSaveable(rule.id, stateSaver = trackConditionListSaver) { mutableStateOf(rule.conditions) }
     var addingCondition by rememberSaveable(rule.id) { mutableStateOf(false) }
     var includeHistory by rememberSaveable(rule.id) { mutableStateOf(rule.retroactiveFrom != null) }
     var historyDate by rememberSaveable(rule.id) { mutableStateOf(rule.retroactiveFrom ?: goal?.startDate ?: today) }
@@ -2902,12 +3047,12 @@ private fun TrackAutomationEditorDialog(
     var quietEnd by rememberSaveable(key) { mutableIntStateOf(initialRule?.quietEndMinutes ?: 7 * 60) }
     var notificationEnabled by rememberSaveable(key) { mutableStateOf(initialRule?.notificationEnabled ?: false) }
     var conditionMode by rememberSaveable(key) { mutableStateOf(initialRule?.conditionMode ?: TrackConditionMode.MatchAll) }
-    var conditions by remember(key) { mutableStateOf(initialRule?.conditions.orEmpty()) }
+    var conditions by rememberSaveable(key, stateSaver = trackConditionListSaver) { mutableStateOf(initialRule?.conditions.orEmpty()) }
     var addingCondition by rememberSaveable(key) { mutableStateOf(false) }
-    var mappings by remember(key) {
+    var mappings by rememberSaveable(key, stateSaver = triggerSourceMappingSaver) {
         mutableStateOf(initialRule?.mappings.orEmpty().associate { it.targetFieldId to it.sourceProperty })
     }
-    var constants by remember(key) {
+    var constants by rememberSaveable(key, stateSaver = trackConstantMappingSaver) {
         mutableStateOf(initialRule?.mappings.orEmpty().mapNotNull { mapping -> mapping.constantValue?.let { mapping.targetFieldId to it } }.toMap())
     }
     val selectedHabit = state.sourceHabits.firstOrNull { it.id == targetHabitId }
@@ -3173,82 +3318,144 @@ private fun TriggerRule.toDraft(enabled: Boolean = this.enabled) = TriggerRuleDr
 @Composable
 private fun TrackCsvImportDialog(
     projection: TrackProjection,
-    csv: String,
-    customUnits: List<UnitDefinition>,
+    state: TrackCsvImportUiState,
     saving: Boolean,
-    today: LocalDate,
+    onMappingChange: (TrackCsvMapping) -> Unit,
+    onRetry: () -> Unit,
+    onChooseAnother: () -> Unit,
     onDismiss: () -> Unit,
     onImport: (TrackCsvImportPreview) -> Unit,
 ) {
-    val headersResult = remember(csv) { runCatching { trackCsvHeaders(csv) } }
-    val headers = headersResult.getOrDefault(emptyList())
-    val defaultMapping = remember(headers, projection.track.id) {
-        TrackCsvMapping(
-            entryDateColumn = headers.firstOrNull { it.equals("Entry Date", true) },
-            fieldColumns = projection.fields.mapNotNull { field ->
-                headers.firstOrNull {
-                    it.equals(field.name, true) || field.type == TrackFieldType.Number && it.equals("${field.name} (Entered)", true)
-                }?.let { field.uuid to it }
-            }.toMap(),
-            numberUnitColumns = projection.fields.filter { it.type == TrackFieldType.Number }.mapNotNull { field ->
-                headers.firstOrNull { it.equals("${field.name} (Unit)", true) }?.let { field.uuid to it }
-            }.toMap(),
-        )
-    }
-    var mapping by remember(headers, projection.track.id) { mutableStateOf(defaultMapping) }
-    val previewResult = remember(csv, projection, mapping) {
-        runCatching { previewTrackCsvImport(projection, csv, mapping, today, BuiltInUnits.all + customUnits) }
-    }
-    val preview = previewResult.getOrNull()
-    val error = headersResult.exceptionOrNull()?.message ?: previewResult.exceptionOrNull()?.message
+    val headers = state.headers
+    val mapping = state.mapping
+    val preview = state.preview
+    val error = state.errorMessage
     val canImport = preview != null && preview.validRows > 0 && preview.invalidRows == 0
     PaneAwareAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Import ${projection.track.name} Entries") },
+        onDismissRequest = { if (canDismissTrackCsvImport(saving)) onDismiss() },
+        title = { Text(stringResource(R.string.track_csv_import_title, projection.track.name)) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                item { Text("Map CSV columns to the current Fields. Import never changes the Track structure or creates Choice options silently.") }
+                item { Text(stringResource(R.string.track_csv_mapping_description)) }
+                if (state.phase in setOf(TrackCsvImportPhase.Reading, TrackCsvImportPhase.Previewing)) item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LinearProgressIndicator(Modifier.fillMaxWidth())
+                        Text(
+                            if (state.phase == TrackCsvImportPhase.Reading) stringResource(R.string.track_csv_import_reading)
+                            else stringResource(R.string.track_csv_import_previewing),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 if (headers.isNotEmpty()) {
-                    item { SelectionField("Entry Date", listOf<String?>(null) + headers, mapping.entryDateColumn, { it ?: "Use Today's Date" }, { mapping = mapping.copy(entryDateColumn = it) }) }
+                    item {
+                        val useToday = stringResource(R.string.track_csv_use_today_date)
+                        SelectionField(
+                            stringResource(R.string.track_csv_entry_date),
+                            listOf<String?>(null) + headers,
+                            mapping.entryDateColumn,
+                            { it ?: useToday },
+                            { onMappingChange(mapping.copy(entryDateColumn = it)) },
+                        )
+                    }
                     items(projection.fields, key = { "csv-field-${it.id}" }) { field ->
                         val selected = mapping.fieldColumns[field.uuid]
+                        val doNotImport = stringResource(R.string.track_csv_do_not_import)
                         SelectionField(
-                            field.name + if (field.primary) " · Primary" else "",
+                            if (field.primary) stringResource(R.string.track_csv_primary_field, field.name) else field.name,
                             listOf<String?>(null) + headers,
                             selected,
-                            { it ?: "Do Not Import" },
-                            { column -> mapping = mapping.copy(fieldColumns = if (column == null) mapping.fieldColumns - field.uuid else mapping.fieldColumns + (field.uuid to column)) },
+                            { it ?: doNotImport },
+                            { column -> onMappingChange(mapping.copy(fieldColumns = if (column == null) mapping.fieldColumns - field.uuid else mapping.fieldColumns + (field.uuid to column))) },
                         )
                         if (field.type == TrackFieldType.Number) {
                             val unitColumn = mapping.numberUnitColumns[field.uuid]
+                            val useCurrentUnit = stringResource(R.string.track_csv_use_current_unit)
                             SelectionField(
-                                "${field.name} Unit",
+                                stringResource(R.string.track_csv_unit_field, field.name),
                                 listOf<String?>(null) + headers,
                                 unitColumn,
-                                { it ?: "Use ${field.unitId}" },
-                                { column -> mapping = mapping.copy(numberUnitColumns = if (column == null) mapping.numberUnitColumns - field.uuid else mapping.numberUnitColumns + (field.uuid to column)) },
+                                { it ?: useCurrentUnit },
+                                { column -> onMappingChange(mapping.copy(numberUnitColumns = if (column == null) mapping.numberUnitColumns - field.uuid else mapping.numberUnitColumns + (field.uuid to column))) },
                             )
                         }
                     }
                 }
-                error?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
+                error?.let { message -> item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(message, color = MaterialTheme.colorScheme.error)
+                        if (state.phase == TrackCsvImportPhase.Error) {
+                            WhipOutlinedButton(enabled = !saving, onClick = onChooseAnother, modifier = Modifier.fillMaxWidth()) {
+                                Text(stringResource(R.string.track_csv_choose_another_file))
+                            }
+                        }
+                    }
+                } }
                 preview?.let { result ->
                     item {
                         Card(Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("Validation Preview", fontWeight = FontWeight.Bold)
-                                Text("${result.totalRows} rows · ${result.validRows} valid · ${result.invalidRows} invalid")
-                                result.issues.take(8).forEach { issue -> Text("Row ${issue.rowNumber}: ${issue.message}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
-                                if (result.issues.size > 8) Text("${result.issues.size - 8} more issues", style = MaterialTheme.typography.bodySmall)
+                                Text(stringResource(R.string.track_csv_validation_preview), fontWeight = FontWeight.Bold)
+                                Text(
+                                    stringResource(
+                                        R.string.track_csv_validation_summary,
+                                        result.totalRows,
+                                        result.validRows,
+                                        result.invalidRows,
+                                    ),
+                                )
+                                result.issues.take(TRACK_CSV_MAX_DISPLAYED_ISSUES).forEach { issue ->
+                                    Text(
+                                        stringResource(R.string.track_csv_issue_row, issue.rowNumber, issue.message),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                                if (result.issues.size > TRACK_CSV_MAX_DISPLAYED_ISSUES) {
+                                    val remainingIssues = result.issues.size - TRACK_CSV_MAX_DISPLAYED_ISSUES
+                                    Text(
+                                        pluralStringResource(
+                                            R.plurals.track_csv_more_issues,
+                                            remainingIssues,
+                                            remainingIssues,
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
                             }
                         }
                     }
-                    if (result.invalidRows > 0) item { Text("Fix every invalid row before importing. No Entries are written until the entire preview is valid.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+                    if (result.invalidRows > 0) item {
+                        Text(
+                            stringResource(R.string.track_csv_fix_invalid_rows),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
             }
         },
-        confirmButton = { WhipTextButton(enabled = canImport && !saving, onClick = { onImport(requireNotNull(preview)) }) { Text(if (saving) "Importing…" else "Import ${preview?.validRows ?: 0} Entries") } },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = {
+            if (state.phase == TrackCsvImportPhase.Error) {
+                WhipTextButton(onClick = onRetry) { Text(stringResource(R.string.action_try_again)) }
+            } else {
+                WhipTextButton(enabled = canImport && !saving && state.phase == TrackCsvImportPhase.Ready, onClick = { onImport(requireNotNull(preview)) }) {
+                    val validRows = preview?.validRows ?: 0
+                    Text(
+                        if (saving) stringResource(R.string.track_csv_importing)
+                        else pluralStringResource(R.plurals.track_csv_import_entries, validRows, validRows),
+                    )
+                }
+            }
+        },
+        dismissButton = {
+            WhipTextButton(enabled = canDismissTrackCsvImport(saving), onClick = onDismiss) {
+                Text(
+                    if (saving) stringResource(R.string.track_csv_importing)
+                    else stringResource(R.string.action_cancel),
+                )
+            }
+        },
     )
 }
 
@@ -4021,7 +4228,7 @@ internal fun TrackFilterDialog(
     onApply: (TrackConditionMode, List<TrackCondition>) -> Unit,
 ) {
     var mode by rememberSaveable { mutableStateOf(initialMode) }
-    var conditions by remember { mutableStateOf(initial) }
+    var conditions by rememberSaveable(stateSaver = trackConditionListSaver) { mutableStateOf(initial) }
     var adding by rememberSaveable { mutableStateOf(false) }
     PaneAwareAlertDialog(
         modifier = modifier,
@@ -4059,17 +4266,18 @@ internal fun TrackConditionEditor(
     val subjects = remember(projection.track.id, projection.fields) {
         listOf(TrackConditionSubject(null)) + projection.fields.map(::TrackConditionSubject)
     }
-    var subject by remember { mutableStateOf(subjects.first()) }
+    var subjectUuid by rememberSaveable { mutableStateOf(subjects.first().uuid) }
+    val subject = subjects.firstOrNull { it.uuid == subjectUuid } ?: subjects.first()
     val field = subject.trackField
     val fieldType = subject.type
     val numberUnit = field?.takeIf { it.type == TrackFieldType.Number }?.let { numberField ->
         units.firstOrNull { it.id == numberField.unitId }
     }
-    var operator by remember(subject.uuid) { mutableStateOf(fieldType.availableOperators().first()) }
+    var operator by rememberSaveable(subject.uuid) { mutableStateOf(fieldType.availableOperators().first()) }
     var text by rememberSaveable(subject.uuid) { mutableStateOf("") }
     var firstNumber by rememberSaveable(subject.uuid) { mutableStateOf("") }
     var secondNumber by rememberSaveable(subject.uuid) { mutableStateOf("") }
-    var selectedChoices by remember(subject.uuid) { mutableStateOf(emptySet<String>()) }
+    var selectedChoices by rememberSaveable(subject.uuid, stateSaver = stringSetSaver) { mutableStateOf(emptySet<String>()) }
     var firstDate by rememberSaveable(subject.uuid) { mutableStateOf(today) }
     var secondDate by rememberSaveable(subject.uuid) { mutableStateOf(today) }
     var datePicker by rememberSaveable { mutableIntStateOf(0) }
@@ -4086,7 +4294,7 @@ internal fun TrackConditionEditor(
         onDismissRequest = onDismiss,
         title = { Text("Add Condition") },
         text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SelectionField("Field", subjects, subject, TrackConditionSubject::name, { subject = it; operator = it.type.availableOperators().first() })
+            SelectionField("Field", subjects, subject, TrackConditionSubject::name, { subjectUuid = it.uuid; operator = it.type.availableOperators().first() })
             SelectionField("Operator", fieldType.availableOperators(), operator, TrackConditionOperator::uiLabel, { operator = it })
             if (!needsNoValue) when (fieldType) {
                 TrackFieldType.ShortText, TrackFieldType.LongText -> OutlinedTextField(text, { text = it }, label = { Text("Text") }, modifier = Modifier.fillMaxWidth())

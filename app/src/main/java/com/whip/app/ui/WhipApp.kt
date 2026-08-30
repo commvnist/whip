@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -75,6 +76,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -83,6 +85,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -116,6 +119,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.NavigateNext
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -136,7 +140,6 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.TableRows
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.ArrowDropDown
-import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.whip.app.R
@@ -223,6 +226,288 @@ internal fun AreaScope.requiresExplicitCreationArea(areas: List<Area>): Boolean 
     this == AreaScope.All && areas.count { !it.archived } > 1
 
 internal fun shouldShowHomeGettingStarted(hasAnyUserData: Boolean): Boolean = !hasAnyUserData
+
+internal sealed interface LaunchTargetResolution {
+    data object NotApplicable : LaunchTargetResolution
+    data object Pending : LaunchTargetResolution
+    data class LoadFailed(val destination: AppDestination) : LaunchTargetResolution
+    data class Available(val areaId: String?, val unavailableDetail: String? = null) : LaunchTargetResolution
+    data class Unavailable(val destination: AppDestination, val message: String) : LaunchTargetResolution
+}
+
+internal fun resolveLaunchTarget(
+    action: String?,
+    entityId: Long?,
+    occurrenceEpochDay: Long?,
+    automationOccurrenceId: Long?,
+    taskState: TaskUiState,
+    habitState: HabitUiState,
+    goalState: GoalUiState,
+    trackState: TrackUiState,
+): LaunchTargetResolution {
+    val destination = when (action) {
+        WhipLaunchActions.ACTION_OPEN_TASK -> AppDestination.Tasks
+        WhipLaunchActions.ACTION_OPEN_HABIT -> AppDestination.Habits
+        WhipLaunchActions.ACTION_OPEN_GOAL -> AppDestination.Goals
+        WhipLaunchActions.ACTION_OPEN_TRACK -> AppDestination.Tracks
+        else -> return LaunchTargetResolution.NotApplicable
+    }
+    val label = destination.label.removeSuffix("s")
+    val id = entityId ?: return LaunchTargetResolution.Unavailable(destination, "This $label is no longer available.")
+    return when (destination) {
+        AppDestination.Tasks -> when {
+            taskState.loading -> LaunchTargetResolution.Pending
+            taskState.errorMessage != null -> LaunchTargetResolution.LoadFailed(destination)
+            else -> {
+                val item = (taskState.inbox + taskState.today + taskState.upcoming + taskState.planning + taskState.completed + taskState.archived)
+                    .firstOrNull { scheduled ->
+                        scheduled.task.id == id && (
+                            occurrenceEpochDay == null || scheduled.originalDate?.toEpochDay() == occurrenceEpochDay
+                            )
+                    }
+                item?.let { LaunchTargetResolution.Available(it.task.areaId) }
+                    ?: taskState.taskEntities.firstOrNull { it.id == id }?.let { task ->
+                        LaunchTargetResolution.Available(
+                            task.areaId,
+                            "This Task occurrence is no longer available. Showing Tasks instead.",
+                        )
+                    }
+                    ?: LaunchTargetResolution.Unavailable(destination, "This Task is no longer available.")
+            }
+        }
+        AppDestination.Habits -> when {
+            habitState.loading -> LaunchTargetResolution.Pending
+            habitState.errorMessage != null -> LaunchTargetResolution.LoadFailed(destination)
+            else -> ((habitState.today + habitState.all).firstOrNull { it.habit.id == id }?.habit?.areaId
+                ?: habitState.archived.firstOrNull { it.id == id }?.areaId)
+                .let { areaId ->
+                    val exists = (habitState.today + habitState.all).any { it.habit.id == id } || habitState.archived.any { it.id == id }
+                    if (exists) LaunchTargetResolution.Available(areaId)
+                    else LaunchTargetResolution.Unavailable(destination, "This Habit is no longer available.")
+                }
+        }
+        AppDestination.Goals -> when {
+            goalState.loading -> LaunchTargetResolution.Pending
+            goalState.errorMessage != null -> LaunchTargetResolution.LoadFailed(destination)
+            else -> (goalState.active + goalState.completed + goalState.archived)
+                .firstOrNull { it.goal.id == id }
+                ?.let { LaunchTargetResolution.Available(it.goal.areaId) }
+                ?: LaunchTargetResolution.Unavailable(destination, "This Goal is no longer available.")
+        }
+        AppDestination.Tracks -> when {
+            trackState.loading -> LaunchTargetResolution.Pending
+            trackState.errorMessage != null -> LaunchTargetResolution.LoadFailed(destination)
+            else -> trackState.track(id)?.let { projection ->
+                val stalePrompt = automationOccurrenceId?.let { occurrenceId ->
+                    val occurrence = trackState.triggerOccurrences.firstOrNull { it.id == occurrenceId }
+                    val rule = occurrence?.let { item -> trackState.triggerRules.firstOrNull { it.id == item.triggerRuleId } }
+                    occurrence == null || occurrence.dismissedAt != null || occurrence.fulfilledEntryId != null ||
+                        rule?.targetType != TriggerTargetType.Track || rule.targetEntityId != id
+                } == true
+                LaunchTargetResolution.Available(
+                    projection.track.areaId,
+                    "This Track prompt is no longer available.".takeIf { stalePrompt },
+                )
+            } ?: LaunchTargetResolution.Unavailable(destination, "This Track is no longer available.")
+        }
+        AppDestination.Home, AppDestination.Gym, AppDestination.Settings -> LaunchTargetResolution.NotApplicable
+    }
+}
+
+internal fun homeEmptyStateEligible(
+    visibleSections: Collection<HomeSection>,
+    taskState: TaskUiState,
+    habitState: HabitUiState,
+    goalState: GoalUiState,
+    trackState: TrackUiState,
+    gymState: GymUiState,
+): Boolean = visibleSections.all { section ->
+    when (section) {
+        HomeSection.Tasks -> !taskState.loading && taskState.errorMessage == null
+        HomeSection.Habits -> !habitState.loading && habitState.errorMessage == null
+        HomeSection.Goals -> !goalState.loading && goalState.errorMessage == null
+        HomeSection.Tracks -> !trackState.loading && trackState.errorMessage == null
+        HomeSection.Gym -> !gymState.loading && gymState.errorMessage == null
+    }
+}
+
+internal fun homeHasAnyUserData(
+    taskState: TaskUiState,
+    habitState: HabitUiState,
+    goalState: GoalUiState,
+    trackState: TrackUiState,
+    gymState: GymUiState,
+): Boolean =
+    (taskState.inbox + taskState.today + taskState.upcoming + taskState.planning +
+        taskState.completed + taskState.archived).isNotEmpty() ||
+        habitState.all.isNotEmpty() || habitState.today.isNotEmpty() || habitState.archived.isNotEmpty() ||
+        habitState.logs.isNotEmpty() ||
+        (goalState.active + goalState.completed + goalState.archived).isNotEmpty() ||
+        trackState.projections.isNotEmpty() ||
+        gymState.activeSession != null || gymState.allSessions.isNotEmpty() ||
+        gymState.exercises.isNotEmpty() || gymState.archivedExercises.isNotEmpty() ||
+        gymState.machines.isNotEmpty() || gymState.archivedMachines.isNotEmpty() ||
+        gymState.routines.isNotEmpty() || gymState.archivedRoutines.isNotEmpty()
+
+data class DomainRetryActions(
+    val tasks: () -> Unit = {},
+    val habits: () -> Unit = {},
+    val goals: () -> Unit = {},
+    val tracks: () -> Unit = {},
+    val gym: () -> Unit = {},
+)
+
+/**
+ * Keeps platform-entry delivery policy out of the already broad app shell.
+ * Besides keeping the effect testable, this prevents Compose/Jacoco from
+ * folding another complete navigation state machine into WhipScreen's method.
+ */
+private sealed interface LaunchDeliveryCommand {
+    data class LoadFailed(val destination: AppDestination) : LaunchDeliveryCommand
+    data class Unavailable(val destination: AppDestination, val message: String) : LaunchDeliveryCommand
+    data object OpenTaskAgenda : LaunchDeliveryCommand
+    data object OpenHabitTracking : LaunchDeliveryCommand
+    data class AddTask(val date: LocalDate?) : LaunchDeliveryCommand
+    data class CaptureSharedTask(val text: String) : LaunchDeliveryCommand
+    data object AddHabit : LaunchDeliveryCommand
+    data class OpenTask(
+        val item: ScheduledTask,
+        val completed: Boolean,
+        val destination: TaskDestination?,
+    ) : LaunchDeliveryCommand
+    data class OpenTaskFallback(val message: String) : LaunchDeliveryCommand
+    data class OpenHabit(val id: Long) : LaunchDeliveryCommand
+    data class OpenGoal(val id: Long) : LaunchDeliveryCommand
+    data object OpenGym : LaunchDeliveryCommand
+    data class OpenTrack(
+        val id: Long,
+        val promptOccurrenceId: Long?,
+        val unavailableDetail: String?,
+    ) : LaunchDeliveryCommand
+}
+
+@Composable
+private fun LaunchDeliveryEffect(
+    launchDeliveryId: Long,
+    consumedLaunchDeliveryId: Long?,
+    initialAction: String?,
+    initialEntityId: Long?,
+    initialOccurrenceEpochDay: Long?,
+    initialAutomationOccurrenceId: Long?,
+    initialSharedText: String?,
+    setupCompleted: Boolean,
+    taskState: TaskUiState,
+    habitState: HabitUiState,
+    goalState: GoalUiState,
+    trackState: TrackUiState,
+    onConsume: (Long) -> Unit,
+    onCommand: (LaunchDeliveryCommand) -> Unit,
+) {
+    LaunchedEffect(
+        launchDeliveryId,
+        initialAction,
+        initialEntityId,
+        initialOccurrenceEpochDay,
+        initialAutomationOccurrenceId,
+        initialSharedText,
+        setupCompleted,
+        taskState,
+        habitState,
+        goalState,
+        trackState,
+    ) {
+        if (launchDeliveryId == 0L || consumedLaunchDeliveryId == launchDeliveryId || !setupCompleted) {
+            return@LaunchedEffect
+        }
+        val targetResolution = resolveLaunchTarget(
+            action = initialAction,
+            entityId = initialEntityId,
+            occurrenceEpochDay = initialOccurrenceEpochDay,
+            automationOccurrenceId = initialAutomationOccurrenceId,
+            taskState = taskState,
+            habitState = habitState,
+            goalState = goalState,
+            trackState = trackState,
+        )
+        when (targetResolution) {
+            LaunchTargetResolution.Pending -> return@LaunchedEffect
+            is LaunchTargetResolution.LoadFailed -> {
+                onCommand(LaunchDeliveryCommand.LoadFailed(targetResolution.destination))
+                return@LaunchedEffect
+            }
+            is LaunchTargetResolution.Unavailable -> {
+                onConsume(launchDeliveryId)
+                onCommand(
+                    LaunchDeliveryCommand.Unavailable(
+                        targetResolution.destination,
+                        targetResolution.message,
+                    ),
+                )
+                return@LaunchedEffect
+            }
+            LaunchTargetResolution.NotApplicable,
+            is LaunchTargetResolution.Available -> Unit
+        }
+        when (initialAction) {
+            WhipWidgetProvider.ACTION_OPEN_TASK_AGENDA -> onCommand(LaunchDeliveryCommand.OpenTaskAgenda)
+            WhipWidgetProvider.ACTION_OPEN_HABIT_TRACKING -> onCommand(LaunchDeliveryCommand.OpenHabitTracking)
+            WhipWidgetProvider.ACTION_ADD_TASK -> onCommand(
+                LaunchDeliveryCommand.AddTask(initialOccurrenceEpochDay?.let(LocalDate::ofEpochDay)),
+            )
+            WhipLaunchActions.ACTION_CAPTURE_SHARED_TASK -> onCommand(
+                LaunchDeliveryCommand.CaptureSharedTask(initialSharedText.orEmpty()),
+            )
+            WhipWidgetProvider.ACTION_ADD_HABIT -> onCommand(LaunchDeliveryCommand.AddHabit)
+            WhipLaunchActions.ACTION_OPEN_TASK -> {
+                val id = initialEntityId ?: return@LaunchedEffect
+                val allTasks = taskState.inbox + taskState.today + taskState.upcoming +
+                    taskState.planning + taskState.completed + taskState.archived
+                val found = allTasks.firstOrNull { item ->
+                    item.task.id == id && (
+                        initialOccurrenceEpochDay == null ||
+                            item.originalDate?.toEpochDay() == initialOccurrenceEpochDay
+                        )
+                }
+                if (found == null) {
+                    val detail = (targetResolution as? LaunchTargetResolution.Available)?.unavailableDetail
+                    if (detail != null) onCommand(LaunchDeliveryCommand.OpenTaskFallback(detail))
+                    onConsume(launchDeliveryId)
+                    return@LaunchedEffect
+                }
+                val destination = when (found) {
+                    in taskState.inbox -> TaskDestination.Inbox
+                    in taskState.planning -> TaskDestination.Upcoming
+                    else -> null
+                }
+                onCommand(
+                    LaunchDeliveryCommand.OpenTask(
+                        found,
+                        found in taskState.completed,
+                        destination,
+                    ),
+                )
+            }
+            WhipLaunchActions.ACTION_OPEN_HABIT -> initialEntityId?.let {
+                onCommand(LaunchDeliveryCommand.OpenHabit(it))
+            }
+            WhipLaunchActions.ACTION_OPEN_GOAL -> initialEntityId?.let {
+                onCommand(LaunchDeliveryCommand.OpenGoal(it))
+            }
+            WhipLaunchActions.ACTION_OPEN_GYM -> onCommand(LaunchDeliveryCommand.OpenGym)
+            WhipLaunchActions.ACTION_OPEN_TRACK -> initialEntityId?.let { trackId ->
+                val unavailableDetail = (targetResolution as? LaunchTargetResolution.Available)?.unavailableDetail
+                onCommand(
+                    LaunchDeliveryCommand.OpenTrack(
+                        trackId,
+                        initialAutomationOccurrenceId.takeIf { unavailableDetail == null },
+                        unavailableDetail,
+                    ),
+                )
+            }
+        }
+        onConsume(launchDeliveryId)
+    }
+}
 
 /** Keeps every pinned item visible while retaining the compact default summary. */
 internal fun <T> pinnedHomeSummary(
@@ -317,22 +602,40 @@ fun WhipApp(
         stored.validFor(settingsState.areas).takeIf { it != stored }?.let(settingsViewModel::setAreaScope)
     }
 
-    LaunchedEffect(requestedLaunchDeliveryId, initialAction, initialEntityId, state, habitState, goalState, trackState) {
-        if (requestedLaunchDeliveryId == 0L || initialEntityId == null) return@LaunchedEffect
+    LaunchedEffect(
+        requestedLaunchDeliveryId,
+        initialAction,
+        initialEntityId,
+        initialOccurrenceEpochDay,
+        initialAutomationOccurrenceId,
+        settingsState.settings.setupCompleted,
+        state,
+        habitState,
+        goalState,
+        trackState,
+    ) {
+        if (requestedLaunchDeliveryId == 0L) return@LaunchedEffect
         if (transientAreaScopeDelivery == requestedLaunchDeliveryId) return@LaunchedEffect
-        if (state.loading || habitState.loading || goalState.loading) return@LaunchedEffect
-        val targetAreaId = when (initialAction) {
-            WhipLaunchActions.ACTION_OPEN_TASK ->
-                (state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived)
-                    .firstOrNull { it.task.id == initialEntityId }?.task?.areaId
-            WhipLaunchActions.ACTION_OPEN_HABIT ->
-                (habitState.today + habitState.all).firstOrNull { it.habit.id == initialEntityId }?.habit?.areaId
-                    ?: habitState.archived.firstOrNull { it.id == initialEntityId }?.areaId
-            WhipLaunchActions.ACTION_OPEN_GOAL ->
-                (goalState.active + goalState.completed + goalState.archived)
-                    .firstOrNull { it.goal.id == initialEntityId }?.goal?.areaId
-            WhipLaunchActions.ACTION_OPEN_TRACK -> trackState.track(initialEntityId)?.track?.areaId
-            else -> return@LaunchedEffect
+        if (!settingsState.settings.setupCompleted) return@LaunchedEffect
+        val resolution = resolveLaunchTarget(
+            action = initialAction,
+            entityId = initialEntityId,
+            occurrenceEpochDay = initialOccurrenceEpochDay,
+            automationOccurrenceId = initialAutomationOccurrenceId,
+            taskState = state,
+            habitState = habitState,
+            goalState = goalState,
+            trackState = trackState,
+        )
+        val targetAreaId = when (resolution) {
+            is LaunchTargetResolution.Available -> resolution.areaId
+            is LaunchTargetResolution.Unavailable -> {
+                transientAreaScopeDelivery = requestedLaunchDeliveryId
+                return@LaunchedEffect
+            }
+            LaunchTargetResolution.NotApplicable -> return@LaunchedEffect
+            LaunchTargetResolution.Pending,
+            is LaunchTargetResolution.LoadFailed -> return@LaunchedEffect
         }
         if (!areaScope.matches(targetAreaId)) {
             transientAreaScopeKey = (
@@ -430,6 +733,13 @@ fun WhipApp(
             trackEntryUndoId = lastDeletedTrackEntry?.token,
             onTrackEntryUndo = { id -> trackViewModel.undoEntryDeletion(id) },
             onTrackEntryUndoDismissed = { id -> trackViewModel.clearEntryUndo(id) },
+            domainRetryActions = DomainRetryActions(
+                tasks = taskViewModel::retryLoading,
+                habits = habitViewModel::retryLoading,
+                goals = goalViewModel::retryLoading,
+                tracks = trackViewModel::retryLoading,
+                gym = gymViewModel::retryLoading,
+            ),
             onSaveTask = { id, draft, from -> taskViewModel.saveTask(id, draft, from) },
             onSaveTaskWithResult = { id, draft, from, onFinished ->
                 taskViewModel.saveTask(id, draft, from, onFinished)
@@ -528,6 +838,7 @@ fun WhipScreen(
     trackEntryUndoId: Long? = null,
     onTrackEntryUndo: (Long) -> Unit = {},
     onTrackEntryUndoDismissed: (Long) -> Unit = {},
+    domainRetryActions: DomainRetryActions = DomainRetryActions(),
     onSaveTask: (Long?, TaskDraft, LocalDate?) -> Unit,
     onSaveTaskWithResult: (Long?, TaskDraft, LocalDate?, (Boolean) -> Unit) -> Unit = { id, draft, from, onFinished ->
         onSaveTask(id, draft, from)
@@ -642,6 +953,7 @@ fun WhipScreen(
     var homeHabitValueItemId by rememberSaveable { mutableStateOf<Long?>(null) }
     var contentPaneExpanded by rememberSaveable { mutableStateOf(false) }
     var consumedLaunchDeliveryId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val workspaceStateHolder = rememberSaveableStateHolder()
     val shortcutFocusRequester = remember { FocusRequester() }
     val searchInvokerFocusRequester = remember { FocusRequester() }
     var searchPreviouslyOpen by remember { mutableStateOf(false) }
@@ -842,84 +1154,93 @@ fun WhipScreen(
     val launchDeliveryId = initialDeliveryId.takeIf { it != 0L }
         ?: 1L.takeIf { initialAction != null }
         ?: 0L
-    LaunchedEffect(
-        launchDeliveryId,
-        state.loading,
-        settingsState.settings.activeAreaScope,
-        settingsState.settings.setupCompleted,
-    ) {
-        if (launchDeliveryId == 0L || consumedLaunchDeliveryId == launchDeliveryId) return@LaunchedEffect
-        // Keep platform-entry intent pending while first-run setup is modal. It
-        // should resume after setup instead of being consumed behind the dialog.
-        if (!settingsState.settings.setupCompleted) return@LaunchedEffect
-        when (initialAction) {
-            WhipWidgetProvider.ACTION_OPEN_TASK_AGENDA -> {
-                appDestination = AppDestination.Tasks
-                taskDestination = TaskDestination.Today
-                consumedLaunchDeliveryId = launchDeliveryId
-            }
-            WhipWidgetProvider.ACTION_OPEN_HABIT_TRACKING -> {
-                appDestination = AppDestination.Habits
-                consumedLaunchDeliveryId = launchDeliveryId
-            }
-            WhipWidgetProvider.ACTION_ADD_TASK -> {
-                appDestination = AppDestination.Tasks
-                openTaskEditor(
-                    scheduleDate = initialOccurrenceEpochDay?.let(LocalDate::ofEpochDay),
-                )
-                consumedLaunchDeliveryId = launchDeliveryId
-            }
-            WhipLaunchActions.ACTION_CAPTURE_SHARED_TASK -> {
-                appDestination = AppDestination.Tasks
-                openTaskEditor(capture = initialSharedText.orEmpty())
-                consumedLaunchDeliveryId = launchDeliveryId
-            }
-            WhipWidgetProvider.ACTION_ADD_HABIT -> {
-                appDestination = AppDestination.Habits
-                createHabitRequested = true
-                consumedLaunchDeliveryId = launchDeliveryId
-            }
-            WhipLaunchActions.ACTION_OPEN_TASK -> {
-                val id = initialEntityId ?: return@LaunchedEffect
-                val found = (state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived)
-                    .firstOrNull {
-                        it.task.id == id && (
-                            initialOccurrenceEpochDay == null ||
-                                it.originalDate?.toEpochDay() == initialOccurrenceEpochDay
-                            )
-                    } ?: return@LaunchedEffect
-                appDestination = AppDestination.Tasks
-                if (found in state.completed) {
-                    completedItemKey = found.stableKey
-                } else {
-                    if (found in state.inbox) taskDestination = TaskDestination.Inbox
-                    else if (found in state.planning) taskDestination = TaskDestination.Upcoming
-                    actionItemKey = found.stableKey
+    LaunchDeliveryEffect(
+        launchDeliveryId = launchDeliveryId,
+        consumedLaunchDeliveryId = consumedLaunchDeliveryId,
+        initialAction = initialAction,
+        initialEntityId = initialEntityId,
+        initialOccurrenceEpochDay = initialOccurrenceEpochDay,
+        initialAutomationOccurrenceId = initialAutomationOccurrenceId,
+        initialSharedText = initialSharedText,
+        setupCompleted = settingsState.settings.setupCompleted,
+        taskState = unscopedTaskState,
+        habitState = unscopedHabitState,
+        goalState = unscopedGoalState,
+        trackState = unscopedTrackState,
+        onConsume = { consumedLaunchDeliveryId = it },
+        onCommand = { command ->
+            when (command) {
+                is LaunchDeliveryCommand.LoadFailed -> appDestination = command.destination
+                is LaunchDeliveryCommand.Unavailable -> {
+                    appDestination = command.destination
+                    presentTransientFeedback(source = "launch-target-$launchDeliveryId", priority = 3, recoverable = true) {
+                        snackbarHostState.showSnackbar(
+                            command.message,
+                            withDismissAction = true,
+                            duration = SnackbarDuration.Long,
+                        )
+                    }
                 }
-                consumedLaunchDeliveryId = launchDeliveryId
+                LaunchDeliveryCommand.OpenTaskAgenda -> {
+                    appDestination = AppDestination.Tasks
+                    taskDestination = TaskDestination.Today
+                }
+                LaunchDeliveryCommand.OpenHabitTracking -> appDestination = AppDestination.Habits
+                is LaunchDeliveryCommand.AddTask -> {
+                    appDestination = AppDestination.Tasks
+                    openTaskEditor(scheduleDate = command.date)
+                }
+                is LaunchDeliveryCommand.CaptureSharedTask -> {
+                    appDestination = AppDestination.Tasks
+                    openTaskEditor(capture = command.text)
+                }
+                LaunchDeliveryCommand.AddHabit -> {
+                    appDestination = AppDestination.Habits
+                    createHabitRequested = true
+                }
+                is LaunchDeliveryCommand.OpenTask -> {
+                    appDestination = AppDestination.Tasks
+                    if (command.completed) completedItemKey = command.item.stableKey else {
+                        command.destination?.let { taskDestination = it }
+                        actionItemKey = command.item.stableKey
+                    }
+                }
+                is LaunchDeliveryCommand.OpenTaskFallback -> {
+                    appDestination = AppDestination.Tasks
+                    presentTransientFeedback(source = "launch-target-$launchDeliveryId", priority = 3, recoverable = true) {
+                        snackbarHostState.showSnackbar(
+                            command.message,
+                            withDismissAction = true,
+                            duration = SnackbarDuration.Long,
+                        )
+                    }
+                }
+                is LaunchDeliveryCommand.OpenHabit -> {
+                    openHabitIdRequested = command.id
+                    appDestination = AppDestination.Habits
+                }
+                is LaunchDeliveryCommand.OpenGoal -> {
+                    openGoalIdRequested = command.id
+                    appDestination = AppDestination.Goals
+                }
+                LaunchDeliveryCommand.OpenGym -> appDestination = AppDestination.Gym
+                is LaunchDeliveryCommand.OpenTrack -> {
+                    openTrackIdRequested = command.id
+                    openTrackPromptOccurrenceIdRequested = command.promptOccurrenceId
+                    appDestination = AppDestination.Tracks
+                    command.unavailableDetail?.let { message ->
+                        presentTransientFeedback(source = "launch-target-$launchDeliveryId", priority = 3, recoverable = true) {
+                            snackbarHostState.showSnackbar(
+                                message,
+                                withDismissAction = true,
+                                duration = SnackbarDuration.Long,
+                            )
+                        }
+                    }
+                }
             }
-            WhipLaunchActions.ACTION_OPEN_HABIT -> {
-                openHabitIdRequested = initialEntityId ?: return@LaunchedEffect
-                appDestination = AppDestination.Habits
-                consumedLaunchDeliveryId = launchDeliveryId
-            }
-            WhipLaunchActions.ACTION_OPEN_GOAL -> {
-                openGoalIdRequested = initialEntityId ?: return@LaunchedEffect
-                appDestination = AppDestination.Goals
-                consumedLaunchDeliveryId = launchDeliveryId
-            }
-            WhipLaunchActions.ACTION_OPEN_GYM -> {
-                appDestination = AppDestination.Gym
-                consumedLaunchDeliveryId = launchDeliveryId
-            }
-            WhipLaunchActions.ACTION_OPEN_TRACK -> {
-                openTrackIdRequested = initialEntityId ?: return@LaunchedEffect
-                openTrackPromptOccurrenceIdRequested = initialAutomationOccurrenceId
-                appDestination = AppDestination.Tracks
-                consumedLaunchDeliveryId = launchDeliveryId
-            }
-        }
-    }
+        },
+    )
 
     LaunchedEffect(operationStatus) {
         if (
@@ -1155,95 +1476,23 @@ fun WhipScreen(
     fun selectPrimaryDestination(destination: AppDestination) {
         if (destination == appDestination) return
         compactItemExpansionState?.collapseAll()
-        when (destination) {
-            AppDestination.Tasks -> {
-                taskDestination = TaskDestination.Today
-                taskPlanningViewRequest = null
-            }
-            AppDestination.Habits -> habitDestinationState.value = HabitDestination.Today
-            AppDestination.Goals -> goalDestinationState.value = GoalDestination.Active
-            AppDestination.Tracks -> {
-                trackWorkspaceDestinationState.value = TrackWorkspaceDestination.Tracks
-                selectedTrackState.value = null
-                trackDetailDestinationState.value = TrackDetailDestination.Entries
-            }
-            AppDestination.Gym -> gymDestination = GymDestination.Workout
-            AppDestination.Home, AppDestination.Settings -> Unit
-        }
+        // Each primary workspace is a durable place. Switching roots preserves
+        // its last destination, filters, and selected entity; explicit Home
+        // shortcuts and deep links still opt into a precise destination.
         appDestination = destination
     }
 
     val collectionStatusNowMillis = System.currentTimeMillis()
-    val adaptiveSummary = AdaptiveSummary(
-        date = state.currentDate,
-        dueTasks = state.today.size,
-        dueHabits = habitState.today.count { it.successful != true },
-        activeGoals = goalState.active.size,
-        activeWorkout = gymState.activeSession != null,
-        taskContext = listOfNotNull(actionItem?.task?.title) + state.today.take(6).map { it.task.title },
-        habitContext = habitState.today.take(6).map { item ->
-            val target = item.habit.targetMax ?: item.habit.targetMin
-            "${item.habit.name} · ${if (item.successful == true) "done" else target?.let {
-                "${formatHabitValue(item.value, item.habit.precision)}/${formatHabitValue(it, item.habit.precision)}"
-            } ?: "log"}"
-        },
-        goalContext = goalState.active.take(6).map { item ->
-            "${item.goal.name} · ${item.collectionStatus(goalState.customUnits, collectionStatusNowMillis)}"
-        },
-        gymContextTitle = when (gymDestination) {
-            GymDestination.Workout -> "Workout Context"
-            GymDestination.History -> "Recent Workouts"
-            GymDestination.Progress -> "Tracked Records"
-            GymDestination.Routines -> "Routines"
-            GymDestination.Exercises -> "Exercise Library"
-            GymDestination.Machines -> "Machine Profiles"
-            GymDestination.Categories -> "Exercise Categories"
-            GymDestination.Tools -> "Workout Tools"
-            GymDestination.Library -> "Gym Library"
-        },
-        gymContext = when (gymDestination) {
-            GymDestination.Workout -> buildList {
-                gymState.activeSession?.let { add(it.name.ifBlank { "Current Workout" }) }
-                addAll(gymState.activeWorkoutExercises.take(5).map { it.exercise.name })
-                if (gymState.activeSession == null) add("No Active Workout")
-            }
-            GymDestination.History -> gymState.history.sortedByDescending { it.localDate }.take(6)
-                .map { it.name.ifBlank { "Workout · ${it.localDate}" } }
-                .ifEmpty { listOf("Completed workouts will appear here") }
-            GymDestination.Progress -> gymState.appSettings.trackedGymRecords
-                .filter { selection ->
-                    gymState.exercises.firstOrNull { it.uuid == selection.exerciseUuid }
-                        ?.let { exercise -> selection.type in exercise.supportedTrackedRecordTypes() } == true
-                }
-                .groupBy { it.exerciseUuid }
-                .entries
-                .take(6)
-                .mapNotNull { (exerciseUuid, records) ->
-                    val exerciseName = gymState.exercises.firstOrNull { it.uuid == exerciseUuid }?.name
-                        ?: return@mapNotNull null
-                    "$exerciseName · ${records.size} tracked record${if (records.size == 1) "" else "s"}"
-                }.ifEmpty {
-                listOf(
-                    quantityLabel(gymState.history.size, "completed workout"),
-                    "Choose records to keep at a glance",
-                )
-            }
-            GymDestination.Routines -> gymState.routines.take(6).map { it.name }
-                .ifEmpty { listOf("Create a routine to reuse a training plan") }
-            GymDestination.Exercises -> gymState.exercises
-                .sortedWith(compareByDescending<com.whip.app.domain.Exercise> { it.favorite }.thenBy { it.name })
-                .take(6).map { it.name }
-                .ifEmpty { listOf("Create your first reusable exercise") }
-            GymDestination.Machines -> gymState.machines.take(6).map { it.displayName }
-                .ifEmpty { listOf("Machine profiles preserve equipment setup") }
-            GymDestination.Categories -> gymState.categories.take(6).map { it.name }
-                .ifEmpty { listOf("Categories are optional exercise filters") }
-            GymDestination.Tools -> listOf("1RM Calculator", "Plate Calculator")
-            GymDestination.Library -> listOf(
-                "${quantityLabel(gymState.exercises.size, "Exercise")} · ${quantityLabel(gymState.machines.size, "Machine")}",
-                "${quantityLabel(gymState.routines.size, "Routine")} · ${quantityLabel(gymState.history.size, "Completed Workout")}",
-            )
-        },
+    val adaptiveSummary = buildAdaptiveSummary(
+        taskState = state,
+        habitState = habitState,
+        goalState = goalState,
+        trackState = trackState,
+        gymState = gymState,
+        settings = settingsState.settings,
+        selectedTaskTitle = actionItem?.task?.title,
+        gymDestination = gymDestination,
+        nowMillis = collectionStatusNowMillis,
     )
     val supportsPaneExpansion = adaptiveLayout in setOf(
         WhipAdaptiveLayout.ExpandedDashboard,
@@ -1502,44 +1751,61 @@ fun WhipScreen(
         navigationEnabled = !gymRoutineEditorOpen && trackEditorRoute == null && !focusedCollectionMode,
         supportContent = if (focusedCollectionMode) null else when (appDestination) {
             AppDestination.Home -> { supportModifier ->
-                HomeSupportPane(adaptiveSummary, ::selectPrimaryDestination, supportModifier)
+                HomeSupportPane(
+                    summary = adaptiveSummary,
+                    retryActions = domainRetryActions,
+                    onSelect = ::selectPrimaryDestination,
+                    modifier = supportModifier,
+                )
             }
             AppDestination.Tasks -> { supportModifier ->
                 DestinationSupportPane(
-                    title = "Tasks Today",
-                    supportingText = "Open a Task without leaving today's queue.",
+                    title = stringResource(R.string.support_tasks_title),
+                    domain = stringResource(R.string.nav_tasks),
+                    supportingText = stringResource(R.string.support_tasks_description),
                     items = state.today.take(12).map { item ->
                         SupportPaneItem(
                             item.stableKey,
                             item.task.title,
-                            item.scheduledDate?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "Inbox",
+                            item.scheduledDate?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+                                ?: stringResource(R.string.task_inbox),
                         )
                     },
-                    emptyText = "No Tasks need attention today.",
+                    emptyText = stringResource(R.string.support_tasks_empty),
+                    loadState = adaptiveSummary.taskLoadState,
+                    statusTagPrefix = "support-pane-tasks",
+                    onRetry = domainRetryActions.tasks,
                     onOpen = { key -> actionItemKey = key },
                     modifier = supportModifier,
                 )
             }
             AppDestination.Habits -> { supportModifier ->
                 DestinationSupportPane(
-                    title = "Habits Today",
-                    supportingText = "Open a Habit to review today's progress and history.",
+                    title = stringResource(R.string.support_habits_title),
+                    domain = stringResource(R.string.nav_habits),
+                    supportingText = stringResource(R.string.support_habits_description),
                     items = habitState.today.sortedBy(HabitDayProgress::isDoneForToday).take(12).map { item ->
                         SupportPaneItem(
                             item.habit.id.toString(),
                             item.habit.name,
-                            if (item.successful == true) "Done" else "Needs attention",
+                            stringResource(
+                                if (item.successful == true) R.string.state_done else R.string.state_needs_attention,
+                            ),
                         )
                     },
-                    emptyText = "No Habits are scheduled today.",
+                    emptyText = stringResource(R.string.support_habits_empty),
+                    loadState = adaptiveSummary.habitLoadState,
+                    statusTagPrefix = "support-pane-habits",
+                    onRetry = domainRetryActions.habits,
                     onOpen = { id -> openHabitIdRequested = id.toLongOrNull() },
                     modifier = supportModifier,
                 )
             }
             AppDestination.Goals -> { supportModifier ->
                 DestinationSupportPane(
-                    title = "Active Goals",
-                    supportingText = "Open a Goal to review progress and next actions.",
+                    title = stringResource(R.string.support_goals_title),
+                    domain = stringResource(R.string.nav_goals),
+                    supportingText = stringResource(R.string.support_goals_description),
                     items = goalState.active.take(12).map { projection ->
                         SupportPaneItem(
                             projection.goal.id.toString(),
@@ -1547,18 +1813,28 @@ fun WhipScreen(
                             projection.collectionStatus(goalState.customUnits, collectionStatusNowMillis),
                         )
                     },
-                    emptyText = "No Goals are active.",
+                    emptyText = stringResource(R.string.support_goals_empty),
+                    loadState = adaptiveSummary.goalLoadState,
+                    statusTagPrefix = "support-pane-goals",
+                    onRetry = domainRetryActions.goals,
                     onOpen = { id -> openGoalIdRequested = id.toLongOrNull() },
                     modifier = supportModifier,
                 )
             }
             AppDestination.Tracks -> { supportModifier ->
                 if (adaptiveLayout == WhipAdaptiveLayout.ExpandedDashboard) {
-                    TrackOverviewSupportPane(trackState, supportModifier)
+                    TrackOverviewSupportPane(
+                        state = trackState,
+                        loadState = adaptiveSummary.trackLoadState,
+                        onRetry = domainRetryActions.tracks,
+                        modifier = supportModifier,
+                    )
                 } else {
                     TrackSupportPane(
                         projections = trackState.projections,
                         selectedTrackId = selectedTrackState.value,
+                        loadState = adaptiveSummary.trackLoadState,
+                        onRetry = domainRetryActions.tracks,
                         onSelect = { selectedTrackState.value = it; trackDetailDestinationState.value = TrackDetailDestination.Entries },
                         modifier = supportModifier,
                     )
@@ -1878,6 +2154,7 @@ fun WhipScreen(
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             Box(modifier = Modifier.fillMaxHeight().widthIn(max = 1000.dp)) {
+                workspaceStateHolder.SaveableStateProvider(appDestination.name) {
                 when (appDestination) {
             AppDestination.Home -> {
                 HomeContent(
@@ -1941,6 +2218,11 @@ fun WhipScreen(
                         is AreaScope.One -> settingsState.areas.firstOrNull { it.id == areaScope.areaId }?.name
                     },
                     onShowAllAreas = { onSelectAreaScope(AreaScope.All) },
+                    onRetryTaskLoading = domainRetryActions.tasks,
+                    onRetryHabitLoading = domainRetryActions.habits,
+                    onRetryGoalLoading = domainRetryActions.goals,
+                    onRetryTrackLoading = domainRetryActions.tracks,
+                    onRetryGymLoading = domainRetryActions.gym,
                 )
                 if (habitViewModel != null) HabitAreaContent(
                     state = habitState,
@@ -2060,6 +2342,7 @@ fun WhipScreen(
                     onSelectionModeChange = { taskSelectionMode = it },
                     onReorderModeChange = { reorderModeActive = it },
                     reorderDismissRequest = reorderDismissRequest,
+                    onRetryLoading = domainRetryActions.tasks,
                 )
             }
             AppDestination.Habits -> {
@@ -2233,6 +2516,7 @@ fun WhipScreen(
                 else RoadmapEmptyArea("Settings", "Settings are loading.", innerPadding)
             }
                 }
+                }
             }
             if (transientAreaScope) {
                 val temporaryLabel = when (areaScope) {
@@ -2275,7 +2559,7 @@ fun WhipScreen(
             habitState = unscopedHabitState,
             goalState = unscopedGoalState,
             gymState = gymState,
-            modifier = paneDialogModifier,
+            modifier = primaryEditorPaneModifier,
             trackState = unscopedTrackState,
             onDismiss = { searchOpen = false },
             areaScope = areaScope,
@@ -2513,10 +2797,12 @@ fun WhipScreen(
                         onComplete(item)
                         pendingCompleteItemKey = null
                     },
-                ) { Text("Complete Anyway") }
+                ) { Text(stringResource(R.string.action_complete_anyway)) }
             },
             dismissButton = {
-                WhipTextButton(onClick = { pendingCompleteItemKey = null }) { Text("Keep Working") }
+                WhipTextButton(onClick = { pendingCompleteItemKey = null }) {
+                    Text(stringResource(R.string.action_keep_working))
+                }
             },
         )
     }
@@ -2787,18 +3073,160 @@ internal fun AreaScopeMenu(
     }
 }
 
+private sealed interface AdaptiveLoadState {
+    data object Loading : AdaptiveLoadState
+    data class Failed(val message: String) : AdaptiveLoadState
+    data object Ready : AdaptiveLoadState
+}
+
+private fun adaptiveLoadState(loading: Boolean, errorMessage: String?): AdaptiveLoadState = when {
+    loading -> AdaptiveLoadState.Loading
+    errorMessage != null -> AdaptiveLoadState.Failed(errorMessage)
+    else -> AdaptiveLoadState.Ready
+}
+
+private val HomeSection.supportLabel: String
+    get() = when (this) {
+        HomeSection.Tasks -> "Tasks"
+        HomeSection.Habits -> "Habits"
+        HomeSection.Goals -> "Goals"
+        HomeSection.Tracks -> "Tracks"
+        HomeSection.Gym -> "Gym"
+    }
+
 private data class AdaptiveSummary(
     val date: LocalDate,
     val dueTasks: Int,
     val dueHabits: Int,
     val activeGoals: Int,
+    val pinnedTracks: Int,
     val activeWorkout: Boolean,
+    val taskLoadState: AdaptiveLoadState,
+    val habitLoadState: AdaptiveLoadState,
+    val goalLoadState: AdaptiveLoadState,
+    val trackLoadState: AdaptiveLoadState,
+    val gymLoadState: AdaptiveLoadState,
+    val visibleHomeSections: List<HomeSection>,
+    val hasAnyUserData: Boolean,
     val taskContext: List<String> = emptyList(),
     val habitContext: List<String> = emptyList(),
     val goalContext: List<String> = emptyList(),
     val gymContextTitle: String = "Workout Context",
     val gymContext: List<String> = emptyList(),
-)
+) {
+    fun loadState(section: HomeSection): AdaptiveLoadState = when (section) {
+        HomeSection.Tasks -> taskLoadState
+        HomeSection.Habits -> habitLoadState
+        HomeSection.Goals -> goalLoadState
+        HomeSection.Tracks -> trackLoadState
+        HomeSection.Gym -> gymLoadState
+    }
+}
+
+private fun buildAdaptiveSummary(
+    taskState: TaskUiState,
+    habitState: HabitUiState,
+    goalState: GoalUiState,
+    trackState: TrackUiState,
+    gymState: GymUiState,
+    settings: AppSettings,
+    selectedTaskTitle: String?,
+    gymDestination: GymDestination,
+    nowMillis: Long,
+): AdaptiveSummary {
+    val taskLoadState = adaptiveLoadState(taskState.loading, taskState.errorMessage)
+    val habitLoadState = adaptiveLoadState(habitState.loading, habitState.errorMessage)
+    val goalLoadState = adaptiveLoadState(goalState.loading, goalState.errorMessage)
+    val trackLoadState = adaptiveLoadState(trackState.loading, trackState.errorMessage)
+    val gymLoadState = adaptiveLoadState(gymState.loading, gymState.errorMessage)
+    return AdaptiveSummary(
+        date = taskState.currentDate,
+        dueTasks = taskState.today.size,
+        dueHabits = habitState.today.count { it.successful != true },
+        activeGoals = goalState.active.size,
+        pinnedTracks = trackState.pinned.size,
+        activeWorkout = gymState.activeSession != null,
+        taskLoadState = taskLoadState,
+        habitLoadState = habitLoadState,
+        goalLoadState = goalLoadState,
+        trackLoadState = trackLoadState,
+        gymLoadState = gymLoadState,
+        visibleHomeSections = settings.visibleHomeSections(),
+        hasAnyUserData = homeHasAnyUserData(taskState, habitState, goalState, trackState, gymState),
+        taskContext = listOfNotNull(selectedTaskTitle) + taskState.today.take(6).map { it.task.title },
+        habitContext = habitState.today.take(6).map { item ->
+            val target = item.habit.targetMax ?: item.habit.targetMin
+            "${item.habit.name} · ${if (item.successful == true) "done" else target?.let {
+                "${formatHabitValue(item.value, item.habit.precision)}/${formatHabitValue(it, item.habit.precision)}"
+            } ?: "log"}"
+        },
+        goalContext = goalState.active.take(6).map { item ->
+            "${item.goal.name} · ${item.collectionStatus(goalState.customUnits, nowMillis)}"
+        },
+        gymContextTitle = when (gymDestination) {
+            GymDestination.Workout -> "Workout Context"
+            GymDestination.History -> "Recent Workouts"
+            GymDestination.Progress -> "Tracked Records"
+            GymDestination.Routines -> "Routines"
+            GymDestination.Exercises -> "Exercise Library"
+            GymDestination.Machines -> "Machine Profiles"
+            GymDestination.Categories -> "Exercise Categories"
+            GymDestination.Tools -> "Workout Tools"
+            GymDestination.Library -> "Gym Library"
+        },
+        gymContext = when (gymDestination) {
+            GymDestination.Workout -> buildList {
+                gymState.activeSession?.let { add(it.name.ifBlank { "Current Workout" }) }
+                addAll(gymState.activeWorkoutExercises.take(5).map { it.exercise.name })
+                if (gymState.activeSession == null && gymLoadState == AdaptiveLoadState.Ready) add("No Active Workout")
+            }
+            GymDestination.History -> gymState.history.sortedByDescending { it.localDate }.take(6)
+                .map { it.name.ifBlank { "Workout · ${it.localDate}" } }
+                .ifEmpty { if (gymLoadState == AdaptiveLoadState.Ready) listOf("Completed workouts will appear here") else emptyList() }
+            GymDestination.Progress -> gymState.appSettings.trackedGymRecords
+                .filter { selection ->
+                    gymState.exercises.firstOrNull { it.uuid == selection.exerciseUuid }
+                        ?.let { exercise -> selection.type in exercise.supportedTrackedRecordTypes() } == true
+                }
+                .groupBy { it.exerciseUuid }
+                .entries
+                .take(6)
+                .mapNotNull { (exerciseUuid, records) ->
+                    val exerciseName = gymState.exercises.firstOrNull { it.uuid == exerciseUuid }?.name
+                        ?: return@mapNotNull null
+                    "$exerciseName · ${records.size} tracked record${if (records.size == 1) "" else "s"}"
+                }.ifEmpty {
+                    if (gymLoadState == AdaptiveLoadState.Ready) {
+                        listOf(
+                            quantityLabel(gymState.history.size, "completed workout"),
+                            "Choose records to keep at a glance",
+                        )
+                    } else {
+                        emptyList()
+                    }
+                }
+            GymDestination.Routines -> gymState.routines.take(6).map { it.name }
+                .ifEmpty { if (gymLoadState == AdaptiveLoadState.Ready) listOf("Create a routine to reuse a training plan") else emptyList() }
+            GymDestination.Exercises -> gymState.exercises
+                .sortedWith(compareByDescending<com.whip.app.domain.Exercise> { it.favorite }.thenBy { it.name })
+                .take(6).map { it.name }
+                .ifEmpty { if (gymLoadState == AdaptiveLoadState.Ready) listOf("Create your first reusable exercise") else emptyList() }
+            GymDestination.Machines -> gymState.machines.take(6).map { it.displayName }
+                .ifEmpty { if (gymLoadState == AdaptiveLoadState.Ready) listOf("Machine profiles preserve equipment setup") else emptyList() }
+            GymDestination.Categories -> gymState.categories.take(6).map { it.name }
+                .ifEmpty { if (gymLoadState == AdaptiveLoadState.Ready) listOf("Categories are optional exercise filters") else emptyList() }
+            GymDestination.Tools -> listOf("1RM Calculator", "Plate Calculator")
+            GymDestination.Library -> if (gymLoadState == AdaptiveLoadState.Ready) {
+                listOf(
+                    "${quantityLabel(gymState.exercises.size, "Exercise")} · ${quantityLabel(gymState.machines.size, "Machine")}",
+                    "${quantityLabel(gymState.routines.size, "Routine")} · ${quantityLabel(gymState.history.size, "Completed Workout")}",
+                )
+            } else {
+                emptyList()
+            }
+        },
+    )
+}
 
 /**
  * The single app-level owner for destination editors. It visually and
@@ -3353,72 +3781,169 @@ private fun SupportPaneTitle(title: String) {
 @Composable
 private fun HomeSupportPane(
     summary: AdaptiveSummary,
+    retryActions: DomainRetryActions,
     onSelect: (AppDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp),
+    val allVisibleDomainsReady = summary.visibleHomeSections.all { summary.loadState(it) == AdaptiveLoadState.Ready }
+    val hasContext = summary.visibleHomeSections.any { section ->
+        when (section) {
+            HomeSection.Tasks -> summary.dueTasks > 0
+            HomeSection.Habits -> summary.dueHabits > 0
+            HomeSection.Goals -> summary.activeGoals > 0
+            HomeSection.Tracks -> summary.pinnedTracks > 0
+            HomeSection.Gym -> summary.activeWorkout
+        }
+    }
+    LazyColumn(
+        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing),
+        contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        SupportPaneTitle("Today")
-        Text(summary.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        val hasContext = summary.dueTasks > 0 || summary.dueHabits > 0 || summary.activeGoals > 0 || summary.activeWorkout
-        if (!hasContext) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 18.dp)
-                    .testTag("home-support-introduction"),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(
-                        Icons.Outlined.Home,
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        "Your Day, Brought Together",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        "Home gathers the work and routines that need your attention now. " +
-                            "Start with Tasks or Habits; Goals, Tracks, and Gym join in as you use them.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        "Start small. Add only what helps.",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
+        item { SupportPaneTitle(stringResource(R.string.home_support_today_title)) }
+        item {
+            Text(
+                summary.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        summary.visibleHomeSections.forEach { section ->
+            val loadState = summary.loadState(section)
+            if (loadState != AdaptiveLoadState.Ready) {
+                item(key = "home-support-status-${section.name}") {
+                    AdaptiveLoadNotice(
+                        domain = section.supportLabel,
+                        loadState = loadState,
+                        onRetry = when (section) {
+                            HomeSection.Tasks -> retryActions.tasks
+                            HomeSection.Habits -> retryActions.habits
+                            HomeSection.Goals -> retryActions.goals
+                            HomeSection.Tracks -> retryActions.tracks
+                            HomeSection.Gym -> retryActions.gym
+                        },
+                        modifier = Modifier.testTag(
+                            "home-support-${section.name.lowercase()}-${if (loadState == AdaptiveLoadState.Loading) "loading" else "error"}",
+                        ),
                     )
                 }
             }
-            Text(
-                "Private by default. Your data stays on this device unless you choose to export or sync it.",
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            AdaptiveSummaryCard("Tasks Today", summary.dueTasks.toString(), AppDestination.Tasks, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Tasks) })
-            AdaptiveSummaryCard("Habits Remaining", summary.dueHabits.toString(), AppDestination.Habits, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Habits) })
-            AdaptiveSummaryCard("Active Goals", summary.activeGoals.toString(), AppDestination.Goals, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Goals) })
-            AdaptiveSummaryCard("Workout", if (summary.activeWorkout) "In progress" else "Ready", AppDestination.Gym, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Gym) })
         }
+        if (allVisibleDomainsReady && !hasContext) {
+            if (summary.hasAnyUserData) {
+                item {
+                    WhipNoticeCard(
+                        title = stringResource(R.string.home_support_clear_title),
+                        message = stringResource(R.string.home_support_clear_message),
+                        modifier = Modifier.testTag("home-support-clear-day"),
+                    )
+                }
+            } else {
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 18.dp)
+                            .testTag("home-support-introduction"),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Icon(
+                                Icons.Outlined.Home,
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Text(
+                                stringResource(R.string.home_support_introduction_title),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                stringResource(R.string.home_support_introduction_message),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                stringResource(R.string.home_support_introduction_nudge),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
+                item {
+                    Text(
+                        stringResource(R.string.home_support_privacy_note),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        } else {
+            summary.visibleHomeSections.forEach { section ->
+                val loadState = summary.loadState(section)
+                val hasPartialEvidence = when (section) {
+                    HomeSection.Tasks -> summary.dueTasks > 0
+                    HomeSection.Habits -> summary.dueHabits > 0
+                    HomeSection.Goals -> summary.activeGoals > 0
+                    HomeSection.Tracks -> summary.pinnedTracks > 0
+                    HomeSection.Gym -> summary.activeWorkout
+                }
+                if (loadState == AdaptiveLoadState.Ready || hasPartialEvidence) {
+                    item(key = "home-support-summary-${section.name}") {
+                        when (section) {
+                            HomeSection.Tasks -> AdaptiveSummaryCard(stringResource(R.string.support_tasks_title), summary.dueTasks.toString(), AppDestination.Tasks, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Tasks) })
+                            HomeSection.Habits -> AdaptiveSummaryCard(stringResource(R.string.home_support_habits_remaining), summary.dueHabits.toString(), AppDestination.Habits, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Habits) })
+                            HomeSection.Goals -> AdaptiveSummaryCard(stringResource(R.string.support_goals_title), summary.activeGoals.toString(), AppDestination.Goals, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Goals) })
+                            HomeSection.Tracks -> AdaptiveSummaryCard(stringResource(R.string.home_support_pinned_tracks), summary.pinnedTracks.toString(), AppDestination.Tracks, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Tracks) })
+                            HomeSection.Gym -> AdaptiveSummaryCard(stringResource(R.string.home_support_workout), stringResource(if (summary.activeWorkout) R.string.state_in_progress else R.string.state_ready), AppDestination.Gym, Modifier.fillMaxWidth(), onClick = { onSelect(AppDestination.Gym) })
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdaptiveLoadNotice(
+    domain: String,
+    loadState: AdaptiveLoadState,
+    onRetry: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
+    when (loadState) {
+        AdaptiveLoadState.Loading -> WhipNoticeCard(
+            title = stringResource(R.string.support_domain_loading_title, domain),
+            message = stringResource(R.string.support_domain_loading_message, domain),
+            tone = WhipNoticeTone.Informative,
+            modifier = modifier,
+        )
+        is AdaptiveLoadState.Failed -> WhipNoticeCard(
+            title = stringResource(R.string.home_domain_unavailable, domain),
+            message = loadState.message,
+            tone = WhipNoticeTone.Error,
+            actionLabel = onRetry?.let { stringResource(R.string.action_try_again) },
+            onAction = onRetry,
+            modifier = modifier,
+        )
+        AdaptiveLoadState.Ready -> Unit
     }
 }
 
 @Composable
 private fun DestinationSupportPane(
     title: String,
+    domain: String,
     supportingText: String,
     items: List<SupportPaneItem>,
     emptyText: String,
+    loadState: AdaptiveLoadState,
+    statusTagPrefix: String,
+    onRetry: () -> Unit,
     onOpen: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -3428,9 +3953,17 @@ private fun DestinationSupportPane(
     ) {
         SupportPaneTitle(title)
         Text(supportingText, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (items.isEmpty()) {
-            Text(emptyText, modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        } else {
+        if (loadState != AdaptiveLoadState.Ready) {
+            AdaptiveLoadNotice(
+                domain = domain,
+                loadState = loadState,
+                onRetry = onRetry,
+                modifier = Modifier.testTag(
+                    "$statusTagPrefix-${if (loadState == AdaptiveLoadState.Loading) "loading" else "error"}",
+                ),
+            )
+        }
+        if (items.isNotEmpty()) {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -3443,6 +3976,12 @@ private fun DestinationSupportPane(
                     )
                 }
             }
+        } else if (loadState == AdaptiveLoadState.Ready) {
+            Text(
+                emptyText,
+                modifier = Modifier.padding(vertical = 12.dp).testTag("$statusTagPrefix-empty"),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -3451,6 +3990,8 @@ private fun DestinationSupportPane(
 private fun TrackSupportPane(
     projections: List<TrackProjection>,
     selectedTrackId: Long?,
+    loadState: AdaptiveLoadState,
+    onRetry: () -> Unit,
     onSelect: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -3459,10 +4000,18 @@ private fun TrackSupportPane(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         SupportPaneTitle(stringResource(R.string.nav_tracks))
-        Text("Choose a Track to view its Entries and Automations.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (projections.isEmpty()) {
-            WhipEmptyState("No Tracks Yet", "Create a Track from the content pane.")
-        } else {
+        Text(stringResource(R.string.support_tracks_description), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (loadState != AdaptiveLoadState.Ready) {
+            AdaptiveLoadNotice(
+                domain = stringResource(R.string.nav_tracks),
+                loadState = loadState,
+                onRetry = onRetry,
+                modifier = Modifier.testTag(
+                    "track-support-${if (loadState == AdaptiveLoadState.Loading) "loading" else "error"}",
+                ),
+            )
+        }
+        if (projections.isNotEmpty()) {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f).testTag("track-support-list"),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -3497,11 +4046,17 @@ private fun TrackSupportPane(
                                     maxLines = 2,
                                 )
                             }
-                            Icon(Icons.Outlined.ChevronRight, contentDescription = null)
+                            Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
                         }
                     }
                 }
             }
+        } else if (loadState == AdaptiveLoadState.Ready) {
+            WhipEmptyState(
+                stringResource(R.string.support_tracks_empty_title),
+                stringResource(R.string.support_tracks_empty_message),
+                modifier = Modifier.testTag("track-support-empty"),
+            )
         }
     }
 }
@@ -3509,6 +4064,8 @@ private fun TrackSupportPane(
 @Composable
 private fun TrackOverviewSupportPane(
     state: TrackUiState,
+    loadState: AdaptiveLoadState,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val activeTrackIds = state.active.mapTo(mutableSetOf()) { it.track.id }
@@ -3526,15 +4083,25 @@ private fun TrackOverviewSupportPane(
             .testTag("track-overview-support"),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        SupportPaneTitle("Track Overview")
-        Text("Across the current Area scope.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Card(Modifier.fillMaxWidth()) {
+        SupportPaneTitle(stringResource(R.string.support_track_overview_title))
+        Text(stringResource(R.string.support_track_overview_description), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (loadState != AdaptiveLoadState.Ready) {
+            AdaptiveLoadNotice(
+                domain = stringResource(R.string.nav_tracks),
+                loadState = loadState,
+                onRetry = onRetry,
+                modifier = Modifier.testTag(
+                    "track-overview-support-${if (loadState == AdaptiveLoadState.Loading) "loading" else "error"}",
+                ),
+            )
+        }
+        if (loadState == AdaptiveLoadState.Ready || state.active.isNotEmpty()) Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 listOf(
-                    "Active Tracks" to state.active.size.toString(),
-                    "Entries" to state.active.sumOf { it.entries.size }.toString(),
-                    "Goal Automations" to progressRules.toString(),
-                    "Next-Action Automations" to actionRules.toString(),
+                    stringResource(R.string.support_active_tracks) to state.active.size.toString(),
+                    stringResource(R.string.support_entries) to state.active.sumOf { it.entries.size }.toString(),
+                    stringResource(R.string.support_goal_automations) to progressRules.toString(),
+                    stringResource(R.string.support_next_action_automations) to actionRules.toString(),
                 ).forEach { (label, value) ->
                     Row(Modifier.fillMaxWidth()) {
                         Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -3546,7 +4113,7 @@ private fun TrackOverviewSupportPane(
         state.active.mapNotNull { projection ->
             projection.entries.maxByOrNull { it.entry.createdAtMillis }?.let { projection to it }
         }.maxByOrNull { it.second.entry.createdAtMillis }?.let { (projection, entry) ->
-            Text("Recently Active", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.support_recently_active), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
                 "${projection.track.icon} ${projection.track.name} · ${projection.primaryText(entry)}",
                 maxLines = 3,
@@ -3592,7 +4159,7 @@ private fun SettingsSupportPane(
                             Text(section.label, fontWeight = FontWeight.SemiBold)
                             Text(section.supportingText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3)
                         }
-                        Icon(Icons.Outlined.ChevronRight, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
                     }
                 }
             }
@@ -3611,10 +4178,14 @@ private fun FoldContextPane(
     navigationEnabled: Boolean = true,
 ) {
     val cards = listOf(
-        Triple(AppDestination.Tasks, "Tasks Today", summary.dueTasks.toString()),
-        Triple(AppDestination.Habits, "Habits Remaining", summary.dueHabits.toString()),
-        Triple(AppDestination.Goals, "Active Goals", summary.activeGoals.toString()),
-        Triple(AppDestination.Gym, "Workout", if (summary.activeWorkout) "In progress" else "Ready"),
+        Triple(AppDestination.Tasks, stringResource(R.string.support_tasks_title), summary.dueTasks.toString()),
+        Triple(AppDestination.Habits, stringResource(R.string.home_support_habits_remaining), summary.dueHabits.toString()),
+        Triple(AppDestination.Goals, stringResource(R.string.support_goals_title), summary.activeGoals.toString()),
+        Triple(
+            AppDestination.Gym,
+            stringResource(R.string.home_support_workout),
+            stringResource(if (summary.activeWorkout) R.string.state_in_progress else R.string.state_ready),
+        ),
     )
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -3628,7 +4199,10 @@ private fun FoldContextPane(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            SupportPaneTitle(if (selected == AppDestination.Home) "Today" else selected.label)
+            SupportPaneTitle(
+                if (selected == AppDestination.Home) stringResource(R.string.home_support_today_title)
+                else selected.label,
+            )
             Text(
                 summary.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -3642,6 +4216,15 @@ private fun FoldContextPane(
                 else -> emptyList()
             }
             if (selected == AppDestination.Gym) {
+                if (summary.gymLoadState != AdaptiveLoadState.Ready) {
+                    AdaptiveLoadNotice(
+                        domain = "Gym",
+                        loadState = summary.gymLoadState,
+                        modifier = Modifier.testTag(
+                            "support-pane-gym-${if (summary.gymLoadState == AdaptiveLoadState.Loading) "loading" else "error"}",
+                        ),
+                    )
+                }
                 if (contextLines.isNotEmpty()) {
                     Text(summary.gymContextTitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Column(
@@ -3744,23 +4327,15 @@ private fun AdaptiveSummaryCard(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
-    androidx.compose.material3.Card(
+    WhipMetricTile(
+        label = label,
+        value = value,
+        onClickLabel = "Open ${destination.label}",
+        onClick = onClick,
+        enabled = enabled,
         modifier = modifier
-            .widthIn(min = 150.dp)
-            .clickable(enabled = enabled, onClickLabel = "Open ${destination.label}", onClick = onClick)
-            .semantics {
-                contentDescription = if (enabled) "$label: $value. Open ${destination.label}"
-                else "$label: $value. Navigation unavailable while editing a routine"
-            },
-    ) {
-        Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Icon(Icons.Outlined.ChevronRight, contentDescription = null)
-        }
-    }
+            .widthIn(min = 150.dp),
+    )
 }
 
 @Composable
@@ -3804,6 +4379,11 @@ private fun HomeContent(
     showFullHeader: Boolean = true,
     areaScopeLabel: String? = null,
     onShowAllAreas: () -> Unit = {},
+    onRetryTaskLoading: () -> Unit = {},
+    onRetryHabitLoading: () -> Unit = {},
+    onRetryGoalLoading: () -> Unit = {},
+    onRetryTrackLoading: () -> Unit = {},
+    onRetryGymLoading: () -> Unit = {},
 ) {
     val homeTaskFilter = appSettings.savedTaskFilters.firstOrNull { it.name == appSettings.homeTaskFilterName }
     val homeTasks = state.today.filter { homeTaskFilter == null || it.matches(homeTaskFilter, state.currentDate, appSettings.zoneId()) }
@@ -3834,6 +4414,32 @@ private fun HomeContent(
         knownHomeDoneHabitIds = homeDoneHabitIds
     }
     val visibleHomeSections = appSettings.visibleHomeSections()
+    val allVisibleHomeDomainsSettled = visibleHomeSections.all { section ->
+        when (section) {
+            HomeSection.Tasks -> !state.loading
+            HomeSection.Habits -> !habitState.loading
+            HomeSection.Goals -> !goalState.loading
+            HomeSection.Tracks -> !trackState.loading
+            HomeSection.Gym -> !gymState.loading
+        }
+    }
+    val hasVisibleHomeDomainError = visibleHomeSections.any { section ->
+        when (section) {
+            HomeSection.Tasks -> state.errorMessage != null
+            HomeSection.Habits -> habitState.errorMessage != null
+            HomeSection.Goals -> goalState.errorMessage != null
+            HomeSection.Tracks -> trackState.errorMessage != null
+            HomeSection.Gym -> gymState.errorMessage != null
+        }
+    }
+    val emptyStateEligible = homeEmptyStateEligible(
+        visibleHomeSections,
+        state,
+        habitState,
+        goalState,
+        trackState,
+        gymState,
+    )
     val hasHomeContent =
         (HomeSection.Tasks in visibleHomeSections && homeTasks.isNotEmpty()) ||
             (HomeSection.Habits in visibleHomeSections && habitState.today.isNotEmpty()) ||
@@ -3845,16 +4451,7 @@ private fun HomeContent(
             habitState.logs.isNotEmpty() ||
             (goalState.active + goalState.completed + goalState.archived).any { it.entries.isNotEmpty() } ||
             gymState.history.any { it.state == com.whip.app.domain.WorkoutSessionState.Finished }
-    val hasAnyUserData =
-        (state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived).isNotEmpty() ||
-            habitState.all.isNotEmpty() || habitState.today.isNotEmpty() || habitState.archived.isNotEmpty() ||
-            habitState.logs.isNotEmpty() ||
-            (goalState.active + goalState.completed + goalState.archived).isNotEmpty() ||
-            trackState.projections.isNotEmpty() ||
-            gymState.activeSession != null || gymState.allSessions.isNotEmpty() ||
-            gymState.exercises.isNotEmpty() || gymState.archivedExercises.isNotEmpty() ||
-            gymState.machines.isNotEmpty() || gymState.archivedMachines.isNotEmpty() ||
-            gymState.routines.isNotEmpty() || gymState.archivedRoutines.isNotEmpty()
+    val hasAnyUserData = homeHasAnyUserData(state, habitState, goalState, trackState, gymState)
     val showGettingStarted = shouldShowHomeGettingStarted(hasAnyUserData)
     LazyColumn(
         modifier = Modifier
@@ -3884,13 +4481,13 @@ private fun HomeContent(
         if (hasReviewEvidence) {
             item { NavigationRow("Review & Trends", onOpenReview, supportingText = "Reflect on outcomes and recent progress.") }
         }
-        if (!hasHomeContent) {
+        if (!hasHomeContent && emptyStateEligible) {
             if (hasReviewEvidence) {
                 item {
                     WhipEmptyState(
-                        title = "Your Day Is Clear",
-                        supportingText = "Nothing needs attention right now. Review your progress or plan what comes next.",
-                        primaryActionLabel = "Review Progress",
+                        title = stringResource(R.string.home_support_clear_title),
+                        supportingText = stringResource(R.string.home_clear_review_message),
+                        primaryActionLabel = stringResource(R.string.home_clear_review_action),
                         onPrimaryAction = onOpenReview,
                     )
                 }
@@ -3908,18 +4505,21 @@ private fun HomeContent(
             } else {
                 item {
                     WhipEmptyState(
-                        title = "Your Day Is Clear",
-                        supportingText = "Nothing needs attention right now. Your existing Tasks, Habits, Goals, Tracks, and Gym plans remain available from navigation.",
+                        title = stringResource(R.string.home_support_clear_title),
+                        supportingText = stringResource(R.string.home_clear_existing_message),
                     )
                 }
             }
         }
-        if (hasHomeContent) visibleHomeSections.forEach { section ->
+        if (hasHomeContent || !allVisibleHomeDomainsSettled || hasVisibleHomeDomainError) visibleHomeSections.forEach { section ->
             val collapsed = section in appSettings.collapsedHomeSections
             when (section) {
                 HomeSection.Tasks -> {
                     item { SectionHeading("Tasks", homeTasks.size, onOpenTasks) }
-                    if (!collapsed) {
+                    if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                    else if (state.errorMessage != null) item {
+                        HomeDomainLoadNotice("Tasks", state.errorMessage, onRetryTaskLoading)
+                    } else if (!collapsed) {
                         if (appSettings.savedTaskFilters.isNotEmpty()) item {
                             FlowRow(
                                 Modifier.fillMaxWidth(),
@@ -3932,8 +4532,7 @@ private fun HomeContent(
                                 }
                             }
                         }
-                        if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
-                        else if (homeTasks.isEmpty()) item {
+                        if (homeTasks.isEmpty()) item {
                             Text(
                                 if (homeTaskFilter == null) {
                                     areaScopeLabel?.let { "No tasks are scheduled or carried over in $it today." }
@@ -3972,7 +4571,10 @@ private fun HomeContent(
                 }
                 HomeSection.Habits -> {
                     item { SectionHeading("Habits", homeHabitSections.remaining.size, onOpenHabits) }
-                    if (!collapsed) {
+                    if (habitState.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                    else if (habitState.errorMessage != null) item {
+                        HomeDomainLoadNotice("Habits", habitState.errorMessage, onRetryHabitLoading)
+                    } else if (!collapsed) {
                         if (habitState.today.isEmpty()) item { HomeStatusCard(areaScopeLabel?.let { "No habits due in $it" } ?: "No habits due", "Create a habit on the Habits screen.", onOpenHabits) }
                         if (homePinnedHabits.isNotEmpty()) item {
                             HomeItemGroupHeading("Pinned and due", homePinnedHabits.size, pinned = true, testTag = "home-pinned-habits")
@@ -4041,7 +4643,10 @@ private fun HomeContent(
                 }
                 HomeSection.Goals -> {
                     item { SectionHeading("Goals", goalState.active.size, onOpenGoals) }
-                    if (!collapsed) {
+                    if (goalState.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                    else if (goalState.errorMessage != null) item {
+                        HomeDomainLoadNotice("Goals", goalState.errorMessage, onRetryGoalLoading)
+                    } else if (!collapsed) {
                         if (goalState.active.isEmpty()) item { HomeStatusCard(areaScopeLabel?.let { "No active goals in $it" } ?: "No active goals", "Create a measurable or milestone goal.", onOpenGoals) }
                         if (homePinnedGoals.isNotEmpty()) item {
                             HomeItemGroupHeading("Pinned goals", homePinnedGoals.size, pinned = true, testTag = "home-pinned-goals")
@@ -4074,9 +4679,12 @@ private fun HomeContent(
                     }
                 }
                 HomeSection.Tracks -> {
-                    if (trackState.pinned.isNotEmpty()) {
+                    if (trackState.loading || trackState.errorMessage != null || trackState.pinned.isNotEmpty()) {
                         item { SectionHeading("Quick Log", trackState.pinned.size, onOpenTracks) }
-                        if (!collapsed) {
+                        if (trackState.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                        else if (trackState.errorMessage != null) item {
+                            HomeDomainLoadNotice("Tracks", trackState.errorMessage, onRetryTrackLoading)
+                        } else if (!collapsed) {
                             items(trackState.pinned, key = { "home-track-${it.track.id}" }) { projection ->
                                 TrackRow(
                                     projection = projection,
@@ -4097,18 +4705,19 @@ private fun HomeContent(
                             onOpenGym,
                         )
                     }
-                    if (!collapsed) {
+                    if (gymState.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                    else if (gymState.errorMessage != null) item {
+                        HomeDomainLoadNotice("Gym", gymState.errorMessage, onRetryGymLoading)
+                    } else if (!collapsed) {
                         item {
                             val active = gymState.activeSession
                             val workoutSummary = gymState.summary
                             HomeStatusCard(
                                 when {
-                                    gymState.loading -> "Loading gym…"
                                     active != null -> active.name.ifBlank { "Active workout" }
                                     else -> "No active workout"
                                 },
                                 when {
-                                    gymState.loading -> "Preparing workouts and history."
                                     workoutSummary != null -> with(workoutSummary) {
                                         "$completedSetCount sets · $repetitions reps · " +
                                             "${massFromKilograms(volumeKg, appSettings.gymWeightUnitId).toInt()} " +
@@ -4119,7 +4728,7 @@ private fun HomeContent(
                                 onOpenGym,
                             )
                         }
-                        if (!gymState.loading && gymState.activeSession == null) {
+                        if (gymState.activeSession == null) {
                             items(pinnedRoutines, key = { "pinned-routine-${it.id}" }) { routine ->
                                 val days = gymState.routineDays.filter { it.routineId == routine.id }.sortedBy { it.position }
                                 if (days.size <= 1) {
@@ -4150,6 +4759,22 @@ private fun HomeContent(
             }
         }
     }
+}
+
+@Composable
+private fun HomeDomainLoadNotice(
+    domain: String,
+    errorMessage: String,
+    onRetry: () -> Unit,
+) {
+    WhipNoticeCard(
+        title = stringResource(R.string.home_domain_unavailable, domain),
+        message = errorMessage,
+        tone = WhipNoticeTone.Error,
+        actionLabel = stringResource(R.string.action_try_again),
+        onAction = onRetry,
+        modifier = Modifier.testTag("home-${domain.lowercase()}-load-error"),
+    )
 }
 
 @Composable
@@ -4301,10 +4926,10 @@ private fun HomeComponentCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClickLabel = "Open $title", role = Role.Button, onClick = onClick),
+    WhipCollectionCard(
+        modifier = modifier,
+        onClick = onClick,
+        onClickLabel = "Open $title",
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
@@ -4331,7 +4956,7 @@ private fun HomeComponentCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Icon(Icons.Outlined.ChevronRight, contentDescription = null)
+            Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
         }
     }
 }
@@ -4380,7 +5005,12 @@ private fun TaskAreaContent(
     onSelectionModeChange: (Boolean) -> Unit = {},
     onReorderModeChange: (Boolean) -> Unit = {},
     reorderDismissRequest: Int = 0,
+    onRetryLoading: () -> Unit = {},
 ) {
+    if (state.loading || state.errorMessage != null) {
+        DomainLoadContent("tasks", innerPadding, state.errorMessage, onRetryLoading)
+        return
+    }
     val dialogModifier = modifier
     var planningView by rememberSaveable { mutableStateOf(TaskPlanningView.List) }
     var historySection by rememberSaveable {
@@ -4415,6 +5045,7 @@ private fun TaskAreaContent(
     var enterReorderWhenReady by rememberSaveable { mutableStateOf(false) }
     var selectionActionsOpen by rememberSaveable { mutableStateOf(false) }
     var selectedKeys by rememberSaveable { mutableStateOf(emptySet<String>()) }
+    var pendingBulkCompleteKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
     var archivePreviewKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
     var deletePreviewTaskIds by rememberSaveable { mutableStateOf<Set<Long>?>(null) }
     var bulkEditOpen by rememberSaveable { mutableStateOf(false) }
@@ -4456,6 +5087,7 @@ private fun TaskAreaContent(
         enterReorderWhenReady = false
         selectionActionsOpen = false
         selectedKeys = emptySet()
+        pendingBulkCompleteKeys = null
         dateMode = when (destination) {
             TaskDestination.Completed -> dateMode.takeIf { it in setOf("Any", "Today", "Last7Days") } ?: "Any"
             TaskDestination.Archived -> "Any"
@@ -4643,6 +5275,7 @@ private fun TaskAreaContent(
     }
 
     fun finishSelection() {
+        pendingBulkCompleteKeys = null
         selectionMode = false
         selectionActionsOpen = false
         selectedKeys = emptySet()
@@ -4804,7 +5437,15 @@ private fun TaskAreaContent(
                                 ) { Text("Restore", maxLines = 1) }
                                 else -> WhipButton(
                                     enabled = selectedItems.isNotEmpty(),
-                                    onClick = { onBulkComplete(selectedItems); finishSelection() },
+                                    onClick = {
+                                        val completionItems = selectedItems.distinctBy(ScheduledTask::stableKey)
+                                        if (completionItems.any { item -> item.subtasks.any { !it.completed } }) {
+                                            pendingBulkCompleteKeys = completionItems.mapTo(linkedSetOf(), ScheduledTask::stableKey)
+                                        } else {
+                                            onBulkComplete(completionItems)
+                                            finishSelection()
+                                        }
+                                    },
                                     modifier = actionModifier.testTag("task-selection-complete"),
                                 ) { Text("Complete", maxLines = 1) }
                             }
@@ -5087,13 +5728,19 @@ private fun TaskAreaContent(
                             filtered.forEach { candidate ->
                                 val checked = candidate.stableKey in selected
                                 Row(
-                                    Modifier.fillMaxWidth().clickable {
-                                        dayPlanCandidateKeys = if (checked) selected - candidate.stableKey
-                                        else selected + candidate.stableKey
-                                    },
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(min = 48.dp)
+                                        .toggleable(
+                                            value = checked,
+                                            role = Role.Checkbox,
+                                            onValueChange = {
+                                                dayPlanCandidateKeys = if (checked) selected - candidate.stableKey
+                                                else selected + candidate.stableKey
+                                            },
+                                        ),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Checkbox(checked, null)
                                     Column(Modifier.weight(1f)) {
                                         Text(candidate.task.title)
                                         Text(
@@ -5108,6 +5755,12 @@ private fun TaskAreaContent(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
+                                    Spacer(Modifier.width(8.dp))
+                                    Checkbox(
+                                        checked = checked,
+                                        onCheckedChange = null,
+                                        modifier = Modifier.clearAndSetSemantics { },
+                                    )
                                 }
                             }
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -5471,6 +6124,53 @@ private fun TaskAreaContent(
                 ) { Text("Save") }
             },
             dismissButton = { WhipTextButton(onClick = { saveFilterOpen = false }) { Text("Cancel") } },
+        )
+    }
+    pendingBulkCompleteKeys?.let { keys ->
+        val completionItems = allTasks
+            .filter { it.stableKey in keys }
+            .distinctBy(ScheduledTask::stableKey)
+        val tasksWithUnfinishedSubtasks = completionItems.count { item -> item.subtasks.any { !it.completed } }
+        val unfinishedSubtaskCount = completionItems.sumOf { item -> item.subtasks.count { !it.completed } }
+        val unfinishedSummary = pluralStringResource(
+            R.plurals.task_bulk_unfinished_subtasks,
+            unfinishedSubtaskCount,
+            unfinishedSubtaskCount,
+        )
+        val taskSummary = pluralStringResource(
+            R.plurals.task_bulk_selected_tasks,
+            tasksWithUnfinishedSubtasks,
+            tasksWithUnfinishedSubtasks,
+        )
+        PaneAwareAlertDialog(
+            modifier = dialogModifier.testTag("task-bulk-completion-review"),
+            onDismissRequest = { pendingBulkCompleteKeys = null },
+            title = { Text(stringResource(R.string.task_bulk_completion_review_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.task_bulk_completion_review_message,
+                        unfinishedSummary,
+                        taskSummary,
+                    ),
+                )
+            },
+            confirmButton = {
+                WhipTextButton(
+                    enabled = completionItems.isNotEmpty() && unfinishedSubtaskCount > 0,
+                    onClick = {
+                        onBulkComplete(completionItems)
+                        finishSelection()
+                    },
+                    modifier = Modifier.testTag("confirm-task-bulk-completion"),
+                ) { Text(stringResource(R.string.action_complete_anyway)) }
+            },
+            dismissButton = {
+                WhipTextButton(
+                    onClick = { pendingBulkCompleteKeys = null },
+                    modifier = Modifier.testTag("cancel-task-bulk-completion"),
+                ) { Text(stringResource(R.string.action_keep_working)) }
+            },
         )
     }
     archivePreviewKeys?.let { keys ->
@@ -6006,17 +6706,16 @@ private fun HomeItemGroupHeading(
 
 @Composable
 private fun HomeStatusCard(title: String, detail: String, onClick: (() -> Unit)? = null) {
-    androidx.compose.material3.Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (onClick == null) Modifier else Modifier.clickable(onClickLabel = "Open $title", onClick = onClick)),
+    WhipCollectionCard(
+        onClick = onClick,
+        onClickLabel = "Open $title",
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(title, fontWeight = FontWeight.SemiBold)
                 Text(detail, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (onClick != null) Icon(Icons.Outlined.ChevronRight, contentDescription = null)
+            if (onClick != null) Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
         }
     }
 }
@@ -6064,7 +6763,7 @@ internal fun TodayHeader(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f).padding(start = 8.dp),
                 )
-                Icon(Icons.Outlined.ChevronRight, contentDescription = null)
+                Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
             }
         }
         if (taskTotal > 0 && habitTotal > 0) Spacer(Modifier.height(4.dp))
@@ -6089,7 +6788,7 @@ internal fun TodayHeader(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f).padding(start = 8.dp),
                     )
-                    Icon(Icons.Outlined.ChevronRight, contentDescription = null)
+                    Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
                 }
                 LinearProgressIndicator(
                     progress = { habitProgress },

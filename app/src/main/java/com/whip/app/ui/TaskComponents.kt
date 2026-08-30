@@ -45,7 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.automirrored.outlined.NavigateNext
 import com.whip.app.domain.RecurrenceEnd
 import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.RecurrenceAnchor
@@ -82,7 +82,7 @@ fun SectionHeading(title: String, count: Int, onClick: (() -> Unit)? = null) {
                     style = MaterialTheme.typography.labelMedium,
                 )
             }
-            if (onClick != null) Icon(Icons.Outlined.ChevronRight, contentDescription = null)
+            if (onClick != null) Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
         }
     }
 }
@@ -264,21 +264,11 @@ private fun TaskSubtaskCompletionRow(
     onToggle: () -> Unit,
     onConvert: () -> Unit,
 ) {
-    val actionDescription = if (subtask.completed) {
-        "Mark Subtask ${subtask.step.title} incomplete"
-    } else "Complete Subtask ${subtask.step.title}"
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .testTag("task-subtask-row-${subtask.step.id}")
-            .toggleable(
-                value = subtask.completed,
-                enabled = !archived,
-                role = Role.Checkbox,
-                onValueChange = { onToggle() },
-            )
-            .semantics { contentDescription = actionDescription },
+            .testTag("task-subtask-row-${subtask.step.id}"),
     ) {
         val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
         if (stacked) {
@@ -289,7 +279,7 @@ private fun TaskSubtaskCompletionRow(
                 ) {
                     TaskSubtaskText(subtask, Modifier.weight(1f))
                     Spacer(Modifier.width(8.dp))
-                    TaskSubtaskCheckbox(subtask, archived)
+                    TaskSubtaskCheckbox(subtask, archived, onToggle)
                 }
                 WhipTextButton(
                     enabled = !archived,
@@ -306,13 +296,13 @@ private fun TaskSubtaskCompletionRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 TaskSubtaskText(subtask, Modifier.weight(1f))
-                Spacer(Modifier.width(8.dp))
-                TaskSubtaskCheckbox(subtask, archived)
                 WhipTextButton(
                     enabled = !archived,
                     onClick = onConvert,
                     modifier = Modifier.testTag("task-subtask-convert-${subtask.step.id}"),
                 ) { Text("Convert to Task") }
+                Spacer(Modifier.width(8.dp))
+                TaskSubtaskCheckbox(subtask, archived, onToggle)
             }
         }
     }
@@ -344,9 +334,22 @@ private fun TaskSubtaskText(
 private fun TaskSubtaskCheckbox(
     subtask: com.whip.app.domain.ScheduledSubtask,
     archived: Boolean,
+    onToggle: () -> Unit,
 ) {
+    val actionDescription = if (subtask.completed) {
+        "Mark Subtask ${subtask.step.title} incomplete"
+    } else "Complete Subtask ${subtask.step.title}"
     Box(
-        modifier = Modifier.size(48.dp).testTag("task-subtask-check-${subtask.step.id}"),
+        modifier = Modifier
+            .size(48.dp)
+            .testTag("task-subtask-check-${subtask.step.id}")
+            .toggleable(
+                value = subtask.completed,
+                enabled = !archived,
+                role = Role.Checkbox,
+                onValueChange = { onToggle() },
+            )
+            .semantics { contentDescription = actionDescription },
         contentAlignment = Alignment.Center,
     ) {
         WhipCompletionCheckbox(
@@ -386,6 +389,7 @@ fun TaskActionsDialog(
         emoji = item.task.icon,
         context = item.inspectorContext(),
         status = item.inspectorStatus(completed = false),
+        statusTone = item.inspectorStatusTone(completed = false),
         sections = TaskDetailSection.entries.map { it.inspectorSection },
         selectedSectionId = section.id,
         onSelectSection = { id -> section = TaskDetailSection.entries.first { it.id == id } },
@@ -577,6 +581,7 @@ fun CompletedTaskDialog(
         emoji = item.task.icon,
         context = item.inspectorContext(),
         status = item.inspectorStatus(completed = true),
+        statusTone = item.inspectorStatusTone(completed = true),
         sections = TaskDetailSection.entries.map { it.inspectorSection },
         selectedSectionId = section.id,
         onSelectSection = { id -> section = TaskDetailSection.entries.first { it.id == id } },
@@ -724,7 +729,7 @@ private fun SeriesHistory(
 
 private const val SERIES_HISTORY_PAGE_SIZE = 20
 
-private fun ScheduledTask.inspectorStatus(completed: Boolean): String = when {
+internal fun ScheduledTask.inspectorStatus(completed: Boolean): String = when {
     task.archived -> "Archived"
     completed -> "Completed"
     isDeadlineOverdue -> "Deadline overdue"
@@ -732,6 +737,16 @@ private fun ScheduledTask.inspectorStatus(completed: Boolean): String = when {
     task.scheduleKind == ScheduleKind.Anytime -> "Ready in Inbox"
     task.scheduleKind == ScheduleKind.Recurring -> "Active series"
     else -> "Scheduled"
+}
+
+internal fun ScheduledTask.inspectorStatusTone(completed: Boolean): WhipStatusTone = when {
+    task.archived -> WhipStatusTone.Neutral
+    completed -> WhipStatusTone.Success
+    isDeadlineOverdue -> WhipStatusTone.Destructive
+    isPastScheduledDate -> WhipStatusTone.Warning
+    task.scheduleKind == ScheduleKind.Anytime -> WhipStatusTone.Neutral
+    task.scheduleKind == ScheduleKind.Recurring -> WhipStatusTone.Info
+    else -> WhipStatusTone.Info
 }
 
 private fun ScheduledTask.inspectorContext(): String = task.area.ifBlank {

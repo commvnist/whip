@@ -76,3 +76,9 @@ internal fun availableWidgetHeight(
 } else {
     maxHeightDp.takeIf { it > 0 } ?: minHeightDp
 }
+
+internal fun useCompactWidgetHeader(availableHeightDp: Int, fontScale: Float): Boolean =
+    availableHeightDp in 1 until 200 || fontScale >= 1.5f
+
+/** At extreme scaling the secondary line would consume the minimum widget's collection viewport. */
+internal fun useSingleLineWidgetRows(fontScale: Float): Boolean = fontScale >= 2f

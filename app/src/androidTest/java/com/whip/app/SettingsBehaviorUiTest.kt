@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -153,11 +154,17 @@ class SettingsBehaviorUiTest {
     }
 
     @Test
-    fun resettingWhipReturnsHomeBeforeFirstRunSetupCompletes() {
+    fun rapidDoubleTapOnResetSubmitsOnlyOneDestructiveOperationAndReturnsHome() {
         openSettingsSection("Data & Privacy")
         compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("reset-whip-action"))
         compose.onNodeWithTag("reset-whip-action").performClick()
-        compose.onNodeWithTag("confirm-reset-whip").performClick()
+        compose.onNodeWithTag("confirm-reset-whip").performTouchInput {
+            down(center)
+            up()
+            advanceEventTime(40)
+            down(center)
+            up()
+        }
 
         compose.waitUntil { !app.settingsRepository.current().setupCompleted }
         compose.onNodeWithText("Welcome to Whip").assertIsDisplayed()

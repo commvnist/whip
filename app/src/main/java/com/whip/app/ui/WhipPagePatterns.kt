@@ -1,10 +1,12 @@
 package com.whip.app.ui
 
+import com.whip.app.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -18,17 +20,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.NavigateNext
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -38,7 +49,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
@@ -266,12 +279,15 @@ internal fun <T> WhipViewAndFilterRow(
                 ) {
                     Icon(Icons.Outlined.FilterAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(WhipSpacing.sibling))
-                    Text(if (filterCount > 0) "Filter · $filterCount" else "Filter")
+                    Text(
+                        if (filterCount > 0) stringResource(R.string.filter_count, filterCount)
+                        else stringResource(R.string.action_filter),
+                    )
                 }
             } else {
                 WhipPageIconAction(
                     icon = Icons.Outlined.FilterAlt,
-                    label = "Filter",
+                    label = stringResource(R.string.action_filter),
                     onClick = onOpenFilters,
                     badgeCount = filterCount,
                     active = filterCount > 0,
@@ -308,13 +324,13 @@ internal fun WhipActiveFilterRow(
                 trailingIcon = {
                     Icon(
                         Icons.Outlined.Close,
-                        contentDescription = "Remove ${filter.label}",
+                        contentDescription = stringResource(R.string.action_remove_filter, filter.label),
                         modifier = Modifier.size(18.dp),
                     )
                 },
             )
         }
-        WhipTextButton(onClick = onClearAll) { Text("Clear All") }
+        WhipTextButton(onClick = onClearAll) { Text(stringResource(R.string.action_clear_all)) }
     }
 }
 
@@ -385,6 +401,125 @@ internal fun WhipSection(
     }
 }
 
+/** Canonical low-emphasis surface for a tappable or display-only collection item. */
+@Composable
+internal fun WhipCollectionCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    enabled: Boolean = true,
+    onClickLabel: String? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+    if (onClick == null) {
+        Card(modifier = modifier.fillMaxWidth(), colors = colors, content = content)
+    } else {
+        Card(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = modifier
+                .fillMaxWidth()
+                .semantics { onClickLabel?.let { contentDescription = it } },
+            colors = colors,
+            content = content,
+        )
+    }
+}
+
+/** A compact, consistent dashboard metric with a predictable trailing affordance. */
+@Composable
+internal fun WhipMetricTile(
+    label: String,
+    value: String,
+    onClickLabel: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val unavailableDescription = stringResource(
+        R.string.navigation_unavailable_while_editing,
+        label,
+        value,
+    )
+    Card(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+            .widthIn(min = 150.dp)
+            .semantics {
+                contentDescription = if (enabled) "$label: $value. $onClickLabel"
+                else unavailableDescription
+            },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+        Row(
+            Modifier.padding(horizontal = WhipSpacing.compact, vertical = WhipSpacing.compact),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro)) {
+                Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
+        }
+    }
+}
+
+internal enum class WhipNoticeTone { Neutral, Informative, Warning, Error }
+
+/** One semantic grammar for inline dependency, partial-data, warning, and error notices. */
+@Composable
+internal fun WhipNoticeCard(
+    message: String,
+    modifier: Modifier = Modifier,
+    title: String? = null,
+    tone: WhipNoticeTone = WhipNoticeTone.Neutral,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+) {
+    val (containerColor, contentColor) = when (tone) {
+        WhipNoticeTone.Neutral -> MaterialTheme.colorScheme.surfaceContainerLow to MaterialTheme.colorScheme.onSurface
+        WhipNoticeTone.Informative -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+        WhipNoticeTone.Warning -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+        WhipNoticeTone.Error -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+    }
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = containerColor, contentColor = contentColor),
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = WhipSpacing.compact, vertical = WhipSpacing.sibling),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+        ) {
+            title?.let {
+                Text(it, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            }
+            Text(message, style = MaterialTheme.typography.bodySmall)
+            if (actionLabel != null && onAction != null) {
+                WhipTextButton(onClick = onAction, modifier = Modifier.align(Alignment.End)) { Text(actionLabel) }
+            }
+        }
+    }
+}
+
+/** Canonical grouped Settings block for explanatory or multi-control content. */
+@Composable
+internal fun WhipSettingsSectionCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(WhipSpacing.compact),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+            content = content,
+        )
+    }
+}
+
 @Composable
 internal fun WhipSettingsRow(
     title: String,
@@ -427,18 +562,124 @@ internal fun WhipSettingsRow(
     }
 }
 
+/**
+ * A canonical single-choice row. Selection, role, label, and click handling live
+ * on one parent semantics node; the radio indicator is visual-only.
+ */
+@Composable
+internal fun WhipSingleChoiceRow(
+    label: String,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+    supportingText: String? = null,
+    enabled: Boolean = true,
+    accessibilityLabel: String? = null,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .selectable(
+                selected = selected,
+                enabled = enabled,
+                role = Role.RadioButton,
+                onClick = onSelect,
+            )
+            .semantics(mergeDescendants = true) {
+                accessibilityLabel?.let { contentDescription = it }
+            }
+            .heightIn(min = 48.dp)
+            .padding(vertical = WhipSpacing.micro),
+        horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = null,
+            enabled = enabled,
+            modifier = Modifier.clearAndSetSemantics {},
+        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            supportingText?.let {
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/**
+ * A canonical multi-choice row. Checked state and checkbox role are exposed by
+ * the complete row, leaving the control itself decorative for accessibility.
+ */
+@Composable
+internal fun WhipMultiChoiceRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    supportingText: String? = null,
+    enabled: Boolean = true,
+    accessibilityLabel: String? = null,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .toggleable(
+                value = checked,
+                enabled = enabled,
+                role = Role.Checkbox,
+                onValueChange = onCheckedChange,
+            )
+            .semantics(mergeDescendants = true) {
+                accessibilityLabel?.let { contentDescription = it }
+            }
+            .heightIn(min = 48.dp)
+            .padding(vertical = WhipSpacing.micro),
+        horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = null,
+            enabled = enabled,
+            modifier = Modifier.clearAndSetSemantics {},
+        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            supportingText?.let {
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/** Keeps arbitrary option sets scrollable without moving a dialog's title or actions off-screen. */
+@Composable
+internal fun WhipChoiceList(
+    modifier: Modifier = Modifier,
+    content: LazyListScope.() -> Unit,
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxWidth().heightIn(max = 200.dp),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+        content = content,
+    )
+}
+
 @Composable
 internal fun WhipDangerZone(
-    title: String = "Danger Zone",
+    title: String? = null,
     content: @Composable () -> Unit,
 ) = WhipDangerZone(Modifier, title, content)
 
 @Composable
 internal fun WhipDangerZone(
     modifier: Modifier,
-    title: String = "Danger Zone",
+    title: String? = null,
     content: @Composable () -> Unit,
 ) {
+    val resolvedTitle = title ?: stringResource(R.string.danger_zone)
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
@@ -449,7 +690,7 @@ internal fun WhipDangerZone(
             modifier = Modifier.padding(WhipSpacing.standard),
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
         ) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(resolvedTitle, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             content()
         }
     }

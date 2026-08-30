@@ -1,6 +1,8 @@
 package com.whip.app
 
 import android.content.Intent
+import android.os.SystemClock
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
@@ -62,6 +64,38 @@ class NotificationDeepLinkE2ETest {
             compose.onNodeWithTag("habit-detail-surface").assertIsDisplayed()
             compose.onNodeWithTag("habit-detail-section-More").performClick()
             compose.onNodeWithTag("entity-inspector-content-options").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun consumedSecondDeliveryDoesNotReplayAfterActivityRecreation() {
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        device.wakeUp()
+        device.executeShellCommand("wm dismiss-keyguard")
+        val intent = openHabitIntent()
+            .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
+        launchMainActivity(intent).use { scenario ->
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithTag("habit-detail-surface").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithContentDescription("Close Habit details").performClick()
+            compose.onNodeWithContentDescription("Go to Home").performClick()
+
+            ApplicationProvider.getApplicationContext<WhipApplication>().startActivity(openHabitIntent())
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithTag("habit-detail-surface").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithContentDescription("Close Habit details").performClick()
+            compose.onNodeWithContentDescription("Go to Home").performClick()
+
+            scenario.recreate()
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithTag("home-list").fetchSemanticsNodes().isNotEmpty()
+            }
+            val replayWindowEnd = SystemClock.uptimeMillis() + 1_000L
+            compose.waitUntil(5_000) { SystemClock.uptimeMillis() >= replayWindowEnd }
+            compose.onAllNodesWithTag("habit-detail-surface").assertCountEquals(0)
+            compose.onNodeWithTag("home-list").assertIsDisplayed()
         }
     }
 

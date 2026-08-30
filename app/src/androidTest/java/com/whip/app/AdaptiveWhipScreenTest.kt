@@ -35,12 +35,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.ui.GoalUiState
 import com.whip.app.ui.DomainLoadContent
+import com.whip.app.ui.DomainRetryActions
 import com.whip.app.ui.GoalViewModel
 import com.whip.app.ui.GymUiState
 import com.whip.app.ui.GymViewModel
 import com.whip.app.ui.HabitUiState
 import com.whip.app.ui.HabitViewModel
 import com.whip.app.ui.TaskUiState
+import com.whip.app.ui.SettingsUiState
 import com.whip.app.ui.TrackUiState
 import com.whip.app.ui.TrackViewModel
 import com.whip.app.ui.ResponsiveFieldPair
@@ -51,6 +53,8 @@ import com.whip.app.ui.WhipScreen
 import com.whip.app.ui.theme.WhipTheme
 import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
+import com.whip.app.core.AppSettings
+import com.whip.app.core.WhipLaunchActions
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.WhipTask
@@ -76,6 +80,194 @@ import org.junit.runner.RunWith
 class AdaptiveWhipScreenTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun adaptiveHomeWaitsForVisibleDomainsBeforeShowingAStableEmptyState() {
+        val taskState = mutableStateOf(TaskUiState())
+        val habitState = mutableStateOf(HabitUiState())
+        val goalState = mutableStateOf(GoalUiState())
+        val trackState = mutableStateOf(TrackUiState())
+        val gymState = mutableStateOf(GymUiState())
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = taskState.value,
+                    habitState = habitState.value,
+                    goalState = goalState.value,
+                    trackState = trackState.value,
+                    gymState = gymState.value,
+                    settingsState = SettingsUiState(settings = AppSettings(setupCompleted = true)),
+                    adaptiveLayout = WhipAdaptiveLayout.ExpandedDashboard,
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("home-support-tasks-loading").assertIsDisplayed()
+        compose.onAllNodesWithTag("home-support-introduction").assertCountEquals(0)
+        compose.onAllNodesWithTag("home-support-clear-day").assertCountEquals(0)
+
+        compose.runOnIdle {
+            taskState.value = TaskUiState(loading = false)
+            habitState.value = HabitUiState(loading = false)
+            goalState.value = GoalUiState(loading = false)
+            trackState.value = TrackUiState(loading = false)
+            gymState.value = GymUiState(loading = false)
+        }
+        compose.onNodeWithTag("home-support-introduction").assertIsDisplayed()
+        compose.onAllNodesWithTag("home-support-tasks-loading").assertCountEquals(0)
+    }
+
+    @Test
+    fun adaptiveDestinationSupportSeparatesErrorLoadingAndRealEmpty() {
+        val today = LocalDate.of(2026, 8, 29)
+        val partialTask = ScheduledTask(
+            task = WhipTask(
+                id = 77,
+                title = "Cached task",
+                notes = "",
+                scheduleKind = ScheduleKind.Once,
+                date = today,
+                recurrence = null,
+                timeMinutes = null,
+                reminderEnabled = false,
+                archived = false,
+                completedAtMillis = null,
+                createdAtMillis = 1,
+                updatedAtMillis = 1,
+            ),
+            originalDate = today,
+            scheduledDate = today,
+        )
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(
+                        today = listOf(partialTask),
+                        currentDate = today,
+                        loading = false,
+                        errorMessage = "Task refresh failed",
+                    ),
+                    habitState = HabitUiState(loading = true),
+                    goalState = GoalUiState(loading = false),
+                    trackState = TrackUiState(loading = false),
+                    gymState = GymUiState(loading = false),
+                    settingsState = SettingsUiState(settings = AppSettings(setupCompleted = true)),
+                    adaptiveLayout = WhipAdaptiveLayout.ExpandedDashboard,
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Tasks tab").performClick()
+        compose.onNodeWithTag("support-pane-tasks-error").assertIsDisplayed()
+        check(compose.onAllNodesWithText("Task refresh failed").fetchSemanticsNodes().isNotEmpty())
+        check(compose.onAllNodesWithText("Cached Task").fetchSemanticsNodes().isNotEmpty())
+        compose.onAllNodesWithTag("support-pane-tasks-empty").assertCountEquals(0)
+
+        compose.onNodeWithContentDescription("Habits tab").performClick()
+        compose.onNodeWithTag("support-pane-habits-loading").assertIsDisplayed()
+        compose.onAllNodesWithTag("support-pane-habits-empty").assertCountEquals(0)
+
+        compose.onNodeWithContentDescription("Goals tab").performClick()
+        compose.onNodeWithTag("support-pane-goals-empty").assertIsDisplayed()
+        compose.onAllNodesWithTag("support-pane-goals-loading").assertCountEquals(0)
+        compose.onAllNodesWithTag("support-pane-goals-error").assertCountEquals(0)
+    }
+
+    @Test
+    fun expandedTrackSupportSeparatesLoadingFailureRetryAndRealZeroMetrics() {
+        val trackState = mutableStateOf(TrackUiState())
+        var retries = 0
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    habitState = HabitUiState(loading = false),
+                    goalState = GoalUiState(loading = false),
+                    trackState = trackState.value,
+                    gymState = GymUiState(loading = false),
+                    settingsState = SettingsUiState(settings = AppSettings(setupCompleted = true)),
+                    domainRetryActions = DomainRetryActions(tracks = { retries += 1 }),
+                    adaptiveLayout = WhipAdaptiveLayout.ExpandedDashboard,
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Tracks tab").performClick()
+        compose.onNodeWithTag("track-overview-support-loading").assertIsDisplayed()
+        compose.onAllNodesWithText("Active Tracks").assertCountEquals(0)
+
+        compose.runOnIdle {
+            trackState.value = TrackUiState(loading = false, errorMessage = "Track refresh failed")
+        }
+        compose.onNodeWithTag("track-overview-support-error").assertIsDisplayed()
+        compose.onNodeWithText("Track refresh failed").assertIsDisplayed()
+        compose.onNodeWithText("Try Again").performClick()
+        compose.runOnIdle { check(retries == 1) }
+        compose.onAllNodesWithText("Active Tracks").assertCountEquals(0)
+
+        compose.runOnIdle { trackState.value = TrackUiState(loading = false) }
+        compose.onAllNodesWithTag("track-overview-support-loading").assertCountEquals(0)
+        compose.onAllNodesWithTag("track-overview-support-error").assertCountEquals(0)
+        compose.onNodeWithText("Active Tracks").assertIsDisplayed()
+    }
+
+    @Test
+    fun bookFoldTrackSupportNeverShowsEmptyBeforeTheDomainSettles() {
+        val trackState = mutableStateOf(TrackUiState())
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    habitState = HabitUiState(loading = false),
+                    goalState = GoalUiState(loading = false),
+                    trackState = trackState.value,
+                    gymState = GymUiState(loading = false),
+                    adaptiveLayout = WhipAdaptiveLayout.BookFold,
+                    foldInfo = WhipFoldInfo(
+                        orientation = WhipFoldOrientation.Vertical,
+                        leftPx = 700,
+                        topPx = 0,
+                        rightPx = 740,
+                        bottomPx = 1_800,
+                        separating = false,
+                        halfOpened = false,
+                    ),
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Tracks tab").performClick()
+        compose.onNodeWithTag("track-support-loading").assertIsDisplayed()
+        compose.onAllNodesWithTag("track-support-empty").assertCountEquals(0)
+
+        compose.runOnIdle { trackState.value = TrackUiState(loading = false) }
+        compose.onAllNodesWithTag("track-support-loading").assertCountEquals(0)
+        compose.onNodeWithTag("track-support-empty").assertIsDisplayed()
+    }
 
     @Test
     fun sharedLoadingErrorRetryIsActionableAndNeverShowsFalseSuccess() {
@@ -105,6 +297,67 @@ class AdaptiveWhipScreenTest {
         compose.runOnIdle { check(retries == 1) }
         compose.onNodeWithText("Loading Tasks…").assertIsDisplayed()
         compose.onAllNodesWithText("Could not load Tasks").assertCountEquals(0)
+    }
+
+    @Test
+    fun homeSuppressesFalseEmptyStateAndOffersCompactDomainRetry() {
+        var trackRetries = 0
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    habitState = HabitUiState(loading = false),
+                    goalState = GoalUiState(loading = false),
+                    gymState = GymUiState(loading = false),
+                    trackState = TrackUiState(loading = false, errorMessage = "Track storage is unavailable"),
+                    settingsState = SettingsUiState(settings = AppSettings(setupCompleted = true)),
+                    domainRetryActions = DomainRetryActions(tracks = { trackRetries += 1 }),
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.onAllNodesWithTag("home-getting-started").assertCountEquals(0)
+        compose.onAllNodesWithText("Your Day Is Clear").assertCountEquals(0)
+        compose.onNodeWithTag("home-tracks-load-error").assertIsDisplayed()
+        compose.onNodeWithText("Track storage is unavailable").assertIsDisplayed()
+        compose.onNodeWithText("Try Again").performClick()
+        compose.runOnIdle { check(trackRetries == 1) }
+    }
+
+    @Test
+    fun missingDeepLinkTargetIsConsumedWithOneUnavailableMessage() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    habitState = HabitUiState(loading = false),
+                    goalState = GoalUiState(loading = false),
+                    gymState = GymUiState(loading = false),
+                    trackState = TrackUiState(loading = false),
+                    settingsState = SettingsUiState(settings = AppSettings(setupCompleted = true)),
+                    initialAction = WhipLaunchActions.ACTION_OPEN_TRACK,
+                    initialEntityId = 404,
+                    initialDeliveryId = 88,
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("This Track is no longer available.").fetchSemanticsNodes().size == 1
+        }
+        compose.onAllNodesWithText("This Track is no longer available.").assertCountEquals(1)
     }
 
     @Test
@@ -293,6 +546,10 @@ class AdaptiveWhipScreenTest {
             WhipTheme(darkTheme = true, dynamicColor = false) {
                 WhipScreen(
                     state = TaskUiState(loading = false),
+                    habitState = HabitUiState(loading = false),
+                    goalState = GoalUiState(loading = false),
+                    trackState = TrackUiState(loading = false),
+                    gymState = GymUiState(loading = false),
                     adaptiveLayout = WhipAdaptiveLayout.BookFold,
                     foldInfo = WhipFoldInfo(
                         orientation = WhipFoldOrientation.Vertical,
@@ -324,7 +581,7 @@ class AdaptiveWhipScreenTest {
             compose.onNodeWithTag("workspace-search-menu-action").assertIsDisplayed().performClick()
         }
         compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
-        compose.onNodeWithText("Close").performClick()
+        compose.onNodeWithContentDescription("Close Search").performClick()
         val navigationTops = listOf("Tasks tab", "Habits tab", "Goals tab", "Tracks tab", "Gym tab").map { description ->
             compose.onNodeWithContentDescription(description).fetchSemanticsNode().boundsInRoot.top
         }
@@ -341,7 +598,7 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithText("Your Day, Brought Together").assertIsDisplayed()
         compose.onNodeWithText("Start small. Add only what helps.").assertIsDisplayed()
         compose.onNodeWithText("Private by default.", substring = true).assertIsDisplayed()
-        compose.onNodeWithTag("home-getting-started").assertIsDisplayed()
+        compose.onNodeWithTag("home-getting-started").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("home-destination-tasks").assertIsDisplayed()
         compose.onNodeWithTag("home-destination-gym").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("home-destination-review").performScrollTo().assertIsDisplayed()
@@ -353,7 +610,7 @@ class AdaptiveWhipScreenTest {
             compose.onNodeWithContentDescription("App actions").performClick()
             compose.onNodeWithTag("workspace-search-menu-action").assertIsDisplayed().performClick()
             compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
-            compose.onNodeWithText("Close").performClick()
+            compose.onNodeWithContentDescription("Close Search").performClick()
         } else {
             compose.onNodeWithContentDescription("Search All Whip Data").assertIsDisplayed()
         }
