@@ -99,7 +99,7 @@ if [[ "$build_release" == true ]]; then
         printf 'error: release artifact has the wrong application ID\n' >&2
         exit 1
     }
-    grep -Fq '"versionCode": 28' "$release_metadata" || {
+    grep -Fq '"versionCode": 29' "$release_metadata" || {
         printf 'error: release artifact has the wrong version code\n' >&2
         exit 1
     }
