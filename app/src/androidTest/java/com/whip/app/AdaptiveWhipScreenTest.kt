@@ -1010,12 +1010,18 @@ class AdaptiveWhipScreenTest {
         compose.onAllNodesWithContentDescription("Expand content pane").assertCountEquals(0)
 
         compose.onNodeWithContentDescription("Tracks tab").performClick()
+        val trackDestinations = listOf("Tracks", "Activity", "Archived", "Insights").map { destination ->
+            compose.onNodeWithTag("track-workspace-destination-$destination").fetchSemanticsNode().boundsInRoot
+        }
+        check(trackDestinations.zipWithNext().all { (before, after) -> before.left < after.left }) {
+            "Tracks destinations must keep Insights at the trailing edge: $trackDestinations"
+        }
         compose.onNodeWithTag("track-workspace-destination-Activity").performClick().assertIsSelected()
         compose.onNodeWithText("A chronological view of Entries across visible Tracks", substring = true).assertIsDisplayed()
-        compose.onNodeWithTag("track-workspace-destination-Insights").performClick().assertIsSelected()
-        compose.onNodeWithText("Patterns across visible Tracks.").assertIsDisplayed()
         compose.onNodeWithTag("track-workspace-destination-Archived").performClick().assertIsSelected()
         compose.onNodeWithText("Archived Tracks").assertIsDisplayed()
+        compose.onNodeWithTag("track-workspace-destination-Insights").performClick().assertIsSelected()
+        compose.onNodeWithText("Patterns across visible Tracks.").assertIsDisplayed()
 
         compose.onNodeWithContentDescription("Gym tab").performClick()
         compose.onNodeWithTag("gym-destination-Library").performClick().assertIsSelected()

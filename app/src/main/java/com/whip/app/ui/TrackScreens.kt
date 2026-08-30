@@ -191,8 +191,8 @@ internal enum class TrackDetailDestination(val label: String) {
 internal enum class TrackWorkspaceDestination(val label: String) {
     Tracks("Tracks"),
     Activity("Activity"),
-    Insights("Insights"),
     Archived("Archived"),
+    Insights("Insights"),
 }
 
 internal enum class TrackSort(val label: String) {
