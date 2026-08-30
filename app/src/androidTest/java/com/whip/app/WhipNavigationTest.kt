@@ -234,10 +234,10 @@ class WhipNavigationTest {
             listOf("Today", "All", "Insights").forEach { destination ->
                 selectDestination("habit-destination-$destination", destination)
             }
-            compose.onNodeWithContentDescription("Open Pages").performClick()
+            compose.onNodeWithContentDescription("More Habit destinations").performClick()
             compose.onNodeWithText("Automations").performClick()
-            compose.onNodeWithText("No Next-Action Automations Yet").assertIsDisplayed()
-            compose.onNodeWithContentDescription("Open Pages").performClick()
+            compose.onNodeWithText("Build Your First Automation").assertIsDisplayed()
+            compose.onNodeWithContentDescription("More Habit destinations").performClick()
             compose.onNodeWithText("Archived").performClick()
             compose.onNodeWithText("Archived Habits").assertIsDisplayed()
 
@@ -276,7 +276,14 @@ class WhipNavigationTest {
         if (compose.onAllNodesWithTag(testTag).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithTag(testTag).performClick().assertIsSelected()
         } else {
-            val pageMenus = compose.onAllNodesWithContentDescription("Open Pages")
+            val overflowDescription = when {
+                testTag.startsWith("task-destination-") -> "More Task destinations"
+                testTag.startsWith("habit-destination-") -> "More Habit destinations"
+                testTag.startsWith("goal-destination-") -> "More Goal destinations"
+                testTag.startsWith("track-destination-") -> "More Track destinations"
+                else -> error("Expected $testTag to be a direct destination")
+            }
+            val pageMenus = compose.onAllNodesWithContentDescription(overflowDescription)
             pageMenus[pageMenus.fetchSemanticsNodes().lastIndex].performClick()
             compose.onNodeWithText(fullLabel).performClick()
         }

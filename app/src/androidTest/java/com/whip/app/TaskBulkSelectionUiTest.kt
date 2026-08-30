@@ -105,7 +105,8 @@ class TaskBulkSelectionUiTest {
         }
 
         compose.onNodeWithContentDescription("Tasks tab").performClick()
-        compose.onNodeWithTag("task-destination-History").performClick()
+        compose.onNodeWithContentDescription("More Task destinations").performClick()
+        compose.onNodeWithText("History").performClick()
         openCurrentDestinationSelection(completed.task.title)
         listOf("reopen", "archive", "edit", "delete").forEach { action ->
             compose.onNodeWithTag("task-selection-$action").assertIsDisplayed().assertIsEnabled()

@@ -95,9 +95,9 @@ class HabitSkipJourneyE2ETest {
             compose.onNodeWithText("$skippedDate · Skipped").assertIsDisplayed()
             compose.onNodeWithContentDescription("Close Habit details").performClick()
 
-            selectDestination("habit-destination-Insights", "Insights")
+            selectDestination("habit-destination-Insights")
             compose.onNodeWithText("Last 30 Days: 0 Completed · 1 Skipped · 0 Missed/Below Target").assertIsDisplayed()
-            selectDestination("habit-destination-Today", "Today")
+            selectDestination("habit-destination-Today")
             compose.onNodeWithTag("habit-list-Today").performScrollToNode(hasText("Undo Skip"))
             compose.onNodeWithText("Undo Skip").performSemanticsAction(SemanticsActions.OnClick)
 
@@ -180,14 +180,8 @@ class HabitSkipJourneyE2ETest {
         }
     }
 
-    private fun selectDestination(testTag: String, fullLabel: String) {
-        if (compose.onAllNodesWithTag(testTag).fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithTag(testTag).performClick()
-        } else {
-            val pageMenus = compose.onAllNodesWithContentDescription("Open Pages")
-            pageMenus[pageMenus.fetchSemanticsNodes().lastIndex].performClick()
-            compose.onNodeWithText(fullLabel).performClick()
-        }
+    private fun selectDestination(testTag: String) {
+        compose.onNodeWithTag(testTag).performClick()
         compose.waitForIdle()
     }
 }

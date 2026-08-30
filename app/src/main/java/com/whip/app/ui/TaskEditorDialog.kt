@@ -27,6 +27,7 @@ import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -1495,7 +1496,7 @@ private fun TaskTimeSettings(
 }
 
 @Composable
-private fun TaskRecipeDialog(
+internal fun TaskRecipeDialog(
     today: LocalDate,
     modifier: Modifier,
     onDismiss: () -> Unit,
@@ -1530,26 +1531,43 @@ private fun TaskRecipeDialog(
             inbox = true,
         ),
     )
+    val useCompactTemplateRows = LocalDensity.current.fontScale >= 2f
     PaneAwareAlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
         title = { Text("Task Templates") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Choose the closest shape. Whip fills the editor so you can review and change everything before saving.")
-                recipes.forEach { (label, draft) ->
-                    WhipOutlinedButton(onClick = { onChoose(draft) }, modifier = Modifier.fillMaxWidth()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 420.dp)
+                    .testTag("task-template-list"),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                item {
+                    Text("Choose the closest shape. Whip fills the editor so you can review and change everything before saving.")
+                }
+                items(recipes, key = { it.first }) { (label, draft) ->
+                    val description = when (label) {
+                        "Capture Something for Later" -> "An unscheduled Inbox Task."
+                        "Do Something on a Date" -> "A one-time Task scheduled today with a 30-minute estimate."
+                        "Repeat on Chosen Weekdays" -> "A weekly series starting on today’s weekday."
+                        else -> "A three-step Task with progress and a High Effort estimate."
+                    }
+                    WhipOutlinedButton(
+                        onClick = { onChoose(draft) },
+                        modifier = Modifier.fillMaxWidth().semantics {
+                            contentDescription = "${label.uiTitleCase()}. $description"
+                        },
+                    ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(label.uiTitleCase(), fontWeight = FontWeight.SemiBold)
                             Text(
-                                when (label) {
-                                    "Capture Something for Later" -> "An unscheduled Inbox Task."
-                                    "Do Something on a Date" -> "A one-time Task scheduled today with a 30-minute estimate."
-                                    "Repeat on Chosen Weekdays" -> "A weekly series starting on today’s weekday."
-                                    else -> "A three-step Task with progress and a High Effort estimate."
-                                },
-                                style = MaterialTheme.typography.bodySmall,
+                                label.uiTitleCase(),
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = if (useCompactTemplateRows) 2 else 3,
+                                overflow = TextOverflow.Ellipsis,
                             )
+                            if (!useCompactTemplateRows) Text(description, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }

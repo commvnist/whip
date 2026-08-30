@@ -112,7 +112,7 @@ class ProductivityCreationJourneyE2ETest {
             compose.onNodeWithText("Activity").assertIsDisplayed()
             if (compose.onAllNodesWithText("Options").fetchSemanticsNodes().isEmpty()) {
                 compose.onNode(
-                    hasContentDescription("Open Pages") and
+                    hasContentDescription("More Task options") and
                         hasAnyAncestor(hasTestTag("task-actions-surface")),
                 ).performClick()
             }
@@ -165,7 +165,7 @@ class ProductivityCreationJourneyE2ETest {
                     .performSemanticsAction(SemanticsActions.OnClick)
                 compose.onNodeWithContentDescription("Edit Habit").assertIsDisplayed()
             }
-            selectDetailSection("habit", "More", "habit-detail-surface")
+            selectDetailSection("habit", "Options", "habit-detail-surface")
             compose.onNodeWithTag("entity-inspector-content-options").assertIsDisplayed()
             compose.onNodeWithContentDescription("Edit Habit").assertIsDisplayed()
             compose.onNodeWithContentDescription("Edit Habit").performSemanticsAction(SemanticsActions.OnClick)
@@ -359,7 +359,7 @@ class ProductivityCreationJourneyE2ETest {
         if (compose.onAllNodesWithTag(testTag).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithTag(testTag).performSemanticsAction(SemanticsActions.OnClick)
         } else {
-            compose.onNodeWithContentDescription("Open Pages").performClick()
+            compose.onNodeWithContentDescription("More Goal destinations").performClick()
             compose.onNodeWithText(label).performClick()
         }
         compose.waitForIdle()
@@ -412,8 +412,13 @@ class ProductivityCreationJourneyE2ETest {
         if (sectionVisible) {
             compose.onNodeWithTag(sectionTag).performSemanticsAction(SemanticsActions.OnClick)
         } else {
+            val overflowDescription = when (prefix) {
+                "habit" -> "More Habit options"
+                "goal" -> "More Goal options"
+                else -> error("Missing inspector overflow description for $prefix")
+            }
             compose.onNode(
-                hasContentDescription("Open Pages") and hasAnyAncestor(hasTestTag(surfaceTag)),
+                hasContentDescription(overflowDescription) and hasAnyAncestor(hasTestTag(surfaceTag)),
             ).performClick()
             compose.onNodeWithText(label).performClick()
         }

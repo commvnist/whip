@@ -243,12 +243,7 @@ class EditorStateRecreationTest {
     private fun openGymDestination(label: String) {
         compose.onNodeWithContentDescription("Gym tab").performClick()
         if (label in setOf("Routines", "Exercises", "Machines", "Categories", "Tools")) {
-            if (compose.onAllNodesWithTag("gym-destination-Library").fetchSemanticsNodes().isNotEmpty()) {
-                compose.onNodeWithTag("gym-destination-Library").performClick()
-            } else {
-                compose.onNodeWithContentDescription("Open Pages").performClick()
-                compose.onNodeWithText("Library").performClick()
-            }
+            compose.onNodeWithTag("gym-destination-Library").performClick()
             compose.waitUntil(10_000) {
                 compose.onAllNodesWithTag("gym-library-$label").fetchSemanticsNodes().isNotEmpty()
             }

@@ -37,7 +37,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedTextField
@@ -56,6 +55,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.text.KeyboardOptions
@@ -286,8 +286,32 @@ internal fun SettingsContent(
             contentPadding = PaddingValues(20.dp, 0.dp, 20.dp, 96.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-        if (state.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
-        state.message?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.primary); WhipTextButton(onClick = viewModel::consumeMessage) { Text("Dismiss") } } }
+        if (state.busy) item {
+            WhipStatusCard(
+                kind = WhipStatusKind.Loading,
+                title = "Updating Settings",
+                message = "Your changes are being applied on this device.",
+                modifier = Modifier.testTag("settings-loading-status"),
+            )
+        }
+        state.message?.let { message -> item {
+            val messageKind = if (message.contains(
+                    Regex("failed|error|could not|unable|denied|unavailable", RegexOption.IGNORE_CASE),
+                )
+            ) {
+                WhipStatusKind.Error
+            } else {
+                WhipStatusKind.Success
+            }
+            WhipStatusCard(
+                kind = messageKind,
+                title = if (messageKind == WhipStatusKind.Error) "Action Not Completed" else "Settings Updated",
+                message = message,
+                actionLabel = "Dismiss",
+                onAction = viewModel::consumeMessage,
+                modifier = Modifier.testTag("settings-result-status"),
+            )
+        } }
 
         if (section == SettingsSection.Appearance) {
         item {
@@ -1526,7 +1550,16 @@ private fun TaxonomyRenameDialog(
     )
 }
 
-@Composable private fun SettingsHeading(text: String) { HorizontalDivider(); Text(text.uiTitleCase(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
+@Composable
+private fun SettingsHeading(text: String) {
+    HorizontalDivider()
+    Text(
+        text.uiTitleCase(),
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(top = 8.dp).semantics { heading() },
+    )
+}
 
 @Composable
 internal fun HealthDataTypeSetting(

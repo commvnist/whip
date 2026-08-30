@@ -75,7 +75,7 @@ class GlobalSearchRoutingTest {
             searchFor("Searchable archived goal")
             if (compose.onAllNodesWithText("Automations").fetchSemanticsNodes().isEmpty()) {
                 compose.onNode(
-                    hasContentDescription("Open Pages") and
+                    hasContentDescription("More Goal options") and
                         hasAnyAncestor(hasTestTag("goal-detail-surface")),
                 ).performClick()
             }

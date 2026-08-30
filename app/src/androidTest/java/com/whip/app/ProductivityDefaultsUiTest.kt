@@ -291,7 +291,7 @@ class ProductivityDefaultsUiTest {
         compose.runOnIdle { assertEquals(1, defaultsUsed.get()) }
         compose.onNodeWithText("Customize").performClick()
         compose.onNodeWithText("Customize Whip").assertIsDisplayed()
-        compose.onNodeWithText("More Preferences").performClick()
+        compose.onNodeWithText("Optional Preferences").performClick()
         compose.onAllNodesWithText("Portable Backup Privacy").assertCountEquals(0)
         compose.onNodeWithContentDescription("Ask for reminder notifications").assertHasClickAction().performClick()
         compose.onNodeWithText("Save and Start").performClick()

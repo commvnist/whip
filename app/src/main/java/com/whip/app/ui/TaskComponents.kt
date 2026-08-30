@@ -40,6 +40,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -69,6 +71,10 @@ fun SectionHeading(title: String, count: Int, onClick: (() -> Unit)? = null) {
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .then(if (onClick == null) Modifier else Modifier.clickable(onClickLabel = "Open $title", onClick = onClick))
+            .semantics(mergeDescendants = true) {
+                heading()
+                if (onClick != null) role = Role.Button
+            }
             .padding(top = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -559,7 +565,16 @@ private enum class TaskDetailSection(
     ;
 
     val inspectorSection: EntityInspectorSection
-        get() = EntityInspectorSection(id, label, legacyLabel)
+        get() = EntityInspectorSection(
+            id = id,
+            label = label,
+            legacyLabel = legacyLabel,
+            placement = if (this == More) {
+                EntityInspectorSectionPlacement.Overflow
+            } else {
+                EntityInspectorSectionPlacement.Direct
+            },
+        )
 }
 
 @Composable

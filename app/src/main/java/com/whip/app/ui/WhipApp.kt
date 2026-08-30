@@ -171,6 +171,7 @@ import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.TrackProjection
 import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.TriggerTargetType
+import com.whip.app.domain.TriggerAction
 import com.whip.app.domain.HabitDayProgress
 import com.whip.app.core.zoneId
 import com.whip.app.core.supportedTrackedRecordTypes
@@ -302,7 +303,9 @@ internal fun resolveLaunchTarget(
                     val occurrence = trackState.triggerOccurrences.firstOrNull { it.id == occurrenceId }
                     val rule = occurrence?.let { item -> trackState.triggerRules.firstOrNull { it.id == item.triggerRuleId } }
                     occurrence == null || occurrence.dismissedAt != null || occurrence.fulfilledEntryId != null ||
-                        rule?.targetType != TriggerTargetType.Track || rule.targetEntityId != id
+                        rule == null || !rule.enabled || rule.action != TriggerAction.PromptTrackEntry ||
+                        rule.targetType != TriggerTargetType.Track || rule.targetEntityId != id ||
+                        (occurrence.remindAt ?: occurrence.availableAt).isAfter(java.time.Instant.now())
                 } == true
                 LaunchTargetResolution.Available(
                     projection.track.areaId,
@@ -3641,18 +3644,6 @@ private fun PrimaryDestinationNavigationBar(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val largeTextNavigation = LocalDensity.current.fontScale >= 1.3f
-    var moreExpanded by rememberSaveable { mutableStateOf(false) }
-    val directlyVisibleDestinations = if (largeTextNavigation) {
-        primaryAppDestinations.take(2)
-    } else {
-        primaryAppDestinations
-    }
-    val overflowDestinations = if (largeTextNavigation) {
-        primaryAppDestinations.drop(2)
-    } else {
-        emptyList()
-    }
     NavigationBar(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -3675,7 +3666,7 @@ private fun PrimaryDestinationNavigationBar(
                 )
             },
         )
-        directlyVisibleDestinations.forEach { destination ->
+        primaryAppDestinations.forEach { destination ->
             val destinationLabel = stringResource(destination.labelRes)
             val destinationTabDescription = stringResource(R.string.nav_tab_description, destinationLabel)
             WhipNavigationBarItem(
@@ -3691,59 +3682,6 @@ private fun PrimaryDestinationNavigationBar(
                         style = MaterialTheme.typography.labelSmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                    )
-                },
-            )
-        }
-        if (overflowDestinations.isNotEmpty()) {
-            WhipNavigationBarItem(
-                modifier = Modifier
-                    .testTag("primary-navigation-more")
-                    .semantics { contentDescription = "More destinations" },
-                selected = selected in overflowDestinations,
-                enabled = enabled,
-                showLabel = true,
-                onClick = { moreExpanded = true },
-                icon = {
-                    Box {
-                        Icon(Icons.Outlined.MoreHoriz, contentDescription = null, modifier = Modifier.size(26.dp))
-                        DropdownMenu(
-                            expanded = moreExpanded,
-                            onDismissRequest = { moreExpanded = false },
-                        ) {
-                            overflowDestinations.forEach { destination ->
-                                val destinationLabel = stringResource(destination.labelRes)
-                                val destinationTabDescription = stringResource(
-                                    R.string.nav_tab_description,
-                                    destinationLabel,
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(destinationLabel) },
-                                    leadingIcon = {
-                                        Icon(destination.icon, contentDescription = null, modifier = Modifier.size(22.dp))
-                                    },
-                                    trailingIcon = if (destination == selected) {
-                                        { Icon(Icons.Outlined.Check, contentDescription = "Selected") }
-                                    } else {
-                                        null
-                                    },
-                                    onClick = {
-                                        moreExpanded = false
-                                        onSelect(destination)
-                                    },
-                                    modifier = Modifier.semantics {
-                                        contentDescription = destinationTabDescription
-                                    },
-                                )
-                            }
-                        }
-                    }
-                },
-                label = {
-                    Text(
-                        "More",
-                        style = MaterialTheme.typography.labelSmall,
-                        maxLines = 1,
                     )
                 },
             )
@@ -4516,7 +4454,7 @@ private fun HomeContent(
             when (section) {
                 HomeSection.Tasks -> {
                     item { SectionHeading("Tasks", homeTasks.size, onOpenTasks) }
-                    if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                    if (state.loading) item { HomeDomainLoadingStatus("Tasks") }
                     else if (state.errorMessage != null) item {
                         HomeDomainLoadNotice("Tasks", state.errorMessage, onRetryTaskLoading)
                     } else if (!collapsed) {
@@ -4571,7 +4509,7 @@ private fun HomeContent(
                 }
                 HomeSection.Habits -> {
                     item { SectionHeading("Habits", homeHabitSections.remaining.size, onOpenHabits) }
-                    if (habitState.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                    if (habitState.loading) item { HomeDomainLoadingStatus("Habits") }
                     else if (habitState.errorMessage != null) item {
                         HomeDomainLoadNotice("Habits", habitState.errorMessage, onRetryHabitLoading)
                     } else if (!collapsed) {
@@ -4643,7 +4581,7 @@ private fun HomeContent(
                 }
                 HomeSection.Goals -> {
                     item { SectionHeading("Goals", goalState.active.size, onOpenGoals) }
-                    if (goalState.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                    if (goalState.loading) item { HomeDomainLoadingStatus("Goals") }
                     else if (goalState.errorMessage != null) item {
                         HomeDomainLoadNotice("Goals", goalState.errorMessage, onRetryGoalLoading)
                     } else if (!collapsed) {
@@ -4681,7 +4619,7 @@ private fun HomeContent(
                 HomeSection.Tracks -> {
                     if (trackState.loading || trackState.errorMessage != null || trackState.pinned.isNotEmpty()) {
                         item { SectionHeading("Quick Log", trackState.pinned.size, onOpenTracks) }
-                        if (trackState.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                        if (trackState.loading) item { HomeDomainLoadingStatus("Tracks") }
                         else if (trackState.errorMessage != null) item {
                             HomeDomainLoadNotice("Tracks", trackState.errorMessage, onRetryTrackLoading)
                         } else if (!collapsed) {
@@ -4705,7 +4643,7 @@ private fun HomeContent(
                             onOpenGym,
                         )
                     }
-                    if (gymState.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                    if (gymState.loading) item { HomeDomainLoadingStatus("Gym") }
                     else if (gymState.errorMessage != null) item {
                         HomeDomainLoadNotice("Gym", gymState.errorMessage, onRetryGymLoading)
                     } else if (!collapsed) {
@@ -4774,6 +4712,16 @@ private fun HomeDomainLoadNotice(
         actionLabel = stringResource(R.string.action_try_again),
         onAction = onRetry,
         modifier = Modifier.testTag("home-${domain.lowercase()}-load-error"),
+    )
+}
+
+@Composable
+private fun HomeDomainLoadingStatus(domain: String) {
+    WhipStatusCard(
+        kind = WhipStatusKind.Loading,
+        title = "Loading $domain",
+        message = "Whip is preparing ${domain.lowercase()}.",
+        modifier = Modifier.testTag("home-${domain.lowercase()}-loading"),
     )
 }
 
@@ -5298,6 +5246,7 @@ private fun TaskAreaContent(
             label = TaskWorkspaceDestination::label,
             testTagPrefix = "task-destination",
             barTestTag = "task-workspace-navigation",
+            overflowLabel = "More Task destinations",
         )
         if (workspaceDestination == TaskWorkspaceDestination.History) {
             SegmentedChoiceBar(
@@ -5464,20 +5413,13 @@ private fun TaskAreaContent(
                                 modifier = actionModifier.testTag("task-selection-edit"),
                             ) { Text("Edit", maxLines = 1) }
                             if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
-                                Box {
-                                    WhipOutlinedButton(
-                                        enabled = selectedItems.isNotEmpty(),
-                                        onClick = { selectionActionsOpen = true },
-                                        modifier = actionModifier.testTag("task-selection-more"),
-                                    ) {
-                                        Icon(Icons.Outlined.MoreVert, contentDescription = null)
-                                        Spacer(Modifier.width(4.dp))
-                                        Text("More", maxLines = 1)
-                                    }
-                                    DropdownMenu(
-                                        expanded = selectionActionsOpen,
-                                        onDismissRequest = { selectionActionsOpen = false },
-                                    ) {
+                                WhipOverflowMenu(
+                                    label = "More selected Task actions",
+                                    expanded = selectionActionsOpen,
+                                    onExpandedChange = { selectionActionsOpen = it },
+                                    enabled = selectedItems.isNotEmpty(),
+                                    modifier = Modifier.testTag("task-selection-more"),
+                                ) {
                                         WhipMenuItem(label = "Pin to Whip Home", onClick = {
                                             onBulkPin(selectedItems, true); finishSelection()
                                         })
@@ -5493,7 +5435,6 @@ private fun TaskAreaContent(
                                         WhipMenuItem(label = "Choose Date", onClick = {
                                             bulkDatePickerOpen = true; selectionActionsOpen = false
                                         })
-                                    }
                                 }
                             }
                             WhipOutlinedButton(

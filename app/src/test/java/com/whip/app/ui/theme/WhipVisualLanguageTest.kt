@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -85,7 +86,7 @@ class WhipVisualLanguageTest {
     }
 
     @Test
-    fun scrollingDestinationNavigationDoesNotDrawEdgeFadesOrShadows() {
+    fun destinationNavigationUsesStableDirectPeersAndSharedOverflow() {
         val sourceRoot = sequenceOf(File("src/main/java"), File("app/src/main/java"))
             .firstOrNull(File::isDirectory)
             ?: error("Unable to locate app source root")
@@ -97,12 +98,17 @@ class WhipVisualLanguageTest {
             "canScrollBackward",
             "canScrollForward",
             ".shadow(",
+            "stringResource(R.string.action_more)",
+            "Icons.Outlined.ArrowDropDown",
         ).filter(destinationBar::contains)
 
         assertTrue(
-            "Scrollable destination navigation draws edge treatments: $forbiddenTreatments",
+            "Destination navigation reintroduced ambiguous or decorative overflow: $forbiddenTreatments",
             forbiddenTreatments.isEmpty(),
         )
+        assertTrue(destinationBar.contains("WhipOverflowMenu("))
+        assertTrue(destinationBar.contains("primaryDestinations.filter"))
+        assertFalse(destinationBar.contains("LocalDensity.current.fontScale"))
     }
 
     @Test
@@ -113,6 +119,8 @@ class WhipVisualLanguageTest {
         val habit = File(sourceRoot, "com/whip/app/ui/HabitScreens.kt").readText()
         val goal = File(sourceRoot, "com/whip/app/ui/GoalScreens.kt").readText()
         val track = File(sourceRoot, "com/whip/app/ui/TrackScreens.kt").readText()
+        val task = File(sourceRoot, "com/whip/app/ui/WhipApp.kt").readText()
+        val inspector = File(sourceRoot, "com/whip/app/ui/EntityInspector.kt").readText()
 
         assertTrue(habit.contains("enum class HabitDestination { Today, All, Connections, Archived, Insights }"))
         assertTrue(habit.contains("listOf(HabitDestination.Today, HabitDestination.All, HabitDestination.Insights)"))
@@ -122,5 +130,16 @@ class WhipVisualLanguageTest {
         assertTrue(track.contains("listOf(TrackDetailDestination.Entries, TrackDetailDestination.Automations, TrackDetailDestination.Insights)"))
         assertTrue(goal.contains("GoalDestination.Completed) \"Done\""))
         assertTrue(track.contains("compactLabel = TrackDetailDestination::label"))
+        assertTrue(task.contains("overflowLabel = \"More Task destinations\""))
+        assertTrue(habit.contains("overflowLabel = \"More Habit destinations\""))
+        assertTrue(goal.contains("overflowLabel = \"More Goal destinations\""))
+        assertTrue(track.contains("overflowLabel = \"More Track destinations\""))
+        assertTrue(inspector.contains("overflowLabel = \"More ${'$'}entityType options\""))
+
+        val primaryNavigation = task.substringAfter("private fun PrimaryDestinationNavigationBar(")
+            .substringBefore("private fun TabletopNavigation(")
+        assertFalse(primaryNavigation.contains("MoreHoriz"))
+        assertFalse(primaryNavigation.contains("More destinations"))
+        assertFalse(primaryNavigation.contains("largeTextNavigation"))
     }
 }

@@ -128,7 +128,7 @@ fun FirstRunSetupDialog(
                         onClick = { showOptionalPreferences = !showOptionalPreferences },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(if (showOptionalPreferences) "Hide Optional Preferences" else "More Preferences")
+                        Text(if (showOptionalPreferences) "Hide Optional Preferences" else "Optional Preferences")
                     }
                     if (showOptionalPreferences) {
                         SetupToggle("Use low-pressure presentation", lowPressureMode) { lowPressureMode = it }

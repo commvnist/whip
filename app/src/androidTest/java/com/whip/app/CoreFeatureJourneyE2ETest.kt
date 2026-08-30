@@ -99,12 +99,8 @@ class CoreFeatureJourneyE2ETest {
             compose.onAllNodesWithText("E2E workout")[0].assertIsDisplayed()
             compose.onAllNodesWithText("E2E exercise")[0].assertIsDisplayed()
 
-            if (compose.onAllNodesWithTag("gym-destination-Progress").fetchSemanticsNodes().isNotEmpty()) {
-                compose.onNodeWithTag("gym-destination-Progress").performClick()
-            } else {
-                compose.onNodeWithContentDescription("Open Pages").performClick()
-                compose.onNodeWithText("Progress").performClick()
-            }
+            compose.onNodeWithTag("gym-destination-Progress").performClick()
+            compose.onAllNodesWithContentDescription("More Gym destinations").assertCountEquals(0)
             compose.waitUntil(timeoutMillis = 5_000) {
                 compose.onAllNodesWithTag("gym-progress-title").fetchSemanticsNodes().isNotEmpty()
             }

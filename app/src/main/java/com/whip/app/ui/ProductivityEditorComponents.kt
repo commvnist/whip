@@ -577,7 +577,9 @@ internal fun RemoveAutomationConfirmationDialog(
         title = { Text("Remove Automation?") },
         text = {
             Text(
-                "“$automationName” will stop running and its configuration will be removed. Existing history will not be changed.",
+                "“$automationName” will stop running and its configuration will be removed. " +
+                    "Source history remains, but results generated only by this Automation—such as Goal contributions " +
+                    "or automatic Habit check-ins—will be removed and progress recalculated.",
             )
         },
         confirmButton = {

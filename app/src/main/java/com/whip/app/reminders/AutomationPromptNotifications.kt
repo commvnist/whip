@@ -18,6 +18,7 @@ import com.whip.app.MainActivity
 import com.whip.app.R
 import com.whip.app.WhipApplication
 import com.whip.app.core.WhipLaunchActions
+import com.whip.app.domain.TriggerAction
 import com.whip.app.domain.TriggerTargetType
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.first
@@ -53,7 +54,11 @@ class AutomationPromptScheduler(private val context: Context) {
             .forEach(::cancel)
         occurrences.forEach { occurrence ->
             val rule = rules[occurrence.triggerRuleId]
-            if (rule == null || !rule.enabled || !rule.notificationEnabled || occurrence.dismissedAt != null || occurrence.fulfilledEntryId != null || occurrence.deliveredAt != null) {
+            if (
+                rule == null || !rule.enabled || !rule.notificationEnabled ||
+                rule.action == TriggerAction.CheckOffHabit || occurrence.dismissedAt != null ||
+                occurrence.fulfilledEntryId != null || occurrence.deliveredAt != null
+            ) {
                 cancel(occurrence.id)
             } else {
                 val dueAt = occurrence.remindAt ?: occurrence.availableAt
@@ -94,8 +99,9 @@ class AutomationPromptWorker(context: Context, parameters: WorkerParameters) : C
         val rule = dao.getTriggerRule(occurrence.triggerRuleId) ?: return Result.success()
         val now = System.currentTimeMillis()
         val dueAt = occurrence.remindAtMillis ?: occurrence.availableAtMillis
-        if (!automationPromptShouldNotify(rule.enabled && rule.notificationEnabled, occurrence.dismissedAtMillis, occurrence.deliveredAtMillis, dueAt, now) || occurrence.fulfilledEntryId != null) {
-            return if (rule.enabled && rule.notificationEnabled && occurrence.dismissedAtMillis == null && occurrence.deliveredAtMillis == null && occurrence.fulfilledEntryId == null && dueAt > now) Result.retry() else Result.success()
+        val manualPrompt = rule.action != TriggerAction.CheckOffHabit.name
+        if (!automationPromptShouldNotify(rule.enabled && rule.notificationEnabled, occurrence.dismissedAtMillis, occurrence.deliveredAtMillis, dueAt, now, manualPrompt) || occurrence.fulfilledEntryId != null) {
+            return if (manualPrompt && rule.enabled && rule.notificationEnabled && occurrence.dismissedAtMillis == null && occurrence.deliveredAtMillis == null && occurrence.fulfilledEntryId == null && dueAt > now) Result.retry() else Result.success()
         }
         if (dao.markTriggerOccurrenceDelivered(occurrenceId, System.currentTimeMillis()) == 0) return Result.success()
 
@@ -146,4 +152,5 @@ internal fun automationPromptShouldNotify(
     deliveredAtMillis: Long?,
     availableAtMillis: Long,
     nowMillis: Long,
-): Boolean = enabled && dismissedAtMillis == null && deliveredAtMillis == null && availableAtMillis <= nowMillis + 1_000L
+    manualPrompt: Boolean = true,
+): Boolean = enabled && manualPrompt && dismissedAtMillis == null && deliveredAtMillis == null && availableAtMillis <= nowMillis + 1_000L

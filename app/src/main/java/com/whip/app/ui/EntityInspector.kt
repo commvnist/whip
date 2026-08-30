@@ -51,10 +51,13 @@ internal enum class WhipStatusTone {
     Destructive,
 }
 
+internal enum class EntityInspectorSectionPlacement { Direct, Overflow }
+
 internal data class EntityInspectorSection(
     val id: String,
     val label: String,
     val legacyLabel: String = label,
+    val placement: EntityInspectorSectionPlacement = EntityInspectorSectionPlacement.Direct,
 )
 
 internal data class EntityInspectorPrimaryAction(
@@ -136,6 +139,7 @@ internal fun EntityInspector(
                     )
                     if (sections.size > 1) {
                         EntityInspectorSectionSelector(
+                            entityType = entityType,
                             sections = sections,
                             selectedSectionId = selectedSectionId,
                             onSelect = onSelectSection,
@@ -290,6 +294,7 @@ internal fun WhipStatusBadge(
 
 @Composable
 private fun EntityInspectorSectionSelector(
+    entityType: String,
     sections: List<EntityInspectorSection>,
     selectedSectionId: String,
     onSelect: (String) -> Unit,
@@ -298,7 +303,7 @@ private fun EntityInspectorSectionSelector(
     DestinationTabBar(
         selected = sections.first { it.id == selectedSectionId },
         destinations = sections,
-        primaryDestinations = sections.take(4),
+        primaryDestinations = sections.filter { it.placement == EntityInspectorSectionPlacement.Direct },
         onSelect = { onSelect(it.id) },
         label = EntityInspectorSection::label,
         testTagPrefix = legacySectionTagPrefix ?: "entity-inspector-section",
@@ -310,6 +315,7 @@ private fun EntityInspectorSectionSelector(
         secondaryTestTagPrefix = "entity-inspector-section".takeIf { legacySectionTagPrefix != null },
         secondaryTestTagValue = EntityInspectorSection::id,
         barTestTag = "entity-inspector-section-selector",
+        overflowLabel = "More $entityType options",
         resetCompactItemExpansionOnChange = false,
     )
 }

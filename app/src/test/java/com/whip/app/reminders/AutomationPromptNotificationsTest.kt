@@ -14,5 +14,6 @@ class AutomationPromptNotificationsTest {
         assertFalse(automationPromptShouldNotify(false, null, null, 10_000, 10_000))
         assertFalse(automationPromptShouldNotify(true, 9_000, null, 10_000, 10_000))
         assertFalse(automationPromptShouldNotify(true, null, 9_000, 10_000, 10_000))
+        assertFalse(automationPromptShouldNotify(true, null, null, 10_000, 10_000, manualPrompt = false))
     }
 }

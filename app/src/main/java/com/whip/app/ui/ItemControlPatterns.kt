@@ -42,6 +42,7 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -906,12 +907,12 @@ internal fun WhipMenuItem(
 ) {
     val destructive = role == WhipMenuItemRole.Destructive
     DropdownMenuItem(
-        modifier = modifier,
+        modifier = modifier.semantics { this.selected = selected },
         text = { Text(label) },
         onClick = onClick,
         enabled = enabled,
         leadingIcon = icon?.let { image -> { Icon(image, contentDescription = null) } },
-        trailingIcon = if (selected) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
+        trailingIcon = if (selected) {{ Icon(Icons.Outlined.Check, contentDescription = null) }} else null,
         colors = if (destructive) {
             MenuDefaults.itemColors(
                 textColor = MaterialTheme.colorScheme.error,
@@ -919,6 +920,55 @@ internal fun WhipMenuItem(
             )
         } else MenuDefaults.itemColors(),
     )
+}
+
+/**
+ * Canonical anchor for contextual destinations and low-frequency commands.
+ * The vertical ellipsis is intentionally distinct from tabs, disclosures, and
+ * pagination, while retaining a full-size one-handed target.
+ */
+@Composable
+internal fun WhipOverflowMenu(
+    label: String,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    active: Boolean = false,
+    enabled: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Box(modifier) {
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+        ) {
+            IconButton(
+                onClick = { onExpandedChange(true) },
+                enabled = enabled,
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        contentDescription = label
+                        stateDescription = when {
+                            expanded -> "Menu open"
+                            active -> "Selected page is in this menu"
+                            else -> "Menu closed"
+                        }
+                    },
+            ) {
+                Icon(
+                    Icons.Outlined.MoreVert,
+                    contentDescription = null,
+                    tint = if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { onExpandedChange(false) },
+            content = content,
+        )
+    }
 }
 
 /** Coordinates independently expanded compact collection rows. */
@@ -1237,10 +1287,10 @@ internal fun <T> DestinationTabBar(
     secondaryTestTagPrefix: String? = null,
     secondaryTestTagValue: (T) -> String = label,
     barTestTag: String? = null,
+    overflowLabel: String = "More destinations",
     resetCompactItemExpansionOnChange: Boolean = true,
 ) {
     if (destinations.isEmpty()) return
-    val fontScale = LocalDensity.current.fontScale
     val compactItemExpansionState = LocalCompactItemExpansionState.current
     var pagesExpanded by rememberSaveable { mutableStateOf(false) }
     fun selectDestination(destination: T) {
@@ -1254,36 +1304,16 @@ internal fun <T> DestinationTabBar(
             .fillMaxWidth()
             .then(barTestTag?.let(Modifier::testTag) ?: Modifier),
     ) {
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val visibleCapacity = when {
-                destinations.size <= 2 -> destinations.size
-                fontScale >= 2f && maxWidth < 520.dp -> 2
-                fontScale >= 1.5f && maxWidth < 440.dp -> 2
-                // Three concise peers fit a compact phone row and are easier
-                // to understand when they remain visible. More is reserved
-                // for the fourth destination, not used as premature
-                // compaction merely because the window is 320 dp wide.
-                destinations.size <= 3 -> destinations.size
-                destinations.size <= 4 && maxWidth >= 340.dp -> 4
-                maxWidth < 340.dp -> 3
-                maxWidth < 520.dp -> 3
-                else -> 4
-            }
-            val preferred = primaryDestinations.filter { it in destinations }
-            val orderedCandidates = (preferred + destinations).distinct()
-            // Peer navigation must never move under the user. A destination
-            // selected from More stays selected there; it does not evict a
-            // stable primary tab on the next recomposition.
-            val visible = orderedCandidates.take(visibleCapacity)
-            val hidden = destinations.filterNot(visible::contains)
-            val hiddenSelection = selected.takeIf { it in hidden }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(Modifier.weight(1f).selectableGroup()) {
-                    visible.forEach { destination ->
+        val direct = primaryDestinations.filter { it in destinations }.distinct().ifEmpty { destinations }
+        val hidden = destinations.filterNot(direct::contains)
+        val hiddenSelection = selected.takeIf { it in hidden }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(Modifier.weight(1f).selectableGroup()) {
+                direct.forEach { destination ->
                         val destinationLabel = label(destination).uiTitleCase()
                         val visibleLabel = compactLabel(destination).uiTitleCase()
                         val isSelected = selected == destination
@@ -1329,30 +1359,25 @@ internal fun <T> DestinationTabBar(
                                 color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                             )
                         }
-                    }
                 }
-                if (hidden.isNotEmpty()) Box {
-                    WhipTextButton(
-                        onClick = { pagesExpanded = true },
-                        modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Open Pages" },
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                    ) {
-                        Text(
-                            stringResource(R.string.action_more),
-                            maxLines = 1,
-                            color = if (hiddenSelection != null) MaterialTheme.colorScheme.primary else Color.Unspecified,
+            }
+            if (hidden.isNotEmpty()) {
+                WhipOverflowMenu(
+                    label = overflowLabel,
+                    expanded = pagesExpanded,
+                    onExpandedChange = { pagesExpanded = it },
+                    active = hiddenSelection != null,
+                ) {
+                    hidden.forEach { destination ->
+                        val destinationLabel = label(destination).uiTitleCase()
+                        WhipMenuItem(
+                            label = destinationLabel,
+                            selected = destination == selected,
+                            onClick = {
+                                pagesExpanded = false
+                                selectDestination(destination)
+                            },
                         )
-                        Icon(Icons.Outlined.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
-                    }
-                    DropdownMenu(expanded = pagesExpanded, onDismissRequest = { pagesExpanded = false }) {
-                        hidden.forEach { destination ->
-                            val destinationLabel = label(destination).uiTitleCase()
-                            DropdownMenuItem(
-                                text = { Text(destinationLabel) },
-                                trailingIcon = if (destination == selected) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
-                                onClick = { pagesExpanded = false; selectDestination(destination) },
-                            )
-                        }
                     }
                 }
             }

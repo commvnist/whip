@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -38,7 +39,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -62,6 +62,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
@@ -294,27 +295,43 @@ private fun ExerciseSelectionField(
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false; query = "" },
-                modifier = Modifier.width(320.dp),
+                modifier = Modifier.widthIn(max = 320.dp).testTag("gym-exercise-filter-menu"),
             ) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
                     label = { Text("Search Exercises") },
                     singleLine = true,
-                    modifier = Modifier.width(300.dp).padding(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
                 )
                 if (allLabel != null) {
+                    val isSelected = selectedExerciseId == null
                     DropdownMenuItem(
                         text = { Text(allLabel) },
-                        trailingIcon = if (selectedExerciseId == null) {{ Text("Selected", style = MaterialTheme.typography.labelSmall) }} else null,
+                        trailingIcon = if (isSelected) {{
+                            Text(
+                                "Selected",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.clearAndSetSemantics {},
+                            )
+                        }} else null,
                         onClick = { onSelect(null); expanded = false; query = "" },
+                        modifier = Modifier.semantics { selected = isSelected },
                     )
                 }
                 matches.take(50).forEach { exercise ->
+                    val isSelected = exercise.id == selectedExerciseId
                     DropdownMenuItem(
                         text = { Text(exercise.name) },
-                        trailingIcon = if (exercise.id == selectedExerciseId) {{ Text("Selected", style = MaterialTheme.typography.labelSmall) }} else null,
+                        trailingIcon = if (isSelected) {{
+                            Text(
+                                "Selected",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.clearAndSetSemantics {},
+                            )
+                        }} else null,
                         onClick = { onSelect(exercise.id); expanded = false; query = "" },
+                        modifier = Modifier.semantics { selected = isSelected },
                     )
                 }
                 if (matches.isEmpty()) {
@@ -338,7 +355,7 @@ private fun ExerciseSelectionField(
 }
 
 @Composable
-private fun ExerciseComparisonField(
+internal fun ExerciseComparisonField(
     exercises: List<Exercise>,
     excludedExerciseId: Long?,
     selectedExerciseIds: Set<Long>,
@@ -363,21 +380,28 @@ private fun ExerciseComparisonField(
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false; query = "" },
-                modifier = Modifier.width(320.dp),
+                modifier = Modifier.widthIn(max = 320.dp).testTag("gym-exercise-comparison-menu"),
             ) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
                     label = { Text("Search Exercises") },
                     singleLine = true,
-                    modifier = Modifier.width(300.dp).padding(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
                 )
                 matches.take(50).forEach { exercise ->
                     val selected = exercise.id in selectedExerciseIds
                     DropdownMenuItem(
                         text = { Text(exercise.name) },
-                        trailingIcon = if (selected) {{ Text("Selected", style = MaterialTheme.typography.labelSmall) }} else null,
+                        trailingIcon = if (selected) {{
+                            Text(
+                                "Selected",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.clearAndSetSemantics {},
+                            )
+                        }} else null,
                         enabled = selected || selectedExerciseIds.size < 3,
+                        modifier = Modifier.semantics { this.selected = selected },
                         onClick = {
                             onSelectionChange(
                                 if (selected) selectedExerciseIds - exercise.id else selectedExerciseIds + exercise.id,
@@ -5972,10 +5996,13 @@ internal fun ExerciseEditorDialog(
                     if (categories.isNotEmpty()) item {
                         Text("User Categories", style = MaterialTheme.typography.labelMedium)
                         categories.forEach { category ->
-                            Row(Modifier.fillMaxWidth().clickable(onClickLabel = "Toggle ${category.name}") { categoryIds = if (category.id in categoryIds) categoryIds - category.id else categoryIds + category.id }, verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(checked = category.id in categoryIds, onCheckedChange = null)
-                                Text("${category.name} · ${category.kind}")
-                            }
+                            WhipMultiChoiceRow(
+                                label = "${category.name} · ${category.kind}",
+                                checked = category.id in categoryIds,
+                                onCheckedChange = { checked ->
+                                    categoryIds = if (checked) categoryIds + category.id else categoryIds - category.id
+                                },
+                            )
                         }
                     }
                     item {
@@ -6631,7 +6658,15 @@ private enum class ExerciseDetailSection(val id: String, val label: String) {
     ;
 
     val inspectorSection: EntityInspectorSection
-        get() = EntityInspectorSection(id, label)
+        get() = EntityInspectorSection(
+            id = id,
+            label = label,
+            placement = if (this == More) {
+                EntityInspectorSectionPlacement.Overflow
+            } else {
+                EntityInspectorSectionPlacement.Direct
+            },
+        )
 }
 
 @Composable
@@ -6739,17 +6774,11 @@ internal fun WorkoutEditorDialog(
 
 @Composable
 private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    val displayLabel = label.uiTitleCase()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClickLabel = "Toggle $displayLabel", role = Role.Switch) { onCheckedChange(!checked) }
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(displayLabel, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = null)
-    }
+    WhipSettingsRow(
+        title = label.uiTitleCase(),
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+    )
 }
 
 @Composable

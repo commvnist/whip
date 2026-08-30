@@ -62,7 +62,8 @@ class NotificationDeepLinkE2ETest {
                 compose.onAllNodesWithTag("habit-detail-surface").fetchSemanticsNodes().isNotEmpty()
             }
             compose.onNodeWithTag("habit-detail-surface").assertIsDisplayed()
-            compose.onNodeWithTag("habit-detail-section-More").performClick()
+            compose.onNodeWithContentDescription("More Habit options").performClick()
+            compose.onNodeWithText("Options").performClick()
             compose.onNodeWithTag("entity-inspector-content-options").assertIsDisplayed()
         }
     }

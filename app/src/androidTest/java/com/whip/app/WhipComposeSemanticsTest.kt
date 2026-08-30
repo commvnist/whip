@@ -239,7 +239,7 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithContentDescription("Open task details for Pinned audit task").performClick()
             if (compose.onAllNodesWithText("Options").fetchSemanticsNodes().isEmpty()) {
                 compose.onNode(
-                    hasContentDescription("Open Pages") and
+                    hasContentDescription("More Task options") and
                         hasAnyAncestor(hasTestTag("task-actions-surface")),
                 ).performClick()
             }
@@ -311,7 +311,7 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithTag("task-actions-surface").assertIsDisplayed()
             if (compose.onAllNodesWithText("Options").fetchSemanticsNodes().isEmpty()) {
                 compose.onNode(
-                    hasContentDescription("Open Pages") and
+                    hasContentDescription("More Task options") and
                         hasAnyAncestor(hasTestTag("task-actions-surface")),
                 ).performClick()
             }
@@ -635,8 +635,8 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithText("How do you want to track it?").assertIsDisplayed()
             compose.onAllNodesWithText("Intent").assertCountEquals(0)
             compose.onAllNodesWithText("Target rule").assertCountEquals(0)
-            compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("More Details"))
-            compose.onNodeWithText("More Details").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Additional Details"))
+            compose.onNodeWithText("Additional Details").assertIsDisplayed().performClick()
             compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Notes"))
             compose.onNodeWithText("Notes").assertIsDisplayed()
             compose.onAllNodesWithText("Intent").assertCountEquals(0)
@@ -672,8 +672,8 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasText("Starting Value (Optional)"))
             compose.onNodeWithText("Starting Value (Optional)").assertIsDisplayed()
             compose.onNodeWithText("Move from a starting value", substring = true).assertIsDisplayed()
-            compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasText("More Details"))
-            compose.onNodeWithText("More Details").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasText("Additional Details"))
+            compose.onNodeWithText("Additional Details").assertIsDisplayed().performClick()
             compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasText("Description"))
             compose.onNodeWithText("Description").assertIsDisplayed()
             compose.onNodeWithContentDescription("Cancel Goal editing").performClick()

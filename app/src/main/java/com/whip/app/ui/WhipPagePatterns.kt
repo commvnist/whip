@@ -37,6 +37,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.RadioButton
@@ -51,12 +52,16 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
@@ -356,6 +361,7 @@ internal fun WhipEmptyState(
         icon?.let { Icon(it, contentDescription = null, modifier = Modifier.size(32.dp)) }
         Text(
             title,
+            modifier = Modifier.semantics { heading() },
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
@@ -465,7 +471,46 @@ internal fun WhipMetricTile(
     }
 }
 
-internal enum class WhipNoticeTone { Neutral, Informative, Warning, Error }
+internal enum class WhipNoticeTone { Neutral, Informative, Success, Warning, Error }
+
+internal enum class WhipStatusKind { Loading, Status, Success, Error }
+
+/**
+ * A named, announced status for work that changes after the surrounding page is
+ * already visible. The visual progress bar is decorative because the complete
+ * status is exposed by the card's single live-region node.
+ */
+@Composable
+internal fun WhipStatusCard(
+    kind: WhipStatusKind,
+    title: String,
+    message: String,
+    modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+) {
+    val tone = when (kind) {
+        WhipStatusKind.Loading, WhipStatusKind.Status -> WhipNoticeTone.Informative
+        WhipStatusKind.Success -> WhipNoticeTone.Success
+        WhipStatusKind.Error -> WhipNoticeTone.Error
+    }
+    val stateLabel = when (kind) {
+        WhipStatusKind.Loading -> "Loading"
+        WhipStatusKind.Status -> "Status"
+        WhipStatusKind.Success -> "Success"
+        WhipStatusKind.Error -> "Error"
+    }
+    WhipNoticeCard(
+        title = title,
+        message = message,
+        tone = tone,
+        actionLabel = actionLabel,
+        onAction = onAction,
+        showProgress = kind == WhipStatusKind.Loading,
+        semanticStateLabel = stateLabel,
+        modifier = modifier,
+    )
+}
 
 /** One semantic grammar for inline dependency, partial-data, warning, and error notices. */
 @Composable
@@ -476,15 +521,33 @@ internal fun WhipNoticeCard(
     tone: WhipNoticeTone = WhipNoticeTone.Neutral,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
+    showProgress: Boolean = false,
+    semanticStateLabel: String? = null,
 ) {
     val (containerColor, contentColor) = when (tone) {
         WhipNoticeTone.Neutral -> MaterialTheme.colorScheme.surfaceContainerLow to MaterialTheme.colorScheme.onSurface
         WhipNoticeTone.Informative -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+        WhipNoticeTone.Success -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
         WhipNoticeTone.Warning -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
         WhipNoticeTone.Error -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
     }
+    val effectiveStateLabel = semanticStateLabel ?: when (tone) {
+        WhipNoticeTone.Neutral -> null
+        WhipNoticeTone.Informative -> "Information"
+        WhipNoticeTone.Success -> "Success"
+        WhipNoticeTone.Warning -> "Warning"
+        WhipNoticeTone.Error -> "Error"
+    }
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics {
+                effectiveStateLabel?.let {
+                    liveRegion = LiveRegionMode.Polite
+                    stateDescription = it
+                }
+                if (tone == WhipNoticeTone.Error) error(message)
+            },
         colors = CardDefaults.cardColors(containerColor = containerColor, contentColor = contentColor),
     ) {
         Column(
@@ -493,6 +556,13 @@ internal fun WhipNoticeCard(
         ) {
             title?.let {
                 Text(it, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            }
+            if (showProgress) {
+                LinearProgressIndicator(
+                    Modifier
+                        .fillMaxWidth()
+                        .clearAndSetSemantics {},
+                )
             }
             Text(message, style = MaterialTheme.typography.bodySmall)
             if (actionLabel != null && onAction != null) {
@@ -558,7 +628,12 @@ internal fun WhipSettingsRow(
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
+        Switch(
+            checked = checked,
+            onCheckedChange = null,
+            enabled = enabled,
+            modifier = Modifier.clearAndSetSemantics {},
+        )
     }
 }
 

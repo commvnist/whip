@@ -164,13 +164,12 @@ class TrackWorkspaceUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("More destinations").performClick()
+        compose.onAllNodesWithContentDescription("More destinations").assertCountEquals(0)
         compose.onNodeWithContentDescription("Tracks tab").performClick()
         compose.onNodeWithTag("track-workspace-navigation").assertIsDisplayed()
         compose.onNodeWithTag("track-workspace-destination-Activity").performClick()
         compose.onNodeWithContentDescription("Search Track Activity").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Open Pages").performClick()
-        compose.onNodeWithText("Insights").performClick()
+        compose.onNodeWithTag("track-workspace-destination-Insights").performClick()
         compose.onNodeWithText("Patterns and automation health across visible Tracks.").assertIsDisplayed()
     }
 

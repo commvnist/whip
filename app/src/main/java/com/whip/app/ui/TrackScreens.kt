@@ -60,7 +60,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -542,6 +541,7 @@ internal fun TrackAreaContent(
             label = TrackWorkspaceDestination::label,
             testTagPrefix = "track-workspace-destination",
             barTestTag = "track-workspace-navigation",
+            overflowLabel = "More Track destinations",
         )
         BoxWithConstraints(Modifier.fillMaxSize().weight(1f)) {
             when (workspaceDestination) {
@@ -1013,8 +1013,10 @@ private fun TrackWorkspaceInsightsPage(
     }
     val progressRules = state.linkRules.filter { it.sourceType == LinkSourceType.Track && it.sourceEntityId in activeTrackIds }
     val actionRules = state.triggerRules.filter {
-        it.sourceType == LinkSourceType.Track && it.sourceEntityId in activeTrackIds ||
-            it.targetType == TriggerTargetType.Track && it.targetEntityId in activeTrackIds
+        it.enabled && it.action != TriggerAction.CheckOffHabit && (
+            it.sourceType == LinkSourceType.Track && it.sourceEntityId in activeTrackIds ||
+                it.targetType == TriggerTargetType.Track && it.targetEntityId in activeTrackIds
+            )
     }
     val actionRuleIds = actionRules.mapTo(mutableSetOf(), TriggerRule::id)
     val pendingPrompts = state.triggerOccurrences.count {
@@ -1589,9 +1591,18 @@ private fun AllTracksPage(
         if (query.isNotBlank() || !reorderEnabled || showArchived) reordering = false
     }
     val visibleTrackIds = source.mapTo(mutableSetOf()) { it.track.id }
-    val captureRules = state.triggerRules.filter { it.targetType == TriggerTargetType.Track && it.targetEntityId in visibleTrackIds }
+    val captureRules = state.triggerRules.filter {
+        it.enabled && it.targetType == TriggerTargetType.Track && it.targetEntityId in visibleTrackIds &&
+            it.action == TriggerAction.PromptTrackEntry
+    }
     val captureRuleIds = captureRules.mapTo(mutableSetOf(), TriggerRule::id)
-    val now = Instant.now()
+    var now by remember { mutableStateOf(Instant.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = Instant.now()
+            kotlinx.coroutines.delay(1_000)
+        }
+    }
     val readyPrompts = state.triggerOccurrences.filter { occurrence ->
         occurrence.triggerRuleId in captureRuleIds && occurrence.dismissedAt == null && occurrence.fulfilledEntryId == null &&
             !(occurrence.remindAt ?: occurrence.availableAt).isAfter(now)
@@ -2043,11 +2054,20 @@ private fun TrackDetailPage(
     saving: Boolean,
     dialogModifier: Modifier,
 ) {
-    val captureRules = state.triggerRules.filter { it.targetType == TriggerTargetType.Track && it.targetEntityId == projection.track.id }
+    val captureRules = state.triggerRules.filter {
+        it.enabled && it.targetType == TriggerTargetType.Track && it.targetEntityId == projection.track.id &&
+            it.action == TriggerAction.PromptTrackEntry
+    }
     val followUpRules = state.triggerRules.filter { it.sourceType == LinkSourceType.Track && it.sourceEntityId == projection.track.id }
     val progressRules = state.linkRules.filter { it.sourceType == LinkSourceType.Track && it.sourceEntityId == projection.track.id }
     val captureRuleIds = captureRules.mapTo(mutableSetOf(), TriggerRule::id)
-    val now = Instant.now()
+    var now by remember { mutableStateOf(Instant.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = Instant.now()
+            kotlinx.coroutines.delay(1_000)
+        }
+    }
     val pending = state.triggerOccurrences.filter { occurrence ->
         occurrence.triggerRuleId in captureRuleIds && occurrence.dismissedAt == null && occurrence.fulfilledEntryId == null &&
             !(occurrence.remindAt ?: occurrence.availableAt).isAfter(now)
@@ -2085,6 +2105,7 @@ private fun TrackDetailPage(
             selected = destination,
             destinations = TrackDetailDestination.entries,
             primaryDestinations = listOf(TrackDetailDestination.Entries, TrackDetailDestination.Automations, TrackDetailDestination.Insights),
+            overflowLabel = "More Track destinations",
             onSelect = onDestinationChange,
             label = TrackDetailDestination::label,
             compactLabel = TrackDetailDestination::label,
@@ -2249,11 +2270,22 @@ private fun TrackEntriesPage(
             }
         }
         if (databasePagedView && pageLoading && pagedEntries.isEmpty()) item {
-            Text("Loading Entries…", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
+            WhipStatusCard(
+                kind = WhipStatusKind.Loading,
+                title = "Loading Entries",
+                message = "Your saved Entries are being prepared.",
+                modifier = Modifier.testTag("track-entry-page-loading"),
+            )
         }
         pageError?.let { error -> item {
-            WhipEmptyState("Entries Unavailable", error, Modifier.fillMaxWidth().padding(vertical = 24.dp))
-            WhipOutlinedButton(onClick = { coroutineScope.launch { reloadPage() } }, modifier = Modifier.fillMaxWidth()) { Text("Try Again") }
+            WhipStatusCard(
+                kind = WhipStatusKind.Error,
+                title = "Entries Unavailable",
+                message = error,
+                actionLabel = "Try Again",
+                onAction = { coroutineScope.launch { reloadPage() } },
+                modifier = Modifier.testTag("track-entry-page-error"),
+            )
         } }
         if (!pageLoading && pageError == null && shown.isEmpty()) item {
             WhipEmptyState(
@@ -2273,25 +2305,33 @@ private fun TrackEntriesPage(
                 onDelete = { onDeleteEntry(entry.entry.id) },
             )
         }
-        if (databasePagedView && pagedEntries.size < totalEntryCount) item {
-            WhipOutlinedButton(
-                enabled = !pageLoading,
-                onClick = {
-                    coroutineScope.launch {
-                        pageLoading = true
-                        pageError = null
-                        runCatching { loadEntryPage(pagedEntries.size, TRACK_ENTRY_PAGE_SIZE) }
-                            .onSuccess { page ->
-                                pagedEntries = (pagedEntries + page.entries).distinctBy { it.entry.id }
-                                totalEntryCount = page.totalCount
-                            }
-                            .onFailure { pageError = it.message ?: "More Entries could not be loaded" }
-                        pageLoading = false
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(if (pageLoading) "Loading…" else "Show ${minOf(TRACK_ENTRY_PAGE_SIZE, totalEntryCount - pagedEntries.size)} More · ${totalEntryCount - pagedEntries.size} Remaining")
+        if (databasePagedView && pagedEntries.size < totalEntryCount && pageError == null) item {
+            if (pageLoading) {
+                WhipStatusCard(
+                    kind = WhipStatusKind.Loading,
+                    title = "Loading More Entries",
+                    message = "${totalEntryCount - pagedEntries.size} Entries remain.",
+                    modifier = Modifier.testTag("track-entry-page-loading-more"),
+                )
+            } else {
+                WhipOutlinedButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            pageLoading = true
+                            pageError = null
+                            runCatching { loadEntryPage(pagedEntries.size, TRACK_ENTRY_PAGE_SIZE) }
+                                .onSuccess { page ->
+                                    pagedEntries = (pagedEntries + page.entries).distinctBy { it.entry.id }
+                                    totalEntryCount = page.totalCount
+                                }
+                                .onFailure { pageError = it.message ?: "More Entries could not be loaded" }
+                            pageLoading = false
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Show ${minOf(TRACK_ENTRY_PAGE_SIZE, totalEntryCount - pagedEntries.size)} More · ${totalEntryCount - pagedEntries.size} Remaining")
+                }
             }
         }
     }
@@ -4331,14 +4371,13 @@ private fun TrackToggleRow(
     onChecked: (Boolean) -> Unit,
     enabled: Boolean = true,
 ) {
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(enabled = enabled) { onChecked(!checked) },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Column(Modifier.weight(1f)) { Text(label, fontWeight = FontWeight.Medium); Text(supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        Switch(checked, onChecked, enabled = enabled)
-    }
+    WhipSettingsRow(
+        title = label,
+        supportingText = supporting,
+        checked = checked,
+        onCheckedChange = onChecked,
+        enabled = enabled,
+    )
 }
 
 private fun TrackProjection.addEntryLabel(): String = "Add ${primaryField.name}"

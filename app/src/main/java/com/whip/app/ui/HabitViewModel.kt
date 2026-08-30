@@ -257,38 +257,41 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
     }
     fun setTriggerEnabled(rule: com.whip.app.domain.TriggerRule, enabled: Boolean) = updateTrigger(
         rule.id,
-        TriggerRuleDraft(
-            name = rule.name,
-            sourceType = rule.sourceType,
-            sourceEntityId = rule.sourceEntityId,
-            outcome = rule.outcome,
-            targetType = rule.targetType,
-            targetEntityId = rule.targetEntityId,
-            delayMinutes = rule.delayMinutes,
-            quietStartMinutes = rule.quietStartMinutes,
-            quietEndMinutes = rule.quietEndMinutes,
-            action = rule.action,
-            notificationEnabled = rule.notificationEnabled,
-            enabled = enabled,
-            conditionMode = rule.conditionMode,
-            conditions = rule.conditions,
-            mappings = rule.mappings,
-        ),
+        rule.toAutomationDraft(enabled),
     )
+    private val triggerActionMutex = Mutex()
+
     fun doTriggerNow(occurrenceId: Long, rule: com.whip.app.domain.TriggerRule) = runOperation(
         "Applying next action…",
         "Next action completed",
     ) {
-        require(rule.targetType == TriggerTargetType.Habit) { "Open task automations before completing them" }
-        val habit = repository.habits.first().firstOrNull { it.id == rule.targetEntityId }
-            ?: error("Target habit no longer exists")
-        when (habit.trackingMode) {
-            HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist -> repository.setCheckOff(habit.id, clock.today(), true)
-            HabitTrackingMode.Duration -> error("Open the habit to start or stop its timer")
-            else -> repository.log(habit.id, habit.quickIncrement.takeIf { it > 0.0 } ?: 1.0, date = clock.today())
+        triggerActionMutex.withLock {
+            val persistedRule = links.triggerRules.first().firstOrNull { it.id == rule.id }
+                ?: error("This Automation is no longer available")
+            val occurrence = links.triggerOccurrences.first().firstOrNull { it.id == occurrenceId }
+                ?: error("This prompt is no longer available")
+            require(occurrence.triggerRuleId == persistedRule.id) { "This prompt no longer belongs to this Automation" }
+            require(occurrence.isReadyForHabitAutomation(persistedRule, clock.now())) {
+                "This prompt is no longer ready"
+            }
+            val habit = repository.habits.first().firstOrNull { it.id == persistedRule.targetEntityId }
+                ?: error("Target Habit no longer exists")
+            require(persistedRule.supportsReadyDoNow(habit.trackingMode, habit.sourceMetricId)) {
+                "Open the Habit to complete this prompt"
+            }
+            when (habit.trackingMode) {
+                HabitTrackingMode.CheckOff -> repository.setCheckOff(habit.id, clock.today(), true)
+                HabitTrackingMode.Count, HabitTrackingMode.Decimal ->
+                    repository.log(habit.id, habit.quickIncrement, date = clock.today())
+                HabitTrackingMode.Duration,
+                HabitTrackingMode.Checklist,
+                HabitTrackingMode.Rating,
+                HabitTrackingMode.LogOnly,
+                -> error("Open the Habit to complete this prompt")
+            }
+            links.dismissTriggerOccurrence(occurrenceId)
+            reminders.syncHabit(habit.id)
         }
-        links.dismissTriggerOccurrence(occurrenceId)
-        reminders.syncHabit(habit.id)
     }
     fun deleteTrigger(id: Long) = runOperation("Removing automation…", "Automation removed") { links.deleteTrigger(id) }
     fun dismissTriggerOccurrence(id: Long) = runOperation("Dismissing prompt…", "Prompt dismissed") {

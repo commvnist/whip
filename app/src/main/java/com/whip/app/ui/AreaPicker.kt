@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
@@ -158,26 +159,32 @@ internal fun AreaSelectionDropdown(
                 )
             }
             if (allowNullSelection) {
+                val isSelected = selectedAreaId == null
                 DropdownMenuItem(
                     text = { Text(nullLabel) },
-                    leadingIcon = if (selectedAreaId == null) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
+                    leadingIcon = if (isSelected) {{ Icon(Icons.Outlined.Check, contentDescription = null) }} else null,
                     onClick = { onSelect(null, ""); expanded = false },
+                    modifier = Modifier.semantics { this.selected = isSelected },
                 )
             }
             areas.filter { (!it.archived || it.id == selectedAreaId) && (query.isBlank() || it.name.contains(query, true)) }
                 .forEach { area ->
+                    val isSelected = effectiveSelectedAreaId == area.id
                     DropdownMenuItem(
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) {
-                                    if (effectiveSelectedAreaId == area.id) Icon(Icons.Outlined.Check, contentDescription = "Selected", modifier = Modifier.size(18.dp))
+                                    if (isSelected) Icon(Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                                 }
                                 area.colorArgb?.let { Box(Modifier.size(9.dp).clip(CircleShape).background(Color(it))) }
                                 Text(area.name + if (area.archived) " · Archived" else "")
                             }
                         },
                         onClick = { onSelect(area.id, area.name); expanded = false },
-                        modifier = Modifier.semantics { contentDescription = "Area ${area.name}" },
+                        modifier = Modifier.semantics {
+                            contentDescription = "Area ${area.name}"
+                            this.selected = isSelected
+                        },
                     )
                 }
             onCreate?.let {

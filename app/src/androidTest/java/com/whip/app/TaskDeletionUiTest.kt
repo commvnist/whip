@@ -192,6 +192,7 @@ class TaskDeletionUiTest {
             }
         }
 
+        compose.onNodeWithContentDescription("More Task options").performClick()
         compose.onNodeWithText("Options").performClick()
         compose.onNodeWithText("Delete Permanently").assertIsDisplayed().performClick()
         compose.onNodeWithText("Delete “Private task” Permanently?").assertIsDisplayed()
@@ -203,6 +204,7 @@ class TaskDeletionUiTest {
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithText("Private task").assertIsDisplayed()
 
+        compose.onNodeWithContentDescription("More Task options").performClick()
         compose.onNodeWithText("Options").performClick()
         compose.onNodeWithText("Delete Permanently").performClick()
         compose.onNodeWithText("Delete Permanently").performClick()
@@ -303,6 +305,7 @@ class TaskDeletionUiTest {
         compose.onNodeWithContentDescription("Edit This and Future").assertIsDisplayed()
         compose.onNodeWithText("Activity").performClick()
         compose.onNodeWithContentDescription("Edit This and Future").assertIsDisplayed()
+        compose.onNodeWithContentDescription("More Task options").performClick()
         compose.onNodeWithText("Options").performClick()
         compose.onNodeWithContentDescription("Edit This and Future").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, edits.get()) }

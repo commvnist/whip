@@ -253,6 +253,7 @@ fun GoalAreaContent(
             selected = destination,
             destinations = GoalDestination.entries,
             primaryDestinations = listOf(GoalDestination.Active, GoalDestination.Completed, GoalDestination.Insights),
+            overflowLabel = "More Goal destinations",
             onSelect = {
                 manageOrder = false
                 destination = it
@@ -1491,7 +1492,7 @@ private fun GoalEditorDialog(
                 }
                 item {
                     DisclosureButton(
-                        label = "More Details",
+                        label = "Additional Details",
                         expanded = advanced,
                         onClick = { advanced = !advanced },
                         modifier = Modifier.fillMaxWidth(),
@@ -1861,7 +1862,15 @@ private enum class GoalDetailSection(val id: String, val label: String) {
     ;
 
     val inspectorSection: EntityInspectorSection
-        get() = EntityInspectorSection(id, label)
+        get() = EntityInspectorSection(
+            id = id,
+            label = label,
+            placement = if (this == More) {
+                EntityInspectorSectionPlacement.Overflow
+            } else {
+                EntityInspectorSectionPlacement.Direct
+            },
+        )
 }
 
 internal fun GoalStatus.inspectorLabel(): String = when (this) {
