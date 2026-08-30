@@ -35,7 +35,7 @@ class ProductivityTemplateSafetyTest {
         val intent = Intent(app, MainActivity::class.java).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
         launchMainActivity(intent).use {
             compose.waitForIdle()
-            compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
+            compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
             compose.onNodeWithText("New Task").performClick()
             compose.onNodeWithText("Use a Template").performClick()
             compose.onNodeWithText("Repeat on Chosen Weekdays").performClick()

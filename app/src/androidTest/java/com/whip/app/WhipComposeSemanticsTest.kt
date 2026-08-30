@@ -67,7 +67,8 @@ class WhipComposeSemanticsTest {
         launchMainActivity(intent).use {
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Home").assertIsDisplayed()
-            compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
+            compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
+            compose.onAllNodesWithText("New Exercise").assertCountEquals(0)
             compose.onNodeWithText("New Habit").assertIsDisplayed().performClick()
             compose.onNodeWithText("Name *").assertIsDisplayed()
             compose.onNodeWithContentDescription("Cancel Habit editing").performClick()
@@ -593,7 +594,7 @@ class WhipComposeSemanticsTest {
         launchMainActivity(intent).use {
             compose.waitForIdle()
 
-            compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
+            compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
             compose.onNodeWithText("New Task").performClick()
             compose.onAllNodesWithText("Notes (Optional)").assertCountEquals(0)
             compose.onNodeWithTag("task-editor-more-details").performScrollTo().performClick()
@@ -603,7 +604,7 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithContentDescription("Cancel Task editing").performClick()
 
             compose.onNodeWithContentDescription("Home").performClick()
-            compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
+            compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
             compose.onNodeWithText("New Habit").performClick()
             compose.onAllNodesWithText("Notes").assertCountEquals(0)
             compose.onNodeWithText("How do you want to track it?").assertIsDisplayed()
@@ -640,7 +641,7 @@ class WhipComposeSemanticsTest {
             }
 
             compose.onNodeWithContentDescription("Go to Home").performClick()
-            compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
+            compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
             compose.onNodeWithText("New Goal").performClick()
             compose.onAllNodesWithText("Description").assertCountEquals(0)
             compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasText("Starting Value (Optional)"))

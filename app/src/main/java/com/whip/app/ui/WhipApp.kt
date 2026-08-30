@@ -1562,7 +1562,7 @@ fun WhipScreen(
         snackbarHostState.currentSnackbarData?.dismiss()
     }
     val addDescription = when (appDestination) {
-        AppDestination.Home -> "Add task, habit, goal, track, exercise, or workout"
+        AppDestination.Home -> "Add task, habit, goal, track, or workout"
         AppDestination.Tasks -> "Add task"
         AppDestination.Habits -> "Add habit"
         AppDestination.Goals -> "Add goal"
@@ -1894,15 +1894,6 @@ fun WhipScreen(
                                 WhipMenuItem(label = "New Habit", onClick = { appDestination = AppDestination.Habits; createHabitRequested = true; globalAddExpanded = false })
                                 WhipMenuItem(label = "New Goal", onClick = { appDestination = AppDestination.Goals; createGoalRequested = true; globalAddExpanded = false })
                                 WhipMenuItem(label = "New Track", onClick = { appDestination = AppDestination.Tracks; createTrackRequested = true; globalAddExpanded = false })
-                                WhipMenuItem(
-                                    label = "New Exercise",
-                                    onClick = {
-                                        appDestination = AppDestination.Gym
-                                        gymDestination = GymDestination.Exercises
-                                        gymAddRequest = GymAddRequest.CreateExercise
-                                        globalAddExpanded = false
-                                    },
-                                )
                                 WhipMenuItem(
                                     label = if (gymState.activeSession == null) "Start Workout" else "Add to Workout",
                                     onClick = {

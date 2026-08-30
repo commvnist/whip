@@ -75,7 +75,7 @@ class ImeNavigationRailE2ETest {
             val before = compose.onNodeWithTag("adaptive-navigation-rail-destinations")
                 .fetchSemanticsNode().boundsInRoot
 
-            compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout")
+            compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout")
                 .performClick()
             compose.onNodeWithText("New Task").performClick()
             compose.onNodeWithTag("task-editor-title").performClick().performTextInput("Stable rail")

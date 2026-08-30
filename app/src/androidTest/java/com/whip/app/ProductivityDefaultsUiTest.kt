@@ -87,7 +87,7 @@ class ProductivityDefaultsUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
+        compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
         compose.onNodeWithText("New Task").performClick()
         compose.onNodeWithTag("task-editor-title").performTextInput("Visible today")
         compose.onNodeWithText("Save").performClick()
@@ -251,7 +251,7 @@ class ProductivityDefaultsUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
+        compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
         compose.onNodeWithText("New Habit").performClick()
         compose.onNodeWithTag("habit-editor-name").performTextInput("Discrete default")
         compose.onNodeWithText("Save").performClick()

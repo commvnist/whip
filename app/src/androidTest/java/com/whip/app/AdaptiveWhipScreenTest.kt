@@ -751,12 +751,12 @@ class AdaptiveWhipScreenTest {
             check(editor.left >= hinge.right - 1f) { "$tag crossed the hinge: editor=$editor hinge=$hinge" }
         }
 
-        compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
+        compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
         compose.onNodeWithText("New Task").performClick()
         assertEditorInsideContentPane("task-editor-surface")
         compose.onNodeWithContentDescription("Cancel Task editing").performClick()
 
-        compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
+        compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
         compose.onNodeWithText("New Habit").performClick()
         assertEditorInsideContentPane("habit-editor-surface")
         compose.onNodeWithContentDescription("Cancel Habit editing").performClick()
@@ -776,11 +776,8 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithContentDescription("Close Track Editor").performClick()
 
         compose.onNodeWithContentDescription("Go to Home").performClick()
-        compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
-        compose.onNodeWithText("New Exercise").performClick()
-        assertEditorInsideContentPane("exercise-editor-surface")
-        compose.onNodeWithText("Save").assertIsDisplayed()
-        compose.onNodeWithText("Cancel").assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
+        compose.onAllNodesWithText("New Exercise").assertCountEquals(0)
     }
 
     @Test
@@ -1133,7 +1130,7 @@ class AdaptiveWhipScreenTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").assertIsDisplayed().performClick()
         compose.onNodeWithText("New Task").assertIsDisplayed().performClick()
         compose.onNodeWithTag("task-editor-title").assertIsDisplayed()
         compose.onNodeWithTag("task-editor-more-details").performScrollTo().assertIsDisplayed().performClick()
@@ -1169,7 +1166,7 @@ class AdaptiveWhipScreenTest {
                 }
             }
         }
-        compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
+        compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
         compose.onNodeWithText("New Habit").performClick()
         compose.onNodeWithTag("habit-editor-name").assertIsDisplayed()
         compose.onNodeWithText("Save").assertIsDisplayed()
@@ -1198,7 +1195,7 @@ class AdaptiveWhipScreenTest {
                 }
             }
         }
-        compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
+        compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
         compose.onNodeWithText("New Goal").performClick()
         compose.onNodeWithTag("goal-editor-name").assertIsDisplayed()
         compose.onNodeWithText("Save").assertIsDisplayed()
@@ -1263,7 +1260,7 @@ class AdaptiveWhipScreenTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
+        compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
         compose.onNodeWithText("New Goal").performClick()
         val hinge = compose.onNodeWithContentDescription("Device hinge separator").fetchSemanticsNode().boundsInRoot
         val editor = compose.onNodeWithTag("goal-editor-surface").fetchSemanticsNode().boundsInRoot

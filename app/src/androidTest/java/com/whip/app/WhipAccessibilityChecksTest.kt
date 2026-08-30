@@ -60,7 +60,7 @@ class WhipAccessibilityChecksTest {
             } else {
                 compose.onNodeWithContentDescription("Home").performClick()
             }
-            compose.onNodeWithContentDescription("Add task, habit, goal, track, exercise, or workout").performClick()
+            compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
             compose.onNodeWithText("New $type").performClick()
             compose.onRoot().tryPerformAccessibilityChecks()
             if (type == "Task") {
