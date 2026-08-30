@@ -81,6 +81,9 @@ interface LinkDao {
     @Query("SELECT * FROM trigger_occurrences WHERE triggerRuleId = :ruleId")
     suspend fun getTriggerOccurrences(ruleId: Long): List<TriggerOccurrenceEntity>
 
+    @Query("SELECT * FROM trigger_occurrences")
+    suspend fun getAllTriggerOccurrences(): List<TriggerOccurrenceEntity>
+
     @Query("SELECT * FROM trigger_occurrences WHERE id = :id")
     suspend fun getTriggerOccurrence(id: Long): TriggerOccurrenceEntity?
 

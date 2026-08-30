@@ -4,7 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -28,7 +27,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
@@ -36,7 +34,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -69,7 +66,6 @@ import androidx.compose.material.icons.outlined.Search
 import com.whip.app.core.AppSettings
 import com.whip.app.core.zoneId
 import com.whip.app.domain.Goal
-import com.whip.app.domain.Habit
 import com.whip.app.domain.Area
 import com.whip.app.domain.CustomIdentityEmoji
 import com.whip.app.domain.GoalAggregation
@@ -84,19 +80,8 @@ import com.whip.app.domain.GoalType
 import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.elapsedCounter
 import com.whip.app.domain.DEFAULT_GOAL_EMOJI
-import com.whip.app.domain.Contribution
-import com.whip.app.domain.LinkKind
-import com.whip.app.domain.LinkRule
-import com.whip.app.domain.LinkRuleDraft
-import com.whip.app.domain.LinkSourceMetric
-import com.whip.app.domain.LinkSourceType
-import com.whip.app.domain.LinkValueMode
 import com.whip.app.domain.MetricEntry
 import com.whip.app.domain.MetricDefinition
-import com.whip.app.domain.TrackAggregation
-import com.whip.app.domain.TrackCondition
-import com.whip.app.domain.TrackConditionMode
-import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.BuiltInUnits
@@ -119,7 +104,6 @@ import kotlinx.coroutines.delay
 import java.util.Locale
 
 enum class GoalDestination { Active, Completed, Archived, Insights }
-private enum class LinkHistoryChoice { NewEntriesOnly, SinceGoalStart, SinceDate, AllHistory }
 
 @Composable
 fun GoalAreaContent(
@@ -166,11 +150,8 @@ fun GoalAreaContent(
     var editingGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var recordingGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var actionsGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var linkingGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var editingLinkRuleId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editingMeasurementGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editingMeasurementId by rememberSaveable { mutableStateOf<String?>(null) }
-    var overridingContributionId by rememberSaveable { mutableStateOf<Long?>(null) }
     var resettingElapsedGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var manageOrder by rememberSaveable { mutableStateOf(false) }
     var toolsExpanded by rememberSaveable { mutableStateOf(false) }
@@ -178,17 +159,13 @@ fun GoalAreaContent(
     var templatesOpen by rememberSaveable { mutableStateOf(false) }
     var templateDraft by rememberSaveable { mutableStateOf<GoalDraft?>(null) }
     var editorSavePending by rememberSaveable { mutableStateOf(false) }
-    var linkSavePending by rememberSaveable { mutableStateOf(false) }
     val projectionById = (state.active + state.completed + state.archived).associateBy { it.goal.id }
     val editing = editingGoalId?.let(projectionById::get)
     val recording = recordingGoalId?.let(projectionById::get)
     val actions = actionsGoalId?.let(projectionById::get)
-    val linking = linkingGoalId?.let(projectionById::get)
-    val editingLinkRule = editingLinkRuleId?.let { id -> state.linkRules.firstOrNull { it.id == id } }
     val editingMeasurement = editingMeasurementGoalId?.let(projectionById::get)?.let { projection ->
         editingMeasurementId?.let { id -> projection.entries.firstOrNull { it.id == id } }?.let { projection to it }
     }
-    val overridingContribution = overridingContributionId?.let { id -> state.contributions.firstOrNull { it.id == id } }
     val resettingElapsed = resettingElapsedGoalId?.let(projectionById::get)
     val deleteCandidate = deleteCandidateGoalId?.let(projectionById::get)
     var elapsedNowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -252,8 +229,6 @@ fun GoalAreaContent(
         DestinationTabBar(
             selected = destination,
             destinations = GoalDestination.entries,
-            primaryDestinations = listOf(GoalDestination.Active, GoalDestination.Completed, GoalDestination.Insights),
-            overflowLabel = "More Goal destinations",
             onSelect = {
                 manageOrder = false
                 destination = it
@@ -279,26 +254,31 @@ fun GoalAreaContent(
                     title = destination.name + " Goals",
                     supportingText = "Long-term measurements, consistency, ranges, totals, and project milestones.",
                 ) {
-                    if (!manageOrder && destination == GoalDestination.Active && (list.isNotEmpty() || areaScopeLabel != null)) Box {
-                        WhipPageIconAction(
-                            icon = Icons.Outlined.MoreVert,
-                            label = "More Goal Actions",
-                            onClick = { toolsExpanded = true },
-                        )
-                        DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
-                            WhipMenuItem(
-                                modifier = Modifier.testTag("goal-browse-templates-menu-action"),
-                                label = "Browse Templates",
-                                onClick = { toolsExpanded = false; templatesOpen = true },
+                    if (!manageOrder && destination == GoalDestination.Active && list.isNotEmpty()) {
+                        val hasReorderAction = list.size > 1 || areaScopeLabel != null
+                        if (!hasReorderAction) {
+                            WhipTextButton(onClick = { templatesOpen = true }) { Text("Templates") }
+                        } else Box {
+                            WhipPageIconAction(
+                                icon = Icons.Outlined.MoreVert,
+                                label = "More Goal Actions",
+                                onClick = { toolsExpanded = true },
                             )
-                            if (list.size > 1 || areaScopeLabel != null) WhipMenuItem(
-                                label = if (areaScopeLabel == null) "Reorder Goals" else "Show All Areas & Reorder",
-                                onClick = {
-                                    toolsExpanded = false
-                                    if (areaScopeLabel != null) onShowAllAreasForReorder()
-                                    manageOrder = true
-                                },
-                            )
+                            DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
+                                WhipMenuItem(
+                                    modifier = Modifier.testTag("goal-browse-templates-menu-action"),
+                                    label = "Browse Templates",
+                                    onClick = { toolsExpanded = false; templatesOpen = true },
+                                )
+                                WhipMenuItem(
+                                    label = if (areaScopeLabel == null) "Reorder Goals" else "Show All Areas & Reorder",
+                                    onClick = {
+                                        toolsExpanded = false
+                                        if (areaScopeLabel != null) onShowAllAreasForReorder()
+                                        manageOrder = true
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -476,23 +456,7 @@ fun GoalAreaContent(
         GoalActionsDialog(
             projection,
             modifier = modifier,
-            rules = state.linkRules.filter { it.targetGoalId == projection.goal.id },
-            contributions = state.contributions.filter { it.targetGoalId == projection.goal.id },
-            sourceGoals = (state.active + state.completed + state.archived).map { it.goal },
-            sourceHabits = state.sourceHabits,
-            sourceMetrics = state.sourceMetrics,
             onDismiss = { actionsGoalId = null },
-            onAddLink = { linkingGoalId = projection.goal.id; editingLinkRuleId = null; actionsGoalId = null; viewModel.clearLinkPreview() },
-            onEditLink = { rule ->
-                linkingGoalId = projection.goal.id
-                editingLinkRuleId = rule.id
-                actionsGoalId = null
-                viewModel.clearLinkPreview()
-            },
-            onSetLinkEnabled = viewModel::setLinkEnabled,
-            onDeleteLink = viewModel::deleteLink,
-            onSetContributionExcluded = viewModel::setContributionExcluded,
-            onOverrideContribution = { contribution -> overridingContributionId = contribution.id; actionsGoalId = null },
             onEditMeasurement = { entry -> editingMeasurementGoalId = projection.goal.id; editingMeasurementId = entry.id; actionsGoalId = null },
             onRecordProgress = { recordingGoalId = projection.goal.id; actionsGoalId = null },
             onResetElapsed = { resettingElapsedGoalId = projection.goal.id; actionsGoalId = null },
@@ -509,50 +473,13 @@ fun GoalAreaContent(
     }
     deleteCandidate?.let { projection ->
         val goal = projection.goal
-        val dependentRules = state.linkRules.count { it.targetGoalId == goal.id || it.sourceMetricId == goal.metricId }
-        val linkedEntries = state.contributions.count { it.targetGoalId == goal.id }
         PermanentDeleteDialog(
             title = "Delete ${goal.name} Permanently?",
             impacts = listOf(
                 "${projection.entries.size} measurement${if (projection.entries.size == 1) "" else "s"} and all milestones will be removed",
-                "$dependentRules incoming or outgoing Goal Automation${if (dependentRules == 1) "" else "s"} will be removed",
-                "$linkedEntries generated contribution record${if (linkedEntries == 1) "" else "s"} will be removed",
             ),
             onDismiss = { deleteCandidateGoalId = null },
             onConfirm = { viewModel.deletePermanently(goal.id); deleteCandidateGoalId = null },
-        )
-    }
-    linking?.let { projection ->
-        GoalLinkEditorDialog(
-            projection = projection,
-            state = state,
-            initialRule = editingLinkRule,
-            saving = linkSavePending,
-            onDismiss = { if (!linkSavePending) { linkingGoalId = null; editingLinkRuleId = null; viewModel.clearLinkPreview() } },
-            onPreview = viewModel::previewLink,
-            onClearPreview = viewModel::clearLinkPreview,
-            onSave = { draft, includeHistory ->
-                linkSavePending = true
-                val onFinished: (Boolean) -> Unit = { succeeded ->
-                    linkSavePending = false
-                    if (succeeded) {
-                        linkingGoalId = null
-                        editingLinkRuleId = null
-                    }
-                }
-                if (editingLinkRule == null) viewModel.createLink(draft, includeHistory, onFinished)
-                else viewModel.updateLink(editingLinkRule.id, draft, onFinished)
-            },
-        )
-    }
-    overridingContribution?.let { contribution ->
-        ContributionOverrideDialog(
-            contribution = contribution,
-            onDismiss = { overridingContributionId = null },
-            onSave = { value ->
-                viewModel.setContributionOverride(contribution.id, value)
-                overridingContributionId = null
-            },
         )
     }
 }
@@ -1614,18 +1541,7 @@ private fun GoalMeasurementDialog(
 private fun GoalActionsDialog(
     projection: GoalProjection,
     modifier: Modifier = Modifier,
-    rules: List<LinkRule>,
-    contributions: List<Contribution>,
-    sourceGoals: List<Goal>,
-    sourceHabits: List<Habit>,
-    sourceMetrics: List<MetricDefinition>,
     onDismiss: () -> Unit,
-    onAddLink: () -> Unit,
-    onEditLink: (LinkRule) -> Unit,
-    onSetLinkEnabled: (Long, Boolean) -> Unit,
-    onDeleteLink: (Long) -> Unit,
-    onSetContributionExcluded: (Long, Boolean) -> Unit,
-    onOverrideContribution: (Contribution) -> Unit,
     onEditMeasurement: (MetricEntry) -> Unit,
     onRecordProgress: () -> Unit,
     onResetElapsed: () -> Unit,
@@ -1641,8 +1557,6 @@ private fun GoalActionsDialog(
 ) {
     var visibleMeasurements by rememberSaveable(projection.goal.id) { mutableIntStateOf(25) }
     var showAccessibleTable by rememberSaveable(projection.goal.id) { mutableStateOf(false) }
-    var visibleContributions by rememberSaveable(projection.goal.id) { mutableIntStateOf(10) }
-    var removingAutomationId by rememberSaveable(projection.goal.id) { mutableStateOf<Long?>(null) }
     var section by rememberSaveable(projection.goal.id) { mutableStateOf(GoalDetailSection.Overview) }
     val insights = remember(projection) { buildGoalInsights(projection.goal, projection.entries, projection.milestones) }
     val primaryAction = when (projection.goal.status) {
@@ -1754,52 +1668,6 @@ private fun GoalActionsDialog(
                     ) { Text("Show 25 More · ${projection.entries.size - visibleMeasurements} Remaining") }
                 }
                 }
-                if (section == GoalDetailSection.Connections) {
-                item { Text("Goal Automations", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp)) }
-                if (projection.goal.type == GoalType.ElapsedSince) item { Text("This Goal advances from time itself, so Goal Automations do not apply.") }
-                else if (rules.isEmpty()) item { Text("No automatic contributions yet.") }
-                items(rules, key = { "rule-${it.id}" }) { rule ->
-                    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Switch(checked = rule.enabled, onCheckedChange = { onSetLinkEnabled(rule.id, it) })
-                            Column(Modifier.weight(1f)) {
-                                Text(rule.name, fontWeight = FontWeight.SemiBold)
-                                Text(rule.progressSourceSummary(sourceGoals, sourceHabits, sourceMetrics), style = MaterialTheme.typography.labelSmall)
-                            }
-                            WhipTextButton(onClick = { onEditLink(rule) }) { Text("Edit") }
-                            WhipTextButton(onClick = { removingAutomationId = rule.id }) {
-                                Text("Remove", color = MaterialTheme.colorScheme.error)
-                            }
-                        }
-                        val ruleContributions = contributions.filter { it.linkRuleId == rule.id }
-                        ruleContributions.take(visibleContributions).forEach { contribution ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(checked = !contribution.excluded, onCheckedChange = { onSetContributionExcluded(contribution.id, !it) })
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        "${contribution.localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}: ${contribution.explanation}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                    )
-                                    contribution.overrideValue?.let {
-                                        Text(
-                                            "Adjusted value: ${formatGoalValue(it, projection.goal.precision)} ${projection.goal.unitId.goalUnitLabel()}".trim(),
-                                            style = MaterialTheme.typography.labelSmall,
-                                        )
-                                    }
-                                }
-                                WhipTextButton(onClick = { onOverrideContribution(contribution) }) { Text("Override") }
-                            }
-                        }
-                        if (visibleContributions < ruleContributions.size) {
-                            WhipTextButton(
-                                onClick = { visibleContributions = (visibleContributions + 25).coerceAtMost(ruleContributions.size) },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) { Text("Show 25 More · ${ruleContributions.size - visibleContributions} Remaining") }
-                        }
-                    }
-                }
-                if (projection.goal.type != GoalType.ElapsedSince) item { WhipOutlinedButton(onClick = onAddLink, modifier = Modifier.fillMaxWidth()) { Text("Add Goal Automation") } }
-                }
                 if (section == GoalDetailSection.More) {
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -1841,36 +1709,16 @@ private fun GoalActionsDialog(
             }
         },
     )
-    removingAutomationId?.let { automationId ->
-        val automation = rules.firstOrNull { it.id == automationId }
-        RemoveAutomationConfirmationDialog(
-            automationName = automation?.name ?: "This Automation",
-            onDismiss = { removingAutomationId = null },
-            onConfirm = {
-                onDeleteLink(automationId)
-                removingAutomationId = null
-            },
-        )
-    }
 }
 
 private enum class GoalDetailSection(val id: String, val label: String) {
     Overview("overview", "Overview"),
     History("history", "History"),
-    Connections("automation", "Automations"),
     More("options", "Options"),
     ;
 
     val inspectorSection: EntityInspectorSection
-        get() = EntityInspectorSection(
-            id = id,
-            label = label,
-            placement = if (this == More) {
-                EntityInspectorSectionPlacement.Overflow
-            } else {
-                EntityInspectorSectionPlacement.Direct
-            },
-        )
+        get() = EntityInspectorSection(id = id, label = label)
 }
 
 internal fun GoalStatus.inspectorLabel(): String = when (this) {
@@ -1950,566 +1798,6 @@ private fun GoalLineChart(values: List<Double>, description: String) {
             )
         }
     }
-}
-
-@Composable
-private fun ContributionOverrideDialog(
-    contribution: Contribution,
-    onDismiss: () -> Unit,
-    onSave: (Double?) -> Unit,
-) {
-    var value by rememberSaveable(contribution.id) {
-        mutableStateOf((contribution.overrideValue ?: contribution.canonicalValue)?.let(::editableNumericValue).orEmpty())
-    }
-    var validationRequested by rememberSaveable(contribution.id) { mutableStateOf(false) }
-    val parsedValue = value.toWhipDoubleOrNull()
-    PaneAwareAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Override Automated Contribution") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(contribution.explanation)
-                GoalNumberField(
-                    value,
-                    { value = it },
-                    "Canonical Value",
-                    required = true,
-                    error = "Enter a value".takeIf { validationRequested && parsedValue == null },
-                )
-                Text("This changes only this Automation result. The source event remains intact and explainable.", style = MaterialTheme.typography.bodySmall)
-            }
-        },
-        confirmButton = {
-            WhipTextButton(onClick = {
-                validationRequested = true
-                parsedValue?.let(onSave)
-            }) { Text("Save Override") }
-        },
-        dismissButton = {
-            Row {
-                if (contribution.overrideValue != null) WhipTextButton(onClick = { onSave(null) }) { Text("Clear Override") }
-                WhipTextButton(onClick = onDismiss) { Text("Cancel") }
-            }
-        },
-    )
-}
-
-@Composable
-private fun GoalLinkEditorDialog(
-    projection: GoalProjection,
-    state: GoalUiState,
-    initialRule: LinkRule? = null,
-    onDismiss: () -> Unit,
-    onPreview: (LinkRuleDraft) -> Unit,
-    onClearPreview: () -> Unit,
-    onSave: (LinkRuleDraft, Boolean) -> Unit,
-    saving: Boolean = false,
-) {
-    val goal = projection.goal
-    val editorKey = "goal-link-${goal.id}-${initialRule?.id ?: "new"}"
-    var name by rememberSaveable(editorKey) { mutableStateOf(initialRule?.name ?: "Progress for ${goal.name}") }
-    var kind by rememberSaveable(editorKey) { mutableStateOf(initialRule?.kind ?: LinkKind.Contribution) }
-    val initialSourceKind = initialRule?.let {
-        inferGoalProgressSourceKind(it, (state.active + state.completed).map { source -> source.goal }, state.sourceHabits)
-    } ?: when {
-        state.sourceHabits.isNotEmpty() -> GoalProgressSourceKind.Habit
-        state.sourceTasks.isNotEmpty() -> GoalProgressSourceKind.Task
-        state.sourceTracks.isNotEmpty() -> GoalProgressSourceKind.Track
-        state.sourceExercises.isNotEmpty() -> GoalProgressSourceKind.Exercise
-        (state.active + state.completed).any { it.goal.id != goal.id } -> GoalProgressSourceKind.Goal
-        state.sourceMetrics.healthDataSources().isNotEmpty() -> GoalProgressSourceKind.HealthData
-        else -> GoalProgressSourceKind.Workout
-    }
-    var sourceKind by rememberSaveable(editorKey) {
-        mutableStateOf(initialSourceKind)
-    }
-    val sourceType = sourceKind.sourceType
-    var habitId by rememberSaveable(editorKey) {
-        mutableStateOf(
-            initialRule?.sourceEntityId?.takeIf { initialRule.sourceType == LinkSourceType.Habit }
-                ?: state.sourceHabits.firstOrNull { it.metricId == initialRule?.sourceMetricId }?.id
-                ?: state.sourceHabits.firstOrNull()?.id,
-        )
-    }
-    var taskId by rememberSaveable(editorKey) { mutableStateOf(initialRule?.sourceEntityId?.takeIf { initialRule.sourceType in setOf(LinkSourceType.Task, LinkSourceType.Subtask) } ?: state.sourceTasks.firstOrNull()?.id) }
-    var exerciseId by rememberSaveable(editorKey) { mutableStateOf(initialRule?.sourceEntityId?.takeIf { initialRule.sourceType == LinkSourceType.Exercise } ?: state.sourceExercises.firstOrNull()?.id) }
-    var trackId by rememberSaveable(editorKey) { mutableStateOf(initialRule?.sourceEntityId?.takeIf { initialRule.sourceType == LinkSourceType.Track } ?: state.sourceTracks.firstOrNull()?.track?.id) }
-    var sourceGoalMetricId by rememberSaveable(editorKey) { mutableStateOf(initialRule?.sourceMetricId ?: (state.active + state.completed).firstOrNull { it.goal.id != goal.id }?.goal?.metricId) }
-    var sourceMetric by rememberSaveable(editorKey) {
-        mutableStateOf(
-            initialRule?.sourceMetric ?: when (initialSourceKind) {
-                GoalProgressSourceKind.Task, GoalProgressSourceKind.Subtask -> LinkSourceMetric.Completion
-                GoalProgressSourceKind.Track -> LinkSourceMetric.EntryCount
-                GoalProgressSourceKind.Workout -> LinkSourceMetric.Count
-                else -> LinkSourceMetric.NumericValue
-            },
-        )
-    }
-    var sourceStepId by rememberSaveable(editorKey) { mutableStateOf(initialRule?.sourceItemId) }
-    var valueMode by rememberSaveable(editorKey) { mutableStateOf(initialRule?.valueMode ?: LinkValueMode.SourceValue) }
-    var fixedValue by rememberSaveable(editorKey) { mutableStateOf(initialRule?.fixedValue?.let(::editableNumericValue) ?: "1") }
-    var multiplier by rememberSaveable(editorKey) { mutableStateOf(initialRule?.multiplier?.let(::editableNumericValue) ?: "1") }
-    var offset by rememberSaveable(editorKey) { mutableStateOf(initialRule?.offset?.let(::editableNumericValue) ?: "0") }
-    var includeHistory by rememberSaveable(editorKey) { mutableStateOf(initialRule?.retroactiveFrom != null) }
-    var targetMilestoneId by rememberSaveable(editorKey) { mutableStateOf(initialRule?.targetMilestoneId ?: projection.milestones.firstOrNull()?.id) }
-    var trackAggregation by rememberSaveable(editorKey) { mutableStateOf(initialRule?.trackAggregation?.normalizedAutomationMeasure() ?: TrackAggregation.CountEntries) }
-    var sourceFieldId by rememberSaveable(editorKey) { mutableStateOf(initialRule?.sourceFieldId) }
-    var conditionMode by rememberSaveable(editorKey) { mutableStateOf(initialRule?.conditionMode ?: TrackConditionMode.MatchAll) }
-    var conditions by remember(editorKey) { mutableStateOf(initialRule?.conditions.orEmpty()) }
-    var addingCondition by rememberSaveable(editorKey) { mutableStateOf(false) }
-    var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
-    var showAdvanced by rememberSaveable(editorKey) {
-        mutableStateOf(
-            initialRule?.let { rule ->
-                rule.kind != LinkKind.Contribution ||
-                    rule.valueMode != LinkValueMode.SourceValue ||
-                    rule.multiplier != 1.0 || rule.offset != 0.0 ||
-                    rule.name != "Progress for ${goal.name}"
-            } ?: false,
-        )
-    }
-    var historyChoice by rememberSaveable(editorKey) {
-        mutableStateOf(
-            when (initialRule?.retroactiveFrom) {
-                null -> LinkHistoryChoice.NewEntriesOnly
-                goal.startDate -> LinkHistoryChoice.SinceGoalStart
-                else -> LinkHistoryChoice.SinceDate
-            },
-        )
-    }
-    var historyDate by rememberSaveable(editorKey) { mutableStateOf(initialRule?.retroactiveFrom ?: goal.startDate) }
-    var pickingHistoryDate by rememberSaveable(editorKey) { mutableStateOf(false) }
-    val selectedTrack = state.sourceTracks.firstOrNull { it.track.id == trackId }
-    val numericTrackFields = selectedTrack?.fields.orEmpty().filter { field ->
-        field.type == TrackFieldType.Scale && goal.dimension == UnitDimension.Unitless ||
-            field.type == TrackFieldType.Number && field.dimension == goal.dimension
-    }
-    val availableTrackAggregations = goal.compatibleTrackAutomationMeasures()
-    val selectedTrackField = numericTrackFields.firstOrNull { it.id == sourceFieldId } ?: numericTrackFields.firstOrNull()
-    val needsTrackField = trackAggregation.needsTrackNumberField()
-    val requiredTrackGoalAggregation = goal.requiredAggregationForTrack(trackAggregation)
-    LaunchedEffect(sourceType, goal.aggregation, goal.dimension) {
-        if (sourceType == LinkSourceType.Track && trackAggregation !in availableTrackAggregations && availableTrackAggregations.isNotEmpty()) {
-            trackAggregation = availableTrackAggregations.first()
-            sourceMetric = trackAggregation.progressSourceMetric()
-        }
-    }
-    LaunchedEffect(
-        sourceType,
-        trackId,
-        sourceFieldId,
-        trackAggregation,
-        fixedValue,
-        multiplier,
-        offset,
-        historyChoice,
-        historyDate,
-        conditionMode,
-        conditions,
-    ) {
-        onClearPreview()
-    }
-
-    fun availableMetrics(type: LinkSourceType): List<LinkSourceMetric> = when (type) {
-        LinkSourceType.Habit -> listOf(LinkSourceMetric.NumericValue, LinkSourceMetric.Success)
-        LinkSourceType.Task, LinkSourceType.Subtask -> listOf(LinkSourceMetric.Completion)
-        LinkSourceType.Workout -> listOf(LinkSourceMetric.Count, LinkSourceMetric.Duration, LinkSourceMetric.Volume)
-        LinkSourceType.Exercise -> listOf(LinkSourceMetric.EstimatedOneRepMax, LinkSourceMetric.MaxWeight, LinkSourceMetric.Distance, LinkSourceMetric.Repetitions, LinkSourceMetric.Duration, LinkSourceMetric.Volume)
-        LinkSourceType.Metric -> listOf(LinkSourceMetric.NumericValue)
-        LinkSourceType.Track -> listOf(LinkSourceMetric.EntryCount, LinkSourceMetric.FieldValue)
-    }
-    fun draft(): LinkRuleDraft = LinkRuleDraft(
-        name = name,
-        kind = kind,
-        sourceType = sourceType,
-        sourceEntityId = when (sourceType) {
-            LinkSourceType.Habit -> habitId
-            LinkSourceType.Task, LinkSourceType.Subtask -> taskId
-            LinkSourceType.Exercise -> exerciseId
-            LinkSourceType.Track -> trackId
-            LinkSourceType.Workout, LinkSourceType.Metric -> null
-        },
-        sourceMetricId = sourceGoalMetricId.takeIf { sourceType == LinkSourceType.Metric },
-        sourceItemId = sourceStepId.takeIf { sourceType == LinkSourceType.Subtask },
-        sourceMetric = sourceMetric,
-        targetGoalId = goal.id,
-        targetMilestoneId = targetMilestoneId.takeIf { goal.type == GoalType.WeightedMilestones },
-        valueMode = if (sourceType == LinkSourceType.Track && trackAggregation == TrackAggregation.FixedAmount) LinkValueMode.FixedValue else valueMode,
-        fixedValue = fixedValue.toWhipDoubleOrNull(),
-        multiplier = multiplier.toWhipDoubleOrNull() ?: 1.0,
-        offset = offset.toWhipDoubleOrNull() ?: 0.0,
-        retroactiveFrom = when {
-            sourceType != LinkSourceType.Track -> goal.startDate.takeIf { includeHistory }
-            historyChoice == LinkHistoryChoice.NewEntriesOnly -> null
-            historyChoice == LinkHistoryChoice.SinceGoalStart -> goal.startDate
-            historyChoice == LinkHistoryChoice.SinceDate -> historyDate
-            else -> selectedTrack?.entries?.minOfOrNull { it.entry.entryDate } ?: goal.startDate
-        },
-        enabled = initialRule?.enabled ?: true,
-        trackAggregation = trackAggregation.takeIf { sourceType == LinkSourceType.Track },
-        sourceFieldId = selectedTrackField?.id.takeIf { sourceType == LinkSourceType.Track && needsTrackField },
-        conditionMode = conditionMode,
-        conditions = conditions.takeIf { sourceType == LinkSourceType.Track }.orEmpty(),
-    )
-    val sourceAvailable = when (sourceType) {
-        LinkSourceType.Habit -> habitId != null
-        LinkSourceType.Task, LinkSourceType.Subtask -> taskId != null
-        LinkSourceType.Exercise -> exerciseId != null
-        LinkSourceType.Metric -> if (sourceKind == GoalProgressSourceKind.Goal) {
-            (state.active + state.completed).any { it.goal.id != goal.id && it.goal.metricId == sourceGoalMetricId }
-        } else {
-            state.sourceMetrics.healthDataSources(sourceGoalMetricId).any { it.id == sourceGoalMetricId && it.id != goal.metricId }
-        }
-        LinkSourceType.Workout -> true
-        LinkSourceType.Track -> selectedTrack != null && (!needsTrackField || selectedTrackField != null)
-    }
-    val sourceAvailability = ControlAvailability(
-        enabled = sourceAvailable,
-        unavailableExplanation = if (sourceAvailable) {
-            null
-        } else {
-            when (sourceType) {
-                LinkSourceType.Habit -> "Create a habit first, or choose another source."
-                LinkSourceType.Task, LinkSourceType.Subtask -> "Create a task first, or choose another source."
-                LinkSourceType.Exercise -> "Create an exercise first, or choose another source."
-                LinkSourceType.Metric -> if (sourceKind == GoalProgressSourceKind.Goal) {
-                    "Create another Goal first, or choose another source."
-                } else {
-                    "Connect Health Connect and import data first, or choose another source."
-                }
-                LinkSourceType.Workout -> null
-                LinkSourceType.Track -> "Create a track first, or choose another source."
-            }
-        },
-    )
-    val automationDraft = draft()
-    val automationValidationMessages = buildList {
-        if (name.isBlank()) add("Automation name is required")
-        if (automationDraft.valueMode == LinkValueMode.FixedValue && fixedValue.toWhipDoubleOrNull() == null) {
-            add("Enter a fixed value")
-        }
-        if (multiplier.toWhipDoubleOrNull() == null) add("Multiplier must be a number")
-        if (offset.toWhipDoubleOrNull() == null) add("Offset must be a number")
-    }
-    PaneAwareAlertDialog(
-        onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text(if (initialRule == null) "Add Goal Automation" else "Edit Goal Automation") },
-        text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                item { Text("Choose an action that should update ${goal.name}. Whip keeps every change explainable and recalculates it when the source changes.") }
-                if (validationRequested && automationValidationMessages.isNotEmpty()) item {
-                    FormValidationSummary(
-                        messages = automationValidationMessages,
-                        visible = true,
-                        testTag = "goal-automation-save-problem",
-                    )
-                }
-                item { GoalEnumDropdown("What Adds Progress?", GoalProgressSourceKind.entries, sourceKind, GoalProgressSourceKind::label, titleCaseValues = false) { selected ->
-                    sourceKind = selected
-                    sourceMetric = availableMetrics(selected.sourceType).first()
-                    sourceStepId = null
-                    if (selected == GoalProgressSourceKind.Track) {
-                        trackId = trackId ?: state.sourceTracks.firstOrNull()?.track?.id
-                        sourceFieldId = state.sourceTracks.firstOrNull { it.track.id == trackId }?.fields
-                            ?.firstOrNull { it.type in setOf(TrackFieldType.Number, TrackFieldType.Scale) }?.id
-                    }
-                    if (selected == GoalProgressSourceKind.Goal) {
-                        sourceGoalMetricId = (state.active + state.completed).firstOrNull { it.goal.id != goal.id }?.goal?.metricId
-                    }
-                    if (selected == GoalProgressSourceKind.HealthData) {
-                        sourceGoalMetricId = state.sourceMetrics.healthDataSources().firstOrNull()?.id
-                    }
-                } }
-                when (sourceKind) {
-                    GoalProgressSourceKind.Habit -> item { GoalEnumDropdown("Habit", state.sourceHabits, state.sourceHabits.firstOrNull { it.id == habitId } ?: state.sourceHabits.firstOrNull(), { it?.name ?: "No Habits Available" }, titleCaseValues = false) { habitId = it?.id } }
-                    GoalProgressSourceKind.Task, GoalProgressSourceKind.Subtask -> {
-                        item { GoalEnumDropdown("Task", state.sourceTasks, state.sourceTasks.firstOrNull { it.id == taskId } ?: state.sourceTasks.firstOrNull(), { it?.title ?: "No Tasks Available" }, titleCaseValues = false) { taskId = it?.id; sourceStepId = null } }
-                        if (sourceKind == GoalProgressSourceKind.Subtask) {
-                            val steps = state.sourceTaskSteps.filter { it.taskId == taskId }
-                            item { GoalEnumDropdown("Specific subtask", listOf<Long?>(null) + steps.map { it.id }, sourceStepId, { id -> steps.firstOrNull { it.id == id }?.title ?: "Any Subtask" }, titleCaseValues = false) { sourceStepId = it } }
-                        }
-                    }
-                    GoalProgressSourceKind.Exercise -> item { GoalEnumDropdown("Exercise", state.sourceExercises, state.sourceExercises.firstOrNull { it.id == exerciseId } ?: state.sourceExercises.firstOrNull(), { it?.name ?: "No Exercises Available" }, titleCaseValues = false) { exerciseId = it?.id } }
-                    GoalProgressSourceKind.Goal -> {
-                        val sourceGoals = (state.active + state.completed).filter { it.goal.id != goal.id }
-                        item {
-                            GoalEnumDropdown(
-                                "Source Goal",
-                                sourceGoals,
-                                sourceGoals.firstOrNull { it.goal.metricId == sourceGoalMetricId } ?: sourceGoals.firstOrNull(),
-                                { source -> source?.goal?.name ?: "No Other Goals Available" },
-                                titleCaseValues = false,
-                            ) { sourceGoalMetricId = it?.goal?.metricId }
-                        }
-                    }
-                    GoalProgressSourceKind.HealthData -> {
-                        val metrics = state.sourceMetrics.healthDataSources(sourceGoalMetricId).filter { it.id != goal.metricId }
-                        item {
-                            GoalEnumDropdown(
-                                "Health Data",
-                                metrics,
-                                metrics.firstOrNull { it.id == sourceGoalMetricId } ?: metrics.firstOrNull(),
-                                { metric -> metric?.name ?: "No Health Connect Data Available" },
-                                titleCaseValues = false,
-                            ) { sourceGoalMetricId = it?.id }
-                        }
-                        item { Text("Health Connect updates and deletions automatically recalculate Goal progress without double counting.", style = MaterialTheme.typography.bodySmall) }
-                    }
-                    GoalProgressSourceKind.Workout -> Unit
-                    GoalProgressSourceKind.Track -> {
-                        item {
-                            GoalEnumDropdown(
-                                "Track",
-                                state.sourceTracks,
-                                selectedTrack ?: state.sourceTracks.firstOrNull(),
-                                { it?.track?.name ?: "No Tracks Available" },
-                                titleCaseValues = false,
-                            ) { chosen ->
-                                trackId = chosen?.track?.id
-                                sourceFieldId = chosen?.fields?.firstOrNull { it.type in setOf(TrackFieldType.Number, TrackFieldType.Scale) }?.id
-                                conditions = emptyList()
-                            }
-                        }
-                        item {
-                            GoalEnumDropdown(
-                                "Measure",
-                                availableTrackAggregations,
-                                trackAggregation,
-                                TrackAggregation::automationLabel,
-                                titleCaseValues = false,
-                            ) { selected ->
-                                trackAggregation = selected
-                                sourceMetric = selected.progressSourceMetric()
-                            }
-                        }
-                        item { Text(trackAggregation.automationExplanation(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                        if (goal.type != GoalType.WeightedMilestones && requiredTrackGoalAggregation != goal.aggregation) item {
-                            Card(Modifier.fillMaxWidth()) {
-                                Text(
-                                    "${goal.name} currently calculates progress as ${goal.aggregation.displayLabel()}. " +
-                                        "This Automation will change it to ${requiredTrackGoalAggregation.displayLabel()} so the result matches your choice.",
-                                    modifier = Modifier.padding(12.dp),
-                                )
-                            }
-                        }
-                        if (needsTrackField) item {
-                            GoalEnumDropdown(
-                                "Number or Scale Field",
-                                numericTrackFields,
-                                selectedTrackField,
-                                { it?.name ?: "No Compatible Fields" },
-                                titleCaseValues = false,
-                            ) { sourceFieldId = it?.id }
-                        }
-                        if (trackAggregation == TrackAggregation.FixedAmount) item {
-                            GoalNumberField(fixedValue, { fixedValue = it }, "Amount per matching Entry (${goal.unitId.goalUnitLabel()})")
-                        }
-                        item {
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("Include Entries Where", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                if (conditions.isEmpty()) Text("All Entries are eligible.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                conditions.forEachIndexed { index, condition ->
-                                    val fieldName = selectedTrack?.conditionFieldName(condition) ?: "Missing Field"
-                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                        Text("$fieldName ${condition.operator.uiLabel()} ${condition.summaryValue(requireNotNull(selectedTrack), BuiltInUnits.all + state.customUnits)}".trim(), Modifier.weight(1f))
-                                        WhipTextButton(onClick = { conditions = conditions.toMutableList().also { it.removeAt(index) } }) { Text("Remove") }
-                                    }
-                                }
-                                if (conditions.size > 1) SegmentedChoiceBar(
-                                    conditionMode,
-                                    TrackConditionMode.entries,
-                                    { conditionMode = it },
-                                    { if (it == TrackConditionMode.MatchAll) "Match All" else "Match Any" },
-                                    Modifier.fillMaxWidth(),
-                                )
-                                WhipOutlinedButton(
-                                    enabled = selectedTrack != null,
-                                    onClick = { addingCondition = true },
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) { Text("Add Condition") }
-                            }
-                        }
-                        item {
-                            GoalEnumDropdown(
-                                "History",
-                                LinkHistoryChoice.entries,
-                                historyChoice,
-                                LinkHistoryChoice::uiLabel,
-                                titleCaseValues = false,
-                            ) { historyChoice = it }
-                        }
-                        if (historyChoice == LinkHistoryChoice.SinceDate) item {
-                            WhipOutlinedButton(onClick = { pickingHistoryDate = true }, modifier = Modifier.fillMaxWidth()) {
-                                Text("Since ${historyDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
-                            }
-                        }
-                        val includedTrackStart = when (historyChoice) {
-                            LinkHistoryChoice.NewEntriesOnly -> null
-                            LinkHistoryChoice.SinceGoalStart -> goal.startDate
-                            LinkHistoryChoice.SinceDate -> historyDate
-                            LinkHistoryChoice.AllHistory -> selectedTrack?.entries?.minOfOrNull { it.entry.entryDate } ?: goal.startDate
-                        }
-                        includedTrackStart?.takeIf { it.isBefore(goal.startDate) }?.let { alignedStart ->
-                            item {
-                                Card(Modifier.fillMaxWidth()) {
-                                    Text(
-                                        "To make every included contribution count, saving will move this Goal's start from " +
-                                            "${goal.startDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} to " +
-                                            "${alignedStart.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}.",
-                                        modifier = Modifier.padding(12.dp),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                item { AvailabilityNotice("Goal Automation", sourceAvailability) }
-                if (sourceType != LinkSourceType.Track && availableMetrics(sourceType).size > 1) item {
-                    GoalEnumDropdown("What Should Count?", availableMetrics(sourceType), sourceMetric, LinkSourceMetric::uiLabel) { sourceMetric = it }
-                }
-                if (goal.type == GoalType.WeightedMilestones) {
-                    item { GoalEnumDropdown("Milestone", projection.milestones, projection.milestones.firstOrNull { it.id == targetMilestoneId } ?: projection.milestones.firstOrNull(), { it?.name ?: "No Milestone" }, titleCaseValues = false) { targetMilestoneId = it?.id } }
-                }
-                if (sourceType != LinkSourceType.Track) item {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(checked = includeHistory, onCheckedChange = { includeHistory = it })
-                        Text("Include existing events since ${goal.startDate}", modifier = Modifier.padding(start = 8.dp))
-                    }
-                }
-                if ((sourceType == LinkSourceType.Track && historyChoice != LinkHistoryChoice.NewEntriesOnly) || (sourceType != LinkSourceType.Track && includeHistory)) {
-                    item { WhipOutlinedButton(enabled = sourceAvailability.enabled, onClick = { onPreview(draft()) }, modifier = Modifier.fillMaxWidth()) { Text("Preview Backfill") } }
-                    state.backfillPreview?.let { preview ->
-                        item {
-                            Card(Modifier.fillMaxWidth()) {
-                                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text("Backfill Preview", fontWeight = FontWeight.Bold)
-                                    Text("${preview.scannedEventCount} scanned · ${preview.eligibleEventCount} eligible · ${preview.skippedEventCount} skipped")
-                                    preview.skippedReasons.forEach { (reason, count) -> Text("$reason · $count", style = MaterialTheme.typography.bodySmall) }
-                                    Text("${preview.contributionCount} contributions · ${formatGoalValue(preview.totalCanonicalValue, goal.precision)} canonical total")
-                                    Text("${preview.firstDate ?: "—"} to ${preview.lastDate ?: "—"}")
-                                    if (preview.unitExplanation.isNotBlank()) Text(preview.unitExplanation, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    if (preview.targetImpact.isNotBlank()) Text(preview.targetImpact, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
-                        }
-                    }
-                }
-                item {
-                    DisclosureButton(
-                        label = "Advanced Automation Options",
-                        expanded = showAdvanced,
-                        onClick = { showAdvanced = !showAdvanced },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                if (showAdvanced) {
-                    item {
-                        OutlinedTextField(
-                            name,
-                            { name = it },
-                            label = { Text("Automation Name *") },
-                            isError = validationRequested && name.isBlank(),
-                            supportingText = if (validationRequested && name.isBlank()) {
-                                { Text("Automation name is required") }
-                            } else null,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    item {
-                        GoalEnumDropdown(
-                            "Use Automation As",
-                            LinkKind.entries,
-                            kind,
-                            { if (it == LinkKind.Contribution) "Goal Progress" else "Supporting Context Only" },
-                            titleCaseValues = false,
-                        ) { kind = it }
-                    }
-                    if (goal.type != GoalType.WeightedMilestones && kind == LinkKind.Contribution && sourceType != LinkSourceType.Track) {
-                        item {
-                            GoalEnumDropdown(
-                                "Contribution Value",
-                                LinkValueMode.entries,
-                                valueMode,
-                                { if (it == LinkValueMode.SourceValue) "Use the Source Value" else "Use a Fixed Value" },
-                                titleCaseValues = false,
-                            ) { valueMode = it }
-                        }
-                        if (valueMode == LinkValueMode.FixedValue) item {
-                            GoalNumberField(
-                                fixedValue,
-                                { fixedValue = it },
-                                "Fixed Value (${goal.unitId.goalUnitLabel()})",
-                                required = true,
-                                error = "Enter a fixed value".takeIf {
-                                    validationRequested && fixedValue.toWhipDoubleOrNull() == null
-                                },
-                            )
-                        }
-                    }
-                    if (kind == LinkKind.Contribution) item {
-                        ResponsiveFieldPair(
-                            first = { field ->
-                                GoalNumberField(
-                                    multiplier,
-                                    { multiplier = it },
-                                    "Multiplier",
-                                    field,
-                                    required = true,
-                                    error = "Enter a number".takeIf {
-                                        validationRequested && multiplier.toWhipDoubleOrNull() == null
-                                    },
-                                )
-                            },
-                            second = { field ->
-                                GoalNumberField(
-                                    offset,
-                                    { offset = it },
-                                    "Offset",
-                                    field,
-                                    required = true,
-                                    error = "Enter a number".takeIf {
-                                        validationRequested && offset.toWhipDoubleOrNull() == null
-                                    },
-                                )
-                            },
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = { WhipTextButton(
-            enabled = !saving && sourceAvailability.enabled,
-            onClick = {
-                validationRequested = true
-                if (automationValidationMessages.isEmpty()) {
-                    onSave(
-                        automationDraft,
-                        if (sourceType == LinkSourceType.Track) historyChoice != LinkHistoryChoice.NewEntriesOnly else includeHistory,
-                    )
-                }
-            },
-        ) { Text(if (saving) "Saving…" else if (initialRule == null) "Create Automation" else "Save Automation") } },
-        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
-    )
-    if (addingCondition && selectedTrack != null) TrackConditionEditor(
-        selectedTrack,
-        onDismiss = { addingCondition = false },
-        today = state.currentDate,
-        units = BuiltInUnits.all + state.customUnits,
-        onSave = { conditions = conditions + it; addingCondition = false },
-    )
-    if (pickingHistoryDate) WhipDatePickerDialog(
-        historyDate,
-        onDismiss = { pickingHistoryDate = false },
-        onDateSelected = { historyDate = it; pickingHistoryDate = false },
-    )
-}
-
-private fun LinkHistoryChoice.uiLabel(): String = when (this) {
-    LinkHistoryChoice.NewEntriesOnly -> "New Entries Only"
-    LinkHistoryChoice.SinceGoalStart -> "Include Since Goal Start"
-    LinkHistoryChoice.SinceDate -> "Include Since a Chosen Date"
-    LinkHistoryChoice.AllHistory -> "Include All Track History"
 }
 
 @Composable

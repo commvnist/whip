@@ -574,12 +574,7 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithTag("adaptive-navigation-rail").assertIsDisplayed()
         compose.onNodeWithContentDescription("Device hinge separator").assertIsDisplayed()
         compose.onNodeWithContentDescription("Home").assertIsDisplayed()
-        if (compose.onAllNodesWithTag("workspace-search-action").fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithTag("workspace-search-action").assertIsDisplayed().performClick()
-        } else {
-            compose.onNodeWithContentDescription("App actions").assertIsDisplayed().performClick()
-            compose.onNodeWithTag("workspace-search-menu-action").assertIsDisplayed().performClick()
-        }
+        compose.onNodeWithTag("workspace-search-action").assertIsDisplayed().performClick()
         compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
         compose.onNodeWithContentDescription("Close Search").performClick()
         val navigationTops = listOf("Tasks tab", "Habits tab", "Goals tab", "Tracks tab", "Gym tab").map { description ->
@@ -602,18 +597,10 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithTag("home-destination-tasks").assertIsDisplayed()
         compose.onNodeWithTag("home-destination-gym").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("home-destination-review").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("App actions").assertIsDisplayed().performClick()
-        compose.onNodeWithTag("expand-content-pane-action").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Expand content pane").assertIsDisplayed()
             .performSemanticsAction(SemanticsActions.OnClick)
         compose.onNodeWithContentDescription("Restore split view").assertIsDisplayed()
-        if (compose.onAllNodesWithContentDescription("Search All Whip Data").fetchSemanticsNodes().isEmpty()) {
-            compose.onNodeWithContentDescription("App actions").performClick()
-            compose.onNodeWithTag("workspace-search-menu-action").assertIsDisplayed().performClick()
-            compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
-            compose.onNodeWithContentDescription("Close Search").performClick()
-        } else {
-            compose.onNodeWithContentDescription("Search All Whip Data").assertIsDisplayed()
-        }
+        compose.onNodeWithContentDescription("Search All Whip Data").assertIsDisplayed()
         check(compose.onAllNodesWithTag("fold-support-pane").fetchSemanticsNodes().isEmpty())
         check(compose.onAllNodesWithTag("adaptive-navigation-rail").fetchSemanticsNodes().isEmpty())
         compose.onNodeWithContentDescription("Restore split view").assertIsDisplayed().performClick()
@@ -629,17 +616,13 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithTag("task-quick-capture").assertIsDisplayed()
         compose.onAllNodesWithContentDescription("Habits Remaining: 0. Open Habits").assertCountEquals(0)
         compose.onNodeWithContentDescription("Gym tab").performClick()
-        val gymBrand = compose.onNodeWithText("Whip").fetchSemanticsNode().boundsInRoot
-        val gymHeader = compose.onNodeWithTag("workspace-top-app-bar").fetchSemanticsNode().boundsInRoot
-        check(gymBrand.width > 0f && gymBrand.height > 0f && gymBrand.top < gymHeader.bottom && gymBrand.bottom > gymHeader.top) {
-            "Whip/Gym identity must remain inside the shared header: brand=$gymBrand header=$gymHeader"
-        }
+        compose.onNodeWithTag("workspace-top-app-bar").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-search-action").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Settings tab").assertIsDisplayed()
         val visibleGymLabels = compose.onAllNodesWithText("Gym").fetchSemanticsNodes().count { it.boundsInRoot.width > 0f && it.boundsInRoot.height > 0f }
         check(visibleGymLabels > 0) { "The Gym identity or destination label must remain visible" }
         compose.onAllNodesWithTag("workspace-area-action").assertCountEquals(0)
-        compose.onNodeWithContentDescription("App actions").performClick()
-        compose.onNodeWithText("Open Settings").performClick()
-        compose.onNodeWithContentDescription("Close Settings").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Settings tab").performClick()
         compose.onNodeWithTag("fold-support-pane").assertIsDisplayed()
         compose.onNodeWithTag("adaptive-navigation-rail").assertIsDisplayed()
         compose.onNodeWithTag("settings-support-list").assertIsDisplayed()
@@ -985,12 +968,12 @@ class AdaptiveWhipScreenTest {
                 compose.onAllNodesWithText("Gym").assertCountEquals(2)
             }
             compose.onAllNodesWithTag("workspace-add-action").assertCountEquals(1)
-            compose.onAllNodesWithTag("workspace-search-action").assertCountEquals(0)
-            compose.onAllNodesWithTag("workspace-settings-action").assertCountEquals(0)
+            compose.onAllNodesWithTag("workspace-search-action").assertCountEquals(1)
+            compose.onAllNodesWithTag("workspace-settings-action").assertCountEquals(1)
             val header = compose.onNodeWithTag("workspace-top-app-bar").fetchSemanticsNode().boundsInRoot
             val navigation = compose.onNodeWithTag(navigationTag).fetchSemanticsNode().boundsInRoot
             val add = compose.onNodeWithTag("workspace-add-action").fetchSemanticsNode().boundsInRoot
-            val actions = compose.onNodeWithContentDescription("App actions").fetchSemanticsNode().boundsInRoot
+            val actions = compose.onNodeWithTag("workspace-settings-action").fetchSemanticsNode().boundsInRoot
             check(add.top >= header.top && add.bottom <= header.bottom) {
                 "Compact Add must stay inside the shared app bar: add=$add header=$header"
             }
@@ -1005,17 +988,15 @@ class AdaptiveWhipScreenTest {
             check(kotlin.math.abs(actual.addLeft - expected.addLeft) <= 1f)
             check(kotlin.math.abs(actual.actionsLeft - expected.actionsLeft) <= 1f)
         }
-        compose.onNodeWithContentDescription("App actions").performClick()
-        compose.onNodeWithTag("workspace-search-menu-action").assertIsDisplayed()
-        compose.onNodeWithText("Open Settings").assertIsDisplayed()
-        compose.onAllNodesWithTag("expand-content-pane-action").assertCountEquals(0)
-        compose.onNodeWithContentDescription("App actions").performClick()
+        compose.onNodeWithTag("workspace-search-action").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-settings-action").assertIsDisplayed()
+        compose.onAllNodesWithContentDescription("Expand content pane").assertCountEquals(0)
 
         compose.onNodeWithContentDescription("Tracks tab").performClick()
         compose.onNodeWithTag("track-workspace-destination-Activity").performClick().assertIsSelected()
         compose.onNodeWithText("A chronological view of Entries across visible Tracks", substring = true).assertIsDisplayed()
         compose.onNodeWithTag("track-workspace-destination-Insights").performClick().assertIsSelected()
-        compose.onNodeWithText("Patterns and automation health across visible Tracks.").assertIsDisplayed()
+        compose.onNodeWithText("Patterns across visible Tracks.").assertIsDisplayed()
 
         compose.onNodeWithContentDescription("Gym tab").performClick()
         compose.onNodeWithTag("gym-destination-Library").performClick().assertIsSelected()
@@ -1118,8 +1099,8 @@ class AdaptiveWhipScreenTest {
             "Track detail navigation must remain subordinate: workspace=$workspaceNavigation detail=$detailNavigation"
         }
         compose.onNodeWithContentDescription("Back to Tracks").assertIsDisplayed()
-        compose.onNodeWithContentDescription("App actions").performClick()
-        compose.onNodeWithTag("expand-content-pane-action").performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithContentDescription("Expand content pane")
+            .performSemanticsAction(SemanticsActions.OnClick)
         compose.onNodeWithContentDescription("Back to Tracks").assertIsDisplayed()
         compose.onNodeWithContentDescription("Go to Home").assertIsDisplayed().performClick()
         compose.onNodeWithContentDescription("Home").assertIsDisplayed().assertIsSelected()

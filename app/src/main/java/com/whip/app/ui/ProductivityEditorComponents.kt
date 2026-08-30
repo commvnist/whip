@@ -559,34 +559,3 @@ internal fun NumericQuickActionBuilder(
         }
     }
 }
-
-/**
- * Shared recovery guard for commands that make a configured Automation
- * disappear immediately. Naming the Automation and its consequence keeps the
- * destructive contract consistent across Habits, Goals, and Tracks.
- */
-@Composable
-internal fun RemoveAutomationConfirmationDialog(
-    automationName: String,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    PaneAwareAlertDialog(
-        onDismissRequest = onDismiss,
-        paneTitle = "Remove Automation",
-        title = { Text("Remove Automation?") },
-        text = {
-            Text(
-                "“$automationName” will stop running and its configuration will be removed. " +
-                    "Source history remains, but results generated only by this Automation—such as Goal contributions " +
-                    "or automatic Habit check-ins—will be removed and progress recalculated.",
-            )
-        },
-        confirmButton = {
-            WhipTextButton(onClick = onConfirm) {
-                Text("Remove", color = MaterialTheme.colorScheme.error)
-            }
-        },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
-}

@@ -83,7 +83,6 @@ import com.whip.app.reminders.ReminderNotifications
 import com.whip.app.reminders.HabitReminderNotifications
 import com.whip.app.reminders.GoalReminderNotifications
 import com.whip.app.reminders.RestTimerNotifications
-import com.whip.app.reminders.AutomationPromptNotifications
 import com.whip.app.reminders.FocusTimerNotifications
 import com.whip.app.BuildConfig
 import com.whip.app.data.BackupPreview
@@ -187,7 +186,6 @@ internal fun SettingsContent(
         "Habit reminders" to HabitReminderNotifications.CHANNEL_ID,
         "Goal reminders" to GoalReminderNotifications.CHANNEL_ID,
         "Rest timer" to RestTimerNotifications.channelId(settings.timerSound, settings.timerVibration),
-        "Automation prompts" to AutomationPromptNotifications.CHANNEL_ID,
         "Focus timer" to FocusTimerNotifications.channelId,
     )
     val channelStates = reminderChannels.associate { (label, id) ->

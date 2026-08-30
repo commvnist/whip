@@ -84,6 +84,7 @@ class RoomBackupRepository(
             }
             tables.put(table, rows)
         }
+        retireAutomationBackupRows(tables)
         val settings = settingsRepository?.current()?.toJson()
         val payload = checksumPayload(tables, settings)
         JSONObject()
@@ -158,6 +159,7 @@ class RoomBackupRepository(
                 for (index in 0 until rows.length()) {
                     val values = rows.getJSONObject(index).toContentValues()
                     values.applyBackupCompatibilityDefaults(table)
+                    values.retireAutomation(table)
                     values.normalizeIdentityEmoji(table)
                     val result = db.insert(safeIdentifier(table), SQLiteDatabase.CONFLICT_ABORT, values)
                     require(result != -1L) { "Could not restore $table row ${index + 1}" }
@@ -223,6 +225,7 @@ class RoomBackupRepository(
                     }
                     val values = row.toContentValues()
                     values.applyBackupCompatibilityDefaults(table)
+                    values.retireAutomation(table)
                     values.normalizeIdentityEmoji(table)
                     val sourceOccurrenceId = if (table == "track_entries") {
                         values.getAsLong("sourceOccurrenceId")?.also { values.putNull("sourceOccurrenceId") }
@@ -338,6 +341,7 @@ class RoomBackupRepository(
         val tableNames = tables.keys().asSequence().toSet()
         val expected = when (dbVersion) {
             BACKUP_DATABASE_VERSION -> EXPORT_TABLES.toSet()
+            9 -> EXPORT_TABLES.toSet()
             8 -> VERSION_EIGHT_EXPORT_TABLES.toSet()
             else -> LEGACY_EXPORT_TABLES.toSet()
         }
@@ -418,6 +422,7 @@ class RoomBackupRepository(
             }
             tables.put("gym_machine_exercise_joins", joins)
         }
+        retireAutomationBackupRows(tables)
     }
 }
 
@@ -425,6 +430,41 @@ private fun ContentValues.applyBackupCompatibilityDefaults(table: String) {
     if (table == "track_fields" && !containsKey("scaleStep")) put("scaleStep", 1.0)
     if (table == "tasks" && !containsKey("icon")) put("icon", DEFAULT_TASK_EMOJI)
     if (table == "gym_machines" && !containsKey("levelDirection")) put("levelDirection", "HigherNumberMoreResistance")
+}
+
+private fun ContentValues.retireAutomation(table: String) {
+    when (table) {
+        "link_rules" -> put("enabled", false)
+        "trigger_rules" -> {
+            put("enabled", false)
+            put("notificationEnabled", false)
+        }
+        "trigger_occurrences" -> if (getAsLong("fulfilledEntryId") == null && getAsLong("dismissedAtMillis") == null) {
+            put("dismissedAtMillis", getAsLong("deliveredAtMillis") ?: getAsLong("availableAtMillis") ?: 0L)
+            putNull("remindAtMillis")
+        }
+    }
+}
+
+private fun retireAutomationBackupRows(tables: JSONObject) {
+    tables.optJSONArray("link_rules")?.forEachObject { row -> row.put("enabled", 0) }
+    tables.optJSONArray("trigger_rules")?.forEachObject { row ->
+        row.put("enabled", 0)
+        row.put("notificationEnabled", 0)
+    }
+    tables.optJSONArray("trigger_occurrences")?.forEachObject { row ->
+        if (row.optLongOrNull("fulfilledEntryId") == null && row.optLongOrNull("dismissedAtMillis") == null) {
+            row.put(
+                "dismissedAtMillis",
+                row.optLongOrNull("deliveredAtMillis") ?: row.optLongOrNull("availableAtMillis") ?: 0L,
+            )
+            row.put("remindAtMillis", JSONObject.NULL)
+        }
+    }
+}
+
+private inline fun JSONArray.forEachObject(block: (JSONObject) -> Unit) {
+    for (index in 0 until length()) block(getJSONObject(index))
 }
 
 private data class MergeForeignKey(
@@ -621,7 +661,7 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 private const val BACKUP_FORMAT = "whip-backup"
 private const val ENVELOPE_VERSION = 2
 private const val OLDEST_COMPATIBLE_DATABASE_VERSION = 5
-private const val BACKUP_DATABASE_VERSION = 9
+private const val BACKUP_DATABASE_VERSION = 10
 
 private fun ContentValues.normalizeIdentityEmoji(table: String) {
     val defaultEmoji = when (table) {

@@ -86,7 +86,7 @@ class WhipVisualLanguageTest {
     }
 
     @Test
-    fun destinationNavigationUsesStableDirectPeersAndSharedOverflow() {
+    fun destinationNavigationKeepsEveryPeerDirectAndStable() {
         val sourceRoot = sequenceOf(File("src/main/java"), File("app/src/main/java"))
             .firstOrNull(File::isDirectory)
             ?: error("Unable to locate app source root")
@@ -106,40 +106,35 @@ class WhipVisualLanguageTest {
             "Destination navigation reintroduced ambiguous or decorative overflow: $forbiddenTreatments",
             forbiddenTreatments.isEmpty(),
         )
-        assertTrue(destinationBar.contains("WhipOverflowMenu("))
-        assertTrue(destinationBar.contains("primaryDestinations.filter"))
+        assertTrue(destinationBar.contains("destinations.forEach"))
+        assertFalse(destinationBar.contains("WhipOverflowMenu("))
+        assertFalse(destinationBar.contains("primaryDestinations.filter"))
+        assertFalse(destinationBar.contains("pagesExpanded"))
         assertFalse(destinationBar.contains("LocalDensity.current.fontScale"))
     }
 
     @Test
-    fun workflowDestinationsStayTogetherAndInsightsAlwaysEndsTheVisibleNavigation() {
+    fun workspaceDefinitionsRetainAllPeerDestinationsAsDirectNavigation() {
         val sourceRoot = sequenceOf(File("src/main/java"), File("app/src/main/java"))
             .firstOrNull(File::isDirectory)
             ?: error("Unable to locate app source root")
         val habit = File(sourceRoot, "com/whip/app/ui/HabitScreens.kt").readText()
         val goal = File(sourceRoot, "com/whip/app/ui/GoalScreens.kt").readText()
         val track = File(sourceRoot, "com/whip/app/ui/TrackScreens.kt").readText()
-        val task = File(sourceRoot, "com/whip/app/ui/WhipApp.kt").readText()
+        val taskPolicy = File(sourceRoot, "com/whip/app/ui/TaskWorkspacePolicy.kt").readText()
         val inspector = File(sourceRoot, "com/whip/app/ui/EntityInspector.kt").readText()
 
-        assertTrue(habit.contains("enum class HabitDestination { Today, All, Connections, Archived, Insights }"))
-        assertTrue(habit.contains("listOf(HabitDestination.Today, HabitDestination.All, HabitDestination.Insights)"))
+        assertTrue(habit.contains("enum class HabitDestination"))
+        assertTrue(habit.contains("destinations = HabitDestination.entries"))
         assertTrue(goal.contains("enum class GoalDestination { Active, Completed, Archived, Insights }"))
-        assertTrue(goal.contains("listOf(GoalDestination.Active, GoalDestination.Completed, GoalDestination.Insights)"))
-        assertTrue(track.contains("Entries(\"Entries\"),\n    Automations(\"Automations\"),\n    Options(\"Options\"),\n    Insights(\"Insights\")"))
-        assertTrue(track.contains("listOf(TrackDetailDestination.Entries, TrackDetailDestination.Automations, TrackDetailDestination.Insights)"))
+        assertTrue(goal.contains("destinations = GoalDestination.entries"))
+        assertTrue(track.contains("Entries(\"Entries\"),\n    Options(\"Options\"),\n    Insights(\"Insights\")"))
+        assertTrue(track.contains("destinations = TrackDetailDestination.entries"))
         assertTrue(goal.contains("GoalDestination.Completed) \"Done\""))
         assertTrue(track.contains("compactLabel = TrackDetailDestination::label"))
-        assertTrue(task.contains("overflowLabel = \"More Task destinations\""))
-        assertTrue(habit.contains("overflowLabel = \"More Habit destinations\""))
-        assertTrue(goal.contains("overflowLabel = \"More Goal destinations\""))
-        assertTrue(track.contains("overflowLabel = \"More Track destinations\""))
-        assertTrue(inspector.contains("overflowLabel = \"More ${'$'}entityType options\""))
-
-        val primaryNavigation = task.substringAfter("private fun PrimaryDestinationNavigationBar(")
-            .substringBefore("private fun TabletopNavigation(")
-        assertFalse(primaryNavigation.contains("MoreHoriz"))
-        assertFalse(primaryNavigation.contains("More destinations"))
-        assertFalse(primaryNavigation.contains("largeTextNavigation"))
+        assertTrue(taskPolicy.contains("TaskWorkspaceDestination.History"))
+        assertTrue(taskPolicy.contains("allTaskWorkspaceDestinations = primaryTaskWorkspaceDestinations"))
+        assertTrue(inspector.contains("destinations = sections"))
+        assertFalse(inspector.contains("sections.filter { it.placement"))
     }
 }

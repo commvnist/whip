@@ -35,13 +35,12 @@ class MainActivity : ComponentActivity() {
         val action: String?,
         val entityId: Long?,
         val occurrenceEpochDay: Long?,
-        val automationOccurrenceId: Long?,
         val sharedText: String?,
         val deliveryId: Long,
     )
 
     private var deliveryCounter = 0L
-    private val launchRequest = mutableStateOf(LaunchRequest(null, null, null, null, null, 0L))
+    private val launchRequest = mutableStateOf(LaunchRequest(null, null, null, null, 0L))
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -94,7 +93,6 @@ class MainActivity : ComponentActivity() {
                     initialAction = request.action,
                     initialEntityId = request.entityId,
                     initialOccurrenceEpochDay = request.occurrenceEpochDay,
-                    initialAutomationOccurrenceId = request.automationOccurrenceId,
                     initialSharedText = request.sharedText,
                     initialDeliveryId = request.deliveryId,
                     foldInfo = foldInfo,
@@ -152,16 +150,12 @@ class MainActivity : ComponentActivity() {
             WhipLaunchActions.EXTRA_OCCURRENCE_EPOCH_DAY,
             Long.MIN_VALUE,
         )?.takeUnless { it == Long.MIN_VALUE }
-        val automationOccurrence = this?.getLongExtra(
-            WhipLaunchActions.EXTRA_AUTOMATION_OCCURRENCE_ID,
-            -1L,
-        )?.takeIf { it >= 0L }
         val sharedText = if (action == WhipLaunchActions.ACTION_CAPTURE_SHARED_TASK) {
             this?.getStringExtra(android.content.Intent.EXTRA_TEXT)
                 ?.trim()
                 ?.takeIf(String::isNotBlank)
         } else null
-        return LaunchRequest(action, id, occurrence, automationOccurrence, sharedText, ++deliveryCounter)
+        return LaunchRequest(action, id, occurrence, sharedText, ++deliveryCounter)
     }
 
     private fun LaunchRequest.saveTo(outState: Bundle) {
@@ -169,7 +163,6 @@ class MainActivity : ComponentActivity() {
         outState.putString(STATE_ACTIVE_ACTION, action)
         entityId?.let { outState.putLong(STATE_ACTIVE_ENTITY_ID, it) }
         occurrenceEpochDay?.let { outState.putLong(STATE_ACTIVE_OCCURRENCE_DAY, it) }
-        automationOccurrenceId?.let { outState.putLong(STATE_ACTIVE_AUTOMATION_OCCURRENCE_ID, it) }
         outState.putString(STATE_ACTIVE_SHARED_TEXT, sharedText)
     }
 
@@ -181,8 +174,6 @@ class MainActivity : ComponentActivity() {
             entityId = getLong(STATE_ACTIVE_ENTITY_ID).takeIf { containsKey(STATE_ACTIVE_ENTITY_ID) },
             occurrenceEpochDay = getLong(STATE_ACTIVE_OCCURRENCE_DAY)
                 .takeIf { containsKey(STATE_ACTIVE_OCCURRENCE_DAY) },
-            automationOccurrenceId = getLong(STATE_ACTIVE_AUTOMATION_OCCURRENCE_ID)
-                .takeIf { containsKey(STATE_ACTIVE_AUTOMATION_OCCURRENCE_ID) },
             sharedText = getString(STATE_ACTIVE_SHARED_TEXT),
             deliveryId = deliveryId,
         )
@@ -195,7 +186,6 @@ class MainActivity : ComponentActivity() {
         const val STATE_ACTIVE_ACTION = "whip.launch.active_action"
         const val STATE_ACTIVE_ENTITY_ID = "whip.launch.active_entity_id"
         const val STATE_ACTIVE_OCCURRENCE_DAY = "whip.launch.active_occurrence_day"
-        const val STATE_ACTIVE_AUTOMATION_OCCURRENCE_ID = "whip.launch.active_automation_occurrence_id"
         const val STATE_ACTIVE_SHARED_TEXT = "whip.launch.active_shared_text"
     }
 }

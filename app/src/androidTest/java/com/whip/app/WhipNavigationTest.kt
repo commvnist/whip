@@ -108,16 +108,11 @@ class WhipNavigationTest {
             compose.onNodeWithTag("home-destination-tasks").assertIsDisplayed()
             compose.onAllNodesWithText("Review & Trends").assertCountEquals(1)
 
-            if (compose.onAllNodesWithContentDescription("Search All Whip Data").fetchSemanticsNodes().isNotEmpty()) {
-                compose.onNodeWithContentDescription("Search All Whip Data").performClick()
-            } else {
-                compose.onNodeWithContentDescription("App actions").performClick()
-                compose.onNodeWithTag("workspace-search-menu-action").performClick()
-            }
+            compose.onNodeWithTag("workspace-search-action").performClick()
             compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
             compose.onNodeWithContentDescription("Close Search").performClick()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            selectDestination("task-destination-Upcoming", "Upcoming")
+            selectDestination("task-destination-Upcoming")
             compose.onNodeWithText("The next 30 days", substring = true).assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
@@ -224,32 +219,27 @@ class WhipNavigationTest {
 
             compose.onNodeWithContentDescription("Tasks tab").performClick()
             listOf("Today", "Inbox", "Upcoming", "History").forEach { destination ->
-                selectDestination("task-destination-$destination", destination)
+                selectDestination("task-destination-$destination")
             }
             compose.onNodeWithText("Your latest completed tasks", substring = true).assertIsDisplayed()
             compose.onAllNodesWithText("Task History").assertCountEquals(0)
             compose.onAllNodesWithContentDescription("Back to Today").assertCountEquals(0)
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
-            listOf("Today", "All", "Insights").forEach { destination ->
-                selectDestination("habit-destination-$destination", destination)
+            listOf("Today", "All", "Insights", "Archived").forEach { destination ->
+                selectDestination("habit-destination-$destination")
             }
-            compose.onNodeWithContentDescription("More Habit destinations").performClick()
-            compose.onNodeWithText("Automations").performClick()
-            compose.onNodeWithText("Build Your First Automation").assertIsDisplayed()
-            compose.onNodeWithContentDescription("More Habit destinations").performClick()
-            compose.onNodeWithText("Archived").performClick()
             compose.onNodeWithText("Archived Habits").assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Goals tab").performClick()
             listOf("Active", "Completed", "Insights", "Archived").forEach { destination ->
-                selectDestination("goal-destination-$destination", destination)
+                selectDestination("goal-destination-$destination")
             }
             compose.onNodeWithText("Archived Goals").assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Gym tab").performClick()
             listOf("Workout", "History", "Progress", "Library").forEach { destination ->
-                selectDestination("gym-destination-$destination", destination)
+                selectDestination("gym-destination-$destination")
             }
             listOf("Routines", "Exercises", "Machines", "Categories", "Tools").forEach { destination ->
                 compose.onNodeWithTag("gym-library-list").performScrollToNode(hasText(destination))
@@ -259,34 +249,21 @@ class WhipNavigationTest {
 
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             listOf("Tracks", "Activity", "Insights").forEach { destination ->
-                selectDestination("track-workspace-destination-$destination", destination)
+                selectDestination("track-workspace-destination-$destination")
             }
             compose.onNodeWithTag("track-workspace-destination-Tracks").performClick()
             compose.onNodeWithContentDescription("Navigation Track, 0 Entries. Open Track").performClick()
             compose.onNodeWithTag("track-workspace-navigation").assertIsDisplayed()
             compose.onNodeWithTag("track-detail-navigation").assertIsDisplayed()
-            listOf("Entries", "Automations", "Insights", "Options").forEach { destination ->
-                selectDestination("track-destination-$destination", destination)
+            listOf("Entries", "Insights", "Options").forEach { destination ->
+                selectDestination("track-destination-$destination")
             }
             compose.onNodeWithText("Track Options").assertIsDisplayed()
         }
     }
 
-    private fun selectDestination(testTag: String, fullLabel: String) {
-        if (compose.onAllNodesWithTag(testTag).fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithTag(testTag).performClick().assertIsSelected()
-        } else {
-            val overflowDescription = when {
-                testTag.startsWith("task-destination-") -> "More Task destinations"
-                testTag.startsWith("habit-destination-") -> "More Habit destinations"
-                testTag.startsWith("goal-destination-") -> "More Goal destinations"
-                testTag.startsWith("track-destination-") -> "More Track destinations"
-                else -> error("Expected $testTag to be a direct destination")
-            }
-            val pageMenus = compose.onAllNodesWithContentDescription(overflowDescription)
-            pageMenus[pageMenus.fetchSemanticsNodes().lastIndex].performClick()
-            compose.onNodeWithText(fullLabel).performClick()
-        }
+    private fun selectDestination(testTag: String) {
+        compose.onNodeWithTag(testTag).performClick().assertIsSelected()
         compose.waitForIdle()
     }
 

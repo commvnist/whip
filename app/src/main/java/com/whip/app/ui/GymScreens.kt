@@ -74,8 +74,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.ArrowDownward
-import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -83,8 +81,10 @@ import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material.icons.outlined.Settings
 import com.whip.app.R
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Restore
@@ -933,7 +933,7 @@ fun GymAreaContent(
             impacts = listOf(
                 "${placements.size} workout entr${if (placements.size == 1) "y" else "ies"} and $setCount set${if (setCount == 1) "" else "s"} will be removed from history",
                 "$routineCount routine placement${if (routineCount == 1) "" else "s"} and affected graph presets will be updated",
-                "Personal records and Goal Automations from this exercise will be removed or recalculated",
+                "Personal records affected by this exercise will be recalculated",
             ),
             onDismiss = { exerciseDeleteCandidateId = null },
             onConfirm = { viewModel.deleteExercisePermanently(exercise.id); exerciseDeleteCandidateId = null },
@@ -949,7 +949,7 @@ fun GymAreaContent(
             title = "Delete ${workout.name.ifBlank { "Workout" }} Permanently?",
             impacts = listOf(
                 "${placements.size} exercise entr${if (placements.size == 1) "y" else "ies"} and $setCount set${if (setCount == 1) "" else "s"} will be removed",
-                "Personal records, goal contributions, and workout automations will be recalculated",
+                "Personal records affected by this workout will be recalculated",
                 "Your exercise library and routine templates will remain",
             ),
             onDismiss = { workoutDeleteCandidateId = null },
@@ -1693,18 +1693,6 @@ internal fun WorkoutExerciseCard(
                         Icon(Icons.Outlined.MoreVert, contentDescription = "More options for ${item.exercise.name}", modifier = Modifier.size(28.dp))
                     }
                     DropdownMenu(expanded = actionMenuExpanded, onDismissRequest = { actionMenuExpanded = false }) {
-                        WhipMenuItem(
-                            label = "Move Up",
-                            enabled = canMoveUp,
-                            icon = Icons.Outlined.ArrowUpward,
-                            onClick = { actionMenuExpanded = false; onMoveUp() },
-                        )
-                        WhipMenuItem(
-                            label = "Move Down",
-                            enabled = canMoveDown,
-                            icon = Icons.Outlined.ArrowDownward,
-                            onClick = { actionMenuExpanded = false; onMoveDown() },
-                        )
                         item.group?.let { group ->
                             WhipMenuItem(
                                 label = "Remove from ${group.type.uiLabel()}",
@@ -1835,29 +1823,15 @@ internal fun WorkoutExerciseCard(
                                 Box {
                                     IconButton(onClick = { setMenuId = set.id }, modifier = Modifier.size(48.dp)) {
                                         Icon(
-                                            Icons.Outlined.MoreVert,
-                                            contentDescription = "More options for set ${index + 1}",
+                                            Icons.Outlined.Settings,
+                                            contentDescription = "Manage set ${index + 1}",
                                             modifier = Modifier.size(26.dp),
                                         )
                                     }
                                     WorkoutSetActionsMenu(
                                         expanded = setMenuId == set.id,
                                         onDismiss = { setMenuId = null },
-                                        canMoveUp = index > 0,
-                                        canMoveDown = index < orderedSets.lastIndex,
                                         onDuplicate = { setMenuId = null; onDuplicateSet(set.id) },
-                                        onMoveUp = {
-                                            setMenuId = null
-                                            val ids = orderedSets.map(WorkoutSet::id).toMutableList()
-                                            java.util.Collections.swap(ids, index, index - 1)
-                                            onReorderSets(ids)
-                                        },
-                                        onMoveDown = {
-                                            setMenuId = null
-                                            val ids = orderedSets.map(WorkoutSet::id).toMutableList()
-                                            java.util.Collections.swap(ids, index, index + 1)
-                                            onReorderSets(ids)
-                                        },
                                         onRemove = { setMenuId = null; onDeleteSet(set.id) },
                                     )
                                 }
@@ -1937,26 +1911,12 @@ internal fun WorkoutExerciseCard(
                         }
                         Box {
                             IconButton(onClick = { setMenuId = set.id }, modifier = Modifier.size(48.dp)) {
-                                Icon(Icons.Outlined.MoreVert, contentDescription = "More options for set ${index + 1}", modifier = Modifier.size(26.dp))
+                                Icon(Icons.Outlined.Settings, contentDescription = "Manage set ${index + 1}", modifier = Modifier.size(26.dp))
                             }
                             WorkoutSetActionsMenu(
                                 expanded = setMenuId == set.id,
                                 onDismiss = { setMenuId = null },
-                                canMoveUp = index > 0,
-                                canMoveDown = index < orderedSets.lastIndex,
                                 onDuplicate = { setMenuId = null; onDuplicateSet(set.id) },
-                                onMoveUp = {
-                                    setMenuId = null
-                                    val ids = orderedSets.map(WorkoutSet::id).toMutableList()
-                                    java.util.Collections.swap(ids, index, index - 1)
-                                    onReorderSets(ids)
-                                },
-                                onMoveDown = {
-                                    setMenuId = null
-                                    val ids = orderedSets.map(WorkoutSet::id).toMutableList()
-                                    java.util.Collections.swap(ids, index, index + 1)
-                                    onReorderSets(ids)
-                                },
                                 onRemove = { setMenuId = null; onDeleteSet(set.id) },
                             )
                         }
@@ -2045,27 +2005,11 @@ internal fun WorkoutExerciseCard(
 private fun WorkoutSetActionsMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
-    canMoveUp: Boolean,
-    canMoveDown: Boolean,
     onDuplicate: () -> Unit,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
     onRemove: () -> Unit,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         WhipMenuItem(label = "Duplicate Set", onClick = onDuplicate)
-        WhipMenuItem(
-            label = "Move Up",
-            enabled = canMoveUp,
-            icon = Icons.Outlined.ArrowUpward,
-            onClick = onMoveUp,
-        )
-        WhipMenuItem(
-            label = "Move Down",
-            enabled = canMoveDown,
-            icon = Icons.Outlined.ArrowDownward,
-            onClick = onMoveDown,
-        )
         HorizontalDivider()
         WhipMenuItem(
             label = "Remove Set",
@@ -2606,7 +2550,6 @@ private fun ExerciseLibraryContent(
     var sort by rememberSaveable { mutableStateOf(ExerciseLibrarySort.Name) }
     var sortDirection by rememberSaveable { mutableStateOf(SortDirection.Ascending) }
     var reordering by rememberSaveable { mutableStateOf(false) }
-    var toolsExpanded by rememberSaveable { mutableStateOf(false) }
     val source = if (showArchived) state.archivedExercises else state.exercises
     val machineNamesByExercise = (state.machines + state.archivedMachines).groupBy(GymMachine::exerciseId)
         .mapValues { (_, machines) -> machines.joinToString(" ") { it.displayName } }
@@ -2646,29 +2589,22 @@ private fun ExerciseLibraryContent(
                 title = "Exercise Library",
                 supportingText = "Only your exercises appear here—Whip never seeds a movement list.",
             ) {
-                if (!reordering && state.exercises.size > 1) Box {
+                if (!reordering && state.exercises.size > 1) {
                     WhipPageIconAction(
-                        icon = Icons.Outlined.MoreVert,
-                        label = "More Exercise Library Actions",
-                        onClick = { toolsExpanded = true },
+                        icon = Icons.Outlined.DragHandle,
+                        label = if (reorderHasConstraints) "Clear filters and reorder all Exercises" else "Reorder Exercises",
+                        onClick = {
+                            query = ""
+                            favoritesOnly = false
+                            showArchived = false
+                            selectedCategoryId = null
+                            selectedTrackingType = null
+                            selectedEquipment = null
+                            sort = ExerciseLibrarySort.Manual
+                            sortDirection = SortDirection.Ascending
+                            reordering = true
+                        },
                     )
-                    DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
-                        WhipMenuItem(
-                            label = if (reorderHasConstraints) "Clear Filters & Reorder All" else "Reorder Exercises",
-                            onClick = {
-                                query = ""
-                                favoritesOnly = false
-                                showArchived = false
-                                selectedCategoryId = null
-                                selectedTrackingType = null
-                                selectedEquipment = null
-                                sort = ExerciseLibrarySort.Manual
-                                sortDirection = SortDirection.Ascending
-                                reordering = true
-                                toolsExpanded = false
-                            },
-                        )
-                    }
                 }
             }
         }
@@ -3555,9 +3491,7 @@ private fun ExerciseCategoryContent(
     var name by rememberSaveable(editorKey) { mutableStateOf(editing?.name.orEmpty()) }
     var kind by rememberSaveable(editorKey) { mutableStateOf(editing?.kind ?: "Category") }
     var showArchived by rememberSaveable { mutableStateOf(false) }
-    var categoryMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
     var reordering by rememberSaveable { mutableStateOf(false) }
-    var toolsExpanded by rememberSaveable { mutableStateOf(false) }
     val visible = if (showArchived) state.archivedCategories else state.categories
     BackHandler(enabled = reordering) { reordering = false }
     DisposableEffect(reordering) {
@@ -3574,22 +3508,15 @@ private fun ExerciseCategoryContent(
                 title = "Exercise Categories",
                 supportingText = "Create your own muscle, equipment, movement, or training tags.",
             ) {
-                if (!reordering && state.categories.size > 1) Box {
+                if (!reordering && state.categories.size > 1) {
                     WhipPageIconAction(
-                        icon = Icons.Outlined.MoreVert,
-                        label = "More Category Actions",
-                        onClick = { toolsExpanded = true },
+                        icon = Icons.Outlined.DragHandle,
+                        label = if (showArchived) "Show active and reorder all Categories" else "Reorder Categories",
+                        onClick = {
+                            showArchived = false
+                            reordering = true
+                        },
                     )
-                    DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
-                        WhipMenuItem(
-                            label = if (showArchived) "Show Active & Reorder All" else "Reorder Categories",
-                            onClick = {
-                                showArchived = false
-                                reordering = true
-                                toolsExpanded = false
-                            },
-                        )
-                    }
                 }
             }
         }
@@ -3644,48 +3571,17 @@ private fun ExerciseCategoryContent(
                         Text(category.kind, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (!reordering) ItemEditButton("category", category.name, onEdit = { editingCategoryId = category.id })
-                    if (!reordering) Box {
+                    if (!reordering) {
                         IconButton(
-                            onClick = { categoryMenuId = category.id },
+                            onClick = { viewModel.setCategoryArchived(category.id, !category.archived) },
                             modifier = Modifier.size(48.dp),
                         ) {
-                            Icon(Icons.Outlined.MoreVert, contentDescription = "More Actions for category ${category.name}")
-                        }
-                        DropdownMenu(
-                            expanded = categoryMenuId == category.id,
-                            onDismissRequest = { categoryMenuId = null },
-                        ) {
-                            if (!showArchived) {
-                                WhipMenuItem(
-                                    label = "Move Up",
-                                    enabled = index > 0,
-                                    icon = Icons.Outlined.ArrowUpward,
-                                    onClick = {
-                                        val ids = visible.map(ExerciseCategory::id).toMutableList()
-                                        java.util.Collections.swap(ids, index, index - 1)
-                                        viewModel.reorderCategories(ids)
-                                        categoryMenuId = null
-                                    },
-                                )
-                                WhipMenuItem(
-                                    label = "Move Down",
-                                    enabled = index < visible.lastIndex,
-                                    icon = Icons.Outlined.ArrowDownward,
-                                    onClick = {
-                                        val ids = visible.map(ExerciseCategory::id).toMutableList()
-                                        java.util.Collections.swap(ids, index, index + 1)
-                                        viewModel.reorderCategories(ids)
-                                        categoryMenuId = null
-                                    },
-                                )
-                                HorizontalDivider()
-                            }
-                            WhipMenuItem(
-                                label = if (category.archived) "Restore Category" else "Archive Category",
-                                icon = if (category.archived) Icons.Outlined.Restore else Icons.Outlined.Archive,
-                                onClick = {
-                                    viewModel.setCategoryArchived(category.id, !category.archived)
-                                    categoryMenuId = null
+                            Icon(
+                                imageVector = if (category.archived) Icons.Outlined.Restore else Icons.Outlined.Archive,
+                                contentDescription = if (category.archived) {
+                                    "Restore category ${category.name}"
+                                } else {
+                                    "Archive category ${category.name}"
                                 },
                             )
                         }
@@ -5450,7 +5346,6 @@ private fun RoutineContent(
     var showArchived by rememberSaveable { mutableStateOf(false) }
     var actionMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
     var reordering by rememberSaveable { mutableStateOf(false) }
-    var toolsExpanded by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(createRequested) {
         if (createRequested) {
             showEditor = true
@@ -5541,22 +5436,15 @@ private fun RoutineContent(
                     "Reusable multi-day templates. Starting one copies it into a new workout without changing the template."
                 } else "Showing the routine opened from search.",
             ) {
-                if (!reordering && focusedRoutineId == null && state.routines.size > 1) Box {
+                if (!reordering && focusedRoutineId == null && state.routines.size > 1) {
                     WhipPageIconAction(
-                        icon = Icons.Outlined.MoreVert,
-                        label = "More Routine Actions",
-                        onClick = { toolsExpanded = true },
+                        icon = Icons.Outlined.DragHandle,
+                        label = if (showArchived) "Show active and reorder all Routines" else "Reorder Routines",
+                        onClick = {
+                            showArchived = false
+                            reordering = true
+                        },
                     )
-                    DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
-                        WhipMenuItem(
-                            label = if (showArchived) "Show Active & Reorder All" else "Reorder Routines",
-                            onClick = {
-                                showArchived = false
-                                reordering = true
-                                toolsExpanded = false
-                            },
-                        )
-                    }
                 }
             }
         }
@@ -5620,28 +5508,6 @@ private fun RoutineContent(
                                 Icon(Icons.Outlined.MoreVert, contentDescription = "More options for routine ${routine.name}", modifier = Modifier.size(28.dp))
                             }
                             DropdownMenu(expanded = actionMenuId == routine.id, onDismissRequest = { actionMenuId = null }) {
-                                if (!showArchived) {
-                                    WhipMenuItem(
-                                        label = "Move Up", enabled = routineIndex > 0,
-                                        icon = Icons.Outlined.ArrowUpward,
-                                        onClick = {
-                                            actionMenuId = null
-                                            val ids = visible.map(GymRoutine::id).toMutableList()
-                                            java.util.Collections.swap(ids, routineIndex, routineIndex - 1)
-                                            viewModel.reorderRoutines(ids)
-                                        },
-                                    )
-                                    WhipMenuItem(
-                                        label = "Move Down", enabled = routineIndex < visible.lastIndex,
-                                        icon = Icons.Outlined.ArrowDownward,
-                                        onClick = {
-                                            actionMenuId = null
-                                            val ids = visible.map(GymRoutine::id).toMutableList()
-                                            java.util.Collections.swap(ids, routineIndex, routineIndex + 1)
-                                            viewModel.reorderRoutines(ids)
-                                        },
-                                    )
-                                }
                                 WhipMenuItem(label = "Duplicate", onClick = { actionMenuId = null; viewModel.duplicateRoutine(routine.id) })
                                 WhipMenuItem(label = if (routine.pinned) "Unpin from Whip Home" else "Pin to Whip Home", onClick = { actionMenuId = null; viewModel.setRoutinePinned(routine.id, !routine.pinned) })
                                 WhipMenuItem(label = if (routine.archived) "Restore" else "Archive", onClick = { actionMenuId = null; viewModel.setRoutineArchived(routine.id, !routine.archived) })
@@ -6661,11 +6527,6 @@ private enum class ExerciseDetailSection(val id: String, val label: String) {
         get() = EntityInspectorSection(
             id = id,
             label = label,
-            placement = if (this == More) {
-                EntityInspectorSectionPlacement.Overflow
-            } else {
-                EntityInspectorSectionPlacement.Direct
-            },
         )
 }
 

@@ -332,12 +332,7 @@ class ProductivityDefaultsUiTest {
             }
         }
 
-        if (compose.onAllNodesWithContentDescription("Open Settings").fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithContentDescription("Open Settings").performClick()
-        } else {
-            compose.onNodeWithContentDescription("App actions").performClick()
-            compose.onNodeWithText("Open Settings").performClick()
-        }
+        compose.onNodeWithTag("workspace-settings-action").performClick()
         compose.onRoot().performKeyInput {
             keyDown(Key.CtrlLeft)
             keyDown(Key.N)

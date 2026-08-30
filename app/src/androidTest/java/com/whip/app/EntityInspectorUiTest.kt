@@ -38,7 +38,6 @@ import com.whip.app.domain.WhipTask
 import com.whip.app.ui.EntityInspector
 import com.whip.app.ui.EntityInspectorPrimaryAction
 import com.whip.app.ui.EntityInspectorSection
-import com.whip.app.ui.EntityInspectorSectionPlacement
 import com.whip.app.ui.TaskActionsDialog
 import com.whip.app.ui.theme.WhipTheme
 import java.time.LocalDate
@@ -212,7 +211,7 @@ class EntityInspectorUiTest {
     }
 
     @Test
-    fun inspectorKeepsDirectSectionsStableAndUsesContextualOverflowForOptions() {
+    fun inspectorKeepsEverySectionDirectAndStable() {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 var selected by remember { mutableStateOf("today") }
@@ -225,12 +224,8 @@ class EntityInspectorUiTest {
                     sections = listOf(
                         EntityInspectorSection("today", "Today"),
                         EntityInspectorSection("history", "History"),
-                        EntityInspectorSection("automation", "Automation"),
-                        EntityInspectorSection(
-                            "options",
-                            "Options",
-                            placement = EntityInspectorSectionPlacement.Overflow,
-                        ),
+                        EntityInspectorSection("details", "Details"),
+                        EntityInspectorSection("options", "Options"),
                     ),
                     selectedSectionId = selected,
                     onSelectSection = { selected = it },
@@ -245,22 +240,18 @@ class EntityInspectorUiTest {
         }
 
         compose.onNodeWithText("Today").assertIsSelected()
-        compose.onNodeWithText("Automation").assertIsDisplayed()
-        compose.onAllNodesWithText("Options").assertCountEquals(0)
-        compose.onNodeWithContentDescription("More Habit options").assertIsDisplayed().performClick()
-        compose.onNodeWithText("Options").assertIsDisplayed().performClick()
-        compose.onAllNodesWithTag("entity-inspector-section-options").assertCountEquals(0)
+        compose.onNodeWithText("Details").assertIsDisplayed()
+        compose.onNodeWithTag("entity-inspector-section-options").assertIsDisplayed().performClick()
         compose.onNodeWithTag("entity-inspector-section-today").assertIsDisplayed()
         compose.onNodeWithTag("entity-inspector-section-history").assertIsDisplayed()
-        compose.onNodeWithTag("entity-inspector-section-automation").assertIsDisplayed()
+        compose.onNodeWithTag("entity-inspector-section-details").assertIsDisplayed()
         compose.onNodeWithText("Selected options").assertIsDisplayed()
-        compose.onNodeWithContentDescription("More Habit options").performClick()
-        compose.onNodeWithText("Options").assertIsDisplayed()
-        compose.onNodeWithText("Options").assertIsSelected()
+        compose.onNodeWithTag("entity-inspector-section-options").assertIsSelected()
+        compose.onAllNodesWithContentDescription("More Habit options").assertCountEquals(0)
     }
 
     @Test
-    fun compactLargeTextInspectorKeepsOverviewDirectAndOptionsInOverflow() {
+    fun compactLargeTextInspectorKeepsOverviewAndOptionsDirect() {
         val largeText = Density(compose.density.density, fontScale = 2f)
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides largeText) {
@@ -273,11 +264,7 @@ class EntityInspectorUiTest {
                         status = "Available",
                         sections = listOf(
                             EntityInspectorSection("overview", "Overview"),
-                            EntityInspectorSection(
-                                "options",
-                                "Options",
-                                placement = EntityInspectorSectionPlacement.Overflow,
-                            ),
+                            EntityInspectorSection("options", "Options"),
                         ),
                         selectedSectionId = "overview",
                         onSelectSection = {},
@@ -290,9 +277,8 @@ class EntityInspectorUiTest {
         }
 
         compose.onNodeWithTag("entity-inspector-section-overview").assertIsDisplayed()
-        compose.onAllNodesWithTag("entity-inspector-section-options").assertCountEquals(0)
-        compose.onNodeWithContentDescription("More Exercise options").assertIsDisplayed().performClick()
-        compose.onNodeWithText("Options").assertIsDisplayed()
+        compose.onNodeWithTag("entity-inspector-section-options").assertIsDisplayed()
+        compose.onAllNodesWithContentDescription("More Exercise options").assertCountEquals(0)
     }
 
     @Test

@@ -10,7 +10,7 @@ import androidx.room.PrimaryKey
     foreignKeys = [
         ForeignKey(entity = GoalEntity::class, parentColumns = ["id"], childColumns = ["targetGoalId"], onDelete = ForeignKey.CASCADE),
         ForeignKey(entity = GoalMilestoneEntity::class, parentColumns = ["id"], childColumns = ["targetMilestoneId"], onDelete = ForeignKey.SET_NULL),
-        ForeignKey(entity = TrackFieldEntity::class, parentColumns = ["id"], childColumns = ["sourceFieldId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(entity = TrackFieldEntity::class, parentColumns = ["id"], childColumns = ["sourceFieldId"], onDelete = ForeignKey.SET_NULL),
     ],
     indices = [Index("uuid", unique = true), Index("targetGoalId"), Index("targetMilestoneId"), Index("sourceFieldId"), Index(value = ["sourceType", "sourceEntityId"])],
 )
@@ -43,7 +43,7 @@ data class LinkRuleEntity(
     tableName = "link_rule_conditions",
     foreignKeys = [
         ForeignKey(entity = LinkRuleEntity::class, parentColumns = ["id"], childColumns = ["linkRuleId"], onDelete = ForeignKey.CASCADE),
-        ForeignKey(entity = TrackFieldEntity::class, parentColumns = ["id"], childColumns = ["fieldId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(entity = TrackFieldEntity::class, parentColumns = ["id"], childColumns = ["fieldId"], onDelete = ForeignKey.SET_NULL),
     ],
     indices = [Index("linkRuleId"), Index("fieldId"), Index(value = ["linkRuleId", "position"], unique = true)],
 )
@@ -66,7 +66,7 @@ data class LinkRuleConditionEntity(
     primaryKeys = ["conditionId", "optionId"],
     foreignKeys = [
         ForeignKey(entity = LinkRuleConditionEntity::class, parentColumns = ["id"], childColumns = ["conditionId"], onDelete = ForeignKey.CASCADE),
-        ForeignKey(entity = TrackChoiceOptionEntity::class, parentColumns = ["id"], childColumns = ["optionId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(entity = TrackChoiceOptionEntity::class, parentColumns = ["id"], childColumns = ["optionId"], onDelete = ForeignKey.CASCADE),
     ],
     indices = [Index("conditionId"), Index("optionId")],
 )
@@ -154,7 +154,7 @@ data class TriggerOccurrenceEntity(
     tableName = "trigger_rule_conditions",
     foreignKeys = [
         ForeignKey(entity = TriggerRuleEntity::class, parentColumns = ["id"], childColumns = ["triggerRuleId"], onDelete = ForeignKey.CASCADE),
-        ForeignKey(entity = TrackFieldEntity::class, parentColumns = ["id"], childColumns = ["fieldId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(entity = TrackFieldEntity::class, parentColumns = ["id"], childColumns = ["fieldId"], onDelete = ForeignKey.SET_NULL),
     ],
     indices = [Index("triggerRuleId"), Index("fieldId"), Index(value = ["triggerRuleId", "position"], unique = true)],
 )
@@ -177,7 +177,7 @@ data class TriggerRuleConditionEntity(
     primaryKeys = ["conditionId", "optionId"],
     foreignKeys = [
         ForeignKey(entity = TriggerRuleConditionEntity::class, parentColumns = ["id"], childColumns = ["conditionId"], onDelete = ForeignKey.CASCADE),
-        ForeignKey(entity = TrackChoiceOptionEntity::class, parentColumns = ["id"], childColumns = ["optionId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(entity = TrackChoiceOptionEntity::class, parentColumns = ["id"], childColumns = ["optionId"], onDelete = ForeignKey.CASCADE),
     ],
     indices = [Index("conditionId"), Index("optionId")],
 )
@@ -187,8 +187,8 @@ data class TriggerConditionChoiceEntity(val conditionId: Long, val optionId: Lon
     tableName = "trigger_field_mappings",
     foreignKeys = [
         ForeignKey(entity = TriggerRuleEntity::class, parentColumns = ["id"], childColumns = ["triggerRuleId"], onDelete = ForeignKey.CASCADE),
-        ForeignKey(entity = TrackFieldEntity::class, parentColumns = ["id"], childColumns = ["targetFieldId"], onDelete = ForeignKey.RESTRICT),
-        ForeignKey(entity = TrackChoiceOptionEntity::class, parentColumns = ["id"], childColumns = ["constantChoiceOptionId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(entity = TrackFieldEntity::class, parentColumns = ["id"], childColumns = ["targetFieldId"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(entity = TrackChoiceOptionEntity::class, parentColumns = ["id"], childColumns = ["constantChoiceOptionId"], onDelete = ForeignKey.SET_NULL),
     ],
     indices = [Index("triggerRuleId"), Index("targetFieldId"), Index("constantChoiceOptionId"), Index(value = ["triggerRuleId", "targetFieldId"], unique = true)],
 )

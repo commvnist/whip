@@ -72,6 +72,40 @@ class InteractionControlUiTest {
     val compose = createComposeRule()
 
     @Test
+    fun commandMenuItemsDoNotPretendToBeSelectableChoices() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Column {
+                    WhipMenuItem(
+                        label = "Duplicate",
+                        onClick = {},
+                        modifier = Modifier.testTag("plain-menu-command"),
+                    )
+                    WhipMenuItem(
+                        label = "Newest first",
+                        onClick = {},
+                        selected = false,
+                        modifier = Modifier.testTag("unselected-menu-choice"),
+                    )
+                    WhipMenuItem(
+                        label = "Oldest first",
+                        onClick = {},
+                        selected = true,
+                        modifier = Modifier.testTag("selected-menu-choice"),
+                    )
+                }
+            }
+        }
+
+        val plain = compose.onNodeWithTag("plain-menu-command").fetchSemanticsNode().config
+        val unselected = compose.onNodeWithTag("unselected-menu-choice").fetchSemanticsNode().config
+        val selected = compose.onNodeWithTag("selected-menu-choice").fetchSemanticsNode().config
+        assertTrue(!plain.contains(SemanticsProperties.Selected))
+        assertEquals(false, unselected[SemanticsProperties.Selected])
+        assertEquals(true, selected[SemanticsProperties.Selected])
+    }
+
+    @Test
     fun reorderHandleHasOneConsistentTouchAndAccessibilityContract() {
         var movement = 0
         compose.setContent {
@@ -596,7 +630,6 @@ class InteractionControlUiTest {
                         DestinationTabBar(
                             selected = destination,
                             destinations = listOf("Today", "All", "Insights", "Connections", "Archived"),
-                            primaryDestinations = listOf("Today", "All", "Insights", "Connections"),
                             onSelect = { destination = it },
                             label = { it },
                             testTagPrefix = "rtl-tab",
@@ -606,22 +639,11 @@ class InteractionControlUiTest {
             }
         }
 
-        listOf("Today", "All", "Insights", "Connections").forEach { label ->
+        listOf("Today", "All", "Insights", "Connections", "Archived").forEach { label ->
             compose.onNodeWithTag("rtl-tab-$label").assertIsDisplayed()
         }
-        compose.onAllNodesWithText("More").assertCountEquals(0)
-        compose.onNodeWithContentDescription("More destinations").performClick()
-        compose.onNodeWithText("Archived").performClick()
-        compose.onAllNodesWithTag("rtl-tab-Archived").assertCountEquals(0)
-        assertEquals(
-            "Selected page is in this menu",
-            compose.onNodeWithContentDescription("More destinations").fetchSemanticsNode()
-                .config[SemanticsProperties.StateDescription],
-        )
-        compose.onNodeWithContentDescription("More destinations").performClick()
-        compose.onNodeWithText("Archived").assertIsDisplayed()
-        compose.onNodeWithText("Archived").assertIsSelected()
-        compose.onNodeWithText("Archived").performClick()
+        compose.onAllNodesWithContentDescription("More destinations").assertCountEquals(0)
+        compose.onNodeWithTag("rtl-tab-Archived").performClick().assertIsSelected()
         compose.onNodeWithTag("rtl-tab-Today").performSemanticsAction(SemanticsActions.OnClick)
         compose.onNodeWithTag("rtl-tab-Today").assertIsSelected()
     }
@@ -703,7 +725,7 @@ class InteractionControlUiTest {
     }
 
     @Test
-    fun explicitDirectDestinationsAreNotBackfilledByLowFrequencyPages() {
+    fun allDestinationsRemainDirectWhenPriorityHintIsShorter() {
         var destination by mutableStateOf("Entries")
         compose.setContent {
             WhipTheme(dynamicColor = false) {
@@ -711,7 +733,6 @@ class InteractionControlUiTest {
                     DestinationTabBar(
                         selected = destination,
                         destinations = listOf("Entries", "Rules", "Options", "Insights"),
-                        primaryDestinations = listOf("Entries", "Rules", "Insights"),
                         onSelect = { destination = it },
                         label = { it },
                         testTagPrefix = "capacity-tab",
@@ -720,42 +741,34 @@ class InteractionControlUiTest {
             }
         }
 
-        listOf("Entries", "Rules", "Insights").forEach { label ->
+        listOf("Entries", "Rules", "Options", "Insights").forEach { label ->
             compose.onNodeWithTag("capacity-tab-$label").assertIsDisplayed()
         }
-        compose.onAllNodesWithTag("capacity-tab-Options").assertCountEquals(0)
-        compose.onNodeWithContentDescription("More destinations").performClick()
-        compose.onNodeWithText("Options").performClick()
-        assertEquals(
-            "Selected page is in this menu",
-            compose.onNodeWithContentDescription("More destinations").fetchSemanticsNode()
-                .config[SemanticsProperties.StateDescription],
-        )
-        compose.onNodeWithContentDescription("More destinations").performClick()
-        compose.onNodeWithText("Options").assertIsSelected()
+        compose.onAllNodesWithContentDescription("More destinations").assertCountEquals(0)
+        compose.onNodeWithTag("capacity-tab-Options").performClick().assertIsSelected()
     }
 
     @Test
     fun destinationTabsUseShortVisibleLabelsWithoutLosingFullAccessibleNames() {
-        var destination by mutableStateOf("Automations")
+        var destination by mutableStateOf("Configuration")
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 Box(Modifier.width(320.dp)) {
                     DestinationTabBar(
                         selected = destination,
-                        destinations = listOf("Entries", "Insights", "Automations"),
+                        destinations = listOf("Entries", "Insights", "Configuration"),
                         onSelect = { destination = it },
                         label = { it },
-                        compactLabel = { if (it == "Automations") "Auto" else it },
+                        compactLabel = { if (it == "Configuration") "Config" else it },
                         testTagPrefix = "short-tab",
                     )
                 }
             }
         }
 
-        compose.onNodeWithText("Auto").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Automations").assertIsDisplayed()
-        compose.onNodeWithTag("short-tab-Automations").assertIsSelected()
+        compose.onNodeWithText("Config").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Configuration").assertIsDisplayed()
+        compose.onNodeWithTag("short-tab-Configuration").assertIsSelected()
     }
 
     @Test
@@ -821,7 +834,7 @@ class InteractionControlUiTest {
     }
 
     @Test
-    fun destinationTabsKeepFourDefaultPeersStableWhenSelectingFromOverflow() {
+    fun destinationTabsKeepEveryPeerDirectAndStableWhenSelecting() {
         var destination by mutableStateOf("General")
         compose.setContent {
             WhipTheme(dynamicColor = false) {
@@ -837,25 +850,20 @@ class InteractionControlUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("More destinations").performClick()
-        compose.onNodeWithText("Data & Backup").performClick()
-        compose.onAllNodesWithTag("reveal-tab-Data & Backup").assertCountEquals(0)
-        compose.onNodeWithTag("reveal-tab-General").assertIsDisplayed()
-        compose.onNodeWithTag("reveal-tab-Organization").assertIsDisplayed()
-        compose.onNodeWithTag("reveal-tab-Reminders").assertIsDisplayed()
-        compose.onNodeWithTag("reveal-tab-Appearance").assertIsDisplayed()
+        listOf("General", "Organization", "Reminders", "Appearance", "Data & Backup").forEach { label ->
+            compose.onNodeWithTag("reveal-tab-$label").assertIsDisplayed()
+        }
+        compose.onNodeWithTag("reveal-tab-Data & Backup").performClick().assertIsSelected()
+        compose.onAllNodesWithContentDescription("More destinations").assertCountEquals(0)
 
         val expectedRightEdge = with(compose.density) { (320.dp - 12.dp).toPx() }
         compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onNodeWithContentDescription("More destinations")
+            compose.onNodeWithTag("reveal-tab-Data & Backup")
                 .fetchSemanticsNode().boundsInRoot.right <= expectedRightEdge + 0.5f
         }
-        val pagesBounds = compose.onNodeWithContentDescription("More destinations")
+        val pagesBounds = compose.onNodeWithTag("reveal-tab-Data & Backup")
             .fetchSemanticsNode().boundsInRoot
         assertEquals(expectedRightEdge, pagesBounds.right, 0.5f)
-        compose.onNodeWithContentDescription("More destinations").performClick()
-        compose.onNodeWithText("Data & Backup").assertIsDisplayed()
-        compose.onNodeWithText("Data & Backup").assertIsSelected()
     }
 
     @Test

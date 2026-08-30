@@ -29,7 +29,6 @@ import com.whip.app.reminders.HabitReminderScheduler
 import com.whip.app.reminders.HabitReminderNotifications
 import com.whip.app.reminders.GoalReminderScheduler
 import com.whip.app.reminders.GoalReminderNotifications
-import com.whip.app.reminders.AutomationPromptNotifications
 import com.whip.app.reminders.AutomationPromptScheduler
 import com.whip.app.reminders.FocusTimerNotifications
 import com.whip.app.reminders.FocusTimerScheduler
@@ -39,12 +38,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -53,7 +50,6 @@ import com.whip.app.reminders.ALL_WHIP_WORK_TAG
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.core.zoneId
 import com.whip.app.core.currentDateFlow
-import com.whip.app.domain.LinkSourceType
 
 @OptIn(FlowPreview::class)
 class WhipApplication : Application() {
@@ -114,7 +110,6 @@ class WhipApplication : Application() {
         RestTimerNotifications.createChannel(this)
         HabitReminderNotifications.createChannel(this)
         GoalReminderNotifications.createChannel(this)
-        AutomationPromptNotifications.createChannel(this)
         FocusTimerNotifications.createChannel(this)
         // Recovery is rare and must complete before UI flows observe a mixed
         // database/settings state left by an interrupted restore.
@@ -124,6 +119,7 @@ class WhipApplication : Application() {
         }
         portableBackupScheduler.sync(portableBackupManager.state.value)
         applicationScope.launch { runCatching { portableBackupManager.recoverInterruptedWrites() } }
+        applicationScope.launch { runCatching { automationPromptScheduler.syncAll() } }
         if (settingsRepository.current().healthConnectEnabled) {
             applicationScope.launch {
                 val settings = settingsRepository.current()
@@ -135,58 +131,6 @@ class WhipApplication : Application() {
             val taskId = settings.focusTimerTaskId
             if (deadline != null && taskId != null && deadline > System.currentTimeMillis()) {
                 focusTimerScheduler.schedule(taskId, deadline)
-            }
-        }
-        applicationScope.launch {
-            merge(
-                taskRepository.occurrences.map { Unit },
-                taskRepository.stepStates.map { Unit },
-            ).debounce(150).collectLatest {
-                runCatching { linkRepository.rebuildSources(setOf(LinkSourceType.Task, LinkSourceType.Subtask)) }
-                runCatching { automationPromptScheduler.syncAll() }
-            }
-        }
-        applicationScope.launch {
-            merge(habitRepository.logs.map { Unit }, habitRepository.skips.map { Unit }).debounce(150).collectLatest {
-                runCatching { linkRepository.rebuildSources(setOf(LinkSourceType.Habit)) }
-                runCatching { automationPromptScheduler.syncAll() }
-            }
-        }
-        applicationScope.launch {
-            merge(
-                gymRepository.sessions.map { Unit }, gymRepository.workoutExercises.map { Unit },
-                gymRepository.sets.map { Unit }, gymRepository.exercises.map { Unit },
-            ).debounce(150).collectLatest {
-                runCatching { linkRepository.rebuildSources(setOf(LinkSourceType.Workout, LinkSourceType.Exercise)) }
-                runCatching { automationPromptScheduler.syncAll() }
-            }
-        }
-        applicationScope.launch {
-            measurementRepository.entries.map { entries ->
-                entries.filterNot { it.note.startsWith("Linked:") || it.note.startsWith("Automatically logged by") }
-                    .map { it.id to it.updatedAtMillis }
-            }.distinctUntilChanged().debounce(150).collectLatest {
-                runCatching { linkRepository.rebuildSources(setOf(LinkSourceType.Metric)) }
-            }
-        }
-        applicationScope.launch {
-            merge(
-                trackRepository.tracks.map { Unit },
-                trackRepository.fields.map { Unit },
-                trackRepository.options.map { Unit },
-                trackRepository.entries.map { Unit },
-                trackRepository.values.map { Unit },
-            ).debounce(150).collectLatest {
-                runCatching { linkRepository.rebuildSources(setOf(LinkSourceType.Track)) }
-                runCatching { automationPromptScheduler.syncAll() }
-            }
-        }
-        applicationScope.launch {
-            merge(
-                linkRepository.triggerRules.map { Unit },
-                linkRepository.triggerOccurrences.map { Unit },
-            ).debounce(150).collectLatest {
-                runCatching { automationPromptScheduler.syncAll() }
             }
         }
         applicationScope.launch {
@@ -206,7 +150,6 @@ class WhipApplication : Application() {
     suspend fun rebuildBackgroundState() {
         areaRepository.ensureDefaultArea()
         WorkManager.getInstance(this).cancelAllWorkByTag(ALL_WHIP_WORK_TAG).result.get()
-        linkRepository.rebuildAll()
         automationPromptScheduler.syncAll()
         reminderScheduler.syncAll()
         habitReminderScheduler.syncAll()

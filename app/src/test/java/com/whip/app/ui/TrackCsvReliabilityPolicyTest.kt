@@ -11,7 +11,6 @@ import com.whip.app.domain.TrackFieldValue
 import com.whip.app.domain.TrackProjection
 import com.whip.app.domain.TrackCondition
 import com.whip.app.domain.TrackConditionOperator
-import com.whip.app.domain.TrackValueDraft
 import com.whip.app.domain.UnitDimension
 import java.time.LocalDate
 import java.io.IOException
@@ -121,7 +120,7 @@ class TrackCsvReliabilityPolicyTest {
     }
 
     @Test
-    fun nestedAutomationValuesRoundTripThroughRotationEncoding() {
+    fun nestedTrackConditionsRoundTripThroughRotationEncoding() {
         val condition = TrackCondition(
             fieldUuid = "field|with punctuation",
             operator = TrackConditionOperator.Between,
@@ -132,18 +131,7 @@ class TrackCsvReliabilityPolicyTest {
             dateValue = LocalDate.of(2026, 8, 1),
             secondDateValue = LocalDate.of(2026, 8, 29),
         )
-        val value = TrackValueDraft(
-            textValue = "constant|text",
-            enteredNumber = 12.5,
-            enteredUnitId = "custom|unit",
-            dateValue = LocalDate.of(2026, 8, 29),
-            booleanValue = true,
-            choiceOptionUuid = "choice|uuid",
-            scaleValue = 3.5,
-        )
-
         assertEquals(condition, decodeTrackCondition(encodeTrackCondition(condition)))
-        assertEquals(value, decodeTrackValueDraft(encodeTrackValueDraft(value)))
     }
 
     @Test

@@ -901,18 +901,20 @@ internal fun WhipMenuItem(
     onClick: () -> Unit,
     icon: ImageVector? = null,
     enabled: Boolean = true,
-    selected: Boolean = false,
+    selected: Boolean? = null,
     role: WhipMenuItemRole = WhipMenuItemRole.Normal,
     modifier: Modifier = Modifier,
 ) {
     val destructive = role == WhipMenuItemRole.Destructive
     DropdownMenuItem(
-        modifier = modifier.semantics { this.selected = selected },
+        modifier = selected?.let { isSelected ->
+            modifier.semantics { this.selected = isSelected }
+        } ?: modifier,
         text = { Text(label) },
         onClick = onClick,
         enabled = enabled,
         leadingIcon = icon?.let { image -> { Icon(image, contentDescription = null) } },
-        trailingIcon = if (selected) {{ Icon(Icons.Outlined.Check, contentDescription = null) }} else null,
+        trailingIcon = if (selected == true) {{ Icon(Icons.Outlined.Check, contentDescription = null) }} else null,
         colors = if (destructive) {
             MenuDefaults.itemColors(
                 textColor = MaterialTheme.colorScheme.error,
@@ -1272,13 +1274,18 @@ internal fun DetailEditButton(label: String, onEdit: () -> Unit) {
     WhipTextButton(onClick = onEdit) { Text(label.uiTitleCase()) }
 }
 
-/** A stable, single-row destination control for peer pages. */
+/**
+ * A stable, single-row destination control for peer pages.
+ *
+ * Destinations are navigation, never commands, so every peer remains visible
+ * and keeps its position. Low-frequency actions belong to contextual menus at
+ * the owning screen or item instead of a kebab inside navigation.
+ */
 @Composable
 internal fun <T> DestinationTabBar(
     selected: T,
     destinations: List<T>,
     modifier: Modifier = Modifier,
-    primaryDestinations: List<T> = destinations.take(4),
     onSelect: (T) -> Unit,
     label: (T) -> String,
     compactLabel: (T) -> String = label,
@@ -1287,12 +1294,10 @@ internal fun <T> DestinationTabBar(
     secondaryTestTagPrefix: String? = null,
     secondaryTestTagValue: (T) -> String = label,
     barTestTag: String? = null,
-    overflowLabel: String = "More destinations",
     resetCompactItemExpansionOnChange: Boolean = true,
 ) {
     if (destinations.isEmpty()) return
     val compactItemExpansionState = LocalCompactItemExpansionState.current
-    var pagesExpanded by rememberSaveable { mutableStateOf(false) }
     fun selectDestination(destination: T) {
         if (resetCompactItemExpansionOnChange && destination != selected) {
             compactItemExpansionState?.collapseAll()
@@ -1304,16 +1309,13 @@ internal fun <T> DestinationTabBar(
             .fillMaxWidth()
             .then(barTestTag?.let(Modifier::testTag) ?: Modifier),
     ) {
-        val direct = primaryDestinations.filter { it in destinations }.distinct().ifEmpty { destinations }
-        val hidden = destinations.filterNot(direct::contains)
-        val hiddenSelection = selected.takeIf { it in hidden }
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(Modifier.weight(1f).selectableGroup()) {
-                direct.forEach { destination ->
+                destinations.forEach { destination ->
                         val destinationLabel = label(destination).uiTitleCase()
                         val visibleLabel = compactLabel(destination).uiTitleCase()
                         val isSelected = selected == destination
@@ -1359,26 +1361,6 @@ internal fun <T> DestinationTabBar(
                                 color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                             )
                         }
-                }
-            }
-            if (hidden.isNotEmpty()) {
-                WhipOverflowMenu(
-                    label = overflowLabel,
-                    expanded = pagesExpanded,
-                    onExpandedChange = { pagesExpanded = it },
-                    active = hiddenSelection != null,
-                ) {
-                    hidden.forEach { destination ->
-                        val destinationLabel = label(destination).uiTitleCase()
-                        WhipMenuItem(
-                            label = destinationLabel,
-                            selected = destination == selected,
-                            onClick = {
-                                pagesExpanded = false
-                                selectDestination(destination)
-                            },
-                        )
-                    }
                 }
             }
         }

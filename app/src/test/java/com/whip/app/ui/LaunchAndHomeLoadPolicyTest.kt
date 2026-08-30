@@ -19,7 +19,6 @@ class LaunchAndHomeLoadPolicyTest {
             action = WhipLaunchActions.ACTION_OPEN_TRACK,
             entityId = 42,
             occurrenceEpochDay = null,
-            automationOccurrenceId = null,
             taskState = TaskUiState(),
             habitState = HabitUiState(loading = false),
             goalState = GoalUiState(loading = false),
@@ -31,7 +30,6 @@ class LaunchAndHomeLoadPolicyTest {
             action = WhipLaunchActions.ACTION_OPEN_TRACK,
             entityId = 42,
             occurrenceEpochDay = null,
-            automationOccurrenceId = null,
             taskState = TaskUiState(), // Other domains may still be loading.
             habitState = HabitUiState(),
             goalState = GoalUiState(),
@@ -49,7 +47,6 @@ class LaunchAndHomeLoadPolicyTest {
             action = WhipLaunchActions.ACTION_OPEN_TASK,
             entityId = 7,
             occurrenceEpochDay = null,
-            automationOccurrenceId = null,
             taskState = TaskUiState(loading = false, errorMessage = "database unavailable"),
             habitState = HabitUiState(),
             goalState = GoalUiState(),
@@ -60,7 +57,7 @@ class LaunchAndHomeLoadPolicyTest {
     }
 
     @Test
-    fun staleTrackPromptFallsBackToTheExistingTrackOnce() {
+    fun existingTrackDeepLinkOpensTheTrack() {
         val projection = TrackProjection(
             track = Track(42, "track-42", "Mood", "", "🙂", "health", "Health", emptyList(), false, false, 0, 1, 1),
             fields = emptyList(),
@@ -72,7 +69,6 @@ class LaunchAndHomeLoadPolicyTest {
             action = WhipLaunchActions.ACTION_OPEN_TRACK,
             entityId = 42,
             occurrenceEpochDay = null,
-            automationOccurrenceId = 99,
             taskState = TaskUiState(),
             habitState = HabitUiState(),
             goalState = GoalUiState(),
@@ -80,7 +76,7 @@ class LaunchAndHomeLoadPolicyTest {
         )
 
         assertEquals(
-            LaunchTargetResolution.Available("health", "This Track prompt is no longer available."),
+            LaunchTargetResolution.Available("health"),
             resolution,
         )
     }
@@ -107,7 +103,6 @@ class LaunchAndHomeLoadPolicyTest {
             action = WhipLaunchActions.ACTION_OPEN_TASK,
             entityId = task.id,
             occurrenceEpochDay = LocalDate.of(2028, 9, 1).toEpochDay(),
-            automationOccurrenceId = null,
             taskState = TaskUiState(taskEntities = listOf(task), loading = false),
             habitState = HabitUiState(),
             goalState = GoalUiState(),

@@ -214,12 +214,7 @@ class SettingsBehaviorUiTest {
             "About Whip" to "Your data stays on this device unless you explicitly export or sync it.",
         )
 
-        if (compose.onAllNodesWithContentDescription("Open Settings").fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithContentDescription("Open Settings").performClick()
-        } else {
-            compose.onNodeWithContentDescription("App actions").performClick()
-            compose.onNodeWithText("Open Settings").performClick()
-        }
+        compose.onNodeWithTag("workspace-settings-action").performClick()
         expectedControl.forEach { (section, control) ->
             selectSettingsCategory(section)
             compose.onNodeWithTag("settings-list").performScrollToNode(androidx.compose.ui.test.hasText(control))
@@ -235,12 +230,7 @@ class SettingsBehaviorUiTest {
     }
 
     private fun openSettingsSection(label: String) {
-        if (compose.onAllNodesWithContentDescription("Open Settings").fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithContentDescription("Open Settings").performClick()
-        } else {
-            compose.onNodeWithContentDescription("App actions").performClick()
-            compose.onNodeWithText("Open Settings").performClick()
-        }
+        compose.onNodeWithTag("workspace-settings-action").performClick()
         selectSettingsCategory(label)
     }
 

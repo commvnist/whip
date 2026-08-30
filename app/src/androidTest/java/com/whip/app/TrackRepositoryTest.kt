@@ -6,42 +6,17 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
 import com.whip.app.data.RoomAreaRepository
-import com.whip.app.data.RoomGoalRepository
-import com.whip.app.data.RoomHabitRepository
-import com.whip.app.data.RoomLinkRepository
-import com.whip.app.data.RoomMeasurementRepository
-import com.whip.app.data.RoomTaskRepository
 import com.whip.app.data.RoomTrackRepository
 import com.whip.app.data.WhipDatabase
-import com.whip.app.domain.GoalAggregation
-import com.whip.app.domain.GoalDraft
-import com.whip.app.domain.GoalConsistencyPeriod
-import com.whip.app.domain.GoalType
-import com.whip.app.domain.HabitDraft
-import com.whip.app.domain.HabitTrackingMode
-import com.whip.app.domain.LinkRuleDraft
-import com.whip.app.domain.LinkSourceMetric
-import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.TrackAggregation
 import com.whip.app.domain.TrackChoiceOptionDraft
-import com.whip.app.domain.TrackCondition
-import com.whip.app.domain.TrackConditionOperator
 import com.whip.app.domain.TrackDraft
 import com.whip.app.domain.TrackEntryDraft
 import com.whip.app.domain.TrackFieldDraft
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackValueDraft
-import com.whip.app.domain.TriggerAction
-import com.whip.app.domain.TriggerFieldMapping
-import com.whip.app.domain.TriggerOutcome
-import com.whip.app.domain.TriggerRuleDraft
-import com.whip.app.domain.TriggerSourceProperty
-import com.whip.app.domain.TriggerTargetType
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.aggregate
-import com.whip.app.domain.ScheduledTask
-import com.whip.app.domain.TaskDraft
-import com.whip.app.domain.TaskStepDraft
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -64,11 +39,6 @@ import org.junit.runner.RunWith
 class TrackRepositoryTest {
     private lateinit var database: WhipDatabase
     private lateinit var tracks: RoomTrackRepository
-    private lateinit var measurements: RoomMeasurementRepository
-    private lateinit var goals: RoomGoalRepository
-    private lateinit var habits: RoomHabitRepository
-    private lateinit var tasks: RoomTaskRepository
-    private lateinit var links: RoomLinkRepository
 
     @Before fun setUp() = runBlocking {
         database = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), WhipDatabase::class.java)
@@ -76,12 +46,7 @@ class TrackRepositoryTest {
             .build()
         val ids = TestIds()
         RoomAreaRepository(database, TestClock, ids).ensureDefaultArea()
-        measurements = RoomMeasurementRepository(database, TestClock, ids)
-        goals = RoomGoalRepository(database, measurements, TestClock, ids)
-        habits = RoomHabitRepository(database, measurements, TestClock, ids)
-        tasks = RoomTaskRepository(database, TestClock)
         tracks = RoomTrackRepository(database, TestClock, ids)
-        links = RoomLinkRepository(database, measurements, TestClock, ids)
     }
 
     @After fun tearDown() = database.close()
@@ -117,7 +82,7 @@ class TrackRepositoryTest {
         assertEquals(listOf(second, first), stored.sortedBy { it.position }.take(2).map { it.id })
     }
 
-    @Test fun identityOnlyEditSkipsSchemaAndAutomationInvalidation() = runBlocking {
+    @Test fun identityOnlyEditSkipsSchemaInvalidation() = runBlocking {
         val id = tracks.create(booksDraft())
         val before = requireNotNull(tracks.projection(id))
         val entryId = tracks.addEntry(
@@ -130,7 +95,7 @@ class TrackRepositoryTest {
 
         val impact = tracks.update(id, before.toDraft().copy(icon = "⚡"))
 
-        assertFalse(impact.automationInputsChanged)
+        assertFalse(impact.schemaChanged)
         assertEquals("⚡", requireNotNull(tracks.projection(id)).track.icon)
         assertEquals(setOf(entryId), tracks.searchEntryIds(id, "Fast save"))
     }
@@ -173,31 +138,6 @@ class TrackRepositoryTest {
         assertEquals(3.5, projection.entries.single().value(storedRating.id)?.scaleValue ?: 0.0, 0.0)
         assertEquals(3.5, projection.aggregate(TrackAggregation.Average, storedRating.uuid).value ?: 0.0, 0.0)
         assertTrue(tracks.exportCsv(trackId).contains("\"3.5\""))
-
-        val habitId = habits.create(
-            HabitDraft("Watch a Film", trackingMode = HabitTrackingMode.CheckOff, startDate = TestClock.today()),
-        )
-        val triggerId = links.createTrigger(
-            TriggerRuleDraft(
-                name = "Rate Watched Film",
-                sourceType = LinkSourceType.Habit,
-                sourceEntityId = habitId,
-                targetType = TriggerTargetType.Track,
-                targetEntityId = trackId,
-                action = TriggerAction.PromptTrackEntry,
-                mappings = listOf(
-                    TriggerFieldMapping(
-                        targetFieldId = storedRating.id,
-                        sourceProperty = TriggerSourceProperty.Constant,
-                        constantValue = TrackValueDraft(scaleValue = 3.5),
-                    ),
-                ),
-            ),
-        )
-        habits.setCheckOff(habitId, TestClock.today(), true)
-        links.rebuildAll()
-        val occurrence = links.triggerOccurrences.first().single { it.triggerRuleId == triggerId }
-        assertEquals(3.5, links.trackPromptDraft(occurrence.id).values.getValue(storedRating.uuid).scaleValue ?: 0.0, 0.0)
 
         val integerOnly = projection.toDraft().copy(
             fields = projection.toDraft().fields.map { field ->
@@ -297,50 +237,7 @@ class TrackRepositoryTest {
         assertTrue(projection.fields.first { it.name == "Year" }.showInList)
     }
 
-    @Test fun filteredTrackContributionsReconcileIdempotentlyAcrossEditDeleteRestoreAndOverride() = runBlocking {
-        val trackId = tracks.create(booksDraft())
-        var projection = requireNotNull(tracks.projection(trackId))
-        val title = projection.primaryField
-        val genre = projection.fields.first { it.name == "Genre" }
-        val history = projection.optionsFor(genre.id).first { it.label == "History" }
-        val fiction = projection.optionsFor(genre.id).first { it.label == "Fiction" }
-        fun draft(name: String, option: String) = TrackEntryDraft(TestClock.today(), mapOf(title.uuid to TrackValueDraft(textValue = name), genre.uuid to TrackValueDraft(choiceOptionUuid = option)))
-        val first = tracks.addEntry(trackId, draft("A", history.uuid))
-        val second = tracks.addEntry(trackId, draft("B", fiction.uuid))
-        val goalId = goals.create(GoalDraft("Read History", type = GoalType.ReachValue, dimension = UnitDimension.Count, unitId = "count", targetMin = 10.0, startDate = TestClock.today(), aggregation = GoalAggregation.Sum))
-        val ruleId = links.createRule(
-            LinkRuleDraft(
-                "History Books",
-                sourceType = LinkSourceType.Track,
-                sourceEntityId = trackId,
-                sourceMetric = LinkSourceMetric.EntryCount,
-                targetGoalId = goalId,
-                retroactiveFrom = TestClock.today(),
-                trackAggregation = TrackAggregation.CountMatchingEntries,
-                conditions = listOf(TrackCondition(genre.uuid, TrackConditionOperator.Is, choiceOptionUuids = setOf(history.uuid))),
-            ),
-            commitBackfill = true,
-        )
-        assertEquals(1, links.contributions.first().size)
-        tracks.updateEntry(second, draft("B", history.uuid))
-        links.rebuildRule(ruleId)
-        assertEquals(2, links.contributions.first().size)
-        links.rebuildRule(ruleId)
-        assertEquals(2, links.contributions.first().size)
-        val contribution = links.contributions.first().first { it.sourceEventId.contains("entry:") }
-        links.setContributionOverride(contribution.id, 3.0)
-        tracks.updateEntry(first, draft("A revised", history.uuid))
-        links.rebuildRule(ruleId)
-        assertEquals(3.0, links.contributions.first().first { it.id == contribution.id }.overrideValue ?: -1.0, 0.0)
-        val deleted = requireNotNull(tracks.deleteEntry(second))
-        links.rebuildRule(ruleId)
-        assertEquals(1, links.contributions.first().size)
-        tracks.restoreEntry(deleted)
-        links.rebuildRule(ruleId)
-        assertEquals(2, links.contributions.first().size)
-    }
-
-    @Test fun replacingAChoiceRetargetsEntriesAndAutomationConditionsWithoutChangingTheirIdentity() = runBlocking {
+    @Test fun replacingAChoiceRetargetsEntriesWithoutChangingTheirIdentity() = runBlocking {
         val trackId = tracks.create(booksDraft())
         val projection = requireNotNull(tracks.projection(trackId))
         val genre = projection.fields.first { it.name == "Genre" }
@@ -356,30 +253,6 @@ class TrackRepositoryTest {
                 ),
             ),
         )
-        val goalId = goals.create(
-            GoalDraft(
-                name = "Read Books",
-                type = GoalType.ReachValue,
-                dimension = UnitDimension.Count,
-                unitId = "count",
-                targetMin = 10.0,
-                startDate = TestClock.today(),
-                aggregation = GoalAggregation.Sum,
-            ),
-        )
-        links.createRule(
-            LinkRuleDraft(
-                name = "History Books",
-                sourceType = LinkSourceType.Track,
-                sourceEntityId = trackId,
-                sourceMetric = LinkSourceMetric.EntryCount,
-                targetGoalId = goalId,
-                retroactiveFrom = TestClock.today(),
-                trackAggregation = TrackAggregation.CountMatchingEntries,
-                conditions = listOf(TrackCondition(genre.uuid, TrackConditionOperator.Is, choiceOptionUuids = setOf(history.uuid))),
-            ),
-            commitBackfill = true,
-        )
         val withoutHistory = projection.toDraft().copy(
             fields = projection.toDraft().fields.map { field ->
                 if (field.id == genre.id) field.copy(options = field.options.filterNot { it.id == history.id }) else field
@@ -390,174 +263,6 @@ class TrackRepositoryTest {
 
         val updated = requireNotNull(tracks.projection(trackId))
         assertEquals(fiction.id, updated.entries.single().value(genre.id)?.choiceOptionId)
-        assertEquals(setOf(fiction.uuid), links.rules.first().single().conditions.single().choiceOptionUuids)
-    }
-
-    @Test fun habitCapturePromptIsDurableMappedRemindableAndSurvivesSourceUndoAfterFulfillment() = runBlocking {
-        val trackId = tracks.create(booksDraft())
-        val projection = requireNotNull(tracks.projection(trackId))
-        val habitId = habits.create(HabitDraft("Read", trackingMode = HabitTrackingMode.CheckOff, startDate = TestClock.today()))
-        val ruleId = links.createTrigger(
-            TriggerRuleDraft(
-                name = "Capture Finished Book",
-                sourceType = LinkSourceType.Habit,
-                sourceEntityId = habitId,
-                targetType = TriggerTargetType.Track,
-                targetEntityId = trackId,
-                action = TriggerAction.PromptTrackEntry,
-                mappings = listOf(
-                    TriggerFieldMapping(projection.primaryField.id, TriggerSourceProperty.Name),
-                    TriggerFieldMapping(projection.fields.first { it.name == "Rating" }.id, TriggerSourceProperty.Constant, TrackValueDraft(enteredNumber = 5.0, enteredUnitId = "unitless")),
-                ),
-            ),
-        )
-        habits.setCheckOff(habitId, TestClock.today(), true)
-        links.rebuildAll()
-        val occurrence = links.triggerOccurrences.first().single { it.triggerRuleId == ruleId }
-        val prefill = links.trackPromptDraft(occurrence.id)
-        assertTrue(prefill.values.getValue(projection.primaryField.uuid).textValue.orEmpty().contains("Read"))
-        val remindAt = TestClock.now().plusSeconds(3600)
-        links.remindTriggerOccurrence(occurrence.id, remindAt)
-        assertEquals(remindAt, links.triggerOccurrences.first().single().remindAt)
-        val entryId = links.fulfillTrackPrompt(occurrence.id, prefill)
-        assertEquals(entryId, links.triggerOccurrences.first().single().fulfilledEntryId)
-        assertEquals(prefill.sourceExplanation, requireNotNull(tracks.projection(trackId)).entries.single().entry.sourceExplanation)
-        habits.setCheckOff(habitId, TestClock.today(), false)
-        links.rebuildAll()
-        assertEquals(entryId, links.triggerOccurrences.first().single().fulfilledEntryId)
-        assertFalse(requireNotNull(tracks.projection(trackId)).entries.isEmpty())
-
-        links.deleteTrigger(ruleId)
-        val preserved = requireNotNull(tracks.projection(trackId)).entries.single().entry
-        assertEquals(null, preserved.sourceOccurrenceId)
-        assertTrue(preserved.sourceExplanation.isNotBlank())
-    }
-
-    @Test fun archivedCaptureTargetSuspendsPromptsAndRestoreKeepsTheUsersEnabledChoice() = runBlocking {
-        val trackId = tracks.create(booksDraft())
-        val habitId = habits.create(HabitDraft("Read", trackingMode = HabitTrackingMode.CheckOff, startDate = TestClock.today()))
-        val ruleId = links.createTrigger(
-            TriggerRuleDraft(
-                name = "Capture Book",
-                sourceType = LinkSourceType.Habit,
-                sourceEntityId = habitId,
-                targetType = TriggerTargetType.Track,
-                targetEntityId = trackId,
-                action = TriggerAction.PromptTrackEntry,
-            ),
-        )
-        tracks.setArchived(trackId, true)
-        habits.setCheckOff(habitId, TestClock.today(), true)
-        links.rebuildAll()
-        assertTrue(links.triggerOccurrences.first().isEmpty())
-
-        tracks.setArchived(trackId, false)
-        links.rebuildAll()
-        assertEquals(1, links.triggerOccurrences.first().size)
-
-        val rule = links.triggerRules.first().single { it.id == ruleId }
-        links.updateTrigger(ruleId, rule.toDraft(enabled = false))
-        tracks.setArchived(trackId, true)
-        tracks.setArchived(trackId, false)
-        links.rebuildAll()
-        assertTrue(links.triggerOccurrences.first().isEmpty())
-    }
-
-    @Test fun recordedHabitAndSpecificCompletedSubtaskCreateDistinctCapturePrompts() = runBlocking {
-        val trackId = tracks.create(booksDraft())
-        val habitId = habits.create(
-            HabitDraft(
-                name = "Pages Read",
-                trackingMode = HabitTrackingMode.Count,
-                startDate = TestClock.today(),
-            ),
-        )
-        val recordedRuleId = links.createTrigger(
-            TriggerRuleDraft(
-                name = "Capture Reading Log",
-                sourceType = LinkSourceType.Habit,
-                sourceEntityId = habitId,
-                outcome = TriggerOutcome.Recorded,
-                targetType = TriggerTargetType.Track,
-                targetEntityId = trackId,
-                action = TriggerAction.PromptTrackEntry,
-            ),
-        )
-        habits.log(habitId, 12.0)
-
-        val taskId = tasks.create(
-            TaskDraft(
-                title = "Publish Notes",
-                autoCompleteFromSteps = false,
-                steps = listOf(TaskStepDraft(title = "Write Review", position = 0)),
-            ),
-        )
-        val step = tasks.steps.first().single { it.taskId == taskId }
-        val subtaskRuleId = links.createTrigger(
-            TriggerRuleDraft(
-                name = "Capture Written Review",
-                sourceType = LinkSourceType.Subtask,
-                sourceEntityId = taskId,
-                sourceItemId = step.id,
-                outcome = TriggerOutcome.Completed,
-                targetType = TriggerTargetType.Track,
-                targetEntityId = trackId,
-                action = TriggerAction.PromptTrackEntry,
-            ),
-        )
-        val task = requireNotNull(tasks.getTask(taskId))
-        tasks.setStepCompleted(ScheduledTask(task, originalDate = null, scheduledDate = null), step.id, true)
-
-        links.rebuildAll()
-        val occurrences = links.triggerOccurrences.first()
-        assertEquals(1, occurrences.count { it.triggerRuleId == recordedRuleId })
-        assertEquals(1, occurrences.count { it.triggerRuleId == subtaskRuleId })
-        assertTrue(links.trackPromptDraft(occurrences.single { it.triggerRuleId == subtaskRuleId }.id).sourceExplanation.contains("Write Review"))
-    }
-
-    @Test fun matchingTrackEntryCanCheckOffHabitAndEntryEditReconcilesIdempotently() = runBlocking {
-        val trackId = tracks.create(booksDraft())
-        val projection = requireNotNull(tracks.projection(trackId))
-        val rating = projection.fields.first { it.name == "Rating" }
-        val habitId = habits.create(HabitDraft("Review Great Books", trackingMode = HabitTrackingMode.CheckOff, startDate = TestClock.today()))
-        links.createTrigger(
-            TriggerRuleDraft(
-                name = "Review Highly Rated Book",
-                sourceType = LinkSourceType.Track,
-                sourceEntityId = trackId,
-                targetType = TriggerTargetType.Habit,
-                targetEntityId = habitId,
-                action = TriggerAction.CheckOffHabit,
-                conditions = listOf(TrackCondition(rating.uuid, TrackConditionOperator.AtLeast, numberValue = 4.0)),
-            ),
-        )
-        val entryId = tracks.addEntry(
-            trackId,
-            TrackEntryDraft(
-                TestClock.today(),
-                mapOf(
-                    projection.primaryField.uuid to TrackValueDraft(textValue = "Excellent Book"),
-                    rating.uuid to TrackValueDraft(enteredNumber = 5.0, enteredUnitId = "unitless"),
-                ),
-            ),
-        )
-        links.rebuildAll()
-        assertEquals(1, habits.logs.first().size)
-        links.rebuildAll()
-        assertEquals(1, habits.logs.first().size)
-
-        tracks.updateEntry(
-            entryId,
-            TrackEntryDraft(
-                TestClock.today(),
-                mapOf(
-                    projection.primaryField.uuid to TrackValueDraft(textValue = "Excellent Book"),
-                    rating.uuid to TrackValueDraft(enteredNumber = 2.0, enteredUnitId = "unitless"),
-                ),
-            ),
-        )
-        links.rebuildAll()
-        assertTrue(habits.logs.first().isEmpty())
     }
 
     @Test fun largeTrackHistoryIsReadThroughStableBoundedRepositoryPages() = runBlocking {
@@ -586,103 +291,6 @@ class TrackRepositoryTest {
         assertFalse(third.hasMore)
         val allIds = (first.entries + second.entries + third.entries).map { it.entry.id }
         assertEquals(205, allIds.distinct().size)
-    }
-
-    @Test fun entryCountsCanDriveAConsistencyGoalWithoutNumericLogging() = runBlocking {
-        val trackId = tracks.create(booksDraft())
-        val projection = requireNotNull(tracks.projection(trackId))
-        tracks.addEntry(
-            trackId,
-            TrackEntryDraft(
-                TestClock.today(),
-                mapOf(projection.primaryField.uuid to TrackValueDraft(textValue = "Consistency evidence")),
-            ),
-        )
-        val goalId = goals.create(
-            GoalDraft(
-                name = "Read Every Week",
-                type = GoalType.Consistency,
-                dimension = UnitDimension.Count,
-                unitId = "count",
-                targetMin = 1.0,
-                startDate = TestClock.today(),
-                aggregation = GoalAggregation.CompletionCount,
-                consistencyPeriod = GoalConsistencyPeriod.Week,
-                consistencyRequiredPeriods = 4,
-            ),
-        )
-
-        links.createRule(
-            LinkRuleDraft(
-                name = "Books Read Consistency",
-                sourceType = LinkSourceType.Track,
-                sourceEntityId = trackId,
-                sourceMetric = LinkSourceMetric.EntryCount,
-                targetGoalId = goalId,
-                retroactiveFrom = TestClock.today(),
-                trackAggregation = TrackAggregation.CountEntries,
-            ),
-            commitBackfill = true,
-        )
-
-        assertEquals(1, links.contributions.first().size)
-    }
-
-    @Test fun movieEntryCountDrivesAReachGoalAndReconcilesEveryCauseAndEffect() = runBlocking {
-        val trackId = tracks.create(
-            TrackDraft(
-                name = "Movies Watched",
-                fields = listOf(TrackFieldDraft("Title", TrackFieldType.ShortText, required = true, primary = true)),
-            ),
-        )
-        val projection = requireNotNull(tracks.projection(trackId))
-        fun movie(title: String) = TrackEntryDraft(
-            TestClock.today(),
-            mapOf(projection.primaryField.uuid to TrackValueDraft(textValue = title)),
-        )
-        val arrivalId = tracks.addEntry(trackId, movie("Arrival"))
-        tracks.addEntry(trackId, movie("Moonlight"))
-        tracks.addEntry(trackId, movie("Spirited Away"))
-        val goalId = goals.create(
-            GoalDraft(
-                name = "Watch 50 Movies",
-                type = GoalType.ReachValue,
-                dimension = UnitDimension.Count,
-                unitId = "count",
-                precision = 0,
-                targetMin = 50.0,
-                startDate = TestClock.today(),
-                aggregation = GoalAggregation.Sum,
-            ),
-        )
-        val goal = goals.goals.first().single { it.id == goalId }
-        links.createRule(
-            LinkRuleDraft(
-                name = "Movies Watched → Watch 50 Movies",
-                sourceType = LinkSourceType.Track,
-                sourceEntityId = trackId,
-                sourceMetric = LinkSourceMetric.EntryCount,
-                targetGoalId = goalId,
-                retroactiveFrom = TestClock.today(),
-                trackAggregation = TrackAggregation.CountEntries,
-            ),
-            commitBackfill = true,
-        )
-
-        assertEquals(3, links.contributions.first().size)
-        assertTrue(links.contributions.first().all { it.canonicalValue == 1.0 })
-        assertEquals(3, measurements.entries.first().count { it.metricId == goal.metricId })
-
-        val deleted = requireNotNull(tracks.deleteEntry(arrivalId))
-        links.rebuildSources(setOf(LinkSourceType.Track))
-        assertEquals(2, links.contributions.first().size)
-        assertEquals(2, measurements.entries.first().count { it.metricId == goal.metricId })
-
-        tracks.restoreEntry(deleted)
-        links.rebuildSources(setOf(LinkSourceType.Track))
-        links.rebuildSources(setOf(LinkSourceType.Track))
-        assertEquals(3, links.contributions.first().size)
-        assertEquals(3, measurements.entries.first().count { it.metricId == goal.metricId })
     }
 
     private fun booksDraft() = TrackDraft(
@@ -721,25 +329,6 @@ class TrackRepositoryTest {
                 id = field.id,
             )
         },
-    )
-
-    private fun com.whip.app.domain.TriggerRule.toDraft(enabled: Boolean) = TriggerRuleDraft(
-        name = name,
-        sourceType = sourceType,
-        sourceEntityId = sourceEntityId,
-        sourceItemId = sourceItemId,
-        outcome = outcome,
-        targetType = targetType,
-        targetEntityId = targetEntityId,
-        delayMinutes = delayMinutes,
-        quietStartMinutes = quietStartMinutes,
-        quietEndMinutes = quietEndMinutes,
-        action = action,
-        notificationEnabled = notificationEnabled,
-        enabled = enabled,
-        conditionMode = conditionMode,
-        conditions = conditions,
-        mappings = mappings,
     )
 
     private object TestClock : WhipClock {

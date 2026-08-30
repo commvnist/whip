@@ -569,11 +569,6 @@ private enum class TaskDetailSection(
             id = id,
             label = label,
             legacyLabel = legacyLabel,
-            placement = if (this == More) {
-                EntityInspectorSectionPlacement.Overflow
-            } else {
-                EntityInspectorSectionPlacement.Direct
-            },
         )
 }
 
@@ -801,8 +796,6 @@ fun PermanentTaskDeleteDialog(
                             "(${impact.completedOccurrenceCount} completed, ${impact.skippedOccurrenceCount} skipped, ${impact.openOccurrenceCount} open)",
                     )
                     Text("${impact.stepCount} subtask${if (impact.stepCount == 1) "" else "s"}")
-                    Text("${impact.linkRuleCount} goal progress source${if (impact.linkRuleCount == 1) "" else "s"}")
-                    Text("${impact.automationRuleCount} automation${if (impact.automationRuleCount == 1) "" else "s"}")
                     Text(
                         "This cannot be undone. Export a backup first if you may need this history.",
                         color = MaterialTheme.colorScheme.error,

@@ -110,13 +110,7 @@ class ProductivityCreationJourneyE2ETest {
             }
             compose.onNodeWithContentDescription("Open task details for Journey task").performClick()
             compose.onNodeWithText("Activity").assertIsDisplayed()
-            if (compose.onAllNodesWithText("Options").fetchSemanticsNodes().isEmpty()) {
-                compose.onNode(
-                    hasContentDescription("More Task options") and
-                        hasAnyAncestor(hasTestTag("task-actions-surface")),
-                ).performClick()
-            }
-            compose.onNodeWithText("Options").performClick()
+            compose.onNodeWithTag("task-detail-section-Options").performClick()
             compose.onNodeWithText("Pin to Whip Home").assertIsDisplayed().performClick()
             runBlocking {
                 awaitPersistence("Task pin and Home reveal") {
@@ -165,7 +159,7 @@ class ProductivityCreationJourneyE2ETest {
                     .performSemanticsAction(SemanticsActions.OnClick)
                 compose.onNodeWithContentDescription("Edit Habit").assertIsDisplayed()
             }
-            selectDetailSection("habit", "Options", "habit-detail-surface")
+            selectDetailSection("habit", "Options")
             compose.onNodeWithTag("entity-inspector-content-options").assertIsDisplayed()
             compose.onNodeWithContentDescription("Edit Habit").assertIsDisplayed()
             compose.onNodeWithContentDescription("Edit Habit").performSemanticsAction(SemanticsActions.OnClick)
@@ -207,10 +201,7 @@ class ProductivityCreationJourneyE2ETest {
                     .performSemanticsAction(SemanticsActions.OnClick)
                 compose.onNodeWithContentDescription("Edit Goal").assertIsDisplayed()
             }
-            selectDetailSection("goal", "Automations", "goal-detail-surface")
-            compose.onNodeWithTag("entity-inspector-content-automation").assertIsDisplayed()
-            compose.onNodeWithContentDescription("Edit Goal").assertIsDisplayed()
-            selectDetailSection("goal", "Options", "goal-detail-surface")
+            selectDetailSection("goal", "Options")
             compose.onNodeWithContentDescription("Edit Goal").assertIsDisplayed()
             compose.onNodeWithContentDescription("Edit Goal")
                 .performSemanticsAction(SemanticsActions.OnClick)
@@ -222,9 +213,9 @@ class ProductivityCreationJourneyE2ETest {
                 compose.onAllNodesWithTag("goal-editor-surface").fetchSemanticsNodes().isEmpty()
             }
             check(runBlocking { app.goalRepository.goals.first().single { it.id == goalId }.icon } == "💪")
-            selectDestination("goal-destination-Archived", "Archived")
+            selectDestination("goal-destination-Archived")
             compose.onNodeWithText("Archived Goals").assertIsDisplayed()
-            selectDestination("goal-destination-Insights", "Insights")
+            selectDestination("goal-destination-Insights")
             compose.onNodeWithText("Goal Insights").assertIsDisplayed()
             compose.onNodeWithTag("goal-insight-$goalId").assertIsDisplayed()
         }
@@ -355,23 +346,13 @@ class ProductivityCreationJourneyE2ETest {
         }
     }
 
-    private fun selectDestination(testTag: String, label: String) {
-        if (compose.onAllNodesWithTag(testTag).fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithTag(testTag).performSemanticsAction(SemanticsActions.OnClick)
-        } else {
-            compose.onNodeWithContentDescription("More Goal destinations").performClick()
-            compose.onNodeWithText(label).performClick()
-        }
+    private fun selectDestination(testTag: String) {
+        compose.onNodeWithTag(testTag).performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
     }
 
     private fun openPlanningSettings() {
-        if (compose.onAllNodesWithContentDescription("Open Settings").fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithContentDescription("Open Settings").performClick()
-        } else {
-            compose.onNodeWithContentDescription("App actions").performClick()
-            compose.onNodeWithText("Open Settings").performClick()
-        }
+        compose.onNodeWithTag("workspace-settings-action").performClick()
         compose.waitUntil(5_000) {
             compose.onAllNodesWithTag("settings-list").fetchSemanticsNodes().isNotEmpty() ||
                 compose.onAllNodesWithTag("settings-category-list").fetchSemanticsNodes().isNotEmpty() ||
@@ -405,23 +386,9 @@ class ProductivityCreationJourneyE2ETest {
         compose.waitForIdle()
     }
 
-    private fun selectDetailSection(prefix: String, label: String, surfaceTag: String) {
+    private fun selectDetailSection(prefix: String, label: String) {
         val sectionTag = "$prefix-detail-section-$label"
-        val sectionVisible = compose.onAllNodesWithTag(sectionTag).fetchSemanticsNodes()
-            .any { node -> runCatching { node.layoutInfo.isPlaced }.getOrDefault(false) }
-        if (sectionVisible) {
-            compose.onNodeWithTag(sectionTag).performSemanticsAction(SemanticsActions.OnClick)
-        } else {
-            val overflowDescription = when (prefix) {
-                "habit" -> "More Habit options"
-                "goal" -> "More Goal options"
-                else -> error("Missing inspector overflow description for $prefix")
-            }
-            compose.onNode(
-                hasContentDescription(overflowDescription) and hasAnyAncestor(hasTestTag(surfaceTag)),
-            ).performClick()
-            compose.onNodeWithText(label).performClick()
-        }
+        compose.onNodeWithTag(sectionTag).performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
     }
 

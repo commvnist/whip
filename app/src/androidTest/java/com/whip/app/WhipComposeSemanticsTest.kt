@@ -137,12 +137,7 @@ class WhipComposeSemanticsTest {
     }
 
     private fun openSettings() {
-        if (compose.onAllNodesWithContentDescription("Open Settings").fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithContentDescription("Open Settings").performClick()
-        } else {
-            compose.onNodeWithContentDescription("App actions").performClick()
-            compose.onNodeWithText("Open Settings").performClick()
-        }
+        compose.onNodeWithTag("workspace-settings-action").performClick()
     }
 
     @Test
@@ -237,13 +232,7 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithText("Quick Log").assertIsDisplayed()
             compose.onNodeWithTag("home-list").performScrollToNode(hasContentDescription("Open task details for Pinned audit task"))
             compose.onNodeWithContentDescription("Open task details for Pinned audit task").performClick()
-            if (compose.onAllNodesWithText("Options").fetchSemanticsNodes().isEmpty()) {
-                compose.onNode(
-                    hasContentDescription("More Task options") and
-                        hasAnyAncestor(hasTestTag("task-actions-surface")),
-                ).performClick()
-            }
-            compose.onNodeWithText("Options").performClick()
+            compose.onNodeWithTag("task-detail-section-Options").performClick()
             compose.onNodeWithText("Unpin from Whip Home").assertIsDisplayed()
             compose.onNodeWithText("The Task keeps its schedule and remains available in Tasks.").assertIsDisplayed()
         }
@@ -309,13 +298,7 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithTag("home-list").performScrollToNode(hasContentDescription("Open task details for Home Callback Task"))
             compose.onNodeWithContentDescription("Open task details for Home Callback Task").performClick()
             compose.onNodeWithTag("task-actions-surface").assertIsDisplayed()
-            if (compose.onAllNodesWithText("Options").fetchSemanticsNodes().isEmpty()) {
-                compose.onNode(
-                    hasContentDescription("More Task options") and
-                        hasAnyAncestor(hasTestTag("task-actions-surface")),
-                ).performClick()
-            }
-            compose.onNodeWithText("Options").performClick()
+            compose.onNodeWithTag("task-detail-section-Options").performClick()
             compose.onNodeWithText("Unpin from Whip Home").assertIsDisplayed()
             compose.onNodeWithText("The Task keeps its schedule and remains available in Tasks.").assertIsDisplayed()
         }
@@ -469,12 +452,7 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithContentDescription("Filter & Sort Tasks").performClick()
             compose.onNodeWithText("Sort, Group & Filter Tasks").assertIsDisplayed()
             compose.onNodeWithText("Done").performClick()
-            if (compose.onAllNodesWithContentDescription("Search Tasks").fetchSemanticsNodes().isNotEmpty()) {
-                compose.onNodeWithContentDescription("Search Tasks").performClick()
-            } else {
-                compose.onNodeWithContentDescription("App actions").performClick()
-                compose.onNodeWithTag("workspace-search-menu-action").performClick()
-            }
+            compose.onNodeWithTag("workspace-search-action").performClick()
             compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
             compose.onNodeWithContentDescription("Close Search").performClick()
             compose.onNodeWithContentDescription("More task list actions").performClick()
@@ -577,14 +555,10 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithTag("gym-library-Routines").performClick()
             compose.onNodeWithTag("gym-destination-Library").assertIsSelected()
             compose.onNodeWithTag("gym-library-child-Routines").assertIsDisplayed()
-            if (compose.onAllNodesWithContentDescription("App actions").fetchSemanticsNodes().isEmpty()) {
+            if (compose.onAllNodesWithContentDescription("Expand content pane").fetchSemanticsNodes().isEmpty()) {
                 return@use
             }
-            compose.onNodeWithContentDescription("App actions").performClick()
-            if (compose.onAllNodesWithTag("expand-content-pane-action").fetchSemanticsNodes().isEmpty()) {
-                return@use
-            }
-            compose.onNodeWithTag("expand-content-pane-action").performClick()
+            compose.onNodeWithContentDescription("Expand content pane").performClick()
             compose.onNodeWithTag("gym-destination-Library").assertIsSelected()
             compose.onNodeWithTag("gym-library-child-Routines").assertIsDisplayed()
             compose.onNodeWithContentDescription("Restore split view").performClick()

@@ -43,7 +43,7 @@ entries. Values are normalized to a canonical unit while retaining entry-unit
 metadata for display and audit. Zero and failed measurements remain explicit;
 an absent habit check-in is derived as missed only after its scheduled day
 closes. A user skip is stored separately in `habit_skips`, never as a value or
-metric entry, so it cannot inflate totals or Goal Automations. A metric's
+metric entry, so it cannot inflate totals. A metric's
 dimensional type cannot silently change after data exists.
 Custom units store a name, symbol, dimension, and conversion factor, and use
 the same canonical conversion path as built-in units.
@@ -68,13 +68,13 @@ Editor saves commit the authoritative Room change before reporting success.
 Dialogs receive that result directly; transient snackbar delivery is never a
 save-completion signal. Derived work is dependency-aware: presentation-only
 changes such as an emoji or description do not reschedule reminders, rewrite
-unchanged child rows, rebuild Track Automations, or rebuild Track entry search.
+unchanged child rows, or rebuild Track entry search.
 Changes to cadence, reminder timing, Track Fields, or searchable Track metadata
 still invalidate the corresponding derived state.
 
 Habit occurrence state has one neutral user action: **Skip Today**. A skip is
-visible in the Today card, History, Insights, exports, and skipped-outcome
-Automations; it suppresses that day's reminder, is excluded from completion-rate
+visible in the Today card, History, Insights, and exports; it suppresses that
+day's reminder, is excluded from completion-rate
 denominators, and bridges rather than increments a streak. **Undo Skip** removes
 the occurrence. Missing is not writable state: past scheduled occurrences with
 no check-in or skip are derived as missed. Room migration 8→9 converts legacy
@@ -113,12 +113,13 @@ Features do not repurpose these roles as decorative identity colors. Shared
 navigation budgets elevated font scale and label length, fills available direct
 destination capacity, and reserves **More** only for genuine overflow.
 
-## Links
+## Retired derived-action data
 
-Contribution, context, and trigger links are separate rule types. A derived
-contribution is unique by link rule and source-event ID, is unit-compatible, and
-retains an audit trail. Link graphs reject cycles. Backfills require a preview
-and explicit confirmation.
+Schema 31 retires the former rule-driven Automation feature. Its user interface,
+runtime collectors, notifications, and scheduling are removed. The migration
+deactivates stored rules and dismisses pending occurrences without deleting
+Task, Habit, Goal, Track, Gym, or already-recorded history. Old backup payloads
+may retain compatibility rows, but restore keeps them dormant.
 
 ## Backup envelope
 
@@ -146,11 +147,11 @@ interoperability exports, not complete backups. An optional encrypted envelope
 uses a password-based key derivation plus authenticated encryption; the
 passphrase is never stored.
 Envelope version 2 is the only supported complete-backup format and includes
-user preferences. Restore also rebuilds links and replaces Whip-owned reminder/timer
+user preferences. Restore replaces Whip-owned reminder/timer
 jobs so background state matches the restored records.
 
 Restore first stores an app-private atomic rollback envelope. That marker stays
-until Room, preferences, links, reminders, and owned WorkManager jobs
+until Room, preferences, reminders, and owned WorkManager jobs
 have been replaced/rebuilt; failure or process death rolls back immediately or
 on next launch.
 
@@ -173,5 +174,4 @@ provider record IDs. Aggregate types such as steps and distance are read as
 daily totals to avoid double counting. A bounded sync rebuild removes stale
 Health Connect entries inside the requested window; manual data is independent.
 A Habit or Goal can explicitly bind to a Health metric. Its UI and link events
-then mirror the authoritative source with stable IDs and provenance; provider
-updates/deletions deterministically rebuild linked Goal contributions.
+then mirror the authoritative source with stable IDs and provenance.

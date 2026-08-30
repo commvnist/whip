@@ -23,20 +23,12 @@ import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitSkip
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitTrackingMode
-import com.whip.app.domain.LinkRuleDraft
-import com.whip.app.domain.LinkSourceMetric
-import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.MetricDefinition
 import com.whip.app.domain.MetricEntry
 import com.whip.app.domain.MetricEntryStatus
 import com.whip.app.domain.BuiltInUnits
-import com.whip.app.domain.TriggerOccurrence
-import com.whip.app.domain.TriggerRule
-import com.whip.app.domain.TriggerRuleDraft
-import com.whip.app.domain.TriggerTargetType
-import com.whip.app.domain.WhipTask
 import com.whip.app.domain.habitStreak
 import com.whip.app.domain.hasEnded
 import com.whip.app.domain.completionRateOverRecentPeriods
@@ -62,7 +54,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -77,9 +68,6 @@ data class HabitUiState(
     val currentDate: LocalDate = LocalDate.now(),
     val loading: Boolean = true,
     val errorMessage: String? = null,
-    val triggerRules: List<TriggerRule> = emptyList(),
-    val triggerOccurrences: List<TriggerOccurrence> = emptyList(),
-    val sourceTasks: List<WhipTask> = emptyList(),
     val customUnits: List<UnitDefinition> = emptyList(),
     val sourceMetrics: List<MetricDefinition> = emptyList(),
 )
@@ -90,7 +78,6 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: HabitRepository = app.habitRepository
     private val clock = app.clock
     private val reminders = app.habitReminderScheduler
-    private val links = app.linkRepository
     private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
     val operationStatus: StateFlow<OperationStatus> = _operationStatus.asStateFlow()
     private val reloadKey = MutableStateFlow(0)
@@ -122,9 +109,7 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     val uiState = reloadKey.flatMapLatest {
-        combine(habitUiState, links.triggerRules, links.triggerOccurrences, app.taskRepository.tasks) { base, rules, occurrences, tasks ->
-            base.copy(triggerRules = rules, triggerOccurrences = occurrences, sourceTasks = tasks.filterNot(WhipTask::archived))
-        }.catch { error ->
+        habitUiState.catch { error ->
             emit(HabitUiState(currentDate = clock.today(), loading = false, errorMessage = error.message ?: "Could not load habits"))
         }
     }.stateIn(
@@ -251,68 +236,6 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         }
     fun startTimer(habitId: Long) = runOperation("Starting timer…", "Habit timer started") { repository.startTimer(habitId) }
     fun stopTimer(habitId: Long) = runOperation("Stopping timer…", "Duration logged") { repository.stopTimer(habitId) }
-    fun createTrigger(draft: TriggerRuleDraft, onFinished: (Boolean) -> Unit = {}) = runOperation("Creating automation…", "Automation created", onFinished) { links.createTrigger(draft) }
-    fun updateTrigger(id: Long, draft: TriggerRuleDraft, onFinished: (Boolean) -> Unit = {}) = runOperation("Saving automation…", "Automation saved", onFinished) {
-        links.updateTrigger(id, draft)
-    }
-    fun setTriggerEnabled(rule: com.whip.app.domain.TriggerRule, enabled: Boolean) = updateTrigger(
-        rule.id,
-        rule.toAutomationDraft(enabled),
-    )
-    private val triggerActionMutex = Mutex()
-
-    fun doTriggerNow(occurrenceId: Long, rule: com.whip.app.domain.TriggerRule) = runOperation(
-        "Applying next action…",
-        "Next action completed",
-    ) {
-        triggerActionMutex.withLock {
-            val persistedRule = links.triggerRules.first().firstOrNull { it.id == rule.id }
-                ?: error("This Automation is no longer available")
-            val occurrence = links.triggerOccurrences.first().firstOrNull { it.id == occurrenceId }
-                ?: error("This prompt is no longer available")
-            require(occurrence.triggerRuleId == persistedRule.id) { "This prompt no longer belongs to this Automation" }
-            require(occurrence.isReadyForHabitAutomation(persistedRule, clock.now())) {
-                "This prompt is no longer ready"
-            }
-            val habit = repository.habits.first().firstOrNull { it.id == persistedRule.targetEntityId }
-                ?: error("Target Habit no longer exists")
-            require(persistedRule.supportsReadyDoNow(habit.trackingMode, habit.sourceMetricId)) {
-                "Open the Habit to complete this prompt"
-            }
-            when (habit.trackingMode) {
-                HabitTrackingMode.CheckOff -> repository.setCheckOff(habit.id, clock.today(), true)
-                HabitTrackingMode.Count, HabitTrackingMode.Decimal ->
-                    repository.log(habit.id, habit.quickIncrement, date = clock.today())
-                HabitTrackingMode.Duration,
-                HabitTrackingMode.Checklist,
-                HabitTrackingMode.Rating,
-                HabitTrackingMode.LogOnly,
-                -> error("Open the Habit to complete this prompt")
-            }
-            links.dismissTriggerOccurrence(occurrenceId)
-            reminders.syncHabit(habit.id)
-        }
-    }
-    fun deleteTrigger(id: Long) = runOperation("Removing automation…", "Automation removed") { links.deleteTrigger(id) }
-    fun dismissTriggerOccurrence(id: Long) = runOperation("Dismissing prompt…", "Prompt dismissed") {
-        links.dismissTriggerOccurrence(id)
-        app.automationPromptScheduler.cancel(id)
-    }
-    fun linkHabitToGoal(habitId: Long, goalId: Long, metric: LinkSourceMetric, from: LocalDate?) =
-        runOperation("Creating Goal Automation…", "Goal Automation created") {
-            links.createRule(
-                LinkRuleDraft(
-                    name = "Habit contribution",
-                    sourceType = LinkSourceType.Habit,
-                    sourceEntityId = habitId,
-                    sourceMetric = metric,
-                    targetGoalId = goalId,
-                    retroactiveFrom = from,
-                ),
-                commitBackfill = from != null,
-            )
-        }
-
     private val reorderMutex = Mutex()
 
     private fun runSilentReorder(block: suspend () -> Unit) {

@@ -64,12 +64,7 @@ class ZPlatformNotificationSurfaceE2ETest {
     @Test
     fun settingsTestNotificationIsPostedAndVisibleInAndroidsNotificationShade() {
         ActivityScenario.launch<MainActivity>(Intent(app, MainActivity::class.java)).use {
-            if (compose.onAllNodesWithContentDescription("Open Settings").fetchSemanticsNodes().isNotEmpty()) {
-                compose.onNodeWithContentDescription("Open Settings").performClick()
-            } else {
-                compose.onNodeWithContentDescription("App actions").performClick()
-                compose.onNodeWithText("Open Settings").performClick()
-            }
+            compose.onNodeWithTag("workspace-settings-action").performClick()
             if (compose.onAllNodesWithTag("settings-support-list").fetchSemanticsNodes().isNotEmpty()) {
                 compose.onNodeWithTag("settings-support-list")
                     .performScrollToNode(hasTestTag("settings-support-section-Reminders"))

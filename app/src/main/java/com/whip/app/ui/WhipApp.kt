@@ -240,7 +240,6 @@ internal fun resolveLaunchTarget(
     action: String?,
     entityId: Long?,
     occurrenceEpochDay: Long?,
-    automationOccurrenceId: Long?,
     taskState: TaskUiState,
     habitState: HabitUiState,
     goalState: GoalUiState,
@@ -299,18 +298,7 @@ internal fun resolveLaunchTarget(
             trackState.loading -> LaunchTargetResolution.Pending
             trackState.errorMessage != null -> LaunchTargetResolution.LoadFailed(destination)
             else -> trackState.track(id)?.let { projection ->
-                val stalePrompt = automationOccurrenceId?.let { occurrenceId ->
-                    val occurrence = trackState.triggerOccurrences.firstOrNull { it.id == occurrenceId }
-                    val rule = occurrence?.let { item -> trackState.triggerRules.firstOrNull { it.id == item.triggerRuleId } }
-                    occurrence == null || occurrence.dismissedAt != null || occurrence.fulfilledEntryId != null ||
-                        rule == null || !rule.enabled || rule.action != TriggerAction.PromptTrackEntry ||
-                        rule.targetType != TriggerTargetType.Track || rule.targetEntityId != id ||
-                        (occurrence.remindAt ?: occurrence.availableAt).isAfter(java.time.Instant.now())
-                } == true
-                LaunchTargetResolution.Available(
-                    projection.track.areaId,
-                    "This Track prompt is no longer available.".takeIf { stalePrompt },
-                )
+                LaunchTargetResolution.Available(projection.track.areaId)
             } ?: LaunchTargetResolution.Unavailable(destination, "This Track is no longer available.")
         }
         AppDestination.Home, AppDestination.Gym, AppDestination.Settings -> LaunchTargetResolution.NotApplicable
@@ -382,11 +370,7 @@ private sealed interface LaunchDeliveryCommand {
     data class OpenHabit(val id: Long) : LaunchDeliveryCommand
     data class OpenGoal(val id: Long) : LaunchDeliveryCommand
     data object OpenGym : LaunchDeliveryCommand
-    data class OpenTrack(
-        val id: Long,
-        val promptOccurrenceId: Long?,
-        val unavailableDetail: String?,
-    ) : LaunchDeliveryCommand
+    data class OpenTrack(val id: Long) : LaunchDeliveryCommand
 }
 
 @Composable
@@ -396,7 +380,6 @@ private fun LaunchDeliveryEffect(
     initialAction: String?,
     initialEntityId: Long?,
     initialOccurrenceEpochDay: Long?,
-    initialAutomationOccurrenceId: Long?,
     initialSharedText: String?,
     setupCompleted: Boolean,
     taskState: TaskUiState,
@@ -411,7 +394,6 @@ private fun LaunchDeliveryEffect(
         initialAction,
         initialEntityId,
         initialOccurrenceEpochDay,
-        initialAutomationOccurrenceId,
         initialSharedText,
         setupCompleted,
         taskState,
@@ -426,7 +408,6 @@ private fun LaunchDeliveryEffect(
             action = initialAction,
             entityId = initialEntityId,
             occurrenceEpochDay = initialOccurrenceEpochDay,
-            automationOccurrenceId = initialAutomationOccurrenceId,
             taskState = taskState,
             habitState = habitState,
             goalState = goalState,
@@ -498,14 +479,7 @@ private fun LaunchDeliveryEffect(
             }
             WhipLaunchActions.ACTION_OPEN_GYM -> onCommand(LaunchDeliveryCommand.OpenGym)
             WhipLaunchActions.ACTION_OPEN_TRACK -> initialEntityId?.let { trackId ->
-                val unavailableDetail = (targetResolution as? LaunchTargetResolution.Available)?.unavailableDetail
-                onCommand(
-                    LaunchDeliveryCommand.OpenTrack(
-                        trackId,
-                        initialAutomationOccurrenceId.takeIf { unavailableDetail == null },
-                        unavailableDetail,
-                    ),
-                )
+                onCommand(LaunchDeliveryCommand.OpenTrack(trackId))
             }
         }
         onConsume(launchDeliveryId)
@@ -553,7 +527,6 @@ fun WhipApp(
     initialAction: String? = null,
     initialEntityId: Long? = null,
     initialOccurrenceEpochDay: Long? = null,
-    initialAutomationOccurrenceId: Long? = null,
     initialSharedText: String? = null,
     initialDeliveryId: Long = 0L,
     foldInfo: WhipFoldInfo? = null,
@@ -610,7 +583,6 @@ fun WhipApp(
         initialAction,
         initialEntityId,
         initialOccurrenceEpochDay,
-        initialAutomationOccurrenceId,
         settingsState.settings.setupCompleted,
         state,
         habitState,
@@ -624,7 +596,6 @@ fun WhipApp(
             action = initialAction,
             entityId = initialEntityId,
             occurrenceEpochDay = initialOccurrenceEpochDay,
-            automationOccurrenceId = initialAutomationOccurrenceId,
             taskState = state,
             habitState = habitState,
             goalState = goalState,
@@ -786,7 +757,6 @@ fun WhipApp(
             initialAction = initialAction,
             initialEntityId = initialEntityId,
             initialOccurrenceEpochDay = initialOccurrenceEpochDay,
-            initialAutomationOccurrenceId = initialAutomationOccurrenceId,
             initialSharedText = initialSharedText,
             initialDeliveryId = initialDeliveryId,
         )
@@ -885,7 +855,6 @@ fun WhipScreen(
     initialAction: String? = null,
     initialEntityId: Long? = null,
     initialOccurrenceEpochDay: Long? = null,
-    initialAutomationOccurrenceId: Long? = null,
     initialSharedText: String? = null,
     initialDeliveryId: Long = 0L,
     adaptiveLayout: WhipAdaptiveLayout = WhipAdaptiveLayout.Compact,
@@ -917,7 +886,6 @@ fun WhipScreen(
     var pendingCompleteItemKey by rememberSaveable { mutableStateOf<String?>(null) }
     var deleteItemKey by rememberSaveable { mutableStateOf<String?>(null) }
     var globalAddExpanded by rememberSaveable { mutableStateOf(false) }
-    var secondaryAppActionsExpanded by rememberSaveable { mutableStateOf(false) }
     var gymAddExpanded by rememberSaveable { mutableStateOf(false) }
     var createHabitRequested by rememberSaveable { mutableStateOf(false) }
     var createGoalRequested by rememberSaveable { mutableStateOf(false) }
@@ -935,7 +903,6 @@ fun WhipScreen(
     var editTrackIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var openTrackEntryIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var addTrackEntryRequestedForId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var openTrackPromptOccurrenceIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var trackEditorSessionId by rememberSaveable { mutableLongStateOf(0L) }
     var trackEditorRoute by rememberSaveable { mutableStateOf<TrackEditorRoute?>(null) }
     val selectedTrackState: MutableState<Long?> = rememberSaveable { mutableStateOf(null) }
@@ -946,7 +913,6 @@ fun WhipScreen(
         mutableStateOf(TrackDetailDestination.Entries)
     }
     var settingsSection by rememberSaveable { mutableStateOf(SettingsSection.Appearance) }
-    var reviewTrackAutomationsRequestedForId by rememberSaveable { mutableStateOf<Long?>(null) }
     var openGymSearchDomain by rememberSaveable { mutableStateOf<SearchDomain?>(null) }
     var openGymSearchId by rememberSaveable { mutableStateOf<Long?>(null) }
     var reviewOpen by rememberSaveable { mutableStateOf(false) }
@@ -1089,8 +1055,6 @@ fun WhipScreen(
             is TrackEditorIntent.Entry -> TrackEditorRoute.Entry(
                 trackId = intent.trackId,
                 entryId = intent.entryId,
-                promptOccurrenceId = intent.promptOccurrenceId,
-                prefill = intent.prefill,
                 sessionId = trackEditorSessionId,
             )
         }
@@ -1163,7 +1127,6 @@ fun WhipScreen(
         initialAction = initialAction,
         initialEntityId = initialEntityId,
         initialOccurrenceEpochDay = initialOccurrenceEpochDay,
-        initialAutomationOccurrenceId = initialAutomationOccurrenceId,
         initialSharedText = initialSharedText,
         setupCompleted = settingsState.settings.setupCompleted,
         taskState = unscopedTaskState,
@@ -1229,17 +1192,7 @@ fun WhipScreen(
                 LaunchDeliveryCommand.OpenGym -> appDestination = AppDestination.Gym
                 is LaunchDeliveryCommand.OpenTrack -> {
                     openTrackIdRequested = command.id
-                    openTrackPromptOccurrenceIdRequested = command.promptOccurrenceId
                     appDestination = AppDestination.Tracks
-                    command.unavailableDetail?.let { message ->
-                        presentTransientFeedback(source = "launch-target-$launchDeliveryId", priority = 3, recoverable = true) {
-                            snackbarHostState.showSnackbar(
-                                message,
-                                withDismissAction = true,
-                                duration = SnackbarDuration.Long,
-                            )
-                        }
-                    }
                 }
             }
         },
@@ -1506,15 +1459,6 @@ fun WhipScreen(
     // particular, opening Settings from a split/fold layout must not replace the
     // persistent rail with compact bottom navigation.
     val contentPaneIsExpanded = supportsPaneExpansion && contentPaneExpanded
-    val topBarWidth = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
-    val topBarFontScale = LocalDensity.current.fontScale.coerceIn(1f, 1.5f)
-    val useSecondaryAppActionsMenu =
-        adaptiveLayout == WhipAdaptiveLayout.Compact ||
-            (adaptiveLayout == WhipAdaptiveLayout.BookFold && !contentPaneIsExpanded) ||
-            topBarWidth < 600.dp * topBarFontScale
-    LaunchedEffect(useSecondaryAppActionsMenu) {
-        if (!useSecondaryAppActionsMenu) secondaryAppActionsExpanded = false
-    }
     val layoutDirection = LocalLayoutDirection.current
     // Match AdaptiveNavigationFrame's normalized support-pane geometry exactly. A raw
     // folding-feature bound can be narrower than our 260 dp usable support pane, so
@@ -1553,9 +1497,6 @@ fun WhipScreen(
             ?: 0.dp
     }
     val dialogPaneWidth = minOf(dialogContentWidth * 0.94f, 720.dp)
-    val collapseSearchIntoAppActions =
-        adaptiveLayout == WhipAdaptiveLayout.Compact ||
-            (useSecondaryAppActionsMenu && dialogContentWidth < 420.dp)
     val paneDialogModifier = Modifier
         .absoluteOffset(x = dialogPaneOffset)
         .width(dialogPaneWidth)
@@ -1588,7 +1529,6 @@ fun WhipScreen(
         pendingCompleteItemKey = null
         deleteItemKey = null
         globalAddExpanded = false
-        secondaryAppActionsExpanded = false
         gymAddExpanded = false
         createHabitRequested = false
         createGoalRequested = false
@@ -1604,11 +1544,9 @@ fun WhipScreen(
         editTrackIdRequested = null
         openTrackEntryIdRequested = null
         addTrackEntryRequestedForId = null
-        openTrackPromptOccurrenceIdRequested = null
         trackEditorRoute = null
         selectedTrackState.value = null
         trackDetailDestinationState.value = TrackDetailDestination.Entries
-        reviewTrackAutomationsRequestedForId = null
         openGymSearchDomain = null
         openGymSearchId = null
         reviewOpen = false
@@ -2001,7 +1939,6 @@ fun WhipScreen(
                     }
                     if (
                         !focusedCollectionMode && supportsPaneExpansion &&
-                        (!useSecondaryAppActionsMenu || contentPaneIsExpanded) &&
                         appDestination != AppDestination.Settings
                     ) {
                         IconButton(
@@ -2023,7 +1960,7 @@ fun WhipScreen(
                             )
                         }
                     }
-                    if (!focusedCollectionMode && useSecondaryAppActionsMenu && !collapseSearchIntoAppActions && appDestination != AppDestination.Settings) {
+                    if (!focusedCollectionMode && appDestination != AppDestination.Settings) {
                         IconButton(
                             onClick = {
                                 searchEntryContext = appDestination.searchEntryContext(gymDestination)
@@ -2034,78 +1971,10 @@ fun WhipScreen(
                             },
                         ) { Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(28.dp)) }
                     }
-                    if (!focusedCollectionMode && useSecondaryAppActionsMenu && appDestination != AppDestination.Settings) {
-                        Box {
-                            IconButton(
-                                onClick = { secondaryAppActionsExpanded = true },
-                                modifier = Modifier.size(52.dp).semantics { contentDescription = "App actions" },
-                            ) {
-                                Icon(Icons.Outlined.MoreVert, contentDescription = null, modifier = Modifier.size(28.dp))
-                            }
-                            DropdownMenu(
-                                expanded = secondaryAppActionsExpanded,
-                                onDismissRequest = { secondaryAppActionsExpanded = false },
-                            ) {
-                                if (collapseSearchIntoAppActions && appDestination != AppDestination.Settings) {
-                                    WhipMenuItem(
-                                        modifier = Modifier.testTag("workspace-search-menu-action"),
-                                        label = if (appDestination == AppDestination.Home) "Search All Whip Data" else "Search ${appDestination.label}",
-                                        icon = Icons.Outlined.Search,
-                                        onClick = {
-                                            secondaryAppActionsExpanded = false
-                                            searchEntryContext = appDestination.searchEntryContext(gymDestination)
-                                            searchOpen = true
-                                        },
-                                    )
-                                }
-                                if (supportsPaneExpansion && !contentPaneIsExpanded) {
-                                    WhipMenuItem(
-                                        modifier = Modifier.testTag("expand-content-pane-action"),
-                                        label = "Expand Content",
-                                        icon = Icons.Outlined.Fullscreen,
-                                        onClick = {
-                                            secondaryAppActionsExpanded = false
-                                            contentPaneExpanded = true
-                                        },
-                                    )
-                                }
-                                if (appDestination == AppDestination.Home) {
-                                    WhipMenuItem(
-                                        label = "Customize Home",
-                                        icon = Icons.Outlined.Tune,
-                                        onClick = {
-                                            secondaryAppActionsExpanded = false
-                                            settingsSection = SettingsSection.Appearance
-                                            openSettings()
-                                        },
-                                    )
-                                }
-                                if (appDestination != AppDestination.Settings) {
-                                    WhipMenuItem(
-                                        label = "Open Settings",
-                                        icon = Icons.Outlined.Settings,
-                                        onClick = {
-                                            secondaryAppActionsExpanded = false
-                                            openSettings()
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                    } else if (!focusedCollectionMode && appDestination != AppDestination.Settings) {
-                        IconButton(
-                            onClick = {
-                                searchEntryContext = appDestination.searchEntryContext(gymDestination)
-                                searchOpen = true
-                            },
-                            modifier = Modifier.focusRequester(searchInvokerFocusRequester).size(52.dp).testTag("workspace-search-action").semantics {
-                                contentDescription = if (appDestination == AppDestination.Home) "Search All Whip Data" else "Search ${appDestination.label}"
-                            },
-                        ) {
-                            Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(28.dp))
-                        }
-                    }
-                    if (!focusedCollectionMode && (!useSecondaryAppActionsMenu || appDestination == AppDestination.Settings)) {
+                    if (
+                        !focusedCollectionMode &&
+                        (adaptiveLayout != WhipAdaptiveLayout.BookFold || contentPaneIsExpanded)
+                    ) {
                         IconButton(onClick = { if (appDestination == AppDestination.Settings) closeSettings() else openSettings() }, modifier = Modifier.size(52.dp).testTag("workspace-settings-action").semantics { contentDescription = if (appDestination == AppDestination.Settings) "Close Settings" else "Open Settings" }) {
                             Icon(
                                 if (appDestination == AppDestination.Settings) Icons.Outlined.Close else Icons.Outlined.Settings,
@@ -2233,17 +2102,12 @@ fun WhipScreen(
                     viewModel = habitViewModel,
                     modifier = paneDialogModifier,
                     editorModifier = primaryEditorPaneModifier,
-                    goalState = goalState,
                     openHabitIdRequest = openHabitIdRequested,
                     onOpenHabitRequestConsumed = { openHabitIdRequested = null },
                     editHabitIdRequest = editHabitIdRequested,
                     onEditHabitRequestConsumed = { editHabitIdRequested = null },
                     onRequestNotificationPermission = onRequestNotificationPermission,
                     lowPressureMode = settingsState.settings.lowPressureMode,
-                    onOpenTask = { taskId ->
-                        allScheduledTasks.firstOrNull { it.task.id == taskId }
-                            ?.let { actionItemKey = it.stableKey }
-                    },
                     areas = settingsState.areas,
                     defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
                     onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
@@ -2354,7 +2218,6 @@ fun WhipScreen(
                         state = habitState,
                         innerPadding = innerPadding,
                         viewModel = habitViewModel,
-                        goalState = goalState,
                         createRequested = createHabitRequested,
                         onCreateRequestConsumed = { createHabitRequested = false },
                         openHabitIdRequest = openHabitIdRequested,
@@ -2365,11 +2228,6 @@ fun WhipScreen(
                         lowPressureMode = settingsState.settings.lowPressureMode,
                         modifier = paneDialogModifier,
                         editorModifier = primaryEditorPaneModifier,
-                        onOpenTask = { taskId ->
-                            appDestination = AppDestination.Tasks
-                            allScheduledTasks.firstOrNull { it.task.id == taskId }
-                                ?.let { actionItemKey = it.stableKey }
-                        },
                         areas = settingsState.areas,
                         defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
                         onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
@@ -2480,19 +2338,10 @@ fun WhipScreen(
                     onOpenEntryRequestConsumed = { openTrackEntryIdRequested = null },
                     addEntryTrackIdRequest = addTrackEntryRequestedForId,
                     onAddEntryTrackRequestConsumed = { addTrackEntryRequestedForId = null },
-                    openPromptOccurrenceIdRequest = openTrackPromptOccurrenceIdRequested,
-                    onOpenPromptOccurrenceRequestConsumed = { openTrackPromptOccurrenceIdRequested = null },
                     operationStatus = trackOperationStatus,
                     editorOpen = trackEditorRoute != null,
                     onEditorRequest = ::openTrackEditor,
-                    reviewAutomationsTrackIdRequest = reviewTrackAutomationsRequestedForId,
-                    onReviewAutomationsRequestConsumed = { reviewTrackAutomationsRequestedForId = null },
                     onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
-                    onCreateCustomUnit = { name, symbol, dimension, factor, result ->
-                        settingsViewModel?.createCustomUnit(name, symbol, dimension, factor, result)
-                            ?: result(Result.failure(IllegalStateException("Settings are unavailable")))
-                    },
-                    onRequestNotificationPermission = onRequestNotificationPermission,
                     selectedTrackState = selectedTrackState,
                     workspaceDestinationState = trackWorkspaceDestinationState,
                     destinationState = trackDetailDestinationState,
@@ -2888,7 +2737,6 @@ fun WhipScreen(
                         initial = initial,
                         areas = settingsState.areas,
                         customUnits = settingsState.customUnits,
-                        automationChoiceReferenceCounts = trackState.choiceAutomationReferenceCounts(),
                         defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
                         saving = trackOperationStatus is OperationStatus.Running,
                         modifier = editorModifier,
@@ -2902,10 +2750,6 @@ fun WhipScreen(
                         customIdentityEmojis = settingsState.settings.customIdentityEmojis,
                         onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
                         onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
-                        onReviewAutomations = {
-                            route.trackId?.let { reviewTrackAutomationsRequestedForId = it }
-                            trackEditorRoute = null
-                        },
                         onSave = { draft, fieldDeletes, optionDeletes, optionReplacements ->
                             trackViewModel?.saveTrack(route.trackId, draft, fieldDeletes, optionDeletes, optionReplacements) { saved ->
                                 openTrackIdRequested = saved
@@ -2919,7 +2763,6 @@ fun WhipScreen(
                         TrackEntryEditor(
                             projection = projection,
                             initial = route.entryId?.let { id -> projection.entries.firstOrNull { it.entry.id == id } },
-                            prefill = route.prefill,
                             customUnits = settingsState.customUnits,
                             today = trackState.currentDate,
                             saving = trackOperationStatus is OperationStatus.Running,
@@ -2927,10 +2770,9 @@ fun WhipScreen(
                             sessionId = route.sessionId,
                             onDismiss = { trackEditorRoute = null },
                             onSave = { draft ->
-                                val close = { trackEditorRoute = null }
-                                route.promptOccurrenceId?.let { occurrenceId ->
-                                    trackViewModel?.fulfillPrompt(occurrenceId, draft) { close() }
-                                } ?: trackViewModel?.saveEntry(route.trackId, route.entryId, draft) { close() }
+                                trackViewModel?.saveEntry(route.trackId, route.entryId, draft) {
+                                    trackEditorRoute = null
+                                }
                             },
                             onDelete = route.entryId?.let { entryId ->
                                 {
@@ -3559,7 +3401,7 @@ private fun WhipNavigationRail(
             val showLabels = stableRailHeight >= 560.dp
             val destinationHeight = if (showLabels) 72.dp else 56.dp
             val stableTopOffset = (
-                (stableRailHeight - destinationHeight * (primaryAppDestinations.size + 1)) / 2
+                (stableRailHeight - destinationHeight * (primaryAppDestinations.size + 2)) / 2
             ).coerceAtLeast(12.dp)
             Column(
                 modifier = Modifier
@@ -3606,6 +3448,22 @@ private fun WhipNavigationRail(
                         },
                     )
                 }
+                WhipNavigationRailItem(
+                    modifier = Modifier.semantics { contentDescription = "Settings tab" },
+                    selected = selected == AppDestination.Settings,
+                    enabled = enabled,
+                    showLabel = showLabels,
+                    onClick = { onSelect(AppDestination.Settings) },
+                    icon = { Icon(Icons.Outlined.Settings, contentDescription = null, modifier = Modifier.size(28.dp)) },
+                    label = {
+                        Text(
+                            stringResource(R.string.nav_settings),
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                )
             }
         }
     }
@@ -4006,14 +3864,6 @@ private fun TrackOverviewSupportPane(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val activeTrackIds = state.active.mapTo(mutableSetOf()) { it.track.id }
-    val progressRules = state.linkRules.count { it.sourceType == LinkSourceType.Track && it.sourceEntityId in activeTrackIds && it.enabled }
-    val actionRules = state.triggerRules.count {
-        it.enabled && (
-            it.sourceType == LinkSourceType.Track && it.sourceEntityId in activeTrackIds ||
-                it.targetType == TriggerTargetType.Track && it.targetEntityId in activeTrackIds
-            )
-    }
     Column(
         modifier = modifier
             .windowInsetsPadding(WindowInsets.safeDrawing)
@@ -4038,8 +3888,7 @@ private fun TrackOverviewSupportPane(
                 listOf(
                     stringResource(R.string.support_active_tracks) to state.active.size.toString(),
                     stringResource(R.string.support_entries) to state.active.sumOf { it.entries.size }.toString(),
-                    stringResource(R.string.support_goal_automations) to progressRules.toString(),
-                    stringResource(R.string.support_next_action_automations) to actionRules.toString(),
+                    "Fields" to state.active.sumOf { it.fields.size }.toString(),
                 ).forEach { (label, value) ->
                     Row(Modifier.fillMaxWidth()) {
                         Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -5228,6 +5077,36 @@ private fun TaskAreaContent(
         selectionActionsOpen = false
         selectedKeys = emptySet()
     }
+    val canReorderTaskList =
+        reorderDestinationEligible && maxOf(sourceTasks.distinctBy { it.task.id }.size, allAreaTaskCount) > 1
+    val canSelectTaskList = visibleTasks.isNotEmpty()
+    fun startTaskReorder() {
+        textQuery = ""
+        priorities = emptySet()
+        selectedTags = emptySet()
+        pinnedOnly = false
+        dateMode = "Any"
+        deadlineOnly = false
+        efforts = emptySet()
+        maximumDuration = ""
+        groupMode = "None"
+        planningView = TaskPlanningView.List
+        if (areaScope != AreaScope.All) onTemporarilySelectAreaScope(AreaScope.All)
+        if (reorderHasConstraints) {
+            enterReorderWhenReady = true
+        } else {
+            sortMode = "Manual"
+            onActiveTaskSortModeChange("Manual")
+            reordering = true
+        }
+        taskToolsExpanded = false
+    }
+    fun startTaskSelection() {
+        selectionMode = true
+        planningView = TaskPlanningView.List
+        selectedKeys = emptySet()
+        taskToolsExpanded = false
+    }
 
     Column(
         modifier = Modifier
@@ -5237,7 +5116,6 @@ private fun TaskAreaContent(
         DestinationTabBar(
             selected = workspaceDestination,
             destinations = allTaskWorkspaceDestinations,
-            primaryDestinations = primaryTaskWorkspaceDestinations,
             onSelect = { selected ->
                 textQuery = ""
                 val nextRoute = TaskWorkspaceRoute(selected, historySection)
@@ -5246,7 +5124,6 @@ private fun TaskAreaContent(
             label = TaskWorkspaceDestination::label,
             testTagPrefix = "task-destination",
             barTestTag = "task-workspace-navigation",
-            overflowLabel = "More Task destinations",
         )
         if (workspaceDestination == TaskWorkspaceDestination.History) {
             SegmentedChoiceBar(
@@ -5274,7 +5151,7 @@ private fun TaskAreaContent(
                         label = if (activeFilterCount == 0) "Filter & Sort Tasks" else "Filter & Sort Tasks · $activeFilterCount active",
                         onClick = { showFilters = true },
                     )
-                if (!reordering && (sourceTasks.isNotEmpty() || allAreaTaskCount > 1)) Box {
+                if (!reordering && canReorderTaskList && canSelectTaskList) Box {
                     IconButton(
                         onClick = { taskToolsExpanded = true },
                         modifier = Modifier.size(48.dp).semantics { contentDescription = "More task list actions" },
@@ -5285,51 +5162,20 @@ private fun TaskAreaContent(
                         expanded = taskToolsExpanded,
                         onDismissRequest = { taskToolsExpanded = false },
                     ) {
-                        if (
-                            reorderDestinationEligible &&
-                            maxOf(sourceTasks.distinctBy { it.task.id }.size, allAreaTaskCount) > 1
-                        ) {
-                            WhipMenuItem(
-                                label = when {
-                                    areaScope != AreaScope.All -> "Show All Areas & Reorder"
-                                    reorderHasConstraints -> "Clear Filters & Reorder All"
-                                    else -> "Reorder Tasks"
-                                },
-                                onClick = {
-                                    textQuery = ""
-                                    priorities = emptySet()
-                                    selectedTags = emptySet()
-                                    pinnedOnly = false
-                                    dateMode = "Any"
-                                    deadlineOnly = false
-                                    efforts = emptySet()
-                                    maximumDuration = ""
-                                    groupMode = "None"
-                                    planningView = TaskPlanningView.List
-                                    if (areaScope != AreaScope.All) onTemporarilySelectAreaScope(AreaScope.All)
-                                    if (reorderHasConstraints) {
-                                        enterReorderWhenReady = true
-                                    } else {
-                                        sortMode = "Manual"
-                                        onActiveTaskSortModeChange("Manual")
-                                        reordering = true
-                                    }
-                                    taskToolsExpanded = false
-                                },
-                            )
-                        }
-                        if (visibleTasks.isNotEmpty()) {
-                            WhipMenuItem(
-                                label = "Select Tasks",
-                                onClick = {
-                                    selectionMode = true
-                                    planningView = TaskPlanningView.List
-                                    selectedKeys = emptySet()
-                                    taskToolsExpanded = false
-                                },
-                            )
-                        }
+                        WhipMenuItem(
+                            label = when {
+                                areaScope != AreaScope.All -> "Show All Areas & Reorder"
+                                reorderHasConstraints -> "Clear Filters & Reorder All"
+                                else -> "Reorder Tasks"
+                            },
+                            onClick = ::startTaskReorder,
+                        )
+                        WhipMenuItem(label = "Select Tasks", onClick = ::startTaskSelection)
                     }
+                } else if (!reordering && canReorderTaskList) {
+                    WhipTextButton(onClick = ::startTaskReorder) { Text("Reorder") }
+                } else if (!reordering && canSelectTaskList) {
+                    WhipTextButton(onClick = ::startTaskSelection) { Text("Select") }
                 }
                 }
             if (selectionMode) {
@@ -6232,8 +6078,6 @@ private fun PermanentTaskBatchDeleteDialog(
                                 "(${exactImpact.completedOccurrenceCount} completed, ${exactImpact.skippedOccurrenceCount} skipped, ${exactImpact.openOccurrenceCount} open)",
                         )
                         Text("${exactImpact.stepCount} subtask${if (exactImpact.stepCount == 1) "" else "s"}")
-                        Text("${exactImpact.linkRuleCount} goal progress source${if (exactImpact.linkRuleCount == 1) "" else "s"}")
-                        Text("${exactImpact.automationRuleCount} automation${if (exactImpact.automationRuleCount == 1) "" else "s"}")
                         Text(
                             "This cannot be undone. Export a backup first if you may need this history.",
                             color = MaterialTheme.colorScheme.error,

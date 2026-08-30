@@ -50,10 +50,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Archive
-import androidx.compose.material.icons.outlined.ArrowDownward
-import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Merge
@@ -327,7 +326,6 @@ private fun AreaListContent(
     onRestore: (String) -> Unit,
 ) {
     var reordering by rememberSaveable { mutableStateOf(false) }
-    var toolsExpanded by rememberSaveable { mutableStateOf(false) }
     val visibleActive = active.filter { query.isBlank() || it.name.contains(query, true) }
     BackHandler(enabled = reordering) { reordering = false }
     WhipReorderLazyColumn(
@@ -340,22 +338,15 @@ private fun AreaListContent(
                 title = "Your Areas",
                 supportingText = "Open an Area to rename it, move its items, merge it, or manage its lifecycle.",
             ) {
-                if (!reordering && active.size > 1) Box {
+                if (!reordering && active.size > 1) {
                     WhipPageIconAction(
-                        icon = Icons.Outlined.MoreVert,
-                        label = "More Area Actions",
-                        onClick = { toolsExpanded = true },
+                        icon = Icons.Outlined.DragHandle,
+                        label = if (query.isBlank()) "Reorder Areas" else "Clear Search and reorder all Areas",
+                        onClick = {
+                            if (query.isNotBlank()) onQueryChange("")
+                            reordering = true
+                        },
                     )
-                    DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
-                        WhipMenuItem(
-                            label = if (query.isBlank()) "Reorder Areas" else "Clear Search & Reorder All",
-                            onClick = {
-                                if (query.isNotBlank()) onQueryChange("")
-                                reordering = true
-                                toolsExpanded = false
-                            },
-                        )
-                    }
                 }
             }
         }

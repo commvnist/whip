@@ -47,8 +47,6 @@ import org.json.JSONObject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 interface LinkRepository {
     val rules: Flow<List<LinkRule>>
@@ -83,7 +81,6 @@ class RoomLinkRepository(
     private val ids: WhipIdGenerator,
 ) : LinkRepository {
     private val dao = database.linkDao()
-    private val rebuildMutex = Mutex()
     private val trackAutomationSchema = combine(
         database.trackDao().observeFields(),
         database.trackDao().observeOptions(),
@@ -128,14 +125,12 @@ class RoomLinkRepository(
         val entity = draft.toEntity(ids.nextId(), now).copy(
             retroactiveFromEpochDay = draft.retroactiveFrom?.toEpochDay()
                 .takeIf { commitBackfill },
+            enabled = false,
         )
-        return rebuildMutex.withLock {
-            database.withTransaction {
-                val id = dao.insertRule(entity)
-                syncRuleConditions(id, draft.conditions)
-                rebuildRuleLocked(id)
-                id
-            }
+        return database.withTransaction {
+            val id = dao.insertRule(entity)
+            syncRuleConditions(id, draft.conditions)
+            id
         }
     }
 
@@ -147,6 +142,7 @@ class RoomLinkRepository(
                 draft.toEntity(current.uuid, current.createdAtMillis).copy(
                     id = current.id,
                     retroactiveFromEpochDay = draft.retroactiveFrom?.toEpochDay(),
+                    enabled = false,
                     updatedAtMillis = clock.now().toEpochMilli(),
                 ),
             )
@@ -156,14 +152,14 @@ class RoomLinkRepository(
     }
 
     override suspend fun deleteRule(id: Long) = database.withTransaction {
-        dao.getContributions(id).forEach { it.metricEntryId?.let { entryId -> measurementRepository.deleteEntry(entryId) } }
+        // Generated measurements are now ordinary historical Goal records. Deleting dormant
+        // compatibility metadata must not retract them.
         dao.deleteRule(id)
     }
 
     override suspend fun setRuleEnabled(id: Long, enabled: Boolean) {
         val current = dao.getRule(id) ?: return
-        dao.updateRule(current.copy(enabled = enabled, updatedAtMillis = clock.now().toEpochMilli()))
-        rebuildRule(id)
+        dao.updateRule(current.copy(enabled = false, updatedAtMillis = clock.now().toEpochMilli()))
     }
 
     override suspend fun previewBackfill(draft: LinkRuleDraft): LinkBackfillPreview {
@@ -209,25 +205,13 @@ class RoomLinkRepository(
         )
     }
 
-    override suspend fun rebuildRule(id: Long) = rebuildMutex.withLock {
-        database.withTransaction { rebuildRuleLocked(id) }
-    }
+    // Automation execution is retired. These compatibility entry points remain while older
+    // ViewModels and deletion code are removed, but must never mutate preserved history.
+    override suspend fun rebuildRule(id: Long) = Unit
 
-    override suspend fun rebuildAll() = rebuildMutex.withLock {
-        database.withTransaction {
-            dao.getRules().forEach { rebuildRuleLocked(it.id) }
-            rebuildTriggersLocked()
-        }
-    }
+    override suspend fun rebuildAll() = Unit
 
-    override suspend fun rebuildSources(sourceTypes: Set<LinkSourceType>) = rebuildMutex.withLock {
-        if (sourceTypes.isEmpty()) return@withLock
-        val names = sourceTypes.mapTo(mutableSetOf(), LinkSourceType::name)
-        database.withTransaction {
-            dao.getRules().filter { it.sourceType in names }.forEach { rebuildRuleLocked(it.id) }
-            rebuildTriggersLocked(names)
-        }
-    }
+    override suspend fun rebuildSources(sourceTypes: Set<LinkSourceType>) = Unit
 
     override suspend fun setContributionExcluded(id: Long, excluded: Boolean) {
         val now = clock.now().toEpochMilli()
@@ -247,7 +231,9 @@ class RoomLinkRepository(
         validateTrigger(draft)
         val now = clock.now().toEpochMilli()
         val id = database.withTransaction {
-            dao.insertTriggerRule(draft.toEntity(ids.nextId(), now)).also { syncTriggerDetails(it, draft) }
+            dao.insertTriggerRule(
+                draft.toEntity(ids.nextId(), now).copy(enabled = false, notificationEnabled = false),
+            ).also { syncTriggerDetails(it, draft) }
         }
         rebuildAll()
         return id
@@ -260,6 +246,8 @@ class RoomLinkRepository(
             dao.updateTriggerRule(
                 draft.toEntity(current.uuid, current.createdAtMillis).copy(
                     id = id,
+                    enabled = false,
+                    notificationEnabled = false,
                     updatedAtMillis = clock.now().toEpochMilli(),
                 ),
             )
@@ -270,8 +258,7 @@ class RoomLinkRepository(
 
     override suspend fun deleteTrigger(id: Long) {
         database.withTransaction {
-            val current = dao.getTriggerRule(id) ?: return@withTransaction
-            removeGeneratedHabitLogs(current, emptySet())
+            dao.getTriggerRule(id) ?: return@withTransaction
             dao.getTriggerOccurrences(id).forEach { occurrence ->
                 database.trackDao().clearSourceOccurrence(occurrence.id)
             }

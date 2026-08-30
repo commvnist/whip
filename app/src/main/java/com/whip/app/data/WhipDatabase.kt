@@ -65,7 +65,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         TrackValueEntity::class,
         TrackEntrySearchEntity::class,
     ],
-    version = 30,
+    version = 31,
     exportSchema = true,
 )
 abstract class WhipDatabase : RoomDatabase() {
@@ -394,6 +394,30 @@ abstract class WhipDatabase : RoomDatabase() {
         }
 
         /**
+         * Automations were retired in schema 31. Keep their configuration and audit rows for
+         * backup/upgrade compatibility, but make every rule inert and ensure those hidden rows
+         * can no longer block ordinary Track schema edits.
+         *
+         * Generated Goal measurements, Habit logs, milestone state, and fulfilled Track entries
+         * deliberately remain untouched: they are historical user data, not pending work.
+         */
+        val migration30To31 = object : Migration(30, 31) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                retireAutomationTrackReferences(db)
+                db.execSQL("UPDATE link_rules SET enabled = 0")
+                db.execSQL("UPDATE trigger_rules SET enabled = 0, notificationEnabled = 0")
+                db.execSQL(
+                    """
+                    UPDATE trigger_occurrences
+                    SET dismissedAtMillis = COALESCE(deliveredAtMillis, availableAtMillis),
+                        remindAtMillis = NULL
+                    WHERE fulfilledEntryId IS NULL AND dismissedAtMillis IS NULL
+                    """.trimIndent(),
+                )
+            }
+        }
+
+        /**
          * Repository checks provide friendly errors; these triggers are the final consistency
          * boundary for concurrent writers, restored data, and any future write path.
          */
@@ -426,10 +450,208 @@ abstract class WhipDatabase : RoomDatabase() {
                     migration27To28,
                     migration28To29,
                     migration29To30,
+                    migration30To31,
                 )
                 .addCallback(integrityGuardCallback)
                 .build()
                 .also { instance = it }
+        }
+
+        private fun retireAutomationTrackReferences(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE contributions_retirement_backup AS SELECT * FROM contributions")
+            db.execSQL("CREATE TABLE link_rule_conditions_retirement_backup AS SELECT * FROM link_rule_conditions")
+            db.execSQL("CREATE TABLE link_condition_choices_retirement_backup AS SELECT * FROM link_condition_choices")
+            db.execSQL("DROP TABLE link_condition_choices")
+            db.execSQL("DROP TABLE link_rule_conditions")
+            db.execSQL("DROP TABLE contributions")
+
+            db.execSQL(
+                """
+                CREATE TABLE link_rules_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    uuid TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    kind TEXT NOT NULL,
+                    sourceType TEXT NOT NULL,
+                    sourceEntityId INTEGER,
+                    sourceMetricId TEXT,
+                    sourceItemId INTEGER,
+                    sourceMetric TEXT NOT NULL,
+                    targetGoalId INTEGER NOT NULL,
+                    targetMilestoneId INTEGER,
+                    valueMode TEXT NOT NULL,
+                    fixedValue REAL,
+                    multiplier REAL NOT NULL,
+                    offset REAL NOT NULL,
+                    retroactiveFromEpochDay INTEGER,
+                    enabled INTEGER NOT NULL,
+                    createdAtMillis INTEGER NOT NULL,
+                    updatedAtMillis INTEGER NOT NULL,
+                    trackAggregation TEXT,
+                    sourceFieldId INTEGER,
+                    conditionMode TEXT NOT NULL,
+                    FOREIGN KEY(targetGoalId) REFERENCES goals(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(targetMilestoneId) REFERENCES goal_milestones(id) ON UPDATE NO ACTION ON DELETE SET NULL,
+                    FOREIGN KEY(sourceFieldId) REFERENCES track_fields(id) ON UPDATE NO ACTION ON DELETE SET NULL
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("INSERT INTO link_rules_new SELECT * FROM link_rules")
+            db.execSQL("DROP TABLE link_rules")
+            db.execSQL("ALTER TABLE link_rules_new RENAME TO link_rules")
+            db.execSQL("CREATE UNIQUE INDEX index_link_rules_uuid ON link_rules (uuid)")
+            db.execSQL("CREATE INDEX index_link_rules_targetGoalId ON link_rules (targetGoalId)")
+            db.execSQL("CREATE INDEX index_link_rules_targetMilestoneId ON link_rules (targetMilestoneId)")
+            db.execSQL("CREATE INDEX index_link_rules_sourceFieldId ON link_rules (sourceFieldId)")
+            db.execSQL("CREATE INDEX index_link_rules_sourceType_sourceEntityId ON link_rules (sourceType, sourceEntityId)")
+
+            db.execSQL(
+                """
+                CREATE TABLE contributions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    uuid TEXT NOT NULL,
+                    linkRuleId INTEGER NOT NULL,
+                    sourceEventId TEXT NOT NULL,
+                    sourceType TEXT NOT NULL,
+                    sourceEntityId INTEGER,
+                    targetGoalId INTEGER NOT NULL,
+                    metricEntryId TEXT,
+                    canonicalValue REAL,
+                    localEpochDay INTEGER NOT NULL,
+                    timestampMillis INTEGER NOT NULL,
+                    excluded INTEGER NOT NULL,
+                    overrideValue REAL,
+                    explanation TEXT NOT NULL,
+                    createdAtMillis INTEGER NOT NULL,
+                    updatedAtMillis INTEGER NOT NULL,
+                    FOREIGN KEY(linkRuleId) REFERENCES link_rules(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(targetGoalId) REFERENCES goals(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("INSERT INTO contributions SELECT * FROM contributions_retirement_backup")
+            db.execSQL("DROP TABLE contributions_retirement_backup")
+            db.execSQL("CREATE UNIQUE INDEX index_contributions_uuid ON contributions (uuid)")
+            db.execSQL("CREATE UNIQUE INDEX index_contributions_linkRuleId_sourceEventId ON contributions (linkRuleId, sourceEventId)")
+            db.execSQL("CREATE INDEX index_contributions_targetGoalId ON contributions (targetGoalId)")
+            db.execSQL("CREATE UNIQUE INDEX index_contributions_metricEntryId ON contributions (metricEntryId)")
+            db.execSQL("CREATE INDEX index_contributions_sourceType_sourceEntityId ON contributions (sourceType, sourceEntityId)")
+
+            db.execSQL(
+                """
+                CREATE TABLE link_rule_conditions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    linkRuleId INTEGER NOT NULL,
+                    fieldId INTEGER,
+                    entryDate INTEGER NOT NULL,
+                    operator TEXT NOT NULL,
+                    position INTEGER NOT NULL,
+                    textValue TEXT,
+                    numberValue REAL,
+                    secondNumberValue REAL,
+                    dateEpochDay INTEGER,
+                    secondDateEpochDay INTEGER,
+                    FOREIGN KEY(linkRuleId) REFERENCES link_rules(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(fieldId) REFERENCES track_fields(id) ON UPDATE NO ACTION ON DELETE SET NULL
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("INSERT INTO link_rule_conditions SELECT * FROM link_rule_conditions_retirement_backup")
+            db.execSQL("DROP TABLE link_rule_conditions_retirement_backup")
+            db.execSQL("CREATE INDEX index_link_rule_conditions_linkRuleId ON link_rule_conditions (linkRuleId)")
+            db.execSQL("CREATE INDEX index_link_rule_conditions_fieldId ON link_rule_conditions (fieldId)")
+            db.execSQL("CREATE UNIQUE INDEX index_link_rule_conditions_linkRuleId_position ON link_rule_conditions (linkRuleId, position)")
+
+            db.execSQL(
+                """
+                CREATE TABLE link_condition_choices (
+                    conditionId INTEGER NOT NULL,
+                    optionId INTEGER NOT NULL,
+                    PRIMARY KEY(conditionId, optionId),
+                    FOREIGN KEY(conditionId) REFERENCES link_rule_conditions(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(optionId) REFERENCES track_choice_options(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("INSERT INTO link_condition_choices SELECT * FROM link_condition_choices_retirement_backup")
+            db.execSQL("DROP TABLE link_condition_choices_retirement_backup")
+            db.execSQL("CREATE INDEX index_link_condition_choices_conditionId ON link_condition_choices (conditionId)")
+            db.execSQL("CREATE INDEX index_link_condition_choices_optionId ON link_condition_choices (optionId)")
+
+            db.execSQL("CREATE TABLE trigger_rule_conditions_retirement_backup AS SELECT * FROM trigger_rule_conditions")
+            db.execSQL("CREATE TABLE trigger_condition_choices_retirement_backup AS SELECT * FROM trigger_condition_choices")
+            db.execSQL("CREATE TABLE trigger_field_mappings_retirement_backup AS SELECT * FROM trigger_field_mappings")
+            db.execSQL("DROP TABLE trigger_condition_choices")
+            db.execSQL("DROP TABLE trigger_rule_conditions")
+            db.execSQL("DROP TABLE trigger_field_mappings")
+
+            db.execSQL(
+                """
+                CREATE TABLE trigger_rule_conditions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    triggerRuleId INTEGER NOT NULL,
+                    fieldId INTEGER,
+                    entryDate INTEGER NOT NULL,
+                    operator TEXT NOT NULL,
+                    position INTEGER NOT NULL,
+                    textValue TEXT,
+                    numberValue REAL,
+                    secondNumberValue REAL,
+                    dateEpochDay INTEGER,
+                    secondDateEpochDay INTEGER,
+                    FOREIGN KEY(triggerRuleId) REFERENCES trigger_rules(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(fieldId) REFERENCES track_fields(id) ON UPDATE NO ACTION ON DELETE SET NULL
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("INSERT INTO trigger_rule_conditions SELECT * FROM trigger_rule_conditions_retirement_backup")
+            db.execSQL("DROP TABLE trigger_rule_conditions_retirement_backup")
+            db.execSQL("CREATE INDEX index_trigger_rule_conditions_triggerRuleId ON trigger_rule_conditions (triggerRuleId)")
+            db.execSQL("CREATE INDEX index_trigger_rule_conditions_fieldId ON trigger_rule_conditions (fieldId)")
+            db.execSQL("CREATE UNIQUE INDEX index_trigger_rule_conditions_triggerRuleId_position ON trigger_rule_conditions (triggerRuleId, position)")
+
+            db.execSQL(
+                """
+                CREATE TABLE trigger_condition_choices (
+                    conditionId INTEGER NOT NULL,
+                    optionId INTEGER NOT NULL,
+                    PRIMARY KEY(conditionId, optionId),
+                    FOREIGN KEY(conditionId) REFERENCES trigger_rule_conditions(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(optionId) REFERENCES track_choice_options(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("INSERT INTO trigger_condition_choices SELECT * FROM trigger_condition_choices_retirement_backup")
+            db.execSQL("DROP TABLE trigger_condition_choices_retirement_backup")
+            db.execSQL("CREATE INDEX index_trigger_condition_choices_conditionId ON trigger_condition_choices (conditionId)")
+            db.execSQL("CREATE INDEX index_trigger_condition_choices_optionId ON trigger_condition_choices (optionId)")
+
+            db.execSQL(
+                """
+                CREATE TABLE trigger_field_mappings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    triggerRuleId INTEGER NOT NULL,
+                    targetFieldId INTEGER NOT NULL,
+                    sourceProperty TEXT NOT NULL,
+                    constantText TEXT,
+                    constantNumber REAL,
+                    constantUnitId TEXT,
+                    constantDateEpochDay INTEGER,
+                    constantBoolean INTEGER,
+                    constantChoiceOptionId INTEGER,
+                    constantScale REAL,
+                    FOREIGN KEY(triggerRuleId) REFERENCES trigger_rules(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(targetFieldId) REFERENCES track_fields(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(constantChoiceOptionId) REFERENCES track_choice_options(id) ON UPDATE NO ACTION ON DELETE SET NULL
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("INSERT INTO trigger_field_mappings SELECT * FROM trigger_field_mappings_retirement_backup")
+            db.execSQL("DROP TABLE trigger_field_mappings_retirement_backup")
+            db.execSQL("CREATE INDEX index_trigger_field_mappings_triggerRuleId ON trigger_field_mappings (triggerRuleId)")
+            db.execSQL("CREATE INDEX index_trigger_field_mappings_targetFieldId ON trigger_field_mappings (targetFieldId)")
+            db.execSQL("CREATE INDEX index_trigger_field_mappings_constantChoiceOptionId ON trigger_field_mappings (constantChoiceOptionId)")
+            db.execSQL("CREATE UNIQUE INDEX index_trigger_field_mappings_triggerRuleId_targetFieldId ON trigger_field_mappings (triggerRuleId, targetFieldId)")
         }
 
         private fun installIntegrityGuards(db: SupportSQLiteDatabase) {

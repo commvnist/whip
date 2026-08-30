@@ -147,7 +147,7 @@ date, places finished work on the completed calendar. **Select Tasks** opens a
 contextual action surface: active tasks can be completed, archived, edited,
 pinned, or rescheduled; completed tasks can be reopened; archived tasks can be
 restored. Permanent bulk deletion first shows the exact affected history,
-subtasks, goal sources, and automations and asks for confirmation.
+subtasks and goal sources and asks for confirmation.
 
 The task editor labels planning intensity as **Effort**, with the parallel
 choices **Light**, **Medium**, and **High**.
@@ -322,16 +322,6 @@ the time; the selected zone controls new entries, reminders, imports, and what
 counts as today. The late-night cutoff can treat early-morning entries as part
 of the prior day.
 
-## Links and automation
-
-A contribution link maps a stable task, habit, workout, exercise, or metric
-event into a goal. The goal history explains each source. The same source event
-cannot contribute twice through the same rule, and editing or deleting a
-source rebuilds its contribution. Historical backfill always has a preview.
-Context links associate records without adding progress. Trigger rules reveal a
-next habit/task after an outcome and support delays, quiet hours, cycle checks,
-and rate limiting.
-
 ## Notification delivery
 
 **Settings → Reminders** shows whether Android notification permission, each Task, Habit,
@@ -402,8 +392,8 @@ Archive keeps history and permits restore. This applies to tasks, habits,
 goals, exercises, routines, and discarded workouts. Set removal during an
 active workout is soft-deleted and undoable. Each first-class record also has
 an advanced **Delete Permanently** action with a confirmation that previews
-the affected history, measurements, routine/workout references, links, and
-automations. Cross-feature cleanup is transactional; workout-derived goal
+the affected history, measurements, routine/workout references, and links.
+Cross-feature cleanup is transactional; workout-derived goal
 values and records are recalculated. Deleting a routine preserves completed
 workouts created from it, while deleting an exercise explicitly removes that
 exercise's sets from workout history and routine templates.

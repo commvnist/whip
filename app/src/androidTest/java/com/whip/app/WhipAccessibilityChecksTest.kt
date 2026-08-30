@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -42,12 +43,7 @@ class WhipAccessibilityChecksTest {
             compose.onNodeWithContentDescription(tab).performClick()
             compose.onRoot().tryPerformAccessibilityChecks()
         }
-        if (compose.onAllNodesWithContentDescription("Open Settings").fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithContentDescription("Open Settings").performClick()
-        } else {
-            compose.onNodeWithContentDescription("App actions").performClick()
-            compose.onNodeWithText("Open Settings").performClick()
-        }
+        compose.onNodeWithTag("workspace-settings-action").performClick()
         compose.onRoot().tryPerformAccessibilityChecks()
         compose.onNodeWithContentDescription("Go to Home").performClick()
         compose.onRoot().tryPerformAccessibilityChecks()

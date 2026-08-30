@@ -112,29 +112,21 @@ class EditorFeatureIntegrityTest {
     @Test
     fun tracksExposeTheCompleteTypedFeatureWithoutLegacyCapsOrCosmeticColor() {
         val trackUi = File(uiRoot, "TrackScreens.kt").readText()
-        val automationUx = File(uiRoot, "AutomationUxPolicy.kt").readText()
         val trackViewModel = File(uiRoot, "TrackViewModel.kt").readText()
         val trackDomain = File(uiRoot.parentFile, "domain/TrackModels.kt").readText()
-        val trackExperience = trackUi + automationUx
 
         assertFalse(trackUi.contains("colorArgb"))
         assertFalse(trackDomain.contains("fields.take(7)"))
         assertFalse(trackDomain.contains("fields.size <= 7"))
         listOf(
-            "Count Entries",
-            "Add Values From a Number or Scale Field",
-            "Average a Number or Scale Field",
-            "Use the Latest Number or Scale Value",
-            "Use the Lowest Field Value",
-            "Use the Highest Field Value",
-            "Add a Fixed Amount per Entry",
-            "Stay Consistent",
             "Import Entries From CSV",
-        ).forEach { copy -> assertTrue("Missing Track UX: $copy", trackExperience.contains(copy)) }
+            "Entry Identity",
+            "Single Choice",
+            "Scale Preset",
+        ).forEach { copy -> assertTrue("Missing Track UX: $copy", trackUi.contains(copy)) }
         assertTrue(trackUi.contains("TRACK_ENTRY_PAGE_SIZE = 100"))
         assertTrue(trackUi.contains("Possible Existing"))
         assertTrue(trackUi.contains("Replace With"))
-        assertTrue(trackUi.contains("TriggerOutcome.Recorded"))
         val appUi = File(uiRoot, "WhipApp.kt").readText()
         assertFalse(appUi.contains("Add Another"))
         assertFalse(appUi.contains("onCancelTrackOperation"))

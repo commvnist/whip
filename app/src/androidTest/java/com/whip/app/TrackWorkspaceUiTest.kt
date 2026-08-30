@@ -129,7 +129,6 @@ class TrackWorkspaceUiTest {
 
         compose.onNodeWithTag("track-workspace-destination-Insights").performClick()
         compose.onNodeWithText("Entry Frequency").assertIsDisplayed()
-        compose.onNodeWithText("Automation Status").assertIsDisplayed()
         compose.onNodeWithTag("track-workspace-insights-list").performScrollToNode(hasText("Recently Active Tracks"))
         compose.onNodeWithText("Recently Active Tracks").assertIsDisplayed()
         compose.onNodeWithTag("track-workspace-insights-list").performScrollToNode(hasText("Numeric Summaries"))
@@ -170,7 +169,7 @@ class TrackWorkspaceUiTest {
         compose.onNodeWithTag("track-workspace-destination-Activity").performClick()
         compose.onNodeWithContentDescription("Search Track Activity").assertIsDisplayed()
         compose.onNodeWithTag("track-workspace-destination-Insights").performClick()
-        compose.onNodeWithText("Patterns and automation health across visible Tracks.").assertIsDisplayed()
+        compose.onNodeWithText("Patterns across visible Tracks.").assertIsDisplayed()
     }
 
     @Test

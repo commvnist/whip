@@ -274,7 +274,6 @@ internal fun UnifiedSearchDialog(
             val recentHabitLogs = habitState.logs.groupBy { it.habitId }.mapValues { (_, logs) ->
                 newestSearchValues(logs, MaxSearchHistoryValuesPerEntity) { it.timestamp }
             }
-            val goalContributions = goalState.contributions.groupBy { it.targetGoalId }
             buildBoundedSearchIndex(MaxSearchResultsPerDomain) {
             (taskState.inbox + taskState.today + taskState.upcoming + taskState.planning + taskState.completed + taskState.archived)
                 .distinctBy { it.task.id }
@@ -311,12 +310,7 @@ internal fun UnifiedSearchDialog(
             (goalState.active + goalState.completed + goalState.archived).distinctBy { it.goal.id }.forEach { item ->
                 val measurementText = newestSearchValues(item.entries, MaxSearchHistoryValuesPerEntity) { it.timestamp }
                     .joinToString(" · ") { "${it.localDate} ${it.enteredValue ?: it.status.name} ${it.note}" }
-                val contributionText = newestSearchValues(
-                    goalContributions[item.goal.id].orEmpty(),
-                    MaxSearchHistoryValuesPerEntity,
-                ) { it.timestamp }
-                    .joinToString(" · ") { it.explanation }
-                add(WhipSearchResult(SearchDomain.Goal, item.goal.id, item.goal.name, listOf(item.goal.description, measurementText, contributionText).filter(String::isNotBlank).joinToString(" · "), area = item.goal.area, areaId = item.goal.areaId, tags = item.goal.tags.toSet(), deadline = item.goal.deadline, status = item.goal.status.name.lowercase()))
+                add(WhipSearchResult(SearchDomain.Goal, item.goal.id, item.goal.name, listOf(item.goal.description, measurementText).filter(String::isNotBlank).joinToString(" · "), area = item.goal.area, areaId = item.goal.areaId, tags = item.goal.tags.toSet(), deadline = item.goal.deadline, status = item.goal.status.name.lowercase()))
             }
             trackState.projections.forEach { projection ->
                 add(

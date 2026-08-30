@@ -40,7 +40,6 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.FilterAlt
-import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
@@ -116,28 +115,8 @@ import com.whip.app.domain.TrackFieldDraft
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackProjection
 import com.whip.app.domain.TrackValueDraft
-import com.whip.app.domain.TrackAggregation
-import com.whip.app.domain.GoalType
-import com.whip.app.domain.Goal
-import com.whip.app.domain.GoalAggregation
-import com.whip.app.domain.GoalConsistencyPeriod
-import com.whip.app.domain.HabitTrackingMode
-import com.whip.app.domain.LinkSourceType
-import com.whip.app.domain.LinkRule
-import com.whip.app.domain.LinkRuleDraft
-import com.whip.app.domain.LinkSourceMetric
-import com.whip.app.domain.LinkValueMode
-import com.whip.app.domain.TriggerAction
-import com.whip.app.domain.TriggerFieldMapping
-import com.whip.app.domain.TriggerOccurrence
-import com.whip.app.domain.TriggerOutcome
-import com.whip.app.domain.TriggerRule
-import com.whip.app.domain.TriggerRuleDraft
-import com.whip.app.domain.TriggerSourceProperty
-import com.whip.app.domain.TriggerTargetType
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
-import com.whip.app.domain.aggregate
 import com.whip.app.domain.editableNumericValue
 import com.whip.app.domain.matchingEntries
 import com.whip.app.domain.toWhipDoubleOrNull
@@ -149,8 +128,6 @@ import com.whip.app.domain.TRACK_ENTRY_DATE_CONDITION_UUID
 import com.whip.app.domain.validated
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.Instant
-import java.time.temporal.ChronoUnit
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.io.Serializable
@@ -199,40 +176,6 @@ private val trackConditionListSaver = listSaver<List<TrackCondition>, String>(
     restore = { it.map(::decodeTrackCondition) },
 )
 
-private val triggerSourceMappingSaver = listSaver<Map<Long, TriggerSourceProperty>, String>(
-    save = { values -> values.entries.sortedBy { it.key }.map { "${it.key}|${it.value.name}" } },
-    restore = { values -> values.associate { saved -> saved.substringBefore('|').toLong() to TriggerSourceProperty.valueOf(saved.substringAfter('|')) } },
-)
-
-internal fun encodeTrackValueDraft(value: TrackValueDraft): String = listOf(
-    encodeSavedText(value.textValue),
-    value.enteredNumber?.toString().orEmpty(),
-    encodeSavedText(value.enteredUnitId),
-    value.dateValue?.toString().orEmpty(),
-    value.booleanValue?.toString().orEmpty(),
-    encodeSavedText(value.choiceOptionUuid),
-    value.scaleValue?.toString().orEmpty(),
-).joinToString("|")
-
-internal fun decodeTrackValueDraft(saved: String): TrackValueDraft {
-    val parts = saved.split('|')
-    require(parts.size == 7) { "Invalid saved Track value" }
-    return TrackValueDraft(
-        textValue = decodeSavedText(parts[0]),
-        enteredNumber = parts[1].toDoubleOrNull(),
-        enteredUnitId = decodeSavedText(parts[2]),
-        dateValue = parts[3].takeIf(String::isNotEmpty)?.let(LocalDate::parse),
-        booleanValue = parts[4].toBooleanStrictOrNull(),
-        choiceOptionUuid = decodeSavedText(parts[5]),
-        scaleValue = parts[6].toDoubleOrNull(),
-    )
-}
-
-private val trackConstantMappingSaver = listSaver<Map<Long, TrackValueDraft>, String>(
-    save = { values -> values.entries.sortedBy { it.key }.map { "${it.key}|${encodeTrackValueDraft(it.value)}" } },
-    restore = { values -> values.associate { saved -> saved.substringBefore('|').toLong() to decodeTrackValueDraft(saved.substringAfter('|')) } },
-)
-
 private val stringSetSaver = listSaver<Set<String>, String>(
     save = { it.sorted() },
     restore = { it.toSet() },
@@ -240,7 +183,6 @@ private val stringSetSaver = listSaver<Set<String>, String>(
 
 internal enum class TrackDetailDestination(val label: String) {
     Entries("Entries"),
-    Automations("Automations"),
     Options("Options"),
     Insights("Insights"),
 }
@@ -264,13 +206,6 @@ private data class TrackEntrySortChoice(
     val fieldId: Long? = null,
 )
 
-private enum class TrackGoalHistory(val label: String) {
-    NewEntriesOnly("New Entries Only"),
-    SinceGoalStart("Include Since Goal Start"),
-    SinceDate("Include Since a Chosen Date"),
-    AllHistory("Include All Track History"),
-}
-
 private data class TrackConditionSubject(val trackField: TrackField?) {
     val uuid: String get() = trackField?.uuid ?: TRACK_ENTRY_DATE_CONDITION_UUID
     val name: String get() = trackField?.name ?: "Entry Date"
@@ -282,8 +217,6 @@ internal sealed interface TrackEditorIntent : Serializable {
     data class Entry(
         val trackId: Long,
         val entryId: Long? = null,
-        val promptOccurrenceId: Long? = null,
-        val prefill: TrackEntryDraft? = null,
     ) : TrackEditorIntent
 }
 
@@ -298,8 +231,6 @@ internal sealed interface TrackEditorRoute : Serializable {
     data class Entry(
         val trackId: Long,
         val entryId: Long? = null,
-        val promptOccurrenceId: Long? = null,
-        val prefill: TrackEntryDraft? = null,
         override val sessionId: Long,
     ) : TrackEditorRoute
 }
@@ -322,17 +253,10 @@ internal fun TrackAreaContent(
     onOpenEntryRequestConsumed: () -> Unit,
     addEntryTrackIdRequest: Long? = null,
     onAddEntryTrackRequestConsumed: () -> Unit = {},
-    openPromptOccurrenceIdRequest: Long? = null,
-    onOpenPromptOccurrenceRequestConsumed: () -> Unit = {},
     operationStatus: OperationStatus,
     editorOpen: Boolean = false,
     onEditorRequest: (TrackEditorIntent) -> Unit = {},
-    reviewAutomationsTrackIdRequest: Long? = null,
-    onReviewAutomationsRequestConsumed: () -> Unit = {},
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit,
-    onCreateCustomUnit: CreateCustomUnitAction,
-    onSetGoal: (Long) -> Unit = {},
-    onRequestNotificationPermission: () -> Unit = {},
     selectedTrackState: MutableState<Long?>? = null,
     workspaceDestinationState: MutableState<TrackWorkspaceDestination>? = null,
     destinationState: MutableState<TrackDetailDestination>? = null,
@@ -354,8 +278,6 @@ internal fun TrackAreaContent(
     val activeDestinationState = destinationState ?: localDestinationState
     var destination by activeDestinationState
     var deleteTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var setGoalTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var connectGoalTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
     var importTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
     var exportTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
     val csvImportState by viewModel.csvImportState.collectAsStateWithLifecycle()
@@ -432,27 +354,6 @@ internal fun TrackAreaContent(
             onAddEntryTrackRequestConsumed()
         }
     }
-    LaunchedEffect(openPromptOccurrenceIdRequest, state.triggerOccurrences, state.projections) {
-        val occurrenceId = openPromptOccurrenceIdRequest ?: return@LaunchedEffect
-        val occurrence = state.triggerOccurrences.firstOrNull { it.id == occurrenceId } ?: return@LaunchedEffect
-        val rule = state.triggerRules.firstOrNull { it.id == occurrence.triggerRuleId } ?: return@LaunchedEffect
-        val target = state.track(rule.targetEntityId) ?: return@LaunchedEffect
-        workspaceDestination = TrackWorkspaceDestination.Tracks
-        selectedTrackId = target.track.id
-        viewModel.loadPromptDraft(occurrenceId) { loaded ->
-            onEditorRequest(TrackEditorIntent.Entry(target.track.id, promptOccurrenceId = occurrenceId, prefill = loaded))
-        }
-        onOpenPromptOccurrenceRequestConsumed()
-    }
-    LaunchedEffect(reviewAutomationsTrackIdRequest, state.projections) {
-        val trackId = reviewAutomationsTrackIdRequest ?: return@LaunchedEffect
-        if (state.track(trackId) != null) {
-            workspaceDestination = TrackWorkspaceDestination.Tracks
-            selectedTrackId = trackId
-            destination = TrackDetailDestination.Automations
-            onReviewAutomationsRequestConsumed()
-        }
-    }
     BackHandler(enabled = selected != null && !editorOpen) { selectedTrackId = null }
 
     @Composable fun trackList(masterPane: Boolean) {
@@ -472,16 +373,6 @@ internal fun TrackAreaContent(
             onShowAllAreasForReorder = onShowAllAreasForReorder,
             onSetPinned = viewModel::setPinned,
             onSetArchived = viewModel::setArchived,
-            onOpenPrompt = { occurrenceId ->
-                val occurrence = state.triggerOccurrences.firstOrNull { it.id == occurrenceId }
-                val rule = occurrence?.let { item -> state.triggerRules.firstOrNull { it.id == item.triggerRuleId } }
-                if (rule != null) selectedTrackId = rule.targetEntityId
-                viewModel.loadPromptDraft(occurrenceId) { loaded ->
-                    if (rule != null) onEditorRequest(TrackEditorIntent.Entry(rule.targetEntityId, promptOccurrenceId = occurrenceId, prefill = loaded))
-                }
-            },
-            onRemindPrompt = { viewModel.remindPrompt(it, Instant.now().plus(1, ChronoUnit.HOURS)) },
-            onDismissPrompt = viewModel::dismissPrompt,
             masterPane = masterPane,
             onReorderModeChange = onReorderModeChange,
             reorderDismissRequest = reorderDismissRequest,
@@ -503,19 +394,9 @@ internal fun TrackAreaContent(
             onSetArchived = { viewModel.setArchived(projection.track.id, it) },
             onDuplicate = { viewModel.duplicate(projection.track.id) },
             onDeleteTrack = { deleteTrackId = projection.track.id },
-            onSetGoal = { setGoalTrackId = projection.track.id; onSetGoal(projection.track.id) },
-            onConnectGoal = { connectGoalTrackId = projection.track.id },
-            state = state,
             today = state.currentDate,
             viewModel = viewModel,
             customUnits = customUnits,
-            onOpenPrompt = { occurrenceId ->
-                viewModel.loadPromptDraft(occurrenceId) { loaded ->
-                    onEditorRequest(TrackEditorIntent.Entry(projection.track.id, promptOccurrenceId = occurrenceId, prefill = loaded))
-                }
-            },
-            onRequestNotificationPermission = onRequestNotificationPermission,
-            saving = operationStatus is OperationStatus.Running,
             dialogModifier = dialogModifier,
             onImport = {
                 viewModel.cancelCsvImport()
@@ -541,7 +422,6 @@ internal fun TrackAreaContent(
             label = TrackWorkspaceDestination::label,
             testTagPrefix = "track-workspace-destination",
             barTestTag = "track-workspace-navigation",
-            overflowLabel = "More Track destinations",
         )
         BoxWithConstraints(Modifier.fillMaxSize().weight(1f)) {
             when (workspaceDestination) {
@@ -554,7 +434,7 @@ internal fun TrackAreaContent(
                                 Modifier.fillMaxSize().padding(24.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                WhipEmptyState("Choose a Track", "Select a Track to review Entries, Automations, Insights, and Options.")
+                                WhipEmptyState("Choose a Track", "Select a Track to review Entries, Insights, and Options.")
                             }
                         }
                     }
@@ -600,54 +480,11 @@ internal fun TrackAreaContent(
             onDismissRequest = { deleteTrackId = null },
             title = { Text("Delete ${track.track.name} Permanently?") },
             text = {
-                val progress = state.linkRules.filter { it.sourceType == LinkSourceType.Track && it.sourceEntityId == id }
-                val triggers = state.triggerRules.filter {
-                    it.sourceType == LinkSourceType.Track && it.sourceEntityId == id ||
-                        it.targetType == TriggerTargetType.Track && it.targetEntityId == id
-                }
-                val triggerIds = triggers.mapTo(mutableSetOf(), TriggerRule::id)
-                val prompts = state.triggerOccurrences.count { it.triggerRuleId in triggerIds && it.fulfilledEntryId == null }
-                val contributions = state.contributions.count { contribution -> progress.any { it.id == contribution.linkRuleId } }
-                val goalNames = progress.mapNotNull { rule -> state.goals.firstOrNull { it.id == rule.targetGoalId }?.name }.distinct()
-                Text(buildString {
-                    append("This permanently deletes ${quantityLabel(track.entries.size, "Entry")}, ${quantityLabel(track.fields.size, "Field")}, ${quantityLabel(track.options.size, "Choice option")}, ${quantityLabel(progress.size, "Goal Automation")}, ${quantityLabel(contributions, "Goal contribution")}, ${quantityLabel(triggers.size, "Next-Action Automation")}, and ${quantityLabel(prompts, "pending prompt")}.")
-                    if (goalNames.isNotEmpty()) append(" Affected Goals keep their definitions: ${goalNames.joinToString()}.")
-                    append(" This cannot be undone.")
-                })
+                Text("This permanently deletes ${quantityLabel(track.entries.size, "Entry")}, ${quantityLabel(track.fields.size, "Field")}, and ${quantityLabel(track.options.size, "Choice option")}. This cannot be undone.")
             },
             confirmButton = { WhipTextButton(onClick = { viewModel.deleteTrack(id); deleteTrackId = null; selectedTrackId = null }) { Text("Delete Permanently", color = MaterialTheme.colorScheme.error) } },
             dismissButton = { WhipTextButton(onClick = { deleteTrackId = null }) { Text("Cancel") } },
         )
-    }
-    setGoalTrackId?.let { id ->
-        state.track(id)?.let { projection ->
-            TrackGoalAutomationDialog(
-                projection = projection,
-                customUnits = customUnits,
-                saving = operationStatus is OperationStatus.Running,
-                onCreateCustomUnit = onCreateCustomUnit,
-                today = state.currentDate,
-                onDismiss = { setGoalTrackId = null },
-                onSave = { draft ->
-                    viewModel.createGoalFromTrack(id, draft) { setGoalTrackId = null }
-                },
-            )
-        }
-    }
-    connectGoalTrackId?.let { id ->
-        state.track(id)?.let { projection ->
-            TrackExistingGoalAutomationDialog(
-                projection = projection,
-                goals = projection.compatibleAutomationGoals(state.goals),
-                customUnits = customUnits,
-                saving = operationStatus is OperationStatus.Running,
-                today = state.currentDate,
-                onDismiss = { connectGoalTrackId = null },
-                onSave = { draft, includeHistory ->
-                    viewModel.createProgressAutomation(draft, includeHistory) { connectGoalTrackId = null }
-                },
-            )
-        }
     }
     val importProjection = importTrackId?.let(state::track)
     if (
@@ -990,7 +827,6 @@ private fun TrackWorkspaceInsightsPage(
     onRetryLoading: () -> Unit,
 ) {
     val activeTracks = state.active
-    val activeTrackIds = activeTracks.mapTo(mutableSetOf()) { it.track.id }
     val totalEntries = activeTracks.sumOf { it.entries.size }
     val lastSevenDays = (6L downTo 0L).map { offset -> state.currentDate.minusDays(offset) }
     val recentTracks = activeTracks.mapNotNull { projection ->
@@ -1011,25 +847,13 @@ private fun TrackWorkspaceInsightsPage(
             }
         }
     }
-    val progressRules = state.linkRules.filter { it.sourceType == LinkSourceType.Track && it.sourceEntityId in activeTrackIds }
-    val actionRules = state.triggerRules.filter {
-        it.enabled && it.action != TriggerAction.CheckOffHabit && (
-            it.sourceType == LinkSourceType.Track && it.sourceEntityId in activeTrackIds ||
-                it.targetType == TriggerTargetType.Track && it.targetEntityId in activeTrackIds
-            )
-    }
-    val actionRuleIds = actionRules.mapTo(mutableSetOf(), TriggerRule::id)
-    val pendingPrompts = state.triggerOccurrences.count {
-        it.triggerRuleId in actionRuleIds && it.dismissedAt == null && it.fulfilledEntryId == null
-    }
-
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().widthIn(max = 1040.dp).align(Alignment.TopCenter).testTag("track-workspace-insights-list"),
             contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { WhipPageHeader("Insights", "Patterns and automation health across visible Tracks.") }
+            item { WhipPageHeader("Insights", "Patterns across visible Tracks.") }
             if (state.loading || state.errorMessage != null) item {
                 DomainLoadContent("Track Insights", PaddingValues(), state.errorMessage, onRetryLoading)
             }
@@ -1052,16 +876,6 @@ private fun TrackWorkspaceInsightsPage(
                             date.format(DateTimeFormatter.ofPattern("EEE, MMM d")) to
                                 activeTracks.sumOf { track -> track.entries.count { it.entry.entryDate == date } }.toString()
                         },
-                    )
-                }
-                item {
-                    InsightCard(
-                        "Automation Status",
-                        listOf(
-                            "Goal Automations" to "${progressRules.count(LinkRule::enabled)} of ${progressRules.size} enabled",
-                            "Next-Action Automations" to "${actionRules.count(TriggerRule::enabled)} of ${actionRules.size} enabled",
-                            "Pending Entries" to pendingPrompts.toString(),
-                        ),
                     )
                 }
                 if (recentTracks.isNotEmpty()) {
@@ -1110,438 +924,6 @@ private fun TrackWorkspaceInsightsPage(
 }
 
 @Composable
-private fun TrackGoalAutomationDialog(
-    projection: TrackProjection,
-    customUnits: List<UnitDefinition>,
-    saving: Boolean,
-    onCreateCustomUnit: CreateCustomUnitAction,
-    today: LocalDate,
-    onDismiss: () -> Unit,
-    onSave: (TrackGoalAutomationDraft) -> Unit,
-) {
-    var aggregation by rememberSaveable(projection.track.id) { mutableStateOf(TrackAggregation.CountEntries) }
-    var sourceFieldId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
-    var conditionMode by rememberSaveable(projection.track.id) { mutableStateOf(TrackConditionMode.MatchAll) }
-    var conditions by rememberSaveable(projection.track.id, stateSaver = trackConditionListSaver) { mutableStateOf<List<TrackCondition>>(emptyList()) }
-    var addingCondition by rememberSaveable(projection.track.id) { mutableStateOf(false) }
-    var goalName by rememberSaveable(projection.track.id) { mutableStateOf("") }
-    var goalType by rememberSaveable(projection.track.id) { mutableStateOf(GoalType.ReachValue) }
-    var target by rememberSaveable(projection.track.id) { mutableStateOf("") }
-    var targetMax by rememberSaveable(projection.track.id) { mutableStateOf("") }
-    var fixedAmount by rememberSaveable(projection.track.id) { mutableStateOf("1") }
-    var fixedDimension by rememberSaveable(projection.track.id) { mutableStateOf(UnitDimension.Count) }
-    var fixedUnitId by rememberSaveable(projection.track.id) { mutableStateOf("count") }
-    var history by rememberSaveable(projection.track.id) { mutableStateOf(TrackGoalHistory.NewEntriesOnly) }
-    var historyDate by rememberSaveable(projection.track.id) { mutableStateOf(today) }
-    var historyDatePicker by rememberSaveable(projection.track.id) { mutableStateOf(false) }
-    var deadline by rememberSaveable(projection.track.id) { mutableStateOf<LocalDate?>(null) }
-    var deadlinePicker by rememberSaveable(projection.track.id) { mutableStateOf(false) }
-    var consistencyPeriod by rememberSaveable(projection.track.id) { mutableStateOf(GoalConsistencyPeriod.Week) }
-    var consistencyRequiredPeriods by rememberSaveable(projection.track.id) { mutableStateOf("4") }
-    val numericFields = projection.fields.filter { it.type in setOf(TrackFieldType.Number, TrackFieldType.Scale) }
-    val needsField = aggregation.needsTrackNumberField()
-    val selectedField = numericFields.firstOrNull { it.id == sourceFieldId } ?: numericFields.firstOrNull()
-    val behaviors = when (aggregation) {
-        TrackAggregation.CountEntries, TrackAggregation.CountMatchingEntries -> listOf(GoalType.ReachValue, GoalType.AccumulateTotal, GoalType.Consistency)
-        TrackAggregation.FixedAmount -> listOf(GoalType.ReachValue, GoalType.AccumulateTotal)
-        TrackAggregation.Sum -> listOf(GoalType.AccumulateTotal)
-        TrackAggregation.Average -> listOf(GoalType.MeetAverage)
-        TrackAggregation.Latest -> listOf(GoalType.ReachValue, GoalType.ReduceValue, GoalType.MaintainRange, GoalType.OpenEndedTrend)
-        TrackAggregation.Minimum, TrackAggregation.Maximum -> listOf(GoalType.OpenEndedTrend)
-    }
-    LaunchedEffect(aggregation) {
-        if (goalType !in behaviors) goalType = behaviors.first()
-        if (needsField && sourceFieldId == null) sourceFieldId = numericFields.firstOrNull()?.id
-    }
-    val retroactiveFrom = when (history) {
-        TrackGoalHistory.NewEntriesOnly -> null
-        TrackGoalHistory.SinceGoalStart -> today
-        TrackGoalHistory.SinceDate -> historyDate
-        TrackGoalHistory.AllHistory -> projection.entries.minOfOrNull { it.entry.entryDate } ?: today
-    }
-    val previewProjection = projection.copy(
-        entries = retroactiveFrom?.let { since -> projection.entries.filter { !it.entry.entryDate.isBefore(since) } }.orEmpty(),
-    )
-    val preview = previewProjection.aggregate(
-        aggregation = aggregation,
-        fieldUuid = selectedField?.uuid,
-        conditions = conditions,
-        conditionMode = conditionMode,
-        fixedCanonicalValue = fixedAmount.toWhipDoubleOrNull(),
-    )
-    val matchingPreviewCount = previewProjection.matchingEntries(conditions, conditionMode).size
-    val conditionSkippedCount = previewProjection.entries.size - matchingPreviewCount
-    val blankSourceCount = if (needsField) matchingPreviewCount - preview.eligibleEntryCount else 0
-    val previewValueText = preview.value?.let { value ->
-        when {
-            aggregation == TrackAggregation.FixedAmount -> {
-                val unit = (BuiltInUnits.all + customUnits).firstOrNull { it.id == fixedUnitId }
-                value.formatCompact() + unit?.symbol?.takeIf(String::isNotBlank)?.let { " $it" }.orEmpty()
-            }
-            selectedField?.type == TrackFieldType.Number -> {
-                val unit = (BuiltInUnits.all + customUnits).firstOrNull { it.id == selectedField.unitId }
-                (unit?.fromCanonical(value) ?: value).formatForField(selectedField.precision) + unit?.symbol?.takeIf(String::isNotBlank)?.let { " $it" }.orEmpty()
-            }
-            aggregation in setOf(TrackAggregation.CountEntries, TrackAggregation.CountMatchingEntries) -> "${value.formatCompact()} Entries"
-            else -> value.formatCompact()
-        }
-    }
-    val requiresTarget = goalType != GoalType.OpenEndedTrend
-    val targetValid = !requiresTarget || target.toWhipDoubleOrNull()?.let { value ->
-        goalType != GoalType.Consistency || value > 0.0
-    } == true
-    val rangeValid = goalType != GoalType.MaintainRange || targetMax.toWhipDoubleOrNull()?.let { max ->
-        target.toWhipDoubleOrNull()?.let { it <= max }
-    } == true
-    val consistencyValid = goalType != GoalType.Consistency || consistencyRequiredPeriods.toIntOrNull()?.let { it > 0 } == true
-    val valid = goalName.isNotBlank() && (!needsField || selectedField != null) && targetValid && rangeValid && consistencyValid &&
-        (aggregation != TrackAggregation.FixedAmount || fixedAmount.toWhipDoubleOrNull() != null)
-    PaneAwareAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Create a Goal From Entries") },
-        text = {
-            LazyColumn(
-                modifier = Modifier.testTag("track-new-goal-content"),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                item { Text("Choose how Entries in ${projection.track.name} should change the new Goal. Every contribution remains separately auditable.") }
-                item {
-                    SelectionField(
-                        "How Entries Add Progress",
-                        userSelectableTrackAutomationMeasures,
-                        aggregation,
-                        TrackAggregation::automationLabel,
-                        { aggregation = it },
-                        modifier = Modifier.testTag("track-goal-measure"),
-                    )
-                }
-                item { Text(aggregation.automationExplanation(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                if (needsField) item {
-                    SelectionField("Number or Scale Field", numericFields, selectedField, { it?.name ?: "No Compatible Fields" }, { sourceFieldId = it?.id })
-                }
-                if (aggregation == TrackAggregation.FixedAmount) {
-                    item { TrackNumberField(fixedAmount, { fixedAmount = it }, "Amount per Matching Entry") }
-                    item { SelectionField("Measurement Type", UnitDimension.entries, fixedDimension, UnitDimension::uiLabel, { selected ->
-                        fixedDimension = selected
-                        fixedUnitId = (BuiltInUnits.all + customUnits).firstOrNull { it.dimension == selected && !it.archived }?.id.orEmpty()
-                    }) }
-                    item { UnitSelectionField(BuiltInUnits.all + customUnits, fixedUnitId, fixedDimension, { fixedUnitId = it }, onCreateCustomUnit, label = "Unit") }
-                }
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Include Entries Where", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        if (conditions.isEmpty()) Text("All Entries", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        conditions.forEachIndexed { index, condition ->
-                            val fieldName = projection.conditionFieldName(condition)
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Text("$fieldName ${condition.operator.uiLabel()} ${condition.summaryValue(projection, BuiltInUnits.all + customUnits)}".trim(), Modifier.weight(1f))
-                                WhipTextButton(onClick = { conditions = conditions.toMutableList().also { it.removeAt(index) } }) { Text("Remove") }
-                            }
-                        }
-                        if (conditions.size > 1) SegmentedChoiceBar(conditionMode, TrackConditionMode.entries, { conditionMode = it }, { if (it == TrackConditionMode.MatchAll) "Match All" else "Match Any" }, Modifier.fillMaxWidth())
-                        WhipOutlinedButton(onClick = { addingCondition = true }, modifier = Modifier.fillMaxWidth()) { Text("Add Condition") }
-                    }
-                }
-                item { OutlinedTextField(goalName, { goalName = it }, label = { Text("Goal Name") }, modifier = Modifier.fillMaxWidth().testTag("track-goal-name")) }
-                item { SelectionField("Goal Behavior", behaviors, goalType, GoalType::trackGoalLabel, { goalType = it }) }
-                if (requiresTarget) item { TrackNumberField(target, { target = it }, when (goalType) {
-                    GoalType.MaintainRange -> "Minimum"
-                    GoalType.Consistency -> "Entries per Period"
-                    else -> "Target"
-                }, Modifier.testTag("track-goal-target")) }
-                if (goalType == GoalType.MaintainRange) item { TrackNumberField(targetMax, { targetMax = it }, "Maximum") }
-                if (goalType == GoalType.Consistency) item {
-                    ResponsiveFieldPair(
-                        first = { field -> Column(field) { SelectionField("Period", GoalConsistencyPeriod.entries, consistencyPeriod, { it.name }, { consistencyPeriod = it }) } },
-                        second = { field -> OutlinedTextField(consistencyRequiredPeriods, { consistencyRequiredPeriods = it.filter(Char::isDigit) }, label = { Text("Number of Periods") }, singleLine = true, modifier = field) },
-                    )
-                }
-                item { SelectionField("History", TrackGoalHistory.entries, history, TrackGoalHistory::label, { history = it }) }
-                if (history == TrackGoalHistory.SinceDate) item {
-                    WhipOutlinedButton(onClick = { historyDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Since ${historyDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
-                    }
-                }
-                item {
-                    WhipOutlinedButton(onClick = { deadlinePicker = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(deadline?.let { "Deadline ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" } ?: "Add Optional Deadline")
-                    }
-                    if (deadline != null) WhipTextButton(onClick = { deadline = null }) { Text("Remove Deadline") }
-                }
-                item {
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text("Preview", fontWeight = FontWeight.Bold)
-                            Text("${previewProjection.entries.size} scanned · ${preview.eligibleEntryCount} eligible · ${preview.skippedEntryCount} skipped")
-                            if (conditionSkippedCount > 0) Text("Did not match conditions · $conditionSkippedCount", style = MaterialTheme.typography.bodySmall)
-                            if (blankSourceCount > 0) Text("Blank source Field · $blankSourceCount", style = MaterialTheme.typography.bodySmall)
-                            Text(previewValueText?.let { "Current result $it" } ?: "No numeric result yet")
-                            retroactiveFrom?.takeIf { it.isBefore(today) }?.let { start ->
-                                Text(
-                                    "The new Goal will start ${start.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} so every included contribution counts toward its current progress.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Text("Creating this adds one Goal and one Goal Automation.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = { WhipTextButton(enabled = valid && !saving, onClick = {
-            onSave(
-                TrackGoalAutomationDraft(
-                    goalName = goalName,
-                    goalType = goalType,
-                    aggregation = aggregation,
-                    sourceFieldId = selectedField?.id,
-                    conditionMode = conditionMode,
-                    conditions = conditions,
-                    target = target.toWhipDoubleOrNull(),
-                    targetMax = targetMax.toWhipDoubleOrNull(),
-                    fixedAmount = fixedAmount.toWhipDoubleOrNull(),
-                    fixedDimension = fixedDimension,
-                    fixedUnitId = fixedUnitId,
-                    retroactiveFrom = retroactiveFrom,
-                    deadline = deadline,
-                    consistencyPeriod = consistencyPeriod,
-                    consistencyRequiredPeriods = consistencyRequiredPeriods.toIntOrNull().takeIf { goalType == GoalType.Consistency },
-                ),
-            )
-        }, modifier = Modifier.testTag("track-goal-confirm")) { Text(if (saving) "Creating…" else "Create Goal and Automation") } },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
-    if (addingCondition) TrackConditionEditor(projection, { addingCondition = false }, today, BuiltInUnits.all + customUnits) { conditions = conditions + it; addingCondition = false }
-    if (historyDatePicker) WhipDatePickerDialog(historyDate, { historyDatePicker = false }, { historyDate = it; historyDatePicker = false })
-    if (deadlinePicker) WhipDatePickerDialog(deadline ?: today, { deadlinePicker = false }, { deadline = it; deadlinePicker = false })
-}
-
-@Composable
-private fun TrackExistingGoalAutomationDialog(
-    projection: TrackProjection,
-    goals: List<Goal>,
-    customUnits: List<UnitDefinition>,
-    saving: Boolean,
-    today: LocalDate,
-    onDismiss: () -> Unit,
-    onSave: (LinkRuleDraft, Boolean) -> Unit,
-) {
-    var goalId by rememberSaveable(projection.track.id) { mutableStateOf(goals.firstOrNull()?.id) }
-    val selectedGoal = goals.firstOrNull { it.id == goalId } ?: goals.firstOrNull()
-    var aggregation by rememberSaveable(projection.track.id) {
-        mutableStateOf(selectedGoal?.compatibleTrackAutomationMeasures()?.firstOrNull() ?: TrackAggregation.CountEntries)
-    }
-    var sourceFieldId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
-    var fixedValue by rememberSaveable(projection.track.id) { mutableStateOf("1") }
-    var conditionMode by rememberSaveable(projection.track.id) { mutableStateOf(TrackConditionMode.MatchAll) }
-    var conditions by rememberSaveable(projection.track.id, stateSaver = trackConditionListSaver) { mutableStateOf<List<TrackCondition>>(emptyList()) }
-    var addingCondition by rememberSaveable(projection.track.id) { mutableStateOf(false) }
-    var history by rememberSaveable(projection.track.id) { mutableStateOf(TrackGoalHistory.NewEntriesOnly) }
-    var historyDate by rememberSaveable(projection.track.id) { mutableStateOf(today) }
-    var pickingHistoryDate by rememberSaveable(projection.track.id) { mutableStateOf(false) }
-    val numericFields = projection.fields.filter { field ->
-        field.type == TrackFieldType.Scale && selectedGoal?.dimension == UnitDimension.Unitless ||
-            field.type == TrackFieldType.Number && field.dimension == selectedGoal?.dimension
-    }
-    val compatibleMeasures = selectedGoal?.compatibleTrackAutomationMeasures().orEmpty().filter { measure ->
-        !measure.needsTrackNumberField() || numericFields.isNotEmpty()
-    }
-    LaunchedEffect(selectedGoal?.id, compatibleMeasures) {
-        if (aggregation !in compatibleMeasures && compatibleMeasures.isNotEmpty()) aggregation = compatibleMeasures.first()
-        if (sourceFieldId !in numericFields.map(TrackField::id)) sourceFieldId = numericFields.firstOrNull()?.id
-    }
-    val needsField = aggregation.needsTrackNumberField()
-    val selectedField = numericFields.firstOrNull { it.id == sourceFieldId } ?: numericFields.firstOrNull()
-    val requiredGoalAggregation = selectedGoal?.requiredAggregationForTrack(aggregation)
-    val historyStart = when (history) {
-        TrackGoalHistory.NewEntriesOnly -> null
-        TrackGoalHistory.SinceGoalStart -> selectedGoal?.startDate ?: today
-        TrackGoalHistory.SinceDate -> historyDate
-        TrackGoalHistory.AllHistory -> projection.entries.minOfOrNull { it.entry.entryDate } ?: today
-    }
-    val previewEntries = historyStart?.let { since -> projection.entries.filter { !it.entry.entryDate.isBefore(since) } }.orEmpty()
-    val fixedCanonical = fixedValue.toWhipDoubleOrNull()?.let { value ->
-        val unit = (BuiltInUnits.all + customUnits).firstOrNull { it.id == selectedGoal?.unitId }
-        unit?.toCanonical(value) ?: value
-    }
-    val preview = projection.copy(entries = previewEntries).aggregate(
-        aggregation = aggregation,
-        fieldUuid = selectedField?.uuid,
-        conditions = conditions,
-        conditionMode = conditionMode,
-        fixedCanonicalValue = fixedCanonical,
-    )
-    val valid = selectedGoal != null && compatibleMeasures.isNotEmpty() &&
-        (!needsField || selectedField != null) &&
-        (aggregation != TrackAggregation.FixedAmount || fixedValue.toWhipDoubleOrNull() != null)
-    PaneAwareAlertDialog(
-        onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("Connect Entries to a Goal") },
-        text = {
-            LazyColumn(
-                modifier = Modifier.testTag("track-existing-goal-content"),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                item { Text("Each eligible Entry becomes one explainable contribution. Editing or deleting an Entry recalculates the Goal automatically.") }
-                if (selectedGoal == null) {
-                    item { Text("No active compatible Goals are available. Create a Goal first, then return here.") }
-                } else {
-                    item {
-                        SelectionField(
-                            "Goal",
-                            goals,
-                            selectedGoal,
-                            Goal::name,
-                            { goalId = it.id },
-                            modifier = Modifier.testTag("track-existing-goal"),
-                        )
-                    }
-                    item {
-                        SelectionField(
-                            "How Entries Add Progress",
-                            compatibleMeasures,
-                            aggregation,
-                            TrackAggregation::automationLabel,
-                            { aggregation = it },
-                            modifier = Modifier.testTag("track-existing-goal-measure"),
-                        )
-                    }
-                    item { Text(aggregation.automationExplanation(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    if (requiredGoalAggregation != selectedGoal.aggregation) item {
-                        Card(Modifier.fillMaxWidth()) {
-                            Text(
-                                "${selectedGoal.name} currently calculates its progress as ${selectedGoal.aggregation.automationCalculationLabel()}. " +
-                                    "This Automation will change it to ${requireNotNull(requiredGoalAggregation).automationCalculationLabel()} so the result matches your choice.",
-                                modifier = Modifier.padding(12.dp),
-                            )
-                        }
-                    }
-                    if (needsField) item {
-                        SelectionField("Number or Scale Field", numericFields, selectedField, { it?.name ?: "No Compatible Fields" }, { sourceFieldId = it?.id })
-                    }
-                    if (aggregation == TrackAggregation.FixedAmount) item {
-                        TrackNumberField(fixedValue, { fixedValue = it }, "Amount per Entry (${selectedGoal.unitId})")
-                    }
-                    item {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Only Include Entries Where", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            if (conditions.isEmpty()) Text("All Entries are eligible.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            conditions.forEachIndexed { index, condition ->
-                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        "${projection.conditionFieldName(condition)} ${condition.operator.uiLabel()} ${condition.summaryValue(projection, BuiltInUnits.all + customUnits)}".trim(),
-                                        Modifier.weight(1f),
-                                    )
-                                    WhipTextButton(onClick = { conditions = conditions.toMutableList().also { it.removeAt(index) } }) { Text("Remove") }
-                                }
-                            }
-                            if (conditions.size > 1) SegmentedChoiceBar(
-                                conditionMode,
-                                TrackConditionMode.entries,
-                                { conditionMode = it },
-                                { if (it == TrackConditionMode.MatchAll) "Match All" else "Match Any" },
-                                Modifier.fillMaxWidth(),
-                            )
-                            WhipOutlinedButton(onClick = { addingCondition = true }, modifier = Modifier.fillMaxWidth()) { Text("Add Condition") }
-                        }
-                    }
-                    item { SelectionField("Use Which Entries?", TrackGoalHistory.entries, history, TrackGoalHistory::label, { history = it }) }
-                    if (history == TrackGoalHistory.SinceDate) item {
-                        WhipOutlinedButton(onClick = { pickingHistoryDate = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Since ${historyDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
-                        }
-                    }
-                    historyStart?.takeIf { it.isBefore(selectedGoal.startDate) }?.let { alignedStart ->
-                        item {
-                            Card(Modifier.fillMaxWidth()) {
-                                Text(
-                                    "To make every included contribution count, this will move ${selectedGoal.name}'s start from " +
-                                        "${selectedGoal.startDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} to " +
-                                        "${alignedStart.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}.",
-                                    modifier = Modifier.padding(12.dp),
-                                )
-                            }
-                        }
-                    }
-                    item {
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                Text("Cause and Effect Preview", fontWeight = FontWeight.Bold)
-                                if (history == TrackGoalHistory.NewEntriesOnly) {
-                                    Text(
-                                        "Existing Entries stay unchanged. " +
-                                            aggregation.automationExplanation().replaceFirst("Each eligible Entry", "Each new eligible Entry"),
-                                    )
-                                } else {
-                                    Text("${previewEntries.size} scanned · ${preview.eligibleEntryCount} eligible · ${preview.skippedEntryCount} skipped")
-                                    Text("Current Goal result from these Entries: ${preview.value?.formatCompact() ?: "No value yet"}")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            WhipTextButton(
-                enabled = valid && !saving,
-                modifier = Modifier.testTag("track-existing-goal-confirm"),
-                onClick = {
-                    val goal = requireNotNull(selectedGoal)
-                    onSave(
-                        LinkRuleDraft(
-                            name = "${projection.track.name} → ${goal.name}",
-                            sourceType = LinkSourceType.Track,
-                            sourceEntityId = projection.track.id,
-                            sourceMetric = aggregation.progressSourceMetric(),
-                            targetGoalId = goal.id,
-                            valueMode = if (aggregation == TrackAggregation.FixedAmount) LinkValueMode.FixedValue else LinkValueMode.SourceValue,
-                            fixedValue = fixedValue.toWhipDoubleOrNull(),
-                            retroactiveFrom = historyStart,
-                            trackAggregation = aggregation,
-                            sourceFieldId = selectedField?.id.takeIf { needsField },
-                            conditionMode = conditionMode,
-                            conditions = conditions,
-                        ),
-                        history != TrackGoalHistory.NewEntriesOnly,
-                    )
-                },
-            ) { Text(if (saving) "Connecting…" else "Connect Goal") }
-        },
-        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
-    )
-    if (addingCondition) TrackConditionEditor(
-        projection,
-        { addingCondition = false },
-        today,
-        BuiltInUnits.all + customUnits,
-    ) { conditions = conditions + it; addingCondition = false }
-    if (pickingHistoryDate) WhipDatePickerDialog(
-        historyDate,
-        { pickingHistoryDate = false },
-        { historyDate = it; pickingHistoryDate = false },
-    )
-}
-
-private fun GoalType.trackGoalLabel(): String = when (this) {
-    GoalType.ReachValue -> "Reach a Target"
-    GoalType.ReduceValue -> "Reduce a Value"
-    GoalType.AccumulateTotal -> "Build a Total"
-    GoalType.MaintainRange -> "Stay in a Range"
-    GoalType.MeetAverage -> "Meet an Average"
-    GoalType.OpenEndedTrend -> "Observe a Trend"
-    GoalType.Consistency -> "Stay Consistent"
-    GoalType.WeightedMilestones -> "Finish Milestones"
-    GoalType.ElapsedSince -> "Count Time Since"
-}
-
-@Composable
-private fun TrackNumberField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier) {
-    OutlinedTextField(value, onValueChange, label = { Text(label) }, singleLine = true, modifier = modifier.fillMaxWidth())
-}
-
-@Composable
 private fun AllTracksPage(
     state: TrackUiState,
     innerPadding: PaddingValues,
@@ -1558,9 +940,6 @@ private fun AllTracksPage(
     onShowAllAreasForReorder: () -> Unit,
     onSetPinned: (Collection<Long>, Boolean) -> Unit,
     onSetArchived: (Collection<Long>, Boolean) -> Unit,
-    onOpenPrompt: (Long) -> Unit,
-    onRemindPrompt: (Long) -> Unit,
-    onDismissPrompt: (Long) -> Unit,
     masterPane: Boolean,
     onReorderModeChange: (Boolean) -> Unit = {},
     reorderDismissRequest: Int = 0,
@@ -1590,23 +969,6 @@ private fun AllTracksPage(
     LaunchedEffect(query, reorderEnabled, showArchived) {
         if (query.isNotBlank() || !reorderEnabled || showArchived) reordering = false
     }
-    val visibleTrackIds = source.mapTo(mutableSetOf()) { it.track.id }
-    val captureRules = state.triggerRules.filter {
-        it.enabled && it.targetType == TriggerTargetType.Track && it.targetEntityId in visibleTrackIds &&
-            it.action == TriggerAction.PromptTrackEntry
-    }
-    val captureRuleIds = captureRules.mapTo(mutableSetOf(), TriggerRule::id)
-    var now by remember { mutableStateOf(Instant.now()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            now = Instant.now()
-            kotlinx.coroutines.delay(1_000)
-        }
-    }
-    val readyPrompts = state.triggerOccurrences.filter { occurrence ->
-        occurrence.triggerRuleId in captureRuleIds && occurrence.dismissedAt == null && occurrence.fulfilledEntryId == null &&
-            !(occurrence.remindAt ?: occurrence.availableAt).isAfter(now)
-    }
     fun moveWithin(group: List<TrackProjection>, index: Int, delta: Int) {
         val moved = moveListItem(group, index, delta)
         if (moved == group) return
@@ -1627,16 +989,25 @@ private fun AllTracksPage(
         item {
             WhipPageHeader(
                 title = if (showArchived) "Archived Tracks" else "Tracks",
-                supportingText = "Structured logs that can support actions and goals.",
+                supportingText = "Structured logs for facts you want to record and compare.",
             ) {
                 Text(
                     quantityLabel(shown.size, "Track"),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (!reordering) Box {
-                    WhipPageIconAction(Icons.Outlined.MoreVert, "More Track Options", { moreOpen = true })
-                    DropdownMenu(moreOpen, { moreOpen = false }) {
+                if (!reordering) {
+                    val hasAdditionalActions =
+                        (!showArchived && (state.active.size > 1 || query.isNotBlank() || !reorderEnabled)) ||
+                            shown.isNotEmpty()
+                    if (!hasAdditionalActions) {
+                        WhipTextButton(onClick = {
+                            reordering = false
+                            onShowArchivedChange(!showArchived)
+                        }) { Text(if (showArchived) "Active" else "Archived") }
+                    } else Box {
+                        WhipPageIconAction(Icons.Outlined.MoreVert, "More Track Options", { moreOpen = true })
+                        DropdownMenu(moreOpen, { moreOpen = false }) {
                         WhipMenuItem(
                             label = if (showArchived) "Show Active Tracks" else "Show Archived Tracks",
                             onClick = { reordering = false; onShowArchivedChange(!showArchived); moreOpen = false },
@@ -1666,6 +1037,7 @@ private fun AllTracksPage(
                                 moreOpen = false
                             },
                         )
+                        }
                     }
                 }
             }
@@ -1706,18 +1078,6 @@ private fun AllTracksPage(
                 }
             }
         }
-        if (!reordering && !showArchived && readyPrompts.isNotEmpty()) {
-            item { Text("Pending Entries", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
-            items(readyPrompts, key = { "all-track-prompt-${it.id}" }) { occurrence ->
-                TrackPromptCard(
-                    occurrence,
-                    captureRules.firstOrNull { it.id == occurrence.triggerRuleId },
-                    { onOpenPrompt(occurrence.id) },
-                    { onRemindPrompt(occurrence.id) },
-                    { onDismissPrompt(occurrence.id) },
-                )
-            }
-        }
         if (state.loading || state.errorMessage != null) item {
             DomainLoadContent("Tracks", PaddingValues(), state.errorMessage, onRetryLoading)
         }
@@ -1731,7 +1091,7 @@ private fun AllTracksPage(
                 supportingText = when {
                     query.isNotBlank() -> "Try a different name, tag, or description."
                     showArchived -> "Archived Tracks appear here and can be restored."
-                    else -> "Create a reusable log for anything you want to record, compare, or connect to a Goal."
+                    else -> "Create a reusable log for anything you want to record or compare."
                 },
                 modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
                 primaryActionLabel = "Create First Track".takeUnless { showArchived || query.isNotBlank() },
@@ -2041,37 +1401,13 @@ private fun TrackDetailPage(
     onSetArchived: (Boolean) -> Unit,
     onDuplicate: () -> Unit,
     onDeleteTrack: () -> Unit,
-    onSetGoal: () -> Unit,
-    onConnectGoal: () -> Unit,
     onExport: () -> Unit,
     onImport: () -> Unit,
-    state: TrackUiState,
     today: LocalDate,
     viewModel: TrackViewModel,
     customUnits: List<UnitDefinition>,
-    onOpenPrompt: (Long) -> Unit,
-    onRequestNotificationPermission: () -> Unit,
-    saving: Boolean,
     dialogModifier: Modifier,
 ) {
-    val captureRules = state.triggerRules.filter {
-        it.enabled && it.targetType == TriggerTargetType.Track && it.targetEntityId == projection.track.id &&
-            it.action == TriggerAction.PromptTrackEntry
-    }
-    val followUpRules = state.triggerRules.filter { it.sourceType == LinkSourceType.Track && it.sourceEntityId == projection.track.id }
-    val progressRules = state.linkRules.filter { it.sourceType == LinkSourceType.Track && it.sourceEntityId == projection.track.id }
-    val captureRuleIds = captureRules.mapTo(mutableSetOf(), TriggerRule::id)
-    var now by remember { mutableStateOf(Instant.now()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            now = Instant.now()
-            kotlinx.coroutines.delay(1_000)
-        }
-    }
-    val pending = state.triggerOccurrences.filter { occurrence ->
-        occurrence.triggerRuleId in captureRuleIds && occurrence.dismissedAt == null && occurrence.fulfilledEntryId == null &&
-            !(occurrence.remindAt ?: occurrence.availableAt).isAfter(now)
-    }
     Column(Modifier.fillMaxSize().padding(innerPadding)) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val constrainedHeader = maxWidth < 280.dp
@@ -2104,8 +1440,6 @@ private fun TrackDetailPage(
         DestinationTabBar(
             selected = destination,
             destinations = TrackDetailDestination.entries,
-            primaryDestinations = listOf(TrackDetailDestination.Entries, TrackDetailDestination.Automations, TrackDetailDestination.Insights),
-            overflowLabel = "More Track destinations",
             onSelect = onDestinationChange,
             label = TrackDetailDestination::label,
             compactLabel = TrackDetailDestination::label,
@@ -2120,32 +1454,11 @@ private fun TrackDetailPage(
                 onAddEntry,
                 onEditEntry,
                 onDeleteEntry,
-                pending,
-                captureRules,
-                onOpenPrompt,
-                { id -> viewModel.remindPrompt(id, Instant.now().plus(1, ChronoUnit.HOURS)) },
-                viewModel::dismissPrompt,
                 { query -> viewModel.searchEntryIds(projection.track.id, query) },
                 { offset, limit -> viewModel.entryPage(projection.track.id, offset, limit) },
                 dialogModifier,
             )
             TrackDetailDestination.Insights -> TrackInsightsPage(projection, customUnits, today, dialogModifier)
-            TrackDetailDestination.Automations -> TrackAutomationsOverview(
-                projection,
-                state,
-                captureRules,
-                followUpRules,
-                progressRules,
-                pending,
-                customUnits,
-                onSetGoal,
-                onConnectGoal,
-                viewModel,
-                onOpenPrompt,
-                onRequestNotificationPermission,
-                saving,
-                today,
-            )
             TrackDetailDestination.Options -> TrackOptionsPage(
                 projection,
                 onEditTrack,
@@ -2168,11 +1481,6 @@ private fun TrackEntriesPage(
     onAddEntry: () -> Unit,
     onEditEntry: (Long) -> Unit,
     onDeleteEntry: (Long) -> Unit,
-    pendingPrompts: List<TriggerOccurrence> = emptyList(),
-    captureRules: List<TriggerRule> = emptyList(),
-    onOpenPrompt: (Long) -> Unit = {},
-    onRemindPrompt: (Long) -> Unit = {},
-    onDismissPrompt: (Long) -> Unit = {},
     searchEntryIds: suspend (String) -> Set<Long> = { emptySet() },
     loadEntryPage: suspend (Int, Int) -> TrackEntryPage,
     dialogModifier: Modifier = Modifier,
@@ -2229,18 +1537,6 @@ private fun TrackEntriesPage(
                 supportingText = "History remains available. Restore this Track from Options before adding or editing Entries.",
                 modifier = Modifier.fillMaxWidth(),
             )
-        }
-        if (pendingPrompts.isNotEmpty()) {
-            item { Text("Ready to Capture", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
-            items(pendingPrompts, key = { "track-prompt-${it.id}" }) { occurrence ->
-                TrackPromptCard(
-                    occurrence,
-                    captureRules.firstOrNull { it.id == occurrence.triggerRuleId },
-                    { onOpenPrompt(occurrence.id) },
-                    { onRemindPrompt(occurrence.id) },
-                    { onDismissPrompt(occurrence.id) },
-                )
-            }
         }
         item {
             Row(
@@ -2398,37 +1694,6 @@ private fun TrackEntriesPage(
 }
 
 private const val TRACK_ENTRY_PAGE_SIZE = 100
-
-@Composable
-private fun TrackPromptCard(
-    occurrence: TriggerOccurrence,
-    rule: TriggerRule?,
-    onAdd: () -> Unit,
-    onRemind: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(rule?.name ?: "Capture Entry", fontWeight = FontWeight.Bold)
-            Text(
-                occurrence.sourceSnapshot.triggerSnapshotExplanation(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                WhipButton(onClick = onAdd) { Text("Add Entry") }
-                WhipTextButton(onClick = onRemind) { Text("Remind in 1 Hour") }
-                WhipTextButton(onClick = onDismiss) { Text("Dismiss") }
-            }
-        }
-    }
-}
-
-private fun String.triggerSnapshotExplanation(): String = runCatching {
-    org.json.JSONObject(this).optString("explanation").ifBlank { this }
-}.getOrDefault(this)
 
 @Composable
 private fun TrackEntryRow(
@@ -2659,702 +1924,6 @@ private fun InsightCard(title: String, lines: List<Pair<String, String>>) {
     }
 }
 
-private enum class TrackAutomationKind { CaptureIntoTrack, FollowUpFromTrack }
-
-@Composable
-private fun TrackAutomationsOverview(
-    projection: TrackProjection,
-    state: TrackUiState,
-    captureRules: List<TriggerRule>,
-    followUpRules: List<TriggerRule>,
-    progressRules: List<LinkRule>,
-    pendingPrompts: List<TriggerOccurrence>,
-    customUnits: List<UnitDefinition>,
-    onSetGoal: () -> Unit,
-    onConnectGoal: () -> Unit,
-    viewModel: TrackViewModel,
-    onOpenPrompt: (Long) -> Unit,
-    onRequestNotificationPermission: () -> Unit,
-    saving: Boolean,
-    today: LocalDate,
-) {
-    var creatingKind by rememberSaveable(projection.track.id) { mutableStateOf<TrackAutomationKind?>(null) }
-    var editingRuleId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
-    var editingProgressRuleId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
-    var removingTriggerRuleId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
-    var removingProgressRuleId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
-    val editingRule = editingRuleId?.let { id -> state.triggerRules.firstOrNull { it.id == id } }
-    val connectableGoals = projection.compatibleAutomationGoals(state.goals)
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, WhipSpacing.screenExpanded),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        item { WhipPageHeader("Automations", "Choose how Entries update Goals or prompt a next action.") }
-        item {
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Goal Progress", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(
-                        "The common setup is simple: each eligible Entry adds 1 toward a Goal. You can optionally use conditions or a Number/Scale Field instead.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    WhipButton(
-                        onClick = onSetGoal,
-                        modifier = Modifier.fillMaxWidth().testTag("track-automation-create-goal"),
-                    ) {
-                        Icon(Icons.Outlined.Insights, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Create a Goal From Entries")
-                    }
-                    WhipOutlinedButton(
-                        enabled = connectableGoals.isNotEmpty(),
-                        onClick = onConnectGoal,
-                        modifier = Modifier.fillMaxWidth().testTag("track-automation-connect-goal"),
-                    ) { Text("Connect Entries to an Existing Goal") }
-                    if (connectableGoals.isEmpty()) Text(
-                        "Create a compatible active or paused Goal, or add a matching Number/Scale Field to this Track.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-        item {
-            ProgressAutomationGroup(
-                rules = progressRules,
-                state = state,
-                projection = projection,
-                onEdit = { editingProgressRuleId = it.id },
-                onToggle = { viewModel.setProgressAutomationEnabled(it.id, !it.enabled) },
-                onDelete = { removingProgressRuleId = it.id },
-            )
-        }
-        if (pendingPrompts.isNotEmpty()) {
-            item { Text("Ready to Capture", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
-            items(pendingPrompts, key = { "automation-prompt-${it.id}" }) { occurrence ->
-                TrackPromptCard(
-                    occurrence,
-                    captureRules.firstOrNull { it.id == occurrence.triggerRuleId },
-                    { onOpenPrompt(occurrence.id) },
-                    { viewModel.remindPrompt(occurrence.id, Instant.now().plus(1, ChronoUnit.HOURS)) },
-                    { viewModel.dismissPrompt(occurrence.id) },
-                )
-            }
-        }
-        item {
-            AutomationGroup(
-                "Prompt a New Entry",
-                "After a Task, Subtask, or Habit event, show a durable prompt to review and add an Entry to this Track.",
-                rules = captureRules,
-                state = state,
-                onAdd = { creatingKind = TrackAutomationKind.CaptureIntoTrack },
-                onEdit = { editingRuleId = it.id },
-                onToggle = { rule -> viewModel.updateTrigger(rule.id, rule.toDraft(enabled = !rule.enabled)) },
-                onDelete = { removingTriggerRuleId = it.id },
-            )
-        }
-        item {
-            AutomationGroup(
-                "Continue After an Entry",
-                "After an Entry matches your conditions, prompt a Task or Habit—or explicitly Check Off a compatible Habit.",
-                rules = followUpRules,
-                state = state,
-                onAdd = { creatingKind = TrackAutomationKind.FollowUpFromTrack },
-                onEdit = { editingRuleId = it.id },
-                onToggle = { rule -> viewModel.updateTrigger(rule.id, rule.toDraft(enabled = !rule.enabled)) },
-                onDelete = { removingTriggerRuleId = it.id },
-            )
-        }
-    }
-    val editorKind = creatingKind ?: editingRule?.let {
-        if (it.targetType == TriggerTargetType.Track) TrackAutomationKind.CaptureIntoTrack else TrackAutomationKind.FollowUpFromTrack
-    }
-    if (editorKind != null) TrackAutomationEditorDialog(
-        kind = editorKind,
-        projection = projection,
-        state = state,
-        customUnits = customUnits,
-        initialRule = editingRule,
-        today = today,
-        onDismiss = { creatingKind = null; editingRuleId = null },
-        onSave = { draft ->
-            if (draft.notificationEnabled) onRequestNotificationPermission()
-            val closeEditor = { creatingKind = null; editingRuleId = null }
-            if (editingRule == null) viewModel.createTrigger(draft, closeEditor)
-            else viewModel.updateTrigger(editingRule.id, draft, closeEditor)
-        },
-        saving = saving,
-    )
-    editingProgressRuleId?.let { id ->
-        progressRules.firstOrNull { it.id == id }?.let { rule ->
-            TrackProgressAutomationEditorDialog(
-                projection = projection,
-                rule = rule,
-                goal = state.goals.firstOrNull { it.id == rule.targetGoalId },
-                customUnits = customUnits,
-                onDismiss = { editingProgressRuleId = null },
-                onSave = { draft -> viewModel.updateProgressAutomation(rule.id, draft) { editingProgressRuleId = null } },
-                saving = saving,
-                today = today,
-            )
-        }
-    }
-    removingTriggerRuleId?.let { ruleId ->
-        val rule = state.triggerRules.firstOrNull { it.id == ruleId }
-        RemoveAutomationConfirmationDialog(
-            automationName = rule?.name ?: "This Automation",
-            onDismiss = { removingTriggerRuleId = null },
-            onConfirm = {
-                viewModel.deleteTrigger(ruleId)
-                removingTriggerRuleId = null
-            },
-        )
-    }
-    removingProgressRuleId?.let { ruleId ->
-        val rule = progressRules.firstOrNull { it.id == ruleId }
-        RemoveAutomationConfirmationDialog(
-            automationName = rule?.name ?: "This Goal Automation",
-            onDismiss = { removingProgressRuleId = null },
-            onConfirm = {
-                viewModel.deleteProgressAutomation(ruleId)
-                removingProgressRuleId = null
-            },
-        )
-    }
-}
-
-@Composable
-private fun ProgressAutomationGroup(
-    rules: List<LinkRule>,
-    state: TrackUiState,
-    projection: TrackProjection,
-    onEdit: (LinkRule) -> Unit,
-    onToggle: (LinkRule) -> Unit,
-    onDelete: (LinkRule) -> Unit,
-) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Goals Using This Track", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text("Goal Automations keep one auditable contribution per eligible Entry.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (rules.isEmpty()) Text("No Goal Automations Yet", style = MaterialTheme.typography.labelLarge)
-            rules.forEach { rule ->
-                HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                val target = state.goals.firstOrNull { it.id == rule.targetGoalId }?.name ?: "Goal"
-                Text("${rule.trackAggregation?.normalizedAutomationMeasure()?.automationLabel() ?: "Count Entries"} contributes to $target.", fontWeight = FontWeight.Medium)
-                Text(if (rule.enabled) "Enabled" else "Paused", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                val inHistory = projection.entries.filter { entry ->
-                    rule.retroactiveFrom?.let { !entry.entry.entryDate.isBefore(it) }
-                        ?: (entry.entry.createdAtMillis >= rule.createdAtMillis)
-                }
-                val matching = projection.copy(entries = inHistory).matchingEntries(rule.conditions, rule.conditionMode)
-                val eligible = if (rule.trackAggregation in setOf(TrackAggregation.Sum, TrackAggregation.Average, TrackAggregation.Latest, TrackAggregation.Minimum, TrackAggregation.Maximum)) {
-                    matching.count { entry -> rule.sourceFieldId?.let { entry.value(it)?.let { value -> value.canonicalNumber != null || value.scaleValue != null } } == true }
-                } else matching.size
-                val contributions = state.contributions.filter { it.linkRuleId == rule.id }
-                val excluded = contributions.count { it.excluded }
-                Text(
-                    "$eligible eligible · ${inHistory.size - eligible} skipped · ${contributions.size} current contribution${if (contributions.size == 1) "" else "s"}${if (excluded > 0) " · $excluded excluded" else ""}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    WhipTextButton(onClick = { onToggle(rule) }) { Text(if (rule.enabled) "Pause" else "Resume") }
-                    WhipTextButton(onClick = { onEdit(rule) }) { Text("Edit") }
-                    WhipTextButton(onClick = { onDelete(rule) }) {
-                        Text("Remove", color = MaterialTheme.colorScheme.error)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TrackProgressAutomationEditorDialog(
-    projection: TrackProjection,
-    rule: LinkRule,
-    goal: Goal?,
-    customUnits: List<UnitDefinition>,
-    onDismiss: () -> Unit,
-    onSave: (LinkRuleDraft) -> Unit,
-    saving: Boolean,
-    today: LocalDate,
-) {
-    var name by rememberSaveable(rule.id) { mutableStateOf(rule.name) }
-    var aggregation by rememberSaveable(rule.id) {
-        mutableStateOf((rule.trackAggregation ?: TrackAggregation.CountEntries).normalizedAutomationMeasure())
-    }
-    var sourceFieldId by rememberSaveable(rule.id) { mutableStateOf(rule.sourceFieldId) }
-    var fixedValue by rememberSaveable(rule.id) { mutableStateOf(rule.fixedValue?.let(::editableNumericValue) ?: "1") }
-    var multiplier by rememberSaveable(rule.id) { mutableStateOf(editableNumericValue(rule.multiplier)) }
-    var offset by rememberSaveable(rule.id) { mutableStateOf(editableNumericValue(rule.offset)) }
-    var conditionMode by rememberSaveable(rule.id) { mutableStateOf(rule.conditionMode) }
-    var conditions by rememberSaveable(rule.id, stateSaver = trackConditionListSaver) { mutableStateOf(rule.conditions) }
-    var addingCondition by rememberSaveable(rule.id) { mutableStateOf(false) }
-    var includeHistory by rememberSaveable(rule.id) { mutableStateOf(rule.retroactiveFrom != null) }
-    var historyDate by rememberSaveable(rule.id) { mutableStateOf(rule.retroactiveFrom ?: goal?.startDate ?: today) }
-    var pickingDate by rememberSaveable(rule.id) { mutableStateOf(false) }
-    var showAdvanced by rememberSaveable(rule.id) {
-        mutableStateOf(rule.multiplier != 1.0 || rule.offset != 0.0)
-    }
-    val compatibleMeasures = goal?.compatibleTrackAutomationMeasures() ?: listOf(aggregation)
-    val needsField = aggregation.needsTrackNumberField()
-    val numericFields = projection.fields.filter { field ->
-        field.type == TrackFieldType.Scale && goal?.dimension == UnitDimension.Unitless ||
-            field.type == TrackFieldType.Number && field.dimension == goal?.dimension
-    }
-    val selectedField = numericFields.firstOrNull { it.id == sourceFieldId } ?: numericFields.firstOrNull()
-    val previewEntries = if (includeHistory) {
-        projection.entries.filter { !it.entry.entryDate.isBefore(historyDate) }
-    } else {
-        projection.entries.filter { it.entry.createdAtMillis >= rule.createdAtMillis }
-    }
-    val preview = projection.copy(entries = previewEntries)
-        .aggregate(aggregation, selectedField?.uuid, conditions, conditionMode, fixedValue.toWhipDoubleOrNull())
-    val valid = name.isNotBlank() && (!needsField || selectedField != null) &&
-        (aggregation != TrackAggregation.FixedAmount || fixedValue.toWhipDoubleOrNull() != null) &&
-        multiplier.toWhipDoubleOrNull() != null && offset.toWhipDoubleOrNull() != null
-    PaneAwareAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Edit Goal Automation") },
-        text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                item { Text("Entries from ${projection.track.name} contribute to ${goal?.name ?: "this Goal"}.") }
-                item { SelectionField("How Entries Add Progress", compatibleMeasures, aggregation, TrackAggregation::automationLabel, { aggregation = it }) }
-                item { Text(aggregation.automationExplanation(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                if (needsField) item { SelectionField("Number or Scale Field", numericFields, selectedField, { it?.name ?: "No Compatible Fields" }, { sourceFieldId = it?.id }) }
-                if (aggregation == TrackAggregation.FixedAmount) item { TrackNumberField(fixedValue, { fixedValue = it }, "Amount per Matching Entry") }
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Include Entries Where", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        if (conditions.isEmpty()) Text("All Entries", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        conditions.forEachIndexed { index, condition ->
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Text("${projection.conditionFieldName(condition)} ${condition.operator.uiLabel()} ${condition.summaryValue(projection, BuiltInUnits.all + customUnits)}".trim(), Modifier.weight(1f))
-                                WhipTextButton(onClick = { conditions = conditions.toMutableList().also { it.removeAt(index) } }) { Text("Remove") }
-                            }
-                        }
-                        if (conditions.size > 1) SegmentedChoiceBar(conditionMode, TrackConditionMode.entries, { conditionMode = it }, { if (it == TrackConditionMode.MatchAll) "Match All" else "Match Any" }, Modifier.fillMaxWidth())
-                        WhipOutlinedButton(onClick = { addingCondition = true }, modifier = Modifier.fillMaxWidth()) { Text("Add Condition") }
-                    }
-                }
-                item { TrackToggleRow("Include Earlier Entries", "Choose the earliest Entry Date included in this Automation.", includeHistory, { includeHistory = it }) }
-                if (includeHistory) item { WhipOutlinedButton(onClick = { pickingDate = true }, modifier = Modifier.fillMaxWidth()) { Text("Since ${historyDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}") } }
-                if (includeHistory && goal != null && historyDate.isBefore(goal.startDate)) item {
-                    Text(
-                        "Saving will move ${goal.name}'s start to ${historyDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} so every included contribution counts.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                item { Text("Preview: ${preview.eligibleEntryCount} eligible · ${preview.skippedEntryCount} skipped · ${preview.value?.let(::editableNumericValue) ?: "no result"}") }
-                item {
-                    DisclosureButton(
-                        label = "Advanced Automation Options",
-                        expanded = showAdvanced,
-                        onClick = { showAdvanced = !showAdvanced },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                if (showAdvanced) {
-                    item { OutlinedTextField(name, { name = it.replace('\n', ' ').replace('\r', ' ').take(100) }, label = { Text("Automation Name") }, supportingText = { Text("${name.length}/100") }, singleLine = true, modifier = Modifier.fillMaxWidth()) }
-                    item { Text("Multiplier and offset are applied after unit conversion. Leave them at 1 and 0 to preserve the source value.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    item { ResponsiveFieldPair(
-                        first = { modifier -> OutlinedTextField(multiplier, { multiplier = it }, label = { Text("Multiplier") }, modifier = modifier) },
-                        second = { modifier -> OutlinedTextField(offset, { offset = it }, label = { Text("Offset") }, modifier = modifier) },
-                    ) }
-                }
-            }
-        },
-        confirmButton = { WhipTextButton(enabled = valid && !saving, onClick = {
-            onSave(
-                LinkRuleDraft(
-                    name = name,
-                    kind = rule.kind,
-                    sourceType = LinkSourceType.Track,
-                    sourceEntityId = projection.track.id,
-                    sourceMetric = aggregation.progressSourceMetric(),
-                    targetGoalId = rule.targetGoalId,
-                    targetMilestoneId = rule.targetMilestoneId,
-                    valueMode = if (aggregation == TrackAggregation.FixedAmount) LinkValueMode.FixedValue else LinkValueMode.SourceValue,
-                    fixedValue = fixedValue.toWhipDoubleOrNull(),
-                    multiplier = requireNotNull(multiplier.toWhipDoubleOrNull()),
-                    offset = requireNotNull(offset.toWhipDoubleOrNull()),
-                    retroactiveFrom = historyDate.takeIf { includeHistory },
-                    enabled = rule.enabled,
-                    trackAggregation = aggregation,
-                    sourceFieldId = selectedField?.id.takeIf { needsField },
-                    conditionMode = conditionMode,
-                    conditions = conditions,
-                ),
-            )
-        }) { Text(if (saving) "Saving…" else "Save Automation") } },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
-    if (addingCondition) TrackConditionEditor(projection, { addingCondition = false }, today, BuiltInUnits.all + customUnits) { conditions = conditions + it; addingCondition = false }
-    if (pickingDate) WhipDatePickerDialog(historyDate, { pickingDate = false }, { historyDate = it; pickingDate = false })
-}
-
-@Composable
-private fun AutomationGroup(
-    title: String,
-    explanation: String,
-    rules: List<TriggerRule>,
-    state: TrackUiState,
-    onAdd: () -> Unit,
-    onEdit: (TriggerRule) -> Unit,
-    onToggle: (TriggerRule) -> Unit,
-    onDelete: (TriggerRule) -> Unit,
-) {
-    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            WhipTextButton(onClick = onAdd) { Text("Add") }
-        }
-        Text(explanation, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (rules.isEmpty()) Text("No Automations Yet", style = MaterialTheme.typography.labelLarge)
-        rules.forEach { rule ->
-            HorizontalDivider(Modifier.padding(vertical = 4.dp))
-            Text(rule.triggerSentence(state), fontWeight = FontWeight.Medium)
-            val staleReason = rule.staleReason(state)
-            if (staleReason != null) {
-                Text(
-                    "$staleReason Choose Edit to repair this Automation, or Remove to delete it.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-            Text(
-                listOfNotNull(
-                    if (rule.enabled) "Enabled" else "Paused",
-                    "${rule.delayMinutes} minute delay",
-                    "Notifications on".takeIf { rule.notificationEnabled },
-                ).joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            val occurrences = state.triggerOccurrences.filter { it.triggerRuleId == rule.id }
-            val fulfilled = occurrences.count { it.fulfilledEntryId != null }
-            val dismissed = occurrences.count { it.dismissedAt != null }
-            val pending = occurrences.size - fulfilled - dismissed
-            Text(
-                if (rule.action == TriggerAction.CheckOffHabit) {
-                    "${occurrences.size} matched source event${if (occurrences.size == 1) "" else "s"} · automatically applied idempotently"
-                } else {
-                    "${occurrences.size} matched source event${if (occurrences.size == 1) "" else "s"} · $pending pending · $fulfilled fulfilled · $dismissed dismissed"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                WhipTextButton(enabled = staleReason == null, onClick = { onToggle(rule) }) { Text(if (rule.enabled) "Pause" else "Resume") }
-                WhipTextButton(onClick = { onEdit(rule) }) { Text("Edit") }
-                WhipTextButton(onClick = { onDelete(rule) }) {
-                    Text("Remove", color = MaterialTheme.colorScheme.error)
-                }
-            }
-        }
-    } }
-}
-
-@Composable
-private fun TrackAutomationEditorDialog(
-    kind: TrackAutomationKind,
-    projection: TrackProjection,
-    state: TrackUiState,
-    customUnits: List<UnitDefinition>,
-    initialRule: TriggerRule?,
-    today: LocalDate,
-    onDismiss: () -> Unit,
-    onSave: (TriggerRuleDraft) -> Unit,
-    saving: Boolean,
-) {
-    val key = "track-automation-${initialRule?.id ?: kind.name}"
-    var name by rememberSaveable(key) { mutableStateOf(initialRule?.name.orEmpty()) }
-    var sourceType by rememberSaveable(key) { mutableStateOf(initialRule?.sourceType?.takeIf { kind == TrackAutomationKind.CaptureIntoTrack } ?: LinkSourceType.Task) }
-    var sourceTaskId by rememberSaveable(key) { mutableStateOf(initialRule?.sourceEntityId?.takeIf { initialRule.sourceType in setOf(LinkSourceType.Task, LinkSourceType.Subtask) } ?: state.sourceTasks.firstOrNull()?.id) }
-    var sourceStepId by rememberSaveable(key) { mutableStateOf(initialRule?.sourceItemId) }
-    var sourceHabitId by rememberSaveable(key) { mutableStateOf(initialRule?.sourceEntityId?.takeIf { initialRule.sourceType == LinkSourceType.Habit } ?: state.sourceHabits.firstOrNull()?.id) }
-    var outcome by rememberSaveable(key) { mutableStateOf(initialRule?.outcome ?: TriggerOutcome.Completed) }
-    var targetType by rememberSaveable(key) { mutableStateOf(initialRule?.targetType?.takeIf { kind == TrackAutomationKind.FollowUpFromTrack } ?: TriggerTargetType.Task) }
-    var targetTaskId by rememberSaveable(key) { mutableStateOf(initialRule?.targetEntityId?.takeIf { initialRule.targetType == TriggerTargetType.Task } ?: state.sourceTasks.firstOrNull()?.id) }
-    var targetHabitId by rememberSaveable(key) { mutableStateOf(initialRule?.targetEntityId?.takeIf { initialRule.targetType == TriggerTargetType.Habit } ?: state.sourceHabits.firstOrNull()?.id) }
-    var action by rememberSaveable(key) { mutableStateOf(initialRule?.action ?: TriggerAction.PromptTask) }
-    var delayMinutes by rememberSaveable(key) { mutableIntStateOf(initialRule?.delayMinutes ?: 0) }
-    var quietEnabled by rememberSaveable(key) { mutableStateOf(initialRule?.quietStartMinutes != null && initialRule.quietEndMinutes != null) }
-    var quietStart by rememberSaveable(key) { mutableIntStateOf(initialRule?.quietStartMinutes ?: 22 * 60) }
-    var quietEnd by rememberSaveable(key) { mutableIntStateOf(initialRule?.quietEndMinutes ?: 7 * 60) }
-    var notificationEnabled by rememberSaveable(key) { mutableStateOf(initialRule?.notificationEnabled ?: false) }
-    var conditionMode by rememberSaveable(key) { mutableStateOf(initialRule?.conditionMode ?: TrackConditionMode.MatchAll) }
-    var conditions by rememberSaveable(key, stateSaver = trackConditionListSaver) { mutableStateOf(initialRule?.conditions.orEmpty()) }
-    var addingCondition by rememberSaveable(key) { mutableStateOf(false) }
-    var mappings by rememberSaveable(key, stateSaver = triggerSourceMappingSaver) {
-        mutableStateOf(initialRule?.mappings.orEmpty().associate { it.targetFieldId to it.sourceProperty })
-    }
-    var constants by rememberSaveable(key, stateSaver = trackConstantMappingSaver) {
-        mutableStateOf(initialRule?.mappings.orEmpty().mapNotNull { mapping -> mapping.constantValue?.let { mapping.targetFieldId to it } }.toMap())
-    }
-    val selectedHabit = state.sourceHabits.firstOrNull { it.id == targetHabitId }
-    val actions = when (targetType) {
-        TriggerTargetType.Task -> listOf(TriggerAction.PromptTask)
-        TriggerTargetType.Habit -> buildList {
-            add(TriggerAction.PromptHabit)
-            if (selectedHabit?.trackingMode == HabitTrackingMode.CheckOff) add(TriggerAction.CheckOffHabit)
-        }
-        TriggerTargetType.Track -> listOf(TriggerAction.PromptTrackEntry)
-    }
-    LaunchedEffect(targetType, targetHabitId) { if (action !in actions) action = actions.first() }
-    val sourceOutcomes = when (sourceType) {
-        LinkSourceType.Task -> listOf(TriggerOutcome.Completed, TriggerOutcome.Skipped)
-        LinkSourceType.Subtask -> listOf(TriggerOutcome.Completed)
-        LinkSourceType.Habit -> listOf(TriggerOutcome.Recorded, TriggerOutcome.Completed, TriggerOutcome.Failed, TriggerOutcome.Skipped)
-        else -> listOf(TriggerOutcome.Completed)
-    }
-    LaunchedEffect(sourceType) { if (outcome !in sourceOutcomes) outcome = sourceOutcomes.first() }
-    val sourceId = if (kind == TrackAutomationKind.FollowUpFromTrack) projection.track.id else when (sourceType) {
-        LinkSourceType.Task, LinkSourceType.Subtask -> sourceTaskId
-        LinkSourceType.Habit -> sourceHabitId
-        else -> null
-    }
-    val targetId = if (kind == TrackAutomationKind.CaptureIntoTrack) projection.track.id else when (targetType) {
-        TriggerTargetType.Task -> targetTaskId
-        TriggerTargetType.Habit -> targetHabitId
-        TriggerTargetType.Track -> null
-    }
-    val effectiveSourceType = if (kind == TrackAutomationKind.FollowUpFromTrack) LinkSourceType.Track else sourceType
-    val effectiveTargetType = if (kind == TrackAutomationKind.CaptureIntoTrack) TriggerTargetType.Track else targetType
-    val effectiveAction = if (kind == TrackAutomationKind.CaptureIntoTrack) TriggerAction.PromptTrackEntry else action
-    val valid = name.isNotBlank() && sourceId != null && targetId != null &&
-        (kind != TrackAutomationKind.CaptureIntoTrack || sourceType != LinkSourceType.Subtask ||
-            state.sourceTaskSteps.any { it.id == sourceStepId && it.taskId == sourceTaskId })
-    PaneAwareAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (initialRule == null) "Create Automation" else "Edit Automation") },
-        text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                item { OutlinedTextField(name, { name = it.replace('\n', ' ').replace('\r', ' ').take(100) }, label = { Text("Automation Name") }, supportingText = { Text("${name.length}/100") }, singleLine = true, modifier = Modifier.fillMaxWidth()) }
-                if (kind == TrackAutomationKind.CaptureIntoTrack) {
-                    item { Text("When This Happens", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold) }
-                    item {
-                        SelectionField(
-                            "Source",
-                            listOf(LinkSourceType.Task, LinkSourceType.Subtask, LinkSourceType.Habit),
-                            sourceType,
-                            { type -> when (type) { LinkSourceType.Task -> "Task"; LinkSourceType.Subtask -> "Subtask"; else -> "Habit" } },
-                            { selected -> sourceType = selected; sourceStepId = null; outcome = if (selected == LinkSourceType.Habit) TriggerOutcome.Recorded else TriggerOutcome.Completed },
-                        )
-                    }
-                    if (sourceType in setOf(LinkSourceType.Task, LinkSourceType.Subtask)) item {
-                        SelectionField(
-                            "Task",
-                            state.sourceTasks,
-                            state.sourceTasks.firstOrNull { it.id == sourceTaskId },
-                            { it?.title ?: "No Tasks Available" },
-                            { sourceTaskId = it?.id; sourceStepId = null },
-                        )
-                    }
-                    if (sourceType == LinkSourceType.Subtask) {
-                        val steps = state.sourceTaskSteps.filter { it.taskId == sourceTaskId }
-                        item {
-                            SelectionField(
-                                "Subtask",
-                                steps,
-                                steps.firstOrNull { it.id == sourceStepId },
-                                { it?.title ?: "No Subtasks Available" },
-                                { sourceStepId = it?.id },
-                            )
-                        }
-                    }
-                    if (sourceType == LinkSourceType.Habit) item { SelectionField("Habit", state.sourceHabits, state.sourceHabits.firstOrNull { it.id == sourceHabitId }, { it?.name ?: "No Habits Available" }, { sourceHabitId = it?.id }) }
-                    item { SelectionField("Outcome", sourceOutcomes, outcome, TriggerOutcome::automationLabel, { outcome = it }) }
-                    if (sourceType == LinkSourceType.Habit) item {
-                        Text(
-                            "Recorded means any saved Habit result. Completed means the Habit reached its target.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    item { Text("Then Prompt to Add ${projection.primaryField.name}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold) }
-                    item { Text("Whip can prefill Fields, but it never saves a structured Entry until the user confirms it.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    items(projection.fields, key = { "mapping-${it.id}" }) { field ->
-                        val options = field.allowedSourceProperties()
-                        val selected = mappings[field.id]
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                SelectionField(
-                                    "Prefill ${field.name}",
-                                    listOf<TriggerSourceProperty?>(null) + options,
-                                    selected,
-                                    { it?.automationLabel() ?: "Do Not Prefill" },
-                                    { chosen -> mappings = if (chosen == null) mappings - field.id else mappings + (field.id to chosen) },
-                                )
-                                if (selected == TriggerSourceProperty.Constant) {
-                                    TrackEntryField(
-                                        field = field,
-                                        value = constants[field.id] ?: TrackValueDraft(enteredUnitId = field.unitId),
-                                        options = projection.optionsFor(field.id),
-                                        units = BuiltInUnits.all + customUnits,
-                                        today = today,
-                                        showError = false,
-                                    ) { constants = constants + (field.id to it) }
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    item { Text("When an Entry Matches", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold) }
-                    item {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            if (conditions.isEmpty()) Text("Any ${projection.track.name} Entry", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            conditions.forEachIndexed { index, condition ->
-                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    Text("${projection.conditionFieldName(condition)} ${condition.operator.uiLabel()} ${condition.summaryValue(projection, BuiltInUnits.all + customUnits)}".trim(), Modifier.weight(1f))
-                                    WhipTextButton(onClick = { conditions = conditions.toMutableList().also { it.removeAt(index) } }) { Text("Remove") }
-                                }
-                            }
-                            if (conditions.size > 1) SegmentedChoiceBar(conditionMode, TrackConditionMode.entries, { conditionMode = it }, { if (it == TrackConditionMode.MatchAll) "Match All" else "Match Any" }, Modifier.fillMaxWidth())
-                            WhipOutlinedButton(onClick = { addingCondition = true }, modifier = Modifier.fillMaxWidth()) { Text("Add Condition") }
-                        }
-                    }
-                    item { Text("Then", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold) }
-                    item { SelectionField("Target", listOf(TriggerTargetType.Task, TriggerTargetType.Habit), targetType, { if (it == TriggerTargetType.Task) "Task" else "Habit" }, { targetType = it }) }
-                    if (targetType == TriggerTargetType.Task) item { SelectionField("Task", state.sourceTasks, state.sourceTasks.firstOrNull { it.id == targetTaskId }, { it?.title ?: "No Tasks Available" }, { targetTaskId = it?.id }) }
-                    if (targetType == TriggerTargetType.Habit) item { SelectionField("Habit", state.sourceHabits, selectedHabit, { it?.name ?: "No Habits Available" }, { targetHabitId = it?.id }) }
-                    item { SelectionField("Action", actions, action, TriggerAction::automationLabel, { action = it }) }
-                    if (action == TriggerAction.CheckOffHabit) item { Text("This consequence automatically Checks Off the Habit. Every other action creates a prompt.", style = MaterialTheme.typography.bodySmall) }
-                }
-                item { SelectionField("Delay", listOf(0, 5, 15, 30, 60, 1440), delayMinutes, ::delayLabel, { delayMinutes = it }) }
-                item { TrackToggleRow("Quiet Hours", "Hold optional notifications until the quiet period ends.", quietEnabled, { quietEnabled = it }) }
-                if (quietEnabled) item {
-                    ResponsiveFieldPair(
-                        first = { modifier -> ClockPickerButton("Quiet Hours Start", quietStart, { quietStart = it ?: quietStart }, modifier) },
-                        second = { modifier -> ClockPickerButton("Quiet Hours End", quietEnd, { quietEnd = it ?: quietEnd }, modifier) },
-                    )
-                }
-                item { TrackToggleRow("Notification", "The prompt always remains in Whip. Enable this only if an Android notification is also useful.", notificationEnabled, { notificationEnabled = it }) }
-            }
-        },
-        confirmButton = { WhipTextButton(enabled = valid && !saving, onClick = {
-            onSave(
-                TriggerRuleDraft(
-                    name = name,
-                    sourceType = effectiveSourceType,
-                    sourceEntityId = requireNotNull(sourceId),
-                    sourceItemId = sourceStepId.takeIf { kind == TrackAutomationKind.CaptureIntoTrack && sourceType == LinkSourceType.Subtask },
-                    outcome = outcome,
-                    targetType = effectiveTargetType,
-                    targetEntityId = requireNotNull(targetId),
-                    delayMinutes = delayMinutes,
-                    quietStartMinutes = quietStart.takeIf { quietEnabled },
-                    quietEndMinutes = quietEnd.takeIf { quietEnabled },
-                    action = effectiveAction,
-                    notificationEnabled = notificationEnabled,
-                    enabled = initialRule?.enabled ?: true,
-                    conditionMode = conditionMode,
-                    conditions = conditions.takeIf { kind == TrackAutomationKind.FollowUpFromTrack }.orEmpty(),
-                    mappings = if (kind == TrackAutomationKind.CaptureIntoTrack) mappings.map { (fieldId, property) ->
-                        TriggerFieldMapping(fieldId, property, constants[fieldId].takeIf { property == TriggerSourceProperty.Constant })
-                    } else emptyList(),
-                ),
-            )
-        }) { Text(if (saving) "Saving…" else if (initialRule == null) "Create Automation" else "Save Automation") } },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
-    if (addingCondition) TrackConditionEditor(projection, { addingCondition = false }, today, BuiltInUnits.all + customUnits) { conditions = conditions + it; addingCondition = false }
-}
-
-private fun TrackField.allowedSourceProperties(): List<TriggerSourceProperty> = when (type) {
-    TrackFieldType.ShortText, TrackFieldType.LongText -> listOf(TriggerSourceProperty.Title, TriggerSourceProperty.Name, TriggerSourceProperty.Notes, TriggerSourceProperty.Unit, TriggerSourceProperty.Outcome, TriggerSourceProperty.EventDate, TriggerSourceProperty.Constant)
-    TrackFieldType.Number, TrackFieldType.Scale -> listOf(TriggerSourceProperty.NumericValue, TriggerSourceProperty.Constant)
-    TrackFieldType.SingleChoice -> listOf(TriggerSourceProperty.Outcome, TriggerSourceProperty.Unit, TriggerSourceProperty.Constant)
-    TrackFieldType.Date -> listOf(TriggerSourceProperty.EventDate, TriggerSourceProperty.Constant)
-    TrackFieldType.YesNo -> listOf(TriggerSourceProperty.Outcome, TriggerSourceProperty.Constant)
-}
-
-private fun TriggerSourceProperty.automationLabel(): String = when (this) {
-    TriggerSourceProperty.Title -> "Source Title"
-    TriggerSourceProperty.Notes -> "Source Notes"
-    TriggerSourceProperty.Name -> "Source Name"
-    TriggerSourceProperty.NumericValue -> "Source Number"
-    TriggerSourceProperty.Unit -> "Source Unit"
-    TriggerSourceProperty.Outcome -> "Source Outcome"
-    TriggerSourceProperty.EventDate -> "Event Date"
-    TriggerSourceProperty.Constant -> "Constant Value"
-}
-
-private fun TriggerOutcome.automationLabel(): String = when (this) {
-    TriggerOutcome.Completed -> "Completed"
-    TriggerOutcome.Recorded -> "Recorded"
-    TriggerOutcome.Failed -> "Failed"
-    TriggerOutcome.Skipped -> "Skipped"
-}
-
-private fun TriggerAction.automationLabel(): String = when (this) {
-    TriggerAction.PromptTask -> "Prompt to Open Task"
-    TriggerAction.PromptHabit -> "Prompt to Open Habit"
-    TriggerAction.CheckOffHabit -> "Automatically Check Off Habit"
-    TriggerAction.PromptTrackEntry -> "Prompt to Add Track Entry"
-}
-
-private fun delayLabel(minutes: Int): String = when (minutes) {
-    0 -> "Immediately"
-    60 -> "1 Hour"
-    1440 -> "1 Day"
-    else -> "$minutes Minutes"
-}
-
-private fun TriggerRule.triggerSentence(state: TrackUiState): String {
-    val source = when (sourceType) {
-        LinkSourceType.Task -> state.sourceTasks.firstOrNull { it.id == sourceEntityId }?.title ?: "Task"
-        LinkSourceType.Subtask -> state.sourceTaskSteps.firstOrNull { it.id == sourceItemId }?.title ?: "Subtask"
-        LinkSourceType.Habit -> state.sourceHabits.firstOrNull { it.id == sourceEntityId }?.name ?: "Habit"
-        LinkSourceType.Track -> state.track(sourceEntityId)?.track?.name ?: "Track"
-        else -> sourceType.name
-    }
-    val target = when (targetType) {
-        TriggerTargetType.Task -> state.sourceTasks.firstOrNull { it.id == targetEntityId }?.title ?: "Task"
-        TriggerTargetType.Habit -> state.sourceHabits.firstOrNull { it.id == targetEntityId }?.name ?: "Habit"
-        TriggerTargetType.Track -> state.track(targetEntityId)?.track?.name ?: "Track"
-    }
-    return "When $source is ${outcome.automationLabel().lowercase()}, ${action.automationLabel().replaceFirstChar(Char::lowercase)} for $target."
-}
-
-private fun TriggerRule.staleReason(state: TrackUiState): String? = when {
-    sourceType == LinkSourceType.Subtask && state.sourceTasks.none { it.id == sourceEntityId } ->
-        "The source Task is unavailable."
-    sourceType == LinkSourceType.Subtask && state.sourceTaskSteps.none { it.id == sourceItemId && it.taskId == sourceEntityId } ->
-        "The selected Subtask is unavailable."
-    sourceType == LinkSourceType.Task && state.sourceTasks.none { it.id == sourceEntityId } ->
-        "The source Task is unavailable."
-    sourceType == LinkSourceType.Habit && state.sourceHabits.none { it.id == sourceEntityId } ->
-        "The source Habit is unavailable."
-    targetType == TriggerTargetType.Task && state.sourceTasks.none { it.id == targetEntityId } ->
-        "The target Task is unavailable."
-    targetType == TriggerTargetType.Habit && state.sourceHabits.none { it.id == targetEntityId } ->
-        "The target Habit is unavailable."
-    else -> null
-}
-
-private fun TriggerRule.toDraft(enabled: Boolean = this.enabled) = TriggerRuleDraft(
-    name = name,
-    sourceType = sourceType,
-    sourceEntityId = sourceEntityId,
-    sourceItemId = sourceItemId,
-    outcome = outcome,
-    targetType = targetType,
-    targetEntityId = targetEntityId,
-    delayMinutes = delayMinutes,
-    quietStartMinutes = quietStartMinutes,
-    quietEndMinutes = quietEndMinutes,
-    action = action,
-    notificationEnabled = notificationEnabled,
-    enabled = enabled,
-    conditionMode = conditionMode,
-    conditions = conditions,
-    mappings = mappings,
-)
-
 @Composable
 private fun TrackCsvImportDialog(
     projection: TrackProjection,
@@ -3531,7 +2100,7 @@ private fun TrackOptionsPage(
                     navigates = false,
                 )
                 WhipActionDivider()
-                WhipActionRow("Duplicate Structure", onDuplicate, supportingText = "Copies Fields and Choice options, but not Entries or Automations.", navigates = false)
+                WhipActionRow("Duplicate Structure", onDuplicate, supportingText = "Copies Fields and Choice options, but not Entries.", navigates = false)
                 WhipActionDivider()
                 WhipActionRow("Export Track CSV", onExport, supportingText = "One column per Field, with stable Entry identity and dates.", navigates = false)
                 if (!projection.track.archived) {
@@ -3539,7 +2108,7 @@ private fun TrackOptionsPage(
                     WhipActionRow("Import Entries From CSV", onImport, supportingText = "Map columns to Fields and validate every row before one atomic import.", navigates = false)
                 }
                 WhipActionDivider()
-                WhipActionRow(if (projection.track.archived) "Restore Track" else "Archive Track", { onSetArchived(!projection.track.archived) }, supportingText = if (projection.track.archived) "Allow new Entries again." else "Pause new capture while preserving history and Goal evidence.", navigates = false)
+                WhipActionRow(if (projection.track.archived) "Restore Track" else "Archive Track", { onSetArchived(!projection.track.archived) }, supportingText = if (projection.track.archived) "Allow new Entries again." else "Pause new capture while preserving history.", navigates = false)
             }
         }
         item { WhipDangerZone { WhipActionRow("Delete Track Permanently", onDelete, icon = Icons.Outlined.DeleteForever, navigates = false, danger = true) } }
@@ -3552,7 +2121,6 @@ internal fun TrackEditor(
     initial: TrackProjection?,
     areas: List<Area>,
     customUnits: List<UnitDefinition>,
-    automationChoiceReferenceCounts: Map<Long, Int>,
     defaultAreaId: String?,
     saving: Boolean,
     modifier: Modifier,
@@ -3563,7 +2131,6 @@ internal fun TrackEditor(
     customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
     onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
-    onReviewAutomations: () -> Unit,
     onSave: (TrackDraft, Set<Long>, Set<Long>, Map<Long, Long>) -> Unit,
 ) {
     val token = "track-${initial?.track?.id ?: "new"}-$sessionId"
@@ -3596,15 +2163,11 @@ internal fun TrackEditor(
             area = selectedArea?.name.orEmpty(),
         )
     }
-    fun removedOptionsNeedingDecision(): List<Triple<TrackChoiceOption, Int, Int>> {
+    fun removedOptionsNeedingDecision(): List<Pair<TrackChoiceOption, Int>> {
         val retained = fields.flatMap(TrackFieldDraft::options).mapNotNull(TrackChoiceOptionDraft::id).toSet()
         return initial?.options.orEmpty().filter { it.id !in retained }.map { option ->
-            Triple(
-                option,
-                initial?.entries.orEmpty().count { entry -> entry.value(option.fieldId)?.choiceOptionId == option.id },
-                automationChoiceReferenceCounts[option.id] ?: 0,
-            )
-        }.filter { (_, entryCount, automationCount) -> entryCount > 0 || automationCount > 0 }
+            option to initial?.entries.orEmpty().count { entry -> entry.value(option.fieldId)?.choiceOptionId == option.id }
+        }.filter { (_, entryCount) -> entryCount > 0 }
     }
     BackHandler(enabled = true, onBack = ::requestDismiss)
 
@@ -3756,7 +2319,6 @@ internal fun TrackEditor(
             }) { Text("Delete Field", color = MaterialTheme.colorScheme.error) } },
             dismissButton = {
                 Row {
-                    if (initial != null) WhipTextButton(onClick = { confirmFieldDeleteIndex = null; onReviewAutomations() }) { Text("Review Automations") }
                     WhipTextButton(onClick = { confirmFieldDeleteIndex = null }) { Text("Cancel") }
                 }
             },
@@ -3771,20 +2333,17 @@ internal fun TrackEditor(
     )
     if (confirmOptionDeletion) {
         val impacts = removedOptionsNeedingDecision()
-        val unresolvedAutomation = impacts.any { (option, _, automationCount) ->
-            automationCount > 0 && option.id !in editorState.optionReplacementIds
-        }
         PaneAwareAlertDialog(
             onDismissRequest = { confirmOptionDeletion = false },
             title = { Text("Resolve Removed Choices") },
             text = {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    item { Text("For each removed Choice, move its Entries and Automation references to a remaining Choice, or permanently delete its saved values.") }
-                    items(impacts, key = { it.first.id }) { (option, entryCount, automationCount) ->
+                    item { Text("For each removed Choice, move its Entries to a remaining Choice, or permanently delete its saved values.") }
+                    items(impacts, key = { it.first.id }) { (option, entryCount) ->
                         val candidates = fields.firstOrNull { it.id == option.fieldId }?.options.orEmpty()
                             .filter { it.id != null && it.id != option.id }
                         SelectionField(
-                            "${option.label} · ${quantityLabel(entryCount, "Entry")} · ${quantityLabel(automationCount, "Automation")}",
+                            "${option.label} · ${quantityLabel(entryCount, "Entry")}",
                             listOf<TrackChoiceOptionDraft?>(null) + candidates,
                             candidates.firstOrNull { it.id == editorState.optionReplacementIds[option.id] },
                             { it?.label?.let { label -> "Replace With $label" } ?: "Delete Saved Values" },
@@ -3796,10 +2355,9 @@ internal fun TrackEditor(
                             },
                         )
                     }
-                    if (unresolvedAutomation) item { Text("Replace every Choice used by an Automation, or choose Review Automations to edit or remove those Automations first.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
                 }
             },
-            confirmButton = { WhipTextButton(enabled = !unresolvedAutomation, onClick = {
+            confirmButton = { WhipTextButton(onClick = {
                 val replaced = editorState.optionReplacementIds.keys
                 val confirmed = editorState.confirmedOptionDeletes + impacts.map { it.first.id }.filterNot { it in replaced }
                 stateHolder.update { it.copy(confirmedOptionDeletes = confirmed) }
@@ -3808,23 +2366,11 @@ internal fun TrackEditor(
             }) { Text("Apply Choices and Save") } },
             dismissButton = {
                 Row {
-                    if (initial != null) WhipTextButton(onClick = { confirmOptionDeletion = false; onReviewAutomations() }) { Text("Review Automations") }
                     WhipTextButton(onClick = { confirmOptionDeletion = false }) { Text("Keep Editing") }
                 }
             },
         )
     }
-}
-
-internal fun TrackUiState.choiceAutomationReferenceCounts(): Map<Long, Int> {
-    val optionIdByUuid = projections.flatMap(TrackProjection::options).associate { it.uuid to it.id }
-    return buildList {
-        linkRules.forEach { rule -> rule.conditions.forEach { condition -> addAll(condition.choiceOptionUuids) } }
-        triggerRules.forEach { rule ->
-            rule.conditions.forEach { condition -> addAll(condition.choiceOptionUuids) }
-            rule.mappings.mapNotNullTo(this) { it.constantValue?.choiceOptionUuid }
-        }
-    }.mapNotNull(optionIdByUuid::get).groupingBy { it }.eachCount()
 }
 
 @Composable
@@ -3966,7 +2512,6 @@ private fun TrackFieldEditor(
 internal fun TrackEntryEditor(
     projection: TrackProjection,
     initial: TrackEntryProjection?,
-    prefill: TrackEntryDraft? = null,
     customUnits: List<UnitDefinition>,
     today: LocalDate,
     saving: Boolean,
@@ -3977,13 +2522,13 @@ internal fun TrackEntryEditor(
     onDelete: (() -> Unit)? = null,
     onOpenExisting: (Long) -> Unit = {},
 ) {
-    val token = "entry-${projection.track.id}-${initial?.entry?.id ?: "new"}-${prefill?.sourceOccurrenceId ?: "direct"}-$sessionId"
+    val token = "entry-${projection.track.id}-${initial?.entry?.id ?: "new"}-$sessionId"
     val stateHolder: TrackEntryEditorViewModel = viewModel(key = "track-$token")
     val savedState by stateHolder.state.collectAsStateWithLifecycle()
-    val initialValues = remember(initial?.entry?.id, prefill) {
+    val initialValues = remember(initial?.entry?.id) {
         projection.fields.associate { field ->
             val value = initial?.value(field.id)
-            field.uuid to (prefill?.values?.get(field.uuid) ?: TrackValueDraft(
+            field.uuid to TrackValueDraft(
                     textValue = value?.textValue,
                     enteredNumber = value?.enteredNumber,
                     enteredUnitId = value?.enteredUnitId ?: field.unitId,
@@ -3991,16 +2536,14 @@ internal fun TrackEntryEditor(
                     booleanValue = value?.booleanValue,
                     choiceOptionUuid = projection.options.firstOrNull { it.id == value?.choiceOptionId }?.uuid,
                     scaleValue = value?.scaleValue,
-                ))
+                )
         }
     }
-    val initialEntryDate = prefill?.entryDate ?: initial?.entry?.entryDate ?: today
+    val initialEntryDate = initial?.entry?.entryDate ?: today
     val initialDraft = remember(token, initialValues, initialEntryDate) {
         TrackEntryDraft(
             entryDate = initialEntryDate,
             values = initialValues,
-            sourceOccurrenceId = prefill?.sourceOccurrenceId,
-            sourceExplanation = prefill?.sourceExplanation.orEmpty(),
         )
     }
     LaunchedEffect(token) { stateHolder.initialize(token, initialDraft) }
@@ -4040,9 +2583,6 @@ internal fun TrackEntryEditor(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 item { WhipPageHeader(if (initial == null) "New ${projection.primaryField.name}" else projection.primaryText(requireNotNull(initial)), "Fields follow the reusable ${projection.track.name} structure.") }
-                if (!prefill?.sourceExplanation.isNullOrBlank()) item {
-                    Text("Prefilled from ${prefill.sourceExplanation}. Review the fields before adding this entry.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
                 items(projection.fields, key = TrackField::uuid) { field ->
                     val current = values[field.uuid] ?: TrackValueDraft(enteredUnitId = field.unitId)
                     TrackEntryField(

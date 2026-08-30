@@ -23,9 +23,10 @@ internal val primaryTaskWorkspaceDestinations = listOf(
     TaskWorkspaceDestination.Today,
     TaskWorkspaceDestination.Inbox,
     TaskWorkspaceDestination.Upcoming,
+    TaskWorkspaceDestination.History,
 )
 
-internal val allTaskWorkspaceDestinations = primaryTaskWorkspaceDestinations + TaskWorkspaceDestination.History
+internal val allTaskWorkspaceDestinations = primaryTaskWorkspaceDestinations
 
 /** History keeps completion and archival behavior distinct inside one route. */
 internal enum class TaskHistorySection(val label: String) {

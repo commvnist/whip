@@ -65,7 +65,7 @@ class GlobalSearchRoutingTest {
             compose.waitUntil(20_000) {
                 SEARCH_DESCRIPTIONS.any { description ->
                     compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
-                } || compose.onAllNodesWithContentDescription("App actions").fetchSemanticsNodes().isNotEmpty()
+                } || compose.onAllNodesWithTag("workspace-search-action").fetchSemanticsNodes().isNotEmpty()
             }
 
             searchFor("Searchable archived habit")
@@ -73,14 +73,8 @@ class GlobalSearchRoutingTest {
             compose.onNodeWithText("Restore").assertIsDisplayed()
 
             searchFor("Searchable archived goal")
-            if (compose.onAllNodesWithText("Automations").fetchSemanticsNodes().isEmpty()) {
-                compose.onNode(
-                    hasContentDescription("More Goal options") and
-                        hasAnyAncestor(hasTestTag("goal-detail-surface")),
-                ).performClick()
-            }
-            compose.onNodeWithText("Automations").performClick()
-            compose.onNodeWithText("Goal Automations").assertIsDisplayed()
+            compose.onNodeWithTag("goal-detail-section-Options").performClick()
+            compose.onNodeWithText("Delete Permanently").assertIsDisplayed()
             compose.onNodeWithContentDescription("Close Goal details").performClick()
 
             searchFor("Searchable archived exercise")
@@ -111,15 +105,7 @@ class GlobalSearchRoutingTest {
             compose.onNodeWithContentDescription("Go to Home").performClick()
             compose.waitForIdle()
         }
-        val searchDescription = SEARCH_DESCRIPTIONS.firstOrNull { description ->
-            compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
-        }
-        if (searchDescription != null) {
-            compose.onNodeWithContentDescription(searchDescription).performClick()
-        } else {
-            compose.onNodeWithContentDescription("App actions").performClick()
-            compose.onNodeWithTag("workspace-search-menu-action").performClick()
-        }
+        compose.onNodeWithTag("workspace-search-action").performClick()
         compose.waitUntil(15_000) {
             compose.onAllNodesWithTag("unified-search-query").fetchSemanticsNodes().isNotEmpty()
         }

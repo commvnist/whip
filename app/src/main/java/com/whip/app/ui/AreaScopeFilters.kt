@@ -60,9 +60,5 @@ internal fun GoalUiState.forArea(scope: AreaScope): GoalUiState {
         active = active.visible(),
         completed = completed.visible(),
         archived = archived.visible(),
-        // A visible habit/task can contribute to a Goal in another Area. Keep
-        // relationship context intact even while the primary Goal collection is scoped.
-        linkRules = linkRules,
-        contributions = contributions,
     )
 }

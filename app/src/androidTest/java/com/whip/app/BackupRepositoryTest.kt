@@ -19,6 +19,8 @@ import com.whip.app.data.RoomMeasurementRepository
 import com.whip.app.data.RoomRoutineRepository
 import com.whip.app.data.RoomTaskRepository
 import com.whip.app.data.RoomTrackRepository
+import com.whip.app.data.ContributionEntity
+import com.whip.app.data.TriggerOccurrenceEntity
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.CustomIdentityEmoji
@@ -141,7 +143,7 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val preview = backups.previewBackup(json)
         assertEquals(2, preview.envelopeVersion)
-        assertEquals(9, preview.databaseVersion)
+        assertEquals(10, preview.databaseVersion)
         assertTrue(preview.checksumValid)
         assertTrue(preview.settingsIncluded)
         assertTrue(preview.totalRecords >= 3)
@@ -199,6 +201,85 @@ class BackupRepositoryTest {
         val restored = gym.machines.first().single()
         assertEquals(setOf("Cable row", "Cable press"), gym.exercises.first().filter { it.id in restored.exerciseIds }.mapTo(mutableSetOf()) { it.name })
         assertEquals(MachineLevelDirection.HigherNumberLessResistance, restored.levelDirection)
+    }
+
+    @Test fun legacyAutomationRowsAreAlwaysRestoredDormant() = runBlocking {
+        val taskId = tasks.create(TaskDraft(title = "Legacy source"))
+        val habitId = habits.create(HabitDraft(name = "Legacy target", startDate = FixedClock.today()))
+        val goalId = goals.create(
+            GoalDraft(
+                name = "Legacy goal",
+                type = GoalType.AccumulateTotal,
+                dimension = UnitDimension.Count,
+                unitId = "count",
+                targetMin = 10.0,
+                startDate = FixedClock.today(),
+            ),
+        )
+        links.createRule(
+            LinkRuleDraft(
+                name = "Legacy progress",
+                sourceType = LinkSourceType.Habit,
+                sourceEntityId = habitId,
+                sourceMetric = LinkSourceMetric.NumericValue,
+                targetGoalId = goalId,
+            ),
+            commitBackfill = false,
+        )
+        val triggerId = links.createTrigger(
+            TriggerRuleDraft(
+                name = "Legacy prompt",
+                sourceType = LinkSourceType.Task,
+                sourceEntityId = taskId,
+                targetType = TriggerTargetType.Habit,
+                targetEntityId = habitId,
+                action = TriggerAction.PromptHabit,
+                notificationEnabled = true,
+            ),
+        )
+        database.linkDao().upsertTriggerOccurrence(
+            TriggerOccurrenceEntity(
+                triggerRuleId = triggerId,
+                sourceEventId = "legacy-pending",
+                availableAtMillis = 2_000,
+                deliveredAtMillis = null,
+                dismissedAtMillis = null,
+                remindAtMillis = 3_000,
+                fulfilledEntryId = null,
+                sourceSnapshot = "{}",
+            ),
+        )
+
+        val exported = JSONObject(backups.exportBackup())
+        assertEquals(10, exported.getInt("databaseVersion"))
+        assertEquals(0, exported.getJSONObject("tables").getJSONArray("link_rules").getJSONObject(0).getInt("enabled"))
+        assertEquals(0, exported.getJSONObject("tables").getJSONArray("trigger_rules").getJSONObject(0).getInt("enabled"))
+
+        // Simulate a checksum-valid backup written by the last Automation-capable format.
+        exported.put("databaseVersion", 9)
+        val tables = exported.getJSONObject("tables")
+        tables.getJSONArray("link_rules").getJSONObject(0).put("enabled", 1)
+        tables.getJSONArray("trigger_rules").getJSONObject(0)
+            .put("enabled", 1)
+            .put("notificationEnabled", 1)
+        tables.getJSONArray("trigger_occurrences").getJSONObject(0)
+            .put("dismissedAtMillis", JSONObject.NULL)
+            .put("remindAtMillis", 3_000)
+        val payload = tables.toString() + "\n" + exported.optJSONObject("settings")?.toString().orEmpty()
+        exported.put(
+            "checksumSha256",
+            MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) },
+        )
+
+        backups.deleteAllData()
+        backups.restoreBackup(exported.toString())
+
+        assertEquals(false, links.rules.first().single().enabled)
+        assertEquals(false, links.triggerRules.first().single().enabled)
+        assertEquals(false, links.triggerRules.first().single().notificationEnabled)
+        val occurrence = links.triggerOccurrences.first().single()
+        assertEquals(Instant.ofEpochMilli(2_000), occurrence.dismissedAt)
+        assertEquals(null, occurrence.remindAt)
     }
 
     @Test fun versionEightMachineLinkUpgradesToManyToManyWithSafeDirectionDefault() = runBlocking {
@@ -319,7 +400,7 @@ class BackupRepositoryTest {
         )
         val track = requireNotNull(tracks.projection(trackId))
         val habitId = habits.create(HabitDraft("Imported Reading Habit", trackingMode = HabitTrackingMode.CheckOff, startDate = FixedClock.today()))
-        links.createTrigger(
+        val triggerRuleId = links.createTrigger(
             TriggerRuleDraft(
                 name = "Imported Capture",
                 sourceType = LinkSourceType.Habit,
@@ -330,10 +411,28 @@ class BackupRepositoryTest {
                 mappings = listOf(TriggerFieldMapping(track.primaryField.id, TriggerSourceProperty.Name)),
             ),
         )
-        habits.setCheckOff(habitId, FixedClock.today(), true)
-        links.rebuildAll()
-        val sourceOccurrence = links.triggerOccurrences.first().single()
-        links.fulfillTrackPrompt(sourceOccurrence.id, links.trackPromptDraft(sourceOccurrence.id))
+        val sourceOccurrenceId = database.linkDao().upsertTriggerOccurrence(
+            TriggerOccurrenceEntity(
+                triggerRuleId = triggerRuleId,
+                sourceEventId = "legacy-habit-event",
+                availableAtMillis = FixedClock.now().toEpochMilli(),
+                deliveredAtMillis = FixedClock.now().toEpochMilli(),
+                dismissedAtMillis = null,
+                remindAtMillis = null,
+                fulfilledEntryId = null,
+                sourceSnapshot = "{}",
+            ),
+        )
+        val sourceEntryId = tracks.addEntry(
+            trackId,
+            TrackEntryDraft(
+                entryDate = FixedClock.today(),
+                values = mapOf(track.primaryField.uuid to TrackValueDraft(textValue = "Imported Reading Habit")),
+                sourceOccurrenceId = sourceOccurrenceId,
+                sourceExplanation = "Preserved fulfilled prompt",
+            ),
+        )
+        database.linkDao().fulfillTriggerOccurrence(sourceOccurrenceId, sourceEntryId, FixedClock.now().toEpochMilli())
         val portable = backups.exportBackup()
 
         backups.deleteAllData()
@@ -346,6 +445,7 @@ class BackupRepositoryTest {
         val importedOccurrence = links.triggerOccurrences.first().single()
         assertEquals(importedOccurrence.id, importedEntry.sourceOccurrenceId)
         assertEquals(importedEntry.id, importedOccurrence.fulfilledEntryId)
+        assertEquals(false, links.triggerRules.first().single().enabled)
 
         val counts = listOf(tracks.tracks.first().size, tracks.entries.first().size, links.triggerRules.first().size, links.triggerOccurrences.first().size)
         backups.mergeBackup(portable)
@@ -388,7 +488,7 @@ class BackupRepositoryTest {
             ),
         )
         goals.recordMeasurement(goalId, 4.0, note = "Manual baseline")
-        links.createRule(
+        val retiredRuleId = links.createRule(
             LinkRuleDraft(
                 name = "Water advances goal",
                 sourceType = LinkSourceType.Habit,
@@ -398,6 +498,25 @@ class BackupRepositoryTest {
                 retroactiveFrom = FixedClock.today(),
             ),
             commitBackfill = true,
+        )
+        database.linkDao().upsertContribution(
+            ContributionEntity(
+                uuid = "retired-contribution",
+                linkRuleId = retiredRuleId,
+                sourceEventId = "habit:$habitId:legacy",
+                sourceType = LinkSourceType.Habit.name,
+                sourceEntityId = habitId,
+                targetGoalId = goalId,
+                metricEntryId = null,
+                canonicalValue = 3.0,
+                localEpochDay = FixedClock.today().toEpochDay(),
+                timestampMillis = FixedClock.now().toEpochMilli(),
+                excluded = false,
+                overrideValue = null,
+                explanation = "Preserved retired contribution",
+                createdAtMillis = FixedClock.now().toEpochMilli(),
+                updatedAtMillis = FixedClock.now().toEpochMilli(),
+            ),
         )
 
         val categoryId = gym.createCategory("Chest")
@@ -452,6 +571,7 @@ class BackupRepositoryTest {
         assertTrue(habits.logs.first().any { it.note == "Morning" })
         assertEquals("Complete 100 healthy actions", goals.goals.first().single().name)
         assertEquals("Water advances goal", links.rules.first().single().name)
+        assertEquals(false, links.rules.first().single().enabled)
         assertEquals(1, links.contributions.first().size)
         assertEquals("Flat Barbell Bench Press", gym.exercises.first().single().name)
         assertEquals(1, gym.sets.first().size)
@@ -531,7 +651,7 @@ class BackupRepositoryTest {
     @Test fun nonCurrentBackupVersionsOrTableSetsCannotBePreviewedOrRestored() = runBlocking {
         habits.create(HabitDraft(name = "Keep local", startDate = FixedClock.today()))
         val current = backups.exportBackup()
-        val wrongDatabase = JSONObject(current).put("databaseVersion", 10).toString()
+        val wrongDatabase = JSONObject(current).put("databaseVersion", 11).toString()
         val wrongEnvelope = JSONObject(current).put("envelopeVersion", 1).toString()
         val incompleteTables = JSONObject(current).also {
             it.getJSONObject("tables").remove("tags")
@@ -544,7 +664,7 @@ class BackupRepositoryTest {
         assertEquals("Keep local", habits.habits.first().single().name)
     }
 
-    @Test fun sixOfEightActionsUndoLinksAndBackupRemainOneTruthfulPeriodOutcome() = runBlocking {
+    @Test fun sixOfEightActionsUndoAndBackupRemainOneTruthfulPeriodOutcome() = runBlocking {
         val habitId = habits.create(
             HabitDraft(
                 name = "Eight glasses",
@@ -556,56 +676,28 @@ class BackupRepositoryTest {
                 startDate = FixedClock.today(),
             ),
         )
-        val goalId = goals.create(
-            GoalDraft(
-                name = "Hydration total",
-                type = GoalType.AccumulateTotal,
-                dimension = UnitDimension.Count,
-                unitId = "count",
-                targetMin = 100.0,
-                startDate = FixedClock.today(),
-                aggregation = GoalAggregation.Sum,
-            ),
-        )
-        links.createRule(
-            LinkRuleDraft(
-                name = "Hydration link",
-                sourceType = LinkSourceType.Habit,
-                sourceEntityId = habitId,
-                sourceMetric = LinkSourceMetric.NumericValue,
-                targetGoalId = goalId,
-                retroactiveFrom = FixedClock.today(),
-            ),
-            commitBackfill = true,
-        )
-
         // +1, quick +2, decrement -1, and Set to 6 (stored as the +4 delta).
         listOf(1.0, 2.0, -1.0, 4.0).forEach { habits.log(habitId, it) }
-        links.rebuildAll()
         val habit = habits.habits.first().single()
         assertEquals(false, habit.outcomeForPeriod(habits.logs.first(), FixedClock.today()))
-        assertEquals(6.0, links.contributions.first().sumOf { it.canonicalValue ?: 0.0 }, 0.0)
+        assertEquals(6.0, habits.logs.first().sumOf { it.value ?: 0.0 }, 0.0)
 
         val completingLog = habits.log(habitId, 2.0)
-        links.rebuildAll()
         assertEquals(true, habit.outcomeForPeriod(habits.logs.first(), FixedClock.today()))
-        assertEquals(8.0, links.contributions.first().sumOf { it.canonicalValue ?: 0.0 }, 0.0)
+        assertEquals(8.0, habits.logs.first().sumOf { it.value ?: 0.0 }, 0.0)
 
         habits.undoLog(completingLog)
-        links.rebuildAll()
         assertEquals(false, habit.outcomeForPeriod(habits.logs.first(), FixedClock.today()))
-        assertEquals(6.0, links.contributions.first().sumOf { it.canonicalValue ?: 0.0 }, 0.0)
+        assertEquals(6.0, habits.logs.first().sumOf { it.value ?: 0.0 }, 0.0)
         habits.log(habitId, 2.0)
-        links.rebuildAll()
 
         val archive = backups.exportBackup()
         backups.deleteAllData()
         backups.restoreBackup(archive)
-        links.rebuildAll()
 
         val restoredHabit = habits.habits.first().single()
         assertEquals(true, restoredHabit.outcomeForPeriod(habits.logs.first(), FixedClock.today()))
-        assertEquals(8.0, links.contributions.first().sumOf { it.canonicalValue ?: 0.0 }, 0.0)
+        assertEquals(8.0, habits.logs.first().sumOf { it.value ?: 0.0 }, 0.0)
     }
 
     private object FixedClock : WhipClock {

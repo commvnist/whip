@@ -29,7 +29,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -914,12 +914,10 @@ private fun RoutinePlacementCard(
                 onEdit = onOpen,
             )
             Box {
-                IconButton(onClick = { menu = true }, modifier = Modifier.semantics { contentDescription = "More options for ${exercise?.name ?: placement.exerciseNameSnapshot}" }) {
-                    Icon(Icons.Outlined.MoreVert, contentDescription = null)
+                IconButton(onClick = { menu = true }, modifier = Modifier.semantics { contentDescription = "Manage ${exercise?.name ?: placement.exerciseNameSnapshot}" }) {
+                    Icon(Icons.Outlined.Settings, contentDescription = null)
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    WhipMenuItem(label = "Move Up", enabled = canMovePrevious, onClick = { menu = false; onMove(-1) })
-                    WhipMenuItem(label = "Move Down", enabled = canMoveNext, onClick = { menu = false; onMove(1) })
                     WhipMenuItem(label = "Duplicate", icon = Icons.Outlined.ContentCopy, onClick = { menu = false; onDuplicate() })
                     HorizontalDivider()
                     WhipMenuItem(

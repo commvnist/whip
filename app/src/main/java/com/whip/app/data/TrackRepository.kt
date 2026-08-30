@@ -65,7 +65,7 @@ interface TrackRepository {
     val options: Flow<List<TrackChoiceOption>>
     val entries: Flow<List<TrackEntry>>
     val values: Flow<List<TrackFieldValue>>
-    /** Complete read models shared by Track screens and automation builders. */
+    /** Complete read models shared by Track screens and exports. */
     val projections: Flow<List<TrackProjection>>
 
     suspend fun create(draft: TrackDraft): Long
@@ -93,7 +93,7 @@ interface TrackRepository {
 }
 
 data class TrackUpdateImpact(
-    val automationInputsChanged: Boolean,
+    val schemaChanged: Boolean,
 )
 
 class RoomTrackRepository(
@@ -209,7 +209,7 @@ class RoomTrackRepository(
             )
         }
         if (fieldsChanged || searchMetadataChanged) rebuildSearchIndex(id)
-        TrackUpdateImpact(automationInputsChanged = fieldsChanged)
+        TrackUpdateImpact(schemaChanged = fieldsChanged)
     }
 
     override suspend fun duplicate(id: Long): Long {
@@ -551,10 +551,6 @@ class RoomTrackRepository(
                 dao.insertField(draft.toEntity(trackId, position, ids.nextId(), now))
             } else {
                 require(current.trackId == trackId) { "Field does not belong to this Track" }
-                val automationReferences = fieldAutomationReferenceCount(current.id)
-                if (current.type != draft.type.name && automationReferences > 0) {
-                    error("${current.name} is used by $automationReferences Automations. Retarget or remove them before changing its type.")
-                }
                 if (current.type != draft.type.name && dao.countValuesForField(current.id) > 0) {
                     error("${current.name} has saved values. Delete it and add a new Field instead of changing its type.")
                 }
@@ -573,10 +569,6 @@ class RoomTrackRepository(
             syncOptions(fieldId, draft.options, confirmedOptionValueDeletionIds, optionReplacementIds, now)
         }
         existingFields.filterNot { it.id in retainedFieldIds }.forEach { field ->
-            val automationReferences = fieldAutomationReferenceCount(field.id)
-            require(automationReferences == 0) {
-                "${field.name} is used by $automationReferences Automations. Retarget or remove them before deleting it."
-            }
             val valueCount = dao.countValuesForField(field.id)
             require(valueCount == 0 || field.id in confirmedFieldValueDeletionIds) {
                 "Deleting ${field.name} will permanently remove $valueCount saved values. Confirm this deletion first."
@@ -619,12 +611,6 @@ class RoomTrackRepository(
                 replaceChoiceOption(option.id, replacement.id, now)
                 check(dao.deleteOption(option.id) == 1) { "Choice option no longer exists" }
                 return@forEach
-            }
-            val automationReferences = database.linkDao().countLinkConditionsForOption(option.id) +
-                database.linkDao().countTriggerConditionsForOption(option.id) +
-                database.linkDao().countTriggerMappingsForOption(option.id)
-            require(automationReferences == 0) {
-                "${option.label} is used by $automationReferences Automations. Choose a replacement or remove those rules first."
             }
             val valueCount = dao.countValuesForOption(option.id)
             require(valueCount == 0 || option.id in confirmedOptionValueDeletionIds) {
@@ -702,19 +688,6 @@ class RoomTrackRepository(
         require(invalidSavedValue == null) {
             "An existing Scale value does not fit the new range and increment. Keep it selectable or edit that Entry first."
         }
-        val invalidConstant = database.linkDao().getTriggerMappingsForField(fieldId)
-            .mapNotNull(TriggerFieldMappingEntity::constantScale)
-            .firstOrNull { value -> normalizeTrackScaleValue(value, minimum, maximum, draft.scaleStep) == null }
-        require(invalidConstant == null) {
-            "An Automation constant does not fit the new Scale range and increment. Update that Automation first."
-        }
-    }
-
-    private suspend fun fieldAutomationReferenceCount(fieldId: Long): Int = database.linkDao().let { links ->
-        links.countLinkRulesForSourceField(fieldId) +
-            links.countLinkConditionsForField(fieldId) +
-            links.countTriggerConditionsForField(fieldId) +
-            links.countTriggerMappingsForField(fieldId)
     }
 
     private suspend fun resolveUnit(id: String): UnitDefinition? = BuiltInUnits.get(id)

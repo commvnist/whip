@@ -128,7 +128,6 @@ class AuditUiStringResourcePolicyTest {
             ),
             "WhipApp.kt" to listOf(
                 "title = \"Your Day Is Clear\"",
-                "Text(\"Choose a Track to view its Entries and Automations.\"",
                 "WhipEmptyState(\"No Tracks Yet\"",
                 "SupportPaneTitle(\"Track Overview\")",
                 "title = \"${'$'}domain loading\"",

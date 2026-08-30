@@ -15,16 +15,6 @@ import com.whip.app.core.revealHomeSection
 import com.whip.app.data.TrackRepository
 import com.whip.app.data.requireTrackCsvExportWithinLimit
 import com.whip.app.domain.DeletedTrackEntry
-import com.whip.app.domain.GoalAggregation
-import com.whip.app.domain.GoalConsistencyPeriod
-import com.whip.app.domain.GoalDraft
-import com.whip.app.domain.GoalType
-import com.whip.app.domain.Habit
-import com.whip.app.domain.LinkRuleDraft
-import com.whip.app.domain.LinkRule
-import com.whip.app.domain.LinkSourceMetric
-import com.whip.app.domain.LinkSourceType
-import com.whip.app.domain.LinkValueMode
 import com.whip.app.domain.Track
 import com.whip.app.domain.TrackChoiceOption
 import com.whip.app.domain.TrackCsvImportPreview
@@ -34,21 +24,10 @@ import com.whip.app.domain.TrackEntryDraft
 import com.whip.app.domain.TrackEntryPage
 import com.whip.app.domain.TrackField
 import com.whip.app.domain.TrackProjection
-import com.whip.app.domain.TrackAggregation
 import com.whip.app.domain.TrackCondition
-import com.whip.app.domain.TrackConditionMode
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.UnitDefinition
-import com.whip.app.domain.TaskStep
-import com.whip.app.domain.TriggerOccurrence
-import com.whip.app.domain.TriggerRule
-import com.whip.app.domain.TriggerRuleDraft
-import com.whip.app.domain.UnitDimension
-import com.whip.app.domain.WhipTask
-import com.whip.app.domain.Goal
-import com.whip.app.domain.compatibleAggregations
-import com.whip.app.domain.Contribution
 import com.whip.app.domain.previewTrackCsvImport
 import com.whip.app.domain.trackCsvHeaders
 import java.io.ByteArrayOutputStream
@@ -67,7 +46,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
@@ -78,14 +56,6 @@ import kotlinx.coroutines.sync.withLock
 
 data class TrackUiState(
     val projections: List<TrackProjection> = emptyList(),
-    val linkRules: List<LinkRule> = emptyList(),
-    val goals: List<Goal> = emptyList(),
-    val triggerRules: List<TriggerRule> = emptyList(),
-    val triggerOccurrences: List<TriggerOccurrence> = emptyList(),
-    val contributions: List<Contribution> = emptyList(),
-    val sourceTasks: List<WhipTask> = emptyList(),
-    val sourceTaskSteps: List<TaskStep> = emptyList(),
-    val sourceHabits: List<Habit> = emptyList(),
     val currentDate: LocalDate = LocalDate.now(),
     val loading: Boolean = true,
     val errorMessage: String? = null,
@@ -277,38 +247,6 @@ internal data class TrackCsvExportUiState(
     val errorMessage: String? = null,
 )
 
-private data class TrackAutomationState(
-    val linkRules: List<LinkRule>,
-    val triggerRules: List<TriggerRule>,
-    val occurrences: List<TriggerOccurrence>,
-    val contributions: List<Contribution>,
-)
-
-private data class TrackSourceState(
-    val tasks: List<WhipTask>,
-    val taskSteps: List<TaskStep>,
-    val habits: List<Habit>,
-    val goals: List<Goal>,
-)
-
-data class TrackGoalAutomationDraft(
-    val goalName: String,
-    val goalType: GoalType,
-    val aggregation: TrackAggregation,
-    val sourceFieldId: Long? = null,
-    val conditionMode: TrackConditionMode = TrackConditionMode.MatchAll,
-    val conditions: List<TrackCondition> = emptyList(),
-    val target: Double? = null,
-    val targetMax: Double? = null,
-    val fixedAmount: Double? = null,
-    val fixedDimension: UnitDimension = UnitDimension.Count,
-    val fixedUnitId: String = "count",
-    val retroactiveFrom: LocalDate? = null,
-    val deadline: LocalDate? = null,
-    val consistencyPeriod: GoalConsistencyPeriod = GoalConsistencyPeriod.Week,
-    val consistencyRequiredPeriods: Int? = null,
-)
-
 class TrackViewModel(
     application: Application,
     private val savedStateHandle: SavedStateHandle,
@@ -341,39 +279,11 @@ class TrackViewModel(
     private var importUnits: List<UnitDefinition> = emptyList()
     private var exportUri: Uri? = null
 
-    private val automationState = combine(
-        app.linkRepository.rules,
-        app.linkRepository.triggerRules,
-        app.linkRepository.triggerOccurrences,
-        app.linkRepository.contributions,
-    ) { linkRules, triggerRules, occurrences, contributions ->
-        TrackAutomationState(linkRules, triggerRules, occurrences, contributions)
-    }
-    private val sourceState = combine(
-        app.taskRepository.tasks,
-        app.taskRepository.steps,
-        app.habitRepository.habits,
-        app.goalRepository.goals,
-    ) { tasks, taskSteps, habits, goals -> TrackSourceState(tasks, taskSteps, habits, goals) }
-
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<TrackUiState> = reloadKey.flatMapLatest {
-        combine(
-            repository.projections,
-            automationState,
-            sourceState,
-        ) { projections, automations, sources ->
-            val (linkRules, triggerRules, occurrences, contributions) = automations
+        repository.projections.map { projections ->
             TrackUiState(
                 projections = projections,
-                linkRules = linkRules,
-                goals = sources.goals,
-                triggerRules = triggerRules,
-                triggerOccurrences = occurrences,
-                contributions = contributions,
-                sourceTasks = sources.tasks.filterNot(WhipTask::archived),
-                sourceTaskSteps = sources.taskSteps.filterNot(TaskStep::archived),
-                sourceHabits = sources.habits.filterNot(Habit::archived),
                 currentDate = clock.today(),
                 loading = false,
             )
@@ -403,23 +313,18 @@ class TrackViewModel(
         onSaved: (Long) -> Unit = {},
     ) = runOperation(if (id == null) "Creating Track…" else "Saving Track…", if (id == null) "Track created" else "Track saved") {
         val existingTags = id?.let { uiState.value.track(it)?.track?.tags }
-        var automationInputsChanged = false
         val savedId = if (id == null) repository.create(draft) else {
-            automationInputsChanged = repository.update(
+            repository.update(
                 id,
                 draft,
                 confirmedFieldValueDeletionIds,
                 confirmedOptionValueDeletionIds,
                 optionReplacementIds,
-            ).automationInputsChanged
+            )
             id
         }
         draft.tags.filter { tag -> existingTags?.none { it.equals(tag, ignoreCase = true) } != false }
             .forEach { app.measurementRepository.ensureTag(it) }
-        if (automationInputsChanged) {
-            app.linkRepository.rebuildAll()
-            app.automationPromptScheduler.syncAll()
-        }
         onSaved(savedId)
     }
 
@@ -445,16 +350,12 @@ class TrackViewModel(
         if (archived) "Track archived" else "Track restored",
     ) {
         repository.setArchived(id, archived)
-        app.linkRepository.rebuildAll()
-        app.automationPromptScheduler.syncAll()
     }
     fun setArchived(ids: Collection<Long>, archived: Boolean) = runOperation(
         if (archived) "Archiving Tracks…" else "Restoring Tracks…",
         "${ids.size} Tracks ${if (archived) "archived" else "restored"}",
     ) {
         app.database.withTransaction { ids.distinct().forEach { repository.setArchived(it, archived) } }
-        app.linkRepository.rebuildAll()
-        app.automationPromptScheduler.syncAll()
     }
     fun reorder(ids: List<Long>) = runSilentReorder { repository.reorder(ids) }
     fun deleteTrack(id: Long) = runOperation(
@@ -473,7 +374,6 @@ class TrackViewModel(
             repository.updateEntry(entryId, draft)
             entryId
         }
-        reconcileTrackAutomations()
         onSaved(savedId)
     }
 
@@ -486,7 +386,6 @@ class TrackViewModel(
             "Import at most 5,000 Entries at a time. Split this CSV into smaller files."
         }
         val importedCount = repository.importEntries(trackId, drafts).size
-        reconcileTrackAutomations()
         onSaved(importedCount)
     }
 
@@ -500,7 +399,6 @@ class TrackViewModel(
         ) {
             val deletedEntry = repository.deleteEntry(entryId) ?: error("Entry no longer exists")
             _lastDeletedEntry.value = PendingTrackEntryUndo(undoToken, deletedEntry)
-            reconcileTrackAutomations()
         }
     }
 
@@ -510,7 +408,6 @@ class TrackViewModel(
             _lastDeletedEntry.value
                 ?.takeIf { it.token == expectedToken }
                 ?.let { repository.restoreEntry(it.deletedEntry) }
-            reconcileTrackAutomations()
             if (_lastDeletedEntry.value?.token == expectedToken) _lastDeletedEntry.value = null
         }
     }
@@ -727,181 +624,6 @@ class TrackViewModel(
             ?: error("Could not open the selected file. Choose another destination and try again.")
         output.bufferedWriter(Charsets.UTF_8).use { writer ->
             writeTrackCsvChunks(csv, writer)
-        }
-    }
-
-    fun createTrigger(draft: TriggerRuleDraft, onSaved: () -> Unit = {}) = runOperation("Creating Next-Action Automation…", "Next-Action Automation created") {
-        app.linkRepository.createTrigger(draft)
-        app.automationPromptScheduler.syncAll()
-        onSaved()
-    }
-
-    fun updateTrigger(id: Long, draft: TriggerRuleDraft, onSaved: () -> Unit = {}) = runOperation("Saving Next-Action Automation…", "Next-Action Automation saved") {
-        app.linkRepository.updateTrigger(id, draft)
-        app.automationPromptScheduler.syncAll()
-        onSaved()
-    }
-
-    fun deleteTrigger(id: Long) = runOperation("Removing Next-Action Automation…", "Next-Action Automation removed") {
-        app.linkRepository.deleteTrigger(id)
-        app.automationPromptScheduler.syncAll()
-    }
-
-    fun updateProgressAutomation(id: Long, draft: LinkRuleDraft, onSaved: () -> Unit = {}) = runOperation("Saving Goal Automation…", "Goal Automation saved") {
-        alignGoalCalculation(draft)
-        app.linkRepository.updateRule(id, draft)
-        onSaved()
-    }
-
-    fun createProgressAutomation(
-        draft: LinkRuleDraft,
-        includeHistory: Boolean,
-        onSaved: () -> Unit = {},
-    ) = runOperation("Connecting Track to Goal…", "Track connected to Goal") {
-        alignGoalCalculation(draft)
-        app.linkRepository.createRule(draft, commitBackfill = includeHistory)
-        onSaved()
-    }
-
-    fun setProgressAutomationEnabled(id: Long, enabled: Boolean) = runOperation("Updating Goal Automation…", "Goal Automation updated") {
-        app.linkRepository.setRuleEnabled(id, enabled)
-    }
-
-    fun deleteProgressAutomation(id: Long) = runOperation("Removing Goal Automation…", "Goal Automation removed") {
-        app.linkRepository.deleteRule(id)
-    }
-
-    fun dismissPrompt(id: Long) = runOperation("Dismissing prompt…", "Prompt dismissed") {
-        app.linkRepository.dismissTriggerOccurrence(id)
-        app.automationPromptScheduler.cancel(id)
-    }
-
-    fun remindPrompt(id: Long, at: java.time.Instant) = runOperation("Setting reminder…", "Reminder set") {
-        app.linkRepository.remindTriggerOccurrence(id, at)
-        app.automationPromptScheduler.syncAll()
-    }
-
-    fun loadPromptDraft(id: Long, onLoaded: (TrackEntryDraft) -> Unit) {
-        viewModelScope.launch {
-            try {
-                onLoaded(app.linkRepository.trackPromptDraft(id))
-            } catch (error: Throwable) {
-                _operationStatus.value = OperationStatus.Failed(error.message ?: "Could not open this prompt", error)
-            }
-        }
-    }
-
-    fun fulfillPrompt(id: Long, draft: TrackEntryDraft, onSaved: (Long) -> Unit = {}) = runOperation(
-        "Adding prompted Entry…",
-        "Entry added",
-    ) {
-        val entryId = app.linkRepository.fulfillTrackPrompt(id, draft)
-        reconcileTrackAutomations()
-        app.automationPromptScheduler.cancel(id)
-        onSaved(entryId)
-    }
-
-    fun createGoalFromTrack(trackId: Long, draft: TrackGoalAutomationDraft, onSaved: (Long) -> Unit = {}) = runOperation(
-        "Creating Goal From Track…",
-        "Goal and Automation created",
-    ) {
-        val projection = repository.projection(trackId) ?: error("Track no longer exists")
-        val needsField = draft.aggregation in setOf(
-            TrackAggregation.Sum,
-            TrackAggregation.Average,
-            TrackAggregation.Latest,
-            TrackAggregation.Minimum,
-            TrackAggregation.Maximum,
-        )
-        val field = draft.sourceFieldId?.let { id -> projection.fields.firstOrNull { it.id == id } }
-        if (needsField) require(field?.type in setOf(TrackFieldType.Number, TrackFieldType.Scale)) {
-            "Choose a Number or Scale Field"
-        }
-        val goalAggregation = when {
-            draft.goalType == GoalType.Consistency -> GoalAggregation.CompletionCount
-            draft.aggregation in setOf(TrackAggregation.Sum, TrackAggregation.CountEntries, TrackAggregation.CountMatchingEntries, TrackAggregation.FixedAmount) -> GoalAggregation.Sum
-            draft.aggregation == TrackAggregation.Average -> GoalAggregation.Average
-            draft.aggregation == TrackAggregation.Latest -> GoalAggregation.Latest
-            draft.aggregation == TrackAggregation.Minimum -> GoalAggregation.Minimum
-            draft.aggregation == TrackAggregation.Maximum -> GoalAggregation.Maximum
-            else -> error("Choose a compatible Track measure")
-        }
-        require(draft.goalType != GoalType.Consistency || draft.aggregation in setOf(TrackAggregation.CountEntries, TrackAggregation.CountMatchingEntries)) {
-            "Consistency Goals require Count Entries or Count Matching Entries"
-        }
-        require(goalAggregation in draft.goalType.compatibleAggregations()) {
-            "${draft.aggregation.name} does not match ${draft.goalType.name}"
-        }
-        val dimension = when {
-            draft.aggregation in setOf(TrackAggregation.CountEntries, TrackAggregation.CountMatchingEntries) -> UnitDimension.Count
-            draft.aggregation == TrackAggregation.FixedAmount -> draft.fixedDimension
-            field?.type == TrackFieldType.Scale -> UnitDimension.Unitless
-            else -> field?.dimension ?: UnitDimension.Unitless
-        }
-        val unitId = when {
-            draft.aggregation == TrackAggregation.FixedAmount -> draft.fixedUnitId
-            dimension == UnitDimension.Count -> "count"
-            field?.type == TrackFieldType.Scale -> "unitless"
-            else -> field?.unitId ?: "unitless"
-        }
-        val goalDraft = GoalDraft(
-            name = draft.goalName,
-            description = "Progress from ${projection.track.name} Entries.",
-            areaId = projection.track.areaId,
-            area = projection.track.area,
-            tags = projection.track.tags,
-            icon = projection.track.icon,
-            type = draft.goalType,
-            dimension = dimension,
-            unitId = unitId,
-            precision = if (dimension == UnitDimension.Count) 0 else field?.precision ?: 1,
-            targetMin = draft.target,
-            targetMax = draft.targetMax,
-            startDate = draft.retroactiveFrom ?: clock.today(),
-            deadline = draft.deadline,
-            aggregation = goalAggregation,
-            consistencyPeriod = draft.consistencyPeriod,
-            consistencyRequiredPeriods = draft.consistencyRequiredPeriods,
-        )
-        var goalId = 0L
-        app.database.withTransaction {
-            goalId = app.goalRepository.create(goalDraft)
-            app.linkRepository.createRule(
-                LinkRuleDraft(
-                    name = "${projection.track.name} → ${draft.goalName}",
-                    sourceType = LinkSourceType.Track,
-                    sourceEntityId = trackId,
-                    sourceMetric = if (needsField) LinkSourceMetric.FieldValue else LinkSourceMetric.EntryCount,
-                    targetGoalId = goalId,
-                    valueMode = if (draft.aggregation == TrackAggregation.FixedAmount) LinkValueMode.FixedValue else LinkValueMode.SourceValue,
-                    fixedValue = draft.fixedAmount,
-                    retroactiveFrom = draft.retroactiveFrom,
-                    trackAggregation = draft.aggregation,
-                    sourceFieldId = field?.id.takeIf { needsField },
-                    conditionMode = draft.conditionMode,
-                    conditions = draft.conditions,
-                ),
-                commitBackfill = draft.retroactiveFrom != null,
-            )
-        }
-        app.goalReminderScheduler.syncGoal(goalId)
-        onSaved(goalId)
-    }
-
-    private suspend fun reconcileTrackAutomations() {
-        app.linkRepository.rebuildSources(setOf(LinkSourceType.Track))
-        app.automationPromptScheduler.syncAll()
-    }
-
-    private suspend fun alignGoalCalculation(draft: LinkRuleDraft) {
-        if (draft.sourceType != LinkSourceType.Track || draft.targetMilestoneId != null) return
-        val measure = draft.trackAggregation ?: return
-        val goal = app.goalRepository.goals.first().firstOrNull { it.id == draft.targetGoalId }
-            ?: error("Goal no longer exists")
-        val required = goal.requiredAggregationForTrack(measure)
-        val aligned = goal.toTrackAutomationDraft(required, draft.retroactiveFrom)
-        if (goal.aggregation != aligned.aggregation || goal.startDate != aligned.startDate) {
-            app.goalRepository.update(goal.id, aligned)
         }
     }
 

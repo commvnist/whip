@@ -12,12 +12,13 @@ import org.junit.Test
 
 class TaskWorkspacePolicyTest {
     @Test
-    fun todayIsTheFirstTaskHeadingFollowedByInbox() {
+    fun allTaskDestinationsRemainDirectInTheirStableOrder() {
         assertEquals(
             listOf(
                 TaskWorkspaceDestination.Today,
                 TaskWorkspaceDestination.Inbox,
                 TaskWorkspaceDestination.Upcoming,
+                TaskWorkspaceDestination.History,
             ),
             primaryTaskWorkspaceDestinations,
         )

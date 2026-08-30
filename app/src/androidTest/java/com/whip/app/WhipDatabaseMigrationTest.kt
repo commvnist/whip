@@ -73,13 +73,13 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V1_DATABASE_NAME,
-            30,
+            31,
             true,
             *allMigrations,
         ).use { database ->
             database.query(
                 """
-                SELECT l.id, l.uuid, l.conditionMode, c.id, c.canonicalValue, c.explanation
+                SELECT l.id, l.uuid, l.conditionMode, c.id, c.canonicalValue, c.explanation, l.enabled
                 FROM link_rules l JOIN contributions c ON c.linkRuleId = l.id
                 WHERE l.id = 11
                 """.trimIndent(),
@@ -91,20 +91,22 @@ class WhipDatabaseMigrationTest {
                 assertEquals(12L, cursor.getLong(3))
                 assertEquals(2.5, cursor.getDouble(4), 0.0)
                 assertEquals("Habit value", cursor.getString(5))
+                assertEquals(0, cursor.getInt(6))
             }
-            database.query("SELECT uuid, action, notificationEnabled, conditionMode, sourceItemId FROM trigger_rules ORDER BY id").use { cursor ->
+            database.query("SELECT uuid, action, notificationEnabled, conditionMode, sourceItemId, enabled FROM trigger_rules ORDER BY id").use { cursor ->
                 check(cursor.moveToFirst())
                 assertEquals("prompt-task", cursor.getString(0))
                 assertEquals("PromptTask", cursor.getString(1))
                 assertEquals(0, cursor.getInt(2))
                 assertEquals("MatchAll", cursor.getString(3))
                 check(cursor.isNull(4))
+                assertEquals(0, cursor.getInt(5))
                 check(cursor.moveToNext())
                 assertEquals("check-habit", cursor.getString(0))
                 assertEquals("CheckOffHabit", cursor.getString(1))
             }
             database.query(
-                "SELECT id, sourceEventId, deliveredAtMillis, remindAtMillis, fulfilledEntryId, sourceSnapshot " +
+                "SELECT id, sourceEventId, deliveredAtMillis, remindAtMillis, fulfilledEntryId, sourceSnapshot, dismissedAtMillis " +
                     "FROM trigger_occurrences WHERE id = 31",
             ).use { cursor ->
                 check(cursor.moveToFirst())
@@ -114,6 +116,7 @@ class WhipDatabaseMigrationTest {
                 check(cursor.isNull(3))
                 check(cursor.isNull(4))
                 assertEquals("", cursor.getString(5))
+                assertEquals(2100L, cursor.getLong(6))
             }
             database.query("SELECT title, icon FROM tasks WHERE id = 5").use { cursor ->
                 check(cursor.moveToFirst())
@@ -165,7 +168,7 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V2_DATABASE_NAME,
-            30,
+            31,
             true,
             *allMigrations.drop(1).toTypedArray(),
         ).use { database ->
@@ -242,12 +245,13 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V8_DATABASE_NAME,
-            30,
+            31,
             true,
             WhipDatabase.migration8To9,
             WhipDatabase.migration9To28,
             WhipDatabase.migration28To29,
             WhipDatabase.migration29To30,
+            WhipDatabase.migration30To31,
         ).use { database ->
             database.query("SELECT uuid, habitId, localEpochDay, skippedAtMillis FROM habit_skips").use { cursor ->
                 check(cursor.moveToFirst())
@@ -383,11 +387,12 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V27_DATABASE_NAME,
-            30,
+            31,
             true,
             WhipDatabase.migration27To28,
             WhipDatabase.migration28To29,
             WhipDatabase.migration29To30,
+            WhipDatabase.migration30To31,
         ).use { database ->
             database.query("SELECT title, notes, icon, tagsCsv, inbox FROM tasks WHERE id = 5").use { cursor ->
                 check(cursor.moveToFirst())
@@ -420,15 +425,16 @@ class WhipDatabaseMigrationTest {
                 assertEquals("Completed", cursor.getString(4))
             }
             database.query(
-                "SELECT l.conditionMode, c.explanation FROM link_rules l " +
+                "SELECT l.conditionMode, c.explanation, l.enabled FROM link_rules l " +
                     "JOIN contributions c ON c.linkRuleId = l.id WHERE l.id = 11",
             ).use { cursor ->
                 check(cursor.moveToFirst())
                 assertEquals("MatchAll", cursor.getString(0))
                 assertEquals("Public contribution", cursor.getString(1))
+                assertEquals(0, cursor.getInt(2))
             }
             database.query(
-                "SELECT r.action, r.notificationEnabled, r.conditionMode, o.sourceSnapshot " +
+                "SELECT r.action, r.notificationEnabled, r.conditionMode, o.sourceSnapshot, r.enabled, o.dismissedAtMillis " +
                     "FROM trigger_rules r JOIN trigger_occurrences o ON o.triggerRuleId = r.id WHERE r.id = 21",
             ).use { cursor ->
                 check(cursor.moveToFirst())
@@ -436,6 +442,8 @@ class WhipDatabaseMigrationTest {
                 assertEquals(0, cursor.getInt(1))
                 assertEquals("MatchAll", cursor.getString(2))
                 assertEquals("", cursor.getString(3))
+                assertEquals(0, cursor.getInt(4))
+                assertEquals(2100L, cursor.getLong(5))
             }
             database.query("SELECT tagId FROM entity_tag_links WHERE entityType = 'Task' AND entityId = '5'").use { cursor ->
                 check(cursor.moveToFirst())
@@ -478,10 +486,11 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V28_DATABASE_NAME,
-            30,
+            31,
             true,
             WhipDatabase.migration28To29,
             WhipDatabase.migration29To30,
+            WhipDatabase.migration30To31,
         ).use { database ->
             database.query(
                 "SELECT name, autoCompleteFromItems FROM habits WHERE id = 3",
@@ -537,9 +546,10 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V29_DATABASE_NAME,
-            30,
+            31,
             true,
             WhipDatabase.migration29To30,
+            WhipDatabase.migration30To31,
         ).use { database ->
             database.query("SELECT exerciseId, levelDirection FROM gym_machines WHERE id = 9").use { cursor ->
                 check(cursor.moveToFirst())
@@ -571,6 +581,139 @@ class WhipDatabaseMigrationTest {
                 check(cursor.moveToFirst())
                 check(cursor.isNull(0))
                 assertEquals("HigherNumberLessResistance", cursor.getString(1))
+            }
+        }
+    }
+
+    @Test
+    fun migrationThirtyToThirtyOneRetiresRulesPreservesHistoryAndUnblocksTrackDeletion() {
+        helper.createDatabase(V30_DATABASE_NAME, 30).apply {
+            insertMainArea()
+            execSQL("INSERT INTO metric_definitions (id, name, valueKind, dimension, defaultUnitId, precision, dimensionLocked, archived, createdAtMillis, updatedAtMillis) VALUES ('goal-metric', 'Goal', 'Number', 'Count', 'count', 0, 0, 0, 1, 1)")
+            execSQL("INSERT INTO metric_definitions (id, name, valueKind, dimension, defaultUnitId, precision, dimensionLocked, archived, createdAtMillis, updatedAtMillis) VALUES ('habit-metric', 'Habit', 'Boolean', 'Count', 'count', 0, 0, 0, 1, 1)")
+            execSQL(
+                """
+                INSERT INTO goals (
+                    id, uuid, metricId, name, description, areaId, area, tagsCsv, icon,
+                    type, dimension, unitId, precision, baseline, targetMin, targetMax,
+                    direction, startEpochDay, deadlineEpochDay, aggregation,
+                    aggregationPeriod, rollingDays, paceType, consistencyPeriod,
+                    consistencyRequiredPeriods, elapsedStartMillis, elapsedDisplayUnit,
+                    reminderMinutes, status, pinned, position, createdAtMillis, updatedAtMillis
+                ) VALUES (
+                    7, 'goal-7', 'goal-metric', 'Preserved Goal', '', 'main', 'Main', '', '🎯',
+                    'ReachValue', 'Count', 'count', 0, 0, 10, NULL, 'Increase', 20690,
+                    NULL, 'Sum', 'All', NULL, 'None', 'Week', NULL, NULL, 'Auto', NULL,
+                    'Active', 0, 0, 100, 100
+                )
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO habits (
+                    id, uuid, metricId, name, notes, areaId, area, tagsCsv, icon,
+                    trackingMode, dimension, unitId, precision, comparison, targetMin,
+                    targetMax, targetPeriod, rollingDays, scheduleType, scheduleInterval,
+                    weekdaysMask, flexibleTimesPerWeek, startEpochDay, endType, endEpochDay,
+                    endValue, quickIncrement, quickActionsCsv, reminderMinutesCsv,
+                    weekdayReminderMinutesCsv, weekStart, timerStartedAtMillis, pinned,
+                    position, archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId,
+                    autoCompleteFromItems
+                ) VALUES (
+                    3, 'habit-3', 'habit-metric', 'Preserved Habit', '', 'main', 'Main', '', '✅',
+                    'CheckOff', 'Count', 'count', 0, 'AtLeast', 1, NULL, 'Day', NULL,
+                    'Daily', 1, 0, NULL, 20690, 'Never', NULL, NULL, 1, '', '', '',
+                    'MONDAY', NULL, 0, 0, 0, 0, 100, 100, NULL, 1
+                )
+                """.trimIndent(),
+            )
+            execSQL("INSERT INTO tracks (id, uuid, name, description, icon, areaId, area, tagsCsv, pinned, archived, position, createdAtMillis, updatedAtMillis) VALUES (41, 'track-41', 'Preserved Track', '', '📋', 'main', 'Main', '', 0, 0, 0, 100, 100)")
+            execSQL("INSERT INTO track_fields (id, uuid, trackId, name, type, position, required, primaryField, showInList, dimension, unitId, precision, scaleMin, scaleMax, scaleLowLabel, scaleHighLabel, createdAtMillis, updatedAtMillis, scaleStep) VALUES (42, 'field-42', 41, 'Choice', 'SingleChoice', 0, 1, 1, 1, NULL, NULL, 0, NULL, NULL, '', '', 100, 100, 1)")
+            execSQL("INSERT INTO track_choice_options (id, uuid, fieldId, label, position, createdAtMillis, updatedAtMillis) VALUES (43, 'option-43', 42, 'Keep', 0, 100, 100)")
+            execSQL("INSERT INTO track_entries (id, uuid, trackId, entryEpochDay, sourceOccurrenceId, sourceExplanation, createdAtMillis, updatedAtMillis) VALUES (44, 'entry-44', 41, 20690, 61, 'Preserved prompt result', 100, 100)")
+            execSQL("INSERT INTO metric_entries (id, metricId, canonicalValue, enteredValue, enteredUnitId, status, timestampMillis, localEpochDay, zoneId, offsetSeconds, sourceType, sourceId, note, createdAtMillis, updatedAtMillis) VALUES ('goal-generated', 'goal-metric', 2, 2, 'count', 'Recorded', 1000, 20690, 'UTC', 0, 'Track', 'contribution-51', 'Linked history', 1000, 1000)")
+            execSQL("INSERT INTO metric_entries (id, metricId, canonicalValue, enteredValue, enteredUnitId, status, timestampMillis, localEpochDay, zoneId, offsetSeconds, sourceType, sourceId, note, createdAtMillis, updatedAtMillis) VALUES ('habit-generated', 'habit-metric', 1, 1, 'count', 'Success', 1000, 20690, 'UTC', 0, 'Task', 'trigger:rule-60:event', 'Generated history', 1000, 1000)")
+            execSQL("INSERT INTO habit_logs (id, uuid, habitId, value, canonicalValue, enteredUnitId, status, timestampMillis, localEpochDay, zoneId, offsetSeconds, note, sourceType, sourceId, metricEntryId, createdAtMillis, updatedAtMillis) VALUES (31, 'habit-log-31', 3, 1, 1, 'count', 'Success', 1000, 20690, 'UTC', 0, 'Generated history', 'Task', 'trigger:rule-60:event', 'habit-generated', 1000, 1000)")
+            execSQL(
+                """
+                INSERT INTO link_rules (
+                    id, uuid, name, kind, sourceType, sourceEntityId, sourceMetricId,
+                    sourceItemId, sourceMetric, targetGoalId, targetMilestoneId, valueMode,
+                    fixedValue, multiplier, offset, retroactiveFromEpochDay, enabled,
+                    createdAtMillis, updatedAtMillis, trackAggregation, sourceFieldId, conditionMode
+                ) VALUES (
+                    50, 'rule-50', 'Retired progress', 'Contribution', 'Track', 41, NULL,
+                    NULL, 'FieldValue', 7, NULL, 'SourceValue', NULL, 1, 0, 20690, 1,
+                    100, 100, 'Latest', 42, 'MatchAll'
+                )
+                """.trimIndent(),
+            )
+            execSQL("INSERT INTO contributions (id, uuid, linkRuleId, sourceEventId, sourceType, sourceEntityId, targetGoalId, metricEntryId, canonicalValue, localEpochDay, timestampMillis, excluded, overrideValue, explanation, createdAtMillis, updatedAtMillis) VALUES (51, 'contribution-51', 50, 'track:event', 'Track', 41, 7, 'goal-generated', 2, 20690, 1000, 0, NULL, 'Preserved contribution', 1000, 1000)")
+            execSQL("INSERT INTO link_rule_conditions (id, linkRuleId, fieldId, entryDate, operator, position, textValue, numberValue, secondNumberValue, dateEpochDay, secondDateEpochDay) VALUES (52, 50, 42, 0, 'Equals', 0, NULL, NULL, NULL, NULL, NULL)")
+            execSQL("INSERT INTO link_condition_choices (conditionId, optionId) VALUES (52, 43)")
+            execSQL("INSERT INTO trigger_rules (id, uuid, name, sourceType, sourceEntityId, sourceItemId, outcome, targetType, targetEntityId, delayMinutes, quietStartMinutes, quietEndMinutes, action, notificationEnabled, conditionMode, enabled, createdAtMillis, updatedAtMillis) VALUES (60, 'rule-60', 'Retired prompt', 'Track', 41, NULL, 'Completed', 'Track', 41, 0, NULL, NULL, 'PromptTrackEntry', 1, 'MatchAll', 1, 100, 100)")
+            execSQL("INSERT INTO trigger_rule_conditions (id, triggerRuleId, fieldId, entryDate, operator, position, textValue, numberValue, secondNumberValue, dateEpochDay, secondDateEpochDay) VALUES (63, 60, 42, 0, 'Equals', 0, NULL, NULL, NULL, NULL, NULL)")
+            execSQL("INSERT INTO trigger_condition_choices (conditionId, optionId) VALUES (63, 43)")
+            execSQL("INSERT INTO trigger_field_mappings (id, triggerRuleId, targetFieldId, sourceProperty, constantText, constantNumber, constantUnitId, constantDateEpochDay, constantBoolean, constantChoiceOptionId, constantScale) VALUES (64, 60, 42, 'Constant', NULL, NULL, NULL, NULL, NULL, 43, NULL)")
+            execSQL("INSERT INTO trigger_occurrences (id, triggerRuleId, sourceEventId, availableAtMillis, deliveredAtMillis, dismissedAtMillis, remindAtMillis, fulfilledEntryId, sourceSnapshot) VALUES (61, 60, 'fulfilled', 1000, 1100, NULL, NULL, 44, '{}')")
+            execSQL("INSERT INTO trigger_occurrences (id, triggerRuleId, sourceEventId, availableAtMillis, deliveredAtMillis, dismissedAtMillis, remindAtMillis, fulfilledEntryId, sourceSnapshot) VALUES (62, 60, 'pending', 2000, NULL, NULL, 3000, NULL, '{}')")
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            V30_DATABASE_NAME,
+            31,
+            true,
+            WhipDatabase.migration30To31,
+        ).use { database ->
+            database.query("SELECT enabled FROM link_rules WHERE id = 50").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+            }
+            database.query("SELECT enabled, notificationEnabled FROM trigger_rules WHERE id = 60").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+                assertEquals(0, cursor.getInt(1))
+            }
+            database.query("SELECT dismissedAtMillis, remindAtMillis FROM trigger_occurrences WHERE id = 62").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(2000L, cursor.getLong(0))
+                check(cursor.isNull(1))
+            }
+            database.query("SELECT COUNT(*) FROM metric_entries WHERE id IN ('goal-generated', 'habit-generated')").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(2, cursor.getInt(0))
+            }
+            database.query("SELECT metricEntryId FROM habit_logs WHERE id = 31").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("habit-generated", cursor.getString(0))
+            }
+            database.query("SELECT sourceOccurrenceId FROM track_entries WHERE id = 44").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(61L, cursor.getLong(0))
+            }
+
+            database.execSQL("PRAGMA foreign_keys = ON")
+            database.execSQL("DELETE FROM track_fields WHERE id = 42")
+            database.query("SELECT sourceFieldId FROM link_rules WHERE id = 50").use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.isNull(0))
+            }
+            database.query("SELECT fieldId FROM link_rule_conditions WHERE id = 52").use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.isNull(0))
+            }
+            database.query("SELECT COUNT(*) FROM link_condition_choices").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+            }
+            database.query("SELECT COUNT(*) FROM trigger_field_mappings").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+            }
+            database.query("SELECT COUNT(*) FROM track_entries WHERE id = 44").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(1, cursor.getInt(0))
             }
         }
     }
@@ -650,6 +793,7 @@ class WhipDatabaseMigrationTest {
         const val V27_DATABASE_NAME = "public-v27-to-v28-migration"
         const val V28_DATABASE_NAME = "checklist-v28-to-v29-migration"
         const val V29_DATABASE_NAME = "machines-v29-to-v30-migration"
+        const val V30_DATABASE_NAME = "automation-retirement-v30-to-v31-migration"
 
         val allMigrations: Array<Migration> = arrayOf(
             WhipDatabase.migration1To2,
@@ -663,6 +807,7 @@ class WhipDatabaseMigrationTest {
             WhipDatabase.migration9To28,
             WhipDatabase.migration28To29,
             WhipDatabase.migration29To30,
+            WhipDatabase.migration30To31,
         )
     }
 }

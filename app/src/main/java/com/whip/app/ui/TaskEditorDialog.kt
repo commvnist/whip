@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,8 +36,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -82,7 +81,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
 import com.whip.app.domain.RecurrenceEnd
@@ -306,7 +304,6 @@ fun TaskEditorDialog(
     var confirmDiscard by rememberSaveable(editorKey) { mutableStateOf(false) }
     var pendingUndatedPlacement by rememberSaveable(editorKey) { mutableStateOf<TaskPlacement?>(null) }
     var pendingRepeatEnable by rememberSaveable(editorKey) { mutableStateOf(false) }
-    var saveMenuExpanded by rememberSaveable(editorKey) { mutableStateOf(false) }
     var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
 
     LaunchedEffect(editorKey) {
@@ -470,27 +467,22 @@ fun TaskEditorDialog(
                         overflow = TextOverflow.Ellipsis,
                     )
                     if (request.task == null && onSaveAndNew != null && powerMode) {
-                        Box {
-                            IconButton(onClick = { saveMenuExpanded = true }, enabled = !saving) {
-                                Icon(Icons.Outlined.MoreVert, contentDescription = "More save options")
-                            }
-                            DropdownMenu(
-                                expanded = saveMenuExpanded,
-                                onDismissRequest = { saveMenuExpanded = false },
-                            ) {
-                                WhipMenuItem(
-                                    label = "Save & Create Another",
-                                    enabled = !saving,
-                                    onClick = {
-                                        saveMenuExpanded = false
-                                        if (canSave) {
-                                            onSaveAndNew(request.task?.id, currentDraft, request.fromOccurrence)
-                                        } else {
-                                            validationRequested = true
-                                        }
-                                    },
-                                )
-                            }
+                        WhipTextButton(
+                            enabled = !saving,
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                            onClick = {
+                                if (canSave) {
+                                    onSaveAndNew(request.task?.id, currentDraft, request.fromOccurrence)
+                                } else {
+                                    validationRequested = true
+                                }
+                            },
+                        ) {
+                            Text(
+                                text = "Save & New",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                     }
                     WhipButton(

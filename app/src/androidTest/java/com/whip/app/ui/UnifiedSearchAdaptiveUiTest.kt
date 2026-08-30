@@ -233,12 +233,7 @@ class UnifiedSearchAdaptiveUiTest {
 
         val contentWidth = compose.onNodeWithTag("workspace-top-app-bar")
             .fetchSemanticsNode().boundsInRoot.width
-        if (compose.onAllNodesWithTag("workspace-search-action").fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithTag("workspace-search-action").performClick()
-        } else {
-            compose.onNodeWithContentDescription("App actions").performClick()
-            compose.onNodeWithTag("workspace-search-menu-action").performClick()
-        }
+        compose.onNodeWithTag("workspace-search-action").performClick()
         val searchWidth = compose.onNodeWithTag("unified-search-surface")
             .assertIsDisplayed()
             .fetchSemanticsNode().boundsInRoot.width

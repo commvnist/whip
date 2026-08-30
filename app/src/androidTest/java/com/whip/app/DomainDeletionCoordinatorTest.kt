@@ -115,18 +115,11 @@ class DomainDeletionCoordinatorTest {
         assertTrue(goals.metricEntries.first().none { it.metricId == goals.goals.first().single().metricId })
     }
 
-    @Test fun goalDeleteRemovesIncomingLinksContributionsAndOwnedMetric() = runBlocking {
+    @Test fun goalDeleteRemovesOwnedMetricAndPreservesIndependentHabits() = runBlocking {
         val habitId = habits.create(HabitDraft(name = "Pages", startDate = FixedClock.today()))
         habits.log(habitId, 12.0)
         val goalId = goals.create(accumulatingGoal("Book"))
         val metricId = goals.goals.first().single().metricId
-        links.createRule(
-            LinkRuleDraft("Pages to book", sourceType = LinkSourceType.Habit, sourceEntityId = habitId,
-                sourceMetric = LinkSourceMetric.NumericValue, targetGoalId = goalId, retroactiveFrom = FixedClock.today()),
-            commitBackfill = true,
-        )
-        assertEquals(1, links.contributions.first().size)
-
         coordinator.deleteGoal(goalId)
 
         assertTrue(goals.goals.first().isEmpty())

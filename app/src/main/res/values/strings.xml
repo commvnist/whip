@@ -37,15 +37,13 @@
     <string name="support_goals_title">Active Goals</string>
     <string name="support_goals_description">Open a Goal to review progress and next actions.</string>
     <string name="support_goals_empty">No Goals are active.</string>
-    <string name="support_tracks_description">Choose a Track to view its Entries and Automations.</string>
+    <string name="support_tracks_description">Choose a Track to view its Entries, options, and Insights.</string>
     <string name="support_tracks_empty_title">No Tracks Yet</string>
     <string name="support_tracks_empty_message">Create a Track from the content pane.</string>
     <string name="support_track_overview_title">Track Overview</string>
     <string name="support_track_overview_description">Across the current Area scope.</string>
     <string name="support_active_tracks">Active Tracks</string>
     <string name="support_entries">Entries</string>
-    <string name="support_goal_automations">Goal Automations</string>
-    <string name="support_next_action_automations">Next-Action Automations</string>
     <string name="support_recently_active">Recently Active</string>
     <string name="task_inbox">Inbox</string>
     <string name="state_done">Done</string>

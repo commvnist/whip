@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -192,20 +193,16 @@ class TaskDeletionUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("More Task options").performClick()
-        compose.onNodeWithText("Options").performClick()
+        compose.onNodeWithTag("task-detail-section-Options").performClick()
         compose.onNodeWithText("Delete Permanently").assertIsDisplayed().performClick()
         compose.onNodeWithText("Delete “Private task” Permanently?").assertIsDisplayed()
         compose.onNodeWithText("0 recorded occurrences", substring = true).assertIsDisplayed()
         compose.onNodeWithText("0 subtasks").assertIsDisplayed()
-        compose.onNodeWithText("0 goal progress sources").assertIsDisplayed()
-        compose.onNodeWithText("0 automations").assertIsDisplayed()
         compose.runOnIdle { assertEquals(0, confirmations.get()) }
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithText("Private task").assertIsDisplayed()
 
-        compose.onNodeWithContentDescription("More Task options").performClick()
-        compose.onNodeWithText("Options").performClick()
+        compose.onNodeWithTag("task-detail-section-Options").performClick()
         compose.onNodeWithText("Delete Permanently").performClick()
         compose.onNodeWithText("Delete Permanently").performClick()
         compose.runOnIdle { assertEquals(1, confirmations.get()) }
@@ -305,8 +302,7 @@ class TaskDeletionUiTest {
         compose.onNodeWithContentDescription("Edit This and Future").assertIsDisplayed()
         compose.onNodeWithText("Activity").performClick()
         compose.onNodeWithContentDescription("Edit This and Future").assertIsDisplayed()
-        compose.onNodeWithContentDescription("More Task options").performClick()
-        compose.onNodeWithText("Options").performClick()
+        compose.onNodeWithTag("task-detail-section-Options").performClick()
         compose.onNodeWithContentDescription("Edit This and Future").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, edits.get()) }
     }

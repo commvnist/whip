@@ -62,7 +62,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Archive
-import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -72,9 +71,6 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PauseCircleOutline
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.repeatOnLifecycle
 import com.whip.app.core.AppSettings
 import com.whip.app.domain.Habit
 import com.whip.app.domain.Area
@@ -97,14 +93,6 @@ import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.MetricDefinition
 import com.whip.app.domain.MetricValueKind
 import com.whip.app.domain.BuiltInUnits
-import com.whip.app.domain.LinkSourceType
-import com.whip.app.domain.LinkSourceMetric
-import com.whip.app.domain.GoalProjection
-import com.whip.app.domain.TriggerOutcome
-import com.whip.app.domain.TriggerRule
-import com.whip.app.domain.TriggerRuleDraft
-import com.whip.app.domain.TriggerTargetType
-import com.whip.app.domain.TriggerAction
 import com.whip.app.domain.compactNumericSequence
 import com.whip.app.domain.editableNumericValue
 import com.whip.app.domain.parseNumericSequence
@@ -116,7 +104,6 @@ import com.whip.app.domain.valueInUnit
 import com.whip.app.domain.validationErrors
 import com.whip.app.domain.dayStateOn
 import com.whip.app.domain.successfulPeriodOutcomeDates
-import java.time.Instant
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -124,10 +111,8 @@ import java.time.format.FormatStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 import com.whip.app.ui.theme.whipColors
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 
-enum class HabitDestination { Today, All, Connections, Archived, Insights }
+enum class HabitDestination { Today, All, Archived, Insights }
 
 @Composable
 fun HabitAreaContent(
@@ -136,7 +121,6 @@ fun HabitAreaContent(
     viewModel: HabitViewModel,
     modifier: Modifier = Modifier,
     editorModifier: Modifier = modifier,
-    goalState: GoalUiState = GoalUiState(),
     createRequested: Boolean = false,
     onCreateRequestConsumed: () -> Unit = {},
     openHabitIdRequest: Long? = null,
@@ -145,7 +129,6 @@ fun HabitAreaContent(
     onEditHabitRequestConsumed: () -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     lowPressureMode: Boolean = false,
-    onOpenTask: (Long) -> Unit = {},
     areas: List<Area> = emptyList(),
     defaultAreaId: String? = null,
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
@@ -179,7 +162,6 @@ fun HabitAreaContent(
     var reorderAllRequested by rememberSaveable { mutableStateOf(false) }
     var templateDraft by rememberSaveable { mutableStateOf<HabitDraft?>(null) }
     var editorSavePending by rememberSaveable { mutableStateOf(false) }
-    var linkingHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var historicalLogHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editingLogHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editingLogId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -191,7 +173,6 @@ fun HabitAreaContent(
     val actions = actionsHabitId?.let(progressById::get)
     val numericLog = numericLogHabitId?.let(progressById::get)
     val pauseRequest = pauseRequestHabitId?.let(progressById::get)
-    val linkingHabit = linkingHabitId?.let(progressById::get)
     val historicalLogHabit = historicalLogHabitId?.let(progressById::get)
     val editingLog = editingLogHabitId?.let(progressById::get)?.let { item ->
         editingLogId?.let { id -> state.logs.firstOrNull { it.id == id } }?.let { item to it }
@@ -242,10 +223,8 @@ fun HabitAreaContent(
         DestinationTabBar(
             selected = destination,
             destinations = HabitDestination.entries,
-            primaryDestinations = listOf(HabitDestination.Today, HabitDestination.All, HabitDestination.Insights),
-            overflowLabel = "More Habit destinations",
             onSelect = { destination = it; focusedArchivedHabitId = null },
-            label = { if (it == HabitDestination.Connections) "Automations" else it.name },
+            label = { it.name },
             testTagPrefix = "habit-destination",
             barTestTag = "habit-workspace-navigation",
         )
@@ -306,13 +285,6 @@ fun HabitAreaContent(
                 reorderDismissRequest = reorderDismissRequest,
             )
             HabitDestination.Insights -> HabitInsights(state, lowPressureMode)
-            HabitDestination.Connections -> HabitAutomationContent(
-                state,
-                viewModel,
-                onOpenHabit = { actionsHabitId = it },
-                onOpenTask = onOpenTask,
-                onRequestNotificationPermission = onRequestNotificationPermission,
-            )
             HabitDestination.Archived -> ArchivedHabitList(
                 habits = state.archived,
                 focusedHabitId = focusedArchivedHabitId,
@@ -387,9 +359,6 @@ fun HabitAreaContent(
             skips = state.skips.filter { it.habitId == item.habit.id },
             onAddHistoricalLog = { historicalLogHabitId = item.habit.id; actionsHabitId = null },
             onEditLog = { log -> editingLogHabitId = item.habit.id; editingLogId = log.id; actionsHabitId = null },
-            linkedGoals = goalState.linkRules.filter { it.sourceType == LinkSourceType.Habit && it.sourceEntityId == item.habit.id }
-                .mapNotNull { rule -> (goalState.active + goalState.completed + goalState.archived).firstOrNull { it.goal.id == rule.targetGoalId }?.goal?.name },
-            onLinkGoal = { linkingHabitId = item.habit.id; actionsHabitId = null },
             onArchive = { viewModel.setArchived(item.habit.id, !item.habit.archived); actionsHabitId = null },
             onDelete = { deleteCandidateHabitId = item.habit.id; actionsHabitId = null },
             lowPressureMode = lowPressureMode,
@@ -415,16 +384,10 @@ fun HabitAreaContent(
     deleteCandidate?.let { habit ->
         val logCount = state.logs.count { it.habitId == habit.id }
         val skipCount = state.skips.count { it.habitId == habit.id }
-        val linkCount = goalState.linkRules.count {
-            (it.sourceType == LinkSourceType.Habit && it.sourceEntityId == habit.id) || it.sourceMetricId == habit.metricId
-        }
-        val automationCount = state.triggerRules.count { it.targetType == TriggerTargetType.Habit && it.targetEntityId == habit.id }
         PermanentDeleteDialog(
             title = "Delete ${habit.name} Permanently?",
             impacts = listOf(
                 "$logCount check-in${if (logCount == 1) "" else "s"}, $skipCount skipped day${if (skipCount == 1) "" else "s"}, checklist state, and streak history will be removed",
-                "$linkCount Goal Automation${if (linkCount == 1) "" else "s"} and its generated measurements will be removed",
-                "$automationCount automation${if (automationCount == 1) "" else "s"} targeting this habit will be removed",
             ),
             onDismiss = { deleteCandidateHabitId = null },
             onConfirm = { viewModel.deletePermanently(habit.id); deleteCandidateHabitId = null },
@@ -482,500 +445,6 @@ fun HabitAreaContent(
             },
         )
     }
-    linkingHabit?.let { item ->
-        HabitGoalLinkDialog(
-            habit = item.habit,
-            goals = goalState.active,
-            onDismiss = { linkingHabitId = null },
-            onSave = { goal, metric, includeHistory ->
-                viewModel.linkHabitToGoal(item.habit.id, goal.goal.id, metric, goal.goal.startDate.takeIf { includeHistory })
-                linkingHabitId = null
-            },
-        )
-    }
-}
-
-@Composable
-private fun HabitAutomationContent(
-    state: HabitUiState,
-    viewModel: HabitViewModel,
-    onOpenHabit: (Long) -> Unit,
-    onOpenTask: (Long) -> Unit,
-    onRequestNotificationPermission: () -> Unit,
-) {
-    var creating by rememberSaveable { mutableStateOf(false) }
-    var editingRuleId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var removingRuleId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var savePending by rememberSaveable { mutableStateOf(false) }
-    val supportedRules = state.triggerRules.filter(TriggerRule::isSupportedByHabitAutomationWorkspace)
-    val rulesById = supportedRules.associateBy(TriggerRule::id)
-    val editingRule = editingRuleId?.let(rulesById::get)
-    val lifecycleOwner = LocalLifecycleOwner.current
-    var now by remember { mutableStateOf(Instant.now()) }
-    LaunchedEffect(lifecycleOwner) {
-        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            while (isActive) {
-                now = Instant.now()
-                delay(1_000)
-            }
-        }
-    }
-    val pending = state.triggerOccurrences.filter { occurrence ->
-        val rule = rulesById[occurrence.triggerRuleId]
-        occurrence.isReadyForHabitAutomation(rule, now) && rule?.habitAutomationIssue(state) == null
-    }
-    val hasContent = supportedRules.isNotEmpty()
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
-    ) {
-        item {
-            WhipPageHeader(
-                title = "Automations",
-                supportingText = "Make one result prompt the next Task or Habit across all areas.",
-            ) {
-                if (hasContent) {
-                    WhipPageIconAction(
-                        icon = Icons.Filled.Add,
-                        label = "Create Automation",
-                        onClick = { creating = true },
-                    )
-                }
-            }
-        }
-        if (!hasContent) item {
-            WhipEmptyState(
-                title = "Build Your First Automation",
-                supportingText = "For example, completing an evening Task can make your wind-down Habit ready.",
-                icon = Icons.Outlined.Bolt,
-                primaryActionLabel = "Create Automation",
-                onPrimaryAction = { creating = true },
-            )
-        }
-        if (pending.isNotEmpty()) item {
-            WhipSection(
-                title = "Ready Now",
-                supportingText = "These prompts are ready for your review.",
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling)) {
-                    pending.forEach { occurrence ->
-                        val rule = requireNotNull(rulesById[occurrence.triggerRuleId])
-                        val targetHabit = state.all.firstOrNull { it.habit.id == rule.targetEntityId }?.habit
-                        val doNow = rule.supportsReadyDoNow(
-                            targetMode = targetHabit?.trackingMode,
-                            targetSourceMetricId = targetHabit?.sourceMetricId,
-                        )
-                        ReadyAutomationCard(
-                            rule = rule,
-                            state = state,
-                            primaryLabel = if (doNow) "Do Now" else if (rule.targetType == TriggerTargetType.Habit) "Open Habit" else "Open Task",
-                            onPrimary = {
-                                if (doNow) viewModel.doTriggerNow(occurrence.id, rule)
-                                else if (rule.targetType == TriggerTargetType.Habit) onOpenHabit(rule.targetEntityId)
-                                else onOpenTask(rule.targetEntityId)
-                            },
-                            onDismiss = { viewModel.dismissTriggerOccurrence(occurrence.id) },
-                        )
-                    }
-                }
-            }
-        }
-        if (supportedRules.isNotEmpty()) item {
-            WhipSection(
-                title = "Your Automations",
-                supportingText = "Each rule stays explainable and can be paused without deleting its setup.",
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling)) {
-                    supportedRules.forEach { rule ->
-                        ConfiguredAutomationCard(
-                            rule = rule,
-                            state = state,
-                            onToggle = { viewModel.setTriggerEnabled(rule, !rule.enabled) },
-                            onEdit = { editingRuleId = rule.id },
-                            onRemove = { removingRuleId = rule.id },
-                        )
-                    }
-                }
-            }
-        }
-    }
-    if (creating || editingRule != null) HabitAutomationDialog(
-        state = state,
-        initialRule = editingRule,
-        saving = savePending,
-        onDismiss = { if (!savePending) { creating = false; editingRuleId = null } },
-        onSave = { draft ->
-            if (draft.notificationEnabled) onRequestNotificationPermission()
-            savePending = true
-            val onFinished: (Boolean) -> Unit = { succeeded ->
-                savePending = false
-                if (succeeded) {
-                    creating = false
-                    editingRuleId = null
-                }
-            }
-            if (editingRule == null) viewModel.createTrigger(draft, onFinished) else viewModel.updateTrigger(editingRule.id, draft, onFinished)
-        },
-    )
-    removingRuleId?.let { ruleId ->
-        val rule = state.triggerRules.firstOrNull { it.id == ruleId }
-        RemoveAutomationConfirmationDialog(
-            automationName = rule?.name ?: "This Automation",
-            onDismiss = { removingRuleId = null },
-            onConfirm = {
-                viewModel.deleteTrigger(ruleId)
-                removingRuleId = null
-            },
-        )
-    }
-}
-
-@Composable
-private fun ReadyAutomationCard(
-    rule: TriggerRule,
-    state: HabitUiState,
-    primaryLabel: String,
-    onPrimary: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var menuOpen by rememberSaveable(rule.id) { mutableStateOf(false) }
-    WhipCollectionCard {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(WhipSpacing.compact),
-            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
-        ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro)) {
-                    Text(rule.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    WhipStatusBadge("Ready", WhipStatusTone.Info)
-                }
-                WhipOverflowMenu(
-                    label = "More actions for ${rule.name}",
-                    expanded = menuOpen,
-                    onExpandedChange = { menuOpen = it },
-                ) {
-                        WhipMenuItem(
-                            label = "Dismiss Prompt",
-                            onClick = { menuOpen = false; onDismiss() },
-                        )
-                }
-            }
-            Text(rule.automationSentence(state), style = MaterialTheme.typography.bodyMedium)
-            WhipButton(onClick = onPrimary, modifier = Modifier.fillMaxWidth()) { Text(primaryLabel) }
-        }
-    }
-}
-
-@Composable
-private fun ConfiguredAutomationCard(
-    rule: TriggerRule,
-    state: HabitUiState,
-    onToggle: () -> Unit,
-    onEdit: () -> Unit,
-    onRemove: () -> Unit,
-) {
-    var menuOpen by rememberSaveable(rule.id) { mutableStateOf(false) }
-    val issue = rule.habitAutomationIssue(state)
-    val statusLabel = when {
-        issue != null -> "Needs Attention"
-        rule.enabled -> "Running"
-        else -> "Paused"
-    }
-    val statusTone = when {
-        issue != null -> WhipStatusTone.Warning
-        rule.enabled -> WhipStatusTone.Success
-        else -> WhipStatusTone.Neutral
-    }
-    WhipCollectionCard {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(WhipSpacing.compact),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
-            ) {
-                Text(rule.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                WhipStatusBadge(statusLabel, statusTone)
-                Text(rule.automationSentence(state), style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    listOfNotNull(
-                        if (rule.delayMinutes == 0) "Immediately" else "After ${rule.delayMinutes} minutes",
-                        "Android notification".takeIf { rule.notificationEnabled },
-                    ).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                issue?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                }
-            }
-            WhipOverflowMenu(
-                label = "More actions for ${rule.name}",
-                expanded = menuOpen,
-                onExpandedChange = { menuOpen = it },
-            ) {
-                    WhipMenuItem(
-                        label = if (rule.enabled) "Pause Automation" else "Resume Automation",
-                        enabled = issue == null,
-                        onClick = { menuOpen = false; onToggle() },
-                    )
-                    WhipMenuItem(label = "Edit Automation", onClick = { menuOpen = false; onEdit() })
-                    WhipMenuItem(
-                        label = "Remove Automation",
-                        role = WhipMenuItemRole.Destructive,
-                        onClick = { menuOpen = false; onRemove() },
-                    )
-            }
-        }
-    }
-}
-
-private fun TriggerRule.automationSentence(state: HabitUiState): String {
-    val source = triggerSourceLabel(this, state)
-    val target = triggerTargetLabel(this, state)
-    val result = when (outcome) {
-        TriggerOutcome.Recorded -> "is recorded"
-        TriggerOutcome.Completed -> "is completed"
-        TriggerOutcome.Failed -> "fails"
-        TriggerOutcome.Skipped -> "is skipped"
-    }
-    val next = when (action) {
-        TriggerAction.PromptTask -> "make $target ready"
-        TriggerAction.PromptHabit -> "make $target ready"
-        TriggerAction.CheckOffHabit -> "check off $target automatically"
-        TriggerAction.PromptTrackEntry -> "prompt an Entry in $target"
-    }
-    return "When $source $result, $next."
-}
-
-private fun TriggerRule.habitAutomationIssue(state: HabitUiState): String? = when {
-    sourceType == LinkSourceType.Habit && state.all.none { it.habit.id == sourceEntityId } ->
-        "The source Habit is unavailable. Edit this Automation to choose another Habit."
-    sourceType == LinkSourceType.Task && state.sourceTasks.none { it.id == sourceEntityId } ->
-        "The source Task is unavailable. Edit this Automation to choose another Task."
-    targetType == TriggerTargetType.Habit && state.all.none { it.habit.id == targetEntityId } ->
-        "The target Habit is unavailable. Edit this Automation to choose another Habit."
-    targetType == TriggerTargetType.Task && state.sourceTasks.none { it.id == targetEntityId } ->
-        "The target Task is unavailable. Edit this Automation to choose another Task."
-    else -> null
-}
-
-private fun triggerSourceLabel(rule: com.whip.app.domain.TriggerRule, state: HabitUiState): String = when (rule.sourceType) {
-    LinkSourceType.Habit -> (state.all + state.today).firstOrNull { it.habit.id == rule.sourceEntityId }?.habit?.name ?: "Habit"
-    LinkSourceType.Task, LinkSourceType.Subtask -> state.sourceTasks.firstOrNull { it.id == rule.sourceEntityId }?.title ?: "Task"
-    LinkSourceType.Workout -> "Completed workout"
-    LinkSourceType.Exercise -> "Exercise result"
-    LinkSourceType.Metric -> "Measurement"
-    LinkSourceType.Track -> "Track Entry"
-}
-
-private fun triggerTargetLabel(rule: com.whip.app.domain.TriggerRule, state: HabitUiState): String = when (rule.targetType) {
-    TriggerTargetType.Habit -> (state.all + state.today).firstOrNull { it.habit.id == rule.targetEntityId }?.habit?.name ?: "Habit"
-    TriggerTargetType.Task -> state.sourceTasks.firstOrNull { it.id == rule.targetEntityId }?.title ?: "Task"
-    TriggerTargetType.Track -> "Track"
-}
-
-@Composable
-private fun HabitAutomationDialog(
-    state: HabitUiState,
-    initialRule: TriggerRule? = null,
-    onDismiss: () -> Unit,
-    onSave: (TriggerRuleDraft) -> Unit,
-    saving: Boolean = false,
-) {
-    val habits = state.all.map(HabitDayProgress::habit)
-    val editorKey = "automation-${initialRule?.id ?: "new"}"
-    var name by rememberSaveable(editorKey) { mutableStateOf(initialRule?.name.orEmpty()) }
-    var sourceType by rememberSaveable(editorKey) { mutableStateOf(initialRule?.sourceType ?: LinkSourceType.Habit) }
-    var sourceHabitId by rememberSaveable(editorKey) { mutableStateOf(initialRule?.sourceEntityId?.takeIf { initialRule.sourceType == LinkSourceType.Habit } ?: habits.firstOrNull()?.id) }
-    var sourceTaskId by rememberSaveable(editorKey) { mutableStateOf(initialRule?.sourceEntityId?.takeIf { initialRule.sourceType == LinkSourceType.Task } ?: state.sourceTasks.firstOrNull()?.id) }
-    var targetType by rememberSaveable(editorKey) { mutableStateOf(initialRule?.targetType ?: TriggerTargetType.Habit) }
-    var targetHabitId by rememberSaveable(editorKey) { mutableStateOf(initialRule?.targetEntityId?.takeIf { initialRule.targetType == TriggerTargetType.Habit } ?: habits.firstOrNull()?.id) }
-    var targetTaskId by rememberSaveable(editorKey) { mutableStateOf(initialRule?.targetEntityId?.takeIf { initialRule.targetType == TriggerTargetType.Task } ?: state.sourceTasks.firstOrNull()?.id) }
-    var outcome by rememberSaveable(editorKey) { mutableStateOf(initialRule?.outcome ?: TriggerOutcome.Completed) }
-    var delay by rememberSaveable(editorKey) { mutableStateOf((initialRule?.delayMinutes ?: 0).toString()) }
-    var quietHoursEnabled by rememberSaveable(editorKey) {
-        mutableStateOf(initialRule?.quietStartMinutes != null || initialRule?.quietEndMinutes != null)
-    }
-    var quietStart by rememberSaveable(editorKey) { mutableStateOf(initialRule?.quietStartMinutes?.let { "%02d:%02d".format(it / 60, it % 60) } ?: "22:00") }
-    var quietEnd by rememberSaveable(editorKey) { mutableStateOf(initialRule?.quietEndMinutes?.let { "%02d:%02d".format(it / 60, it % 60) } ?: "07:00") }
-    var action by rememberSaveable(editorKey) { mutableStateOf(initialRule?.action ?: TriggerAction.PromptHabit) }
-    var notificationEnabled by rememberSaveable(editorKey) { mutableStateOf(initialRule?.notificationEnabled ?: false) }
-    var dirty by rememberSaveable(editorKey) { mutableStateOf(false) }
-    var discardRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
-    val selectedSourceHabit = habits.firstOrNull { it.id == sourceHabitId } ?: habits.firstOrNull()
-    val selectedSourceTask = state.sourceTasks.firstOrNull { it.id == sourceTaskId } ?: state.sourceTasks.firstOrNull()
-    val selectedTargetHabit = habits.firstOrNull { it.id == targetHabitId } ?: habits.firstOrNull()
-    val selectedTargetTask = state.sourceTasks.firstOrNull { it.id == targetTaskId } ?: state.sourceTasks.firstOrNull()
-    val sourceId = when (sourceType) {
-        LinkSourceType.Habit -> selectedSourceHabit?.id
-        LinkSourceType.Task -> selectedSourceTask?.id
-        LinkSourceType.Workout -> 0L
-        else -> null
-    }
-    val targetId = when (targetType) {
-        TriggerTargetType.Habit -> selectedTargetHabit?.id
-        TriggerTargetType.Task -> selectedTargetTask?.id
-        TriggerTargetType.Track -> null
-    }
-    val actions = if (targetType == TriggerTargetType.Task) listOf(TriggerAction.PromptTask) else buildList {
-        add(TriggerAction.PromptHabit)
-        if (selectedTargetHabit?.trackingMode == HabitTrackingMode.CheckOff) add(TriggerAction.CheckOffHabit)
-    }
-    LaunchedEffect(targetType, targetHabitId) { if (action !in actions) action = actions.first() }
-    val sourceOutcomes = when (sourceType) {
-        LinkSourceType.Habit -> listOf(TriggerOutcome.Recorded, TriggerOutcome.Completed, TriggerOutcome.Failed, TriggerOutcome.Skipped)
-        LinkSourceType.Task -> listOf(TriggerOutcome.Completed, TriggerOutcome.Skipped)
-        else -> listOf(TriggerOutcome.Completed)
-    }
-    LaunchedEffect(sourceType) { if (outcome !in sourceOutcomes) outcome = sourceOutcomes.first() }
-    val sourceLabel = when (sourceType) {
-        LinkSourceType.Habit -> selectedSourceHabit?.name ?: "Habit"
-        LinkSourceType.Task -> selectedSourceTask?.title ?: "Task"
-        LinkSourceType.Workout -> "Completed workout"
-        else -> "Source"
-    }
-    val targetLabel = when (targetType) {
-        TriggerTargetType.Habit -> selectedTargetHabit?.name ?: "Habit"
-        TriggerTargetType.Task -> selectedTargetTask?.title ?: "Task"
-        TriggerTargetType.Track -> "Track"
-    }
-    val previewResult = when (outcome) {
-        TriggerOutcome.Recorded -> "is recorded"
-        TriggerOutcome.Completed -> "is completed"
-        TriggerOutcome.Failed -> "fails"
-        TriggerOutcome.Skipped -> "is skipped"
-    }
-    val previewAction = when (action) {
-        TriggerAction.PromptTask, TriggerAction.PromptHabit -> "make $targetLabel ready"
-        TriggerAction.CheckOffHabit -> "check off $targetLabel automatically"
-        TriggerAction.PromptTrackEntry -> "prompt an Entry in $targetLabel"
-    }
-    val preview = "When $sourceLabel $previewResult, $previewAction."
-    val generatedName = "$sourceLabel to $targetLabel".take(100)
-    val delayMinutes = delay.toIntOrNull()
-    val delayValid = delayMinutes != null && delayMinutes >= 0
-    val quietStartMinutes = parseClockMinutes(quietStart)
-    val quietEndMinutes = parseClockMinutes(quietEnd)
-    val quietHoursValid = !quietHoursEnabled || quietStartMinutes != null && quietEndMinutes != null
-    val targetsItself = sourceType == LinkSourceType.Habit && targetType == TriggerTargetType.Habit && sourceId == targetId ||
-        sourceType == LinkSourceType.Task && targetType == TriggerTargetType.Task && sourceId == targetId
-    val valid = sourceId != null && targetId != null && delayValid && quietHoursValid && !targetsItself
-    fun requestDismiss() {
-        if (saving) return
-        if (dirty) discardRequested = true else onDismiss()
-    }
-    PaneAwareAlertDialog(
-        onDismissRequest = ::requestDismiss,
-        paneTitle = if (initialRule == null) "New Automation" else "Edit Automation",
-        title = { Text(if (initialRule == null) "New Automation" else "Edit Automation") },
-        text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            item { EditorSectionHeader("When", "Choose the result that starts this Automation.") }
-            item { EnumDropdown("Event From", listOf(LinkSourceType.Habit, LinkSourceType.Task, LinkSourceType.Workout), sourceType, { if (it == LinkSourceType.Workout) "Completed Workout" else it.name }) { selected -> dirty = true; sourceType = selected; outcome = if (selected == LinkSourceType.Habit) TriggerOutcome.Recorded else TriggerOutcome.Completed } }
-            if (sourceType == LinkSourceType.Habit && selectedSourceHabit != null) item { EnumDropdown("Habit", habits, selectedSourceHabit, { it.name }, titleCaseValues = false) { dirty = true; sourceHabitId = it.id } }
-            if (sourceType == LinkSourceType.Task && selectedSourceTask != null) item { EnumDropdown("Task", state.sourceTasks, selectedSourceTask, { it.title }, titleCaseValues = false) { dirty = true; sourceTaskId = it.id } }
-            if (
-                sourceType == LinkSourceType.Habit && selectedSourceHabit == null ||
-                sourceType == LinkSourceType.Task && selectedSourceTask == null
-            ) item {
-                WhipNoticeCard(
-                    title = "Source Required",
-                    message = "Create an active ${if (sourceType == LinkSourceType.Habit) "Habit" else "Task"} before using it in an Automation.",
-                    tone = WhipNoticeTone.Warning,
-                )
-            }
-            if (sourceOutcomes.size > 1) item { EnumDropdown("Result", sourceOutcomes, outcome, { it.name }) { dirty = true; outcome = it } }
-            if (sourceType == LinkSourceType.Habit) item { Text("Recorded means any saved Habit result. Completed means the Habit reached its target.", style = MaterialTheme.typography.bodySmall) }
-            item { EditorSectionHeader("Then", "Choose what Whip should make available next.") }
-            item { EnumDropdown("Next Action Type", listOf(TriggerTargetType.Habit, TriggerTargetType.Task), targetType, { it.name }) { dirty = true; targetType = it } }
-            if (targetType == TriggerTargetType.Habit && selectedTargetHabit != null) item { EnumDropdown("Habit", habits, selectedTargetHabit, { it.name }, titleCaseValues = false) { dirty = true; targetHabitId = it.id } }
-            if (targetType == TriggerTargetType.Task && selectedTargetTask != null) item { EnumDropdown("Task", state.sourceTasks, selectedTargetTask, { it.title }, titleCaseValues = false) { dirty = true; targetTaskId = it.id } }
-            if (
-                targetType == TriggerTargetType.Habit && selectedTargetHabit == null ||
-                targetType == TriggerTargetType.Task && selectedTargetTask == null
-            ) item {
-                WhipNoticeCard(
-                    title = "Next Action Required",
-                    message = "Create an active ${if (targetType == TriggerTargetType.Habit) "Habit" else "Task"} before choosing it as the next action.",
-                    tone = WhipNoticeTone.Warning,
-                )
-            }
-            item { EnumDropdown("Whip Should", actions, action, { selected -> when (selected) {
-                TriggerAction.PromptTask -> "Prompt to open Task"
-                TriggerAction.PromptHabit -> "Prompt to open Habit"
-                TriggerAction.CheckOffHabit -> "Automatically Check Off Habit"
-                TriggerAction.PromptTrackEntry -> "Prompt to add Track Entry"
-            } }, titleCaseValues = false) { dirty = true; action = it } }
-            item { WhipNoticeCard(title = "Preview", message = preview, tone = WhipNoticeTone.Informative) }
-            if (targetsItself) item { WhipNoticeCard(title = "Choose Another Target", message = "An Automation cannot target the same item that starts it.", tone = WhipNoticeTone.Error) }
-            if (action == TriggerAction.CheckOffHabit) item { WhipNoticeCard(
-                title = "Automatic Check Off",
-                message = "Every matching source result will check off the target Habit without asking first.",
-                tone = WhipNoticeTone.Warning,
-            ) }
-            item { EditorSectionHeader("Timing & Notifications", "Prompts remain visible inside Whip even when Android notifications are off.") }
-            item { OutlinedTextField(
-                value = delay,
-                onValueChange = { dirty = true; delay = it.replace("\n", "").take(7) },
-                label = { Text("Delay Minutes") },
-                isError = !delayValid,
-                supportingText = { if (!delayValid) Text("Enter zero or a positive whole number.") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-            ) }
-            item { WhipSettingsRow(
-                title = "Quiet Hours",
-                supportingText = "Delay the in-app prompt until the quiet period ends.",
-                checked = quietHoursEnabled,
-                onCheckedChange = { dirty = true; quietHoursEnabled = it },
-            ) }
-            if (quietHoursEnabled) item { ResponsiveFieldPair(
-                first = { field -> ClockPickerButton("Quiet hours start", quietStartMinutes, { dirty = true; quietStart = it?.let(::formatClockMinutes).orEmpty() }, field) },
-                second = { field -> ClockPickerButton("Quiet hours end", quietEndMinutes, { dirty = true; quietEnd = it?.let(::formatClockMinutes).orEmpty() }, field) },
-            ) }
-            if (!quietHoursValid) item { Text("Choose both a quiet-hours start and end.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-            item {
-                WhipSettingsRow(
-                    title = "Android Notification",
-                    supportingText = "Also show this prompt outside Whip when Android allows notifications.",
-                    checked = notificationEnabled,
-                    onCheckedChange = { dirty = true; notificationEnabled = it },
-                )
-            }
-            item { EditorSectionHeader("Name", "Optional. Whip creates a clear name when this is left blank.") }
-            item { OutlinedTextField(
-                value = name,
-                onValueChange = { dirty = true; name = it.replace('\n', ' ').replace('\r', ' ').take(100) },
-                label = { Text("Automation Name") },
-                supportingText = { Text("${name.length}/100") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            ) }
-        } },
-        confirmButton = { WhipTextButton(enabled = !saving && valid, onClick = { onSave(TriggerRuleDraft(
-            name = name.trim().ifBlank { generatedName },
-            sourceType = sourceType,
-            sourceEntityId = requireNotNull(sourceId),
-            outcome = outcome,
-            targetType = targetType,
-            targetEntityId = requireNotNull(targetId),
-            delayMinutes = requireNotNull(delayMinutes),
-            quietStartMinutes = quietStartMinutes.takeIf { quietHoursEnabled },
-            quietEndMinutes = quietEndMinutes.takeIf { quietHoursEnabled },
-            action = action,
-            notificationEnabled = notificationEnabled,
-            enabled = initialRule?.enabled ?: true,
-        )) }) { Text(if (saving) "Saving…" else if (initialRule == null) "Create" else "Save") } },
-        dismissButton = { WhipTextButton(enabled = !saving, onClick = ::requestDismiss) { Text("Cancel") } },
-    )
-    if (discardRequested) UnsavedChangesDialog(
-        subject = "Automation",
-        onKeepEditing = { discardRequested = false },
-        onDiscard = { discardRequested = false; onDismiss() },
-    )
 }
 
 internal fun HabitDayProgress.compactCollectionStatus(): String {
@@ -1408,31 +877,39 @@ private fun HabitList(
     ) {
         item {
             WhipPageHeader(title = title, supportingText = subtitle) {
-                if (!manageOrder && (progress.isNotEmpty() || onShowAllAreasForReorder != null || onShowAllForReorder != null)) Box {
-                    WhipPageIconAction(
-                        icon = Icons.Outlined.MoreVert,
-                        label = "More Habit Actions",
-                        onClick = { toolsExpanded = true },
-                    )
-                    DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
-                        WhipMenuItem(
-                            label = "Browse Templates",
-                            onClick = { toolsExpanded = false; onTemplates() },
+                if (!manageOrder && progress.isNotEmpty()) {
+                    val hasReorderAction =
+                        onShowAllForReorder != null ||
+                            (onReorder != null && progress.size > 1) ||
+                            onShowAllAreasForReorder != null
+                    if (!hasReorderAction) {
+                        WhipTextButton(onClick = onTemplates) { Text("Templates") }
+                    } else Box {
+                        WhipPageIconAction(
+                            icon = Icons.Outlined.MoreVert,
+                            label = "More Habit Actions",
+                            onClick = { toolsExpanded = true },
                         )
-                        onShowAllForReorder?.let { showAll ->
+                        DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
                             WhipMenuItem(
-                                label = "Reorder All Habits",
-                                onClick = { toolsExpanded = false; showAll() },
+                                label = "Browse Templates",
+                                onClick = { toolsExpanded = false; onTemplates() },
+                            )
+                            onShowAllForReorder?.let { showAll ->
+                                WhipMenuItem(
+                                    label = "Reorder All Habits",
+                                    onClick = { toolsExpanded = false; showAll() },
+                                )
+                            }
+                            if ((onReorder != null && progress.size > 1) || onShowAllAreasForReorder != null) WhipMenuItem(
+                                label = if (onShowAllAreasForReorder == null) "Reorder Habits" else "Show All Areas & Reorder",
+                                onClick = {
+                                    toolsExpanded = false
+                                    onShowAllAreasForReorder?.invoke()
+                                    manageOrder = true
+                                },
                             )
                         }
-                        if ((onReorder != null && progress.size > 1) || onShowAllAreasForReorder != null) WhipMenuItem(
-                            label = if (onShowAllAreasForReorder == null) "Reorder Habits" else "Show All Areas & Reorder",
-                            onClick = {
-                                toolsExpanded = false
-                                onShowAllAreasForReorder?.invoke()
-                                manageOrder = true
-                            },
-                        )
                     }
                 }
             }
@@ -2553,8 +2030,6 @@ private fun HabitActionsDialog(
     skips: List<HabitSkip>,
     onAddHistoricalLog: () -> Unit,
     onEditLog: (HabitLog) -> Unit,
-    linkedGoals: List<String>,
-    onLinkGoal: () -> Unit,
     onArchive: () -> Unit,
     onDelete: () -> Unit,
     lowPressureMode: Boolean = false,
@@ -2674,25 +2149,6 @@ private fun HabitActionsDialog(
                         }
                     }
                     HabitDetailSection.More -> {
-                        EntityInspectorGroup("Connections") {
-                            Text(
-                                if (linkedGoals.isEmpty()) {
-                                    "This Habit does not add progress to a Goal yet."
-                                } else {
-                                    "Adds progress to ${linkedGoals.distinct().joinToString()}."
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            if (!item.habit.archived) WhipActionList {
-                                WhipActionRow(
-                                    title = "Add Progress to a Goal",
-                                    onClick = onLinkGoal,
-                                    modifier = Modifier.testTag("entity-inspector-action-link-goal"),
-                                    icon = Icons.Filled.Add,
-                                )
-                            }
-                        }
                         if (!item.habit.archived) {
                             EntityInspectorGroup("Whip Home") {
                                 WhipActionList {
@@ -2792,15 +2248,7 @@ private enum class HabitDetailSection(val id: String, val label: String) {
     ;
 
     val inspectorSection: EntityInspectorSection
-        get() = EntityInspectorSection(
-            id = id,
-            label = label,
-            placement = if (this == More) {
-                EntityInspectorSectionPlacement.Overflow
-            } else {
-                EntityInspectorSectionPlacement.Direct
-            },
-        )
+        get() = EntityInspectorSection(id = id, label = label)
 }
 
 internal fun HabitDayProgress.inspectorStatus(lowPressureMode: Boolean): String = when {
@@ -2841,40 +2289,6 @@ private fun HabitLogStatus.humanLabel(): String = when (this) {
     HabitLogStatus.Recorded -> "Recorded"
     HabitLogStatus.Success -> "Complete"
     HabitLogStatus.Failed -> "Below target"
-}
-
-@Composable
-private fun HabitGoalLinkDialog(
-    habit: Habit,
-    goals: List<GoalProjection>,
-    onDismiss: () -> Unit,
-    onSave: (GoalProjection, LinkSourceMetric, Boolean) -> Unit,
-) {
-    var selectedGoalId by rememberSaveable(habit.id) { mutableStateOf(goals.firstOrNull()?.goal?.id) }
-    val selected = selectedGoalId?.let { id -> goals.firstOrNull { it.goal.id == id } }
-    var metric by rememberSaveable(habit.id) { mutableStateOf(if (habit.trackingMode == HabitTrackingMode.CheckOff) LinkSourceMetric.Success else LinkSourceMetric.NumericValue) }
-    var includeHistory by rememberSaveable(habit.id) { mutableStateOf(false) }
-    PaneAwareAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Connect ${habit.name} to a Goal") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (goals.isEmpty()) Text("Create an active goal first.") else {
-                    EnumDropdown("Goal", goals, selected ?: goals.first(), { it.goal.name }, titleCaseValues = false) { selectedGoalId = it.goal.id }
-                    EnumDropdown("Contribution", listOf(LinkSourceMetric.NumericValue, LinkSourceMetric.Success), metric, {
-                        if (it == LinkSourceMetric.Success) "Add one when successful" else "Use logged numeric value"
-                    }) { metric = it }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(includeHistory, { includeHistory = it })
-                        Text("Backfill existing habit logs", modifier = Modifier.padding(start = 8.dp))
-                    }
-                    Text("Whip validates unit compatibility and keeps each source event explainable.", style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        },
-        confirmButton = { WhipTextButton(enabled = selected != null, onClick = { onSave(requireNotNull(selected), metric, includeHistory) }) { Text("Create Goal Automation") } },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
 }
 
 @Composable
