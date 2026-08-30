@@ -367,10 +367,15 @@ private fun ColorPreview(value: Long?, modifier: Modifier = Modifier) {
     }
 }
 
-private fun readableForeground(color: Long): Color {
-    val red = ((color shr 16) and 0xFF).toDouble() / 255.0
-    val green = ((color shr 8) and 0xFF).toDouble() / 255.0
-    val blue = (color and 0xFF).toDouble() / 255.0
-    val luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue
-    return if (luminance > 0.58) Color.Black else Color.White
+internal fun readableForeground(color: Long): Color {
+    fun linear(channel: Long): Double {
+        val srgb = channel.toDouble() / 255.0
+        return if (srgb <= 0.04045) srgb / 12.92 else Math.pow((srgb + 0.055) / 1.055, 2.4)
+    }
+    val luminance = 0.2126 * linear((color shr 16) and 0xFF) +
+        0.7152 * linear((color shr 8) and 0xFF) +
+        0.0722 * linear(color and 0xFF)
+    val blackContrast = (luminance + 0.05) / 0.05
+    val whiteContrast = 1.05 / (luminance + 0.05)
+    return if (blackContrast >= whiteContrast) Color.Black else Color.White
 }

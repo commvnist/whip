@@ -1504,6 +1504,7 @@ internal fun BackupRestorePreviewDialogs(
                 stringResource(R.string.settings_backup_replace_impact_recovery),
             ),
             confirmLabel = replaceEverythingLabel,
+            busyLabel = stringResource(R.string.settings_backup_replacing),
             busy = busy || replacementSubmitted,
             confirmModifier = Modifier.testTag("confirm-replace-everything").semantics {
                 stateDescription = destructiveActionDescription

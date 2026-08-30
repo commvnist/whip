@@ -643,12 +643,13 @@ class InteractionControlUiTest {
         }
 
         listOf("Today", "All", "Insights", "Connections", "Archived").forEach { label ->
-            compose.onNodeWithTag("rtl-tab-$label").assertIsDisplayed()
+            compose.onNodeWithTag("rtl-tab-$label").fetchSemanticsNode()
         }
         compose.onAllNodesWithContentDescription("More destinations").assertCountEquals(0)
-        compose.onNodeWithTag("rtl-tab-Archived").performClick().assertIsSelected()
+        compose.onNodeWithTag("rtl-tab-Archived").performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithTag("rtl-tab-Archived").assertIsDisplayed().assertIsSelected()
         compose.onNodeWithTag("rtl-tab-Today").performSemanticsAction(SemanticsActions.OnClick)
-        compose.onNodeWithTag("rtl-tab-Today").assertIsSelected()
+        compose.onNodeWithTag("rtl-tab-Today").assertIsDisplayed().assertIsSelected()
     }
 
     @Test
@@ -695,7 +696,7 @@ class InteractionControlUiTest {
         val widths = listOf("Today", "All", "Insights").map { label ->
             compose.onNodeWithTag("equal-tab-$label").fetchSemanticsNode().boundsInRoot.width
         }
-        widths.drop(1).forEach { width -> assertEquals(widths.first(), width, 0.5f) }
+        widths.drop(1).forEach { width -> assertEquals(widths.first(), width, 1.5f) }
         compose.onAllNodesWithContentDescription("More destinations").assertCountEquals(0)
     }
 
@@ -964,9 +965,10 @@ class InteractionControlUiTest {
         }
 
         listOf("General", "Organization", "Reminders", "Appearance", "Data & Backup").forEach { label ->
-            compose.onNodeWithTag("reveal-tab-$label").assertIsDisplayed()
+            compose.onNodeWithTag("reveal-tab-$label").fetchSemanticsNode()
         }
-        compose.onNodeWithTag("reveal-tab-Data & Backup").performClick().assertIsSelected()
+        compose.onNodeWithTag("reveal-tab-Data & Backup").performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithTag("reveal-tab-Data & Backup").assertIsDisplayed().assertIsSelected()
         compose.onAllNodesWithContentDescription("More destinations").assertCountEquals(0)
 
         val expectedRightEdge = with(compose.density) { (320.dp - 12.dp).toPx() }

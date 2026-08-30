@@ -53,16 +53,20 @@ class EditorFeatureIntegrityTest {
         val gym = File(uiRoot, "GymScreens.kt").readText()
         val rationale = File(uiRoot.parentFile, "health/HealthPermissionsRationaleActivity.kt").readText()
         val reminder = File(uiRoot.parentFile, "reminders/ReminderNotifications.kt").readText()
+        val strings = File(
+            uiRoot.parentFile.parentFile.parentFile.parentFile.parentFile,
+            "res/values/strings.xml",
+        ).readText()
         val userGuide = File(docsRoot, "user-guide.md").readText()
         val privacy = File(docsRoot, "privacy.md").readText()
-        val combined = listOf(settings, firstRun, gym, rationale, reminder, userGuide, privacy).joinToString("\n")
+        val combined = listOf(settings, firstRun, gym, rationale, reminder, strings, userGuide, privacy).joinToString("\n")
 
         listOf("Appearance & Home", "Planning & Units", "Organization", "Reminders", "Data & Privacy", "About Whip")
             .forEach { label -> assertTrue("Missing current Settings category: $label", settings.contains(label)) }
         assertTrue(firstRun.contains("Settings → Reminders"))
         assertTrue(firstRun.contains("Settings → Appearance & Home"))
         assertTrue(gym.contains("Settings → Planning & Units → Gym Defaults"))
-        assertTrue(rationale.contains("Settings → Data & Privacy → Health & Privacy"))
+        assertTrue(strings.contains("Settings → Data &amp; Privacy → Health &amp; Privacy"))
         assertTrue(reminder.contains("Settings → Reminders"))
         assertTrue(userGuide.contains("Settings → Appearance & Home → Home Overview"))
         assertTrue(userGuide.contains("Settings → Planning & Units → Gym Defaults"))

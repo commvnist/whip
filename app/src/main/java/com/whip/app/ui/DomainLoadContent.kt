@@ -6,17 +6,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 
 @Composable
 fun DomainLoadContent(
@@ -29,23 +24,25 @@ fun DomainLoadContent(
         modifier = Modifier
             .fillMaxSize()
             .padding(innerPadding)
-            .padding(24.dp)
+            .padding(WhipSpacing.screenCompact)
             .semantics { liveRegion = LiveRegionMode.Polite },
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         if (errorMessage == null) {
-            LinearProgressIndicator(Modifier.fillMaxWidth())
-            Text("Loading $domain…", style = MaterialTheme.typography.titleMedium)
-        } else {
-            Text(
-                "Could not load $domain",
-                modifier = Modifier.semantics { error(errorMessage) },
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.error,
+            WhipStatusCard(
+                kind = WhipStatusKind.Loading,
+                title = "Loading ${domain.uiTitleCase()}",
+                message = "This content will appear when loading is complete.",
             )
-            Text(errorMessage, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            WhipButton(onClick = onRetry) { Text("Try Again") }
+        } else {
+            WhipStatusCard(
+                kind = WhipStatusKind.Error,
+                title = "Could Not Load ${domain.uiTitleCase()}",
+                message = errorMessage,
+                actionLabel = "Try Again",
+                onAction = onRetry,
+            )
         }
     }
 }

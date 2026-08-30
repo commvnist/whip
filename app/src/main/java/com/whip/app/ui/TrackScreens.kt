@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -83,6 +84,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -772,14 +774,14 @@ private fun TrackActivityRow(
     val supporting = projection.fields.filter(TrackField::showInList).take(2).mapNotNull { field ->
         projection.formattedValue(entry, field, BuiltInUnits.all + customUnits).takeIf(String::isNotBlank)?.let { "${field.name} $it" }
     }
-    Card(
+    ProductivityItemCard(
         modifier = Modifier.fillMaxWidth().clickable(
             onClickLabel = "Open Entry ${projection.primaryText(entry)}",
             onClick = onOpen,
         ),
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(start = 14.dp, top = 12.dp, bottom = 12.dp),
+            Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -949,7 +951,7 @@ private fun AllTracksPage(
     var moreOpen by rememberSaveable { mutableStateOf(false) }
     var reordering by rememberSaveable { mutableStateOf(false) }
     var selecting by rememberSaveable { mutableStateOf(false) }
-    var selectedIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    var selectedIds by rememberSaveable { mutableStateOf<Set<Long>>(emptySet()) }
     val source = if (showArchived) state.archived else state.active
     val shown = source.filter { projection ->
         query.isBlank() || projection.track.name.contains(query, true) || projection.track.description.contains(query, true) ||
@@ -1159,22 +1161,32 @@ internal fun TrackRow(
         )
         return
     }
-    Card(
+    ProductivityItemCard(
         modifier = Modifier.fillMaxWidth()
             .whipReorderItem(
                 reorderInteraction,
                 layoutPosition = reorderPosition,
                 layoutScope = "track-browse-${projection.track.pinned}",
             )
-            .testTag("track-card-${projection.track.id}").combinedClickable(
-            enabled = !reordering,
-            onClickLabel = if (selectable) "${if (selected) "Deselect" else "Select"} ${projection.track.name}" else "Open ${projection.track.name}",
-            onLongClickLabel = onEnterSelection?.let { "Select ${projection.track.name}" },
-            onClick = { if (selectable) onSelectionToggle.invoke() else onOpen(projection.track.id) },
-            onLongClick = onEnterSelection,
-        )
+            .testTag("track-card-${projection.track.id}")
+            .then(
+                when {
+                    selectable -> Modifier.toggleable(
+                        value = selected,
+                        role = Role.Checkbox,
+                        onValueChange = { onSelectionToggle.invoke() },
+                    )
+                    !reordering -> Modifier.combinedClickable(
+                        onClickLabel = "Open ${projection.track.name}",
+                        onLongClickLabel = onEnterSelection?.let { "Select ${projection.track.name}" },
+                        onClick = { onOpen(projection.track.id) },
+                        onLongClick = onEnterSelection,
+                    )
+                    else -> Modifier
+                },
+            )
             .semantics {
-                if (!reordering) role = Role.Button
+                if (!reordering && !selectable) role = Role.Button
                 contentDescription = buildString {
                     append("${projection.track.name}, ${projection.entries.size} Entries")
                     latest?.let {
@@ -1191,14 +1203,10 @@ internal fun TrackRow(
             },
     ) {
         Column(
-            Modifier.fillMaxWidth().padding(
-                horizontal = if (dense) 8.dp else 14.dp,
-                vertical = if (dense) 4.dp else 14.dp,
-            ),
+            Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(if (dense) 2.dp else 8.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (selectable) Checkbox(selected, onCheckedChange = null)
                 if (reordering && onMove != null) {
                     WhipReorderHandle(
                         label = projection.track.name,
@@ -1225,7 +1233,11 @@ internal fun TrackRow(
                     Text("${projection.track.area} · ${quantityLabel(projection.entries.size, "Entry")}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (selectable) {
-                    Text(if (selected) "Selected" else "Not Selected", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Checkbox(
+                        checked = selected,
+                        onCheckedChange = null,
+                        modifier = Modifier.clearAndSetSemantics {},
+                    )
                 } else if (!reordering) {
                     ItemEditButton(
                         "Track",
@@ -1274,7 +1286,7 @@ private fun CompactTrackRow(
 ) {
     val disclosure = rememberCompactItemDisclosure("track:${projection.track.id}")
     val addLabel = if (projection.track.archived) "Archived" else projection.addEntryLabel()
-    Card(
+    ProductivityItemCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("track-card-${projection.track.id}")
@@ -1296,7 +1308,7 @@ private fun CompactTrackRow(
             },
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Row(
@@ -1695,8 +1707,13 @@ private fun TrackEntryRow(
     val supporting = projection.fields.filter(TrackField::showInList).take(2).mapNotNull { field ->
         projection.formattedValue(entry, field, BuiltInUnits.all + customUnits).takeIf(String::isNotBlank)?.let { "${field.name} $it" }
     }
-    Card(Modifier.fillMaxWidth().clickable(onClickLabel = "Open Entry ${projection.primaryText(entry)}", onClick = onOpen)) {
-        Row(Modifier.fillMaxWidth().padding(start = 14.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    ProductivityItemCard(
+        modifier = Modifier.fillMaxWidth().clickable(
+            onClickLabel = "Open Entry ${projection.primaryText(entry)}",
+            onClick = onOpen,
+        ),
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(projection.primaryText(entry), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text((supporting + entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))).joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
@@ -2382,7 +2399,9 @@ private fun TrackFieldEditor(
     var scaleStepText by rememberSaveable(initial.uuid, initial.id) { mutableStateOf(formatTrackScaleValue(initial.scaleStep)) }
     var lowLabel by rememberSaveable(initial.uuid, initial.id) { mutableStateOf(initial.scaleLowLabel) }
     var highLabel by rememberSaveable(initial.uuid, initial.id) { mutableStateOf(initial.scaleHighLabel) }
-    var choices by remember(initial.uuid, initial.id) { mutableStateOf(initial.options.ifEmpty { listOf(TrackChoiceOptionDraft("Option 1")) }) }
+    var choices by rememberSaveable(initial.uuid, initial.id) {
+        mutableStateOf(initial.options.ifEmpty { listOf(TrackChoiceOptionDraft("Option 1")) })
+    }
     val scaleMin = scaleMinText.trim().toIntOrNull()
     val scaleMax = scaleMaxText.trim().toIntOrNull()
     val scaleStep = scaleStepText.toWhipDoubleOrNull()

@@ -344,16 +344,16 @@ class AdaptiveWhipScreenTest {
             }
         }
 
-        compose.onNodeWithText("Loading Tasks…").assertIsDisplayed()
+        compose.onNodeWithText("Loading Tasks").assertIsDisplayed()
         compose.runOnIdle { error.value = "Storage is temporarily unavailable" }
-        compose.onNodeWithText("Could not load Tasks").assertIsDisplayed()
+        compose.onNodeWithText("Could Not Load Tasks").assertIsDisplayed()
         compose.onNodeWithText("Storage is temporarily unavailable").assertIsDisplayed()
-        compose.onAllNodesWithText("Loading Tasks…").assertCountEquals(0)
+        compose.onAllNodesWithText("Loading Tasks").assertCountEquals(0)
 
         compose.onNodeWithText("Try Again").performClick()
         compose.runOnIdle { check(retries == 1) }
-        compose.onNodeWithText("Loading Tasks…").assertIsDisplayed()
-        compose.onAllNodesWithText("Could not load Tasks").assertCountEquals(0)
+        compose.onNodeWithText("Loading Tasks").assertIsDisplayed()
+        compose.onAllNodesWithText("Could Not Load Tasks").assertCountEquals(0)
     }
 
     @Test
@@ -1070,8 +1070,12 @@ class AdaptiveWhipScreenTest {
         val trackDestinations = listOf("Tracks", "Activity", "Archived", "Insights").map { destination ->
             compose.onNodeWithTag("track-workspace-destination-$destination").fetchSemanticsNode().boundsInRoot
         }
+        val trackNavigation = compose.onNodeWithTag("track-workspace-navigation").fetchSemanticsNode().boundsInRoot
         check(trackDestinations.zipWithNext().all { (before, after) -> before.left < after.left }) {
             "Tracks destinations must keep Insights at the trailing edge: $trackDestinations"
+        }
+        check(trackDestinations.first().left >= trackNavigation.left && trackDestinations.last().right <= trackNavigation.right) {
+            "All four Tracks destinations must fit the compact viewport: navigation=$trackNavigation destinations=$trackDestinations"
         }
         compose.onNodeWithTag("track-workspace-destination-Activity").performClick().assertIsSelected()
         compose.onNodeWithText("A chronological view of Entries across visible Tracks", substring = true).assertIsDisplayed()

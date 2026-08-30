@@ -110,7 +110,9 @@ class WhipVisualLanguageTest {
         assertFalse(destinationBar.contains("WhipOverflowMenu("))
         assertFalse(destinationBar.contains("primaryDestinations.filter"))
         assertFalse(destinationBar.contains("pagesExpanded"))
-        assertFalse(destinationBar.contains("LocalDensity.current.fontScale"))
+        assertTrue(destinationBar.contains("horizontalScroll"))
+        assertTrue(destinationBar.contains("bringIntoViewRequester"))
+        assertTrue(destinationBar.contains("TextOverflow.Clip"))
     }
 
     @Test

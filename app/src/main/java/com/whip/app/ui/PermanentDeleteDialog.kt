@@ -15,6 +15,7 @@ fun PermanentDeleteDialog(
     impacts: List<String>,
     message: String = "This cannot be undone. The following data will be affected:",
     confirmLabel: String = "Delete Permanently",
+    busyLabel: String = "Working…",
     busy: Boolean = false,
     confirmModifier: Modifier = Modifier,
     onDismiss: () -> Unit,
@@ -38,7 +39,7 @@ fun PermanentDeleteDialog(
         },
         confirmButton = {
             WhipTextButton(onClick = onConfirm, enabled = !busy, modifier = confirmModifier) {
-                Text(if (busy) "Working…" else confirmLabel, color = MaterialTheme.colorScheme.error)
+                Text(if (busy) busyLabel else confirmLabel, color = MaterialTheme.colorScheme.error)
             }
         },
         dismissButton = { WhipTextButton(onClick = onDismiss, enabled = !busy) { Text("Cancel") } },

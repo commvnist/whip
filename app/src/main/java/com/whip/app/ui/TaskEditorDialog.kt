@@ -116,6 +116,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 internal val LocalWhipFirstDayOfWeek = staticCompositionLocalOf { DayOfWeek.MONDAY }
+internal val LocalWhipToday = staticCompositionLocalOf { LocalDate.now() }
 
 data class TaskEditorRequest(
     val task: WhipTask? = null,
@@ -1580,6 +1581,7 @@ fun WhipDatePickerDialog(
     firstDayOfWeek: DayOfWeek? = null,
 ) {
     val resolvedFirstDayOfWeek = firstDayOfWeek ?: LocalWhipFirstDayOfWeek.current
+    val today = LocalWhipToday.current
     var selectedEpochDay by rememberSaveable(initialDate) { mutableLongStateOf(initialDate.toEpochDay()) }
     var monthStartEpochDay by rememberSaveable(initialDate) {
         mutableLongStateOf(initialDate.withDayOfMonth(1).toEpochDay())
@@ -1667,7 +1669,6 @@ fun WhipDatePickerDialog(
                     ) {
                         WhipTextButton(
                             onClick = {
-                                val today = LocalDate.now()
                                 jumpYear = today.year
                                 jumpMonth = today.monthValue
                                 jumpDay = today.dayOfMonth

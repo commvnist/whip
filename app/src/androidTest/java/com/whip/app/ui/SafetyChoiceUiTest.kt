@@ -64,7 +64,7 @@ class SafetyChoiceUiTest {
         assertEquals(0, replacements.get())
         compose.onNodeWithText("Replace Everything With This Backup?").assertExists()
         compose.onNodeWithText("private recovery snapshot", substring = true).assertExists()
-        compose.onNodeWithText("recovers on next launch", substring = true).assertExists()
+        compose.onNodeWithText("recoverable only from a backup you exported", substring = true).assertExists()
 
         compose.onNodeWithTag("confirm-replace-everything").performClick().assertIsNotEnabled()
         assertEquals(1, replacements.get())

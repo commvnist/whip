@@ -187,9 +187,12 @@ class PlatformEntrySurfaceE2ETest {
     @Test
     fun healthPermissionRationaleStatesTheReadOnlyLocalDataPolicyAndCloses() {
         ActivityScenario.launch<HealthPermissionsRationaleActivity>(Intent(app, HealthPermissionsRationaleActivity::class.java)).use { scenario ->
-            compose.onNodeWithText("Health Connect and Whip").assertIsDisplayed()
+            compose.onNodeWithText("Health Connect & Whip").assertIsDisplayed()
             compose.onNodeWithText(
-                "Whip only reads the health categories you select. Imported values are stored locally in Whip's measurement ledger so they can contribute to goals and insights. Whip does not sell or upload this data, and it never writes to Health Connect.",
+                "Whip only reads the health categories you select. It never writes to Health Connect.",
+            ).assertIsDisplayed()
+            compose.onNodeWithText(
+                "Turning off sync stops future reads. It does not delete records already imported into Whip. You remain in control of those records through Whip’s data controls.",
             ).assertIsDisplayed()
             compose.onNodeWithText("Close").performClick()
             compose.waitUntil(5_000) { scenario.state == Lifecycle.State.DESTROYED }

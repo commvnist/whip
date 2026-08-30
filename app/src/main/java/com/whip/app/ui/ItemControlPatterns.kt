@@ -13,6 +13,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -105,6 +107,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -1102,11 +1105,11 @@ internal fun ProductivityItemCard(
 /**
  * Shared collection-card header hierarchy:
  *
- *     identity emoji -> title/context -> primary action -> edit
+ *     identity emoji -> title/context -> edit -> primary action
  *
  * The primary action uses a stable, label-aware trailing lane when present. This
- * keeps completion, logging, rating, timer, and reset controls predictable without
- * pretending those domain actions all mean the same thing.
+ * keeps completion and other frequent actions at the logical trailing edge for
+ * one-handed use without pretending those domain actions all mean the same thing.
  */
 @Composable
 internal fun ProductivityItemHeader(
@@ -1156,12 +1159,6 @@ internal fun ProductivityItemHeader(
                     )
                     if (onCompactExpansionToggle != null && !compactExpanded) compactSummaryContent()
                 }
-                primaryAction?.let { action ->
-                    Box(
-                        modifier = primaryActionModifier.width(compactPrimaryActionWidth).heightIn(min = 48.dp),
-                        contentAlignment = Alignment.Center,
-                    ) { action() }
-                }
                 if (onCompactExpansionToggle != null) {
                     IconButton(
                         onClick = onCompactExpansionToggle,
@@ -1180,6 +1177,12 @@ internal fun ProductivityItemHeader(
                     }
                 } else if (onEdit != null) {
                     ItemEditButton(itemType, itemName, onEdit, editModifier)
+                }
+                primaryAction?.let { action ->
+                    Box(
+                        modifier = primaryActionModifier.width(compactPrimaryActionWidth).heightIn(min = 48.dp),
+                        contentAlignment = Alignment.Center,
+                    ) { action() }
                 }
             }
             if (onCompactExpansionToggle == null || compactExpanded) {
@@ -1258,13 +1261,13 @@ internal fun ProductivityItemHeader(
                 if (areaId != null) AreaBadge(areaId, areaName)
                 supportingContent()
             }
+            if (onEdit != null) ItemEditButton(itemType, itemName, onEdit, editModifier)
             primaryAction?.let { action ->
                 Box(
                     modifier = primaryActionModifier.width(primaryActionWidth).heightIn(min = 48.dp),
                     contentAlignment = Alignment.Center,
                 ) { action() }
             }
-            if (onEdit != null) ItemEditButton(itemType, itemName, onEdit, editModifier)
         }
     }
 }
@@ -1309,58 +1312,89 @@ internal fun <T> DestinationTabBar(
             .fillMaxWidth()
             .then(barTestTag?.let(Modifier::testTag) ?: Modifier),
     ) {
-        Row(
+        BoxWithConstraints(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(Modifier.weight(1f).selectableGroup()) {
+            val density = LocalDensity.current
+            val labelStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+            val textMeasurer = rememberTextMeasurer()
+            val widestCompactLabelPx = destinations.maxOf { destination ->
+                textMeasurer.measure(
+                    text = compactLabel(destination).uiTitleCase(),
+                    style = labelStyle,
+                    maxLines = 1,
+                ).size.width
+            }
+            val equalCellTextWidthPx = with(density) {
+                val totalGaps = 4.dp * (destinations.size - 1).coerceAtLeast(0)
+                (((maxWidth - totalGaps) / destinations.size) - 16.dp).toPx()
+            }
+            val labelsFit = widestCompactLabelPx <= equalCellTextWidthPx
+            val scrollState = rememberScrollState()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (labelsFit) Modifier else Modifier.horizontalScroll(scrollState))
+                    .selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 destinations.forEach { destination ->
-                        val destinationLabel = label(destination).uiTitleCase()
-                        val visibleLabel = compactLabel(destination).uiTitleCase()
-                        val isSelected = selected == destination
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(min = 48.dp)
-                                .selectable(
-                                    selected = isSelected,
-                                    onClick = { selectDestination(destination) },
-                                    role = Role.Tab,
-                                )
-                                .semantics { contentDescription = destinationLabel }
+                    val destinationLabel = label(destination).uiTitleCase()
+                    val visibleLabel = if (labelsFit) {
+                        compactLabel(destination).uiTitleCase()
+                    } else {
+                        destinationLabel
+                    }
+                    val isSelected = selected == destination
+                    val bringIntoViewRequester = remember(destination) { BringIntoViewRequester() }
+                    LaunchedEffect(isSelected, labelsFit) {
+                        if (isSelected && !labelsFit) bringIntoViewRequester.bringIntoView()
+                    }
+                    Column(
+                        modifier = Modifier
+                            .then(if (labelsFit) Modifier.weight(1f) else Modifier.widthIn(min = 88.dp))
+                            .heightIn(min = 48.dp)
+                            .bringIntoViewRequester(bringIntoViewRequester)
+                            .selectable(
+                                selected = isSelected,
+                                onClick = { selectDestination(destination) },
+                                role = Role.Tab,
+                            )
+                            .semantics { contentDescription = destinationLabel }
+                            .then(
+                                testTagPrefix?.let {
+                                    Modifier.testTag("$it-${testTagValue(destination)}")
+                                } ?: Modifier,
+                            ),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Box(
+                            Modifier
+                                .height(45.dp)
+                                .padding(horizontal = 8.dp)
                                 .then(
-                                    testTagPrefix?.let {
-                                        Modifier.testTag("$it-${testTagValue(destination)}")
+                                    secondaryTestTagPrefix?.let {
+                                        Modifier.testTag("$it-${secondaryTestTagValue(destination)}")
                                     } ?: Modifier,
                                 ),
-                            horizontalAlignment = Alignment.CenterHorizontally,
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Box(
-                                Modifier
-                                    .height(45.dp)
-                                    .padding(horizontal = 2.dp)
-                                    .then(
-                                        secondaryTestTagPrefix?.let {
-                                            Modifier.testTag("$it-${secondaryTestTagValue(destination)}")
-                                        } ?: Modifier,
-                                    ),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    visibleLabel,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                )
-                            }
-                            HorizontalDivider(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp),
-                                thickness = 3.dp,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            Text(
+                                visibleLabel,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Clip,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                             )
                         }
+                        HorizontalDivider(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp),
+                            thickness = 3.dp,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        )
+                    }
                 }
             }
         }

@@ -36,6 +36,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -146,13 +147,23 @@ fun HabitAreaContent(
     onReorderModeChange: (Boolean) -> Unit = {},
     reorderDismissRequest: Int = 0,
 ) {
-    if (state.loading || state.errorMessage != null) {
-        DomainLoadContent("habits", innerPadding, state.errorMessage, viewModel::retryLoading)
-        return
-    }
     val localDestinationState = rememberSaveable { mutableStateOf(HabitDestination.Today) }
     val activeDestinationState = destinationState ?: localDestinationState
     var destination by activeDestinationState
+    if (state.loading || state.errorMessage != null) {
+        if (showWorkspace) Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            DestinationTabBar(
+                selected = destination,
+                destinations = HabitDestination.entries,
+                onSelect = { destination = it },
+                label = { it.name },
+                testTagPrefix = "habit-destination",
+                barTestTag = "habit-workspace-navigation",
+            )
+            DomainLoadContent("habits", PaddingValues(), state.errorMessage, viewModel::retryLoading)
+        }
+        return
+    }
     var creating by rememberSaveable { mutableStateOf(false) }
     var editingHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var actionsHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -1134,32 +1145,92 @@ private fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
                         )
                         val days = (27L downTo 0L).map { state.currentDate.minusDays(it) }
                         Text("Recent Activity", style = MaterialTheme.typography.labelMedium)
-                        val calendarDescription = days.joinToString("; ") { day ->
-                            "$day: " + when (item.habit.dayStateOn(day, state.currentDate, habitLogs, habitPauses, habitSkips, state.customUnits)) {
-                                HabitDayState.Completed -> "completed"
-                                HabitDayState.Skipped -> "skipped"
-                                HabitDayState.Missed -> "missed"
-                                HabitDayState.BelowTarget -> "below target"
-                                HabitDayState.Pending -> "pending"
-                                HabitDayState.Paused -> "paused"
-                                HabitDayState.NotScheduled -> "not scheduled"
-                            }
-                        }
-                        Text(
-                            days.chunked(7).joinToString(" ") { week -> week.joinToString("") { day ->
-                                when (item.habit.dayStateOn(day, state.currentDate, habitLogs, habitPauses, habitSkips, state.customUnits)) {
-                                    HabitDayState.Completed -> "✓"
-                                    HabitDayState.Skipped -> "○"
-                                    HabitDayState.Missed, HabitDayState.BelowTarget -> "×"
-                                    else -> "·"
-                                }
-                            } },
-                            modifier = Modifier.semantics { contentDescription = calendarDescription },
+                        HabitActivityGrid(
+                            days = days,
+                            stateForDay = { day ->
+                                item.habit.dayStateOn(
+                                    day,
+                                    state.currentDate,
+                                    habitLogs,
+                                    habitPauses,
+                                    habitSkips,
+                                    state.customUnits,
+                                )
+                            },
                         )
-                        Text("✓ completed · ○ skipped · × missed/below target · · pending, paused, or not scheduled", style = MaterialTheme.typography.labelSmall)
                     }
             }
         }
+    }
+}
+
+@Composable
+internal fun HabitActivityGrid(
+    days: List<LocalDate>,
+    stateForDay: (LocalDate) -> HabitDayState,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag("habit-activity-grid"),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        days.chunked(7).forEach { week ->
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                week.forEach { day ->
+                    val state = stateForDay(day)
+                    val stateLabel = when (state) {
+                        HabitDayState.Completed -> "completed"
+                        HabitDayState.Skipped -> "skipped"
+                        HabitDayState.Missed -> "missed"
+                        HabitDayState.BelowTarget -> "below target"
+                        HabitDayState.Pending -> "pending"
+                        HabitDayState.Paused -> "paused"
+                        HabitDayState.NotScheduled -> "not scheduled"
+                    }
+                    val (containerColor, contentColor) = when (state) {
+                        HabitDayState.Completed -> MaterialTheme.whipColors.success to MaterialTheme.whipColors.onSuccess
+                        HabitDayState.Skipped -> MaterialTheme.whipColors.warning to MaterialTheme.whipColors.onWarning
+                        HabitDayState.Missed, HabitDayState.BelowTarget ->
+                            MaterialTheme.colorScheme.error to MaterialTheme.colorScheme.onError
+                        HabitDayState.Pending ->
+                            MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+                        HabitDayState.Paused ->
+                            MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+                        HabitDayState.NotScheduled ->
+                            MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                    Surface(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .testTag("habit-activity-day-${day.toEpochDay()}")
+                            .clearAndSetSemantics {
+                                contentDescription = "${day.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}: $stateLabel"
+                            },
+                        shape = MaterialTheme.shapes.extraSmall,
+                        color = containerColor,
+                        contentColor = contentColor,
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                when (state) {
+                                    HabitDayState.Completed -> "✓"
+                                    HabitDayState.Skipped -> "○"
+                                    HabitDayState.Missed, HabitDayState.BelowTarget -> "×"
+                                    HabitDayState.Paused -> "Ⅱ"
+                                    HabitDayState.Pending, HabitDayState.NotScheduled -> "·"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        Text(
+            "Green completed · amber skipped · red missed or below target · neutral states are pending, paused, or not scheduled",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

@@ -43,6 +43,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -81,12 +82,14 @@ fun SectionHeading(title: String, count: Int, onClick: (() -> Unit)? = null) {
     ) {
         Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainerHighest) {
-                Text(
-                    count.toString(),
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                )
+            if (count > 0) {
+                Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainerHighest) {
+                    Text(
+                        count.toString(),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
             }
             if (onClick != null) Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
         }
@@ -112,10 +115,18 @@ fun TaskRow(
     ProductivityItemCard(
         modifier = Modifier.then(
             when {
-                selectionMode && onSelectionToggle != null -> Modifier.clickable(
-                    onClickLabel = "Select ${item.task.title}",
-                    onClick = onSelectionToggle,
-                )
+                selectionMode && onSelectionToggle != null -> Modifier
+                    .toggleable(
+                        value = selected,
+                        role = Role.Checkbox,
+                        onValueChange = { onSelectionToggle() },
+                    )
+                    .semantics {
+                        contentDescription = if (selected) {
+                            "Deselect task ${item.task.title}"
+                        } else "Select task ${item.task.title}"
+                        stateDescription = if (selected) "Selected" else "Not selected"
+                    }
                 !reorderMode && onOpenActions != null -> Modifier
                     .clickable(
                         onClickLabel = "Open task details for ${item.task.title}",
@@ -176,11 +187,7 @@ fun TaskRow(
                         checked = selected,
                         onCheckedChange = null,
                         enabled = onSelectionToggle != null,
-                        modifier = Modifier.semantics {
-                            contentDescription = if (selected) {
-                                "Deselect task ${item.task.title}"
-                            } else "Select task ${item.task.title}"
-                        },
+                        modifier = Modifier.clearAndSetSemantics {},
                         colors = CheckboxDefaults.colors(
                             checkedColor = MaterialTheme.colorScheme.primary,
                             checkmarkColor = MaterialTheme.colorScheme.onPrimary,

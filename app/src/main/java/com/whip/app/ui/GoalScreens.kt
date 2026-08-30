@@ -138,14 +138,25 @@ fun GoalAreaContent(
     onReorderModeChange: (Boolean) -> Unit = {},
     reorderDismissRequest: Int = 0,
 ) {
-    if (state.loading || state.errorMessage != null) {
-        DomainLoadContent("goals", innerPadding, state.errorMessage, viewModel::retryLoading)
-        return
-    }
     val localDestinationState = rememberSaveable { mutableStateOf(GoalDestination.Active) }
-    val compactItemLayout = LocalCompactItemLayout.current
     val activeDestinationState = destinationState ?: localDestinationState
     var destination by activeDestinationState
+    if (state.loading || state.errorMessage != null) {
+        if (showWorkspace) Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            DestinationTabBar(
+                selected = destination,
+                destinations = GoalDestination.entries,
+                onSelect = { destination = it },
+                label = GoalDestination::name,
+                compactLabel = { if (it == GoalDestination.Completed) "Done" else it.name },
+                testTagPrefix = "goal-destination",
+                barTestTag = "goal-workspace-navigation",
+            )
+            DomainLoadContent("goals", PaddingValues(), state.errorMessage, viewModel::retryLoading)
+        }
+        return
+    }
+    val compactItemLayout = LocalCompactItemLayout.current
     var creating by rememberSaveable { mutableStateOf(false) }
     var editingGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var recordingGoalId by rememberSaveable { mutableStateOf<Long?>(null) }

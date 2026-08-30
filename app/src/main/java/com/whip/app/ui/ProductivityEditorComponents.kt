@@ -1,5 +1,7 @@
 package com.whip.app.ui
 
+import android.content.Context
+import android.text.format.DateFormat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
@@ -39,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -53,6 +56,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.graphics.RectangleShape
 import com.whip.app.domain.editableNumericValue
 import java.time.DayOfWeek
+import java.util.Calendar
 
 /**
  * Models a dependent control without allowing an unexplained disabled state.
@@ -297,6 +301,15 @@ internal fun PaneAwareAlertDialog(
 
 internal fun formatClockMinutes(minutes: Int): String = "%02d:%02d".format(minutes / 60, minutes % 60)
 
+internal fun formatClockMinutes(context: Context, minutes: Int): String {
+    val calendar = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, minutes / 60)
+        set(Calendar.MINUTE, minutes % 60)
+        set(Calendar.SECOND, 0)
+    }
+    return DateFormat.getTimeFormat(context).format(calendar.time)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ClockPickerButton(
@@ -306,14 +319,15 @@ internal fun ClockPickerButton(
     modifier: Modifier = Modifier,
 ) {
     var pickerOpen by rememberSaveable(label) { mutableStateOf(false) }
+    val context = LocalContext.current
     WhipOutlinedButton(onClick = { pickerOpen = true }, modifier = modifier.fillMaxWidth()) {
-        Text(if (minutes == null) "$label · Not set" else "$label · ${formatClockMinutes(minutes)}")
+        Text(if (minutes == null) "$label · Not set" else "$label · ${formatClockMinutes(context, minutes)}")
     }
     if (pickerOpen) {
         val picker = rememberTimePickerState(
             initialHour = (minutes ?: 8 * 60) / 60,
             initialMinute = (minutes ?: 0) % 60,
-            is24Hour = true,
+            is24Hour = DateFormat.is24HourFormat(context),
         )
         PaneAwareAlertDialog(
             onDismissRequest = { pickerOpen = false },
@@ -343,6 +357,7 @@ internal fun ReminderTimesEditor(
     onChange: (List<Int>) -> Unit,
 ) {
     var adding by rememberSaveable(label) { mutableStateOf(false) }
+    val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, style = MaterialTheme.typography.labelLarge)
         if (values.isEmpty()) {
@@ -353,9 +368,9 @@ internal fun ReminderTimesEditor(
                     WhipFilterChip(
                         selected = true,
                         onClick = { onChange(values - value) },
-                        label = { Text(formatClockMinutes(value)) },
+                        label = { Text(formatClockMinutes(context, value)) },
                         trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = null) },
-                        modifier = Modifier.semantics { contentDescription = "Remove $label ${formatClockMinutes(value)}" },
+                        modifier = Modifier.semantics { contentDescription = "Remove $label ${formatClockMinutes(context, value)}" },
                     )
                 }
             }
@@ -384,6 +399,7 @@ internal fun WeekdayReminderEditor(
 ) {
     var choosingDay by rememberSaveable { mutableStateOf(false) }
     var addingDayName by rememberSaveable { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
     val activeValues = values.mapValues { (_, times) -> times.distinct().sorted() }
         .filterValues { it.isNotEmpty() }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -407,7 +423,7 @@ internal fun WeekdayReminderEditor(
                             val remaining = times - value
                             onChange(if (remaining.isEmpty()) activeValues - day else activeValues + (day to remaining))
                         },
-                        label = { Text(formatClockMinutes(value)) },
+                        label = { Text(formatClockMinutes(context, value)) },
                         trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = null) },
                     ) }
                 }
@@ -478,10 +494,11 @@ private fun ClockPickerDialog(
     onDismiss: () -> Unit,
     onSet: (Int) -> Unit,
 ) {
+    val context = LocalContext.current
     val picker = rememberTimePickerState(
         initialHour = initialMinutes / 60,
         initialMinute = initialMinutes % 60,
-        is24Hour = true,
+        is24Hour = DateFormat.is24HourFormat(context),
     )
     PaneAwareAlertDialog(
         onDismissRequest = onDismiss,

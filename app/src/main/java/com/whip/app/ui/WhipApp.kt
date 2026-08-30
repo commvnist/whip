@@ -654,6 +654,7 @@ fun WhipApp(
                 onSelectScope = { pendingAreaBadgeId = it },
             ),
             LocalWhipFirstDayOfWeek provides settingsState.settings.firstDayOfWeek,
+            LocalWhipToday provides state.currentDate,
             LocalWhipDialogPlacement provides dialogPlacement,
             LocalCompactItemLayout provides settingsState.settings.compactItemLayout,
             LocalCompactItemExpansionState provides compactItemExpansionState,
@@ -3500,6 +3501,7 @@ private fun PrimaryDestinationNavigationBar(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val showLabels = LocalDensity.current.fontScale < 1.5f
     NavigationBar(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -3510,7 +3512,7 @@ private fun PrimaryDestinationNavigationBar(
             },
             selected = selected == AppDestination.Home,
             enabled = enabled,
-            showLabel = true,
+            showLabel = showLabels,
             onClick = { onSelect(AppDestination.Home) },
             icon = { WhipBrandMark(Modifier.size(28.dp)) },
             label = {
@@ -3529,7 +3531,7 @@ private fun PrimaryDestinationNavigationBar(
                 modifier = Modifier.semantics { contentDescription = destinationTabDescription },
                 selected = destination == selected,
                 enabled = enabled,
-                showLabel = true,
+                showLabel = showLabels,
                 onClick = { onSelect(destination) },
                 icon = { Icon(destination.icon, contentDescription = null, modifier = Modifier.size(26.dp)) },
                 label = {
@@ -4802,8 +4804,21 @@ private fun TaskAreaContent(
     reorderDismissRequest: Int = 0,
     onRetryLoading: () -> Unit = {},
 ) {
+    val initialWorkspaceRoute = destination.toWorkspaceRoute()
     if (state.loading || state.errorMessage != null) {
-        DomainLoadContent("tasks", innerPadding, state.errorMessage, onRetryLoading)
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            DestinationTabBar(
+                selected = initialWorkspaceRoute.destination,
+                destinations = allTaskWorkspaceDestinations,
+                onSelect = { selected ->
+                    onDestinationChange(TaskWorkspaceRoute(selected, initialWorkspaceRoute.historySection).dataDestination())
+                },
+                label = TaskWorkspaceDestination::label,
+                testTagPrefix = "task-destination",
+                barTestTag = "task-workspace-navigation",
+            )
+            DomainLoadContent("tasks", PaddingValues(), state.errorMessage, onRetryLoading)
+        }
         return
     }
     val dialogModifier = modifier

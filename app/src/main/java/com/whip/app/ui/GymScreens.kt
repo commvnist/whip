@@ -10,6 +10,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -73,6 +74,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.NavigateNext
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Archive
@@ -84,7 +86,6 @@ import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Remove
-import androidx.compose.material.icons.outlined.Settings
 import com.whip.app.R
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Restore
@@ -458,14 +459,24 @@ fun GymAreaContent(
     reorderDismissRequest: Int = 0,
 ) {
     val dialogModifier = modifier
+    var destination by rememberSaveable(initialDestination) { mutableStateOf(initialDestination) }
     if (state.loading || state.errorMessage != null) {
-        DomainLoadContent("gym data", innerPadding, state.errorMessage, viewModel::retryLoading)
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            DestinationTabBar(
+                selected = destination.takeUnless { it in libraryGymDestinations } ?: GymDestination.Library,
+                destinations = primaryGymDestinations,
+                onSelect = { destination = it },
+                label = GymDestination::name,
+                testTagPrefix = "gym-destination",
+                barTestTag = "gym-workspace-navigation",
+            )
+            DomainLoadContent("gym data", PaddingValues(), state.errorMessage, viewModel::retryLoading)
+        }
         return
     }
     val context = LocalContext.current
     val machineDeletionImpact by viewModel.machineDeletionImpact.collectAsStateWithLifecycle()
     val machineDeletionInProgress by viewModel.machineDeletionInProgress.collectAsStateWithLifecycle()
-    var destination by rememberSaveable(initialDestination) { mutableStateOf(initialDestination) }
     var exerciseEditorId by rememberSaveable { mutableStateOf<Long?>(null) }
     var creatingExercise by rememberSaveable { mutableStateOf(false) }
     var addCreatedExerciseToSession by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -1823,7 +1834,7 @@ internal fun WorkoutExerciseCard(
                                 Box {
                                     IconButton(onClick = { setMenuId = set.id }, modifier = Modifier.size(48.dp)) {
                                         Icon(
-                                            Icons.Outlined.Settings,
+                                            Icons.Outlined.MoreVert,
                                             contentDescription = "Manage set ${index + 1}",
                                             modifier = Modifier.size(26.dp),
                                         )
@@ -1876,21 +1887,6 @@ internal fun WorkoutExerciseCard(
                             layoutScope = "workout-sets-${item.workoutExercise.id}",
                             onMove = { delta -> reorderVisibleSet(set, delta) },
                         )
-                        if (set.completed) {
-                            Checkbox(
-                                checked = true,
-                                onCheckedChange = { onCompleteSet(set.id, false) },
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .semantics { contentDescription = "Incomplete set ${index + 1}; enter its required values to save" },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(Icons.Outlined.RadioButtonUnchecked, contentDescription = null)
-                            }
-                        }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 "Set ${index + 1} · ${set.shortLabel(preferredWeightUnitId, preferredDistanceUnitId, numberPrecision, item.workoutExercise, item.exercise.weightUnitId).replace("Empty set", "Ready")}",
@@ -1911,7 +1907,7 @@ internal fun WorkoutExerciseCard(
                         }
                         Box {
                             IconButton(onClick = { setMenuId = set.id }, modifier = Modifier.size(48.dp)) {
-                                Icon(Icons.Outlined.Settings, contentDescription = "Manage set ${index + 1}", modifier = Modifier.size(26.dp))
+                                Icon(Icons.Outlined.MoreVert, contentDescription = "Manage set ${index + 1}", modifier = Modifier.size(26.dp))
                             }
                             WorkoutSetActionsMenu(
                                 expanded = setMenuId == set.id,
@@ -1919,6 +1915,22 @@ internal fun WorkoutExerciseCard(
                                 onDuplicate = { setMenuId = null; onDuplicateSet(set.id) },
                                 onRemove = { setMenuId = null; onDeleteSet(set.id) },
                             )
+                        }
+                        if (set.completed) {
+                            WhipCompletionCheckbox(
+                                checked = true,
+                                onCheckedChange = { onCompleteSet(set.id, false) },
+                                modifier = Modifier.semantics { contentDescription = "Mark set ${index + 1} incomplete" },
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .semantics { contentDescription = "Incomplete set ${index + 1}; enter its required values to save" },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(Icons.Outlined.RadioButtonUnchecked, contentDescription = null)
+                            }
                         }
                     }
                 }
@@ -2401,7 +2413,7 @@ private fun RestDurationDialog(
 ) {
     var secondsText by rememberSaveable(initialSeconds) { mutableStateOf(initialSeconds.coerceAtLeast(15).toString()) }
     var editingPresets by rememberSaveable { mutableStateOf(false) }
-    var presetDraft by remember(presetSeconds) { mutableStateOf(normalizeRestTimerPresets(presetSeconds)) }
+    var presetDraft by rememberSaveable(presetSeconds) { mutableStateOf(normalizeRestTimerPresets(presetSeconds)) }
     var newPresetText by rememberSaveable { mutableStateOf("") }
     val seconds = secondsText.toIntOrNull()
     val valid = seconds != null && seconds in 15..3_600
@@ -3401,24 +3413,14 @@ internal fun MachineEditorDialog(
                     ) {
                         items(visibleExercises, key = Exercise::id) { exercise ->
                             val selected = exercise.id in exerciseIds
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { exerciseIds = if (selected) exerciseIds - exercise.id else (exerciseIds + exercise.id).distinct() }
-                                    .padding(vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Checkbox(
-                                    checked = selected,
-                                    onCheckedChange = null,
-                                )
-                                Column(Modifier.weight(1f)) {
-                                    Text(exercise.name)
-                                    exercise.equipment.takeIf(String::isNotBlank)?.let {
-                                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                            }
+                            WhipMultiChoiceRow(
+                                label = exercise.name,
+                                supportingText = exercise.equipment.takeIf(String::isNotBlank),
+                                checked = selected,
+                                onCheckedChange = {
+                                    exerciseIds = if (selected) exerciseIds - exercise.id else (exerciseIds + exercise.id).distinct()
+                                },
+                            )
                         }
                         if (visibleExercises.isEmpty()) item {
                             Text("No matching exercises. Create one without leaving this machine profile.")
@@ -4273,7 +4275,7 @@ private fun TrackedRecordsSection(
                                     fontWeight = FontWeight.Bold,
                                     color = if (record == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                                 )
-                                if (sourceSessionId != null) Icon(Icons.Outlined.ChevronRight, contentDescription = null)
+                                if (sourceSessionId != null) Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
                             }
                         }
                     }
@@ -4523,11 +4525,11 @@ private fun TrackedRecordsManagerDialog(
                                                 layoutScope = "tracked-records-${exercise.uuid}".takeIf { isSelected },
                                             )
                                             .heightIn(min = 48.dp)
-                                            .clickable(
-                                                onClickLabel = "${if (isSelected) "Stop tracking" else "Track"} ${choice.trackedRecordLabel()}",
+                                            .toggleable(
+                                                value = isSelected,
                                                 role = Role.Checkbox,
-                                            ) {
-                                                if (isSelected) {
+                                                onValueChange = { nextSelected ->
+                                                if (!nextSelected) {
                                                     replaceExerciseRecords(
                                                         exercise.uuid,
                                                         selectedRecords.filterNot { it.sameTrackedChoice(choice) },
@@ -4535,9 +4537,10 @@ private fun TrackedRecordsManagerDialog(
                                                 } else {
                                                     replaceExerciseRecords(exercise.uuid, selectedRecords + choice)
                                                 }
-                                            }
+                                                },
+                                            )
                                             .semantics {
-                                                selected = isSelected
+                                                contentDescription = "${if (isSelected) "Stop tracking" else "Track"} ${choice.trackedRecordLabel()}"
                                                 stateDescription = if (isSelected) "Tracked" else "Not tracked"
                                             },
                                         verticalAlignment = Alignment.CenterVertically,
@@ -4572,7 +4575,11 @@ private fun TrackedRecordsManagerDialog(
                                                 Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                             }
                                         }
-                                        Checkbox(checked = isSelected, onCheckedChange = null)
+                                        Checkbox(
+                                            checked = isSelected,
+                                            onCheckedChange = null,
+                                            modifier = Modifier.clearAndSetSemantics {},
+                                        )
                                     }
                                     }
                                 }

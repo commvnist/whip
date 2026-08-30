@@ -56,6 +56,7 @@ import com.whip.app.domain.TaskStep
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WhipTask
 import com.whip.app.ui.GoalCard
+import com.whip.app.ui.HabitActivityGrid
 import com.whip.app.ui.HabitAreaContent
 import com.whip.app.ui.HabitDestination
 import com.whip.app.ui.HabitProgressCard
@@ -166,13 +167,21 @@ class ProductivityCardDesignUiTest {
             "habit-primary-action-2",
             "goal-primary-action-3",
         ).map(::right)
+        val actionLefts = listOf(
+            "task-primary-action-1",
+            "habit-primary-action-2",
+            "goal-primary-action-3",
+        ).map(::left)
         val editLefts = listOf("task-edit-action-1", "habit-edit-action-2", "goal-edit-action-3").map(::left)
+        val editRights = listOf("task-edit-action-1", "habit-edit-action-2", "goal-edit-action-3").map(::right)
 
         identityLefts.forEach { assertEquals(identityLefts.first(), it, 0.5f) }
         actionRights.forEach { assertEquals(actionRights.first(), it, 0.5f) }
-        editLefts.forEach { assertEquals(editLefts.first(), it, 0.5f) }
         assertTrue(identityLefts.first() < actionRights.first())
-        assertTrue(actionRights.first() <= editLefts.first())
+        editLefts.zip(editRights).zip(actionLefts).forEach { (edit, actionLeft) ->
+            assertTrue(edit.first < edit.second)
+            assertTrue(edit.second <= actionLeft)
+        }
     }
 
     @Test
@@ -898,38 +907,16 @@ class ProductivityCardDesignUiTest {
     @Test
     fun habitActivityGridExposesOneSpokenDateAndStatePerDay() {
         val today = LocalDate.of(2026, 8, 30)
-        val habit = sampleHabit(today.minusDays(90))
-        val destination = mutableStateOf(HabitDestination.Insights)
+        val days = (27L downTo 0L).map(today::minusDays)
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                val habitViewModel: HabitViewModel = viewModel()
-                HabitAreaContent(
-                    state = HabitUiState(
-                        all = listOf(
-                            HabitDayProgress(
-                                habit = habit,
-                                date = today,
-                                scheduled = true,
-                                value = 0.0,
-                                status = null,
-                                successful = false,
-                                checklistItems = emptyList(),
-                                streak = 0,
-                                completionRate = 0.0,
-                                dayState = HabitDayState.Pending,
-                            ),
-                        ),
-                        currentDate = today,
-                        loading = false,
-                    ),
-                    innerPadding = PaddingValues(),
-                    viewModel = habitViewModel,
-                    destinationState = destination,
-                )
+                HabitActivityGrid(days) { day ->
+                    if (day == today) HabitDayState.Completed else HabitDayState.Pending
+                }
             }
         }
 
-        compose.onNodeWithTag("habit-activity-grid").performScrollTo()
+        compose.onNodeWithTag("habit-activity-grid").assertIsDisplayed()
         val spokenStates = setOf(
             "completed",
             "skipped",
@@ -939,8 +926,7 @@ class ProductivityCardDesignUiTest {
             "paused",
             "not scheduled",
         )
-        (27L downTo 0L).forEach { offset ->
-            val day = today.minusDays(offset)
+        days.forEach { day ->
             val descriptions = compose
                 .onNodeWithTag("habit-activity-day-${day.toEpochDay()}", useUnmergedTree = true)
                 .fetchSemanticsNode().config[SemanticsProperties.ContentDescription]

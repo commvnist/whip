@@ -29,12 +29,11 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -915,7 +914,7 @@ private fun RoutinePlacementCard(
             )
             Box {
                 IconButton(onClick = { menu = true }, modifier = Modifier.semantics { contentDescription = "Manage ${exercise?.name ?: placement.exerciseNameSnapshot}" }) {
-                    Icon(Icons.Outlined.Settings, contentDescription = null)
+                    Icon(Icons.Outlined.MoreVert, contentDescription = null)
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     WhipMenuItem(label = "Duplicate", icon = Icons.Outlined.ContentCopy, onClick = { menu = false; onDuplicate() })
@@ -1590,23 +1589,22 @@ private fun ExercisePickerPage(
             }
             items(visible, key = Exercise::id) { exercise ->
                 val checked = exercise.id in selectedIds
-                Row(
-                    Modifier.fillMaxWidth().clickable {
+                WhipMultiChoiceRow(
+                    label = exercise.name,
+                    supportingText = listOfNotNull(
+                        "★ Favorite".takeIf { exercise.favorite },
+                        exercise.equipment.takeIf(String::isNotBlank),
+                        exercise.primaryMuscles.takeIf(String::isNotBlank),
+                    ).joinToString(" · ").ifBlank { exercise.trackingType.label.uiTitleCase() },
+                    checked = checked,
+                    onCheckedChange = {
                         onSelectionChange(if (checked) selectedIds - exercise.id else selectedIds + exercise.id)
-                    }.padding(vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Checkbox(checked, onCheckedChange = null)
-                    Column(Modifier.weight(1f)) {
-                        Text(exercise.name, fontWeight = FontWeight.SemiBold)
-                        Text(listOfNotNull(exercise.equipment.takeIf(String::isNotBlank), exercise.primaryMuscles.takeIf(String::isNotBlank)).joinToString(" · ").ifBlank { exercise.trackingType.label.uiTitleCase() }, style = MaterialTheme.typography.bodySmall)
-                    }
-                    if (exercise.favorite) Icon(
-                        Icons.Outlined.Star,
-                        contentDescription = "Favorite",
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
+                    },
+                    accessibilityLabel = buildString {
+                        append(exercise.name)
+                        if (exercise.favorite) append(", favorite")
+                    },
+                )
             }
         }
         Surface(tonalElevation = 4.dp) {

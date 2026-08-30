@@ -158,8 +158,7 @@ class TaskBulkSelectionUiTest {
     }
 
     private fun openCurrentDestinationSelection(title: String) {
-        compose.onNodeWithContentDescription("More task list actions").performClick()
-        compose.onNodeWithText("Select Tasks").performClick()
+        compose.onNodeWithText("Select").performClick()
         compose.onNodeWithContentDescription("Select task $title").performClick()
         compose.onNodeWithText("1 selected").assertIsDisplayed()
     }
