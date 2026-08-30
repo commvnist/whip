@@ -12,6 +12,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.room.withTransaction
 import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
@@ -22,16 +23,36 @@ import com.whip.app.MainActivity
 import com.whip.app.R
 import com.whip.app.WhipApplication
 import com.whip.app.data.HabitEntity
+import com.whip.app.data.HabitLogEntity
+import com.whip.app.data.HabitPauseEntity
+import com.whip.app.data.HabitSkipEntity
+import com.whip.app.data.UnitDefinitionEntity
 import com.whip.app.core.SettingsRepository
 import com.whip.app.core.adjustForQuietHours
 import com.whip.app.core.zoneId
 import com.whip.app.core.WhipLaunchActions
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.reminderNeededOn
+import com.whip.app.domain.Habit
+import com.whip.app.domain.HabitEndType
+import com.whip.app.domain.HabitLog
+import com.whip.app.domain.HabitLogStatus
+import com.whip.app.domain.HabitPause
+import com.whip.app.domain.HabitScheduleType
+import com.whip.app.domain.HabitSkip
+import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.MetricSourceType
+import com.whip.app.domain.TargetComparison
+import com.whip.app.domain.TargetPeriod
+import com.whip.app.domain.UnitDefinition
+import com.whip.app.domain.UnitDimension
+import com.whip.app.domain.toWeekdays
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.text.NumberFormat
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -204,7 +225,7 @@ object HabitReminderNotifications {
                 } else if (habit.trackingMode in setOf("Count", "Decimal")) {
                     addAction(
                         R.drawable.ic_notification,
-                        "+${habit.quickIncrement}",
+                        "+${formatNotificationNumber(habit.quickIncrement)}",
                         PendingIntent.getBroadcast(
                             context,
                             (habit.id xor 0x494e4352).hashCode(),
@@ -234,8 +255,10 @@ object HabitReminderNotifications {
                 )
             }
             .build()
-        NotificationManagerCompat.from(context).notify((habit.id xor 0x48414249).hashCode(), notification)
+        NotificationManagerCompat.from(context).notify(notificationId(habit.id), notification)
     }
+
+    internal fun notificationId(habitId: Long): Int = (habitId xor 0x48414249).hashCode()
 }
 
 class HabitReminderActionReceiver : BroadcastReceiver() {
@@ -249,38 +272,54 @@ class HabitReminderActionReceiver : BroadcastReceiver() {
         val logicalDate = logicalEpochDay.takeUnless { it == Long.MIN_VALUE }
             ?.let(LocalDate::ofEpochDay)
             ?: app.clock.today()
-        val actionId = "habit:$habitId:${intent.action}:${intent.getLongExtra(EXTRA_ACTION_TOKEN, 0L)}"
-        val ledger = NotificationActionLedger(context)
-        if (!ledger.begin(actionId)) {
-            pending.finish()
-            return
-        }
-        if (intent.action == ACTION_SNOOZE) {
-            runCatching {
-                app.habitReminderScheduler.snooze(habitId, logicalEpochDay.takeUnless { it == Long.MIN_VALUE })
-                NotificationManagerCompat.from(context).cancel((habitId xor 0x48414249).hashCode())
-            }.onSuccess { ledger.complete(actionId) }.onFailure { ledger.release(actionId) }
-            pending.finish()
-            return
-        }
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            val action = HabitNotificationAction.fromIntentAction(intent.action)
+            val increment = intent.getDoubleExtra(EXTRA_INCREMENT, 1.0)
+            val actionId = "habit:$habitId:${intent.action}:$logicalEpochDay:${intent.getLongExtra(EXTRA_ACTION_TOKEN, 0L)}"
+            val ledger = NotificationActionLedger(context)
             try {
-                if (intent.action == ACTION_COMPLETE) {
-                    app.habitRepository.setCheckOff(habitId, logicalDate, true)
+                if (action == null || !app.isCurrentHabitNotificationAction(habitId, logicalDate, action, increment)) {
+                    app.refreshStaleHabitNotification(context, habitId)
+                    return@launch
+                }
+                if (!ledger.begin(actionId)) return@launch
+
+                val applied = if (action == HabitNotificationAction.Snooze) {
+                    // A second validation closes the edit/tap race before new work is enqueued.
+                    if (!app.isCurrentHabitNotificationAction(habitId, logicalDate, action, increment)) false
+                    else {
+                        app.habitReminderScheduler.snooze(habitId, logicalDate.toEpochDay())
+                        true
+                    }
                 } else {
-                    val increment = intent.getDoubleExtra(EXTRA_INCREMENT, 1.0)
-                    if (increment.isFinite() && increment > 0.0) {
-                        app.habitRepository.log(
-                            habitId,
-                            increment,
-                            date = logicalDate,
-                            sourceType = com.whip.app.domain.MetricSourceType.Habit,
-                            sourceId = actionId,
-                        )
+                    app.database.withTransaction {
+                        if (!app.isCurrentHabitNotificationAction(habitId, logicalDate, action, increment)) {
+                            return@withTransaction false
+                        }
+                        when (action) {
+                            HabitNotificationAction.Complete -> app.habitRepository.setCheckOff(habitId, logicalDate, true)
+                            HabitNotificationAction.Increment -> app.habitRepository.log(
+                                habitId,
+                                increment,
+                                date = logicalDate,
+                                sourceType = MetricSourceType.Habit,
+                                sourceId = actionId,
+                            )
+                            HabitNotificationAction.Snooze -> error("Snooze is handled without a database mutation")
+                        }
+                        true
                     }
                 }
-                app.habitReminderScheduler.syncHabit(habitId)
-                NotificationManagerCompat.from(context).cancel((habitId xor 0x48414249).hashCode())
+                if (!applied) {
+                    ledger.release(actionId)
+                    app.refreshStaleHabitNotification(context, habitId)
+                    return@launch
+                }
+
+                if (action != HabitNotificationAction.Snooze) {
+                    app.habitReminderScheduler.syncHabit(habitId)
+                }
+                NotificationManagerCompat.from(context).cancel(HabitReminderNotifications.notificationId(habitId))
                 ledger.complete(actionId)
             } catch (_: Throwable) {
                 ledger.release(actionId)
@@ -300,6 +339,112 @@ class HabitReminderActionReceiver : BroadcastReceiver() {
         const val EXTRA_LOGICAL_EPOCH_DAY = "logical_epoch_day"
     }
 }
+
+internal enum class HabitNotificationAction {
+    Complete,
+    Increment,
+    Snooze;
+
+    companion object {
+        fun fromIntentAction(action: String?): HabitNotificationAction? = when (action) {
+            HabitReminderActionReceiver.ACTION_COMPLETE -> Complete
+            HabitReminderActionReceiver.ACTION_INCREMENT -> Increment
+            HabitReminderActionReceiver.ACTION_SNOOZE -> Snooze
+            else -> null
+        }
+    }
+}
+
+/** Rebuilds eligibility from the live habit definition and history. This is
+ * deliberately stricter than repository mutation APIs because an action may
+ * outlive the notification configuration that originally created it. */
+internal suspend fun WhipApplication.isCurrentHabitNotificationAction(
+    habitId: Long,
+    logicalDate: LocalDate,
+    action: HabitNotificationAction,
+    increment: Double,
+): Boolean {
+    val dao = database.habitDao()
+    val stored = dao.getHabit(habitId) ?: return false
+    val habit = stored.toReminderDomain()
+    if (habit.archived || habit.paused) return false
+
+    val configuredMinutes = stored.weekdayReminderMinutesCsv.parseWeekdayReminderMinutes()[logicalDate.dayOfWeek]
+        ?: stored.reminderMinutesCsv.split(',').mapNotNull(String::toIntOrNull)
+    if (configuredMinutes.isEmpty()) return false
+
+    val logs = dao.getAllLogs().asSequence()
+        .filter { it.habitId == habitId }
+        .map(HabitLogEntity::toReminderDomain)
+        .toList()
+    val pauses = dao.getPauses(habitId).map(HabitPauseEntity::toReminderDomain)
+    val skips = dao.getSkips(habitId).map(HabitSkipEntity::toReminderDomain)
+    val customUnits = database.measurementDao().getUnit(habit.unitId)
+        ?.takeIf(UnitDefinitionEntity::custom)
+        ?.let(UnitDefinitionEntity::toReminderDomain)
+        ?.let(::listOf)
+        .orEmpty()
+    if (!habit.reminderNeededOn(logs, logicalDate, customUnits, skips, pauses)) return false
+
+    return when (action) {
+        HabitNotificationAction.Complete ->
+            habit.trackingMode == HabitTrackingMode.CheckOff && habit.sourceMetricId == null
+        HabitNotificationAction.Increment ->
+            habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) &&
+                habit.sourceMetricId == null && increment.isFinite() && increment > 0.0 &&
+                increment == habit.quickIncrement
+        HabitNotificationAction.Snooze -> true
+    }
+}
+
+private suspend fun WhipApplication.refreshStaleHabitNotification(context: Context, habitId: Long) {
+    NotificationManagerCompat.from(context).cancel(HabitReminderNotifications.notificationId(habitId))
+    habitReminderScheduler.syncHabit(habitId)
+}
+
+internal fun formatNotificationNumber(value: Double, locale: Locale = Locale.getDefault()): String =
+    NumberFormat.getNumberInstance(locale).run {
+        isGroupingUsed = true
+        minimumFractionDigits = 0
+        maximumFractionDigits = 6
+        format(value)
+    }
+
+private fun HabitEntity.toReminderDomain() = Habit(
+    id, uuid, metricId, name, notes, areaId, area,
+    tagsCsv.split(',').map(String::trim).filter(String::isNotBlank), icon,
+    HabitTrackingMode.valueOf(trackingMode), UnitDimension.valueOf(dimension), unitId,
+    precision, TargetComparison.valueOf(comparison), targetMin, targetMax,
+    TargetPeriod.valueOf(targetPeriod), rollingDays, HabitScheduleType.valueOf(scheduleType),
+    scheduleInterval, weekdaysMask.toWeekdays(), flexibleTimesPerWeek,
+    LocalDate.ofEpochDay(startEpochDay), HabitEndType.valueOf(endType),
+    endEpochDay?.let(LocalDate::ofEpochDay), endValue, quickIncrement,
+    quickActionsCsv.split(',').mapNotNull(String::toDoubleOrNull),
+    reminderMinutesCsv.split(',').mapNotNull(String::toIntOrNull),
+    weekdayReminderMinutesCsv.parseWeekdayReminderMinutes(), DayOfWeek.valueOf(weekStart),
+    timerStartedAtMillis, pinned, position, archived, paused, createdAtMillis, updatedAtMillis,
+    sourceMetricId, autoCompleteFromItems,
+)
+
+private fun HabitLogEntity.toReminderDomain() = HabitLog(
+    id, uuid, habitId, value, canonicalValue, enteredUnitId, HabitLogStatus.valueOf(status),
+    Instant.ofEpochMilli(timestampMillis), LocalDate.ofEpochDay(localEpochDay), zoneId,
+    offsetSeconds, note, MetricSourceType.valueOf(sourceType), sourceId, metricEntryId,
+    createdAtMillis, updatedAtMillis,
+)
+
+private fun HabitPauseEntity.toReminderDomain() = HabitPause(
+    id, habitId, LocalDate.ofEpochDay(startEpochDay), endEpochDay?.let(LocalDate::ofEpochDay), note,
+)
+
+private fun HabitSkipEntity.toReminderDomain() = HabitSkip(
+    uuid, habitId, LocalDate.ofEpochDay(localEpochDay), skippedAtMillis, createdAtMillis, updatedAtMillis,
+)
+
+private fun UnitDefinitionEntity.toReminderDomain() = UnitDefinition(
+    id, name, symbol, UnitDimension.valueOf(dimension), toCanonicalFactor, toCanonicalOffset,
+    custom, archived, createdAtMillis, updatedAtMillis,
+)
 
 private fun HabitEntity.isScheduled(date: LocalDate): Boolean {
     if (date.toEpochDay() < startEpochDay || (endEpochDay != null && date.toEpochDay() > endEpochDay)) return false
