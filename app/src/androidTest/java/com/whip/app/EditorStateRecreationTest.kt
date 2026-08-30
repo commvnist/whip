@@ -108,7 +108,13 @@ class EditorStateRecreationTest {
 
         verify("Habit", "habit-editor-name", "Protected habit")
         verify("Goal", "goal-editor-name", "Protected goal")
-        verify("Exercise", "exercise-editor-name", "Protected exercise")
+
+        openExerciseEditorFromGym()
+        compose.onNodeWithTag("exercise-editor-name").performTextInput("Protected exercise")
+        compose.waitForIdle()
+        pressSystemBack()
+        compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+        compose.onNodeWithText("Discard Changes").performClick()
 
         openGymDestination("Machines")
         compose.onAllNodesWithText("Create Machine")[0].performScrollTo().performClick()
@@ -159,7 +165,7 @@ class EditorStateRecreationTest {
     }
 
     @Test fun dirtyExerciseEditorSurvivesActivityRecreation() = withActivity {
-        openGlobal("Exercise")
+        openExerciseEditorFromGym()
         compose.onNodeWithTag("exercise-editor-name").performTextInput("Keep exercise draft")
         it.recreate()
         waitForTag("exercise-editor-name")
@@ -167,7 +173,7 @@ class EditorStateRecreationTest {
     }
 
     @Test fun dirtyExerciseEditorRequiresExplicitDiscardOnSystemBack() = withActivity {
-        openGlobal("Exercise")
+        openExerciseEditorFromGym()
         compose.onNodeWithTag("exercise-editor-name").performTextInput("Protected exercise")
         compose.waitForIdle()
         pressSystemBack()
@@ -263,6 +269,12 @@ class EditorStateRecreationTest {
                 compose.onAllNodesWithText(expected).fetchSemanticsNodes().isNotEmpty()
             }
         }
+    }
+
+    private fun openExerciseEditorFromGym() {
+        openGymDestination("Exercises")
+        compose.onNodeWithTag("workspace-add-action").performClick()
+        waitForTag("exercise-editor-name")
     }
 
     private fun withActivity(block: (ActivityScenario<MainActivity>) -> Unit) {
