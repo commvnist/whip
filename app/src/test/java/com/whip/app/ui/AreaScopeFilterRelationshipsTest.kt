@@ -16,4 +16,14 @@ class AreaScopeFilterRelationshipsTest {
         assertEquals(AreaScope.All, AreaScope.Unassigned.validFor(emptyList()))
         assertEquals(AreaScope.One("work"), AreaScope.Unassigned.validFor(listOf(work)))
     }
+
+    @Test
+    fun allAreasAndTheOnlyActiveAreaAreTheSameVisibleWidgetScope() {
+        val main = Area("main", "Main", null, 0, false, 1, 1)
+        val work = Area("work", "Work", null, 1, false, 1, 1)
+
+        assertEquals(true, AreaScope.All.hasSameVisibleAreaAs(AreaScope.One("main"), listOf(main)))
+        assertEquals(false, AreaScope.All.hasSameVisibleAreaAs(AreaScope.One("main"), listOf(main, work)))
+        assertEquals(false, AreaScope.One("main").hasSameVisibleAreaAs(AreaScope.One("work"), listOf(main, work)))
+    }
 }

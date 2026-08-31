@@ -53,6 +53,8 @@ internal fun SavedTaskFilter.normalizedNavigation(): SavedTaskFilter {
 internal fun AppSettings.withoutAreaReferences(areaId: String): AppSettings = copy(
     activeAreaScope = activeAreaScope.takeUnless { it == AreaScope.One(areaId).storageKey }
         ?: AreaScope.All.storageKey,
+    chosenOpeningAreaScope = chosenOpeningAreaScope.takeUnless { it == AreaScope.One(areaId).storageKey }
+        ?: AreaScope.All.storageKey,
     savedTaskFilters = savedTaskFilters.map { filter ->
         if (filter.areaId == areaId) {
             filter.copy(areaId = null)

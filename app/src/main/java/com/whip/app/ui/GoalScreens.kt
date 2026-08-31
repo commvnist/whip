@@ -82,6 +82,7 @@ import com.whip.app.domain.elapsedCounter
 import com.whip.app.domain.DEFAULT_GOAL_EMOJI
 import com.whip.app.domain.MetricEntry
 import com.whip.app.domain.MetricDefinition
+import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.BuiltInUnits
@@ -258,12 +259,14 @@ fun GoalAreaContent(
         } else WhipReorderLazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = WhipPageContentPadding,
-            verticalArrangement = Arrangement.spacedBy(if (compactItemLayout) 4.dp else 10.dp),
+            verticalArrangement = Arrangement.spacedBy(
+                if (compactItemLayout) WhipSpacing.micro else WhipSpacing.compact,
+            ),
         ) {
             item {
                 WhipPageHeader(
                     title = destination.name + " Goals",
-                    supportingText = "Long-term measurements, consistency, ranges, totals, and project milestones.",
+                    supportingText = "Long-term progress, consistency, ranges, totals, and project milestones.",
                 ) {
                     if (!manageOrder && destination == GoalDestination.Active && list.isNotEmpty()) {
                         val hasReorderAction = list.size > 1 || areaScopeLabel != null
@@ -487,7 +490,7 @@ fun GoalAreaContent(
         PermanentDeleteDialog(
             title = "Delete ${goal.name} Permanently?",
             impacts = listOf(
-                "${projection.entries.size} measurement${if (projection.entries.size == 1) "" else "s"} and all milestones will be removed",
+                "${projection.entries.size} progress update${if (projection.entries.size == 1) "" else "s"} and all milestones will be removed",
             ),
             onDismiss = { deleteCandidateGoalId = null },
             onConfirm = { viewModel.deletePermanently(goal.id); deleteCandidateGoalId = null },
@@ -898,7 +901,7 @@ private fun GoalTemplateDialog(
 }
 
 private fun goalTemplateDescription(label: String): String = when (label) {
-    "Reach a weight" -> "A current measurement moving toward a mass target."
+    "Reach a weight" -> "A current value moving toward a mass target."
     "Build savings" -> "Add deposits toward a money total."
     "Cover a distance" -> "Accumulate walks, runs, rides, or any distance."
     "Read pages" -> "Add pages toward a reading total."
@@ -1120,7 +1123,7 @@ private fun GoalEditorDialog(
                     )
                 }
                 item {
-                    EditorSectionHeader("Target", "Choose the Goal behavior first; its required target and measurement fields stay directly below it.")
+                    EditorSectionHeader("Target", "Choose the Goal behavior first; its required target and progress fields stay directly below it.")
                 }
                 item {
                     GoalEnumDropdown("Goal Type", GoalType.entries, type, GoalType::displayLabel) { selected ->
@@ -1225,7 +1228,7 @@ private fun GoalEditorDialog(
                 if (type == GoalType.ElapsedSince) {
                     item {
                         Text("Counter Start", fontWeight = FontWeight.Bold)
-                        Text("Choose the exact event time. Resetting later replaces this origin without creating a measurement.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Choose the exact event time. Resetting later replaces this start time without adding a progress update.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     item {
                         ResponsiveFieldPair(
@@ -1266,7 +1269,7 @@ private fun GoalEditorDialog(
                     }
                     item {
                         DisclosureButton(
-                            label = "Advanced Measurement Options",
+                            label = "Advanced Progress Options",
                             expanded = advancedMeasurement,
                             onClick = { advancedMeasurement = !advancedMeasurement },
                             modifier = Modifier.fillMaxWidth(),
@@ -1274,7 +1277,7 @@ private fun GoalEditorDialog(
                     }
                     if (advancedMeasurement) {
                         item {
-                            GoalEnumDropdown("Measurement Type", UnitDimension.entries, dimension, UnitDimension::uiLabel) { selected ->
+                            GoalEnumDropdown("Value Type", UnitDimension.entries, dimension, UnitDimension::uiLabel) { selected ->
                                 dimension = selected
                                 val units = BuiltInUnits.all + customUnits.filter { !it.archived || it.id == unitId }
                                 val preferred = defaults.preferredUnitId(selected)
@@ -1407,7 +1410,7 @@ private fun GoalEditorDialog(
                 }
                 item {
                     ClockPickerButton(
-                        label = "Daily Measurement Reminder",
+                        label = "Daily Progress Reminder",
                         minutes = parseGoalClock(reminder),
                         onChange = { minutes ->
                             if (minutes != null && parseGoalClock(reminder) == null) onRequestNotificationPermission()
@@ -1437,7 +1440,7 @@ private fun GoalEditorDialog(
                     )
                 }
                 if (advanced) {
-                    item { EditorSectionHeader("Details", "Fine-tune how measurements combine, then add optional context.") }
+                    item { EditorSectionHeader("Details", "Fine-tune how progress updates combine, then add optional context.") }
                     if (compatibleAggregations.size > 1) item {
                         GoalEnumDropdown("How entries combine", compatibleAggregations, aggregation, GoalAggregation::displayLabel) { aggregation = it }
                     }
@@ -1482,7 +1485,7 @@ private fun GoalEditorDialog(
 }
 
 @Composable
-private fun GoalMeasurementDialog(
+internal fun GoalMeasurementDialog(
     projection: GoalProjection,
     today: LocalDate,
     entry: MetricEntry?,
@@ -1500,9 +1503,10 @@ private fun GoalMeasurementDialog(
     val parsedValue = value.toWhipDoubleOrNull()
     PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (entry == null) "Record ${projection.goal.name}" else "Edit Measurement") },
+        title = { Text(if (entry == null) "Log Progress" else "Edit Progress Update") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("${projection.goal.icon} ${projection.goal.name}", style = MaterialTheme.typography.titleMedium)
                 Text(projection.goal.measurementEntryInstruction())
                 val unitLabel = (entry?.enteredUnitId ?: projection.goal.unitId).goalUnitLabel()
                 val fieldLabel = projection.goal.measurementEntryLabel().let { label ->
@@ -1515,15 +1519,17 @@ private fun GoalMeasurementDialog(
                     required = true,
                     error = "Enter a value".takeIf { validationRequested && parsedValue == null },
                 )
-                OutlinedTextField(note, { note = it }, label = { Text("Optional note") }, modifier = Modifier.fillMaxWidth())
-                WhipOutlinedButton(onClick = { showDatePicker = true }) { Text(date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))) }
+                OutlinedTextField(note, { note = it }, label = { Text("Note (optional)") }, modifier = Modifier.fillMaxWidth())
+                WhipOutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Date · ${date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
+                }
             }
         },
         confirmButton = {
             WhipTextButton(onClick = {
                 validationRequested = true
                 parsedValue?.let { onRecord(it, date, note) }
-            }) { Text("Save") }
+            }) { Text(if (entry == null) "Log Progress" else "Save Changes") }
         },
         dismissButton = {
             Row {
@@ -1536,8 +1542,8 @@ private fun GoalMeasurementDialog(
     if (confirmDelete && onDelete != null) {
         PaneAwareAlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete Measurement?") },
-            text = { Text("This removes this measurement from the Goal's history and recalculates its progress.") },
+            title = { Text("Delete Progress Update?") },
+            text = { Text("This removes the update from the Goal's history and recalculates its progress.") },
             confirmButton = {
                 WhipTextButton(onClick = { confirmDelete = false; onDelete() }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
@@ -1574,7 +1580,7 @@ private fun GoalActionsDialog(
         GoalStatus.Active -> when (projection.goal.type) {
             GoalType.WeightedMilestones -> null
             GoalType.ElapsedSince -> EntityInspectorPrimaryAction("reset-timer", "Reset Timer", onResetElapsed)
-            GoalType.OpenEndedTrend -> EntityInspectorPrimaryAction("add-measurement", "Add Measurement", onRecordProgress)
+            GoalType.OpenEndedTrend -> EntityInspectorPrimaryAction("add-update", "Log an Update", onRecordProgress)
             else -> EntityInspectorPrimaryAction("log-progress", "Log Progress", onRecordProgress)
         }
         GoalStatus.Paused -> EntityInspectorPrimaryAction("resume", "Resume Goal", onPause)
@@ -1656,27 +1662,32 @@ private fun GoalActionsDialog(
                     items(insights.points.takeLast(visibleMeasurements), key = { "insight-${it.date}" }) { point ->
                         Text(
                             "${point.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}: value ${formatGoalValue(point.canonicalValue, projection.goal.precision)}, " +
-                                "progress ${point.progress?.let { "${(it * 100).toInt()}%" } ?: "not applicable"}, ${point.recordedEntries} source entries",
+                                "progress ${point.progress?.let { "${(it * 100).toInt()}%" } ?: "not applicable"}, ${point.recordedEntries} update${if (point.recordedEntries == 1) "" else "s"}",
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
                 }
                 }
                 if (section == GoalDetailSection.History) {
-                if (projection.goal.type == GoalType.ElapsedSince) item { Text("Elapsed-time Goals use one editable start instant rather than measurement history.") }
-                item { Text("${projection.entries.size} measurements", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
+                if (projection.goal.type == GoalType.ElapsedSince) item { Text("Elapsed-time Goals use one editable start time rather than a progress history.") }
+                item { Text("Progress History", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
+                if (projection.entries.isEmpty()) item {
+                    Text("No progress updates yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 items(projection.entries.take(visibleMeasurements), key = { it.id }) { entry ->
                     EntityInspectorAction(
-                        id = "measurement-${entry.id}",
-                        label = entry.historyLabel(),
-                        onClick = { onEditMeasurement(entry) },
+                        id = "progress-update-${entry.id}",
+                        label = entry.historyTitle(),
+                        supportingText = entry.historySupportingText(),
+                        enabled = entry.isUserEditableGoalUpdate(),
+                        onClick = { if (entry.isUserEditableGoalUpdate()) onEditMeasurement(entry) },
                     )
                 }
                 if (visibleMeasurements < projection.entries.size) item {
                     WhipOutlinedButton(
                         onClick = { visibleMeasurements = (visibleMeasurements + 25).coerceAtMost(projection.entries.size) },
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Show 25 More · ${projection.entries.size - visibleMeasurements} Remaining") }
+                    ) { Text("Show More History · ${projection.entries.size - visibleMeasurements} Remaining") }
                 }
                 }
                 if (section == GoalDetailSection.More) {
@@ -1764,26 +1775,25 @@ private fun GoalProjection.inspectorOutcome(): String = when {
     else -> "Ready to begin"
 }
 
-private fun MetricEntry.historyLabel(): String {
-    val date = localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
-    val valueLabel = enteredValue?.let(::editableNumericValue) ?: when (status.name) {
-        "Missing" -> "No value recorded"
-        "Failed" -> "Below target"
-        "Skipped" -> "Skipped"
-        "Excused" -> "Excused"
-        else -> "Recorded"
-    }
+internal fun MetricEntry.historyTitle(): String {
+    val valueLabel = enteredValue?.let(::editableNumericValue) ?: status.activityLabel()
     val unit = enteredUnitId?.let(BuiltInUnits::get)?.symbol.orEmpty()
-    val source = sourceType.name
-        .replace(Regex("([a-z])([A-Z])"), "$1 $2")
-        .replaceFirstChar(Char::uppercase)
     return buildString {
-        append("$date · $valueLabel")
+        append(valueLabel)
         if (unit.isNotBlank()) append(" $unit")
-        append(" · $source")
-        if (note.isNotBlank()) append(" · $note")
     }
 }
+
+internal fun MetricEntry.historySupportingText(): String = buildList {
+    add(localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
+    note.takeIf(String::isNotBlank)?.let(::add)
+    if (sourceType !in setOf(MetricSourceType.Manual, MetricSourceType.Goal)) {
+        sourceType.activityAttribution()?.let(::add)
+    }
+}.joinToString(" · ")
+
+internal fun MetricEntry.isUserEditableGoalUpdate(): Boolean =
+    sourceType in setOf(MetricSourceType.Manual, MetricSourceType.Goal)
 
 @Composable
 private fun GoalLineChart(values: List<Double>, description: String) {
@@ -1864,7 +1874,7 @@ private fun GoalType.explanation(): String = when (this) {
     GoalType.ReachValue -> "Move from a starting value toward a measurable target."
     GoalType.ReduceValue -> "Track a value that should move downward, such as debt or weight."
     GoalType.AccumulateTotal -> "Add contributions over time, such as savings, pages, or distance."
-    GoalType.MaintainRange -> "Succeed by keeping measurements between a minimum and maximum."
+    GoalType.MaintainRange -> "Succeed by keeping recorded values between a minimum and maximum."
     GoalType.MeetAverage -> "Judge progress by the average value in each chosen period."
     GoalType.Consistency -> "Reach a recurring number of successes for several periods."
     GoalType.WeightedMilestones -> "Complete named project stages, optionally with different importance."

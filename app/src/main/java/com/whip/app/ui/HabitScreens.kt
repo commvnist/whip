@@ -92,6 +92,7 @@ import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.MetricDefinition
+import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.MetricValueKind
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.compactNumericSequence
@@ -242,7 +243,7 @@ fun HabitAreaContent(
         when (destination) {
             HabitDestination.Today -> HabitList(
                 title = "Today",
-                subtitle = "Check in, log a value, or continue a timer. Completed habits move to Done for confirmation or undo.",
+                subtitle = "Check in, log a value, or continue a timer.",
                 progress = state.today,
                 empty = if (state.all.isEmpty()) {
                     "Choose a simple template or use + to create a Habit from scratch."
@@ -408,14 +409,21 @@ fun HabitAreaContent(
         HabitValueDialog(
             item = item,
             onDismiss = { numericLogHabitId = null },
-            onLog = { value, note -> viewModel.setPeriodValue(item, value, note); numericLogHabitId = null },
+            onLog = { value, note ->
+                if (item.habit.trackingMode == HabitTrackingMode.LogOnly) {
+                    viewModel.log(item.habit.id, value, note = note)
+                } else {
+                    viewModel.setPeriodValue(item, requireNotNull(value), note)
+                }
+                numericLogHabitId = null
+            },
         )
     }
     historicalLogHabit?.let { item ->
         HabitHistoryLogDialog(
             item = item,
             log = null,
-            initialDate = state.currentDate,
+            initialDate = state.currentDate.minusDays(1),
             onDismiss = { historicalLogHabitId = null },
             onSave = { value, status, date, note ->
                 viewModel.log(item.habit.id, value, status, date, note)
@@ -507,7 +515,7 @@ fun HabitProgressCard(
     val habit = item.habit
     val compact = LocalCompactItemLayout.current
     val skipped = item.dayState == HabitDayState.Skipped
-    val disclosure = rememberCompactItemDisclosure(itemKey = "habit:${habit.id}:${item.date.toEpochDay()}")
+    val disclosure = rememberCompactItemDisclosure(itemKey = habitCompactExpansionKey(habit.id, item.date))
     var showAllQuickValues by rememberSaveable(habit.id) { mutableStateOf(false) }
     val streakUnit = when (habit.scheduleType) {
         HabitScheduleType.FlexibleTimesPerWeek -> "week"
@@ -776,7 +784,7 @@ fun HabitProgressCard(
             }
             if (habit.sourceMetricId != null) {
                 Text(
-                    "Read-only source: Health Connect · provenance is retained per entry",
+                    "Updates automatically from Health Connect.",
                     style = if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -808,6 +816,9 @@ internal fun List<HabitDayProgress>.dailyHabitSections(): DailyHabitSections {
     val (done, remaining) = partition(HabitDayProgress::isDoneForToday)
     return DailyHabitSections(remaining = remaining, done = done)
 }
+
+internal fun habitCompactExpansionKey(habitId: Long, date: LocalDate): String =
+    "habit:$habitId:${date.toEpochDay()}"
 
 @Composable
 internal fun DoneHabitsDisclosure(
@@ -858,13 +869,15 @@ private fun HabitList(
     val sections = if (separateCompleted) progress.dailyHabitSections() else DailyHabitSections(progress, emptyList())
     val doneIds = sections.done.mapTo(linkedSetOf()) { it.habit.id }
     val dateKey = progress.firstOrNull()?.date?.toEpochDay() ?: Long.MIN_VALUE
+    val compactExpansionState = LocalCompactItemExpansionState.current
     var doneExpanded by rememberSaveable(title, dateKey) {
-        mutableStateOf(sections.remaining.isEmpty() && sections.done.isNotEmpty())
+        mutableStateOf(false)
     }
     var knownDoneIds by remember(title, dateKey) { mutableStateOf(doneIds) }
-    LaunchedEffect(doneIds) {
-        if ((doneIds - knownDoneIds).isNotEmpty()) doneExpanded = true
-        if (doneIds.isEmpty()) doneExpanded = false
+    LaunchedEffect(doneIds, dateKey, compactExpansionState) {
+        (doneIds - knownDoneIds).forEach { habitId ->
+            compactExpansionState?.collapse(habitCompactExpansionKey(habitId, LocalDate.ofEpochDay(dateKey)))
+        }
         knownDoneIds = doneIds
     }
     LaunchedEffect(reorderRequested, onReorder) {
@@ -884,7 +897,9 @@ private fun HabitList(
     WhipReorderLazyColumn(
         modifier = Modifier.fillMaxSize().testTag("habit-list-$title"),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 10.dp),
+        verticalArrangement = Arrangement.spacedBy(
+            if (compact) WhipSpacing.micro else WhipSpacing.compact,
+        ),
     ) {
         item {
             WhipPageHeader(title = title, supportingText = subtitle) {
@@ -1665,11 +1680,11 @@ private fun HabitEditorDialog(
                         }
                     }
                     Text(
-                        "Health Connect determines tracking mode and units. Imported records are read-only and reconcile by source ID without double counting.",
+                        "Whip keeps this Habit up to date from Health Connect. Tracking details follow the connected health category, and synced activity is read-only here.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
-                item { EditorSectionHeader("Tracking", "Choose the daily action first; its targets and measurement fields stay directly below it.") }
+                item { EditorSectionHeader("Tracking", "Choose the daily action first; its target and amount options stay directly below it.") }
                 item {
                     Text("How do you want to track it?", fontWeight = FontWeight.Bold)
                     Text("Choose the action you want available each day. Whip fills in sensible defaults.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1823,7 +1838,7 @@ private fun HabitEditorDialog(
                 } else {
                     if (sourceMetricId == null && mode != HabitTrackingMode.Rating) {
                         item {
-                            Text("Measurement Unit", fontWeight = FontWeight.Bold)
+                            Text("Unit", fontWeight = FontWeight.Bold)
                             Text(
                                 "This unit is used by targets, check-ins, and history.",
                                 style = MaterialTheme.typography.bodySmall,
@@ -1831,7 +1846,7 @@ private fun HabitEditorDialog(
                             )
                         }
                         item {
-                            EnumDropdown("Measurement type", UnitDimension.entries, dimension, UnitDimension::uiLabel) { selected ->
+                            EnumDropdown("What are you tracking?", UnitDimension.entries, dimension, UnitDimension::uiLabel) { selected ->
                                 dimension = selected
                                 val units = BuiltInUnits.all + customUnits.filter { !it.archived || it.id == unitId }
                                 val preferred = defaults.preferredUnitId(selected)
@@ -1999,16 +2014,35 @@ private fun HabitEditorDialog(
 }
 
 @Composable
-internal fun HabitValueDialog(item: HabitDayProgress, onDismiss: () -> Unit, onLog: (Double, String) -> Unit) {
-    var value by rememberSaveable(item.habit.id, item.date) { mutableStateOf(editableNumericValue(item.value)) }
+internal fun HabitValueDialog(item: HabitDayProgress, onDismiss: () -> Unit, onLog: (Double?, String) -> Unit) {
+    var value by rememberSaveable(item.habit.id, item.date) {
+        mutableStateOf(
+            if (item.habit.trackingMode == HabitTrackingMode.LogOnly && item.value == 0.0) ""
+            else editableNumericValue(item.value),
+        )
+    }
     var note by rememberSaveable(item.habit.id, item.date) { mutableStateOf("") }
+    val logOnly = item.habit.trackingMode == HabitTrackingMode.LogOnly
+    val parsedValue = value.toWhipDoubleOrNull()
+    val validValue = if (logOnly) value.isBlank() || parsedValue?.isFinite() == true else parsedValue?.isFinite() == true
     PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Set ${item.habit.name}") },
+        title = { Text(item.habit.todayCheckInTitle()) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                NumberTextField(value, { value = it }, if (item.habit.trackingMode == HabitTrackingMode.Rating) "Rating" else "Value")
-                OutlinedTextField(note, { note = it }, label = { Text("Optional note") })
+                Text("${item.habit.icon} ${item.habit.name}", style = MaterialTheme.typography.titleMedium)
+                NumberTextField(value, { value = it }, item.habit.historyAmountLabel(optional = logOnly))
+                if (logOnly) Text(
+                    "A note is enough; add a number only when it is useful.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    note,
+                    { note = it },
+                    label = { Text(if (logOnly) "What happened? (optional)" else "Note (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 if (item.habit.quickActions.isNotEmpty()) {
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
@@ -2023,13 +2057,13 @@ internal fun HabitValueDialog(item: HabitDayProgress, onDismiss: () -> Unit, onL
                 }
             }
         },
-        confirmButton = { WhipTextButton(enabled = value.toWhipDoubleOrNull()?.isFinite() == true, onClick = { onLog(requireNotNull(value.toWhipDoubleOrNull()), note) }) { Text("Set") } },
+        confirmButton = { WhipTextButton(enabled = validValue, onClick = { onLog(parsedValue, note) }) { Text(if (logOnly) "Add Entry" else "Save") } },
         dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
 @Composable
-private fun HabitHistoryLogDialog(
+internal fun HabitHistoryLogDialog(
     item: HabitDayProgress,
     log: HabitLog?,
     initialDate: LocalDate,
@@ -2039,48 +2073,94 @@ private fun HabitHistoryLogDialog(
 ) {
     val editorKey = "habit-log-${log?.id ?: "${item.habit.id}-${initialDate.toEpochDay()}"}"
     var value by rememberSaveable(editorKey) { mutableStateOf(log?.value?.let(::editableNumericValue).orEmpty()) }
-    var status by rememberSaveable(editorKey) { mutableStateOf(log?.status ?: HabitLogStatus.Recorded) }
     var date by rememberSaveable(editorKey) { mutableStateOf(initialDate) }
     var note by rememberSaveable(editorKey) { mutableStateOf(log?.note.orEmpty()) }
     var showDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
-    val requiresValue = status in setOf(HabitLogStatus.Recorded, HabitLogStatus.Success) &&
-        item.habit.trackingMode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)
+    var confirmDelete by rememberSaveable(editorKey) { mutableStateOf(false) }
+    val mode = item.habit.trackingMode
+    val showsAmount = mode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)
+    val requiresAmount = mode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.Duration, HabitTrackingMode.Rating)
+    val parsedValue = value.toWhipDoubleOrNull()
+    val amountIsValid = when {
+        requiresAmount -> parsedValue?.isFinite() == true
+        !showsAmount -> true
+        else -> value.isBlank() || parsedValue?.isFinite() == true
+    }
     PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (log == null) "Add Past ${item.habit.name} Entry" else "Edit ${item.habit.name} Entry") },
+        title = { Text(item.habit.historyDialogTitle(editing = log != null)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                EnumDropdown("State", HabitLogStatus.entries, status, { it.name }) { status = it }
-                NumberTextField(
-                    value,
-                    { value = it },
-                    "Value (${(log?.enteredUnitId ?: item.habit.unitId).unitLabel()})",
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact)) {
+                Text("${item.habit.icon} ${item.habit.name}", style = MaterialTheme.typography.titleMedium)
                 WhipOutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
+                    Text("Date · ${date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
                 }
-                OutlinedTextField(note, { note = it }, label = { Text("Optional note") }, modifier = Modifier.fillMaxWidth())
+                if (showsAmount) {
+                    NumberTextField(
+                        value,
+                        { value = it },
+                        item.habit.historyAmountLabel(
+                            unitId = log?.enteredUnitId ?: item.habit.unitId,
+                            optional = !requiresAmount,
+                        ),
+                    )
+                    if (!requiresAmount) Text(
+                        "A note is enough; add a number only when it is useful.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                OutlinedTextField(
+                    note,
+                    { note = it },
+                    label = { Text(if (mode == HabitTrackingMode.LogOnly) "What happened? (optional)" else "Note (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         },
         confirmButton = {
             WhipTextButton(
-                enabled = !requiresValue || value.toWhipDoubleOrNull() != null,
+                enabled = amountIsValid,
                 onClick = {
-                    val effective = value.toWhipDoubleOrNull()
-                        ?: 1.0.takeIf { item.habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) && status in setOf(HabitLogStatus.Recorded, HabitLogStatus.Success) }
-                    onSave(effective, status, date, note)
+                    val effectiveValue = when (mode) {
+                        HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist -> 1.0
+                        else -> parsedValue
+                    }
+                    val effectiveStatus = when (mode) {
+                        HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist -> HabitLogStatus.Success
+                        else -> HabitLogStatus.Recorded
+                    }
+                    onSave(effectiveValue, effectiveStatus, date, note)
                 },
-            ) { Text("Save") }
+            ) { Text(if (log == null) "Record" else "Save Changes") }
         },
         dismissButton = {
             Row {
-                if (onDelete != null) WhipTextButton(onClick = onDelete) { Text("Delete") }
+                if (onDelete != null) WhipTextButton(onClick = { confirmDelete = true }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
                 WhipTextButton(onClick = onDismiss) { Text("Cancel") }
             }
         },
     )
     if (showDatePicker) {
         WhipDatePickerDialog(date, { showDatePicker = false }, { selected -> date = selected; showDatePicker = false })
+    }
+    if (confirmDelete && onDelete != null) {
+        PaneAwareAlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Delete Check-In?") },
+            text = { Text("This removes the check-in from ${item.habit.name}'s history and recalculates its progress and streak.") },
+            confirmButton = {
+                WhipTextButton(
+                    onClick = { confirmDelete = false; onDelete() },
+                    modifier = Modifier.testTag("habit-history-confirm-delete"),
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { WhipTextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+        )
     }
 }
 
@@ -2183,30 +2263,36 @@ private fun HabitActionsDialog(
                         }
                     }
                     HabitDetailSection.History -> {
-                        EntityInspectorAction("add-past-entry", "Add Past Entry", onAddHistoricalLog)
+                        if (item.habit.sourceMetricId == null) {
+                            EntityInspectorAction(
+                                id = "add-past-entry",
+                                label = item.habit.pastCheckInActionLabel(),
+                                onClick = onAddHistoricalLog,
+                                supportingText = "Choose an earlier date and record what happened.",
+                            )
+                        } else {
+                            EntityInspectorGroup(
+                                title = "Automatic updates",
+                                supportingText = "Health Connect keeps this history up to date. Synced check-ins are read-only in Whip.",
+                            ) {}
+                        }
                         val events = (logs.map(HabitHistoryEvent::Log) + skips.map(HabitHistoryEvent::Skip))
                             .sortedByDescending(HabitHistoryEvent::timeMillis)
                         EntityInspectorGroup(
-                            title = "Recent activity",
-                            supportingText = if (events.isEmpty()) "No entries yet." else null,
+                            title = "Check-In History",
+                            supportingText = if (events.isEmpty()) "Nothing recorded yet." else null,
                         ) {
                             events.take(visibleLogs).forEach { event ->
                                 when (event) {
                                     is HabitHistoryEvent.Log -> EntityInspectorAction(
                                         id = "log-${event.value.id}",
-                                        label = buildString {
-                                            append(event.value.localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
-                                            append(" · ")
-                                            append(
-                                                event.value.value?.let { formatHabitValue(it, item.habit.precision) }
-                                                    ?: event.value.status.humanLabel(),
-                                            )
-                                            if (event.value.note.isNotBlank()) append(" · ${event.value.note}")
-                                        },
-                                        onClick = { onEditLog(event.value) },
+                                        label = event.value.activityTitle(item.habit),
+                                        supportingText = event.value.activitySupportingText(item.date),
+                                        enabled = event.value.isUserEditable(),
+                                        onClick = { if (event.value.isUserEditable()) onEditLog(event.value) },
                                     )
                                     is HabitHistoryEvent.Skip -> Text(
-                                        "${event.value.localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} · Skipped",
+                                        "Skipped · ${event.value.localDate.relativeActivityDate(item.date)}",
                                         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -2214,7 +2300,8 @@ private fun HabitActionsDialog(
                             }
                             if (visibleLogs < events.size) EntityInspectorAction(
                                 id = "show-more-history",
-                                label = "Show ${minOf(25, events.size - visibleLogs)} More · ${events.size - visibleLogs} Remaining",
+                                label = "Show More History",
+                                supportingText = "${events.size - visibleLogs} earlier check-in${if (events.size - visibleLogs == 1) "" else "s"}",
                                 onClick = { visibleLogs = (visibleLogs + 25).coerceAtMost(events.size) },
                             )
                         }
@@ -2356,10 +2443,81 @@ private fun HabitDayProgress.inspectorPrimaryActionLabel(): String = when (habit
     HabitTrackingMode.LogOnly -> "Add Entry"
 }
 
-private fun HabitLogStatus.humanLabel(): String = when (this) {
-    HabitLogStatus.Recorded -> "Recorded"
-    HabitLogStatus.Success -> "Complete"
-    HabitLogStatus.Failed -> "Below target"
+internal fun Habit.todayCheckInTitle(): String = when (trackingMode) {
+    HabitTrackingMode.Rating -> "Rate Today"
+    HabitTrackingMode.LogOnly -> "Add an Entry"
+    else -> "Log Today's Progress"
+}
+
+internal fun Habit.pastCheckInActionLabel(): String = when (trackingMode) {
+    HabitTrackingMode.CheckOff -> "Check In for an Earlier Day"
+    HabitTrackingMode.Checklist -> "Complete an Earlier Day"
+    HabitTrackingMode.Rating -> "Rate an Earlier Day"
+    HabitTrackingMode.LogOnly -> "Add an Earlier Entry"
+    else -> "Log an Earlier Day"
+}
+
+internal fun Habit.historyDialogTitle(editing: Boolean): String = if (editing) {
+    when (trackingMode) {
+        HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist -> "Edit Check-In"
+        HabitTrackingMode.Rating -> "Edit Rating"
+        HabitTrackingMode.LogOnly -> "Edit Entry"
+        else -> "Edit Logged Progress"
+    }
+} else {
+    when (trackingMode) {
+        HabitTrackingMode.CheckOff -> "Record Past Check-In"
+        HabitTrackingMode.Checklist -> "Record Past Completion"
+        HabitTrackingMode.Rating -> "Rate an Earlier Day"
+        HabitTrackingMode.LogOnly -> "Add an Earlier Entry"
+        else -> "Log an Earlier Day"
+    }
+}
+
+internal fun Habit.historyAmountLabel(unitId: String = this.unitId, optional: Boolean = false): String {
+    val base = when (trackingMode) {
+        HabitTrackingMode.Duration -> "Duration"
+        HabitTrackingMode.Rating -> "Rating"
+        HabitTrackingMode.LogOnly -> "Number"
+        else -> "Amount"
+    }
+    val unit = unitId.unitLabel()
+    return buildString {
+        append(base)
+        if (unit.isNotBlank()) append(" ($unit)")
+        if (optional) append(" · optional")
+    }
+}
+
+internal fun HabitLog.isUserEditable(): Boolean = id > 0L && sourceType == MetricSourceType.Manual
+
+internal fun HabitLog.activityTitle(habit: Habit): String {
+    if (status == HabitLogStatus.Failed && value == null) return "Below target"
+    val amount = value?.let { raw ->
+        "${formatHabitValue(raw, habit.precision)} ${(enteredUnitId ?: habit.unitId).unitLabel()}".trim()
+    }
+    return when (habit.trackingMode) {
+        HabitTrackingMode.CheckOff -> if (status == HabitLogStatus.Failed) "Not completed" else "Checked in"
+        HabitTrackingMode.Checklist -> if (status == HabitLogStatus.Failed) "Not completed" else "Marked complete"
+        HabitTrackingMode.Rating -> amount?.let { "Rated $it" } ?: status.activityLabel()
+        HabitTrackingMode.LogOnly -> amount?.let { "Logged $it" }
+            ?: if (note.isNotBlank()) "Added a note" else "Added an entry"
+        HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.Duration ->
+            amount?.let { "Logged $it" } ?: status.activityLabel()
+    }
+}
+
+internal fun HabitLog.activitySupportingText(today: LocalDate): String = buildList {
+    add(localDate.relativeActivityDate(today))
+    if (status == HabitLogStatus.Failed && value != null) add("Below target")
+    note.takeIf(String::isNotBlank)?.let(::add)
+    sourceType.activityAttribution()?.let(::add)
+}.joinToString(" · ")
+
+internal fun LocalDate.relativeActivityDate(today: LocalDate): String = when (this) {
+    today -> "Today"
+    today.minusDays(1) -> "Yesterday"
+    else -> format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
 }
 
 @Composable

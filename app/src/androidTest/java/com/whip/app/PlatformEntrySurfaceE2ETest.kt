@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -18,6 +19,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.AreaScope
+import com.whip.app.core.AreaOpeningMode
 import com.whip.app.health.HealthPermissionsRationaleActivity
 import com.whip.app.widget.WhipWidgetConfigureActivity
 import com.whip.app.widget.WhipWidgetProvider
@@ -91,10 +93,10 @@ class PlatformEntrySurfaceE2ETest {
     }
 
     @Test
-    fun widgetTaskActionAppliesItsAreaTransientlyAndRestoresItAfterRecreation() = runBlocking {
+    fun widgetTaskActionSelectsAndPersistsItsAreaAcrossRecreation() = runBlocking {
         val workAreaId = app.areaRepository.create("Work")
-        val persistedScope = AreaScope.All.storageKey
-        app.settingsRepository.update { it.copy(activeAreaScope = persistedScope) }
+        val selectedScope = AreaScope.One(workAreaId).storageKey
+        app.settingsRepository.update { it.copy(activeAreaScope = AreaScope.All.storageKey) }
         val intent = Intent(app, MainActivity::class.java)
             .setAction(WhipWidgetProvider.ACTION_ADD_TASK)
             .putExtra(WhipWidgetProvider.EXTRA_AREA_SCOPE, AreaScope.One(workAreaId).storageKey)
@@ -102,12 +104,68 @@ class PlatformEntrySurfaceE2ETest {
         ActivityScenario.launch<MainActivity>(intent).use { scenario ->
             waitForTaskEditor()
             compose.onNodeWithContentDescription("Area selection: Work").performScrollTo().assertIsDisplayed()
-            assertEquals(persistedScope, app.settingsRepository.current().activeAreaScope)
+            assertEquals(selectedScope, app.settingsRepository.current().activeAreaScope)
 
             scenario.recreate()
             waitForTaskEditor()
             compose.onNodeWithContentDescription("Area selection: Work").performScrollTo().assertIsDisplayed()
-            assertEquals(persistedScope, app.settingsRepository.current().activeAreaScope)
+            assertEquals(selectedScope, app.settingsRepository.current().activeAreaScope)
+        }
+    }
+
+    @Test
+    fun widgetDoesNotShowATemporaryBannerForTheOnlyVisibleArea() = runBlocking {
+        val mainAreaId = app.areaRepository.create("Main")
+        app.settingsRepository.update { it.copy(activeAreaScope = AreaScope.All.storageKey) }
+        val intent = Intent(app, MainActivity::class.java)
+            .setAction(WhipWidgetProvider.ACTION_OPEN_HABIT_TRACKING)
+            .putExtra(WhipWidgetProvider.EXTRA_AREA_SCOPE, AreaScope.One(mainAreaId).storageKey)
+
+        ActivityScenario.launch<MainActivity>(intent).use {
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithTag("habit-list-Today").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onAllNodesWithText("Temporarily showing Main").assertCountEquals(0)
+            assertEquals(AreaScope.One(mainAreaId).storageKey, app.settingsRepository.current().activeAreaScope)
+        }
+    }
+
+    @Test
+    fun widgetSwitchRespectsChosenOrLastUsedAreaOnTheNextSession() = runBlocking {
+        val mainAreaId = app.areaRepository.create("Main")
+        val workAreaId = app.areaRepository.create("Work")
+        app.settingsRepository.update {
+            it.copy(
+                activeAreaScope = AreaScope.One(mainAreaId).storageKey,
+                areaOpeningMode = AreaOpeningMode.Chosen,
+                chosenOpeningAreaScope = AreaScope.One(mainAreaId).storageKey,
+            )
+        }
+        val widgetIntent = Intent(app, MainActivity::class.java)
+            .setAction(WhipWidgetProvider.ACTION_OPEN_HABIT_TRACKING)
+            .putExtra(WhipWidgetProvider.EXTRA_AREA_SCOPE, AreaScope.One(workAreaId).storageKey)
+
+        ActivityScenario.launch<MainActivity>(widgetIntent).use {
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithContentDescription("Area scope: Work").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onAllNodesWithText("Temporarily showing Work").assertCountEquals(0)
+            assertEquals(AreaScope.One(workAreaId).storageKey, app.settingsRepository.current().activeAreaScope)
+        }
+
+        ActivityScenario.launch<MainActivity>(Intent(app, MainActivity::class.java)).use {
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithContentDescription("Area scope: Main").fetchSemanticsNodes().isNotEmpty()
+            }
+            assertEquals(AreaScope.One(workAreaId).storageKey, app.settingsRepository.current().activeAreaScope)
+        }
+
+        app.settingsRepository.update { it.copy(areaOpeningMode = AreaOpeningMode.LastUsed) }
+        ActivityScenario.launch<MainActivity>(Intent(app, MainActivity::class.java)).use {
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithContentDescription("Area scope: Work").fetchSemanticsNodes().isNotEmpty()
+            }
+            assertEquals(AreaScope.One(workAreaId).storageKey, app.settingsRepository.current().activeAreaScope)
         }
     }
 

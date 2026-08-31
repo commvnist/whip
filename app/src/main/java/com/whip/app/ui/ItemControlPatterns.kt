@@ -990,6 +990,10 @@ internal class CompactItemExpansionState(initialExpandedItemKeys: Set<String> = 
         }
     }
 
+    fun collapse(itemKey: String) {
+        expandedItemKeys = expandedItemKeys - itemKey
+    }
+
     fun collapseAll() {
         expandedItemKeys = emptySet()
     }

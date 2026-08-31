@@ -112,19 +112,21 @@ class WhipNavigationTest {
             compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
             compose.onNodeWithContentDescription("Close Search").performClick()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
+            compose.onAllNodesWithText("0 tasks", substring = true).assertCountEquals(0)
             selectDestination("task-destination-Upcoming")
             compose.onNodeWithText("The next 30 days", substring = true).assertIsDisplayed()
+            compose.onAllNodesWithText("0 tasks", substring = true).assertCountEquals(0)
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
             compose.onNodeWithText(
-                "Check in, log a value, or continue a timer. Completed habits move to Done for confirmation or undo.",
+                "Check in, log a value, or continue a timer.",
             ).assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Gym tab").performClick()
             compose.onNodeWithTag("gym-destination-Workout").assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Goals tab").performClick()
-            compose.onNodeWithText("Long-term measurements, consistency, ranges, totals, and project milestones.").assertIsDisplayed()
+            compose.onNodeWithText("Long-term progress, consistency, ranges, totals, and project milestones.").assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithTag("track-workspace-destination-Tracks").assertIsSelected()

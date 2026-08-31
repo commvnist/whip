@@ -4,7 +4,10 @@ import com.whip.app.domain.GymGraphRange
 import com.whip.app.domain.GymGraphAggregation
 import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.LinkSourceMetric
+import com.whip.app.domain.MetricEntryStatus
+import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WorkoutSetClassification
@@ -51,6 +54,41 @@ internal fun HabitTrackingMode.uiLabel(): String = when (this) {
     HabitTrackingMode.Checklist -> "Checklist"
     HabitTrackingMode.Rating -> "Rating"
     HabitTrackingMode.LogOnly -> "Log Only"
+}
+
+/** Activity copy must describe what happened, never expose stored enum names. */
+internal fun HabitLogStatus.activityLabel(): String = when (this) {
+    HabitLogStatus.Recorded -> "Logged"
+    HabitLogStatus.Success -> "Completed"
+    HabitLogStatus.Failed -> "Below target"
+}
+
+internal fun MetricEntryStatus.activityLabel(): String = when (this) {
+    MetricEntryStatus.Recorded -> "Logged"
+    MetricEntryStatus.Missing -> "No entry"
+    MetricEntryStatus.Failed -> "Below target"
+    MetricEntryStatus.Skipped -> "Skipped"
+    MetricEntryStatus.Excused -> "Excused"
+}
+
+internal fun MetricSourceType.uiLabel(): String = when (this) {
+    MetricSourceType.Manual -> "Whip"
+    MetricSourceType.Habit -> "Habit"
+    MetricSourceType.Goal -> "Goal"
+    MetricSourceType.Task -> "Task"
+    MetricSourceType.Workout -> "Workout"
+    MetricSourceType.Exercise -> "Exercise"
+    MetricSourceType.Track -> "Track"
+    MetricSourceType.Import -> "Import"
+    MetricSourceType.HealthConnect -> "Health Connect"
+}
+
+/** Manual activity needs no attribution; connected activity should explain why it is read-only. */
+internal fun MetricSourceType.activityAttribution(): String? = when (this) {
+    MetricSourceType.Manual -> null
+    MetricSourceType.HealthConnect -> "Synced from Health Connect"
+    MetricSourceType.Import -> "Imported"
+    else -> "Added from ${uiLabel()}"
 }
 
 internal fun RepeatStepPolicy.uiLabel(): String = when (this) {

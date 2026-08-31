@@ -17,6 +17,21 @@ internal fun AreaScope.validFor(areas: List<Area>): AreaScope {
     }
 }
 
+/**
+ * All Areas and the sole active Area render the same collection. Treat them as
+ * equivalent so an explicit widget scope does not create a misleading
+ * temporary-view banner when there is nowhere else to switch.
+ */
+internal fun AreaScope.hasSameVisibleAreaAs(other: AreaScope, areas: List<Area>): Boolean {
+    val first = validFor(areas)
+    val second = other.validFor(areas)
+    if (first == second) return true
+    val onlyAreaId = areas.filterNot(Area::archived).singleOrNull()?.id ?: return false
+    fun AreaScope.representsOnlyArea(): Boolean = this == AreaScope.All ||
+        (this is AreaScope.One && areaId == onlyAreaId)
+    return first.representsOnlyArea() && second.representsOnlyArea()
+}
+
 internal fun TaskUiState.forArea(scope: AreaScope): TaskUiState {
     if (scope == AreaScope.All) return this
     fun List<ScheduledTask>.visible() = filter { scope.matches(it.task.areaId) }

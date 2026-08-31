@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Text
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -1048,6 +1049,86 @@ class InteractionControlUiTest {
         compose.onNodeWithText("Search controller opened").assertIsDisplayed()
         compose.onAllNodesWithTag("contextual-search-actions").assertCountEquals(0)
         compose.onAllNodesWithTag("contextual-search-field").assertCountEquals(0)
+    }
+
+    @Test
+    fun pageHeaderActionsDoNotShiftTitleOrSupportingText() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Column(Modifier.width(520.dp)) {
+                    WhipPageHeader(
+                        title = "Tracks",
+                        modifier = Modifier.testTag("plain-page-header"),
+                        supportingText = "Structured logs for facts you want to record and compare.",
+                    )
+                    WhipPageHeader(
+                        title = "Activity",
+                        modifier = Modifier.testTag("action-page-header"),
+                        supportingText = "A chronological view of Entries across visible Tracks.",
+                    ) {
+                        WhipPageIconAction(
+                            icon = Icons.Outlined.Search,
+                            label = "Search Track Activity",
+                            onClick = {},
+                        )
+                        WhipPageIconAction(
+                            icon = Icons.Outlined.FilterAlt,
+                            label = "Filter Track Activity",
+                            onClick = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        val plainHeader = compose.onNodeWithTag("plain-page-header").fetchSemanticsNode().boundsInRoot
+        val actionHeader = compose.onNodeWithTag("action-page-header").fetchSemanticsNode().boundsInRoot
+        val plainTitle = compose.onNodeWithText("Tracks").fetchSemanticsNode().boundsInRoot
+        val actionTitle = compose.onNodeWithText("Activity").fetchSemanticsNode().boundsInRoot
+        val plainSupporting = compose.onNodeWithText("Structured logs for facts you want to record and compare.")
+            .fetchSemanticsNode().boundsInRoot
+        val actionSupporting = compose.onNodeWithText("A chronological view of Entries across visible Tracks.")
+            .fetchSemanticsNode().boundsInRoot
+
+        assertEquals(plainTitle.top - plainHeader.top, actionTitle.top - actionHeader.top, 0.5f)
+        assertEquals(plainSupporting.top - plainHeader.top, actionSupporting.top - actionHeader.top, 0.5f)
+        assertEquals(plainHeader.height, actionHeader.height, 0.5f)
+        val searchAction = compose.onNodeWithContentDescription("Search Track Activity").fetchSemanticsNode().boundsInRoot
+        assertTrue(searchAction.bottom <= actionSupporting.top)
+    }
+
+    @Test
+    fun pageHeaderKeepsFollowingContentVisuallySeparated() {
+        lateinit var density: Density
+        compose.setContent {
+            density = LocalDensity.current
+            WhipTheme(dynamicColor = false) {
+                Column(Modifier.width(360.dp)) {
+                    WhipPageHeader(
+                        title = "Today",
+                        supportingText = "Check in, log a value, or continue a timer.",
+                    )
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(72.dp)
+                            .testTag("first-page-content"),
+                    )
+                }
+            }
+        }
+
+        val supportingText = compose
+            .onNodeWithText("Check in, log a value, or continue a timer.")
+            .fetchSemanticsNode()
+            .boundsInRoot
+        val firstContent = compose.onNodeWithTag("first-page-content").fetchSemanticsNode().boundsInRoot
+        val minimumGap = with(density) { WhipSpacing.sibling.toPx() }
+
+        assertTrue(
+            "Page content should begin at least one sibling space below its supporting text",
+            firstContent.top - supportingText.bottom >= minimumGap - 0.5f,
+        )
     }
 
     @Test

@@ -38,8 +38,8 @@
     <string name="support_goals_description">Open a Goal to review progress and next actions.</string>
     <string name="support_goals_empty">No Goals are active.</string>
     <string name="support_tracks_description">Choose a Track to view its Entries, options, and Insights.</string>
-    <string name="support_tracks_empty_title">No Tracks Yet</string>
-    <string name="support_tracks_empty_message">Create a Track from the content pane.</string>
+    <string name="support_tracks_empty">No Tracks yet. Create a Track from the content pane.</string>
+    <string name="support_gym_empty">No Workout is in progress.</string>
     <string name="support_track_overview_title">Track Overview</string>
     <string name="support_track_overview_description">Across the current Area scope.</string>
     <string name="support_active_tracks">Active Tracks</string>
@@ -104,7 +104,7 @@
     <string name="health_rationale_read_only_title">Read-only by design</string>
     <string name="health_rationale_read_only_message">Whip only reads the health categories you select. It never writes to Health Connect.</string>
     <string name="health_rationale_storage_title">How imported data is used</string>
-    <string name="health_rationale_storage_message">Imported values are stored locally in Whip’s measurement ledger. They can contribute to goals, trends, and insights alongside records you enter yourself.</string>
+    <string name="health_rationale_storage_message">Whip keeps a private local copy of imported values so they can contribute to goals, trends, and insights alongside activity you record yourself.</string>
     <string name="health_rationale_privacy_title">Your privacy and control</string>
     <string name="health_rationale_privacy_message">Whip does not sell or upload your health data. You can review or revoke access in Health Connect at any time.</string>
     <string name="health_rationale_sync_title">Turning sync off</string>

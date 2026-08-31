@@ -168,7 +168,9 @@ internal fun WhipPageHeader(
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = WhipSpacing.sibling),
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
     ) {
         val titleContent: @Composable () -> Unit = {
@@ -197,9 +199,9 @@ internal fun WhipPageHeader(
                 }
             } else {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
-                    verticalAlignment = Alignment.Top,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(Modifier.weight(1f)) { titleContent() }
                     actions()
@@ -211,6 +213,7 @@ internal fun WhipPageHeader(
                 supporting,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyLarge,
+                minLines = 2,
             )
         }
     }

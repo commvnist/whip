@@ -69,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import com.whip.app.R
 import com.whip.app.core.AppThemeMode
+import com.whip.app.core.AreaOpeningMode
 import com.whip.app.core.HomeSection
 import com.whip.app.core.HealthDataType
 import com.whip.app.core.ReviewPeriod
@@ -80,6 +81,7 @@ import com.whip.app.domain.isDefaultIdentityEmoji
 import com.whip.app.domain.isIdentityEmoji
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.BuiltInUnits
+import com.whip.app.domain.AreaScope
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.health.HealthConnectAvailability
 import com.whip.app.reminders.ReminderNotifications
@@ -355,6 +357,67 @@ internal fun SettingsContent(
             ) { selected -> viewModel.update { it.copy(compactItemLayout = selected) } }
         }
         item {
+            SettingsHeading("Opening Area")
+            Text(
+                "Choose whether a new Whip session returns to the Area you used last or always starts from one chosen view. Widget shortcuts switch the current Area immediately.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        item {
+            SettingsDropdown(
+                label = "When Whip opens",
+                values = AreaOpeningMode.entries,
+                selected = settings.areaOpeningMode,
+                text = { mode -> if (mode == AreaOpeningMode.LastUsed) "Last used area" else "Chosen area" },
+            ) { selected ->
+                viewModel.update { current ->
+                    val activeAreas = state.areas.filterNot(com.whip.app.domain.Area::archived)
+                    val lastUsed = AreaScope.fromStorageKey(current.activeAreaScope)
+                    val chosen = if (
+                        selected == AreaOpeningMode.Chosen &&
+                        current.areaOpeningMode == AreaOpeningMode.LastUsed
+                    ) {
+                        if (lastUsed == AreaScope.All && activeAreas.size == 1) {
+                            AreaScope.One(activeAreas.single().id).storageKey
+                        } else {
+                            lastUsed.storageKey
+                        }
+                    } else {
+                        current.chosenOpeningAreaScope
+                    }
+                    current.copy(areaOpeningMode = selected, chosenOpeningAreaScope = chosen)
+                }
+            }
+            Text(
+                if (settings.areaOpeningMode == AreaOpeningMode.LastUsed) {
+                    "Area changes, including widget switches, are saved and restored the next time Whip starts."
+                } else {
+                    "Widget switches affect the current session, but a new session returns to the chosen Area."
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        if (settings.areaOpeningMode == AreaOpeningMode.Chosen) item {
+            val activeAreas = state.areas.filterNot(com.whip.app.domain.Area::archived)
+            val choices = listOf(AreaScope.All) + activeAreas.map { AreaScope.One(it.id) }
+            val storedChoice = AreaScope.fromStorageKey(settings.chosenOpeningAreaScope)
+            val selectedChoice = storedChoice.takeIf(choices::contains) ?: AreaScope.All
+            SettingsDropdown(
+                label = "Opening area",
+                values = choices,
+                selected = selectedChoice,
+                text = { scope ->
+                    when (scope) {
+                        AreaScope.All -> "All Areas"
+                        AreaScope.Unassigned -> "Main"
+                        is AreaScope.One -> activeAreas.firstOrNull { it.id == scope.areaId }?.name ?: "Unavailable Area"
+                    }
+                },
+            ) { selected ->
+                viewModel.update { it.copy(chosenOpeningAreaScope = selected.storageKey) }
+            }
+        }
+        item {
             SettingsHeading("Home Overview")
             Text(
                 "Choose which sections and empty-day shortcuts appear on Whip Home. Main navigation and saved data remain unchanged. Pinning an item reveals and expands its section so the action always has a visible destination. Show Details by Default controls whether a visible section starts expanded.",
@@ -478,7 +541,7 @@ internal fun SettingsContent(
         item {
             Text("Custom Units", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
-                "Create reusable units for Habit measurements, Goal values, and number fields in Tracks. Units can also be created beside the Unit control while editing a supported item.",
+                "Create reusable units for Habit entries, Goal progress, and number fields in Tracks. Units can also be created beside the Unit control while editing a supported item.",
                 style = MaterialTheme.typography.bodySmall,
             )
             if (state.customUnits.isEmpty()) Text("No custom conversion units yet.", style = MaterialTheme.typography.bodySmall)

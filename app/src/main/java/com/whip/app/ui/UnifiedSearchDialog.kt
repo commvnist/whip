@@ -304,12 +304,14 @@ internal fun UnifiedSearchDialog(
             }
             (habitState.all.map { it.habit } + habitState.archived).distinctBy { it.id }.forEach { habit ->
                 val logText = recentHabitLogs[habit.id].orEmpty().asSequence()
-                    .joinToString(" · ") { "${it.localDate} ${it.value ?: it.status.name} ${it.note}" }
+                    .joinToString(" · ") { log ->
+                        "${log.activityTitle(habit)} · ${log.activitySupportingText(habitState.currentDate)}"
+                    }
                 add(WhipSearchResult(SearchDomain.Habit, habit.id, habit.name, listOf(habit.notes, logText).filter(String::isNotBlank).joinToString(" · "), area = habit.area, areaId = habit.areaId, tags = habit.tags.toSet(), status = if (habit.archived) "archived" else "active"))
             }
             (goalState.active + goalState.completed + goalState.archived).distinctBy { it.goal.id }.forEach { item ->
                 val measurementText = newestSearchValues(item.entries, MaxSearchHistoryValuesPerEntity) { it.timestamp }
-                    .joinToString(" · ") { "${it.localDate} ${it.enteredValue ?: it.status.name} ${it.note}" }
+                    .joinToString(" · ") { entry -> "${entry.historyTitle()} · ${entry.historySupportingText()}" }
                 add(WhipSearchResult(SearchDomain.Goal, item.goal.id, item.goal.name, listOf(item.goal.description, measurementText).filter(String::isNotBlank).joinToString(" · "), area = item.goal.area, areaId = item.goal.areaId, tags = item.goal.tags.toSet(), deadline = item.goal.deadline, status = item.goal.status.name.lowercase()))
             }
             trackState.projections.forEach { projection ->

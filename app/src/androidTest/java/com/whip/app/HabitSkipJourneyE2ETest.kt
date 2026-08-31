@@ -22,9 +22,9 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
+import com.whip.app.domain.HabitChecklistItemDraft
 import com.whip.app.domain.HabitDraft
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
+import com.whip.app.domain.HabitTrackingMode
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -91,8 +91,7 @@ class HabitSkipJourneyE2ETest {
             compose.onNodeWithContentDescription("Open habit details for Read Today")
                 .performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithTag("habit-detail-section-History").performClick()
-            val skippedDate = app.clock.today().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
-            compose.onNodeWithText("$skippedDate · Skipped").assertIsDisplayed()
+            compose.onNodeWithText("Skipped · Today").assertIsDisplayed()
             compose.onNodeWithContentDescription("Close Habit details").performClick()
 
             selectDestination("habit-destination-Insights")
@@ -177,6 +176,56 @@ class HabitSkipJourneyE2ETest {
             )
             compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("habit-card-$habitId"))
             compose.onNodeWithTag("habit-card-$habitId").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun completingExpandedChecklistKeepsDoneCollapsedAndCollapsesTheMovedHabit() {
+        val today = app.clock.today()
+        val checklistHabitId = runBlocking {
+            app.settingsRepository.update { it.copy(compactItemLayout = true) }
+            app.habitRepository.setCheckOff(habitId, today, true)
+            app.habitRepository.create(
+                HabitDraft(
+                    name = "Medication",
+                    trackingMode = HabitTrackingMode.Checklist,
+                    startDate = today,
+                    checklistItems = listOf(HabitChecklistItemDraft("Evening dose", 0)),
+                ),
+            )
+        }
+        val intent = Intent(app, MainActivity::class.java)
+            .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
+
+        launchMainActivity(intent).use {
+            compose.onNodeWithContentDescription("Habits tab").performClick()
+            assertEquals(
+                "Collapsed",
+                compose.onNodeWithTag("habit-done-disclosure").fetchSemanticsNode()
+                    .config[SemanticsProperties.StateDescription],
+            )
+
+            compose.onNodeWithTag("habit-expand-$checklistHabitId", useUnmergedTree = true).performClick()
+            compose.onNodeWithText("Evening dose").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Complete checklist item Evening dose").performClick()
+
+            runBlocking {
+                withTimeout(5_000) {
+                    app.habitRepository.logs.first { logs -> logs.any { it.habitId == checklistHabitId } }
+                }
+            }
+            compose.waitUntil(5_000) {
+                compose.onNodeWithTag("habit-done-disclosure").fetchSemanticsNode()
+                    .config[SemanticsProperties.StateDescription] == "Collapsed"
+            }
+            compose.onAllNodesWithTag("habit-card-$checklistHabitId").assertCountEquals(0)
+
+            compose.onNodeWithTag("habit-done-disclosure").performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithTag("habit-list-Today")
+                .performScrollToNode(hasTestTag("habit-card-$checklistHabitId"))
+            compose.onNodeWithTag("habit-card-$checklistHabitId").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Expand habit Medication").assertIsDisplayed()
+            compose.onAllNodesWithText("Evening dose").assertCountEquals(0)
         }
     }
 

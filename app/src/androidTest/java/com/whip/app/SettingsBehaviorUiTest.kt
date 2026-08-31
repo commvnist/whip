@@ -24,8 +24,10 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import com.whip.app.core.AppSettings
+import com.whip.app.core.AreaOpeningMode
 import com.whip.app.core.HomeSection
 import com.whip.app.domain.CustomIdentityEmoji
+import com.whip.app.domain.AreaScope
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TaskDraft
 import kotlinx.coroutines.runBlocking
@@ -82,6 +84,33 @@ class SettingsBehaviorUiTest {
         compose.onAllNodesWithText("Notes shown only in the comfortable row").assertCountEquals(0)
         compose.onNodeWithTag("task-expand-$taskId").assertIsDisplayed().performClick()
         compose.onNodeWithText("Notes shown only in the comfortable row").assertIsDisplayed()
+    }
+
+    @Test
+    fun openingAreaBehaviorAndChosenAreaCanBeConfiguredFromAppearance() = runBlocking {
+        val mainAreaId = app.areaRepository.create("Main")
+        val workAreaId = app.areaRepository.create("Work")
+        app.settingsRepository.update {
+            it.copy(activeAreaScope = AreaScope.One(mainAreaId).storageKey)
+        }
+        compose.waitForIdle()
+
+        openAppearanceSettings()
+        compose.onNodeWithTag("settings-list")
+            .performScrollToNode(androidx.compose.ui.test.hasText("When Whip opens"))
+        compose.onNodeWithContentDescription("When Whip opens: Last used area").performClick()
+        compose.onNodeWithText("Chosen area").performClick()
+        compose.onNodeWithTag("settings-list")
+            .performScrollToNode(androidx.compose.ui.test.hasText("Opening area"))
+        compose.onNodeWithContentDescription("Opening area: Main").performClick()
+        compose.onNodeWithText("Work").performClick()
+
+        compose.waitUntil {
+            val saved = app.settingsRepository.current()
+            saved.areaOpeningMode == AreaOpeningMode.Chosen &&
+                saved.chosenOpeningAreaScope == AreaScope.One(workAreaId).storageKey
+        }
+        assertTrue(app.settingsRepository.current().activeAreaScope == AreaScope.One(mainAreaId).storageKey)
     }
 
     @Test

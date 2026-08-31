@@ -307,7 +307,13 @@ class BackupRepositoryTest {
 
     @Test fun areaIdentityAndScopeRoundTripAcrossEveryProductivityDomain() = runBlocking {
         val workId = measurements.ensureArea("Work")
-        settings.update { it.copy(activeAreaScope = AreaScope.One(workId).storageKey) }
+        settings.update {
+            it.copy(
+                activeAreaScope = AreaScope.One(workId).storageKey,
+                areaOpeningMode = com.whip.app.core.AreaOpeningMode.Chosen,
+                chosenOpeningAreaScope = AreaScope.One(workId).storageKey,
+            )
+        }
         tasks.create(TaskDraft(title = "Work task", areaId = workId, area = "Work"))
         habits.create(HabitDraft(name = "Work habit", areaId = workId, area = "Work", startDate = FixedClock.today()))
         goals.create(GoalDraft(name = "Work goal", areaId = workId, area = "Work", type = GoalType.OpenEndedTrend, startDate = FixedClock.today()))
@@ -320,6 +326,8 @@ class BackupRepositoryTest {
         assertEquals(workId, habits.habits.first().single().areaId)
         assertEquals(workId, goals.goals.first().single().areaId)
         assertEquals(AreaScope.One(workId).storageKey, settings.current().activeAreaScope)
+        assertEquals(com.whip.app.core.AreaOpeningMode.Chosen, settings.current().areaOpeningMode)
+        assertEquals(AreaScope.One(workId).storageKey, settings.current().chosenOpeningAreaScope)
         assertTrue(backups.exportTasksCsv().contains("\"Work\""))
         assertTrue(backups.exportHabitsCsv().contains("\"Work\""))
         assertTrue(backups.exportGoalsCsv().contains("\"Work\""))

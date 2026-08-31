@@ -7,6 +7,7 @@ import android.util.Base64
 import androidx.room.withTransaction
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
+import com.whip.app.core.AreaOpeningMode
 import com.whip.app.core.HealthDataType
 import com.whip.app.core.HomeSection
 import com.whip.app.core.ReviewSection
@@ -699,6 +700,8 @@ private fun AppSettings.toJson(): JSONObject = JSONObject()
     .put("lowPressureMode", lowPressureMode)
     .put("notificationPermissionRequested", notificationPermissionRequested)
     .put("activeAreaScope", activeAreaScope)
+    .put("areaOpeningMode", areaOpeningMode.name)
+    .put("chosenOpeningAreaScope", chosenOpeningAreaScope)
     .put("hardSetClassifications", JSONArray(hardSetClassifications.toList()))
     .put("categoryAllocationMode", categoryAllocationMode)
     .put("adjustE1rmForEffort", adjustE1rmForEffort)
@@ -798,6 +801,8 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     lowPressureMode = optBoolean("lowPressureMode", false),
     notificationPermissionRequested = optBoolean("notificationPermissionRequested", false),
     activeAreaScope = optString("activeAreaScope", "all"),
+    areaOpeningMode = enumValue("areaOpeningMode", AreaOpeningMode.LastUsed),
+    chosenOpeningAreaScope = optString("chosenOpeningAreaScope", "all"),
     hardSetClassifications = optJSONArray("hardSetClassifications")?.let { array ->
         (0 until array.length()).mapNotNullTo(mutableSetOf()) { index -> array.optString(index).takeIf(String::isNotBlank) }
     }?.ifEmpty { setOf("Working", "BackOff", "Drop", "Amrap", "Failure") }

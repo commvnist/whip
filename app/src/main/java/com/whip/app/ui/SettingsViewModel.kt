@@ -302,8 +302,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
     fun mergeAreas(sourceId: String, targetId: String) = runIo("Areas merged") {
         app.areaRepository.merge(sourceId, targetId)
-        if (repository.current().activeAreaScope == AreaScope.One(sourceId).storageKey) {
-            repository.update { it.copy(activeAreaScope = AreaScope.One(targetId).storageKey) }
+        val sourceScope = AreaScope.One(sourceId).storageKey
+        val targetScope = AreaScope.One(targetId).storageKey
+        repository.update { current ->
+            current.copy(
+                activeAreaScope = if (current.activeAreaScope == sourceScope) targetScope else current.activeAreaScope,
+                chosenOpeningAreaScope = if (current.chosenOpeningAreaScope == sourceScope) targetScope else current.chosenOpeningAreaScope,
+            )
         }
     }
     fun moveAllAreaItems(sourceId: String, targetId: String) = runIo("Area items moved") {
@@ -335,8 +340,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         showSuccess = false,
     ) {
         app.areaRepository.setArchived(id, archived)
-        if (archived && repository.current().activeAreaScope == AreaScope.One(id).storageKey) {
-            repository.update { it.copy(activeAreaScope = AreaScope.All.storageKey) }
+        if (archived) {
+            repository.update { it.withoutAreaReferences(id) }
         }
     }
     fun setTagArchived(id: String, archived: Boolean) = runIo(if (archived) "Tag archived" else "Tag restored") {

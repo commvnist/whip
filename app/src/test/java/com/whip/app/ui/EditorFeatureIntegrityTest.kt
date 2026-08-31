@@ -39,7 +39,7 @@ class EditorFeatureIntegrityTest {
 
         assertTrue(settings.contains("Planning & Units"))
         assertTrue(settings.contains("Habit Defaults"))
-        assertTrue(settings.contains("Habit measurements, Goal values, and number fields in Tracks"))
+        assertTrue(settings.contains("Habit entries, Goal progress, and number fields in Tracks"))
         assertTrue(habit.contains("UnitSelectionField("))
         assertTrue(goal.contains("UnitSelectionField("))
         assertTrue(track.contains("UnitSelectionField("))

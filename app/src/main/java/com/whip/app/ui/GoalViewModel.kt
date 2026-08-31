@@ -125,13 +125,13 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         if (pinned) app.settingsRepository.revealHomeSection(HomeSection.Goals)
     }
     fun reorder(ids: List<Long>) = runSilentReorder { repository.reorder(ids) }
-    fun record(id: Long, value: Double, date: LocalDate?, note: String) = runOperation("Saving measurement…", "Measurement saved") { repository.recordMeasurement(id, value, date = date, note = note) }
+    fun record(id: Long, value: Double, date: LocalDate?, note: String) = runOperation("Saving progress…", "Progress saved") { repository.recordMeasurement(id, value, date = date, note = note) }
     fun updateMeasurement(id: Long, entryId: String, value: Double, date: LocalDate, note: String) =
-        runOperation("Updating measurement…", "Measurement updated") { repository.updateMeasurement(id, entryId, value, date, note) }
+        runOperation("Updating progress…", "Progress updated") { repository.updateMeasurement(id, entryId, value, date, note) }
     fun deleteMeasurement(id: Long, entryId: String) =
         runOperation(
-            "Removing measurement…",
-            "Measurement removed",
+            "Removing progress update…",
+            "Progress update removed",
         ) { repository.deleteMeasurement(id, entryId) }
     fun toggleMilestone(id: Long, completed: Boolean) = runOperation(
         "Updating milestone…",

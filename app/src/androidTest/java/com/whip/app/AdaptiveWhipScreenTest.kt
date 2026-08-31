@@ -327,6 +327,54 @@ class AdaptiveWhipScreenTest {
     }
 
     @Test
+    fun bookFoldGoalAndTrackSupportEmptyStatesShareVerticalRhythm() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    habitState = HabitUiState(loading = false),
+                    goalState = GoalUiState(loading = false),
+                    trackState = TrackUiState(loading = false),
+                    gymState = GymUiState(loading = false),
+                    adaptiveLayout = WhipAdaptiveLayout.BookFold,
+                    foldInfo = WhipFoldInfo(
+                        orientation = WhipFoldOrientation.Vertical,
+                        leftPx = 700,
+                        topPx = 0,
+                        rightPx = 740,
+                        bottomPx = 1_800,
+                        separating = false,
+                        halfOpened = false,
+                    ),
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Goals tab").performClick()
+        val goalSupportGap = compose.onNodeWithTag("support-pane-goals-empty").fetchSemanticsNode().boundsInRoot.top -
+            compose.onNodeWithTag("support-pane-description").fetchSemanticsNode().boundsInRoot.bottom
+        compose.onNodeWithContentDescription("Tracks tab").performClick()
+        val trackSupportGap = compose.onNodeWithTag("track-support-empty").fetchSemanticsNode().boundsInRoot.top -
+            compose.onNodeWithTag("support-pane-description").fetchSemanticsNode().boundsInRoot.bottom
+        compose.onNodeWithContentDescription("Gym tab").performClick()
+        val gymSupportGap = compose.onNodeWithTag("support-pane-gym-empty").fetchSemanticsNode().boundsInRoot.top -
+            compose.onNodeWithTag("support-pane-description").fetchSemanticsNode().boundsInRoot.bottom
+
+        check(kotlin.math.abs(goalSupportGap - trackSupportGap) <= 1f) {
+            "Goal and Track support empty-state gaps must align: $goalSupportGap vs $trackSupportGap"
+        }
+        check(kotlin.math.abs(goalSupportGap - gymSupportGap) <= 1f) {
+            "Goal and Gym support empty-state gaps must align: $goalSupportGap vs $gymSupportGap"
+        }
+    }
+
+    @Test
     fun sharedLoadingErrorRetryIsActionableAndNeverShowsFalseSuccess() {
         val error = mutableStateOf<String?>(null)
         var retries = 0
@@ -1079,6 +1127,7 @@ class AdaptiveWhipScreenTest {
         }
         compose.onNodeWithTag("track-workspace-destination-Activity").performClick().assertIsSelected()
         compose.onNodeWithText("A chronological view of Entries across visible Tracks", substring = true).assertIsDisplayed()
+        compose.onAllNodesWithText("0 Entries", substring = true).assertCountEquals(0)
         compose.onNodeWithTag("track-workspace-destination-Archived").performClick().assertIsSelected()
         compose.onNodeWithText("Archived Tracks").assertIsDisplayed()
         compose.onNodeWithTag("track-workspace-destination-Insights").performClick().assertIsSelected()

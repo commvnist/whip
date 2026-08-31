@@ -616,14 +616,14 @@ private fun RoutineOutlinePane(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 listOf(
-                    "Full body" to listOf("Full body"),
-                    "Upper / lower" to listOf("Upper", "Lower"),
-                    "Push / pull / legs" to listOf("Push", "Pull", "Legs"),
-                ).forEach { (label, names) ->
+                    listOf("Full Body"),
+                    listOf("Upper", "Lower"),
+                    listOf("Push", "Pull", "Legs"),
+                ).forEach { names ->
                     WhipFilterChip(
                         selected = builder.days.map { it.name } == names,
                         onClick = { onBuilderChange { current -> current.withDayTemplate(names) } },
-                        label = { Text(label) },
+                        label = { Text(names.joinToString(" / ")) },
                     )
                 }
             }

@@ -166,6 +166,7 @@ import com.whip.app.core.HomeSection
 import com.whip.app.core.ReviewSection
 import com.whip.app.core.SavedTaskFilter
 import com.whip.app.core.visibleHomeSections
+import com.whip.app.core.openingAreaScope
 import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.TrackProjection
@@ -377,6 +378,7 @@ private sealed interface LaunchDeliveryCommand {
 private fun LaunchDeliveryEffect(
     launchDeliveryId: Long,
     consumedLaunchDeliveryId: Long?,
+    areaSelectionReady: Boolean,
     initialAction: String?,
     initialEntityId: Long?,
     initialOccurrenceEpochDay: Long?,
@@ -396,12 +398,18 @@ private fun LaunchDeliveryEffect(
         initialOccurrenceEpochDay,
         initialSharedText,
         setupCompleted,
+        areaSelectionReady,
         taskState,
         habitState,
         goalState,
         trackState,
     ) {
-        if (launchDeliveryId == 0L || consumedLaunchDeliveryId == launchDeliveryId || !setupCompleted) {
+        if (
+            launchDeliveryId == 0L ||
+            consumedLaunchDeliveryId == launchDeliveryId ||
+            !setupCompleted ||
+            !areaSelectionReady
+        ) {
             return@LaunchedEffect
         }
         val targetResolution = resolveLaunchTarget(
@@ -558,25 +566,50 @@ fun WhipApp(
     val goalOperationStatus by goalViewModel.operationStatus.collectAsStateWithLifecycle()
     val trackOperationStatus by trackViewModel.operationStatus.collectAsStateWithLifecycle()
     val lastDeletedTrackEntry by trackViewModel.lastDeletedEntry.collectAsStateWithLifecycle()
-    val persistedAreaScope = AreaScope.fromStorageKey(settingsState.settings.activeAreaScope)
+    var sessionAreaScopeKey by rememberSaveable {
+        mutableStateOf(settingsState.settings.openingAreaScope().storageKey)
+    }
     var transientAreaScopeKey by rememberSaveable { mutableStateOf<String?>(null) }
     var transientAreaScopeDelivery by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingAreaBadgeId by rememberSaveable { mutableStateOf<String?>(null) }
-    val areaScope = transientAreaScopeKey?.let(AreaScope::fromStorageKey) ?: persistedAreaScope
+    val sessionAreaScope = AreaScope.fromStorageKey(sessionAreaScopeKey)
+    val areaScope = transientAreaScopeKey?.let(AreaScope::fromStorageKey) ?: sessionAreaScope
     val requestedLaunchDeliveryId = initialDeliveryId.takeIf { it != 0L }
         ?: 1L.takeIf { initialAction != null }
         ?: 0L
 
-    LaunchedEffect(settingsState.taxonomyLoaded, settingsState.settings.activeAreaScope, settingsState.areas) {
+    LaunchedEffect(
+        settingsState.taxonomyLoaded,
+        settingsState.settings.activeAreaScope,
+        settingsState.settings.chosenOpeningAreaScope,
+        settingsState.areas,
+        sessionAreaScopeKey,
+    ) {
         if (!settingsState.taxonomyLoaded) return@LaunchedEffect
-        val stored = AreaScope.fromStorageKey(settingsState.settings.activeAreaScope)
+        val storedLastUsed = AreaScope.fromStorageKey(settingsState.settings.activeAreaScope)
+        val storedChosen = AreaScope.fromStorageKey(settingsState.settings.chosenOpeningAreaScope)
         // A freshly created Area is committed before Room's Area flow emits it.
         // Give that emission a chance to cancel/restart this effect so valid new
         // scopes are not mistaken for stale IDs.
-        if (stored is AreaScope.One && settingsState.areas.none { it.id == stored.areaId }) {
+        if (
+            listOf(storedLastUsed, storedChosen, AreaScope.fromStorageKey(sessionAreaScopeKey))
+                .filterIsInstance<AreaScope.One>()
+                .any { scope -> settingsState.areas.none { it.id == scope.areaId } }
+        ) {
             kotlinx.coroutines.delay(500)
         }
-        stored.validFor(settingsState.areas).takeIf { it != stored }?.let(settingsViewModel::setAreaScope)
+        val validLastUsed = storedLastUsed.validFor(settingsState.areas)
+        val validChosen = storedChosen.validFor(settingsState.areas)
+        if (validLastUsed != storedLastUsed || validChosen != storedChosen) {
+            settingsViewModel.update { current ->
+                current.copy(
+                    activeAreaScope = validLastUsed.storageKey,
+                    chosenOpeningAreaScope = validChosen.storageKey,
+                )
+            }
+        }
+        val validSession = AreaScope.fromStorageKey(sessionAreaScopeKey).validFor(settingsState.areas)
+        if (validSession.storageKey != sessionAreaScopeKey) sessionAreaScopeKey = validSession.storageKey
     }
 
     LaunchedEffect(
@@ -586,6 +619,9 @@ fun WhipApp(
         initialOccurrenceEpochDay,
         initialAreaScopeStorageKey,
         settingsState.settings.setupCompleted,
+        settingsState.taxonomyLoaded,
+        settingsState.areas,
+        sessionAreaScopeKey,
         state,
         habitState,
         goalState,
@@ -594,8 +630,13 @@ fun WhipApp(
         if (requestedLaunchDeliveryId == 0L) return@LaunchedEffect
         if (transientAreaScopeDelivery == requestedLaunchDeliveryId) return@LaunchedEffect
         if (!settingsState.settings.setupCompleted) return@LaunchedEffect
+        if (!settingsState.taxonomyLoaded) return@LaunchedEffect
         if (initialAreaScopeStorageKey != null) {
-            transientAreaScopeKey = AreaScope.fromStorageKey(initialAreaScopeStorageKey).storageKey
+            val requestedScope = AreaScope.fromStorageKey(initialAreaScopeStorageKey)
+                .validFor(settingsState.areas)
+            sessionAreaScopeKey = requestedScope.storageKey
+            transientAreaScopeKey = null
+            settingsViewModel.setAreaScope(requestedScope)
             transientAreaScopeDelivery = requestedLaunchDeliveryId
             return@LaunchedEffect
         }
@@ -618,13 +659,15 @@ fun WhipApp(
             LaunchTargetResolution.Pending,
             is LaunchTargetResolution.LoadFailed -> return@LaunchedEffect
         }
-        if (!areaScope.matches(targetAreaId)) {
-            transientAreaScopeKey = (
+        if (!sessionAreaScope.matches(targetAreaId)) {
+            val requestedScope =
                 targetAreaId?.let(AreaScope::One)
                     ?: settingsState.areas.firstOrNull { !it.archived }?.id?.let(AreaScope::One)
                     ?: AreaScope.All
-                ).storageKey
+            sessionAreaScopeKey = requestedScope.storageKey
+            settingsViewModel.setAreaScope(requestedScope)
         }
+        transientAreaScopeKey = null
         transientAreaScopeDelivery = requestedLaunchDeliveryId
     }
 
@@ -681,11 +724,14 @@ fun WhipApp(
             trackViewModel = trackViewModel,
             areaScope = areaScope,
             onSelectAreaScope = { selected ->
+                sessionAreaScopeKey = selected.storageKey
                 transientAreaScopeKey = null
                 settingsViewModel.setAreaScope(selected)
             },
             onTemporarilySelectAreaScope = { selected ->
-                transientAreaScopeKey = selected.storageKey
+                transientAreaScopeKey = selected
+                    .takeUnless { it.hasSameVisibleAreaAs(sessionAreaScope, settingsState.areas) }
+                    ?.storageKey
             },
             transientAreaScope = transientAreaScopeKey != null,
             onRestoreAreaScope = { transientAreaScopeKey = null },
@@ -767,6 +813,8 @@ fun WhipApp(
             initialOccurrenceEpochDay = initialOccurrenceEpochDay,
             initialSharedText = initialSharedText,
             initialDeliveryId = initialDeliveryId,
+            launchAreaSelectionReady = requestedLaunchDeliveryId == 0L ||
+                transientAreaScopeDelivery == requestedLaunchDeliveryId,
         )
         }
     }
@@ -865,6 +913,7 @@ fun WhipScreen(
     initialOccurrenceEpochDay: Long? = null,
     initialSharedText: String? = null,
     initialDeliveryId: Long = 0L,
+    launchAreaSelectionReady: Boolean = true,
     adaptiveLayout: WhipAdaptiveLayout = WhipAdaptiveLayout.Compact,
     foldInfo: WhipFoldInfo? = null,
 ) {
@@ -1132,6 +1181,7 @@ fun WhipScreen(
     LaunchDeliveryEffect(
         launchDeliveryId = launchDeliveryId,
         consumedLaunchDeliveryId = consumedLaunchDeliveryId,
+        areaSelectionReady = launchAreaSelectionReady,
         initialAction = initialAction,
         initialEntityId = initialEntityId,
         initialOccurrenceEpochDay = initialOccurrenceEpochDay,
@@ -2369,28 +2419,6 @@ fun WhipScreen(
                 }
                 }
             }
-            if (transientAreaScope) {
-                val temporaryLabel = when (areaScope) {
-                    AreaScope.All -> "All Areas"
-                    AreaScope.Unassigned -> "Main"
-                    is AreaScope.One -> settingsState.areas.firstOrNull { it.id == areaScope.areaId }?.name ?: "this area"
-                }
-                Surface(
-                    modifier = Modifier.align(Alignment.TopCenter).padding(innerPadding).padding(8.dp),
-                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                    shape = MaterialTheme.shapes.medium,
-                    shadowElevation = 4.dp,
-                ) {
-                    Row(
-                        Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text("Temporarily showing $temporaryLabel", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                        WhipTextButton(onClick = onRestoreAreaScope) { Text("Restore") }
-                    }
-                }
-            }
         }
       }
     }
@@ -2511,7 +2539,11 @@ fun WhipScreen(
             item = item,
             onDismiss = { homeHabitValueItemId = null },
             onLog = { value, note ->
-                habitViewModel?.setPeriodValue(item, value, note)
+                if (item.habit.trackingMode == com.whip.app.domain.HabitTrackingMode.LogOnly) {
+                    habitViewModel?.log(item.habit.id, value, note = note)
+                } else {
+                    habitViewModel?.setPeriodValue(item, requireNotNull(value), note)
+                }
                 homeHabitValueItemId = null
             },
         )
@@ -2950,6 +2982,7 @@ private data class AdaptiveSummary(
     val goalLoadState: AdaptiveLoadState,
     val trackLoadState: AdaptiveLoadState,
     val gymLoadState: AdaptiveLoadState,
+    val gymDestination: GymDestination,
     val visibleHomeSections: List<HomeSection>,
     val hasAnyUserData: Boolean,
     val taskContext: List<String> = emptyList(),
@@ -2995,6 +3028,7 @@ private fun buildAdaptiveSummary(
         goalLoadState = goalLoadState,
         trackLoadState = trackLoadState,
         gymLoadState = gymLoadState,
+        gymDestination = gymDestination,
         visibleHomeSections = settings.visibleHomeSections(),
         hasAnyUserData = homeHasAnyUserData(taskState, habitState, goalState, trackState, gymState),
         taskContext = listOfNotNull(selectedTaskTitle) + taskState.today.take(6).map { it.task.title },
@@ -3563,6 +3597,12 @@ private fun TabletopNavigation(
 
 private data class SupportPaneItem(val id: String, val title: String, val supportingText: String)
 
+private val SupportPaneContentPadding = PaddingValues(
+    horizontal = WhipSpacing.compact,
+    vertical = WhipSpacing.standard,
+)
+private val SupportPaneItemSpacing = 10.dp
+
 @Composable
 private fun SupportPaneTitle(title: String) {
     Text(
@@ -3571,6 +3611,19 @@ private fun SupportPaneTitle(title: String) {
         style = MaterialTheme.typography.headlineSmall,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onSurface,
+    )
+}
+
+@Composable
+private fun SupportPaneDescription(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = text,
+        modifier = modifier.fillMaxWidth().testTag("support-pane-description"),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        minLines = 2,
     )
 }
 
@@ -3593,15 +3646,12 @@ private fun HomeSupportPane(
     }
     LazyColumn(
         modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = SupportPaneContentPadding,
+        verticalArrangement = Arrangement.spacedBy(SupportPaneItemSpacing),
     ) {
         item { SupportPaneTitle(stringResource(R.string.home_support_today_title)) }
         item {
-            Text(
-                summary.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            SupportPaneDescription(summary.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
         }
         summary.visibleHomeSections.forEach { section ->
             val loadState = summary.loadState(section)
@@ -3744,11 +3794,11 @@ private fun DestinationSupportPane(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 12.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).padding(SupportPaneContentPadding),
+        verticalArrangement = Arrangement.spacedBy(SupportPaneItemSpacing),
     ) {
         SupportPaneTitle(title)
-        Text(supportingText, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        SupportPaneDescription(supportingText)
         if (loadState != AdaptiveLoadState.Ready) {
             AdaptiveLoadNotice(
                 domain = domain,
@@ -3773,13 +3823,28 @@ private fun DestinationSupportPane(
                 }
             }
         } else if (loadState == AdaptiveLoadState.Ready) {
-            Text(
-                emptyText,
-                modifier = Modifier.padding(vertical = 12.dp).testTag("$statusTagPrefix-empty"),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            SupportPaneEmptyMessage(
+                text = emptyText,
+                testTag = "$statusTagPrefix-empty",
             )
         }
     }
+}
+
+@Composable
+private fun SupportPaneEmptyMessage(
+    text: String,
+    testTag: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = text,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = WhipSpacing.compact)
+            .testTag(testTag),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable
@@ -3792,11 +3857,11 @@ private fun TrackSupportPane(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 12.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).padding(SupportPaneContentPadding),
+        verticalArrangement = Arrangement.spacedBy(SupportPaneItemSpacing),
     ) {
         SupportPaneTitle(stringResource(R.string.nav_tracks))
-        Text(stringResource(R.string.support_tracks_description), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        SupportPaneDescription(stringResource(R.string.support_tracks_description))
         if (loadState != AdaptiveLoadState.Ready) {
             AdaptiveLoadNotice(
                 domain = stringResource(R.string.nav_tracks),
@@ -3848,10 +3913,9 @@ private fun TrackSupportPane(
                 }
             }
         } else if (loadState == AdaptiveLoadState.Ready) {
-            WhipEmptyState(
-                stringResource(R.string.support_tracks_empty_title),
-                stringResource(R.string.support_tracks_empty_message),
-                modifier = Modifier.testTag("track-support-empty"),
+            SupportPaneEmptyMessage(
+                text = stringResource(R.string.support_tracks_empty),
+                testTag = "track-support-empty",
             )
         }
     }
@@ -3867,12 +3931,12 @@ private fun TrackOverviewSupportPane(
     Column(
         modifier = modifier
             .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(horizontal = 12.dp, vertical = 16.dp)
+            .padding(SupportPaneContentPadding)
             .testTag("track-overview-support"),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(SupportPaneItemSpacing),
     ) {
         SupportPaneTitle(stringResource(R.string.support_track_overview_title))
-        Text(stringResource(R.string.support_track_overview_description), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        SupportPaneDescription(stringResource(R.string.support_track_overview_description))
         if (loadState != AdaptiveLoadState.Ready) {
             AdaptiveLoadNotice(
                 domain = stringResource(R.string.nav_tracks),
@@ -3917,11 +3981,11 @@ private fun SettingsSupportPane(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 12.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).padding(SupportPaneContentPadding),
+        verticalArrangement = Arrangement.spacedBy(SupportPaneItemSpacing),
     ) {
         SupportPaneTitle(stringResource(R.string.nav_settings))
-        Text("Choose a category.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        SupportPaneDescription("Choose a category.")
         LazyColumn(
             modifier = Modifier.fillMaxWidth().weight(1f).testTag("settings-support-list"),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -3983,17 +4047,14 @@ private fun FoldContextPane(
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(SupportPaneContentPadding),
+            verticalArrangement = Arrangement.spacedBy(SupportPaneItemSpacing),
         ) {
             SupportPaneTitle(
                 if (selected == AppDestination.Home) stringResource(R.string.home_support_today_title)
                 else selected.label,
             )
-            Text(
-                summary.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            SupportPaneDescription(summary.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
             val contextLines = when (selected) {
                 AppDestination.Tasks -> summary.taskContext
                 AppDestination.Habits -> summary.habitContext
@@ -4012,7 +4073,15 @@ private fun FoldContextPane(
                         ),
                     )
                 }
-                if (contextLines.isNotEmpty()) {
+                val emptyWorkout = summary.gymLoadState == AdaptiveLoadState.Ready &&
+                    !summary.activeWorkout &&
+                    summary.gymDestination == GymDestination.Workout
+                if (emptyWorkout) {
+                    SupportPaneEmptyMessage(
+                        text = stringResource(R.string.support_gym_empty),
+                        testTag = "support-pane-gym-empty",
+                    )
+                } else if (contextLines.isNotEmpty()) {
                     Text(summary.gymContextTitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Column(
                         modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -4185,16 +4254,20 @@ private fun HomeContent(
     val pinnedRoutines = gymState.routines.filter { it.pinned }
     val gymHomeCount = gymHomeItemCount(gymState.activeSession != null, pinnedRoutines.size)
     val homeDoneHabitIds = homeHabitSections.done.mapTo(linkedSetOf()) { it.habit.id }
+    val compactItemExpansionState = LocalCompactItemExpansionState.current
     var homeDoneExpanded by rememberSaveable(habitState.currentDate.toEpochDay()) {
-        mutableStateOf(homeHabitSections.remaining.isEmpty() && homeHabitSections.done.isNotEmpty())
+        mutableStateOf(false)
     }
     var knownHomeDoneHabitIds by remember(habitState.currentDate) { mutableStateOf(homeDoneHabitIds) }
     var homeCompletionTrackingReady by remember(habitState.currentDate) { mutableStateOf(false) }
-    LaunchedEffect(habitState.loading, homeDoneHabitIds) {
+    LaunchedEffect(habitState.loading, homeDoneHabitIds, habitState.currentDate, compactItemExpansionState) {
         if (habitState.loading) return@LaunchedEffect
         if (homeCompletionTrackingReady) {
-            if ((homeDoneHabitIds - knownHomeDoneHabitIds).isNotEmpty()) homeDoneExpanded = true
-            if (homeDoneHabitIds.isEmpty()) homeDoneExpanded = false
+            (homeDoneHabitIds - knownHomeDoneHabitIds).forEach { habitId ->
+                compactItemExpansionState?.collapse(
+                    habitCompactExpansionKey(habitId, habitState.currentDate),
+                )
+            }
         } else {
             homeCompletionTrackingReady = true
         }
@@ -5165,12 +5238,11 @@ private fun TaskAreaContent(
                         onClick = { showFilters = true },
                     )
                 if (!reordering && canReorderTaskList && canSelectTaskList) Box {
-                    IconButton(
+                    WhipPageIconAction(
+                        icon = Icons.Outlined.MoreVert,
+                        label = "More task list actions",
                         onClick = { taskToolsExpanded = true },
-                        modifier = Modifier.size(48.dp).semantics { contentDescription = "More task list actions" },
-                    ) {
-                        Icon(Icons.Outlined.MoreVert, contentDescription = null)
-                    }
+                    )
                     DropdownMenu(
                         expanded = taskToolsExpanded,
                         onDismissRequest = { taskToolsExpanded = false },
@@ -5257,58 +5329,57 @@ private fun TaskAreaContent(
                                     modifier = actionModifier.testTag("task-selection-complete"),
                                 ) { Text("Complete", maxLines = 1) }
                             }
-                            if (destination != TaskDestination.Archived) {
-                                WhipOutlinedButton(
-                                    enabled = selectedItems.isNotEmpty(),
-                                    onClick = {
-                                        archivePreviewKeys = selectedItems.mapTo(linkedSetOf(), ScheduledTask::stableKey)
-                                    },
-                                    modifier = actionModifier.testTag("task-selection-archive"),
-                                ) { Text("Archive", maxLines = 1) }
-                            }
                             WhipOutlinedButton(
                                 enabled = selectedItems.isNotEmpty(),
                                 onClick = { bulkEditOpen = true },
                                 modifier = actionModifier.testTag("task-selection-edit"),
                             ) { Text("Edit", maxLines = 1) }
-                            if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
-                                WhipOverflowMenu(
-                                    label = "More selected Task actions",
-                                    expanded = selectionActionsOpen,
-                                    onExpandedChange = { selectionActionsOpen = it },
-                                    enabled = selectedItems.isNotEmpty(),
-                                    modifier = Modifier.testTag("task-selection-more"),
-                                ) {
-                                        WhipMenuItem(label = "Pin to Whip Home", onClick = {
-                                            onBulkPin(selectedItems, true); finishSelection()
-                                        })
-                                        WhipMenuItem(label = "Unpin from Whip Home", onClick = {
-                                            onBulkPin(selectedItems, false); finishSelection()
-                                        })
-                                        WhipMenuItem(label = "Move to Tomorrow", onClick = {
-                                            onBulkPostpone(selectedItems, state.currentDate.plusDays(1)); finishSelection()
-                                        })
-                                        WhipMenuItem(label = "Move to Next Week", onClick = {
-                                            onBulkPostpone(selectedItems, state.currentDate.plusWeeks(1)); finishSelection()
-                                        })
-                                        WhipMenuItem(label = "Choose Date", onClick = {
-                                            bulkDatePickerOpen = true; selectionActionsOpen = false
-                                        })
-                                }
-                            }
-                            WhipOutlinedButton(
+                            WhipOverflowMenu(
+                                label = "More selected Task actions",
+                                expanded = selectionActionsOpen,
+                                onExpandedChange = { selectionActionsOpen = it },
                                 enabled = selectedItems.isNotEmpty(),
-                                onClick = {
-                                    val ids = selectedItems.mapTo(linkedSetOf()) { it.task.id }
-                                    deletePreviewTaskIds = ids
-                                    onPreviewBulkDeletion(ids)
-                                },
-                                modifier = actionModifier.testTag("task-selection-delete"),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.error,
-                                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                ),
-                            ) { Text("Delete", maxLines = 1) }
+                                modifier = Modifier.testTag("task-selection-more"),
+                            ) {
+                                if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
+                                    WhipMenuItem(label = "Pin to Whip Home", onClick = {
+                                        onBulkPin(selectedItems, true); finishSelection()
+                                    })
+                                    WhipMenuItem(label = "Unpin from Whip Home", onClick = {
+                                        onBulkPin(selectedItems, false); finishSelection()
+                                    })
+                                    WhipMenuItem(label = "Move to Tomorrow", onClick = {
+                                        onBulkPostpone(selectedItems, state.currentDate.plusDays(1)); finishSelection()
+                                    })
+                                    WhipMenuItem(label = "Move to Next Week", onClick = {
+                                        onBulkPostpone(selectedItems, state.currentDate.plusWeeks(1)); finishSelection()
+                                    })
+                                    WhipMenuItem(label = "Choose Date", onClick = {
+                                        bulkDatePickerOpen = true; selectionActionsOpen = false
+                                    })
+                                }
+                                if (destination != TaskDestination.Archived) {
+                                    WhipMenuItem(
+                                        label = "Archive",
+                                        onClick = {
+                                            archivePreviewKeys = selectedItems.mapTo(linkedSetOf(), ScheduledTask::stableKey)
+                                            selectionActionsOpen = false
+                                        },
+                                        modifier = Modifier.testTag("task-selection-archive"),
+                                    )
+                                }
+                                WhipMenuItem(
+                                    label = "Delete Permanently",
+                                    onClick = {
+                                        val ids = selectedItems.mapTo(linkedSetOf()) { it.task.id }
+                                        deletePreviewTaskIds = ids
+                                        onPreviewBulkDeletion(ids)
+                                        selectionActionsOpen = false
+                                    },
+                                    role = WhipMenuItemRole.Destructive,
+                                    modifier = Modifier.testTag("task-selection-delete"),
+                                )
+                            }
                         }
                     }
                 }
@@ -5378,7 +5449,9 @@ private fun TaskAreaContent(
         WhipReorderLazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = WhipPageContentPadding,
-            verticalArrangement = Arrangement.spacedBy(if (appSettings.compactItemLayout) 4.dp else 12.dp),
+            verticalArrangement = Arrangement.spacedBy(
+                if (appSettings.compactItemLayout) WhipSpacing.micro else WhipSpacing.compact,
+            ),
         ) {
         appSettings.focusTimerDeadlineMillis?.takeIf { it > focusClockMillis && !selectionMode && !reordering }?.let { deadline ->
             item {
@@ -6134,13 +6207,16 @@ private fun TaskBulkEditDialog(
         text = {
             Column(
                 Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
             ) {
                 Text("Only enabled fields change. Tags replace the selected tasks’ complete tag set.", style = MaterialTheme.typography.bodySmall)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(applyArea, { applyArea = it })
-                    Text("Change Area", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
-                }
+                WhipSettingsRow(
+                    title = "Change Area",
+                    supportingText = "Move every selected Task to one Area.",
+                    checked = applyArea,
+                    onCheckedChange = { applyArea = it },
+                    modifier = Modifier.testTag("task-bulk-edit-area-toggle"),
+                )
                 if (applyArea) {
                     AreaSelectionDropdown(
                         areas = knownAreas,
@@ -6149,11 +6225,23 @@ private fun TaskBulkEditDialog(
                         onSelect = { id, name -> areaId = id; areaName = name },
                     )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(applyTags, { applyTags = it })
-                    OutlinedTextField(tags, { tags = it }, label = { Text("Tags, Comma-Separated") }, enabled = applyTags, modifier = Modifier.weight(1f))
+                WhipSettingsRow(
+                    title = "Replace Tags",
+                    supportingText = "Use one shared tag set for every selected Task.",
+                    checked = applyTags,
+                    onCheckedChange = { applyTags = it },
+                    modifier = Modifier.testTag("task-bulk-edit-tags-toggle"),
+                )
+                if (applyTags) {
+                    OutlinedTextField(
+                        value = tags,
+                        onValueChange = { tags = it },
+                        label = { Text("Replacement Tags") },
+                        supportingText = { Text("Comma-separated. Leave blank to remove all tags.") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
-                if (applyTags && knownTags.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (applyTags && knownTags.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling)) {
                     knownTags.forEach { value ->
                         val current = tags.split(',').map(String::trim).filter(String::isNotBlank)
                         WhipFilterChip(current.any { it.equals(value, true) }, {
@@ -6163,7 +6251,7 @@ private fun TaskBulkEditDialog(
                     }
                 }
                 Text("Priority · ${priority.ifBlank { "Keep existing" }}", fontWeight = FontWeight.SemiBold)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling)) {
                     WhipFilterChip(priority.isBlank(), { priority = "" }, { Text("Keep") })
                     TaskPriority.entries.forEach { value -> WhipFilterChip(priority == value.name, { priority = value.name }, { Text(value.name) }) }
                 }
@@ -6171,7 +6259,7 @@ private fun TaskBulkEditDialog(
                     ?.let { stored -> TaskEffort.entries.firstOrNull { it.name == stored }?.label }
                     ?: "Keep existing"
                 Text("Effort · $selectedEffortLabel", fontWeight = FontWeight.SemiBold)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling)) {
                     WhipFilterChip(effort.isBlank(), { effort = "" }, { Text("Keep") })
                     TaskEffort.entries.forEach { value -> WhipFilterChip(effort == value.name, { effort = value.name }, { Text(value.label) }) }
                 }
@@ -6601,12 +6689,15 @@ internal fun TodayHeader(
     }
 }
 
-private fun taskDestinationSupportingText(destination: TaskDestination, count: Int): String = when (destination) {
-    TaskDestination.Inbox -> "Captured and waiting for a decision · ${count.itemCount("task")}"
-    TaskDestination.Today -> "What needs your attention now · ${count.itemCount("task")}"
-    TaskDestination.Upcoming -> "The next 30 days · ${count.itemCount("task")}"
-    TaskDestination.Completed -> "Your latest completed tasks · ${count.itemCount("task")}"
-    TaskDestination.Archived -> "Stored safely until you restore them · ${count.itemCount("task")}"
+private fun taskDestinationSupportingText(destination: TaskDestination, count: Int): String {
+    val description = when (destination) {
+        TaskDestination.Inbox -> "Captured and waiting for a decision"
+        TaskDestination.Today -> "What needs your attention now"
+        TaskDestination.Upcoming -> "The next 30 days"
+        TaskDestination.Completed -> "Your latest completed tasks"
+        TaskDestination.Archived -> "Stored safely until you restore them"
+    }
+    return if (count > 0) "$description · ${count.itemCount("task")}" else description
 }
 
 private fun Int.itemCount(noun: String): String = "$this $noun${if (this == 1) "" else "s"}"

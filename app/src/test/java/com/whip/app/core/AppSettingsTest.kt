@@ -27,7 +27,26 @@ class AppSettingsTest {
         assertEquals(true, AppSettings().naturalLanguageTaskCapture)
         assertEquals(emptyList<RepPrescriptionScheme>(), AppSettings().repPrescriptionSchemes)
         assertEquals(AreaScope.All.storageKey, AppSettings().activeAreaScope)
+        assertEquals(AreaOpeningMode.LastUsed, AppSettings().areaOpeningMode)
+        assertEquals(AreaScope.All.storageKey, AppSettings().chosenOpeningAreaScope)
         assertEquals(listOf(60, 90, 120, 150, 180, 300), AppSettings().restTimerPresetSeconds)
+    }
+
+    @Test
+    fun openingAreaCanFollowLastUsedOrKeepASeparateChosenDefault() {
+        val lastUsed = AreaScope.One("last-used")
+        val chosen = AreaScope.One("chosen")
+        val settings = AppSettings(
+            activeAreaScope = lastUsed.storageKey,
+            chosenOpeningAreaScope = chosen.storageKey,
+        )
+
+        assertEquals(lastUsed, settings.openingAreaScope())
+        assertEquals(
+            chosen,
+            settings.copy(areaOpeningMode = AreaOpeningMode.Chosen).openingAreaScope(),
+        )
+        assertEquals(lastUsed.storageKey, settings.activeAreaScope)
     }
 
     @Test

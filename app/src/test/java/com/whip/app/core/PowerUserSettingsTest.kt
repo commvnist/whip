@@ -84,6 +84,7 @@ class PowerUserSettingsTest {
     fun deletingAnAreaClearsEverySavedReferenceWithoutRemovingFilters() {
         val settings = AppSettings(
             activeAreaScope = AreaScope.One("client-delta").storageKey,
+            chosenOpeningAreaScope = AreaScope.One("client-delta").storageKey,
             savedTaskFilters = listOf(
                 SavedTaskFilter("By ID", areaId = "client-delta"),
                 SavedTaskFilter("Unscoped"),
@@ -94,6 +95,7 @@ class PowerUserSettingsTest {
         val result = settings.withoutAreaReferences("client-delta")
 
         assertEquals(AreaScope.All.storageKey, result.activeAreaScope)
+        assertEquals(AreaScope.All.storageKey, result.chosenOpeningAreaScope)
         assertEquals(SavedTaskFilter("By ID"), result.savedTaskFilters[0])
         assertEquals(SavedTaskFilter("Unscoped"), result.savedTaskFilters[1])
         assertEquals(settings.savedTaskFilters[2], result.savedTaskFilters[2])

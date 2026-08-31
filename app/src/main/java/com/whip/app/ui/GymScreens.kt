@@ -1191,7 +1191,7 @@ private fun GymLibraryLanding(onOpen: (GymDestination) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("gym-library-list"),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
     ) {
         item {
             WhipPageHeader(
@@ -1343,29 +1343,31 @@ private fun WorkoutContent(
 ) {
     val session = state.activeSession
     if (session == null) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(WhipPageContentPadding),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = WhipPageContentPadding,
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
         ) {
-            WhipPageHeader(
-                title = "Current Workout",
-                supportingText = "Log sets with fast, repeatable controls while you train.",
-            )
-            WhipEmptyState(
-                title = "No Workout in Progress",
-                supportingText = if (state.exercises.isEmpty()) {
-                    "Create exercises once, then reuse them in workouts and routines. You can also start empty and create one while logging."
-                } else {
-                    "Start a workout, then choose from your reusable exercise library."
-                },
-                primaryActionLabel = if (state.exercises.isEmpty()) "Create First Exercise" else "Start Workout",
-                onPrimaryAction = if (state.exercises.isEmpty()) onCreateExercise else onStart,
-                secondaryActionLabel = "Start Empty Workout".takeIf { state.exercises.isEmpty() },
-                onSecondaryAction = onStart.takeIf { state.exercises.isEmpty() },
-            )
+            item {
+                WhipPageHeader(
+                    title = "Current Workout",
+                    supportingText = "Log sets with fast, repeatable controls while you train.",
+                )
+            }
+            item {
+                WhipEmptyState(
+                    title = "No Workout in Progress",
+                    supportingText = if (state.exercises.isEmpty()) {
+                        "Create exercises once, then reuse them in workouts and routines. You can also start empty and create one while logging."
+                    } else {
+                        "Start a workout, then choose from your reusable exercise library."
+                    },
+                    primaryActionLabel = if (state.exercises.isEmpty()) "Create First Exercise" else "Start Workout",
+                    onPrimaryAction = if (state.exercises.isEmpty()) onCreateExercise else onStart,
+                    secondaryActionLabel = "Start Empty Workout".takeIf { state.exercises.isEmpty() },
+                    onSecondaryAction = onStart.takeIf { state.exercises.isEmpty() },
+                )
+            }
         }
         return
     }
@@ -1402,7 +1404,7 @@ private fun WorkoutContent(
         modifier = Modifier.fillMaxSize(),
         state = workoutListState,
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
     ) {
         item {
             WhipPageHeader(
@@ -2594,7 +2596,7 @@ private fun ExerciseLibraryContent(
     WhipReorderLazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
     ) {
         item {
             WhipPageHeader(
@@ -2808,7 +2810,7 @@ private fun MachineLibraryContent(
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("gym-machine-list"),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
     ) {
         item {
             WhipPageHeader(
@@ -3504,7 +3506,11 @@ private fun ExerciseCategoryContent(
         if (reorderDismissRequest > 0) reordering = false
     }
     LaunchedEffect(showArchived) { if (showArchived) reordering = false }
-    WhipReorderLazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = WhipPageContentPadding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    WhipReorderLazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = WhipPageContentPadding,
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+    ) {
         item {
             WhipPageHeader(
                 title = "Exercise Categories",
@@ -3697,7 +3703,7 @@ private fun WorkoutHistoryContent(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
     ) {
         item {
             WhipPageHeader(
@@ -4629,7 +4635,7 @@ private fun GymProgressContent(
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag("gym-progress-list"),
             contentPadding = WhipPageContentPadding,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
         ) {
             item {
                 WhipPageHeader(
@@ -4765,7 +4771,7 @@ private fun GymProgressContent(
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("gym-progress-list"),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
     ) {
         item {
             WhipPageHeader(
@@ -5149,7 +5155,11 @@ private fun GymToolsContent(
     } else {
         null
     }
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = WhipPageContentPadding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = WhipPageContentPadding,
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+    ) {
         item {
             WhipPageHeader(
                 title = "Workout Tools",
@@ -5434,7 +5444,7 @@ private fun RoutineContent(
     WhipReorderLazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
     ) {
         item {
             WhipPageHeader(

@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
+import com.whip.app.core.AreaOpeningMode
 import com.whip.app.core.HealthDataType
 import com.whip.app.core.HomeSection
 import com.whip.app.core.ReviewPeriod
@@ -13,6 +14,7 @@ import com.whip.app.core.TrackedGymRecord
 import com.whip.app.core.normalized
 import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.CustomIdentityEmoji
+import com.whip.app.domain.AreaScope
 import com.whip.app.domain.PersonalRecordType
 import java.time.DayOfWeek
 import org.junit.After
@@ -58,6 +60,9 @@ class AppSettingsPersistenceTest {
             powerMode = true,
             lowPressureMode = true,
             notificationPermissionRequested = true,
+            activeAreaScope = AreaScope.One("last-used-area").storageKey,
+            areaOpeningMode = AreaOpeningMode.Chosen,
+            chosenOpeningAreaScope = AreaScope.One("opening-area").storageKey,
             themeMode = AppThemeMode.Dark,
             dynamicColor = false,
             compactItemLayout = true,

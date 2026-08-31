@@ -31,7 +31,7 @@ class TaskBulkSelectionUiTest {
     val compose = createComposeRule()
 
     @Test
-    fun activeSelectionKeepsEveryBulkActionVisibleAndDeleteRequiresImpactConfirmation() {
+    fun activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow() {
         val today = LocalDate.of(2026, 8, 25)
         val item = scheduledTask(1, "Visible bulk actions", today)
         val archived = AtomicReference<List<ScheduledTask>>(emptyList())
@@ -64,9 +64,13 @@ class TaskBulkSelectionUiTest {
         }
 
         openSelectionFor(item.task.title)
-        listOf("complete", "archive", "edit", "more", "delete").forEach { action ->
+        listOf("complete", "edit", "more").forEach { action ->
             compose.onNodeWithTag("task-selection-$action").assertIsDisplayed().assertIsEnabled()
         }
+        compose.onNodeWithTag("task-selection-more").performClick()
+        compose.onNodeWithTag("task-selection-archive").assertIsDisplayed().assertIsEnabled()
+        compose.onNodeWithTag("task-selection-delete").assertIsDisplayed().assertIsEnabled()
+        compose.onNodeWithText("Delete Permanently").assertIsDisplayed()
 
         compose.onNodeWithTag("task-selection-delete").performClick()
         compose.onNodeWithText("Delete 1 Task Permanently?").assertIsDisplayed()
@@ -74,6 +78,7 @@ class TaskBulkSelectionUiTest {
         compose.onNodeWithTag("confirm-task-selection-delete").assertIsEnabled()
         compose.onNodeWithText("Cancel").performClick()
 
+        compose.onNodeWithTag("task-selection-more").performClick()
         compose.onNodeWithTag("task-selection-archive").performClick()
         compose.onNodeWithText("Archive 1 Task?").assertIsDisplayed()
         compose.onNodeWithText("Archive 1").performClick()
@@ -107,14 +112,14 @@ class TaskBulkSelectionUiTest {
         compose.onNodeWithContentDescription("Tasks tab").performClick()
         compose.onNodeWithTag("task-destination-History").performClick()
         openCurrentDestinationSelection(completed.task.title)
-        listOf("reopen", "archive", "edit", "delete").forEach { action ->
+        listOf("reopen", "edit", "more").forEach { action ->
             compose.onNodeWithTag("task-selection-$action").assertIsDisplayed().assertIsEnabled()
         }
         compose.onNodeWithText("Done").performClick()
 
         compose.onNodeWithText("Archived").performClick()
         openCurrentDestinationSelection(archived.task.title)
-        listOf("restore", "edit", "delete").forEach { action ->
+        listOf("restore", "edit", "more").forEach { action ->
             compose.onNodeWithTag("task-selection-$action").assertIsDisplayed().assertIsEnabled()
         }
     }

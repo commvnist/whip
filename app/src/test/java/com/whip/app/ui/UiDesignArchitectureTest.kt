@@ -56,6 +56,37 @@ class UiDesignArchitectureTest {
         }
         assertTrue(app.contains("stringResource(R.string.nav_home)"))
         assertTrue(app.contains("pluralStringResource(R.plurals.entry_count"))
+
+        val taskBulkEditor = app.substringAfter("private fun TaskBulkEditDialog(")
+            .substringBefore("private fun ScheduledTask.matches(")
+        assertTrue(
+            "Task bulk editing must use the same trailing toggle rows as the rest of Whip",
+            Regex("WhipSettingsRow\\(").findAll(taskBulkEditor).count() == 2,
+        )
+        assertFalse(
+            "Task bulk editing must not reintroduce leading one-off checkboxes",
+            taskBulkEditor.contains("Checkbox("),
+        )
+        val taskSelectionActions = app.substringAfter(".testTag(\"task-selection-actions\")")
+            .substringBefore("if (reordering) {")
+        assertTrue(
+            "Low-frequency Task selection commands must share one overflow menu",
+            taskSelectionActions.contains("WhipOverflowMenu(") &&
+                taskSelectionActions.contains("label = \"Archive\"") &&
+                taskSelectionActions.contains("label = \"Delete Permanently\"") &&
+                taskSelectionActions.contains("role = WhipMenuItemRole.Destructive"),
+        )
+        assertFalse(
+            "Task selection must not expose permanent deletion as a peer button",
+            taskSelectionActions.contains("WhipOutlinedButton(\n                                enabled = selectedItems.isNotEmpty(),\n                                onClick = {\n                                    val ids"),
+        )
+        val taskPageActions = app.substringAfter("supportingText = taskDestinationSupportingText")
+            .substringBefore("if (selectionMode) {")
+        assertTrue(
+            "Task page actions must use the same icon-action anchor as Habits, Goals, and Tracks",
+            taskPageActions.contains("label = \"More task list actions\"") &&
+                Regex("WhipPageIconAction\\(").findAll(taskPageActions).count() == 2,
+        )
     }
 
     @Test
@@ -88,6 +119,52 @@ class UiDesignArchitectureTest {
         assertTrue(tracks.contains("TrackWorkspaceDestination.Archived"))
         assertTrue(tracks.contains("track-detail-navigation"))
         assertTrue("Gym must remain global instead of receiving a fake Area scope", app.contains("appDestination in setOf(AppDestination.Home, AppDestination.Tasks, AppDestination.Habits, AppDestination.Goals, AppDestination.Tracks)"))
+    }
+
+    @Test
+    fun sharedEmptyStateAndCollectionSpacingOwnWorkspaceVerticalRhythm() {
+        val app = File(sourceRoot, "com/whip/app/ui/WhipApp.kt").readText()
+        val habits = File(sourceRoot, "com/whip/app/ui/HabitScreens.kt").readText()
+        val goals = File(sourceRoot, "com/whip/app/ui/GoalScreens.kt").readText()
+        val tracks = File(sourceRoot, "com/whip/app/ui/TrackScreens.kt").readText()
+        val gym = File(sourceRoot, "com/whip/app/ui/GymScreens.kt").readText()
+        val patterns = File(sourceRoot, "com/whip/app/ui/WhipPagePatterns.kt").readText()
+
+        val trackLines = tracks.lines()
+        val locallyPaddedEmptyStates = trackLines.mapIndexedNotNull { index, line ->
+            if (
+                line.contains("padding(vertical =") &&
+                trackLines.subList((index - 12).coerceAtLeast(0), index + 1).any { it.contains("WhipEmptyState(") }
+            ) index + 1 else null
+        }
+        assertTrue(
+            "Track empty states must not stack local vertical padding on WhipEmptyState's shared rhythm: $locallyPaddedEmptyStates",
+            locallyPaddedEmptyStates.isEmpty(),
+        )
+        listOf(
+            app to "if (appSettings.compactItemLayout) WhipSpacing.micro else WhipSpacing.compact",
+            habits to "if (compact) WhipSpacing.micro else WhipSpacing.compact",
+            goals to "if (compactItemLayout) WhipSpacing.micro else WhipSpacing.compact",
+            tracks to "if (userCompact) WhipSpacing.micro else WhipSpacing.compact",
+        ).forEach { (source, sharedSpacing) ->
+            assertTrue(
+                "Every first-class collection must use the shared compact and standard item gaps",
+                source.contains(sharedSpacing),
+            )
+        }
+        assertTrue(app.contains("private fun SupportPaneEmptyMessage("))
+        assertTrue(app.contains("private fun SupportPaneDescription("))
+        assertTrue(app.contains("text = stringResource(R.string.support_tracks_empty)"))
+        assertTrue(app.contains("text = stringResource(R.string.support_gym_empty)"))
+        assertFalse(app.contains("WhipEmptyState(\n                stringResource(R.string.support_tracks_empty"))
+        assertTrue("Page headers must reserve a stable two-line supporting-text rhythm", patterns.contains("minLines = 2"))
+        assertFalse(
+            "Gym pages must not bypass the shared collection gap",
+            Regex(
+                "contentPadding\\s*=\\s*WhipPageContentPadding,\\s*" +
+                    "verticalArrangement\\s*=\\s*Arrangement\\.spacedBy\\((10|12)\\.dp\\)",
+            ).containsMatchIn(gym),
+        )
     }
 
     @Test

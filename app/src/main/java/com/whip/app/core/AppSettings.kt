@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
 
 enum class AppThemeMode { System, Light, Dark }
+enum class AreaOpeningMode { LastUsed, Chosen }
 enum class HomeSection { Tasks, Habits, Goals, Tracks, Gym }
 enum class ReviewSection { Tasks, Habits, Goals, Gym }
 enum class HealthDataType { Weight, Steps, Distance, Hydration, Sleep, Exercise }
@@ -43,6 +44,8 @@ data class AppSettings(
     val lowPressureMode: Boolean = false,
     val notificationPermissionRequested: Boolean = false,
     val activeAreaScope: String = AreaScope.All.storageKey,
+    val areaOpeningMode: AreaOpeningMode = AreaOpeningMode.LastUsed,
+    val chosenOpeningAreaScope: String = AreaScope.All.storageKey,
     val themeMode: AppThemeMode = AppThemeMode.System,
     val dynamicColor: Boolean = false,
     val compactItemLayout: Boolean = false,
@@ -152,6 +155,9 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         notificationPermissionRequested = preferences.getBoolean("notificationPermissionRequested", false),
         activeAreaScope = preferences.getString("activeAreaScope", AreaScope.All.storageKey)
             ?: AreaScope.All.storageKey,
+        areaOpeningMode = preferences.enum("areaOpeningMode", AreaOpeningMode.LastUsed),
+        chosenOpeningAreaScope = preferences.getString("chosenOpeningAreaScope", AreaScope.All.storageKey)
+            ?: AreaScope.All.storageKey,
         themeMode = preferences.enum("theme", AppThemeMode.System),
         dynamicColor = preferences.getBoolean("dynamicColor", false),
         compactItemLayout = preferences.getBoolean("compactItemLayout", false),
@@ -232,6 +238,8 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .remove("backupPrivacyChoiceHandled")
             .putBoolean("notificationPermissionRequested", value.notificationPermissionRequested)
             .putString("activeAreaScope", value.activeAreaScope)
+            .putString("areaOpeningMode", value.areaOpeningMode.name)
+            .putString("chosenOpeningAreaScope", value.chosenOpeningAreaScope)
             .putString("theme", value.themeMode.name)
             .putBoolean("dynamicColor", value.dynamicColor)
             .putBoolean("compactItemLayout", value.compactItemLayout)
@@ -303,6 +311,8 @@ fun AppSettings.normalized(): AppSettings {
         knownHidden
     }
     return copy(
+        activeAreaScope = AreaScope.fromStorageKey(activeAreaScope).storageKey,
+        chosenOpeningAreaScope = AreaScope.fromStorageKey(chosenOpeningAreaScope).storageKey,
         timeZoneId = timeZoneId?.takeIf { runCatching { ZoneId.of(it) }.isSuccess },
         dayCutoffMinutes = dayCutoffMinutes.coerceIn(0, 1439),
         massUnitId = normalizeMassUnit(massUnitId),
@@ -330,6 +340,12 @@ fun AppSettings.normalized(): AppSettings {
         customIdentityEmojis = normalizeCustomIdentityEmojis(customIdentityEmojis),
         trackedGymRecords = normalizeTrackedGymRecords(trackedGymRecords),
     )
+}
+
+/** Resolves the Area used once when a new app session is created. */
+fun AppSettings.openingAreaScope(): AreaScope = when (areaOpeningMode) {
+    AreaOpeningMode.LastUsed -> AreaScope.fromStorageKey(activeAreaScope)
+    AreaOpeningMode.Chosen -> AreaScope.fromStorageKey(chosenOpeningAreaScope)
 }
 
 fun AppSettings.visibleHomeSections(): List<HomeSection> =

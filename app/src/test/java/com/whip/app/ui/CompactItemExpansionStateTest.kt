@@ -15,6 +15,12 @@ class CompactItemExpansionStateTest {
         state.toggle("task:1")
         assertEquals(setOf("habit:2"), state.expandedItemKeys)
 
+        state.collapse("habit:2")
+        assertEquals(emptySet<String>(), state.expandedItemKeys)
+
+        state.collapse("habit:2")
+        assertEquals(emptySet<String>(), state.expandedItemKeys)
+
         state.collapseAll()
         assertEquals(emptySet<String>(), state.expandedItemKeys)
     }

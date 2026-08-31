@@ -634,12 +634,15 @@ private fun TrackActivityPage(
         LazyColumn(
             modifier = Modifier.fillMaxSize().widthIn(max = 1040.dp).align(Alignment.TopCenter),
             contentPadding = WhipPageContentPadding,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
         ) {
             item {
                 WhipPageHeader(
                     title = "Activity",
-                    supportingText = "A chronological view of Entries across visible Tracks · ${quantityLabel(items.size, "Entry")}",
+                    supportingText = buildString {
+                        append("A chronological view of Entries across visible Tracks")
+                        if (items.isNotEmpty()) append(" · ${quantityLabel(items.size, "Entry")}")
+                    },
                 ) {
                     WhipPageIconAction(
                         icon = Icons.Outlined.Search,
@@ -726,7 +729,6 @@ private fun TrackActivityPage(
                         } else {
                             "Entries appear here after you add them to a Track."
                         },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
                     )
                 }
                 else -> items(items, key = { "track-activity-${it.entry.entry.id}" }) { item ->
@@ -854,7 +856,7 @@ private fun TrackWorkspaceInsightsPage(
         LazyColumn(
             modifier = Modifier.fillMaxSize().widthIn(max = 1040.dp).align(Alignment.TopCenter).testTag("track-workspace-insights-list"),
             contentPadding = WhipPageContentPadding,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
         ) {
             item { WhipPageHeader("Insights", "Patterns across visible Tracks.") }
             if (state.loading || state.errorMessage != null) item {
@@ -918,7 +920,6 @@ private fun TrackWorkspaceInsightsPage(
                     WhipEmptyState(
                         "No Track Insights Yet",
                         "Create a Track and add Entries to see cross-Track patterns here.",
-                        Modifier.fillMaxWidth().padding(vertical = 40.dp),
                     )
                 }
             }
@@ -986,7 +987,9 @@ private fun AllTracksPage(
             end = if (masterPane) 12.dp else 20.dp,
             bottom = WhipSpacing.screenExpanded,
         ),
-        verticalArrangement = Arrangement.spacedBy(if (userCompact) 4.dp else 12.dp),
+        verticalArrangement = Arrangement.spacedBy(
+            if (userCompact) WhipSpacing.micro else WhipSpacing.compact,
+        ),
     ) {
         item {
             WhipPageHeader(
@@ -1081,7 +1084,6 @@ private fun AllTracksPage(
                     showArchived -> "Archived Tracks appear here and can be restored."
                     else -> "Create a reusable log for anything you want to record or compare."
                 },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
                 primaryActionLabel = "Create First Track".takeUnless { showArchived || query.isNotBlank() },
                 onPrimaryAction = onCreate.takeUnless { showArchived || query.isNotBlank() },
             )
@@ -1585,7 +1587,6 @@ private fun TrackEntriesPage(
             WhipEmptyState(
                 title = if (projection.entries.isEmpty()) "No Entries Yet" else "No Matching Entries",
                 supportingText = if (projection.entries.isEmpty()) "Add the first ${projection.primaryField.name.lowercase()} when the fact is ready to record." else "Clear Search or Filters to see more Entries.",
-                modifier = Modifier.fillMaxWidth().padding(vertical = 36.dp),
             )
         }
         items(shown, key = { "entry-${it.entry.id}" }) { entry ->

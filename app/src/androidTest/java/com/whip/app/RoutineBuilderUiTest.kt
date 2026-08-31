@@ -40,6 +40,27 @@ class RoutineBuilderUiTest {
     val compose = createComposeRule()
 
     @Test
+    fun splitPresetsUseConsistentTitleCapitalization() {
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                RoutineBuilderScreen(
+                    routineId = null,
+                    gymState = GymUiState(loading = false),
+                    initial = null,
+                    onDismiss = {},
+                    onSave = { _, complete -> complete(true) },
+                    onCreateExercise = { _, _ -> },
+                    onCreateMachine = { _, _ -> },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Full Body").assertIsDisplayed()
+        compose.onNodeWithText("Upper / Lower").assertIsDisplayed()
+        compose.onNodeWithText("Push / Pull / Legs").assertIsDisplayed()
+    }
+
+    @Test
     fun singleDayRoutineHidesActionsThatCannotApply() {
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {

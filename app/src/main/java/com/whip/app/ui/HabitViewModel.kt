@@ -305,7 +305,7 @@ internal fun mirrorMetricEntriesAsHabitLogs(
             localDate = entry.localDate,
             zoneId = entry.zoneId,
             offsetSeconds = entry.offsetSeconds,
-            note = entry.note.ifBlank { "Mirrored from ${entry.sourceType.name}" },
+            note = entry.note,
             sourceType = entry.sourceType,
             sourceId = entry.sourceId,
             metricEntryId = entry.id,
