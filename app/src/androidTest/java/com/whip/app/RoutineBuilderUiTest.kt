@@ -25,6 +25,8 @@ import com.whip.app.domain.ExerciseTrackingType
 import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
+import com.whip.app.domain.RoutineProgramKind
+import com.whip.app.domain.RoutineTrainingMaxSource
 import com.whip.app.domain.WorkoutSetClassification
 import com.whip.app.ui.GymUiState
 import com.whip.app.ui.RoutineBuilderScreen
@@ -58,6 +60,59 @@ class RoutineBuilderUiTest {
         compose.onNodeWithText("Full Body").assertIsDisplayed()
         compose.onNodeWithText("Upper / Lower").assertIsDisplayed()
         compose.onNodeWithText("Push / Pull / Legs").assertIsDisplayed()
+    }
+
+    @Test
+    fun guidedFiveThreeOneBuilderPersistsCompleteExplicitBbbCycle() {
+        val bench = exercise(1, "Bench")
+        var savedDraft: RoutineDraft? = null
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                RoutineBuilderScreen(
+                    routineId = 7,
+                    gymState = GymUiState(exercises = listOf(bench), loading = false),
+                    initial = RoutineDraft(
+                        name = "5/3/1",
+                        days = listOf(RoutineDayDraft("Press", listOf(RoutineExerciseDraft(bench.id)))),
+                    ),
+                    onDismiss = {},
+                    onSave = { draft, complete -> savedDraft = draft; complete(true) },
+                    onCreateExercise = { _, _ -> },
+                    onCreateMachine = { _, _ -> },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Bench", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("routine-five-three-one-toggle").performClick()
+        compose.onNodeWithTag("routine-placement-editor")
+            .performScrollToNode(hasTestTag("five-three-one-training-max"))
+        compose.onNodeWithTag("five-three-one-training-max").performTextReplacement("200")
+        compose.onNodeWithTag("routine-placement-editor")
+            .performScrollToNode(hasTestTag("five-three-one-main-FivesPro"))
+        compose.onNodeWithTag("five-three-one-main-FivesPro").performClick()
+        compose.onNodeWithTag("routine-placement-editor")
+            .performScrollToNode(hasTestTag("five-three-one-supplement-BoringButBig"))
+        compose.onNodeWithTag("five-three-one-supplement-BoringButBig").performClick()
+        compose.onNodeWithTag("routine-placement-editor")
+            .performScrollToNode(hasTestTag("five-three-one-apply"))
+        compose.onNodeWithTag("five-three-one-apply").performClick()
+        compose.onNodeWithTag("routine-builder-save").performClick()
+
+        compose.runOnIdle {
+            val draft = requireNotNull(savedDraft)
+            assertEquals(RoutineProgramKind.BoringButBig, draft.program?.kind)
+            assertEquals(4, draft.program?.phaseCount)
+            assertEquals(listOf("5s Week", "3s Week", "5/3/1 Week", "Deload"), draft.program?.phaseLabels)
+            val placement = draft.days.single().exercises.single()
+            assertEquals(200.0, placement.trainingMaxValue)
+            assertEquals("pound", placement.trainingMaxUnitId)
+            assertEquals(5.0, placement.cycleIncrementValue)
+            assertEquals(RoutineTrainingMaxSource.Explicit, placement.trainingMaxSource)
+            assertEquals(17, placement.plannedSets.size)
+            assertEquals(12, placement.plannedSets.count { it.routinePhaseIndex != null })
+            assertEquals(5, placement.plannedSets.count { it.routinePhaseIndex == null && it.reps == 10 })
+        }
     }
 
     @Test

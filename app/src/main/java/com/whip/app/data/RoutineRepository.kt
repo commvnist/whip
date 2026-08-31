@@ -14,6 +14,7 @@ import com.whip.app.domain.MachineStackMode
 import com.whip.app.domain.canonicalResistanceKg
 import com.whip.app.domain.loadInterpretationMultiplier
 import com.whip.app.domain.massFromKilograms
+import com.whip.app.domain.massToKilograms
 import com.whip.app.domain.GraphPreset
 import com.whip.app.domain.PersonalRecord
 import com.whip.app.domain.PersonalRecordType
@@ -24,7 +25,10 @@ import com.whip.app.domain.RoutineExercise
 import com.whip.app.domain.RoutineExerciseDraft
 import com.whip.app.domain.RoutineEquipmentBindingState
 import com.whip.app.domain.RoutineLoadPrescriptionType
+import com.whip.app.domain.RoutineProgramDraft
+import com.whip.app.domain.RoutineProgramKind
 import com.whip.app.domain.RoutineSet
+import com.whip.app.domain.RoutineTrainingMaxSource
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.WorkoutSet
@@ -54,6 +58,8 @@ interface RoutineRepository {
     suspend fun setRoutineArchived(id: Long, archived: Boolean)
     suspend fun setRoutinePinned(id: Long, pinned: Boolean)
     suspend fun reorderRoutines(ids: List<Long>)
+    suspend fun setRoutineProgramPosition(routineId: Long, phaseIndex: Int, dayPosition: Int, cycle: Int)
+    suspend fun resetRoutineProgramProgress(routineId: Long)
     suspend fun startRoutine(routineId: Long, dayId: Long? = null): Long
     suspend fun saveWorkoutAsRoutine(sessionId: Long, name: String): Long
     suspend fun rebuildPersonalRecords(exerciseId: Long)
@@ -94,6 +100,7 @@ class RoomRoutineRepository(
     override suspend fun createRoutine(draft: RoutineDraft): Long = database.withTransaction {
         validateRoutine(draft)
         val now = clock.now().toEpochMilli()
+        val program = draft.program.normalizedForCreate()
         val routineId = dao.insertRoutine(
             GymRoutineEntity(
                 uuid = ids.nextId(),
@@ -104,6 +111,9 @@ class RoomRoutineRepository(
                 pinned = false,
                 createdAtMillis = now,
                 updatedAtMillis = now,
+                programKind = program.kind.name,
+                programPhaseCount = program.phaseCount,
+                programPhaseLabelsCsv = program.phaseLabels.joinToString(","),
             ),
         )
         insertRoutineChildren(routineId, draft.days, now)
@@ -111,17 +121,50 @@ class RoomRoutineRepository(
     }
 
     override suspend fun updateRoutine(id: Long, draft: RoutineDraft) = database.withTransaction {
+        require(gymDao.getActiveSession()?.sourceRoutineId != id) {
+            "Finish or discard the active workout before editing this routine"
+        }
         validateRoutine(draft)
         val existing = dao.getRoutine(id) ?: error("Routine no longer exists")
+        val existingDays = dao.getDays(id)
+        val existingExercises = existingDays.mapIndexed { dayIndex, day ->
+            dao.getExercises(day.id).mapIndexed { exerciseIndex, exercise ->
+                (dayIndex to exerciseIndex) to exercise
+            }
+        }.flatten().toMap()
         val now = clock.now().toEpochMilli()
-        dao.updateRoutine(existing.copy(name = draft.name.trim(), notes = draft.notes.trim(), updatedAtMillis = now))
+        val requestedProgram = draft.program?.normalized()
+        val programChanged = requestedProgram != null && (
+            existing.programKind != requestedProgram.kind.name ||
+                existing.programPhaseCount != requestedProgram.phaseCount ||
+                existing.programPhaseLabelsCsv != requestedProgram.phaseLabels.joinToString(",")
+            )
+        dao.updateRoutine(
+            existing.copy(
+                name = draft.name.trim(),
+                notes = draft.notes.trim(),
+                updatedAtMillis = now,
+                programKind = requestedProgram?.kind?.name ?: existing.programKind,
+                programPhaseCount = requestedProgram?.phaseCount ?: existing.programPhaseCount,
+                programPhaseLabelsCsv = requestedProgram?.phaseLabels?.joinToString(",") ?: existing.programPhaseLabelsCsv,
+                currentProgramPhaseIndex = if (programChanged) 0 else existing.currentProgramPhaseIndex,
+                currentProgramCycle = if (programChanged) 1 else existing.currentProgramCycle,
+                nextProgramDayPosition = if (programChanged) 0 else existing.nextProgramDayPosition.coerceIn(0, draft.days.lastIndex),
+            ),
+        )
         dao.deleteDays(id)
-        insertRoutineChildren(id, draft.days, now)
+        insertRoutineChildren(id, draft.days, now, existingDays, existingExercises)
     }
 
     override suspend fun duplicateRoutine(id: Long): Long {
         val routine = dao.getRoutine(id)?.toDomain() ?: error("Routine no longer exists")
-        return createRoutine(loadDraft(id).copy(name = "${routine.name} copy"))
+        val source = loadDraft(id)
+        return createRoutine(
+            source.copy(
+                name = "${routine.name} copy",
+                days = source.days.map { it.copy(progressionIndex = 0) },
+            ),
+        )
     }
 
     override suspend fun setRoutineArchived(id: Long, archived: Boolean) {
@@ -147,14 +190,55 @@ class RoomRoutineRepository(
         }
     }
 
+    override suspend fun setRoutineProgramPosition(
+        routineId: Long,
+        phaseIndex: Int,
+        dayPosition: Int,
+        cycle: Int,
+    ) = database.withTransaction {
+        val routine = dao.getRoutine(routineId) ?: error("Routine no longer exists")
+        require(routine.programKind != RoutineProgramKind.Static.name) { "Static routines do not have a program position" }
+        val days = dao.getDays(routineId)
+        require(phaseIndex in 0 until routine.programPhaseCount) { "Program phase is out of range" }
+        require(dayPosition in days.indices) { "Program day is out of range" }
+        require(cycle >= 1) { "Program cycle must be at least 1" }
+        dao.updateRoutine(
+            routine.copy(
+                currentProgramPhaseIndex = phaseIndex,
+                currentProgramCycle = cycle,
+                nextProgramDayPosition = dayPosition,
+                updatedAtMillis = clock.now().toEpochMilli(),
+            ),
+        )
+    }
+
+    override suspend fun resetRoutineProgramProgress(routineId: Long) = database.withTransaction {
+        val routine = dao.getRoutine(routineId) ?: return@withTransaction
+        val now = clock.now().toEpochMilli()
+        dao.updateRoutine(
+            routine.copy(
+                currentProgramPhaseIndex = 0,
+                currentProgramCycle = 1,
+                nextProgramDayPosition = 0,
+                updatedAtMillis = now,
+            ),
+        )
+        dao.getDays(routineId).forEach { day ->
+            if (day.progressionIndex != 0) dao.updateDay(day.copy(progressionIndex = 0, updatedAtMillis = now))
+        }
+    }
+
     override suspend fun startRoutine(routineId: Long, dayId: Long?): Long = database.withTransaction {
         require(gymDao.getActiveSession() == null) { "Finish or discard the active workout first" }
         val routine = dao.getRoutine(routineId) ?: error("Routine no longer exists")
-        val selectedDay = dayId?.let { selected -> dao.getDays(routineId).firstOrNull { it.id == selected } }
-            ?: dao.getDays(routineId).firstOrNull()
+        val days = dao.getDays(routineId)
+        val programKind = runCatching { RoutineProgramKind.valueOf(routine.programKind) }
+            .getOrDefault(RoutineProgramKind.Static)
+        val programmed = programKind != RoutineProgramKind.Static
+        val selectedDay = dayId?.let { selected -> days.firstOrNull { it.id == selected } }
+            ?: days.getOrNull(if (programmed) routine.nextProgramDayPosition else 0)
             ?: error("Routine has no days")
         val routineExercises = dao.getExercises(selectedDay.id)
-        val completedRoutineSessions = gymDao.countFinishedRoutineSessions(routineId)
         val personalRecords = dao.getAllPersonalRecords()
         val machinesByRoutineExerciseId = routineExercises.associate { routineExercise ->
             val binding = runCatching {
@@ -178,7 +262,7 @@ class RoomRoutineRepository(
         val sessionId = gymDao.insertSession(
             WorkoutSessionEntity(
                 uuid = ids.nextId(),
-                name = if (dao.getDays(routineId).size > 1) "${routine.name} · ${selectedDay.name}" else routine.name,
+                name = if (days.size > 1) "${routine.name} · ${selectedDay.name}" else routine.name,
                 notes = routine.notes,
                 startedAtMillis = now,
                 endedAtMillis = null,
@@ -192,6 +276,12 @@ class RoomRoutineRepository(
                 createdAtMillis = now,
                 updatedAtMillis = now,
                 sourceRoutineId = routineId,
+                sourceRoutineDayId = selectedDay.id,
+                sourceRoutineProgramKind = programKind.name,
+                sourceRoutinePhaseIndex = routine.currentProgramPhaseIndex.takeIf { programmed },
+                sourceRoutineCycle = routine.currentProgramCycle.takeIf { programmed },
+                sourceRoutineDayPosition = selectedDay.position,
+                sourceRoutineDayProgressionIndex = selectedDay.progressionIndex,
             ),
         )
         val validGroupKeys = routineExercises.mapNotNull { it.groupKey }
@@ -259,9 +349,19 @@ class RoomRoutineRepository(
                     machineAddOnPlateKgSnapshot = machine?.addOnPlateKg,
                     machineMassMappingCsvSnapshot = machine?.massMappingCsv.orEmpty(),
                     alternativeExerciseIdsCsvSnapshot = routineExercise.alternativeExerciseIdsCsv,
+                    trainingMaxKgSnapshot = routineExercise.trainingMaxKg,
+                    trainingMaxValueSnapshot = routineExercise.trainingMaxValue,
+                    trainingMaxUnitIdSnapshot = routineExercise.trainingMaxUnitId,
+                    cycleIncrementValueSnapshot = routineExercise.cycleIncrementValue,
+                    trainingMaxSourceSnapshot = routineExercise.trainingMaxSource,
                 )
             val workoutExerciseId = gymDao.insertWorkoutExercise(workoutExerciseEntity)
-            val planned = dao.getSets(routineExercise.id)
+            val allPlanned = dao.getSets(routineExercise.id)
+            val planned = if (programmed) {
+                allPlanned.filter { it.routinePhaseIndex == null || it.routinePhaseIndex == routine.currentProgramPhaseIndex }
+            } else {
+                allPlanned.filter { it.routinePhaseIndex == null }
+            }
             if (planned.isNotEmpty()) {
                 val oneRepMaxKg = personalRecords.asSequence()
                     .filter { it.exerciseId == routineExercise.exerciseId && it.current && it.type == PersonalRecordType.EstimatedOneRepMax.name }
@@ -269,7 +369,7 @@ class RoomRoutineRepository(
                     .maxOfOrNull(PersonalRecordEntity::value)
                 val progression = routineExercise.progressionPercentagesCsv.parseDoubleCsv()
                     .takeIf(List<Double>::isNotEmpty)
-                    ?.let { it[completedRoutineSessions % it.size] }
+                    ?.let { if (programmed) 100.0 else it[selectedDay.progressionIndex % it.size] }
                     ?: 100.0
                 planned.forEach { template ->
                     gymDao.insertWorkoutSet(
@@ -280,6 +380,7 @@ class RoomRoutineRepository(
                             oneRepMaxKg = oneRepMaxKg,
                             trainingMaxPercent = routineExercise.trainingMaxPercent,
                             progressionPercent = progression,
+                            explicitTrainingMaxKg = routineExercise.trainingMaxKg,
                         ),
                     )
                 }
@@ -539,15 +640,25 @@ class RoomRoutineRepository(
         dao.deleteGraphPreset(id)
     }
 
-    private suspend fun insertRoutineChildren(routineId: Long, days: List<RoutineDayDraft>, now: Long) {
+    private suspend fun insertRoutineChildren(
+        routineId: Long,
+        days: List<RoutineDayDraft>,
+        now: Long,
+        preservedDays: List<RoutineDayEntity> = emptyList(),
+        preservedExercises: Map<Pair<Int, Int>, RoutineExerciseEntity> = emptyMap(),
+    ) {
         days.forEachIndexed { dayIndex, day ->
+            val preservedDay = preservedDays.getOrNull(dayIndex)
             val dayId = dao.insertDay(
                 RoutineDayEntity(
                     uuid = ids.nextId(), routineId = routineId, name = day.name.trim(),
                     position = dayIndex, createdAtMillis = now, updatedAtMillis = now,
+                    progressionIndex = day.progressionIndex ?: preservedDay?.progressionIndex ?: 0,
                 ),
             )
             day.exercises.forEachIndexed { exerciseIndex, exercise ->
+                val preservedExercise = preservedExercises[dayIndex to exerciseIndex]
+                    ?.takeIf { it.exerciseId == exercise.exerciseId }
                 requireNotNull(gymDao.getExercise(exercise.exerciseId)) { "Exercise no longer exists" }
                 require(exercise.alternativeExerciseIds.none { it == exercise.exerciseId }) { "An exercise cannot replace itself" }
                 exercise.alternativeExerciseIds.distinct().forEach { alternativeId ->
@@ -568,6 +679,23 @@ class RoomRoutineRepository(
                     machine != null -> RoutineEquipmentBindingState.Resolved
                     exercise.equipmentBindingState == RoutineEquipmentBindingState.NeedsEquipment -> RoutineEquipmentBindingState.NeedsEquipment
                     else -> RoutineEquipmentBindingState.None
+                }
+                val explicitTrainingMaxValue = exercise.trainingMaxValue ?: preservedExercise?.trainingMaxValue
+                val explicitTrainingMaxUnit = when {
+                    exercise.trainingMaxValue != null -> exercise.trainingMaxUnitId
+                    preservedExercise?.trainingMaxValue != null -> preservedExercise.trainingMaxUnitId
+                    else -> exercise.trainingMaxUnitId
+                }
+                val explicitTrainingMaxKg = when {
+                    exercise.trainingMaxValue != null -> massToKilograms(exercise.trainingMaxValue, explicitTrainingMaxUnit)
+                    preservedExercise?.trainingMaxValue != null -> preservedExercise.trainingMaxKg
+                    else -> null
+                }
+                val cycleIncrementValue = exercise.cycleIncrementValue ?: preservedExercise?.cycleIncrementValue
+                val trainingMaxSource = when {
+                    exercise.trainingMaxValue != null -> exercise.trainingMaxSource.name
+                    preservedExercise?.trainingMaxValue != null -> preservedExercise.trainingMaxSource
+                    else -> exercise.trainingMaxSource.name
                 }
                 val routineExerciseId = dao.insertExercise(
                     RoutineExerciseEntity(
@@ -593,6 +721,11 @@ class RoomRoutineRepository(
                         trainingMaxPercent = exercise.trainingMaxPercent,
                         progressionPercentagesCsv = exercise.progressionPercentages.joinToString(","),
                         alternativeExerciseIdsCsv = exercise.alternativeExerciseIds.distinct().joinToString(","),
+                        trainingMaxKg = explicitTrainingMaxKg,
+                        trainingMaxValue = explicitTrainingMaxValue,
+                        trainingMaxUnitId = explicitTrainingMaxUnit,
+                        cycleIncrementValue = cycleIncrementValue,
+                        trainingMaxSource = trainingMaxSource,
                     ),
                 )
                 exercise.plannedSets.forEachIndexed { setIndex, set ->
@@ -632,11 +765,27 @@ class RoomRoutineRepository(
                         trainingMaxPercent = exercise.trainingMaxPercent,
                         progressionPercentages = exercise.progressionPercentagesCsv.parseDoubleCsv(),
                         alternativeExerciseIds = exercise.alternativeExerciseIdsCsv.parseLongCsv(),
+                        trainingMaxValue = exercise.trainingMaxValue,
+                        trainingMaxUnitId = exercise.trainingMaxUnitId,
+                        cycleIncrementValue = exercise.cycleIncrementValue,
+                        trainingMaxSource = runCatching { RoutineTrainingMaxSource.valueOf(exercise.trainingMaxSource) }
+                            .getOrDefault(RoutineTrainingMaxSource.EstimatedOneRepMaxPercent),
                     )
                 },
+                progressionIndex = day.progressionIndex,
             )
         }
-        return RoutineDraft(routine.name, routine.notes, days)
+        return RoutineDraft(
+            routine.name,
+            routine.notes,
+            days,
+            RoutineProgramDraft(
+                kind = runCatching { RoutineProgramKind.valueOf(routine.programKind) }
+                    .getOrDefault(RoutineProgramKind.Static),
+                phaseCount = routine.programPhaseCount,
+                phaseLabels = routine.programPhaseLabelsCsv.parseCsvStrings(),
+            ),
+        )
     }
 }
 
@@ -644,16 +793,39 @@ private fun validateRoutine(draft: RoutineDraft) {
     require(draft.name.isNotBlank()) { "Routine name is required" }
     require(draft.days.isNotEmpty()) { "A routine needs at least one day" }
     require(draft.days.all { it.name.isNotBlank() }) { "Every routine day needs a name" }
+    val program = draft.program.normalizedForCreate()
+    require(program.phaseCount in 1..52) { "A routine program needs from 1 to 52 phases" }
+    require(program.phaseLabels.size <= program.phaseCount) { "Program phase labels cannot exceed the phase count" }
+    require(program.phaseLabels.none { ',' in it }) { "Program phase labels cannot contain commas" }
     draft.days.flatMap(RoutineDayDraft::exercises).forEach { exercise ->
         require(exercise.trainingMaxPercent in 1.0..100.0) { "Training max must be from 1 to 100%" }
+        exercise.trainingMaxValue?.let { value ->
+            require(value.isFinite() && value > 0.0) { "Training max must be a positive number" }
+            require(BuiltInUnits.get(exercise.trainingMaxUnitId)?.dimension == UnitDimension.Mass) {
+                "Training max requires a mass unit"
+            }
+        }
+        exercise.cycleIncrementValue?.let { increment ->
+            require(increment.isFinite() && increment >= 0.0) { "Cycle increment cannot be negative" }
+            require(exercise.trainingMaxValue != null) { "Cycle increment requires an explicit training max" }
+        }
         require(exercise.progressionPercentages.all { it.isFinite() && it in 1.0..200.0 }) {
             "Cycle multipliers must be from 1 to 200%"
         }
         exercise.plannedSets.forEach { set ->
+            set.routinePhaseIndex?.let { phase ->
+                require(program.kind != RoutineProgramKind.Static) { "Phase-specific sets require a programmed routine" }
+                require(phase in 0 until program.phaseCount) { "Routine set phase is out of range" }
+            }
             if (set.loadPrescriptionType != RoutineLoadPrescriptionType.Absolute) {
                 val percent = set.loadPercentage
                 require(percent != null && percent.isFinite() && percent in 1.0..200.0) {
                     "Percentage prescriptions must be from 1 to 200%"
+                }
+                if (program.kind != RoutineProgramKind.Static && set.loadPrescriptionType == RoutineLoadPrescriptionType.PercentTrainingMax) {
+                    require(exercise.trainingMaxValue != null) {
+                        "Programmed training-max sets require an explicit training max"
+                    }
                 }
             }
         }
@@ -669,8 +841,26 @@ private fun isCompatibleReplacement(draft: RoutineExerciseDraft, machine: GymMac
     return machine.loadInterpretation == draft.machineLoadInterpretationSnapshot.name
 }
 
-private fun GymRoutineEntity.toDomain() = GymRoutine(id, uuid, name, notes, position, archived, pinned, createdAtMillis, updatedAtMillis)
-private fun RoutineDayEntity.toDomain() = RoutineDay(id, uuid, routineId, name, position, createdAtMillis, updatedAtMillis)
+private fun GymRoutineEntity.toDomain() = GymRoutine(
+    id = id,
+    uuid = uuid,
+    name = name,
+    notes = notes,
+    position = position,
+    archived = archived,
+    pinned = pinned,
+    createdAtMillis = createdAtMillis,
+    updatedAtMillis = updatedAtMillis,
+    programKind = runCatching { RoutineProgramKind.valueOf(programKind) }.getOrDefault(RoutineProgramKind.Static),
+    programPhaseCount = programPhaseCount,
+    programPhaseLabels = programPhaseLabelsCsv.parseCsvStrings(),
+    currentProgramPhaseIndex = currentProgramPhaseIndex,
+    currentProgramCycle = currentProgramCycle,
+    nextProgramDayPosition = nextProgramDayPosition,
+)
+private fun RoutineDayEntity.toDomain() = RoutineDay(
+    id, uuid, routineId, name, position, createdAtMillis, updatedAtMillis, progressionIndex,
+)
 private fun RoutineExerciseEntity.toDomain() = RoutineExercise(
     id = id, uuid = uuid, routineDayId = routineDayId, exerciseId = exerciseId,
     position = position, notes = notes, groupKey = groupKey,
@@ -691,6 +881,12 @@ private fun RoutineExerciseEntity.toDomain() = RoutineExercise(
     trainingMaxPercent = trainingMaxPercent,
     progressionPercentages = progressionPercentagesCsv.parseDoubleCsv(),
     alternativeExerciseIds = alternativeExerciseIdsCsv.parseLongCsv(),
+    trainingMaxKg = trainingMaxKg,
+    trainingMaxValue = trainingMaxValue,
+    trainingMaxUnitId = trainingMaxUnitId,
+    cycleIncrementValue = cycleIncrementValue,
+    trainingMaxSource = runCatching { RoutineTrainingMaxSource.valueOf(trainingMaxSource) }
+        .getOrDefault(RoutineTrainingMaxSource.EstimatedOneRepMaxPercent),
 )
 private fun RoutineSetEntity.toDomain() = RoutineSet(
     id, uuid, routineExerciseId, position,
@@ -706,6 +902,7 @@ private fun RoutineSetEntity.toDomain() = RoutineSet(
         loadPrescriptionType = runCatching { RoutineLoadPrescriptionType.valueOf(loadPrescriptionType) }
             .getOrDefault(RoutineLoadPrescriptionType.Absolute),
         loadPercentage = loadPercentage,
+        routinePhaseIndex = routinePhaseIndex,
     ),
     createdAtMillis, updatedAtMillis,
 )
@@ -733,6 +930,7 @@ private fun WorkoutSetDraft.toRoutineEntity(uuid: String, routineExerciseId: Lon
     repetitionsMax = repsMax,
     loadPrescriptionType = loadPrescriptionType.name,
     loadPercentage = loadPercentage,
+    routinePhaseIndex = routinePhaseIndex,
 )
 
 private fun RoutineSetEntity.toWorkoutSet(
@@ -745,9 +943,12 @@ private fun RoutineSetEntity.toWorkoutSet(
     oneRepMaxKg: Double?,
     trainingMaxPercent: Double,
     progressionPercent: Double,
+    explicitTrainingMaxKg: Double?,
 ): WorkoutSetEntity {
     val machineType = workoutExercise.machineLoadTypeSnapshot.takeIf(String::isNotBlank)?.let(MachineLoadType::valueOf)
-    val effectiveWeightUnitId = if (machineType == MachineLoadType.Mass) workoutExercise.machineUnitIdSnapshot else enteredWeightUnitId
+    val effectiveWeightUnitId = (
+        if (machineType == MachineLoadType.Mass) workoutExercise.machineUnitIdSnapshot else enteredWeightUnitId
+        ) ?: sourceExercise.weightUnitId
     val prescription = runCatching { RoutineLoadPrescriptionType.valueOf(loadPrescriptionType) }
         .getOrDefault(RoutineLoadPrescriptionType.Absolute)
     require(machineType != MachineLoadType.Level || prescription == RoutineLoadPrescriptionType.Absolute) {
@@ -756,7 +957,7 @@ private fun RoutineSetEntity.toWorkoutSet(
     val resolvedLoad = resolveRoutinePrescribedLoad(
         type = prescription,
         enteredWeight = enteredWeight,
-        enteredUnitId = effectiveWeightUnitId ?: sourceExercise.weightUnitId,
+        enteredUnitId = effectiveWeightUnitId,
         percentage = loadPercentage,
         oneRepMaxKg = oneRepMaxKg,
         trainingMaxPercent = trainingMaxPercent,
@@ -767,9 +968,10 @@ private fun RoutineSetEntity.toWorkoutSet(
         availableLoads = machine?.availableLoadsCsv?.parseDoubleCsv().orEmpty(),
         increment = sourceExercise.weightIncrement.takeIf { effectiveWeightUnitId == sourceExercise.weightUnitId }
             ?: if (effectiveWeightUnitId == "pound") 5.0 else 2.5,
+        explicitTrainingMaxKg = explicitTrainingMaxKg,
     )
     val effectiveWeight = resolvedLoad?.displayValue ?: enteredWeight.takeUnless { machineType == MachineLoadType.Level }
-    val weightUnit = effectiveWeightUnitId?.let(BuiltInUnits::get)
+    val weightUnit = BuiltInUnits.get(effectiveWeightUnitId)
     val distanceUnit = enteredDistanceUnitId?.let(BuiltInUnits::get)
     return WorkoutSetEntity(
         uuid = uuid, workoutExerciseId = workoutExerciseId, position = position,
@@ -839,6 +1041,7 @@ internal fun resolveRoutinePrescribedLoad(
     addOnPlateKg: Double?,
     availableLoads: List<Double>,
     increment: Double,
+    explicitTrainingMaxKg: Double? = null,
 ): ResolvedRoutineLoad? {
     require(trainingMaxPercent in 1.0..100.0) { "Training max must be from 1 to 100%" }
     require(progressionPercent in 1.0..200.0) { "Cycle multiplier must be from 1 to 200%" }
@@ -850,8 +1053,16 @@ internal fun resolveRoutinePrescribedLoad(
         -> {
             val selectedPercent = requireNotNull(percentage) { "Enter a load percentage" }
             require(selectedPercent in 1.0..200.0) { "Load percentage must be from 1 to 200%" }
-            val maxKg = requireNotNull(oneRepMaxKg) { "Record an estimated 1RM before starting this percentage-based routine" }
-            val base = if (type == RoutineLoadPrescriptionType.PercentTrainingMax) maxKg * trainingMaxPercent / 100.0 else maxKg
+            val base = when (type) {
+                RoutineLoadPrescriptionType.PercentOneRepMax -> requireNotNull(oneRepMaxKg) {
+                    "Record an estimated 1RM before starting this percentage-based routine"
+                }
+                RoutineLoadPrescriptionType.PercentTrainingMax -> explicitTrainingMaxKg
+                    ?: requireNotNull(oneRepMaxKg) {
+                        "Set an explicit training max or record an estimated 1RM before starting this routine"
+                    } * trainingMaxPercent / 100.0
+                RoutineLoadPrescriptionType.Absolute -> error("Absolute prescriptions are resolved separately")
+            }
             val targetCanonical = base * selectedPercent / 100.0 * progressionFactor
             val rawKg = ((targetCanonical - (baseLoadKg ?: 0.0) - (addOnPlateKg ?: 0.0)) /
                 loadMultiplier.takeIf { it.isFinite() && it > 0.0 }.orEmptyOne()).coerceAtLeast(0.0)
@@ -871,7 +1082,11 @@ internal fun resolveRoutinePrescribedLoad(
         when (type) {
             RoutineLoadPrescriptionType.Absolute -> append("Exact load")
             RoutineLoadPrescriptionType.PercentOneRepMax -> append("${percentage?.let { "$it%" }} e1RM")
-            RoutineLoadPrescriptionType.PercentTrainingMax -> append("${percentage?.let { "$it%" }} of $trainingMaxPercent% training max")
+            RoutineLoadPrescriptionType.PercentTrainingMax -> if (explicitTrainingMaxKg != null) {
+                append("${percentage?.let { "$it%" }} of explicit training max")
+            } else {
+                append("${percentage?.let { "$it%" }} of $trainingMaxPercent% training max")
+            }
         }
         if (progressionPercent != 100.0) append(" · cycle $progressionPercent%")
     }
@@ -882,6 +1097,18 @@ private fun Double?.orEmptyOne(): Double = this ?: 1.0
 
 private fun String.parseDoubleCsv(): List<Double> = split(',').mapNotNull(String::toDoubleOrNull)
 private fun String.parseLongCsv(): List<Long> = split(',').mapNotNull(String::toLongOrNull)
+private fun String.parseCsvStrings(): List<String> = split(',').map(String::trim).filter(String::isNotBlank)
+
+private fun RoutineProgramDraft?.normalizedForCreate(): RoutineProgramDraft =
+    this?.normalized() ?: RoutineProgramDraft(RoutineProgramKind.Static, 1)
+
+private fun RoutineProgramDraft.normalized(): RoutineProgramDraft = when (kind) {
+    RoutineProgramKind.Static -> copy(phaseCount = 1, phaseLabels = emptyList())
+    else -> copy(
+        phaseCount = phaseCount.coerceAtLeast(1),
+        phaseLabels = phaseLabels.map(String::trim).filter(String::isNotBlank).take(phaseCount.coerceAtLeast(1)),
+    )
+}
 
 private fun WorkoutSetEntity.toDraft() = WorkoutSetDraft(
     weight = enteredWeight, weightUnitId = enteredWeightUnitId ?: "kilogram", reps = repetitions,

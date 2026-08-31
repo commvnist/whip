@@ -118,8 +118,11 @@ import com.whip.app.domain.GymGraphRange
 import com.whip.app.domain.GymGraphPoint
 import com.whip.app.domain.EstimatedOneRepMaxFormula
 import com.whip.app.domain.RoutineDayDraft
+import com.whip.app.domain.RoutineDay
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
+import com.whip.app.domain.RoutineProgramDraft
+import com.whip.app.domain.RoutineProgramKind
 import com.whip.app.domain.PersonalRecord
 import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.estimatedOneRepMaxKg
@@ -643,6 +646,7 @@ fun GymAreaContent(
                 requestedWorkoutExerciseId = requestedWorkoutExerciseId,
                 onRequestedWorkoutExerciseConsumed = onRequestedWorkoutExerciseConsumed,
                 onStart = { showStartWorkout = true },
+                onOpenRoutines = { destination = GymDestination.Routines },
                 onCreateExercise = { creatingExercise = true },
                 onEditWorkout = { showEditWorkout = true },
                 onAddExercise = { showExercisePicker = true },
@@ -1138,7 +1142,7 @@ fun GymAreaContent(
             title = "Review and Finish Workout?",
             message = "${quantityLabel(state.activeWorkoutExercises.size, "exercise")} · ${quantityLabel(completedSets, "completed set")}" +
                 if (incompleteSets > 0) " · $incompleteSets planned sets remain incomplete and stay visible in History." else
-                    ". Every saved value and equipment snapshot remains editable in History.",
+                    ". History preserves every saved value and equipment snapshot. Resume the workout to change individual set values.",
             confirmLabel = "Finish",
             onDismiss = { finishConfirmation = false },
             onConfirm = {
@@ -1317,6 +1321,7 @@ private fun WorkoutContent(
     requestedWorkoutExerciseId: Long? = null,
     onRequestedWorkoutExerciseConsumed: () -> Unit = {},
     onStart: () -> Unit,
+    onOpenRoutines: () -> Unit,
     onCreateExercise: () -> Unit,
     onEditWorkout: () -> Unit,
     onAddExercise: () -> Unit,
@@ -1359,13 +1364,27 @@ private fun WorkoutContent(
                     title = "No Workout in Progress",
                     supportingText = if (state.exercises.isEmpty()) {
                         "Create exercises once, then reuse them in workouts and routines. You can also start empty and create one while logging."
+                    } else if (state.routines.isNotEmpty()) {
+                        "Start from a routine for planned sets, or start an empty workout and build it as you train."
                     } else {
                         "Start a workout, then choose from your reusable exercise library."
                     },
-                    primaryActionLabel = if (state.exercises.isEmpty()) "Create First Exercise" else "Start Workout",
-                    onPrimaryAction = if (state.exercises.isEmpty()) onCreateExercise else onStart,
-                    secondaryActionLabel = "Start Empty Workout".takeIf { state.exercises.isEmpty() },
-                    onSecondaryAction = onStart.takeIf { state.exercises.isEmpty() },
+                    primaryActionLabel = when {
+                        state.exercises.isEmpty() -> "Create First Exercise"
+                        state.routines.isNotEmpty() -> "Start from Routine"
+                        else -> "Start Workout"
+                    },
+                    onPrimaryAction = when {
+                        state.exercises.isEmpty() -> onCreateExercise
+                        state.routines.isNotEmpty() -> onOpenRoutines
+                        else -> onStart
+                    },
+                    secondaryActionLabel = when {
+                        state.exercises.isEmpty() -> "Start Empty Workout"
+                        state.routines.isNotEmpty() -> "Start Empty Workout"
+                        else -> null
+                    },
+                    onSecondaryAction = onStart.takeIf { state.exercises.isEmpty() || state.routines.isNotEmpty() },
                 )
             }
         }
@@ -3667,6 +3686,15 @@ private fun WorkoutHistoryContent(
     val sourceHistory = focusedSession?.let(::listOf)
         ?: if (showArchived) state.archivedWorkouts else history
     val exerciseById = (state.exercises + state.archivedExercises).associateBy(Exercise::id)
+    val workoutExercisesBySession = remember(state.allWorkoutExercises) {
+        state.allWorkoutExercises.groupBy(WorkoutExercise::sessionId)
+    }
+    val setsByWorkoutExercise = remember(state.allSets) {
+        state.allSets.groupBy(WorkoutSet::workoutExerciseId)
+    }
+    val categoryIdsByExercise = remember(state.categoryLinks) {
+        state.categoryLinks.groupBy({ it.exerciseId }, { it.categoryId })
+    }
     val through = LocalDate.now(state.appSettings.zoneId())
     var calendarMonth by rememberSaveable(through) { mutableStateOf(YearMonth.from(through)) }
     var selectedCalendarDate by rememberSaveable { mutableStateOf<LocalDate?>(null) }
@@ -3678,16 +3706,17 @@ private fun WorkoutHistoryContent(
     }
     val recordSessionIds = state.personalRecords.mapNotNullTo(mutableSetOf()) { it.sourceSessionId }
     val filteredHistory = sourceHistory.filter { session ->
-        val sessionExercises = state.allWorkoutExercises.filter { it.sessionId == session.id }
+        val sessionExercises = workoutExercisesBySession[session.id].orEmpty()
         if (selectedExerciseId != null && sessionExercises.none { it.exerciseId == selectedExerciseId }) return@filter false
-        if (selectedCategoryId != null && sessionExercises.none { workoutExercise -> state.categoryLinks.any { it.exerciseId == workoutExercise.exerciseId && it.categoryId == selectedCategoryId } }) return@filter false
+        if (selectedCategoryId != null && sessionExercises.none { workoutExercise ->
+                selectedCategoryId in categoryIdsByExercise[workoutExercise.exerciseId].orEmpty()
+            }
+        ) return@filter false
         if (selectedRoutineId != null && session.sourceRoutineId != selectedRoutineId) return@filter false
         if (from != null && session.localDate.isBefore(from)) return@filter false
         if (recordsOnly && session.id !in recordSessionIds) return@filter false
         if (query.isBlank()) true else {
-            val exerciseNames = state.allWorkoutExercises
-                .filter { it.sessionId == session.id }
-                .mapNotNull { exerciseById[it.exerciseId]?.name }
+            val exerciseNames = sessionExercises.mapNotNull { exerciseById[it.exerciseId]?.name }
             session.name.contains(query, true) || exerciseNames.any { it.contains(query, true) }
         }
     }
@@ -3820,13 +3849,17 @@ private fun WorkoutHistoryContent(
             )
         }
         items(visible, key = WorkoutSession::id) { session ->
-            val sessionExercises = state.allWorkoutExercises.filter { it.sessionId == session.id }
+            val sessionExercises = workoutExercisesBySession[session.id].orEmpty()
+            val sessionSets = sessionExercises.flatMap { setsByWorkoutExercise[it.id].orEmpty() }
             val expanded = expandedSessionId == session.id
             WorkoutHistoryCard(
                 session = session,
                 workoutExercises = sessionExercises,
-                sets = state.allSets,
+                sets = sessionSets,
                 exerciseById = exerciseById,
+                preferredWeightUnitId = state.appSettings.gymWeightUnitId,
+                preferredDistanceUnitId = state.appSettings.distanceUnitId,
+                numberPrecision = state.appSettings.numberPrecision,
                 expanded = expanded,
                 archivedView = session.archived,
                 hasActiveWorkout = state.activeSession != null,
@@ -3864,6 +3897,9 @@ internal fun WorkoutHistoryCard(
     workoutExercises: List<WorkoutExercise>,
     sets: List<WorkoutSet>,
     exerciseById: Map<Long, Exercise>,
+    preferredWeightUnitId: String = "kilogram",
+    preferredDistanceUnitId: String = "kilometre",
+    numberPrecision: Int = 1,
     expanded: Boolean,
     archivedView: Boolean,
     hasActiveWorkout: Boolean,
@@ -3882,8 +3918,9 @@ internal fun WorkoutHistoryCard(
     modifier: Modifier = Modifier,
 ) {
     val title = session.name.ifBlank { "Workout" }
+    val workoutExerciseIds = workoutExercises.mapTo(mutableSetOf(), WorkoutExercise::id)
     val activeSets = sets.filter { set ->
-        set.deletedAtMillis == null && workoutExercises.any { it.id == set.workoutExerciseId }
+        set.deletedAtMillis == null && set.workoutExerciseId in workoutExerciseIds
     }
     val completedSets = activeSets.count(WorkoutSet::completed)
     val durationMinutes = session.endedAt?.let { endedAt ->
@@ -3981,52 +4018,93 @@ internal fun WorkoutHistoryCard(
                 if (session.notes.isNotBlank()) {
                     Text(session.notes, style = MaterialTheme.typography.bodyMedium)
                 }
+                workoutProgramSnapshotLabel(session)?.let { snapshot ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("history-program-snapshot-${session.id}")
+                            .semantics(mergeDescendants = true) {},
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Text(
+                            snapshot,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+                }
                 Column(
                     modifier = Modifier.fillMaxWidth().testTag("history-workout-exercises-${session.id}"),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     workoutExercises.forEach { workoutExercise ->
                         val sourceExercise = exerciseById[workoutExercise.exerciseId] ?: return@forEach
-                        val exerciseSetCount = activeSets.count { it.workoutExerciseId == workoutExercise.id }
+                        val exerciseSets = activeSets.filter { it.workoutExerciseId == workoutExercise.id }
                         Surface(
                             modifier = Modifier.fillMaxWidth().testTag("history-exercise-row-${workoutExercise.id}"),
                             color = MaterialTheme.colorScheme.surfaceContainerLow,
                             shape = MaterialTheme.shapes.medium,
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        sourceExercise.name,
-                                        fontWeight = FontWeight.SemiBold,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    val detail = buildList {
-                                        if (exerciseSetCount > 0) add(quantityLabel(exerciseSetCount, "set"))
-                                        workoutExercise.machineNameSnapshot.takeIf(String::isNotBlank)?.let(::add)
-                                    }.joinToString(" · ")
-                                    if (detail.isNotBlank()) {
-                                        Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                    if (workoutExercise.notes.isNotBlank()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Column(Modifier.weight(1f)) {
                                         Text(
-                                            workoutExercise.notes,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            sourceExercise.name,
+                                            fontWeight = FontWeight.SemiBold,
                                             maxLines = 2,
                                             overflow = TextOverflow.Ellipsis,
                                         )
+                                        val detail = buildList {
+                                            if (exerciseSets.isNotEmpty()) add(quantityLabel(exerciseSets.size, "set"))
+                                            workoutExercise.machineNameSnapshot.takeIf(String::isNotBlank)?.let { add("Equipment: $it") }
+                                        }.joinToString(" · ")
+                                        if (detail.isNotBlank()) {
+                                            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                        workoutExercise.machineConfigurationSnapshot.takeIf(String::isNotBlank)?.let { setup ->
+                                            Text(
+                                                "Setup: $setup",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                        if (workoutExercise.notes.isNotBlank()) {
+                                            Text(
+                                                workoutExercise.notes,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                    }
+                                    if (!archivedView) {
+                                        WhipTextButton(
+                                            onClick = { onReuseExercise(workoutExercise.id) },
+                                            modifier = Modifier.heightIn(min = 48.dp).testTag("history-exercise-reuse-${workoutExercise.id}"),
+                                        ) { Text("Use Again", maxLines = 1) }
                                     }
                                 }
-                                if (!archivedView) {
-                                    WhipTextButton(
-                                        onClick = { onReuseExercise(workoutExercise.id) },
-                                        modifier = Modifier.heightIn(min = 48.dp).testTag("history-exercise-reuse-${workoutExercise.id}"),
-                                    ) { Text("Use Again", maxLines = 1) }
+
+                                exerciseSets.sortedBy(WorkoutSet::position).forEachIndexed { setIndex, set ->
+                                    HistoricalWorkoutSetRow(
+                                        set = set,
+                                        setNumber = setIndex + 1,
+                                        sourceExercise = sourceExercise,
+                                        workoutExercise = workoutExercise,
+                                        preferredWeightUnitId = preferredWeightUnitId,
+                                        preferredDistanceUnitId = preferredDistanceUnitId,
+                                        numberPrecision = numberPrecision,
+                                    )
                                 }
                             }
                         }
@@ -4046,6 +4124,89 @@ internal fun WorkoutHistoryCard(
                         modifier = Modifier.fillMaxWidth().testTag("history-primary-action-${session.id}"),
                     ) { Text("Restore to History", maxLines = 1) }
                 }
+
+            }
+        }
+    }
+}
+
+internal fun workoutProgramSnapshotLabel(session: WorkoutSession): String? {
+    if (session.sourceRoutineProgramKind == RoutineProgramKind.Static) return null
+    val program = when (session.sourceRoutineProgramKind) {
+        RoutineProgramKind.Static -> return null
+        RoutineProgramKind.Custom -> "Program"
+        RoutineProgramKind.FiveThreeOneClassic -> "Classic 5/3/1"
+        RoutineProgramKind.FiveSPro -> "5s PRO"
+        RoutineProgramKind.BoringButBig -> "Boring But Big"
+        RoutineProgramKind.FirstSetLast -> "First Set Last"
+    }
+    return buildList {
+        add("Program snapshot · $program")
+        session.sourceRoutineCycle?.let { add("Cycle $it") }
+        session.sourceRoutinePhaseIndex?.let { add("Phase ${it + 1}") }
+        session.sourceRoutineDayPosition?.let { add("Day ${it + 1}") }
+        session.sourceRoutineDayProgressionIndex?.let { add("Day progression ${it + 1}") }
+        add(if (session.programProgressAdvanced) "Advanced program progress" else "Did not advance program progress")
+    }.joinToString(" · ")
+}
+
+@Composable
+private fun HistoricalWorkoutSetRow(
+    set: WorkoutSet,
+    setNumber: Int,
+    sourceExercise: Exercise,
+    workoutExercise: WorkoutExercise,
+    preferredWeightUnitId: String,
+    preferredDistanceUnitId: String,
+    numberPrecision: Int,
+) {
+    val performed = set.shortLabel(
+        preferredWeightUnitId = preferredWeightUnitId,
+        preferredDistanceUnitId = preferredDistanceUnitId,
+        precision = numberPrecision,
+        workoutExercise = workoutExercise,
+        exerciseWeightUnitId = sourceExercise.weightUnitId,
+    )
+    val prescription = set.prescriptionLabel(preferredWeightUnitId, numberPrecision, workoutExercise)
+    val details = buildList {
+        set.rpe?.let { add("RPE ${formatNumber(it, 1)}") }
+        set.rir?.let { add("RIR ${formatNumber(it, 1)}") }
+        set.restSeconds?.let { add("${formatDuration(it.toLong())} rest") }
+        set.tempo.takeIf(String::isNotBlank)?.let { add("Tempo $it") }
+        if (set.unilateral) add("One side / limb")
+    }.joinToString(" · ")
+    Surface(
+        modifier = Modifier.fillMaxWidth().testTag("history-set-row-${set.id}"),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = MaterialTheme.shapes.small,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                "Set $setNumber · ${set.classification.uiLabel()} · ${if (set.completed) "Completed" else "Not completed"}",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                if (set.completed) "Performed · $performed" else "Performed · No completed values",
+                modifier = Modifier.testTag("history-set-performed-${set.id}"),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            prescription?.let { target ->
+                Text(
+                    "Target · $target",
+                    modifier = Modifier.testTag("history-set-target-${set.id}"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+            if (details.isNotBlank()) {
+                Text(details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            set.note.takeIf(String::isNotBlank)?.let { note ->
+                Text("Note · $note", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -5362,6 +5523,8 @@ private fun RoutineContent(
     val editing = editingRoutineId?.let { id -> (state.routines + state.archivedRoutines).firstOrNull { it.id == id } }
     var showArchived by rememberSaveable { mutableStateOf(false) }
     var actionMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var positionRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var resetRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
     var reordering by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(createRequested) {
         if (createRequested) {
@@ -5391,37 +5554,7 @@ private fun RoutineContent(
         if (showArchived || focusedRoutineId != null) reordering = false
     }
     if (showEditor || editing != null) {
-        val initial = editing?.let { routine ->
-            RoutineDraft(
-                name = routine.name,
-                notes = routine.notes,
-                days = state.routineDays.filter { it.routineId == routine.id }.sortedBy { it.position }.map { day ->
-                    RoutineDayDraft(
-                        day.name,
-                        state.routineExercises.filter { it.routineDayId == day.id }.sortedBy { it.position }.map { routineExercise ->
-                            RoutineExerciseDraft(
-                                exerciseId = routineExercise.exerciseId,
-                                notes = routineExercise.notes,
-                                groupKey = routineExercise.groupKey,
-                                plannedSets = state.routineSets.filter { it.routineExerciseId == routineExercise.id }.sortedBy { it.position }.map { it.draft },
-                                copyPreviousWorkout = routineExercise.copyPreviousWorkout,
-                                machineId = routineExercise.machineId,
-                                equipmentBindingState = routineExercise.equipmentBindingState,
-                                machineProfileUuidSnapshot = routineExercise.machineProfileUuidSnapshot,
-                                machineNameSnapshot = routineExercise.machineNameSnapshot,
-                                machineLoadTypeSnapshot = routineExercise.machineLoadTypeSnapshot,
-                                machineUnitIdSnapshot = routineExercise.machineUnitIdSnapshot,
-                                machineLevelLabelSnapshot = routineExercise.machineLevelLabelSnapshot,
-                                machineLoadInterpretationSnapshot = routineExercise.machineLoadInterpretationSnapshot,
-                                machineConfigurationGroupSnapshot = routineExercise.machineConfigurationGroupSnapshot,
-                                machineConfigurationVersionSnapshot = routineExercise.machineConfigurationVersionSnapshot,
-                                machineConfigurationSnapshot = routineExercise.machineConfigurationSnapshot,
-                            )
-                        },
-                    )
-                },
-            )
-        }
+        val initial = editing?.let { routine -> routineDraftForEditing(state, routine) }
         RoutineBuilderScreen(
             routineId = editing?.id,
             gymState = state,
@@ -5488,7 +5621,12 @@ private fun RoutineContent(
         }
         items(visible.size, key = { visible[it].id }) { routineIndex ->
             val routine = visible[routineIndex]
-            val days = state.routineDays.filter { it.routineId == routine.id }
+            val days = state.routineDays.filter { it.routineId == routine.id }.sortedBy { it.position }
+            val programmed = routine.programKind != RoutineProgramKind.Static
+            val editingBlockedByActiveWorkout = state.activeSession?.sourceRoutineId == routine.id
+            val nextProgramDay = days.firstOrNull { it.position == routine.nextProgramDayPosition }
+                ?: days.getOrNull(routine.nextProgramDayPosition)
+                ?: days.firstOrNull()
             val reorderInteraction = rememberWhipReorderInteractionState()
             Card(
                 modifier = Modifier.fillMaxWidth().whipReorderItem(
@@ -5516,7 +5654,7 @@ private fun RoutineContent(
                             )
                         }
                         Text(routine.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        if (!reordering) ItemEditButton("routine", routine.name, onEdit = {
+                        if (!reordering && !editingBlockedByActiveWorkout) ItemEditButton("routine", routine.name, onEdit = {
                             editingRoutineId = routine.id
                             onEditorStateChange(true)
                         })
@@ -5528,6 +5666,16 @@ private fun RoutineContent(
                                 WhipMenuItem(label = "Duplicate", onClick = { actionMenuId = null; viewModel.duplicateRoutine(routine.id) })
                                 WhipMenuItem(label = if (routine.pinned) "Unpin from Whip Home" else "Pin to Whip Home", onClick = { actionMenuId = null; viewModel.setRoutinePinned(routine.id, !routine.pinned) })
                                 WhipMenuItem(label = if (routine.archived) "Restore" else "Archive", onClick = { actionMenuId = null; viewModel.setRoutineArchived(routine.id, !routine.archived) })
+                                if (programmed && !editingBlockedByActiveWorkout) {
+                                    WhipMenuItem(
+                                        label = "Set Program Position",
+                                        onClick = { actionMenuId = null; positionRoutineId = routine.id },
+                                    )
+                                    WhipMenuItem(
+                                        label = "Reset Program Progress",
+                                        onClick = { actionMenuId = null; resetRoutineId = routine.id },
+                                    )
+                                }
                                 HorizontalDivider()
                                 WhipMenuItem(
                                     label = "Delete Permanently",
@@ -5538,7 +5686,37 @@ private fun RoutineContent(
                         }
                     }
                     if (routine.notes.isNotBlank()) Text(routine.notes)
+                    if (editingBlockedByActiveWorkout) {
+                        Text(
+                            "Finish or discard the active workout before editing this routine or changing its program position.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                     Text("${days.size} day${if (days.size == 1) "" else "s"}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (programmed) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().testTag("routine-program-status-${routine.id}"),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = MaterialTheme.shapes.medium,
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Text(
+                                    routineProgramStatusLabel(routine, nextProgramDay?.name),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    "Finishing the next workout advances this program. Starting another day out of order uses the current phase but does not advance program progress.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                )
+                            }
+                        }
+                    }
                     val routineHistory = state.history.filter { it.sourceRoutineId == routine.id }
                     Text(
                         if (routineHistory.isEmpty()) "No performed sessions yet" else
@@ -5546,6 +5724,33 @@ private fun RoutineContent(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    if (!reordering && programmed && nextProgramDay != null) {
+                        val nextDayExercises = state.routineExercises.filter { it.routineDayId == nextProgramDay.id }
+                        val nextNeedsEquipment = nextDayExercises.any {
+                            it.equipmentBindingState == RoutineEquipmentBindingState.NeedsEquipment
+                        }
+                        WhipButton(
+                            onClick = {
+                                when {
+                                    state.activeSession != null -> onOpenActiveWorkout()
+                                    nextNeedsEquipment -> {
+                                        editingRoutineId = routine.id
+                                        onEditorStateChange(true)
+                                    }
+                                    else -> viewModel.startRoutine(routine.id, null)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().testTag("routine-start-next-${routine.id}"),
+                        ) {
+                            Text(
+                                when {
+                                    state.activeSession != null -> "Open Active Workout"
+                                    nextNeedsEquipment -> "Resolve Equipment for Next · ${nextProgramDay.name}"
+                                    else -> "Start Next · ${nextProgramDay.name}"
+                                },
+                            )
+                        }
+                    }
                     if (!reordering) days.forEach { day ->
                         val dayExercises = state.routineExercises.filter { it.routineDayId == day.id }
                         val count = dayExercises.size
@@ -5568,7 +5773,7 @@ private fun RoutineContent(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
-                        WhipTextButton(onClick = {
+                        if (!programmed || day.id != nextProgramDay?.id) WhipTextButton(onClick = {
                             when {
                                 needsEquipment.isNotEmpty() -> {
                                     editingRoutineId = routine.id
@@ -5582,6 +5787,7 @@ private fun RoutineContent(
                                 when {
                                     needsEquipment.isNotEmpty() -> "Resolve Equipment for ${day.name}"
                                     state.activeSession != null -> "Open Active Workout"
+                                    programmed -> "Start Out of Order · ${day.name} · ${quantityLabel(count, "exercise")}"
                                     else -> "Start ${day.name} · ${quantityLabel(count, "exercise")}"
                                 },
                             )
@@ -5591,7 +5797,173 @@ private fun RoutineContent(
             }
         }
     }
+    positionRoutineId?.let { routineId ->
+        val routine = (state.routines + state.archivedRoutines).firstOrNull { it.id == routineId }
+        val days = state.routineDays.filter { it.routineId == routineId }.sortedBy { it.position }
+        if (routine == null || days.isEmpty()) {
+            positionRoutineId = null
+        } else {
+            RoutineProgramPositionDialog(
+                routine = routine,
+                days = days,
+                onDismiss = { positionRoutineId = null },
+                onSave = { phaseIndex, dayPosition, cycle ->
+                    positionRoutineId = null
+                    viewModel.setRoutineProgramPosition(routine.id, phaseIndex, dayPosition, cycle)
+                },
+            )
+        }
+    }
+    resetRoutineId?.let { routineId ->
+        val routine = (state.routines + state.archivedRoutines).firstOrNull { it.id == routineId }
+        if (routine == null) {
+            resetRoutineId = null
+        } else {
+            PaneAwareAlertDialog(
+                onDismissRequest = { resetRoutineId = null },
+                title = { Text("Reset ${routine.name} Program Progress?") },
+                text = { Text("This returns the program to cycle 1, its first phase, and its first day. Routine prescriptions and workout History are not deleted.") },
+                confirmButton = {
+                    WhipTextButton(onClick = {
+                        resetRoutineId = null
+                        viewModel.resetRoutineProgramProgress(routine.id)
+                    }) { Text("Reset Progress") }
+                },
+                dismissButton = { WhipTextButton(onClick = { resetRoutineId = null }) { Text("Cancel") } },
+            )
+        }
+    }
 }
+
+@Composable
+private fun RoutineProgramPositionDialog(
+    routine: GymRoutine,
+    days: List<RoutineDay>,
+    onDismiss: () -> Unit,
+    onSave: (phaseIndex: Int, dayPosition: Int, cycle: Int) -> Unit,
+) {
+    var phaseIndex by rememberSaveable(routine.id) { mutableStateOf(routine.currentProgramPhaseIndex) }
+    var dayPosition by rememberSaveable(routine.id) { mutableStateOf(routine.nextProgramDayPosition) }
+    var cycleText by rememberSaveable(routine.id) { mutableStateOf(routine.currentProgramCycle.toString()) }
+    val cycle = cycleText.toIntOrNull()
+    PaneAwareAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Set ${routine.name} Program Position") },
+        text = {
+            Column(
+                Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text("Use this to correct or resume a cycle. It changes future starts only; workout History stays unchanged.")
+                Text("Phase", fontWeight = FontWeight.SemiBold)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    repeat(routine.programPhaseCount) { index ->
+                        val label = routine.programPhaseLabels.getOrNull(index)?.takeIf(String::isNotBlank)
+                            ?: "Phase ${index + 1}"
+                        WhipFilterChip(
+                            selected = phaseIndex == index,
+                            onClick = { phaseIndex = index },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+                Text("Next Day", fontWeight = FontWeight.SemiBold)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    days.forEach { day ->
+                        WhipFilterChip(
+                            selected = dayPosition == day.position,
+                            onClick = { dayPosition = day.position },
+                            label = { Text(day.name) },
+                        )
+                    }
+                }
+                OutlinedTextField(
+                    value = cycleText,
+                    onValueChange = { cycleText = it.filter(Char::isDigit).take(6) },
+                    label = { Text("Cycle") },
+                    supportingText = { Text("Cycle must be 1 or higher.") },
+                    isError = cycleText.isNotEmpty() && (cycle == null || cycle < 1),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            WhipButton(
+                enabled = cycle != null && cycle >= 1 && phaseIndex in 0 until routine.programPhaseCount &&
+                    days.any { it.position == dayPosition },
+                onClick = { onSave(phaseIndex, dayPosition, requireNotNull(cycle)) },
+            ) { Text("Set Position") }
+        },
+        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+internal fun routineProgramStatusLabel(routine: GymRoutine, nextDayName: String?): String {
+    val program = when (routine.programKind) {
+        RoutineProgramKind.Static -> "Static Routine"
+        RoutineProgramKind.Custom -> "Program"
+        RoutineProgramKind.FiveThreeOneClassic -> "Classic 5/3/1"
+        RoutineProgramKind.FiveSPro -> "5s PRO"
+        RoutineProgramKind.BoringButBig -> "Boring But Big"
+        RoutineProgramKind.FirstSetLast -> "First Set Last"
+    }
+    val phase = routine.programPhaseLabels.getOrNull(routine.currentProgramPhaseIndex)
+        ?.takeIf(String::isNotBlank)
+        ?: "Phase ${routine.currentProgramPhaseIndex + 1}"
+    return buildList {
+        add(program)
+        add("Cycle ${routine.currentProgramCycle}")
+        add(phase)
+        nextDayName?.takeIf(String::isNotBlank)?.let { add("Next · $it") }
+    }.joinToString(" · ")
+}
+
+internal fun routineDraftForEditing(state: GymUiState, routine: GymRoutine): RoutineDraft = RoutineDraft(
+    name = routine.name,
+    notes = routine.notes,
+    days = state.routineDays.filter { it.routineId == routine.id }.sortedBy { it.position }.map { day ->
+        RoutineDayDraft(
+            name = day.name,
+            exercises = state.routineExercises.filter { it.routineDayId == day.id }.sortedBy { it.position }.map { routineExercise ->
+                RoutineExerciseDraft(
+                    exerciseId = routineExercise.exerciseId,
+                    notes = routineExercise.notes,
+                    groupKey = routineExercise.groupKey,
+                    plannedSets = state.routineSets.filter { it.routineExerciseId == routineExercise.id }
+                        .sortedBy { it.position }
+                        .map { it.draft },
+                    copyPreviousWorkout = routineExercise.copyPreviousWorkout,
+                    machineId = routineExercise.machineId,
+                    equipmentBindingState = routineExercise.equipmentBindingState,
+                    machineProfileUuidSnapshot = routineExercise.machineProfileUuidSnapshot,
+                    machineNameSnapshot = routineExercise.machineNameSnapshot,
+                    machineLoadTypeSnapshot = routineExercise.machineLoadTypeSnapshot,
+                    machineUnitIdSnapshot = routineExercise.machineUnitIdSnapshot,
+                    machineLevelLabelSnapshot = routineExercise.machineLevelLabelSnapshot,
+                    machineLoadInterpretationSnapshot = routineExercise.machineLoadInterpretationSnapshot,
+                    machineConfigurationGroupSnapshot = routineExercise.machineConfigurationGroupSnapshot,
+                    machineConfigurationVersionSnapshot = routineExercise.machineConfigurationVersionSnapshot,
+                    machineConfigurationSnapshot = routineExercise.machineConfigurationSnapshot,
+                    trainingMaxPercent = routineExercise.trainingMaxPercent,
+                    progressionPercentages = routineExercise.progressionPercentages,
+                    alternativeExerciseIds = routineExercise.alternativeExerciseIds,
+                    trainingMaxValue = routineExercise.trainingMaxValue,
+                    trainingMaxUnitId = routineExercise.trainingMaxUnitId,
+                    cycleIncrementValue = routineExercise.cycleIncrementValue,
+                    trainingMaxSource = routineExercise.trainingMaxSource,
+                )
+            },
+            progressionIndex = day.progressionIndex,
+        )
+    },
+    program = RoutineProgramDraft(
+        kind = routine.programKind,
+        phaseCount = routine.programPhaseCount,
+        phaseLabels = routine.programPhaseLabels,
+    ),
+)
 
 private data class GymChartSeries(
     val name: String,
@@ -6840,6 +7212,7 @@ private fun WorkoutSet.prescriptionLabel(
             prescribedCanonicalWeightKg,
             prescribedEnteredWeight,
             prescribedRepetitions,
+            prescribedRepetitionsMax,
             prescribedRpe,
             prescribedRir,
             prescribedDurationSeconds,
@@ -6853,7 +7226,13 @@ private fun WorkoutSet.prescriptionLabel(
         prescribedEnteredWeight?.let { parts += "${formatNumber(it, precision)} ${unitSymbol(unit)} entered" }
             ?: prescribedCanonicalWeightKg?.let { parts += "${formatNumber(massFromKilograms(it, unit), precision)} ${unitSymbol(unit)}" }
     }
-    prescribedRepetitions?.let { parts += "$it reps" }
+    prescribedRepetitions?.let { minimum ->
+        parts += when {
+            classification == WorkoutSetClassification.Amrap -> "$minimum+ reps"
+            prescribedRepetitionsMax != null && prescribedRepetitionsMax != minimum -> "$minimum–$prescribedRepetitionsMax reps"
+            else -> "$minimum reps"
+        }
+    } ?: prescribedRepetitionsMax?.let { maximum -> parts += "Up to $maximum reps" }
     prescribedRpe?.let { parts += "RPE ${formatNumber(it, 1)}" }
     prescribedRir?.let { parts += "RIR ${formatNumber(it, 1)}" }
     prescribedDurationSeconds?.let { parts += formatDuration(it) }

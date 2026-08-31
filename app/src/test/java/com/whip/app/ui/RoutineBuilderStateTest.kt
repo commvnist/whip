@@ -2,9 +2,12 @@ package com.whip.app.ui
 
 import androidx.lifecycle.SavedStateHandle
 import com.whip.app.core.RepPrescriptionScheme
+import com.whip.app.domain.RoutineLoadPrescriptionType
 import com.whip.app.domain.WorkoutSetClassification
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RoutineBuilderStateTest {
@@ -205,5 +208,109 @@ class RoutineBuilderStateTest {
 
         val repsOnly = scheme.copy(id = "reps-only", restSeconds = null, setCount = 1, repetitionsMax = 8)
         assertEquals("90", applyRepPrescriptionScheme(existing, repsOnly).single().restSeconds)
+    }
+
+    @Test
+    fun classicFiveThreeOneBuildsAllFourPhasesWithExplicitAmrapTargets() {
+        val config = FiveThreeOneAuthoringConfig(
+            trainingMax = 200.0,
+            mainScheme = FiveThreeOneMainScheme.Classic,
+            phase = FiveThreeOnePhase.Threes,
+            supplement = FiveThreeOneSupplement.None,
+        )
+
+        val cycle = previewFiveThreeOneCycle(config, increment = 5.0)
+        val saved = fiveThreeOneBuilderSets(emptyList(), cycle)
+
+        assertEquals(12, saved.size)
+        assertEquals(listOf(0, 1, 2, 3), saved.mapNotNull { it.routinePhaseIndex }.distinct())
+        assertEquals(listOf(3, 3, 3, 3), (0..3).map { phase -> saved.count { it.routinePhaseIndex == phase } })
+        assertEquals(3, saved.count { it.classification == WorkoutSetClassification.Amrap.name })
+        assertTrue(saved.all { it.load.isEmpty() })
+        assertTrue(saved.all { it.loadPrescriptionType == RoutineLoadPrescriptionType.PercentTrainingMax.name })
+        assertEquals("65", saved.first { it.routinePhaseIndex == FiveThreeOnePhase.Fives.ordinal }.loadPercentage)
+        assertTrue(saved.filter { it.classification == WorkoutSetClassification.Amrap.name }.all { "minimum" in it.note })
+        assertFalse(saved.filter { it.routinePhaseIndex == FiveThreeOnePhase.Deload.ordinal }
+            .any { it.classification == WorkoutSetClassification.Amrap.name })
+    }
+
+    @Test
+    fun fivesProAndBbbCreateFiveRepMainWorkAndUniversalFiveByTenWork() {
+        val config = FiveThreeOneAuthoringConfig(
+            trainingMax = 100.0,
+            mainScheme = FiveThreeOneMainScheme.FivesPro,
+            phase = FiveThreeOnePhase.Fives,
+            supplement = FiveThreeOneSupplement.BoringButBig,
+            boringButBigPercent = 50.0,
+        )
+
+        val cycle = previewFiveThreeOneCycle(config, increment = 2.5)
+        val main = cycle.filter { it.plan.section == FiveThreeOneSetSection.Main }
+        val supplemental = cycle.filter { it.plan.section == FiveThreeOneSetSection.Supplemental }
+
+        assertEquals(12, main.size)
+        assertTrue(main.all { it.plan.repetitions == 5 && !it.plan.amrap })
+        assertEquals(5, supplemental.size)
+        assertTrue(supplemental.all {
+            it.plan.phase == null && it.plan.repetitions == 10 && it.plan.percentageOfTrainingMax == 50.0
+        })
+    }
+
+    @Test
+    fun firstSetLastTracksEachPhasesFirstPercentage() {
+        val config = FiveThreeOneAuthoringConfig(
+            trainingMax = 100.0,
+            mainScheme = FiveThreeOneMainScheme.Classic,
+            phase = FiveThreeOnePhase.Fives,
+            supplement = FiveThreeOneSupplement.FirstSetLast,
+        )
+
+        val supplemental = previewFiveThreeOneCycle(config, increment = 2.5)
+            .filter { it.plan.section == FiveThreeOneSetSection.Supplemental }
+
+        assertEquals(20, supplemental.size)
+        assertEquals(
+            listOf(65.0, 70.0, 75.0, 40.0),
+            FiveThreeOnePhase.entries.map { phase ->
+                supplemental.first { it.plan.phase == phase }.plan.percentageOfTrainingMax
+            },
+        )
+        assertTrue(supplemental.all { it.plan.repetitions == 5 })
+    }
+
+    @Test
+    fun kgAndPoundLoadsRoundToPracticalIncrementsOrMachineChoices() {
+        assertEquals(85.0, roundedFiveThreeOneLoad(85.1, increment = 2.5), 0.0001)
+        assertEquals(190.0, roundedFiveThreeOneLoad(191.25, increment = 5.0), 0.0001)
+        assertEquals(87.5, roundedFiveThreeOneLoad(86.0, increment = 2.5, availableLoads = listOf(80.0, 87.5, 95.0)), 0.0001)
+        assertEquals(180.0, suggestedFiveThreeOneTrainingMax(200.0, increment = 5.0), 0.0001)
+    }
+
+    @Test
+    fun changingMassUnitsConvertsTrainingMaxIncrementAndAbsoluteSets() {
+        val placement = RoutineBuilderPlacementState(
+            key = 1,
+            exerciseId = 2,
+            exerciseNameSnapshot = "Squat",
+            trainingMaxValue = "220",
+            trainingMaxUnitId = "pound",
+            cycleIncrementValue = "5",
+            sets = listOf(
+                RoutineBuilderSetState(key = 3, load = "110"),
+                RoutineBuilderSetState(
+                    key = 4,
+                    loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax.name,
+                    loadPercentage = "85",
+                ),
+            ),
+        )
+
+        val converted = placement.withProgramMassUnit("kilogram")
+
+        assertEquals("kilogram", converted.trainingMaxUnitId)
+        assertEquals("99.75", converted.trainingMaxValue)
+        assertEquals("2.5", converted.cycleIncrementValue)
+        assertEquals("50", converted.sets.first().load)
+        assertEquals("85", converted.sets.last().loadPercentage)
     }
 }

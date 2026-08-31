@@ -339,7 +339,9 @@ class WhipComposeSemanticsTest {
                 hasText("Log") and hasAnyAncestor(hasTestTag("goal-primary-action-$goalId")),
                 useUnmergedTree = true,
             ).performClick()
-            compose.onNodeWithText("Record Home Callback Goal").assertIsDisplayed()
+            compose.onNodeWithText(
+                "Enter the current observed value. Whip uses the latest entry.",
+            ).assertIsDisplayed()
         }
 
         launchHome {

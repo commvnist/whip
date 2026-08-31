@@ -145,6 +145,30 @@ enum class RoutineLoadPrescriptionType(val label: String) {
     PercentTrainingMax("% of training max"),
 }
 
+/**
+ * Stable routine-program identities. [Static] preserves the pre-program behavior; the
+ * remaining values opt a routine into persisted phase/day/cycle progression.
+ */
+enum class RoutineProgramKind {
+    Static,
+    Custom,
+    FiveThreeOneClassic,
+    FiveSPro,
+    BoringButBig,
+    FirstSetLast,
+}
+
+enum class RoutineTrainingMaxSource {
+    EstimatedOneRepMaxPercent,
+    Explicit,
+}
+
+data class RoutineProgramDraft(
+    val kind: RoutineProgramKind,
+    val phaseCount: Int,
+    val phaseLabels: List<String> = emptyList(),
+)
+
 data class ExerciseDraft(
     val name: String,
     val trackingType: ExerciseTrackingType = ExerciseTrackingType.WeightReps,
@@ -233,6 +257,13 @@ data class WorkoutSession(
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
     val sourceRoutineId: Long? = null,
+    val sourceRoutineDayId: Long? = null,
+    val sourceRoutineProgramKind: RoutineProgramKind = RoutineProgramKind.Static,
+    val sourceRoutinePhaseIndex: Int? = null,
+    val sourceRoutineCycle: Int? = null,
+    val sourceRoutineDayPosition: Int? = null,
+    val sourceRoutineDayProgressionIndex: Int? = null,
+    val programProgressAdvanced: Boolean = false,
 )
 
 data class WorkoutGroup(
@@ -280,6 +311,11 @@ data class WorkoutExercise(
     val machineAddOnPlateKgSnapshot: Double? = null,
     val machineMassMappingKgSnapshot: Map<Double, Double> = emptyMap(),
     val alternativeExerciseIdsSnapshot: List<Long> = emptyList(),
+    val trainingMaxKgSnapshot: Double? = null,
+    val trainingMaxValueSnapshot: Double? = null,
+    val trainingMaxUnitIdSnapshot: String = "",
+    val cycleIncrementValueSnapshot: Double? = null,
+    val trainingMaxSourceSnapshot: RoutineTrainingMaxSource = RoutineTrainingMaxSource.EstimatedOneRepMaxPercent,
 )
 
 /** Stable equipment partition captured when the workout placement is created. */
@@ -319,6 +355,8 @@ data class WorkoutSetDraft(
     val unilateral: Boolean = false,
     val loadPrescriptionType: RoutineLoadPrescriptionType = RoutineLoadPrescriptionType.Absolute,
     val loadPercentage: Double? = null,
+    /** Null applies in every program phase; otherwise this set is active only in that zero-based phase. */
+    val routinePhaseIndex: Int? = null,
 )
 
 fun validateWorkoutSetDraft(
@@ -448,11 +486,15 @@ data class RoutineDraft(
     val name: String,
     val notes: String = "",
     val days: List<RoutineDayDraft>,
+    /** Null keeps legacy/static behavior on create and preserves the stored program on update. */
+    val program: RoutineProgramDraft? = null,
 )
 
 data class RoutineDayDraft(
     val name: String,
     val exercises: List<RoutineExerciseDraft>,
+    /** Null lets repository updates preserve the stored per-day legacy progression cursor. */
+    val progressionIndex: Int? = null,
 )
 
 data class RoutineExerciseDraft(
@@ -479,6 +521,11 @@ data class RoutineExerciseDraft(
     val trainingMaxPercent: Double = 90.0,
     val progressionPercentages: List<Double> = emptyList(),
     val alternativeExerciseIds: List<Long> = emptyList(),
+    /** Explicit, auditable training max. Null retains legacy e1RM-percentage resolution. */
+    val trainingMaxValue: Double? = null,
+    val trainingMaxUnitId: String = "kilogram",
+    val cycleIncrementValue: Double? = null,
+    val trainingMaxSource: RoutineTrainingMaxSource = RoutineTrainingMaxSource.EstimatedOneRepMaxPercent,
 )
 
 enum class RoutineEquipmentBindingState {
@@ -497,6 +544,12 @@ data class GymRoutine(
     val pinned: Boolean,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    val programKind: RoutineProgramKind = RoutineProgramKind.Static,
+    val programPhaseCount: Int = 1,
+    val programPhaseLabels: List<String> = emptyList(),
+    val currentProgramPhaseIndex: Int = 0,
+    val currentProgramCycle: Int = 1,
+    val nextProgramDayPosition: Int = 0,
 )
 
 data class RoutineDay(
@@ -507,6 +560,7 @@ data class RoutineDay(
     val position: Int,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    val progressionIndex: Int = 0,
 )
 
 data class RoutineExercise(
@@ -538,6 +592,11 @@ data class RoutineExercise(
     val trainingMaxPercent: Double = 90.0,
     val progressionPercentages: List<Double> = emptyList(),
     val alternativeExerciseIds: List<Long> = emptyList(),
+    val trainingMaxKg: Double? = null,
+    val trainingMaxValue: Double? = null,
+    val trainingMaxUnitId: String = "kilogram",
+    val cycleIncrementValue: Double? = null,
+    val trainingMaxSource: RoutineTrainingMaxSource = RoutineTrainingMaxSource.EstimatedOneRepMaxPercent,
 )
 
 data class RoutineSet(

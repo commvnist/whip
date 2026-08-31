@@ -784,7 +784,7 @@ fun HabitProgressCard(
             }
             if (habit.sourceMetricId != null) {
                 Text(
-                    "Updates automatically from Health Connect.",
+                    "Read-only source: Health Connect. Updates automatically.",
                     style = if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

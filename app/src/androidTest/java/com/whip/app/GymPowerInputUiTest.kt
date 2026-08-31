@@ -30,6 +30,13 @@ import com.whip.app.domain.ExerciseTrackingType
 import com.whip.app.domain.LoadInterpretation
 import com.whip.app.domain.GymMachineDraft
 import com.whip.app.domain.MachineLevelDirection
+import com.whip.app.domain.GymRoutine
+import com.whip.app.domain.RoutineDay
+import com.whip.app.domain.RoutineExercise
+import com.whip.app.domain.RoutineLoadPrescriptionType
+import com.whip.app.domain.RoutineProgramKind
+import com.whip.app.domain.RoutineSet
+import com.whip.app.domain.RoutineTrainingMaxSource
 import com.whip.app.domain.WorkoutExercise
 import com.whip.app.domain.WorkoutGroup
 import com.whip.app.domain.WorkoutGroupType
@@ -37,6 +44,7 @@ import com.whip.app.domain.WorkoutSession
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.WorkoutSet
 import com.whip.app.domain.WorkoutSetClassification
+import com.whip.app.domain.WorkoutSetDraft
 import com.whip.app.core.DEFAULT_REST_TIMER_PRESET_SECONDS
 import com.whip.app.ui.ExerciseEditorDialog
 import com.whip.app.ui.MachineEditorDialog
@@ -47,10 +55,14 @@ import com.whip.app.ui.WorkoutExerciseCard
 import com.whip.app.ui.WorkoutExerciseGroupSurface
 import com.whip.app.ui.WorkoutExerciseUi
 import com.whip.app.ui.WorkoutHistoryCard
+import com.whip.app.ui.GymUiState
 import com.whip.app.ui.buildWorkoutExerciseBlocks
 import com.whip.app.ui.customDisplayName
 import com.whip.app.ui.reorderWorkoutBlock
 import com.whip.app.ui.reorderWorkoutGroupMember
+import com.whip.app.ui.routineDraftForEditing
+import com.whip.app.ui.routineProgramStatusLabel
+import com.whip.app.ui.workoutProgramSnapshotLabel
 import com.whip.app.data.MachineDeletionImpact
 import com.whip.app.ui.theme.WhipTheme
 import org.junit.Rule
@@ -65,6 +77,91 @@ import java.time.Instant
 class GymPowerInputUiTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun routineEditReconstructionPreservesAdvancedProgrammingFields() {
+        val routine = GymRoutine(
+            id = 1,
+            uuid = "routine",
+            name = "Strength cycle",
+            notes = "Keep the plan",
+            position = 0,
+            archived = false,
+            pinned = false,
+            createdAtMillis = 1,
+            updatedAtMillis = 2,
+            programKind = RoutineProgramKind.FiveThreeOneClassic,
+            programPhaseCount = 4,
+            programPhaseLabels = listOf("5s", "3s", "5/3/1", "Deload"),
+            currentProgramPhaseIndex = 2,
+            currentProgramCycle = 3,
+            nextProgramDayPosition = 1,
+        )
+        val day = RoutineDay(2, "day", routine.id, "Upper", 0, 1, 2, progressionIndex = 4)
+        val placement = RoutineExercise(
+            id = 3,
+            uuid = "placement",
+            routineDayId = day.id,
+            exerciseId = 4,
+            position = 0,
+            notes = "Bar path",
+            groupKey = null,
+            copyPreviousWorkout = false,
+            createdAtMillis = 1,
+            updatedAtMillis = 2,
+            trainingMaxPercent = 87.5,
+            progressionPercentages = listOf(100.0, 102.5, 90.0),
+            alternativeExerciseIds = listOf(7L, 9L),
+            trainingMaxValue = 225.0,
+            trainingMaxUnitId = "pound",
+            cycleIncrementValue = 5.0,
+            trainingMaxSource = RoutineTrainingMaxSource.Explicit,
+        )
+        val plannedSet = RoutineSet(
+            id = 5,
+            uuid = "planned-set",
+            routineExerciseId = placement.id,
+            position = 0,
+            draft = WorkoutSetDraft(
+                reps = 5,
+                repsMax = 8,
+                planned = true,
+                classification = WorkoutSetClassification.Amrap,
+                loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                loadPercentage = 85.0,
+                routinePhaseIndex = 2,
+            ),
+            createdAtMillis = 1,
+            updatedAtMillis = 2,
+        )
+
+        val reconstructed = routineDraftForEditing(
+            GymUiState(
+                routines = listOf(routine),
+                routineDays = listOf(day),
+                routineExercises = listOf(placement),
+                routineSets = listOf(plannedSet),
+            ),
+            routine,
+        )
+        val reconstructedPlacement = reconstructed.days.single().exercises.single()
+
+        assertEquals(87.5, reconstructedPlacement.trainingMaxPercent, 0.0)
+        assertEquals(listOf(100.0, 102.5, 90.0), reconstructedPlacement.progressionPercentages)
+        assertEquals(listOf(7L, 9L), reconstructedPlacement.alternativeExerciseIds)
+        assertEquals(225.0, reconstructedPlacement.trainingMaxValue!!, 0.0)
+        assertEquals("pound", reconstructedPlacement.trainingMaxUnitId)
+        assertEquals(5.0, reconstructedPlacement.cycleIncrementValue!!, 0.0)
+        assertEquals(RoutineTrainingMaxSource.Explicit, reconstructedPlacement.trainingMaxSource)
+        assertEquals(4, reconstructed.days.single().progressionIndex)
+        assertEquals(RoutineProgramKind.FiveThreeOneClassic, reconstructed.program?.kind)
+        assertEquals(listOf("5s", "3s", "5/3/1", "Deload"), reconstructed.program?.phaseLabels)
+        assertEquals(plannedSet.draft, reconstructedPlacement.plannedSets.single())
+        assertEquals(
+            "Classic 5/3/1 · Cycle 3 · 5/3/1 · Next · Upper",
+            routineProgramStatusLabel(routine, "Upper"),
+        )
+    }
 
     @Test
     fun convertingExerciseToPoundsUsesPoundHardwareRatherThanConvertedDecimals() {
@@ -747,14 +844,43 @@ class GymPowerInputUiTest {
             testExercise().copy(id = 3, name = "Dumbbell Bicep Curl"),
         )
         val placements = exercises.mapIndexed { index, exercise ->
-            testWorkoutExercise(exercise).copy(id = (index + 10).toLong(), exerciseId = exercise.id, position = index)
+            testWorkoutExercise(exercise).copy(
+                id = (index + 10).toLong(),
+                exerciseId = exercise.id,
+                position = index,
+                machineNameSnapshot = "Rack A".takeIf { index == 0 }.orEmpty(),
+                machineConfigurationSnapshot = "Safety 8 · Bench 3".takeIf { index == 0 }.orEmpty(),
+            )
         }
         val sets = placements.flatMapIndexed { index, placement ->
             List(index + 1) { setIndex ->
-                testWorkoutSet((index * 10 + setIndex + 1).toLong(), placement.id).copy(completed = true)
+                testWorkoutSet((index * 10 + setIndex + 1).toLong(), placement.id).copy(
+                    completed = true,
+                    classification = if (index == 0) WorkoutSetClassification.Amrap else WorkoutSetClassification.Working,
+                    enteredWeight = if (index == 0) 85.0 else 50.0,
+                    canonicalWeightKg = if (index == 0) 85.0 else 50.0,
+                    repetitions = if (index == 0) 7 else 5,
+                    rpe = 9.0.takeIf { index == 0 },
+                    rir = 1.0.takeIf { index == 0 },
+                    tempo = "3-1-1".takeIf { index == 0 }.orEmpty(),
+                    restSeconds = if (index == 0) 180 else 120,
+                    note = "Strong set".takeIf { index == 0 }.orEmpty(),
+                    prescribedEnteredWeight = 82.5.takeIf { index == 0 },
+                    prescribedWeightUnitId = "kilogram".takeIf { index == 0 },
+                    prescribedRepetitions = 5.takeIf { index == 0 },
+                    prescribedRepetitionsMax = 5.takeIf { index == 0 },
+                    prescriptionSourceLabel = "85% TM".takeIf { index == 0 }.orEmpty(),
+                )
             }
         }
-        val session = testHistorySession()
+        val session = testHistorySession().copy(
+            sourceRoutineProgramKind = RoutineProgramKind.FiveThreeOneClassic,
+            sourceRoutinePhaseIndex = 2,
+            sourceRoutineCycle = 3,
+            sourceRoutineDayPosition = 1,
+            sourceRoutineDayProgressionIndex = 4,
+            programProgressAdvanced = false,
+        )
         compose.setContent {
             var expanded by remember { mutableStateOf(false) }
             var menuExpanded by remember { mutableStateOf(false) }
@@ -789,8 +915,22 @@ class GymPowerInputUiTest {
         compose.onAllNodesWithText("Use Again").assertCountEquals(0)
 
         compose.onNodeWithTag("history-workout-toggle-${session.id}").performClick()
+        compose.onNodeWithTag("history-program-snapshot-${session.id}")
+            .assertTextContains(
+                "Program snapshot · Classic 5/3/1 · Cycle 3 · Phase 3 · Day 2 · Day progression 5 · Did not advance program progress",
+            )
         compose.onAllNodesWithText("Use Again").assertCountEquals(3)
-        compose.onNodeWithText("Repeat Workout").assertIsDisplayed()
+        compose.onNodeWithText("Repeat Workout").assertExists()
+        compose.onNodeWithText("Equipment: Rack A", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Setup: Safety 8 · Bench 3").assertIsDisplayed()
+        compose.onNodeWithTag("history-set-performed-${sets.first().id}")
+            .assertTextContains("Performed · 85 kg × 7 reps")
+        compose.onNodeWithTag("history-set-target-${sets.first().id}")
+            .assertTextContains("85% TM", substring = true)
+            .assertTextContains("82.5 kg entered", substring = true)
+            .assertTextContains("5+ reps", substring = true)
+        compose.onNodeWithText("RPE 9 · RIR 1 · 3:00 rest · Tempo 3-1-1").assertIsDisplayed()
+        compose.onNodeWithText("Note · Strong set").assertIsDisplayed()
         compose.onAllNodesWithText("Copy Flat Barbell Bench Press Sets").assertCountEquals(0)
         compose.onAllNodesWithText("Edit Details").assertCountEquals(0)
         compose.onAllNodesWithText("Resume Workout").assertCountEquals(0)
@@ -806,6 +946,10 @@ class GymPowerInputUiTest {
         compose.onNodeWithText("Edit Details").assertIsDisplayed()
         compose.onNodeWithText("Resume Original Workout").assertIsDisplayed()
         compose.onNodeWithText("Save as Routine").assertIsDisplayed()
+        assertEquals(
+            "Program snapshot · Classic 5/3/1 · Cycle 3 · Phase 3 · Day 2 · Day progression 5 · Did not advance program progress",
+            workoutProgramSnapshotLabel(session),
+        )
     }
 
     private fun testHistorySession() = WorkoutSession(

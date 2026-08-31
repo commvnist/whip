@@ -655,7 +655,12 @@ fun WhipApp(
                 transientAreaScopeDelivery = requestedLaunchDeliveryId
                 return@LaunchedEffect
             }
-            LaunchTargetResolution.NotApplicable -> return@LaunchedEffect
+            LaunchTargetResolution.NotApplicable -> {
+                // Commands that create content or open a workspace do not resolve an existing
+                // entity area, but they still need to release the launch-delivery gate.
+                transientAreaScopeDelivery = requestedLaunchDeliveryId
+                return@LaunchedEffect
+            }
             LaunchTargetResolution.Pending,
             is LaunchTargetResolution.LoadFailed -> return@LaunchedEffect
         }

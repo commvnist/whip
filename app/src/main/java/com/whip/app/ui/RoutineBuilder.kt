@@ -43,7 +43,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
@@ -53,6 +52,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -71,15 +71,21 @@ import com.whip.app.domain.GymMachineDraft
 import com.whip.app.domain.LoadInterpretation
 import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineLoadType
+import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineEquipmentBindingState
 import com.whip.app.domain.RoutineLoadPrescriptionType
+import com.whip.app.domain.RoutineProgramDraft
+import com.whip.app.domain.RoutineProgramKind
 import com.whip.app.domain.RoutineExerciseDraft
+import com.whip.app.domain.RoutineTrainingMaxSource
 import com.whip.app.domain.WorkoutSession
 import com.whip.app.domain.WorkoutSetClassification
 import com.whip.app.domain.WorkoutSetDraft
+import com.whip.app.domain.convertPracticalMassValue
 import com.whip.app.domain.editableNumericValue
+import com.whip.app.domain.massFromKilograms
 import com.whip.app.domain.unitSymbol
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.core.RepPrescriptionScheme
@@ -173,6 +179,36 @@ internal fun RoutineBuilderScreen(
                     if (placement.key == placementKey) transform(placement) else placement
                 })
             })
+        }
+    }
+
+    fun freeWeightUnitId(placement: RoutineBuilderPlacementState): String = gymState.exercises
+        .firstOrNull { it.id == placement.exerciseId }
+        ?.weightUnitId
+        ?.takeIf(String::isNotBlank)
+        ?: gymState.appSettings.gymWeightUnitId
+
+    fun applyFiveThreeOneProgram(placementKey: Long, result: FiveThreeOneBuilderResult) {
+        stateHolder.update { current ->
+            current.copy(
+                programKind = result.programKind.name,
+                programPhaseCount = FiveThreeOnePhase.entries.size,
+                programPhaseLabels = FiveThreeOnePhase.entries.map(FiveThreeOnePhase::label),
+                days = current.days.map { day ->
+                    day.copy(
+                        placements = day.placements.map { placement ->
+                            if (placement.key != placementKey) placement else placement.copy(
+                                sets = result.sets,
+                                copyPreviousWorkout = false,
+                                trainingMaxValue = editableNumericValue(result.trainingMax),
+                                trainingMaxUnitId = result.trainingMaxUnitId,
+                                cycleIncrementValue = editableNumericValue(result.cycleIncrementValue),
+                                trainingMaxSource = RoutineTrainingMaxSource.Explicit.name,
+                            )
+                        },
+                    )
+                },
+            )
         }
     }
 
@@ -343,7 +379,7 @@ internal fun RoutineBuilderScreen(
                                             equipmentPickerPlacementKey = null
                                         },
                                         onNoMachine = {
-                                            updatePlacement(selectedPlacement.key) { it.withoutMachine() }
+                                            updatePlacement(selectedPlacement.key) { it.withoutMachine(freeWeightUnitId(it)) }
                                             equipmentPickerPlacementKey = null
                                         },
                                         onQuickCreate = { quickMachinePlacementKey = selectedPlacement.key },
@@ -359,6 +395,8 @@ internal fun RoutineBuilderScreen(
                                         showAdvanced = showAdvancedSetFields,
                                         onShowAdvanced = { showAdvancedSetFields = it },
                                         onUpdate = { transform -> updatePlacement(selectedPlacement.key, transform) },
+                                        programKind = builder.programKind,
+                                        onApplyFiveThreeOne = { result -> applyFiveThreeOneProgram(selectedPlacement.key, result) },
                                         onUpdateDay = { transform -> updateDay(selectedDay.key, transform) },
                                         onChooseEquipment = { equipmentPickerPlacementKey = selectedPlacement.key },
                                         onMoveToDay = { target, copy -> moveOrCopyPlacement(stateHolder, selectedDay.key, target, selectedPlacement, copy) },
@@ -376,7 +414,10 @@ internal fun RoutineBuilderScreen(
                                     placement = selectedPlacement,
                                     gymState = gymState,
                                     onChoose = { machine -> updatePlacement(selectedPlacement.key) { it.withMachine(machine) }; equipmentPickerPlacementKey = null },
-                                    onNoMachine = { updatePlacement(selectedPlacement.key) { it.withoutMachine() }; equipmentPickerPlacementKey = null },
+                                    onNoMachine = {
+                                        updatePlacement(selectedPlacement.key) { it.withoutMachine(freeWeightUnitId(it)) }
+                                        equipmentPickerPlacementKey = null
+                                    },
                                     onQuickCreate = { quickMachinePlacementKey = selectedPlacement.key },
                                     onAdvancedCreate = { machineEditorPlacementKey = selectedPlacement.key },
                                 )
@@ -390,6 +431,8 @@ internal fun RoutineBuilderScreen(
                                     showAdvanced = showAdvancedSetFields,
                                     onShowAdvanced = { showAdvancedSetFields = it },
                                     onUpdate = { transform -> updatePlacement(selectedPlacement.key, transform) },
+                                    programKind = builder.programKind,
+                                    onApplyFiveThreeOne = { result -> applyFiveThreeOneProgram(selectedPlacement.key, result) },
                                     onUpdateDay = { transform -> updateDay(selectedDay.key, transform) },
                                     onChooseEquipment = { equipmentPickerPlacementKey = selectedPlacement.key },
                                     onMoveToDay = { target, copy -> moveOrCopyPlacement(stateHolder, selectedDay.key, target, selectedPlacement, copy) },
@@ -540,27 +583,54 @@ private fun RoutineBuilderHeader(
     onCancel: () -> Unit,
     onSave: () -> Unit,
 ) {
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back in routine builder")
-        }
-        Text(
-            when (page) {
-                RoutineBuilderPage.Outline -> if (editing) "Edit routine" else "New routine"
-                RoutineBuilderPage.ExercisePicker -> "Add exercises"
-                RoutineBuilderPage.WorkoutPicker -> "Add from workout"
-            }.uiTitleCase(),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(1f).semantics { heading() },
-        )
-        if (page == RoutineBuilderPage.Outline) {
-            WhipTextButton(onClick = onCancel) { Text("Cancel") }
-            WhipButton(enabled = canSave, onClick = onSave, modifier = Modifier.testTag("routine-builder-save")) { Text("Save") }
+    val title = when (page) {
+        RoutineBuilderPage.Outline -> if (editing) "Edit routine" else "New routine"
+        RoutineBuilderPage.ExercisePicker -> "Add exercises"
+        RoutineBuilderPage.WorkoutPicker -> "Add from workout"
+    }.uiTitleCase()
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val stackActions = maxWidth < 430.dp || LocalDensity.current.fontScale > 1.2f
+        if (page == RoutineBuilderPage.Outline && stackActions) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back in routine builder")
+                    }
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f).semantics { heading() },
+                    )
+                }
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                ) {
+                    WhipTextButton(onClick = onCancel) { Text("Cancel") }
+                    WhipButton(enabled = canSave, onClick = onSave, modifier = Modifier.testTag("routine-builder-save")) { Text("Save") }
+                }
+            }
+        } else {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back in routine builder")
+                }
+                Text(
+                    title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f).semantics { heading() },
+                )
+                if (page == RoutineBuilderPage.Outline) {
+                    WhipTextButton(onClick = onCancel) { Text("Cancel") }
+                    WhipButton(enabled = canSave, onClick = onSave, modifier = Modifier.testTag("routine-builder-save")) { Text("Save") }
+                }
+            }
         }
     }
     HorizontalDivider()
@@ -941,6 +1011,8 @@ private fun RoutinePlacementEditor(
     showAdvanced: Boolean,
     onShowAdvanced: (Boolean) -> Unit,
     onUpdate: ((RoutineBuilderPlacementState) -> RoutineBuilderPlacementState) -> Unit,
+    programKind: String?,
+    onApplyFiveThreeOne: (FiveThreeOneBuilderResult) -> Unit,
     onUpdateDay: ((RoutineBuilderDayState) -> RoutineBuilderDayState) -> Unit,
     onChooseEquipment: () -> Unit,
     onMoveToDay: (Long, Boolean) -> Unit,
@@ -957,6 +1029,36 @@ private fun RoutinePlacementEditor(
     var editingSchemeId by rememberSaveable(placement.key) { mutableStateOf<String?>(null) }
     var pendingDeleteSchemeId by rememberSaveable(placement.key) { mutableStateOf<String?>(null) }
     var alternativeQuery by rememberSaveable(placement.key) { mutableStateOf("") }
+    var showFiveThreeOneBuilder by rememberSaveable(placement.key) {
+        mutableStateOf(placement.sets.any { it.routinePhaseIndex != null })
+    }
+    var visibleProgramPhase by rememberSaveable(placement.key) { mutableStateOf(0) }
+    val supportsFiveThreeOne = exercise?.trackingType == ExerciseTrackingType.WeightReps &&
+        (machine == null || machine.loadType == MachineLoadType.Mass)
+    val programUnitId = when {
+        machine?.loadType == MachineLoadType.Mass -> machine.unitId
+        else -> exercise?.weightUnitId ?: gymState.appSettings.gymWeightUnitId
+    }.ifBlank { gymState.appSettings.gymWeightUnitId }
+    val programIncrement = exercise?.weightIncrement?.takeIf {
+        it > 0.0 && programUnitId == exercise.weightUnitId
+    } ?: if (programUnitId == "pound") 5.0 else 2.5
+    val programAvailableLoads = machine?.availableLoads.orEmpty().takeIf {
+        machine?.loadType == MachineLoadType.Mass
+    }.orEmpty()
+    val currentEstimatedOneRepMax = gymState.personalRecords.asSequence()
+        .filter { it.current && it.exerciseId == placement.exerciseId && it.type == PersonalRecordType.EstimatedOneRepMax }
+        .filter { record ->
+            if (machine == null) record.machineId == null
+            else record.machineProfileUuidSnapshot == machine.uuid || record.machineId == machine.id
+        }
+        .maxByOrNull { it.value }
+        ?.value
+        ?.let { massFromKilograms(it, programUnitId) }
+    val suggestedTrainingMax = currentEstimatedOneRepMax?.let { estimate ->
+        runCatching {
+            suggestedFiveThreeOneTrainingMax(estimate, programIncrement, availableLoads = programAvailableLoads)
+        }.getOrNull()
+    }
     WhipReorderLazyColumn(
         modifier = modifier.testTag("routine-placement-editor"),
         contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 100.dp),
@@ -982,6 +1084,29 @@ private fun RoutinePlacementEditor(
                 modifier = Modifier.fillMaxWidth(),
                 maxLines = 3,
             )
+        }
+        if (supportsFiveThreeOne) item {
+            WhipOutlinedButton(
+                onClick = { showFiveThreeOneBuilder = !showFiveThreeOneBuilder },
+                modifier = Modifier.fillMaxWidth().testTag("routine-five-three-one-toggle"),
+            ) {
+                Text(if (showFiveThreeOneBuilder) "Hide Guided 5/3/1 Builder" else "Build a 5/3/1 Program")
+            }
+            if (showFiveThreeOneBuilder) {
+                FiveThreeOneBuilder(
+                    placementKey = placement.key,
+                    exerciseName = exercise.name,
+                    currentSets = placement.sets,
+                    unitId = programUnitId,
+                    increment = programIncrement,
+                    availableLoads = programAvailableLoads,
+                    suggestedTrainingMax = suggestedTrainingMax,
+                    initialTrainingMax = placement.trainingMaxValue.toWhipDoubleOrNull(),
+                    initialCycleIncrement = placement.cycleIncrementValue.toWhipDoubleOrNull(),
+                    initialProgramKind = programKind?.let { runCatching { RoutineProgramKind.valueOf(it) }.getOrNull() },
+                    onApply = onApplyFiveThreeOne,
+                )
+            }
         }
         if (exercise?.supportsRepPrescription() != false) item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -1065,20 +1190,24 @@ private fun RoutinePlacementEditor(
             }
         }
         item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Show Advanced Prescription Fields", modifier = Modifier.weight(1f))
-                Switch(checked = showAdvanced, onCheckedChange = onShowAdvanced)
-            }
+            RoutineLabeledSwitchRow(
+                label = "Show Advanced Prescription Fields",
+                checked = showAdvanced,
+                onCheckedChange = onShowAdvanced,
+                testTag = "routine-show-advanced",
+            )
             if (showAdvanced) {
                 DependentSettingsNotice(
                     message = "RPE, RIR, rest, tempo, notes, and unilateral controls are shown inside every set below.",
                     testTag = "routine-advanced-consequence",
                 )
             }
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Copy Previous Values When No Plan", modifier = Modifier.weight(1f))
-                Switch(checked = placement.copyPreviousWorkout, onCheckedChange = { checked -> onUpdate { it.copy(copyPreviousWorkout = checked) } })
-            }
+            RoutineLabeledSwitchRow(
+                label = "Copy Previous Values When No Plan",
+                checked = placement.copyPreviousWorkout,
+                onCheckedChange = { checked -> onUpdate { it.copy(copyPreviousWorkout = checked) } },
+                testTag = "routine-copy-previous",
+            )
             if (placement.copyPreviousWorkout) {
                 Text(
                     "Unplanned fields start with values from the previous workout.",
@@ -1087,20 +1216,43 @@ private fun RoutinePlacementEditor(
                 )
             }
         }
-        items(placement.sets.size, key = { placement.sets[it].key }) { setIndex ->
-            val set = placement.sets[setIndex]
+        val hasProgramPhases = placement.sets.any { it.routinePhaseIndex != null }
+        if (hasProgramPhases) item {
+            Text("Edit Program Phase", fontWeight = FontWeight.SemiBold)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                FiveThreeOnePhase.entries.forEachIndexed { index, phase ->
+                    WhipFilterChip(
+                        selected = visibleProgramPhase == index,
+                        onClick = { visibleProgramPhase = index },
+                        label = { Text(phase.label) },
+                        modifier = Modifier.testTag("routine-program-phase-$index"),
+                    )
+                }
+            }
+            Text(
+                "Showing this phase plus supplemental sets that apply in every phase.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        val visibleSets = placement.sets.filter { set ->
+            !hasProgramPhases || set.routinePhaseIndex == null || set.routinePhaseIndex == visibleProgramPhase
+        }
+        items(visibleSets.size, key = { visibleSets[it].key }) { setIndex ->
+            val set = visibleSets[setIndex]
             RoutineSetEditorCard(
                 set = set,
                 exercise = exercise,
                 machine = machine,
                 showAdvanced = showAdvanced,
                 canMovePrevious = setIndex > 0,
-                canMoveNext = setIndex < placement.sets.lastIndex,
+                canMoveNext = setIndex < visibleSets.lastIndex,
                 position = setIndex + 1,
-                total = placement.sets.size,
+                total = visibleSets.size,
                 layoutScope = "routine-placement-${placement.key}-sets",
                 onMove = { delta ->
-                    onUpdate { current -> current.copy(sets = moveListItem(current.sets, setIndex, delta)) }
+                    val target = visibleSets.getOrNull(setIndex + delta)
+                    if (target != null) onUpdate { current -> current.copy(sets = swapRoutineBuilderSets(current.sets, set.key, target.key)) }
                 },
                 onUpdate = { transform -> onUpdate { current -> current.copy(sets = current.sets.map { if (it.key == set.key) transform(it) else it }) } },
                 onDuplicate = { onUpdate { current -> current.copy(sets = current.sets + set.copy(key = nextLocalSetKey(current.sets))) } },
@@ -1109,7 +1261,16 @@ private fun RoutinePlacementEditor(
         }
         item {
             WhipOutlinedButton(
-                onClick = { onUpdate { current -> current.copy(sets = current.sets + RoutineBuilderSetState(nextLocalSetKey(current.sets))) } },
+                onClick = {
+                    onUpdate { current ->
+                        current.copy(
+                            sets = current.sets + RoutineBuilderSetState(
+                                key = nextLocalSetKey(current.sets),
+                                routinePhaseIndex = visibleProgramPhase.takeIf { hasProgramPhases },
+                            ),
+                        )
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Add Set") }
         }
@@ -1519,10 +1680,11 @@ private fun RoutineSetEditorCard(
                     second = { field -> OutlinedTextField(set.tempo, { value -> onUpdate { it.copy(tempo = value) } }, label = { Text("Tempo") }, modifier = field, singleLine = true) },
                 )
                 OutlinedTextField(set.note, { value -> onUpdate { it.copy(note = value) } }, label = { Text("Set note") }, modifier = Modifier.fillMaxWidth(), maxLines = 2)
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Unilateral Set", modifier = Modifier.weight(1f))
-                    Switch(set.unilateral, { checked -> onUpdate { it.copy(unilateral = checked) } })
-                }
+                RoutineLabeledSwitchRow(
+                    label = "Unilateral Set",
+                    checked = set.unilateral,
+                    onCheckedChange = { checked -> onUpdate { it.copy(unilateral = checked) } },
+                )
             }
         }
     }
@@ -1778,6 +1940,10 @@ private fun buildInitialRoutineState(
                     trainingMaxPercent = editableNumericValue(placement.trainingMaxPercent),
                     progressionPercentages = placement.progressionPercentages.joinToString(", ", transform = ::editableNumericValue),
                     alternativeExerciseIds = placement.alternativeExerciseIds,
+                    trainingMaxValue = placement.trainingMaxValue?.let(::editableNumericValue).orEmpty(),
+                    trainingMaxUnitId = placement.trainingMaxUnitId,
+                    cycleIncrementValue = placement.cycleIncrementValue?.let(::editableNumericValue).orEmpty(),
+                    trainingMaxSource = placement.trainingMaxSource.name,
                     sets = placement.plannedSets.map { set ->
                         RoutineBuilderSetState(
                             key = next++,
@@ -1795,6 +1961,7 @@ private fun buildInitialRoutineState(
                             unilateral = set.unilateral,
                             loadPrescriptionType = set.loadPrescriptionType.name,
                             loadPercentage = set.loadPercentage?.let(::editableNumericValue).orEmpty(),
+                            routinePhaseIndex = set.routinePhaseIndex,
                         )
                     },
                 )
@@ -1808,6 +1975,9 @@ private fun buildInitialRoutineState(
         days = days,
         selectedDayKey = days.first().key,
         nextKey = next,
+        programKind = initial?.program?.kind?.name,
+        programPhaseCount = initial?.program?.phaseCount ?: 1,
+        programPhaseLabels = initial?.program?.phaseLabels.orEmpty(),
     )
 }
 
@@ -1852,6 +2022,7 @@ private fun RoutineBuilderState.toRoutineDraft(gymState: GymUiState): RoutineDra
                                 loadPrescriptionType = runCatching { RoutineLoadPrescriptionType.valueOf(set.loadPrescriptionType) }
                                     .getOrDefault(RoutineLoadPrescriptionType.Absolute),
                                 loadPercentage = set.loadPercentage.toWhipDoubleOrNull(),
+                                routinePhaseIndex = set.routinePhaseIndex,
                             )
                         },
                         copyPreviousWorkout = placement.copyPreviousWorkout,
@@ -1869,8 +2040,20 @@ private fun RoutineBuilderState.toRoutineDraft(gymState: GymUiState): RoutineDra
                         trainingMaxPercent = placement.trainingMaxPercent.toWhipDoubleOrNull() ?: 90.0,
                         progressionPercentages = placement.progressionPercentages.split(',').mapNotNull { it.trim().toWhipDoubleOrNull() },
                         alternativeExerciseIds = placement.alternativeExerciseIds.distinct().filterNot { it == placement.exerciseId },
+                        trainingMaxValue = placement.trainingMaxValue.toWhipDoubleOrNull(),
+                        trainingMaxUnitId = placement.trainingMaxUnitId,
+                        cycleIncrementValue = placement.cycleIncrementValue.toWhipDoubleOrNull(),
+                        trainingMaxSource = runCatching { RoutineTrainingMaxSource.valueOf(placement.trainingMaxSource) }
+                            .getOrDefault(RoutineTrainingMaxSource.EstimatedOneRepMaxPercent),
                     )
                 },
+            )
+        },
+        program = programKind?.let { kind ->
+            RoutineProgramDraft(
+                kind = runCatching { RoutineProgramKind.valueOf(kind) }.getOrDefault(RoutineProgramKind.Static),
+                phaseCount = programPhaseCount,
+                phaseLabels = programPhaseLabels,
             )
         },
     )
@@ -1923,7 +2106,9 @@ private fun RoutineBuilderPlacementState.withMachine(machine: GymMachine) = copy
     machineConfigurationGroupSnapshot = machine.configurationGroupId,
     machineConfigurationVersionSnapshot = machine.configurationVersion,
     machineConfigurationSnapshot = listOf(machine.seatPosition, machine.backPosition, machine.attachment).filter(String::isNotBlank).joinToString(" · "),
-)
+).let { updated ->
+    if (machine.loadType == MachineLoadType.Mass) updated.withProgramMassUnit(machine.unitId) else updated
+}
 
 private fun RoutineBuilderPlacementState.withMachine(id: Long, draft: GymMachineDraft) = copy(
     machineId = id,
@@ -1937,9 +2122,11 @@ private fun RoutineBuilderPlacementState.withMachine(id: Long, draft: GymMachine
     machineConfigurationGroupSnapshot = draft.configurationGroupId,
     machineConfigurationVersionSnapshot = draft.configurationVersion,
     machineConfigurationSnapshot = listOf(draft.seatPosition, draft.backPosition, draft.attachment).filter(String::isNotBlank).joinToString(" · "),
-)
+).let { updated ->
+    if (draft.loadType == MachineLoadType.Mass) updated.withProgramMassUnit(draft.unitId) else updated
+}
 
-private fun RoutineBuilderPlacementState.withoutMachine() = copy(
+private fun RoutineBuilderPlacementState.withoutMachine(freeWeightUnitId: String) = copy(
     machineId = null,
     equipmentBindingState = RoutineEquipmentBindingState.None.name,
     machineProfileUuidSnapshot = null,
@@ -1951,7 +2138,28 @@ private fun RoutineBuilderPlacementState.withoutMachine() = copy(
     machineConfigurationGroupSnapshot = "",
     machineConfigurationVersionSnapshot = 1,
     machineConfigurationSnapshot = "",
-)
+).withProgramMassUnit(freeWeightUnitId)
+
+/** Keeps entered prescriptions and explicit cycle values physically equivalent across unit changes. */
+internal fun RoutineBuilderPlacementState.withProgramMassUnit(targetUnitId: String): RoutineBuilderPlacementState {
+    if (targetUnitId.isBlank() || targetUnitId == trainingMaxUnitId) return copy(trainingMaxUnitId = targetUnitId)
+    fun converted(value: String): String = value.toWhipDoubleOrNull()
+        ?.let { convertPracticalMassValue(it, trainingMaxUnitId, targetUnitId) }
+        ?.let(::editableNumericValue)
+        .orEmpty()
+    return copy(
+        trainingMaxValue = converted(trainingMaxValue),
+        trainingMaxUnitId = targetUnitId,
+        cycleIncrementValue = converted(cycleIncrementValue),
+        sets = sets.map { set ->
+            if (set.loadPrescriptionType == RoutineLoadPrescriptionType.Absolute.name && set.load.isNotBlank()) {
+                set.copy(load = converted(set.load))
+            } else {
+                set
+            }
+        },
+    )
+}
 
 private fun duplicatePlacement(holder: RoutineBuilderViewModel, dayKey: Long, source: RoutineBuilderPlacementState) {
     holder.update { state ->
@@ -2134,6 +2342,21 @@ private fun Exercise.supportsRepPrescription(): Boolean = trackingType !in setOf
 )
 
 private fun nextLocalSetKey(sets: List<RoutineBuilderSetState>): Long = (sets.maxOfOrNull { it.key } ?: 0L) + 1L
+
+private fun swapRoutineBuilderSets(
+    sets: List<RoutineBuilderSetState>,
+    firstKey: Long,
+    secondKey: Long,
+): List<RoutineBuilderSetState> {
+    val first = sets.indexOfFirst { it.key == firstKey }
+    val second = sets.indexOfFirst { it.key == secondKey }
+    if (first < 0 || second < 0 || first == second) return sets
+    return sets.toMutableList().also { reordered ->
+        val value = reordered[first]
+        reordered[first] = reordered[second]
+        reordered[second] = value
+    }
+}
 
 private fun nextGroupName(day: RoutineBuilderDayState): String {
     val used = day.placements.mapNotNull { it.groupKey }.toSet()

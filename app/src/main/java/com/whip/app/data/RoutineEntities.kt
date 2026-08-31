@@ -19,6 +19,12 @@ data class GymRoutineEntity(
     val pinned: Boolean,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    val programKind: String = "Static",
+    val programPhaseCount: Int = 1,
+    val programPhaseLabelsCsv: String = "",
+    val currentProgramPhaseIndex: Int = 0,
+    val currentProgramCycle: Int = 1,
+    val nextProgramDayPosition: Int = 0,
 )
 
 @Entity(
@@ -41,6 +47,8 @@ data class RoutineDayEntity(
     val position: Int,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    /** Persisted cursor for backward-compatible per-day load-multiplier waves. */
+    val progressionIndex: Int = 0,
 )
 
 @Entity(
@@ -92,6 +100,11 @@ data class RoutineExerciseEntity(
     val trainingMaxPercent: Double = 90.0,
     val progressionPercentagesCsv: String = "",
     val alternativeExerciseIdsCsv: String = "",
+    val trainingMaxKg: Double? = null,
+    val trainingMaxValue: Double? = null,
+    val trainingMaxUnitId: String = "kilogram",
+    val cycleIncrementValue: Double? = null,
+    val trainingMaxSource: String = "EstimatedOneRepMaxPercent",
 )
 
 @Entity(
@@ -131,6 +144,8 @@ data class RoutineSetEntity(
     val repetitionsMax: Int? = null,
     val loadPrescriptionType: String = "Absolute",
     val loadPercentage: Double? = null,
+    /** Null means the set applies in every phase. */
+    val routinePhaseIndex: Int? = null,
 )
 
 @Entity(

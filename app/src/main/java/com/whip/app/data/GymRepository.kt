@@ -29,8 +29,11 @@ import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.WorkoutSet
 import com.whip.app.domain.WorkoutSetClassification
 import com.whip.app.domain.WorkoutSetDraft
+import com.whip.app.domain.RoutineProgramKind
+import com.whip.app.domain.RoutineTrainingMaxSource
 import com.whip.app.domain.validateWorkoutSetDraft
 import com.whip.app.domain.applyPolicySnapshot
+import com.whip.app.domain.massToKilograms
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -120,6 +123,7 @@ class RoomGymRepository(
     private val settingsRepository: SettingsRepository? = null,
 ) : GymRepository {
     private val dao = database.gymDao()
+    private val routineDao = database.routineDao()
 
     override val machines = combine(dao.observeMachines(), dao.observeMachineExerciseJoins()) { machines, joins ->
         val exerciseIdsByMachine = joins.groupBy(GymMachineExerciseJoinEntity::machineId)
@@ -357,17 +361,85 @@ class RoomGymRepository(
         )
     }
 
-    override suspend fun finishWorkout(id: Long) {
-        val session = dao.getSession(id) ?: return
+    override suspend fun finishWorkout(id: Long) = database.withTransaction {
+        val session = dao.getSession(id) ?: return@withTransaction
         val now = nowMillis()
+        val advanced = if (session.state == WorkoutSessionState.Active.name && !session.programProgressAdvanced) {
+            advanceRoutineProgressForSession(session, now)
+        } else {
+            session.programProgressAdvanced
+        }
         dao.updateSession(
             session.copy(
                 state = WorkoutSessionState.Finished.name,
                 endedAtMillis = session.endedAtMillis ?: now,
                 restTimerDeadlineMillis = null,
                 updatedAtMillis = now,
+                programProgressAdvanced = advanced,
             ),
         )
+    }
+
+    private suspend fun advanceRoutineProgressForSession(session: WorkoutSessionEntity, now: Long): Boolean {
+        val routineId = session.sourceRoutineId ?: return false
+        val routine = routineDao.getRoutine(routineId) ?: return false
+        val kind = runCatching { RoutineProgramKind.valueOf(session.sourceRoutineProgramKind) }
+            .getOrDefault(RoutineProgramKind.Static)
+        val days = routineDao.getDays(routineId)
+        if (kind == RoutineProgramKind.Static) {
+            val day = session.sourceRoutineDayId?.let { sourceId -> days.firstOrNull { it.id == sourceId } }
+                ?: session.sourceRoutineDayPosition?.let(days::getOrNull)
+                ?: return false
+            val expectedIndex = session.sourceRoutineDayProgressionIndex ?: return false
+            if (day.progressionIndex != expectedIndex) return false
+            routineDao.updateDay(day.copy(progressionIndex = expectedIndex + 1, updatedAtMillis = now))
+            return true
+        }
+
+        val phase = session.sourceRoutinePhaseIndex ?: return false
+        val cycle = session.sourceRoutineCycle ?: return false
+        val dayPosition = session.sourceRoutineDayPosition ?: return false
+        if (routine.programKind != kind.name ||
+            routine.currentProgramPhaseIndex != phase ||
+            routine.currentProgramCycle != cycle ||
+            routine.nextProgramDayPosition != dayPosition
+        ) return false
+
+        val finalDay = dayPosition == days.lastIndex
+        val finalPhase = phase == routine.programPhaseCount - 1
+        val next = when {
+            !finalDay -> routine.copy(nextProgramDayPosition = dayPosition + 1, updatedAtMillis = now)
+            !finalPhase -> routine.copy(
+                currentProgramPhaseIndex = phase + 1,
+                nextProgramDayPosition = 0,
+                updatedAtMillis = now,
+            )
+            else -> routine.copy(
+                currentProgramPhaseIndex = 0,
+                currentProgramCycle = cycle + 1,
+                nextProgramDayPosition = 0,
+                updatedAtMillis = now,
+            )
+        }
+        routineDao.updateRoutine(next)
+        if (finalDay && finalPhase) {
+            days.forEach { day ->
+                routineDao.getExercises(day.id).forEach { exercise ->
+                    val current = exercise.trainingMaxValue ?: return@forEach
+                    val increment = exercise.cycleIncrementValue ?: return@forEach
+                    if (increment <= 0.0) return@forEach
+                    val updatedValue = current + increment
+                    routineDao.updateExercise(
+                        exercise.copy(
+                            trainingMaxValue = updatedValue,
+                            trainingMaxKg = massToKilograms(updatedValue, exercise.trainingMaxUnitId),
+                            updatedAtMillis = now,
+                        ),
+                    )
+                }
+            }
+        }
+        return true
     }
 
     override suspend fun resumeWorkout(id: Long) = database.withTransaction {
@@ -428,6 +500,14 @@ class RoomGymRepository(
                     archived = false,
                     createdAtMillis = now,
                     updatedAtMillis = now,
+                    sourceRoutineId = null,
+                    sourceRoutineDayId = null,
+                    sourceRoutineProgramKind = RoutineProgramKind.Static.name,
+                    sourceRoutinePhaseIndex = null,
+                    sourceRoutineCycle = null,
+                    sourceRoutineDayPosition = null,
+                    sourceRoutineDayProgressionIndex = null,
+                    programProgressAdvanced = false,
                 ),
             )
             sourceWorkoutExercises.forEach { sourceWorkoutExercise ->
@@ -1170,6 +1250,14 @@ private fun WorkoutSessionEntity.toDomain() = WorkoutSession(
     createdAtMillis = createdAtMillis,
     updatedAtMillis = updatedAtMillis,
     sourceRoutineId = sourceRoutineId,
+    sourceRoutineDayId = sourceRoutineDayId,
+    sourceRoutineProgramKind = runCatching { RoutineProgramKind.valueOf(sourceRoutineProgramKind) }
+        .getOrDefault(RoutineProgramKind.Static),
+    sourceRoutinePhaseIndex = sourceRoutinePhaseIndex,
+    sourceRoutineCycle = sourceRoutineCycle,
+    sourceRoutineDayPosition = sourceRoutineDayPosition,
+    sourceRoutineDayProgressionIndex = sourceRoutineDayProgressionIndex,
+    programProgressAdvanced = programProgressAdvanced,
 )
 
 private fun WorkoutExerciseEntity.toDomain() = WorkoutExercise(
@@ -1206,6 +1294,12 @@ private fun WorkoutExerciseEntity.toDomain() = WorkoutExercise(
     machineAddOnPlateKgSnapshot = machineAddOnPlateKgSnapshot,
     machineMassMappingKgSnapshot = machineMassMappingCsvSnapshot.parseStableMappingCsv(),
     alternativeExerciseIdsSnapshot = alternativeExerciseIdsCsvSnapshot.split(',').mapNotNull(String::toLongOrNull),
+    trainingMaxKgSnapshot = trainingMaxKgSnapshot,
+    trainingMaxValueSnapshot = trainingMaxValueSnapshot,
+    trainingMaxUnitIdSnapshot = trainingMaxUnitIdSnapshot,
+    cycleIncrementValueSnapshot = cycleIncrementValueSnapshot,
+    trainingMaxSourceSnapshot = runCatching { RoutineTrainingMaxSource.valueOf(trainingMaxSourceSnapshot) }
+        .getOrDefault(RoutineTrainingMaxSource.EstimatedOneRepMaxPercent),
 )
 
 private fun WorkoutGroupEntity.toDomain() = WorkoutGroup(

@@ -177,6 +177,14 @@ data class WorkoutSessionEntity(
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
     val sourceRoutineId: Long?,
+    val sourceRoutineDayId: Long? = null,
+    val sourceRoutineProgramKind: String = "Static",
+    val sourceRoutinePhaseIndex: Int? = null,
+    val sourceRoutineCycle: Int? = null,
+    val sourceRoutineDayPosition: Int? = null,
+    val sourceRoutineDayProgressionIndex: Int? = null,
+    /** Makes finish/resume idempotent for program advancement. */
+    val programProgressAdvanced: Boolean = false,
 )
 
 @Entity(
@@ -270,6 +278,11 @@ data class WorkoutExerciseEntity(
     val machineAddOnPlateKgSnapshot: Double? = null,
     val machineMassMappingCsvSnapshot: String = "",
     val alternativeExerciseIdsCsvSnapshot: String = "",
+    val trainingMaxKgSnapshot: Double? = null,
+    val trainingMaxValueSnapshot: Double? = null,
+    val trainingMaxUnitIdSnapshot: String = "",
+    val cycleIncrementValueSnapshot: Double? = null,
+    val trainingMaxSourceSnapshot: String = "EstimatedOneRepMaxPercent",
 )
 
 @Entity(

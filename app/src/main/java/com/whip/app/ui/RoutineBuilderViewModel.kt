@@ -22,6 +22,7 @@ internal data class RoutineBuilderSetState(
     val unilateral: Boolean = false,
     val loadPrescriptionType: String = "Absolute",
     val loadPercentage: String = "",
+    val routinePhaseIndex: Int? = null,
 ) : Serializable
 
 internal data class RoutineBuilderPlacementState(
@@ -46,6 +47,10 @@ internal data class RoutineBuilderPlacementState(
     val trainingMaxPercent: String = "90",
     val progressionPercentages: String = "",
     val alternativeExerciseIds: List<Long> = emptyList(),
+    val trainingMaxValue: String = "",
+    val trainingMaxUnitId: String = "kilogram",
+    val cycleIncrementValue: String = "",
+    val trainingMaxSource: String = "EstimatedOneRepMaxPercent",
 ) : Serializable
 
 internal data class RoutineBuilderDayState(
@@ -63,6 +68,9 @@ internal data class RoutineBuilderState(
     val selectedPlacementKey: Long? = null,
     val nextKey: Long = 1L,
     val independentlySavedLibraryItems: Int = 0,
+    val programKind: String? = null,
+    val programPhaseCount: Int = 1,
+    val programPhaseLabels: List<String> = emptyList(),
 ) : Serializable
 
 /**

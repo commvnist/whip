@@ -6,6 +6,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.whip.app.data.WhipDatabase
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -73,7 +75,7 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V1_DATABASE_NAME,
-            31,
+            32,
             true,
             *allMigrations,
         ).use { database ->
@@ -168,7 +170,7 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V2_DATABASE_NAME,
-            31,
+            32,
             true,
             *allMigrations.drop(1).toTypedArray(),
         ).use { database ->
@@ -245,13 +247,14 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V8_DATABASE_NAME,
-            31,
+            32,
             true,
             WhipDatabase.migration8To9,
             WhipDatabase.migration9To28,
             WhipDatabase.migration28To29,
             WhipDatabase.migration29To30,
             WhipDatabase.migration30To31,
+            WhipDatabase.migration31To32,
         ).use { database ->
             database.query("SELECT uuid, habitId, localEpochDay, skippedAtMillis FROM habit_skips").use { cursor ->
                 check(cursor.moveToFirst())
@@ -387,12 +390,13 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V27_DATABASE_NAME,
-            31,
+            32,
             true,
             WhipDatabase.migration27To28,
             WhipDatabase.migration28To29,
             WhipDatabase.migration29To30,
             WhipDatabase.migration30To31,
+            WhipDatabase.migration31To32,
         ).use { database ->
             database.query("SELECT title, notes, icon, tagsCsv, inbox FROM tasks WHERE id = 5").use { cursor ->
                 check(cursor.moveToFirst())
@@ -486,11 +490,12 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V28_DATABASE_NAME,
-            31,
+            32,
             true,
             WhipDatabase.migration28To29,
             WhipDatabase.migration29To30,
             WhipDatabase.migration30To31,
+            WhipDatabase.migration31To32,
         ).use { database ->
             database.query(
                 "SELECT name, autoCompleteFromItems FROM habits WHERE id = 3",
@@ -546,10 +551,11 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V29_DATABASE_NAME,
-            31,
+            32,
             true,
             WhipDatabase.migration29To30,
             WhipDatabase.migration30To31,
+            WhipDatabase.migration31To32,
         ).use { database ->
             database.query("SELECT exerciseId, levelDirection FROM gym_machines WHERE id = 9").use { cursor ->
                 check(cursor.moveToFirst())
@@ -662,9 +668,10 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V30_DATABASE_NAME,
-            31,
+            32,
             true,
             WhipDatabase.migration30To31,
+            WhipDatabase.migration31To32,
         ).use { database ->
             database.query("SELECT enabled FROM link_rules WHERE id = 50").use { cursor ->
                 check(cursor.moveToFirst())
@@ -714,6 +721,71 @@ class WhipDatabaseMigrationTest {
             database.query("SELECT COUNT(*) FROM track_entries WHERE id = 44").use { cursor ->
                 check(cursor.moveToFirst())
                 assertEquals(1, cursor.getInt(0))
+            }
+        }
+    }
+
+    @Test
+    fun migrationThirtyOneToThirtyTwoKeepsRoutinesStaticAndPreservesLegacyWavePosition() {
+        helper.createDatabase(V31_DATABASE_NAME, 31).apply {
+            execSQL(
+                "INSERT INTO gym_routines " +
+                    "(id, uuid, name, notes, position, archived, pinned, createdAtMillis, updatedAtMillis) " +
+                    "VALUES (7, 'routine-7', 'Existing routine', '', 0, 0, 0, 100, 100)",
+            )
+            execSQL(
+                "INSERT INTO routine_days " +
+                    "(id, uuid, routineId, name, position, createdAtMillis, updatedAtMillis) " +
+                    "VALUES (8, 'day-8', 7, 'Day one', 0, 100, 100)",
+            )
+            execSQL(
+                "INSERT INTO routine_days " +
+                    "(id, uuid, routineId, name, position, createdAtMillis, updatedAtMillis) " +
+                    "VALUES (9, 'day-9', 7, 'Day two', 1, 100, 100)",
+            )
+            execSQL(
+                """
+                INSERT INTO workout_sessions (
+                    id, uuid, name, notes, startedAtMillis, endedAtMillis, localEpochDay,
+                    zoneId, state, keepScreenAwake, restTimerDeadlineMillis,
+                    restTimerDurationSeconds, archived, createdAtMillis, updatedAtMillis,
+                    sourceRoutineId
+                ) VALUES
+                    (10, 'session-10', 'Finished one', '', 100, 200, 1, 'UTC', 'Finished', 0, NULL, NULL, 0, 100, 200, 7),
+                    (11, 'session-11', 'Finished two', '', 300, 400, 2, 'UTC', 'Finished', 0, NULL, NULL, 0, 300, 400, 7),
+                    (12, 'session-12', 'Archived finish', '', 500, 600, 3, 'UTC', 'Finished', 0, NULL, NULL, 1, 500, 600, 7),
+                    (13, 'session-13', 'Discarded', '', 700, 800, 4, 'UTC', 'Discarded', 0, NULL, NULL, 0, 700, 800, 7),
+                    (14, 'session-14', 'Unrelated finish', '', 900, 1000, 5, 'UTC', 'Finished', 0, NULL, NULL, 0, 900, 1000, NULL)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            V31_DATABASE_NAME,
+            32,
+            true,
+            WhipDatabase.migration31To32,
+        ).use { database ->
+            database.query(
+                "SELECT programKind, programPhaseCount, programPhaseLabelsCsv, " +
+                    "currentProgramPhaseIndex, currentProgramCycle, nextProgramDayPosition " +
+                    "FROM gym_routines WHERE id = 7",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("Static", cursor.getString(0))
+                assertEquals(1, cursor.getInt(1))
+                assertEquals("", cursor.getString(2))
+                assertEquals(0, cursor.getInt(3))
+                assertEquals(1, cursor.getInt(4))
+                assertEquals(0, cursor.getInt(5))
+            }
+            database.query("SELECT progressionIndex FROM routine_days WHERE routineId = 7 ORDER BY position").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(2, cursor.getInt(0))
+                assertTrue(cursor.moveToNext())
+                assertEquals(2, cursor.getInt(0))
+                assertFalse(cursor.moveToNext())
             }
         }
     }
@@ -794,6 +866,7 @@ class WhipDatabaseMigrationTest {
         const val V28_DATABASE_NAME = "checklist-v28-to-v29-migration"
         const val V29_DATABASE_NAME = "machines-v29-to-v30-migration"
         const val V30_DATABASE_NAME = "automation-retirement-v30-to-v31-migration"
+        const val V31_DATABASE_NAME = "routine-program-v31-to-v32-migration"
 
         val allMigrations: Array<Migration> = arrayOf(
             WhipDatabase.migration1To2,
@@ -808,6 +881,7 @@ class WhipDatabaseMigrationTest {
             WhipDatabase.migration28To29,
             WhipDatabase.migration29To30,
             WhipDatabase.migration30To31,
+            WhipDatabase.migration31To32,
         )
     }
 }

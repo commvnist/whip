@@ -65,7 +65,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         TrackValueEntity::class,
         TrackEntrySearchEntity::class,
     ],
-    version = 31,
+    version = 32,
     exportSchema = true,
 )
 abstract class WhipDatabase : RoomDatabase() {
@@ -418,6 +418,60 @@ abstract class WhipDatabase : RoomDatabase() {
         }
 
         /**
+         * Persist routine-program position and immutable workout snapshots. Existing routines
+         * remain static; their optional load waves advance with a per-day cursor from now on.
+         */
+        val migration31To32 = object : Migration(31, 32) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE gym_routines ADD COLUMN programKind TEXT NOT NULL DEFAULT 'Static'")
+                db.execSQL("ALTER TABLE gym_routines ADD COLUMN programPhaseCount INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE gym_routines ADD COLUMN programPhaseLabelsCsv TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE gym_routines ADD COLUMN currentProgramPhaseIndex INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE gym_routines ADD COLUMN currentProgramCycle INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE gym_routines ADD COLUMN nextProgramDayPosition INTEGER NOT NULL DEFAULT 0")
+
+                db.execSQL("ALTER TABLE routine_days ADD COLUMN progressionIndex INTEGER NOT NULL DEFAULT 0")
+                // v31 chose a routine's wave multiplier from its global count of finished,
+                // visible sessions. Seed every new per-day cursor with that same count so the
+                // next workout does not repeat an earlier wave immediately after upgrading.
+                db.execSQL(
+                    """
+                    UPDATE routine_days
+                    SET progressionIndex = (
+                        SELECT COUNT(*)
+                        FROM workout_sessions
+                        WHERE workout_sessions.sourceRoutineId = routine_days.routineId
+                            AND workout_sessions.state = 'Finished'
+                            AND workout_sessions.archived = 0
+                    )
+                    """.trimIndent(),
+                )
+
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN trainingMaxKg REAL")
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN trainingMaxValue REAL")
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN trainingMaxUnitId TEXT NOT NULL DEFAULT 'kilogram'")
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN cycleIncrementValue REAL")
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN trainingMaxSource TEXT NOT NULL DEFAULT 'EstimatedOneRepMaxPercent'")
+
+                db.execSQL("ALTER TABLE routine_sets ADD COLUMN routinePhaseIndex INTEGER")
+
+                db.execSQL("ALTER TABLE workout_sessions ADD COLUMN sourceRoutineDayId INTEGER")
+                db.execSQL("ALTER TABLE workout_sessions ADD COLUMN sourceRoutineProgramKind TEXT NOT NULL DEFAULT 'Static'")
+                db.execSQL("ALTER TABLE workout_sessions ADD COLUMN sourceRoutinePhaseIndex INTEGER")
+                db.execSQL("ALTER TABLE workout_sessions ADD COLUMN sourceRoutineCycle INTEGER")
+                db.execSQL("ALTER TABLE workout_sessions ADD COLUMN sourceRoutineDayPosition INTEGER")
+                db.execSQL("ALTER TABLE workout_sessions ADD COLUMN sourceRoutineDayProgressionIndex INTEGER")
+                db.execSQL("ALTER TABLE workout_sessions ADD COLUMN programProgressAdvanced INTEGER NOT NULL DEFAULT 0")
+
+                db.execSQL("ALTER TABLE workout_exercises ADD COLUMN trainingMaxKgSnapshot REAL")
+                db.execSQL("ALTER TABLE workout_exercises ADD COLUMN trainingMaxValueSnapshot REAL")
+                db.execSQL("ALTER TABLE workout_exercises ADD COLUMN trainingMaxUnitIdSnapshot TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE workout_exercises ADD COLUMN cycleIncrementValueSnapshot REAL")
+                db.execSQL("ALTER TABLE workout_exercises ADD COLUMN trainingMaxSourceSnapshot TEXT NOT NULL DEFAULT 'EstimatedOneRepMaxPercent'")
+            }
+        }
+
+        /**
          * Repository checks provide friendly errors; these triggers are the final consistency
          * boundary for concurrent writers, restored data, and any future write path.
          */
@@ -451,6 +505,7 @@ abstract class WhipDatabase : RoomDatabase() {
                     migration28To29,
                     migration29To30,
                     migration30To31,
+                    migration31To32,
                 )
                 .addCallback(integrityGuardCallback)
                 .build()

@@ -144,6 +144,9 @@ class ProductivityCreationJourneyE2ETest {
                     app.habitRepository.logs.first { logs -> logs.any { it.habitId == habitId } }
                 }
             }
+            // Today intentionally moves completed habits behind the Done disclosure so the
+            // remaining list stays focused. Reveal that section before exercising edit.
+            compose.onNodeWithTag("habit-done-disclosure").performClick()
             compose.onNodeWithTag("habit-list-Today").performScrollToNode(
                 hasContentDescription("Edit habit Journey water"),
             )

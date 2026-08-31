@@ -63,6 +63,31 @@ class RoutineProgrammingTest {
     }
 
     @Test
+    fun explicitTrainingMaxIsStableWhenEstimatedOneRepMaxChanges() {
+        fun resolve(oneRepMaxKg: Double) = resolveRoutinePrescribedLoad(
+            type = RoutineLoadPrescriptionType.PercentTrainingMax,
+            enteredWeight = null,
+            enteredUnitId = "kilogram",
+            percentage = 85.0,
+            oneRepMaxKg = oneRepMaxKg,
+            trainingMaxPercent = 90.0,
+            progressionPercent = 100.0,
+            loadMultiplier = 1.0,
+            baseLoadKg = null,
+            addOnPlateKg = null,
+            availableLoads = emptyList(),
+            increment = 2.5,
+            explicitTrainingMaxKg = 200.0,
+        )
+
+        val before = requireNotNull(resolve(oneRepMaxKg = 225.0))
+        val after = requireNotNull(resolve(oneRepMaxKg = 300.0))
+        assertEquals(170.0, before.displayValue, 0.0)
+        assertEquals(before.displayValue, after.displayValue, 0.0)
+        assertEquals("85.0% of explicit training max", before.label)
+    }
+
+    @Test
     fun waveMultiplierAppliesToAbsoluteLoadsAndMissingMaxFailsClearly() {
         val deload = resolveRoutinePrescribedLoad(
             type = RoutineLoadPrescriptionType.Absolute,

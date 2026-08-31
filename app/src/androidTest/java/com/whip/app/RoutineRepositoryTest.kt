@@ -15,6 +15,10 @@ import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
+import com.whip.app.domain.RoutineLoadPrescriptionType
+import com.whip.app.domain.RoutineProgramDraft
+import com.whip.app.domain.RoutineProgramKind
+import com.whip.app.domain.RoutineTrainingMaxSource
 import com.whip.app.domain.WorkoutSetDraft
 import com.whip.app.domain.massToKilograms
 import java.time.Instant
@@ -77,6 +81,41 @@ class RoutineRepositoryTest {
 
         assertEquals(80.0, routines.sets.first().single().draft.weight!!, 0.0)
         assertEquals(templateBefore.single().id, routines.sets.first().single().id)
+    }
+
+    @Test
+    fun activeRoutineWorkoutBlocksTemplateMutationUntilFinishOrDiscard() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Bench"))
+        fun draft(name: String) = RoutineDraft(
+            name = name,
+            days = listOf(
+                RoutineDayDraft(
+                    "Day A",
+                    listOf(
+                        RoutineExerciseDraft(
+                            exerciseId,
+                            plannedSets = listOf(WorkoutSetDraft(weight = 80.0, reps = 5)),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val routineId = routines.createRoutine(draft("Original"))
+
+        val finishedSession = routines.startRoutine(routineId)
+        val activeFailure = runCatching { routines.updateRoutine(routineId, draft("Blocked")) }.exceptionOrNull()
+        assertTrue(activeFailure is IllegalArgumentException)
+        assertEquals("Finish or discard the active workout before editing this routine", activeFailure?.message)
+        assertEquals("Original", routines.routines.first().single { it.id == routineId }.name)
+
+        gym.finishWorkout(finishedSession)
+        routines.updateRoutine(routineId, draft("After finish"))
+        assertEquals("After finish", routines.routines.first().single { it.id == routineId }.name)
+
+        val discardedSession = routines.startRoutine(routineId)
+        gym.discardWorkout(discardedSession)
+        routines.updateRoutine(routineId, draft("After discard"))
+        assertEquals("After discard", routines.routines.first().single { it.id == routineId }.name)
     }
 
     @Test
@@ -239,6 +278,108 @@ class RoutineRepositoryTest {
         assertEquals(90.0, latestSet.enteredWeight!!, 0.0)
         assertEquals("Exact load · cycle 90.0%", latestSet.prescriptionSourceLabel)
         assertEquals(listOf(alternative), latestPlacement.alternativeExerciseIdsSnapshot)
+    }
+
+    @Test
+    fun programmedRoutineAdvancesSafelyAcrossDaysPhasesAndTrainingMaxCycles() = runBlocking {
+        val pressId = gym.createExercise(ExerciseDraft("Press", weightUnitId = "pound", weightIncrement = 5.0))
+        val squatId = gym.createExercise(ExerciseDraft("Squat", weightUnitId = "pound", weightIncrement = 5.0))
+        fun programmedExercise(exerciseId: Long, trainingMax: Double, increment: Double) = RoutineExerciseDraft(
+            exerciseId = exerciseId,
+            trainingMaxValue = trainingMax,
+            trainingMaxUnitId = "pound",
+            cycleIncrementValue = increment,
+            trainingMaxSource = RoutineTrainingMaxSource.Explicit,
+            plannedSets = listOf(
+                WorkoutSetDraft(
+                    weightUnitId = "pound",
+                    reps = 5,
+                    loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                    loadPercentage = 65.0,
+                    routinePhaseIndex = 0,
+                ),
+                WorkoutSetDraft(
+                    weightUnitId = "pound",
+                    reps = 3,
+                    loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                    loadPercentage = 70.0,
+                    routinePhaseIndex = 1,
+                ),
+            ),
+        )
+        val routineId = routines.createRoutine(
+            RoutineDraft(
+                name = "Two-phase strength program",
+                program = RoutineProgramDraft(
+                    kind = RoutineProgramKind.FiveThreeOneClassic,
+                    phaseCount = 2,
+                    phaseLabels = listOf("Fives", "Threes"),
+                ),
+                days = listOf(
+                    RoutineDayDraft("Press", listOf(programmedExercise(pressId, 200.0, 5.0))),
+                    RoutineDayDraft("Squat", listOf(programmedExercise(squatId, 300.0, 10.0))),
+                ),
+            ),
+        )
+        val days = routines.days.first().filter { it.routineId == routineId }.sortedBy { it.position }
+
+        suspend fun assertStartedLoad(sessionId: Long, expected: Double, expectedPhase: Int, expectedCycle: Int) {
+            val session = gym.sessions.first().single { it.id == sessionId }
+            val placement = gym.workoutExercises.first().single { it.sessionId == sessionId }
+            val set = gym.sets.first().single { it.workoutExerciseId == placement.id }
+            assertEquals(expectedPhase, session.sourceRoutinePhaseIndex)
+            assertEquals(expectedCycle, session.sourceRoutineCycle)
+            assertEquals(expected, set.enteredWeight!!, 0.0)
+        }
+
+        val firstPress = routines.startRoutine(routineId)
+        assertStartedLoad(firstPress, expected = 130.0, expectedPhase = 0, expectedCycle = 1)
+        assertEquals(200.0, gym.workoutExercises.first().single { it.sessionId == firstPress }.trainingMaxValueSnapshot!!, 0.0)
+        gym.finishWorkout(firstPress)
+        assertEquals(1, routines.routines.first().single { it.id == routineId }.nextProgramDayPosition)
+
+        val unscheduledRepeat = routines.startRoutine(routineId, days.first().id)
+        gym.finishWorkout(unscheduledRepeat)
+        assertFalse(gym.sessions.first().single { it.id == unscheduledRepeat }.programProgressAdvanced)
+        assertEquals(1, routines.routines.first().single { it.id == routineId }.nextProgramDayPosition)
+
+        val discardedSquat = routines.startRoutine(routineId)
+        assertStartedLoad(discardedSquat, expected = 195.0, expectedPhase = 0, expectedCycle = 1)
+        gym.discardWorkout(discardedSquat)
+        assertEquals(1, routines.routines.first().single { it.id == routineId }.nextProgramDayPosition)
+
+        val firstSquat = routines.startRoutine(routineId)
+        gym.finishWorkout(firstSquat)
+        val threesStart = routines.routines.first().single { it.id == routineId }
+        assertEquals(1, threesStart.currentProgramPhaseIndex)
+        assertEquals(0, threesStart.nextProgramDayPosition)
+
+        val threesPress = routines.startRoutine(routineId)
+        assertStartedLoad(threesPress, expected = 140.0, expectedPhase = 1, expectedCycle = 1)
+        gym.finishWorkout(threesPress)
+        val threesSquat = routines.startRoutine(routineId)
+        assertStartedLoad(threesSquat, expected = 210.0, expectedPhase = 1, expectedCycle = 1)
+        gym.finishWorkout(threesSquat)
+
+        val nextCycle = routines.routines.first().single { it.id == routineId }
+        assertEquals(0, nextCycle.currentProgramPhaseIndex)
+        assertEquals(2, nextCycle.currentProgramCycle)
+        assertEquals(0, nextCycle.nextProgramDayPosition)
+        assertEquals(
+            listOf(205.0, 310.0),
+            routines.exercises.first()
+                .filter { exercise -> days.any { it.id == exercise.routineDayId } }
+                .sortedBy { it.routineDayId }
+                .map { it.trainingMaxValue },
+        )
+
+        val secondCyclePress = routines.startRoutine(routineId)
+        assertStartedLoad(secondCyclePress, expected = 135.0, expectedPhase = 0, expectedCycle = 2)
+        assertEquals(
+            205.0,
+            gym.workoutExercises.first().single { it.sessionId == secondCyclePress }.trainingMaxValueSnapshot!!,
+            0.0,
+        )
     }
 
     @Test

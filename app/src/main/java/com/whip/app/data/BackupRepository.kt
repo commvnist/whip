@@ -431,6 +431,29 @@ private fun ContentValues.applyBackupCompatibilityDefaults(table: String) {
     if (table == "track_fields" && !containsKey("scaleStep")) put("scaleStep", 1.0)
     if (table == "tasks" && !containsKey("icon")) put("icon", DEFAULT_TASK_EMOJI)
     if (table == "gym_machines" && !containsKey("levelDirection")) put("levelDirection", "HigherNumberMoreResistance")
+    if (table == "gym_routines") {
+        if (!containsKey("programKind")) put("programKind", "Static")
+        if (!containsKey("programPhaseCount")) put("programPhaseCount", 1)
+        if (!containsKey("programPhaseLabelsCsv")) put("programPhaseLabelsCsv", "")
+        if (!containsKey("currentProgramPhaseIndex")) put("currentProgramPhaseIndex", 0)
+        if (!containsKey("currentProgramCycle")) put("currentProgramCycle", 1)
+        if (!containsKey("nextProgramDayPosition")) put("nextProgramDayPosition", 0)
+    }
+    if (table == "routine_days" && !containsKey("progressionIndex")) put("progressionIndex", 0)
+    if (table == "routine_exercises") {
+        if (!containsKey("trainingMaxUnitId")) put("trainingMaxUnitId", "kilogram")
+        if (!containsKey("trainingMaxSource")) put("trainingMaxSource", "EstimatedOneRepMaxPercent")
+    }
+    if (table == "workout_sessions") {
+        if (!containsKey("sourceRoutineProgramKind")) put("sourceRoutineProgramKind", "Static")
+        if (!containsKey("programProgressAdvanced")) put("programProgressAdvanced", false)
+    }
+    if (table == "workout_exercises") {
+        if (!containsKey("trainingMaxUnitIdSnapshot")) put("trainingMaxUnitIdSnapshot", "")
+        if (!containsKey("trainingMaxSourceSnapshot")) {
+            put("trainingMaxSourceSnapshot", "EstimatedOneRepMaxPercent")
+        }
+    }
 }
 
 private fun ContentValues.retireAutomation(table: String) {
@@ -590,7 +613,10 @@ private fun remapPolymorphicReferences(
     }
     when (table) {
         "task_step_snapshots" -> remap("stepId", "task_steps")
-        "workout_sessions" -> remap("sourceRoutineId", "gym_routines")
+        "workout_sessions" -> {
+            remap("sourceRoutineId", "gym_routines")
+            remap("sourceRoutineDayId", "routine_days")
+        }
         "workout_exercises" -> {
             remap("machineId", "gym_machines")
             remapCsv("alternativeExerciseIdsCsvSnapshot", "exercises")
@@ -662,7 +688,7 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 private const val BACKUP_FORMAT = "whip-backup"
 private const val ENVELOPE_VERSION = 2
 private const val OLDEST_COMPATIBLE_DATABASE_VERSION = 5
-private const val BACKUP_DATABASE_VERSION = 10
+private const val BACKUP_DATABASE_VERSION = 11
 
 private fun ContentValues.normalizeIdentityEmoji(table: String) {
     val defaultEmoji = when (table) {

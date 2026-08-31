@@ -73,6 +73,10 @@ interface RoutineDao {
 
     @Update suspend fun updateRoutine(entity: GymRoutineEntity)
 
+    @Update suspend fun updateDay(entity: RoutineDayEntity)
+
+    @Update suspend fun updateExercise(entity: RoutineExerciseEntity)
+
     @Update suspend fun updateGraphPreset(entity: GraphPresetEntity)
 
     @Upsert suspend fun upsertPersonalRecord(entity: PersonalRecordEntity)

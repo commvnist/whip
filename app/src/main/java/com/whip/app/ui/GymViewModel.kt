@@ -770,6 +770,20 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         routineRepository.startRoutine(routineId, dayId)
     }
 
+    fun setRoutineProgramPosition(routineId: Long, phaseIndex: Int, dayPosition: Int, cycle: Int) = runOperation(
+        "Updating program position…",
+        "Program position updated",
+    ) {
+        routineRepository.setRoutineProgramPosition(routineId, phaseIndex, dayPosition, cycle)
+    }
+
+    fun resetRoutineProgramProgress(routineId: Long) = runOperation(
+        "Resetting program progress…",
+        "Program progress reset",
+    ) {
+        routineRepository.resetRoutineProgramProgress(routineId)
+    }
+
     fun duplicateRoutine(id: Long) = runOperation("Duplicating routine…", "Routine duplicated") {
         routineRepository.duplicateRoutine(id)
     }
