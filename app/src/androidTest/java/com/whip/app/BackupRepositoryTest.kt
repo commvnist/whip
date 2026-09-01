@@ -57,10 +57,12 @@ import com.whip.app.domain.TaskDraft
 import com.whip.app.domain.TaskStepDraft
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.TrackDraft
+import com.whip.app.domain.TrackCsvMapping
 import com.whip.app.domain.TrackEntryDraft
 import com.whip.app.domain.TrackFieldDraft
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackValueDraft
+import com.whip.app.domain.trackCsvPayloadFingerprint
 import com.whip.app.domain.TriggerAction
 import com.whip.app.domain.TriggerFieldMapping
 import com.whip.app.domain.TriggerRuleDraft
@@ -214,6 +216,64 @@ class BackupRepositoryTest {
         assertEquals("tm-decision-backup", routines.trainingMaxDecisions.first().single().uuid)
         assertTrue(backups.exportHabitsCsv().contains("\"Hydrate, safely\""))
         assertTrue(backups.exportHabitsCsv().contains("\"Skipped\""))
+    }
+
+    @Test fun privateCsvImportReceiptIsExcludedFromPortableBackupPreservedByMergeAndClearedByDeleteAll() = runBlocking {
+        val committed = commitCsvBatch(
+            trackName = "Local receipt",
+            batchUuid = "777497b4-fd82-45be-b388-28fb00f91717",
+            title = "Private receipt fact",
+        )
+        val json = backups.exportBackup()
+        val root = JSONObject(json)
+
+        assertEquals(16, root.getInt("databaseVersion"))
+        assertEquals(false, root.getJSONObject("tables").has("track_csv_import_receipts"))
+        assertEquals(1, csvReceiptCount(committed.batchUuid))
+
+        backups.mergeBackup(json)
+        assertEquals(1, csvReceiptCount(committed.batchUuid))
+        assertEquals(1, requireNotNull(tracks.projection(committed.trackId)).entries.size)
+
+        backups.deleteAllData()
+        assertEquals(0, csvReceiptCount(committed.batchUuid))
+        assertTrue(tracks.tracks.first().isEmpty())
+    }
+
+    @Test fun successfulReplaceRestoreClearsPrivateCsvReceiptThroughTrackCascadeWithoutRecreatingIt() = runBlocking {
+        val committed = commitCsvBatch(
+            trackName = "Replace receipt",
+            batchUuid = "b9c1c8a0-851f-4473-8761-025554fd78d0",
+            title = "Restored historical fact",
+        )
+        val json = backups.exportBackup()
+        assertEquals(1, csvReceiptCount(committed.batchUuid))
+
+        backups.restoreBackup(json)
+
+        assertEquals(0, csvReceiptCount(committed.batchUuid))
+        val restoredTrack = tracks.tracks.first().single { it.name == "Replace receipt" }
+        val restored = requireNotNull(tracks.projection(restoredTrack.id))
+        assertEquals("Restored historical fact", restored.primaryText(restored.entries.single()))
+        assertEquals(setOf(restored.entries.single().entry.id), tracks.searchEntryIds(restored.track.id, "historical"))
+    }
+
+    @Test fun failedReplaceRestoreRollsBackTrackCascadeAndPreservesPrivateCsvReceipt() = runBlocking {
+        val committed = commitCsvBatch(
+            trackName = "Rollback receipt",
+            batchUuid = "64a8a7fe-d469-46e7-97a3-9fbd38af7e42",
+            title = "Keep after failed restore",
+        )
+        val root = JSONObject(backups.exportBackup())
+        val entryRows = root.getJSONObject("tables").getJSONArray("track_entries")
+        entryRows.getJSONObject(0).put("trackId", 999_999)
+        refreshBackupChecksum(root)
+
+        assertTrue(runCatching { backups.restoreBackup(root.toString()) }.isFailure)
+        assertEquals(1, csvReceiptCount(committed.batchUuid))
+        val preserved = requireNotNull(tracks.projection(committed.trackId))
+        assertEquals("Keep after failed restore", preserved.primaryText(preserved.entries.single()))
+        assertEquals(setOf(preserved.entries.single().entry.id), tracks.searchEntryIds(committed.trackId, "failed"))
     }
 
     @Test fun goalLifecycleSnapshotsArchiveStateAndElapsedResetHistoryRoundTrip() = runBlocking {
@@ -941,6 +1001,56 @@ class BackupRepositoryTest {
         assertEquals(true, restoredHabit.outcomeForPeriod(habits.logs.first(), FixedClock.today()))
         assertEquals(8.0, habits.logs.first().sumOf { it.value ?: 0.0 }, 0.0)
     }
+
+    private suspend fun commitCsvBatch(trackName: String, batchUuid: String, title: String): CommittedCsvBatch {
+        val trackId = tracks.create(
+            TrackDraft(
+                trackName,
+                fields = listOf(
+                    TrackFieldDraft("Title", TrackFieldType.ShortText, required = true, primary = true),
+                ),
+            ),
+        )
+        val projection = requireNotNull(tracks.projection(trackId))
+        val drafts = listOf(
+            TrackEntryDraft(
+                FixedClock.today(),
+                mapOf(projection.primaryField.uuid to TrackValueDraft(textValue = title)),
+            ),
+        )
+        val preparation = requireNotNull(
+            tracks.prepareCsvImport(
+                openingForm = requireNotNull(tracks.csvImportForm(trackId)),
+                batchUuid = batchUuid,
+                payloadFingerprint = trackCsvPayloadFingerprint("Title\n$title\n"),
+                mapping = TrackCsvMapping(fieldColumns = mapOf(projection.primaryField.uuid to "Title")),
+                defaultEntryDate = FixedClock.today(),
+                drafts = drafts,
+            ),
+        )
+        tracks.importEntries(preparation.request, drafts)
+        return CommittedCsvBatch(trackId, batchUuid)
+    }
+
+    private fun csvReceiptCount(batchUuid: String): Int = database.openHelper.readableDatabase.query(
+        "SELECT COUNT(*) FROM track_csv_import_receipts WHERE batchUuid = ?",
+        arrayOf(batchUuid),
+    ).use { cursor ->
+        check(cursor.moveToFirst())
+        cursor.getInt(0)
+    }
+
+    private fun refreshBackupChecksum(root: JSONObject) {
+        val payload = root.getJSONObject("tables").toString() + "\n" + root.optJSONObject("settings")?.toString().orEmpty()
+        root.put(
+            "checksumSha256",
+            MessageDigest.getInstance("SHA-256")
+                .digest(payload.toByteArray())
+                .joinToString("") { byte -> "%02x".format(byte) },
+        )
+    }
+
+    private data class CommittedCsvBatch(val trackId: Long, val batchUuid: String)
 
     private object FixedClock : WhipClock {
         override fun now(): Instant = Instant.parse("2026-08-17T16:00:00Z")

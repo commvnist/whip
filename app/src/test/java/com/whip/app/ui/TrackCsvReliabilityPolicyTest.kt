@@ -5,9 +5,18 @@ import com.whip.app.data.buildTrackCsv
 import com.whip.app.domain.Track
 import com.whip.app.domain.TrackEntry
 import com.whip.app.domain.TrackEntryProjection
+import com.whip.app.domain.TrackEntryDraft
+import com.whip.app.domain.TrackEntryFormBoundary
+import com.whip.app.domain.TrackEntryFormSnapshot
 import com.whip.app.domain.TrackField
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackFieldValue
+import com.whip.app.domain.TrackCsvImportPreparation
+import com.whip.app.domain.TrackCsvImportPreview
+import com.whip.app.domain.TrackCsvImportReceipt
+import com.whip.app.domain.TrackCsvImportRequest
+import com.whip.app.domain.TrackCsvMapping
+import com.whip.app.domain.receiptEnvelope
 import com.whip.app.domain.TrackProjection
 import com.whip.app.domain.TrackCondition
 import com.whip.app.domain.TrackConditionOperator
@@ -162,7 +171,7 @@ class TrackCsvReliabilityPolicyTest {
     fun compactImportSessionRestoresByRereadingItsUri() = runBlocking {
         val handle = SavedStateHandle()
         val store = TrackCsvImportSessionStore(handle)
-        store.begin(42, "content://documents/runs.csv", LocalDate.of(2026, 8, 29))
+        beginSession(store, 42, "content://documents/runs.csv", LocalDate.of(2026, 8, 29))
         store.updateMapping(
             com.whip.app.domain.TrackCsvMapping(
                 entryDateColumn = "Date",
@@ -195,7 +204,7 @@ class TrackCsvReliabilityPolicyTest {
     fun compactImportSessionSurvivesProcessRecreationOnlyWithinItsDataGeneration() {
         val handle = SavedStateHandle()
         val beforeProcessRecreation = TrackCsvImportSessionStore(handle, currentDataGeneration = 7L)
-        beforeProcessRecreation.begin(42, "content://documents/runs.csv", LocalDate.of(2026, 8, 29))
+        beginSession(beforeProcessRecreation, 42, "content://documents/runs.csv", LocalDate.of(2026, 8, 29))
 
         assertEquals(
             42L,
@@ -211,15 +220,134 @@ class TrackCsvReliabilityPolicyTest {
         val handle = SavedStateHandle()
         var currentGeneration = 3L
         val survivingStore = TrackCsvImportSessionStore(handle) { currentGeneration }
-        survivingStore.begin(11, "content://documents/before.csv", LocalDate.of(2026, 8, 30))
+        beginSession(survivingStore, 11, "content://documents/before.csv", LocalDate.of(2026, 8, 30))
 
         currentGeneration = 4L
         assertNull(survivingStore.descriptor)
-        survivingStore.begin(11, "content://documents/after.csv", LocalDate.of(2026, 8, 31))
+        beginSession(survivingStore, 11, "content://documents/after.csv", LocalDate.of(2026, 8, 31))
 
         val afterProcessRecreation = TrackCsvImportSessionStore(handle) { currentGeneration }
         assertEquals(4L, afterProcessRecreation.descriptor?.dataGeneration)
         assertEquals("content://documents/after.csv", afterProcessRecreation.descriptor?.uri)
+    }
+
+    @Test
+    fun savedSessionOwnsBatchPayloadPreparedRequestAndPreviewRevisionWithoutPayload() {
+        val handle = SavedStateHandle()
+        val store = TrackCsvImportSessionStore(handle, currentDataGeneration = 9L)
+        val opening = beginSession(store, 42, "content://documents/runs.csv", LocalDate.of(2026, 8, 29))
+        val mapping = TrackCsvMapping(fieldColumns = mapOf("distance" to "Distance"))
+
+        val loaded = requireNotNull(store.recordLoadedPayload(opening, "a".repeat(64), mapping))
+        val preparation = csvPreparation(
+            loaded.batchUuid,
+            loaded.trackId,
+            "a".repeat(64),
+            mapping,
+            LocalDate.of(2026, 8, 29),
+        )
+        val prepared = requireNotNull(store.recordPreparation(loaded, preparation))
+        val identity = TrackCsvImportUiState(
+            trackId = prepared.trackId,
+            batchUuid = prepared.batchUuid,
+            dataGeneration = prepared.dataGeneration,
+            previewRevision = prepared.previewRevision,
+            phase = TrackCsvImportPhase.Ready,
+            preview = TrackCsvImportPreview(
+                headers = listOf("Distance"),
+                totalRows = 1,
+                validDrafts = listOf(TrackEntryDraft(LocalDate.of(2026, 8, 29), emptyMap())),
+                issues = emptyList(),
+            ),
+            preparation = preparation,
+        ).commitIdentityOrNull()
+
+        assertEquals(opening.previewRevision + 1L, prepared.previewRevision)
+        assertEquals(preparation.request.requestFingerprint, prepared.preparedRequestFingerprint)
+        assertEquals(1, prepared.preparedEntryCount)
+        assertEquals(preparation.request.receiptEnvelope(), prepared.preparedReceiptEnvelope)
+        assertTrue(prepared.ownsTrackIdentity(preparation.form))
+        assertFalse(prepared.copy(trackUuid = "replacement-track").ownsTrackIdentity(preparation.form))
+        assertEquals(prepared.batchUuid, identity?.batchUuid)
+        assertFalse(prepared.toString().contains("Distance\n2026"))
+        assertFalse(prepared.toString().contains(preparation.request.entryUuids.single()))
+
+        val attempted = requireNotNull(store.recordCommitAttempt(requireNotNull(identity)))
+        assertTrue(attempted.commitAttempted)
+        assertTrue(TrackCsvImportSessionStore(handle, currentDataGeneration = 9L).descriptor?.commitAttempted == true)
+    }
+
+    @Test
+    fun mappingChangeInvalidatesOnlyPreparedRequestAndRejectsStalePreparation() {
+        val store = TrackCsvImportSessionStore(SavedStateHandle(), currentDataGeneration = 2L)
+        val opening = beginSession(store, 7, "content://documents/a.csv", LocalDate.of(2026, 9, 1))
+        val firstMapping = TrackCsvMapping(fieldColumns = mapOf("notes" to "Notes"))
+        val loaded = requireNotNull(store.recordLoadedPayload(opening, "b".repeat(64), firstMapping))
+        val preparation = csvPreparation(loaded.batchUuid, loaded.trackId, "b".repeat(64), firstMapping)
+        assertNull(
+            store.recordPreparation(
+                loaded,
+                preparation.copy(
+                    request = preparation.request.copy(
+                        mapping = TrackCsvMapping(fieldColumns = mapOf("notes" to "Different")),
+                    ),
+                ),
+            ),
+        )
+        requireNotNull(store.recordPreparation(loaded, preparation))
+
+        val changed = requireNotNull(store.updateMapping(TrackCsvMapping(fieldColumns = mapOf("notes" to "Memo"))))
+
+        assertEquals(loaded.previewRevision + 1L, changed.previewRevision)
+        assertNull(changed.preparedRequestFingerprint)
+        assertNull(changed.preparedEntryCount)
+        assertNull(changed.preparedReceiptEnvelope)
+        assertNull(store.recordPreparation(loaded, preparation))
+    }
+
+    @Test
+    fun readyAdmissionAndReceiptRequireTheExactOwnedRequest() {
+        val mapping = TrackCsvMapping(fieldColumns = mapOf("notes" to "Notes"))
+        val preparation = csvPreparation(
+            "11111111-1111-4111-8111-111111111111",
+            7,
+            "c".repeat(64),
+            mapping,
+        )
+        val state = TrackCsvImportUiState(
+            trackId = 7,
+            batchUuid = preparation.request.batchUuid,
+            dataGeneration = 4,
+            previewRevision = 3,
+            phase = TrackCsvImportPhase.Ready,
+            preview = TrackCsvImportPreview(
+                listOf("Notes"),
+                1,
+                listOf(TrackEntryDraft(LocalDate.of(2026, 9, 1), emptyMap())),
+                emptyList(),
+            ),
+            preparation = preparation,
+        )
+        val identity = requireNotNull(state.commitIdentityOrNull())
+        val receipt = TrackCsvImportReceipt(
+            batchUuid = identity.batchUuid,
+            trackId = identity.trackId,
+            trackUuid = "track-7",
+            trackCreatedAtMillis = 1,
+            requestFingerprint = identity.requestFingerprint,
+            entryIdentityDigest = preparation.request.entryIdentityDigest,
+            rowCount = identity.rowCount,
+            fingerprintVersion = 1,
+            identityVersion = 1,
+            committedAtMillis = 2,
+            changed = true,
+            alreadyApplied = false,
+        )
+
+        assertTrue(receipt.matches(identity))
+        assertFalse(receipt.copy(rowCount = 2).matches(identity))
+        assertNull(state.copy(phase = TrackCsvImportPhase.Previewing).commitIdentityOrNull())
+        assertNull(state.copy(preview = state.preview?.copy(issues = listOf(com.whip.app.domain.TrackCsvImportIssue(2, "bad")))).commitIdentityOrNull())
     }
 
     @Test
@@ -237,6 +365,72 @@ class TrackCsvReliabilityPolicyTest {
     fun databaseImportCannotDismissItsSessionDialog() {
         assertTrue(canDismissTrackCsvImport(databaseImportRunning = false))
         assertFalse(canDismissTrackCsvImport(databaseImportRunning = true))
+    }
+
+    @Test
+    fun cancellingAReplacementPickerPreservesTheReviewedImportSession() {
+        assertTrue(
+            shouldCancelCsvImportAfterPickerResult(
+                hasSelection = false,
+                replacingExistingFile = false,
+            ),
+        )
+        assertFalse(
+            shouldCancelCsvImportAfterPickerResult(
+                hasSelection = false,
+                replacingExistingFile = true,
+            ),
+        )
+        assertFalse(
+            shouldCancelCsvImportAfterPickerResult(
+                hasSelection = true,
+                replacingExistingFile = false,
+            ),
+        )
+    }
+
+    @Test
+    fun targetLookupFailureIsNotClassifiedAsADeletedTrack() {
+        assertEquals(
+            TrackCsvTargetLookupStatus.Pending,
+            trackCsvTargetLookupStatus(
+                completed = false,
+                projection = null,
+                targetLookupComplete = false,
+                targetLookupError = null,
+            ),
+        )
+        assertEquals(
+            TrackCsvTargetLookupStatus.Failed,
+            trackCsvTargetLookupStatus(
+                completed = false,
+                projection = null,
+                targetLookupComplete = true,
+                targetLookupError = "Track storage was temporarily unavailable",
+            ),
+        )
+        assertEquals(
+            TrackCsvTargetLookupStatus.Missing,
+            trackCsvTargetLookupStatus(
+                completed = false,
+                projection = null,
+                targetLookupComplete = true,
+                targetLookupError = null,
+            ),
+        )
+    }
+
+    @Test
+    fun completedImportSuppressesAStaleTargetLookupFailure() {
+        assertEquals(
+            TrackCsvTargetLookupStatus.Completed,
+            trackCsvTargetLookupStatus(
+                completed = true,
+                projection = null,
+                targetLookupComplete = true,
+                targetLookupError = "Stale projection error",
+            ),
+        )
     }
 
     @Test
@@ -291,6 +485,68 @@ class TrackCsvReliabilityPolicyTest {
             listOf(notes),
             emptyList(),
             listOf(TrackEntryProjection(entry, mapOf(notes.id to value))),
+        )
+    }
+
+    private fun beginSession(
+        store: TrackCsvImportSessionStore,
+        trackId: Long,
+        uri: String,
+        date: LocalDate,
+    ): TrackCsvImportSessionDescriptor = store.begin(
+        trackId = trackId,
+        trackName = "Runs",
+        trackUuid = "track-$trackId",
+        trackCreatedAtMillis = 1,
+        batchUuid = "11111111-1111-4111-8111-${trackId.toString().padStart(12, '0')}",
+        uri = uri,
+        fileLabel = uri.substringAfterLast('/'),
+        today = date,
+    )
+
+    private fun csvPreparation(
+        batchUuid: String,
+        trackId: Long,
+        payloadFingerprint: String,
+        mapping: TrackCsvMapping,
+        defaultEntryDate: LocalDate = LocalDate.of(2026, 9, 1),
+    ): TrackCsvImportPreparation {
+        val boundary = TrackEntryFormBoundary(
+            trackId = trackId,
+            trackUuid = "track-$trackId",
+            trackCreatedAtMillis = 1,
+            writable = true,
+            semanticRevisionToken = "form-$trackId",
+        )
+        val request = TrackCsvImportRequest(
+            batchUuid = batchUuid,
+            openingFormBoundary = boundary,
+            payloadFingerprint = payloadFingerprint,
+            mapping = mapping,
+            defaultEntryDate = defaultEntryDate,
+            requestFingerprint = "d".repeat(64),
+            entryUuids = listOf("22222222-2222-4222-8222-222222222222"),
+            entryIdentityDigest = "e".repeat(64),
+            rowCount = 1,
+        )
+        val track = Track(
+            trackId,
+            "track-$trackId",
+            "Runs",
+            "",
+            "🏃",
+            "fitness",
+            "Fitness",
+            emptyList(),
+            false,
+            false,
+            0,
+            1,
+            1,
+        )
+        return TrackCsvImportPreparation(
+            request,
+            TrackEntryFormSnapshot(boundary, track, emptyList(), emptyList(), emptyList()),
         )
     }
 }

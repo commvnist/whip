@@ -58,6 +58,9 @@ interface TrackDao {
     @Query("SELECT * FROM track_entries WHERE uuid = :uuid")
     suspend fun getEntryByUuid(uuid: String): TrackEntryEntity?
 
+    @Query("SELECT * FROM track_entries WHERE uuid IN (:uuids)")
+    suspend fun getEntriesByUuids(uuids: List<String>): List<TrackEntryEntity>
+
     @Query("SELECT * FROM track_entries WHERE sourceOccurrenceId IN (:occurrenceIds)")
     suspend fun getEntriesForSourceOccurrences(occurrenceIds: List<Long>): List<TrackEntryEntity>
 
@@ -104,6 +107,12 @@ interface TrackDao {
     @Insert suspend fun insertEntry(entity: TrackEntryEntity): Long
     @Update suspend fun updateEntry(entity: TrackEntryEntity): Int
     @Upsert suspend fun upsertValue(entity: TrackValueEntity): Long
+
+    @Query("SELECT * FROM track_csv_import_receipts WHERE batchUuid = :batchUuid")
+    suspend fun getCsvImportReceipt(batchUuid: String): TrackCsvImportReceiptEntity?
+
+    @Insert
+    suspend fun insertCsvImportReceipt(entity: TrackCsvImportReceiptEntity)
 
     @Query("DELETE FROM track_values WHERE id = :id")
     suspend fun deleteValue(id: Long): Int

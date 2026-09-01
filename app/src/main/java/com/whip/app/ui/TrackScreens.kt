@@ -113,7 +113,6 @@ import com.whip.app.domain.TrackChoiceOptionDraft
 import com.whip.app.domain.TrackCondition
 import com.whip.app.domain.TrackConditionMode
 import com.whip.app.domain.TrackConditionOperator
-import com.whip.app.domain.TrackCsvImportPreview
 import com.whip.app.domain.TrackCsvMapping
 import com.whip.app.domain.TrackDraft
 import com.whip.app.domain.TrackDefinitionBoundary
@@ -318,8 +317,10 @@ internal fun TrackAreaContent(
     var deleteEntryOpeningDataGeneration by rememberSaveable { mutableStateOf<Long?>(null) }
     var deleteEntryCandidate by rememberSaveable { mutableStateOf<TrackEntryDeleteCandidate?>(null) }
     var importTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var replacingCsvFile by rememberSaveable { mutableStateOf(false) }
     var exportTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
     val csvImportState by viewModel.csvImportState.collectAsStateWithLifecycle()
+    val csvImportRequestState by viewModel.csvImportRequestState.collectAsStateWithLifecycle()
     val csvExportState by viewModel.csvExportState.collectAsStateWithLifecycle()
     val entryDeletePreparationState by viewModel.entryDeletePreparationState.collectAsStateWithLifecycle()
     val entryMutationState by viewModel.entryMutationState.collectAsStateWithLifecycle()
@@ -338,12 +339,13 @@ internal fun TrackAreaContent(
         deleteEntryCandidate = null
     }
     val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri == null) {
+        if (uri != null) {
+            importTrackId?.let { trackId -> viewModel.prepareCsvImport(trackId, uri, state.currentDate) }
+        } else if (shouldCancelCsvImportAfterPickerResult(hasSelection = false, replacingExistingFile = replacingCsvFile)) {
             viewModel.cancelCsvImport()
             importTrackId = null
-        } else {
-            importTrackId?.let { trackId -> viewModel.prepareCsvImport(trackId, uri, state.currentDate, customUnits) }
         }
+        replacingCsvFile = false
     }
     val csvExportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
         val trackId = exportTrackId
@@ -478,9 +480,11 @@ internal fun TrackAreaContent(
             customUnits = customUnits,
             dialogModifier = dialogModifier,
             onImport = {
-                viewModel.cancelCsvImport()
-                importTrackId = projection.track.id
-                csvLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain"))
+                if (viewModel.cancelCsvImport()) {
+                    importTrackId = projection.track.id
+                    replacingCsvFile = false
+                    csvLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain"))
+                }
             },
             onExport = {
                 viewModel.cancelCsvExport()
@@ -608,29 +612,50 @@ internal fun TrackAreaContent(
         onPersisted = onEntryMutationPersisted,
         onClose = ::closeEntryDelete,
     )
-    val importProjection = importTrackId?.let(state::track)
-    if (
-        importProjection != null &&
-        csvImportState.trackId == importProjection.track.id &&
-        csvImportState.phase != TrackCsvImportPhase.Idle
-    ) TrackCsvImportDialog(
+    val importProjection = csvImportState.trackId?.let(state::track)
+    val csvCommitIdentity = csvImportState.commitIdentityOrNull()
+    val csvRequestNamespace = csvImportState.batchUuid?.let { batchUuid ->
+        "track-csv-import-$batchUuid-p${csvImportState.previewRevision}-g${csvImportState.dataGeneration}"
+    } ?: "track-csv-import-idle"
+    val csvImportCoordinator = rememberPersistenceRequestCoordinator(
+        state = csvImportRequestState,
+        consume = viewModel::consumeCsvImportResult,
+        key = csvRequestNamespace,
+        requestNamespace = csvRequestNamespace,
+        orphanedMessage =
+            "The previous import was interrupted. Whip is checking its saved result before any retry.",
+        onPersisted = { receipt ->
+            csvCommitIdentity?.let { viewModel.completeCsvImport(it, receipt) }
+        },
+    )
+    if (csvImportState.phase != TrackCsvImportPhase.Idle) TrackCsvImportDialog(
         projection = importProjection,
+        targetLookupComplete = !state.loading,
+        targetLookupError = state.errorMessage,
         state = csvImportState,
-        saving = operationStatus is OperationStatus.Running,
+        saving = csvImportCoordinator.saving,
+        persistenceError = csvImportCoordinator.errorMessage,
         onMappingChange = viewModel::updateCsvImportMapping,
         onRetry = viewModel::retryCsvImport,
         onChooseAnother = {
-            viewModel.cancelCsvImport()
-            csvLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain"))
+            if (!csvImportCoordinator.saving) {
+                replacingCsvFile = true
+                csvLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain"))
+            }
         },
         onDismiss = {
-            viewModel.cancelCsvImport()
-            importTrackId = null
-        },
-        onImport = { preview ->
-            viewModel.importEntries(importProjection.track.id, preview.validDrafts) {
-                viewModel.cancelCsvImport()
+            if (viewModel.cancelCsvImport()) {
+                csvImportCoordinator.clear()
                 importTrackId = null
+            }
+        },
+        onImport = {
+            val expected = csvImportState.commitIdentityOrNull() ?: return@TrackCsvImportDialog
+            val requestId = csvImportCoordinator.begin() ?: return@TrackCsvImportDialog
+            if (!viewModel.importEntries(expected, requestId)) {
+                csvImportCoordinator.finishFailure(
+                    "This import preview changed before it could start. Review it and try again.",
+                )
             }
         },
     )
@@ -2172,30 +2197,123 @@ private fun InsightCard(title: String, lines: List<Pair<String, String>>) {
     }
 }
 
+internal fun trackCsvTargetLookupStatus(
+    completed: Boolean,
+    projection: TrackProjection?,
+    targetLookupComplete: Boolean,
+    targetLookupError: String?,
+): TrackCsvTargetLookupStatus = when {
+    completed -> TrackCsvTargetLookupStatus.Completed
+    projection?.track?.archived == true -> TrackCsvTargetLookupStatus.Archived
+    projection != null -> TrackCsvTargetLookupStatus.Available
+    !targetLookupComplete -> TrackCsvTargetLookupStatus.Pending
+    !targetLookupError.isNullOrBlank() -> TrackCsvTargetLookupStatus.Failed
+    else -> TrackCsvTargetLookupStatus.Missing
+}
+
+internal enum class TrackCsvTargetLookupStatus {
+    Completed,
+    Pending,
+    Failed,
+    Missing,
+    Archived,
+    Available,
+}
+
 @Composable
-private fun TrackCsvImportDialog(
-    projection: TrackProjection,
+internal fun TrackCsvImportDialog(
+    projection: TrackProjection?,
+    targetLookupComplete: Boolean = true,
+    targetLookupError: String? = null,
     state: TrackCsvImportUiState,
     saving: Boolean,
+    persistenceError: String?,
     onMappingChange: (TrackCsvMapping) -> Unit,
     onRetry: () -> Unit,
     onChooseAnother: () -> Unit,
     onDismiss: () -> Unit,
-    onImport: (TrackCsvImportPreview) -> Unit,
+    onImport: () -> Unit,
 ) {
     val headers = state.headers
     val mapping = state.mapping
     val preview = state.preview
-    val error = state.errorMessage
-    val canImport = preview != null && preview.validRows > 0 && preview.invalidRows == 0
+    val completed = state.phase == TrackCsvImportPhase.Complete
+    val frozenForm = state.openingForm ?: state.preparation?.form
+    val fields = frozenForm?.fields ?: projection?.fields.orEmpty()
+    val hasMappingForm = frozenForm != null || projection != null
+    val targetLookupStatus = trackCsvTargetLookupStatus(
+        completed = completed,
+        projection = projection,
+        targetLookupComplete = targetLookupComplete,
+        targetLookupError = targetLookupError,
+    )
+    val targetLookupPending = targetLookupStatus == TrackCsvTargetLookupStatus.Pending
+    val targetLookupFailed = targetLookupStatus == TrackCsvTargetLookupStatus.Failed
+    val targetMissing = targetLookupStatus == TrackCsvTargetLookupStatus.Missing
+    val targetArchived = targetLookupStatus == TrackCsvTargetLookupStatus.Archived
+    val targetUnavailable = targetLookupPending || targetLookupFailed || targetMissing || targetArchived
+    val error = when {
+        completed -> null
+        targetArchived -> stringResource(
+            R.string.track_csv_archived_target_recovery,
+            state.trackName.ifBlank { stringResource(R.string.track_csv_unknown_track) },
+        )
+        targetLookupFailed -> stringResource(
+            R.string.track_csv_target_lookup_failed,
+            state.trackName.ifBlank { stringResource(R.string.track_csv_unknown_track) },
+            targetLookupError.orEmpty(),
+        )
+        targetMissing -> "${state.trackName.ifBlank { "This Track" }} is no longer available. No Entries were imported."
+        else -> state.errorMessage
+    }
+    // A request coordinator only knows that callback delivery failed. The
+    // durable import session knows whether the batch completed, recovery found
+    // no receipt, or a domain conflict requires a different action. Never show
+    // the coordinator's generic exact-retry advice beside a more authoritative
+    // verdict: the two instructions can directly contradict one another.
+    val retryablePersistenceError = persistenceError.takeIf {
+        state.phase == TrackCsvImportPhase.Ready &&
+            state.completionReceipt == null &&
+            state.recoveryNotice == null &&
+            !targetUnavailable &&
+            error == null
+    }
+    val canEditPreview = !targetUnavailable && !saving && !state.commitAttempted &&
+        state.phase != TrackCsvImportPhase.Complete
+    val canImport = !targetUnavailable && state.commitIdentityOrNull() != null && !saving
+    val mappedFieldCount = mapping.fieldColumns.size
+    var mappingExpanded by rememberSaveable(state.batchUuid) {
+        mutableStateOf(fields.size <= 3)
+    }
+    val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
     PaneAwareAlertDialog(
-        onDismissRequest = { if (canDismissTrackCsvImport(saving)) onDismiss() },
-        title = { Text(stringResource(R.string.track_csv_import_title, projection.track.name)) },
+        testTag = "track-csv-import-dialog",
+        paneTitle = stringResource(R.string.track_csv_import_pane_title),
+        stableHeight = true,
+        inputBlocked = saving,
+        inputBlockedLabel = stringResource(R.string.track_csv_importing_accessibility),
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                stringResource(
+                    R.string.track_csv_import_title,
+                    state.trackName.ifBlank { stringResource(R.string.track_csv_unknown_track) },
+                ),
+            )
+        },
         text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                item { Text(stringResource(R.string.track_csv_mapping_description)) }
-                if (state.phase in setOf(TrackCsvImportPhase.Reading, TrackCsvImportPhase.Previewing)) item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(
+                modifier = Modifier.testTag("track-csv-import-content"),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (
+                    state.phase in setOf(TrackCsvImportPhase.Reading, TrackCsvImportPhase.Previewing) &&
+                    !targetLookupPending && !targetLookupFailed
+                ) item {
+                    Column(
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         LinearProgressIndicator(Modifier.fillMaxWidth())
                         Text(
                             if (state.phase == TrackCsvImportPhase.Reading) stringResource(R.string.track_csv_import_reading)
@@ -2204,7 +2322,134 @@ private fun TrackCsvImportDialog(
                         )
                     }
                 }
-                if (headers.isNotEmpty()) {
+                if (!completed) state.recoveryNotice?.let { notice -> item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Text(notice, Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    }
+                } }
+                if (state.phase == TrackCsvImportPhase.Complete) {
+                    item {
+                        val receipt = state.completionReceipt
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("track-csv-import-complete")
+                                .semantics { liveRegion = LiveRegionMode.Polite },
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = MaterialTheme.shapes.small,
+                        ) {
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(stringResource(R.string.track_csv_import_complete_title), fontWeight = FontWeight.Bold)
+                                Text(
+                                    pluralStringResource(
+                                        if (receipt?.alreadyApplied == true) {
+                                            R.plurals.track_csv_import_already_completed
+                                        } else {
+                                            R.plurals.track_csv_import_completed
+                                        },
+                                        receipt?.rowCount ?: 0,
+                                        receipt?.rowCount ?: 0,
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+                if (targetLookupPending) item {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("track-csv-target-loading")
+                            .semantics { liveRegion = LiveRegionMode.Polite },
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Text(
+                            stringResource(R.string.track_csv_checking_target),
+                            Modifier.padding(12.dp),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+                }
+                retryablePersistenceError?.let { message -> item {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("track-csv-import-commit-problem")
+                            .clearAndSetSemantics {
+                                liveRegion = LiveRegionMode.Polite
+                                contentDescription = "Import did not finish. $message. The reviewed import is still here."
+                            },
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(stringResource(R.string.track_csv_import_not_finished), fontWeight = FontWeight.Bold)
+                            Text(message)
+                            Text(stringResource(R.string.track_csv_import_retry_exact), style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                } }
+                error?.let { message -> item {
+                    Text(
+                        message,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("track-csv-import-problem")
+                            .semantics {
+                                liveRegion = LiveRegionMode.Polite
+                                error(message)
+                            },
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                } }
+                if (!targetUnavailable && state.phase == TrackCsvImportPhase.Error) item {
+                    WhipOutlinedButton(
+                        enabled = !saving,
+                        onClick = onChooseAnother,
+                        modifier = Modifier.fillMaxWidth().testTag("track-csv-replace-file"),
+                    ) {
+                        Text(
+                            stringResource(
+                                if (state.requiresNewFile) R.string.track_csv_replace_file
+                                else R.string.track_csv_choose_another_file,
+                            ),
+                        )
+                    }
+                }
+                if (!completed) item { Text(stringResource(R.string.track_csv_mapping_description)) }
+                item {
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                state.fileLabel.ifBlank { stringResource(R.string.track_csv_file_unavailable) },
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                state.fallbackDate?.let { date ->
+                                    stringResource(R.string.track_csv_fallback_date, date.format(dateFormatter))
+                                } ?: stringResource(R.string.track_csv_fallback_date_unavailable),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                pluralStringResource(
+                                    R.plurals.track_csv_mapped_fields,
+                                    mappedFieldCount,
+                                    mappedFieldCount,
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+                if (headers.isNotEmpty() && hasMappingForm && !completed) {
                     item {
                         val useToday = stringResource(R.string.track_csv_use_today_date)
                         SelectionField(
@@ -2213,9 +2458,22 @@ private fun TrackCsvImportDialog(
                             mapping.entryDateColumn,
                             { it ?: useToday },
                             { onMappingChange(mapping.copy(entryDateColumn = it)) },
+                            enabled = canEditPreview,
                         )
                     }
-                    items(projection.fields, key = { "csv-field-${it.id}" }) { field ->
+                    if (fields.size > 3) item {
+                        WhipOutlinedButton(
+                            enabled = !saving,
+                            onClick = { mappingExpanded = !mappingExpanded },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                if (mappingExpanded) stringResource(R.string.track_csv_hide_field_mapping)
+                                else stringResource(R.string.track_csv_review_field_mapping, mappedFieldCount),
+                            )
+                        }
+                    }
+                    if (mappingExpanded) items(fields, key = { "csv-field-${it.id}" }) { field ->
                         val selected = mapping.fieldColumns[field.uuid]
                         val doNotImport = stringResource(R.string.track_csv_do_not_import)
                         SelectionField(
@@ -2224,6 +2482,7 @@ private fun TrackCsvImportDialog(
                             selected,
                             { it ?: doNotImport },
                             { column -> onMappingChange(mapping.copy(fieldColumns = if (column == null) mapping.fieldColumns - field.uuid else mapping.fieldColumns + (field.uuid to column))) },
+                            enabled = canEditPreview,
                         )
                         if (field.type == TrackFieldType.Number) {
                             val unitColumn = mapping.numberUnitColumns[field.uuid]
@@ -2234,20 +2493,24 @@ private fun TrackCsvImportDialog(
                                 unitColumn,
                                 { it ?: useCurrentUnit },
                                 { column -> onMappingChange(mapping.copy(numberUnitColumns = if (column == null) mapping.numberUnitColumns - field.uuid else mapping.numberUnitColumns + (field.uuid to column))) },
+                                enabled = canEditPreview,
                             )
                         }
                     }
                 }
-                error?.let { message -> item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(message, color = MaterialTheme.colorScheme.error)
-                        if (state.phase == TrackCsvImportPhase.Error) {
-                            WhipOutlinedButton(enabled = !saving, onClick = onChooseAnother, modifier = Modifier.fillMaxWidth()) {
-                                Text(stringResource(R.string.track_csv_choose_another_file))
-                            }
-                        }
+                if (
+                    !targetUnavailable && state.phase != TrackCsvImportPhase.Error && (
+                        preview?.validRows == 0 || preview?.invalidRows?.let { it > 0 } == true
+                        )
+                ) item {
+                    WhipOutlinedButton(
+                        enabled = !saving,
+                        onClick = onChooseAnother,
+                        modifier = Modifier.fillMaxWidth().testTag("track-csv-replace-file"),
+                    ) {
+                        Text(stringResource(R.string.track_csv_choose_another_file))
                     }
-                } }
+                }
                 preview?.let { result ->
                     item {
                         Card(Modifier.fillMaxWidth()) {
@@ -2293,10 +2556,22 @@ private fun TrackCsvImportDialog(
             }
         },
         confirmButton = {
-            if (state.phase == TrackCsvImportPhase.Error) {
-                WhipTextButton(onClick = onRetry) { Text(stringResource(R.string.action_try_again)) }
+            if (state.phase == TrackCsvImportPhase.Complete) {
+                WhipTextButton(enabled = !saving, onClick = onDismiss) {
+                    Text(stringResource(R.string.action_done))
+                }
+            } else if (targetLookupFailed) {
+                WhipTextButton(enabled = !saving, onClick = onRetry) {
+                    Text(stringResource(R.string.action_try_again))
+                }
+            } else if (state.phase == TrackCsvImportPhase.Error && !state.requiresNewFile && !targetUnavailable) {
+                WhipTextButton(enabled = !saving, onClick = onRetry) { Text(stringResource(R.string.action_try_again)) }
             } else {
-                WhipTextButton(enabled = canImport && !saving && state.phase == TrackCsvImportPhase.Ready, onClick = { onImport(requireNotNull(preview)) }) {
+                WhipTextButton(
+                    enabled = canImport,
+                    modifier = Modifier.testTag("track-csv-import-confirm"),
+                    onClick = onImport,
+                ) {
                     val validRows = preview?.validRows ?: 0
                     Text(
                         if (saving) stringResource(R.string.track_csv_importing)
@@ -2306,15 +2581,18 @@ private fun TrackCsvImportDialog(
             }
         },
         dismissButton = {
-            WhipTextButton(enabled = canDismissTrackCsvImport(saving), onClick = onDismiss) {
-                Text(
-                    if (saving) stringResource(R.string.track_csv_importing)
-                    else stringResource(R.string.action_cancel),
-                )
-            }
+            if (state.phase != TrackCsvImportPhase.Complete) WhipTextButton(
+                enabled = canDismissTrackCsvImport(saving),
+                onClick = onDismiss,
+            ) { Text(stringResource(R.string.action_cancel)) }
         },
     )
 }
+
+internal fun shouldCancelCsvImportAfterPickerResult(
+    hasSelection: Boolean,
+    replacingExistingFile: Boolean,
+): Boolean = !hasSelection && !replacingExistingFile
 
 @Composable
 private fun TrackOptionsPage(

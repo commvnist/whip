@@ -3,6 +3,7 @@ package com.whip.app.ui
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -25,6 +26,12 @@ import com.whip.app.domain.DeletedTrackEntry
 import com.whip.app.domain.Track
 import com.whip.app.domain.TrackChoiceOption
 import com.whip.app.domain.TrackCsvImportPreview
+import com.whip.app.domain.TrackCsvImportPreparation
+import com.whip.app.domain.TrackCsvImportReceipt
+import com.whip.app.domain.TrackCsvImportReceiptEnvelope
+import com.whip.app.domain.TrackCsvImportReceiptVerification
+import com.whip.app.domain.TrackCsvImportConflictException
+import com.whip.app.domain.TrackCsvImportConflictKind
 import com.whip.app.domain.TrackCsvMapping
 import com.whip.app.domain.TrackDraft
 import com.whip.app.domain.TrackDefinitionBoundary
@@ -38,6 +45,7 @@ import com.whip.app.domain.TrackEntryCreatePreparation
 import com.whip.app.domain.TrackEntryCreateRequest
 import com.whip.app.domain.TrackEntryDraft
 import com.whip.app.domain.TrackEntryEditSnapshot
+import com.whip.app.domain.TrackEntryFormSnapshot
 import com.whip.app.domain.TrackEntryMutationKind
 import com.whip.app.domain.TrackEntryMutationReceipt
 import com.whip.app.domain.TrackEntryPage
@@ -45,14 +53,19 @@ import com.whip.app.domain.TrackField
 import com.whip.app.domain.TrackProjection
 import com.whip.app.domain.TrackCondition
 import com.whip.app.domain.TrackFieldType
-import com.whip.app.domain.BuiltInUnits
-import com.whip.app.domain.UnitDefinition
+import com.whip.app.domain.matches
 import com.whip.app.domain.previewTrackCsvImport
+import com.whip.app.domain.receiptEnvelope
+import com.whip.app.domain.trackCsvPayloadFingerprint
 import com.whip.app.domain.trackCsvHeaders
 import java.io.ByteArrayOutputStream
 import java.io.Serializable
 import java.io.Writer
+import java.nio.ByteBuffer
+import java.nio.charset.CharacterCodingException
+import java.nio.charset.CodingErrorAction
 import java.time.LocalDate
+import java.util.UUID
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -69,6 +82,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
@@ -81,6 +95,8 @@ data class TrackUiState(
     val currentDate: LocalDate = LocalDate.now(),
     val loading: Boolean = true,
     val errorMessage: String? = null,
+    /** Identifies the explicit load attempt that produced this state. */
+    val lookupGeneration: Int = 0,
 ) {
     val active: List<TrackProjection> get() = projections.filterNot { it.track.archived }
     val archived: List<TrackProjection> get() = projections.filter { it.track.archived }
@@ -169,6 +185,7 @@ private data class TrackEntryPreparationLookup(
     val createPreparation: TrackEntryCreatePreparation? = null,
     val editSnapshot: TrackEntryEditSnapshot? = null,
 )
+private data class TrackCsvImportFormLookup(val form: TrackEntryFormSnapshot?)
 
 private fun TrackDefinitionConflictKind.requiresCopyRecovery(): Boolean = this in setOf(
     TrackDefinitionConflictKind.TargetMissing,
@@ -190,15 +207,27 @@ internal const val TRACK_CSV_MAX_DATA_ROWS = 5_000
 internal const val TRACK_CSV_MAX_COLUMNS = 100
 internal const val TRACK_CSV_MAX_PREVIEW_CELLS = 100_000
 internal const val TRACK_CSV_MAX_DISPLAYED_ISSUES = 50
+private const val TRACK_CSV_MAX_PHYSICAL_RECORDS = TRACK_CSV_MAX_DATA_ROWS + 2
 
 internal data class TrackCsvEnvelope(val dataRows: Int, val maximumColumns: Int)
 
 /** Compact process-restorable import state. The CSV payload always remains behind [uri]. */
 internal data class TrackCsvImportSessionDescriptor(
     val trackId: Long,
+    val trackName: String,
+    val trackUuid: String,
+    val trackCreatedAtMillis: Long,
+    val batchUuid: String,
     val uri: String,
+    val fileLabel: String,
     val todayEpochDay: Long,
     val dataGeneration: Long = 0L,
+    val previewRevision: Long = 0L,
+    val rawPayloadFingerprint: String? = null,
+    val preparedRequestFingerprint: String? = null,
+    val preparedEntryCount: Int? = null,
+    val preparedReceiptEnvelope: TrackCsvImportReceiptEnvelope? = null,
+    val commitAttempted: Boolean = false,
     val entryDateColumn: String? = null,
     val fieldColumns: Map<String, String> = emptyMap(),
     val numberUnitColumns: Map<String, String> = emptyMap(),
@@ -208,11 +237,38 @@ internal data class TrackCsvImportSessionDescriptor(
         get() = TrackCsvMapping(entryDateColumn, fieldColumns, numberUnitColumns)
 
     fun withMapping(value: TrackCsvMapping) = copy(
+        previewRevision = previewRevision + 1L,
+        preparedRequestFingerprint = null,
+        preparedEntryCount = null,
+        preparedReceiptEnvelope = null,
         entryDateColumn = value.entryDateColumn,
         fieldColumns = LinkedHashMap(value.fieldColumns),
         numberUnitColumns = LinkedHashMap(value.numberUnitColumns),
         mappingInitialized = true,
     )
+
+    fun withLoadedPayload(
+        payloadFingerprint: String,
+        value: TrackCsvMapping,
+    ) = copy(
+        previewRevision = previewRevision + 1L,
+        rawPayloadFingerprint = payloadFingerprint,
+        preparedRequestFingerprint = null,
+        preparedEntryCount = null,
+        preparedReceiptEnvelope = null,
+        entryDateColumn = value.entryDateColumn,
+        fieldColumns = LinkedHashMap(value.fieldColumns),
+        numberUnitColumns = LinkedHashMap(value.numberUnitColumns),
+        mappingInitialized = true,
+    )
+
+    fun withPreparation(value: TrackCsvImportPreparation) = copy(
+        preparedRequestFingerprint = value.request.requestFingerprint,
+        preparedEntryCount = value.request.rowCount,
+        preparedReceiptEnvelope = value.request.receiptEnvelope(),
+    )
+
+    fun withCommitAttempted() = copy(commitAttempted = true)
 }
 
 internal class TrackCsvImportSessionStore(
@@ -232,10 +288,24 @@ internal class TrackCsvImportSessionStore(
             return null
         }
 
-    fun begin(trackId: Long, uri: String, today: LocalDate): TrackCsvImportSessionDescriptor {
+    fun begin(
+        trackId: Long,
+        trackName: String,
+        trackUuid: String,
+        trackCreatedAtMillis: Long,
+        batchUuid: String,
+        uri: String,
+        fileLabel: String,
+        today: LocalDate,
+    ): TrackCsvImportSessionDescriptor {
         val value = TrackCsvImportSessionDescriptor(
             trackId = trackId,
+            trackName = trackName,
+            trackUuid = trackUuid,
+            trackCreatedAtMillis = trackCreatedAtMillis,
+            batchUuid = batchUuid,
             uri = uri,
+            fileLabel = fileLabel,
             todayEpochDay = today.toEpochDay(),
             dataGeneration = currentDataGeneration(),
         )
@@ -245,6 +315,55 @@ internal class TrackCsvImportSessionStore(
 
     fun updateMapping(mapping: TrackCsvMapping): TrackCsvImportSessionDescriptor? = descriptor?.withMapping(mapping)?.also {
         savedStateHandle[STATE_KEY] = it
+    }
+
+    fun recordLoadedPayload(
+        expected: TrackCsvImportSessionDescriptor,
+        payloadFingerprint: String,
+        mapping: TrackCsvMapping,
+    ): TrackCsvImportSessionDescriptor? {
+        val current = descriptor?.takeIf {
+            it.batchUuid == expected.batchUuid &&
+                it.previewRevision == expected.previewRevision &&
+                it.dataGeneration == expected.dataGeneration
+        } ?: return null
+        return current.withLoadedPayload(payloadFingerprint, mapping).also {
+            savedStateHandle[STATE_KEY] = it
+        }
+    }
+
+    fun recordPreparation(
+        expected: TrackCsvImportSessionDescriptor,
+        preparation: TrackCsvImportPreparation,
+    ): TrackCsvImportSessionDescriptor? {
+        val current = descriptor?.takeIf {
+            it.batchUuid == expected.batchUuid &&
+                it.previewRevision == expected.previewRevision &&
+                it.rawPayloadFingerprint == preparation.request.payloadFingerprint &&
+                it.batchUuid == preparation.request.batchUuid &&
+                it.trackId == preparation.request.openingFormBoundary.trackId &&
+                it.trackUuid == preparation.request.openingFormBoundary.trackUuid &&
+                it.trackCreatedAtMillis == preparation.request.openingFormBoundary.trackCreatedAtMillis &&
+                it.mapping == preparation.request.mapping &&
+                it.todayEpochDay == preparation.request.defaultEntryDate.toEpochDay() &&
+                it.dataGeneration == expected.dataGeneration
+        } ?: return null
+        return current.withPreparation(preparation).also {
+            savedStateHandle[STATE_KEY] = it
+        }
+    }
+
+    fun recordCommitAttempt(expected: TrackCsvImportCommitIdentity): TrackCsvImportSessionDescriptor? {
+        val current = descriptor?.takeIf {
+            it.trackId == expected.trackId &&
+                it.batchUuid == expected.batchUuid &&
+                it.previewRevision == expected.previewRevision &&
+                it.dataGeneration == expected.dataGeneration &&
+                it.preparedReceiptEnvelope == expected.receiptEnvelope
+        } ?: return null
+        return current.withCommitAttempted().also {
+            savedStateHandle[STATE_KEY] = it
+        }
     }
 
     fun clear() {
@@ -258,14 +377,45 @@ internal class TrackCsvImportSessionStore(
 
 internal fun TrackCsvImportSessionDescriptor.restoredUiState() = TrackCsvImportUiState(
     trackId = trackId,
+    trackName = trackName,
+    batchUuid = batchUuid,
+    fileLabel = fileLabel,
+    fallbackDate = LocalDate.ofEpochDay(todayEpochDay),
+    dataGeneration = dataGeneration,
+    previewRevision = previewRevision,
     phase = TrackCsvImportPhase.Reading,
     mapping = mapping,
+    commitAttempted = commitAttempted,
 )
+
+internal fun TrackCsvImportSessionDescriptor.ownsTrackIdentity(form: TrackEntryFormSnapshot): Boolean =
+    trackId == form.track.id && trackUuid == form.track.uuid &&
+        trackCreatedAtMillis == form.track.createdAtMillis
 
 internal suspend fun reloadTrackCsvText(
     descriptor: TrackCsvImportSessionDescriptor,
     readUri: suspend (String) -> String,
 ): String = readUri(descriptor.uri)
+
+/** Strictly decodes document bytes so binary or damaged text never becomes silently altered Entry data. */
+internal fun decodeTrackCsvUtf8(bytes: ByteArray): String {
+    val decoded = try {
+        Charsets.UTF_8.newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .decode(ByteBuffer.wrap(bytes))
+            .toString()
+    } catch (error: CharacterCodingException) {
+        throw IllegalArgumentException(
+            "Choose a CSV saved as valid UTF-8 text. This file contains damaged or unsupported text encoding.",
+            error,
+        )
+    }
+    require('\u0000' !in decoded) {
+        "Choose a text CSV. This file contains binary NUL characters."
+    }
+    return decoded.removePrefix("\uFEFF")
+}
 
 /** Fast allocation-free guard run before the full RFC-4180 parser. */
 internal fun validateTrackCsvEnvelope(text: String): TrackCsvEnvelope {
@@ -276,30 +426,44 @@ internal fun validateTrackCsvEnvelope(text: String): TrackCsvEnvelope {
     var columns = 1
     var maximumColumns = 0
     var records = 0
+    var trailingBareBlankRecords = 0
     var recordStarted = false
+    var recordCanBeIgnoredAsBareBlank = true
     var index = 0
     fun finishRecord() {
         records++
         maximumColumns = maxOf(maximumColumns, columns)
-        require(records <= TRACK_CSV_MAX_DATA_ROWS + 1) {
+        trailingBareBlankRecords = if (recordCanBeIgnoredAsBareBlank && columns == 1) {
+            trailingBareBlankRecords + 1
+        } else {
+            0
+        }
+        require(records <= TRACK_CSV_MAX_PHYSICAL_RECORDS) {
+            "This CSV has too many physical rows, including extra blank lines. Remove blank lines or split the file and try again."
+        }
+        require(records - trailingBareBlankRecords <= TRACK_CSV_MAX_DATA_ROWS + 1) {
             "This CSV has more than 5,000 data rows. Split it into smaller files and import them separately."
         }
         columns = 1
         recordStarted = false
+        recordCanBeIgnoredAsBareBlank = true
     }
     while (index < text.length) {
         val char = text[index]
         when {
             quoted && char == '"' && index + 1 < text.length && text[index + 1] == '"' -> {
                 recordStarted = true
+                recordCanBeIgnoredAsBareBlank = false
                 index++
             }
             char == '"' -> {
                 recordStarted = true
+                recordCanBeIgnoredAsBareBlank = false
                 quoted = !quoted
             }
             !quoted && char == ',' -> {
                 recordStarted = true
+                recordCanBeIgnoredAsBareBlank = false
                 columns++
                 require(columns <= TRACK_CSV_MAX_COLUMNS) {
                     "This CSV has more than 100 columns. Remove unused columns and try again."
@@ -309,41 +473,131 @@ internal fun validateTrackCsvEnvelope(text: String): TrackCsvEnvelope {
                 if (char == '\r' && index + 1 < text.length && text[index + 1] == '\n') index++
                 finishRecord()
             }
-            else -> recordStarted = true
+            else -> {
+                recordStarted = true
+                if (!char.isWhitespace()) recordCanBeIgnoredAsBareBlank = false
+            }
         }
         index++
     }
     require(!quoted) { "The CSV contains an unclosed quoted value. Fix the quoted cell and try again." }
     if (recordStarted || columns > 1) finishRecord()
-    val envelope = TrackCsvEnvelope(dataRows = (records - 1).coerceAtLeast(0), maximumColumns = maximumColumns)
+    val envelope = TrackCsvEnvelope(
+        dataRows = (records - trailingBareBlankRecords - 1).coerceAtLeast(0),
+        maximumColumns = maximumColumns,
+    )
     require(envelope.dataRows.toLong() * envelope.maximumColumns <= TRACK_CSV_MAX_PREVIEW_CELLS) {
         "This CSV preview would inspect more than 100,000 cells. Remove unused columns or split the file into smaller imports."
     }
     return envelope
 }
 
-internal fun defaultTrackCsvMapping(projection: TrackProjection, headers: List<String>) = TrackCsvMapping(
+internal fun defaultTrackCsvMapping(projection: TrackProjection, headers: List<String>) =
+    defaultTrackCsvMapping(projection.fields, headers)
+
+private fun defaultTrackCsvMapping(fields: List<TrackField>, headers: List<String>) = TrackCsvMapping(
     entryDateColumn = headers.firstOrNull { it.equals("Entry Date", true) },
-    fieldColumns = projection.fields.mapNotNull { field ->
+    fieldColumns = fields.mapNotNull { field ->
         headers.firstOrNull {
             it.equals(field.name, true) ||
                 field.type == TrackFieldType.Number && it.equals("${field.name} (Entered)", true)
         }?.let { field.uuid to it }
     }.toMap(),
-    numberUnitColumns = projection.fields.filter { it.type == TrackFieldType.Number }.mapNotNull { field ->
+    numberUnitColumns = fields.filter { it.type == TrackFieldType.Number }.mapNotNull { field ->
         headers.firstOrNull { it.equals("${field.name} (Unit)", true) }?.let { field.uuid to it }
     }.toMap(),
 )
 
-internal enum class TrackCsvImportPhase { Idle, Reading, Previewing, Ready, Error }
+internal enum class TrackCsvImportPhase { Idle, Reading, Previewing, Ready, Complete, Error }
 
 internal data class TrackCsvImportUiState(
     val trackId: Long? = null,
+    val trackName: String = "",
+    val batchUuid: String? = null,
+    val fileLabel: String = "",
+    val fallbackDate: LocalDate? = null,
+    val dataGeneration: Long? = null,
+    val previewRevision: Long = 0L,
     val phase: TrackCsvImportPhase = TrackCsvImportPhase.Idle,
     val headers: List<String> = emptyList(),
     val mapping: TrackCsvMapping = TrackCsvMapping(),
+    val openingForm: TrackEntryFormSnapshot? = null,
     val preview: TrackCsvImportPreview? = null,
+    val preparation: TrackCsvImportPreparation? = null,
+    val completionReceipt: TrackCsvImportReceipt? = null,
+    val recoveryNotice: String? = null,
+    val requiresNewFile: Boolean = false,
+    val commitAttempted: Boolean = false,
     val errorMessage: String? = null,
+)
+
+internal data class TrackCsvImportCommitIdentity(
+    val trackId: Long,
+    val batchUuid: String,
+    val previewRevision: Long,
+    val dataGeneration: Long,
+    val requestFingerprint: String,
+    val rowCount: Int,
+    val receiptEnvelope: TrackCsvImportReceiptEnvelope,
+)
+
+internal fun TrackCsvImportUiState.commitIdentityOrNull(): TrackCsvImportCommitIdentity? {
+    val prepared = preparation?.request ?: return null
+    if (
+        phase != TrackCsvImportPhase.Ready || preview?.invalidRows != 0 ||
+        preview.validRows <= 0 || preview.validRows != prepared.rowCount
+    ) return null
+    return TrackCsvImportCommitIdentity(
+        trackId = trackId ?: return null,
+        batchUuid = batchUuid ?: return null,
+        previewRevision = previewRevision,
+        dataGeneration = dataGeneration ?: return null,
+        requestFingerprint = prepared.requestFingerprint,
+        rowCount = prepared.rowCount,
+        receiptEnvelope = prepared.receiptEnvelope(),
+    )
+}
+
+internal fun TrackCsvImportReceipt.matches(expected: TrackCsvImportCommitIdentity): Boolean =
+    matches(expected.receiptEnvelope)
+
+private fun TrackCsvImportSessionDescriptor?.matchesSession(
+    expected: TrackCsvImportSessionDescriptor,
+): Boolean = this != null &&
+    trackId == expected.trackId &&
+    batchUuid == expected.batchUuid &&
+    previewRevision == expected.previewRevision &&
+    dataGeneration == expected.dataGeneration
+
+private fun TrackCsvImportSessionDescriptor.uiState(
+    phase: TrackCsvImportPhase,
+    headers: List<String> = emptyList(),
+    openingForm: TrackEntryFormSnapshot? = null,
+    preview: TrackCsvImportPreview? = null,
+    preparation: TrackCsvImportPreparation? = null,
+    completionReceipt: TrackCsvImportReceipt? = null,
+    recoveryNotice: String? = null,
+    requiresNewFile: Boolean = false,
+    errorMessage: String? = null,
+) = TrackCsvImportUiState(
+    trackId = trackId,
+    trackName = trackName,
+    batchUuid = batchUuid,
+    fileLabel = fileLabel,
+    fallbackDate = LocalDate.ofEpochDay(todayEpochDay),
+    dataGeneration = dataGeneration,
+    previewRevision = previewRevision,
+    phase = phase,
+    headers = headers,
+    mapping = mapping,
+    openingForm = openingForm,
+    preview = preview,
+    preparation = preparation,
+    completionReceipt = completionReceipt,
+    recoveryNotice = recoveryNotice,
+    requiresNewFile = requiresNewFile,
+    commitAttempted = commitAttempted,
+    errorMessage = errorMessage,
 )
 
 internal fun trackCsvPreviewCompletion(
@@ -377,12 +631,27 @@ internal data class TrackCsvExportUiState(
     val errorMessage: String? = null,
 )
 
-class TrackViewModel(
+class TrackViewModel private constructor(
     application: Application,
     private val savedStateHandle: SavedStateHandle,
+    projectionSourceOverride: kotlinx.coroutines.flow.Flow<List<TrackProjection>>?,
 ) : AndroidViewModel(application) {
+    constructor(
+        application: Application,
+        savedStateHandle: SavedStateHandle,
+    ) : this(application, savedStateHandle, null)
+
+    /** Test seam for exercising projection-load failure and retry with the real ViewModel coordinator. */
+    internal constructor(
+        application: Application,
+        savedStateHandle: SavedStateHandle,
+        projectionSource: kotlinx.coroutines.flow.Flow<List<TrackProjection>>,
+        @Suppress("UNUSED_PARAMETER") testOverride: Boolean,
+    ) : this(application, savedStateHandle, projectionSource)
+
     private val app = application as WhipApplication
     private val repository: TrackRepository = app.trackRepository
+    private val projectionSource = projectionSourceOverride ?: repository.projections
     private val csvImportSessionStore = TrackCsvImportSessionStore(
         savedStateHandle,
         currentDataGeneration = app::currentUserDataGeneration,
@@ -400,6 +669,11 @@ class TrackViewModel(
     )
     val entryMutationState: StateFlow<PersistenceRequestState<TrackEntryMutationReceipt>> =
         _entryMutationState.asStateFlow()
+    private val _csvImportRequestState = MutableStateFlow<PersistenceRequestState<TrackCsvImportReceipt>>(
+        PersistenceRequestState.Idle,
+    )
+    internal val csvImportRequestState: StateFlow<PersistenceRequestState<TrackCsvImportReceipt>> =
+        _csvImportRequestState.asStateFlow()
     private val _entryPreparationState = MutableStateFlow(TrackEntryPreparationUiState())
     internal val entryPreparationState: StateFlow<TrackEntryPreparationUiState> =
         _entryPreparationState.asStateFlow()
@@ -432,18 +706,19 @@ class TrackViewModel(
     private var csvImportRestoreJob: Job? = null
     private var csvExportJob: Job? = null
     private var importCsvText: String? = null
+    private var importCsvForm: TrackEntryFormSnapshot? = null
     private var importUri: Uri? = restoredCsvImportSession?.uri?.let(Uri::parse)
     private var importToday: LocalDate? = restoredCsvImportSession?.todayEpochDay?.let(LocalDate::ofEpochDay)
-    private var importUnits: List<UnitDefinition> = emptyList()
     private var exportUri: Uri? = null
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val uiState: StateFlow<TrackUiState> = reloadKey.flatMapLatest {
-        combine(repository.projections, app.calendarContext) { projections, calendar ->
+    val uiState: StateFlow<TrackUiState> = reloadKey.flatMapLatest { lookupGeneration ->
+        combine(projectionSource, app.calendarContext) { projections, calendar ->
             TrackUiState(
                 projections = projections,
                 currentDate = calendar.logicalDate,
                 loading = false,
+                lookupGeneration = lookupGeneration,
             )
         }.catch { error ->
             emit(
@@ -451,6 +726,15 @@ class TrackViewModel(
                     currentDate = app.calendarContext.value.logicalDate,
                     loading = false,
                     errorMessage = error.message ?: "Could not load Tracks",
+                    lookupGeneration = lookupGeneration,
+                ),
+            )
+        }.onStart {
+            emit(
+                TrackUiState(
+                    currentDate = app.calendarContext.value.logicalDate,
+                    loading = true,
+                    lookupGeneration = lookupGeneration,
                 ),
             )
         }
@@ -471,6 +755,7 @@ class TrackViewModel(
                 _operationStatus.value = OperationStatus.Idle
                 _definitionSaveState.value = PersistenceRequestState.Idle
                 _entryMutationState.value = PersistenceRequestState.Idle
+                _csvImportRequestState.value = PersistenceRequestState.Idle
                 entryPreparationGeneration++
                 _entryPreparationState.value = TrackEntryPreparationUiState()
                 _entryConflictState.value = null
@@ -478,7 +763,7 @@ class TrackViewModel(
                 _entryDeletePreparationState.value = TrackEntryDeletePreparationUiState()
                 definitionReviewGeneration++
                 _definitionReviewState.value = TrackDefinitionReviewUiState()
-                cancelCsvImport()
+                clearCsvImportSession()
                 cancelCsvExport()
             }
         }
@@ -490,7 +775,11 @@ class TrackViewModel(
         recoveryAcknowledgement = null
     }
 
-    fun retryLoading() { reloadKey.value++ }
+    fun retryLoading() { requestTrackReload() }
+
+    private fun requestTrackReload(): Int = (reloadKey.value + 1).also { nextGeneration ->
+        reloadKey.value = nextGeneration
+    }
 
     fun consumeDefinitionSaveResult(requestId: String) {
         if ((_definitionSaveState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
@@ -501,6 +790,12 @@ class TrackViewModel(
     fun consumeEntryMutationResult(requestId: String) {
         if ((_entryMutationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
             _entryMutationState.value = PersistenceRequestState.Idle
+        }
+    }
+
+    fun consumeCsvImportResult(requestId: String) {
+        if ((_csvImportRequestState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _csvImportRequestState.value = PersistenceRequestState.Idle
         }
     }
 
@@ -920,16 +1215,92 @@ class TrackViewModel(
         return true
     }
 
-    fun importEntries(trackId: Long, drafts: List<TrackEntryDraft>, onSaved: (Int) -> Unit = {}) = runOperation(
-        "Importing Entries…",
-        "${drafts.size} Entries imported",
-        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
-    ) {
-        require(drafts.size <= TRACK_CSV_MAX_DATA_ROWS) {
-            "Import at most 5,000 Entries at a time. Split this CSV into smaller files."
+    internal fun importEntries(expected: TrackCsvImportCommitIdentity, requestId: String): Boolean {
+        val current = _csvImportState.value
+        val preparation = current.preparation ?: return false
+        val drafts = current.preview?.validDrafts ?: return false
+        if (current.commitIdentityOrNull() != expected) return false
+        val session = csvImportSessionStore.descriptor ?: return false
+        if (
+            session.trackId != expected.trackId ||
+            session.batchUuid != expected.batchUuid ||
+            session.previewRevision != expected.previewRevision ||
+            session.dataGeneration != expected.dataGeneration ||
+            session.preparedReceiptEnvelope != expected.receiptEnvelope ||
+            preparation.request.batchUuid != expected.batchUuid ||
+            preparation.request.receiptEnvelope() != expected.receiptEnvelope
+        ) return false
+        if (!_csvImportRequestState.tryStartPersistenceRequest(requestId)) return false
+        val attempted = csvImportSessionStore.recordCommitAttempt(expected)
+        if (attempted == null) {
+            _csvImportRequestState.value = PersistenceRequestState.Finished(
+                requestId,
+                WhipResult.Failure("This import preview changed before it could start. Review it and try again."),
+            )
+            return true
         }
-        val importedCount = repository.importEntries(trackId, drafts).size
-        onSaved(importedCount)
+        _csvImportState.value = current.copy(commitAttempted = true)
+        viewModelScope.launch {
+            val result = try {
+                val receipt = checkNotNull(app.withUserDataAccess {
+                    repository.importEntries(preparation.request, drafts)
+                }) { "Whip data is unavailable while recovery is in progress" }
+                WhipResult.Success(receipt)
+            } catch (cancelled: CancellationException) {
+                if (currentCoroutineContext().isActive) {
+                    WhipResult.Failure(
+                        "The import was interrupted. Whip will verify whether it finished before any retry.",
+                        cancelled,
+                    )
+                } else {
+                    if ((_csvImportRequestState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _csvImportRequestState.value = PersistenceRequestState.Idle
+                    }
+                    throw cancelled
+                }
+            } catch (error: Exception) {
+                if (error is TrackCsvImportConflictException) {
+                    val latest = _csvImportState.value
+                    if (
+                        latest.batchUuid == expected.batchUuid &&
+                        latest.previewRevision == expected.previewRevision &&
+                        latest.dataGeneration == expected.dataGeneration
+                    ) {
+                        _csvImportState.value = latest.copy(
+                            phase = TrackCsvImportPhase.Error,
+                            requiresNewFile = true,
+                            errorMessage =
+                                (error.message ?: "This import no longer matches the current Track.") + when (error.kind) {
+                                    TrackCsvImportConflictKind.TargetMissing,
+                                    TrackCsvImportConflictKind.IdentityChanged,
+                                    -> " Cancel this import and choose an available Track."
+                                    else -> " Choose Replace File to build a new preview."
+                                },
+                        )
+                    }
+                }
+                WhipResult.Failure(error.message ?: "The Entries could not be imported.", error)
+            }
+            if ((_csvImportRequestState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                _csvImportRequestState.value = PersistenceRequestState.Finished(requestId, result)
+            }
+        }
+        return true
+    }
+
+    internal fun completeCsvImport(
+        expected: TrackCsvImportCommitIdentity,
+        receipt: TrackCsvImportReceipt,
+    ): Boolean {
+        val current = _csvImportState.value
+        if (current.commitIdentityOrNull() != expected || !receipt.matches(expected)) return false
+        _csvImportState.value = current.copy(
+            phase = TrackCsvImportPhase.Complete,
+            completionReceipt = receipt,
+            recoveryNotice = null,
+            errorMessage = null,
+        )
+        return true
     }
 
     fun deleteEntry(expectedBoundary: TrackEntryBoundary, requestId: String): Boolean {
@@ -1055,62 +1426,106 @@ class TrackViewModel(
         }
         ?.token
 
-    fun prepareCsvImport(trackId: Long, uri: Uri, today: LocalDate, customUnits: List<UnitDefinition>) {
+    fun prepareCsvImport(trackId: Long, uri: Uri, today: LocalDate): Boolean {
+        if (_csvImportRequestState.value is PersistenceRequestState.Running) return false
+        val projection = uiState.value.track(trackId) ?: return false
         csvImportRestoreJob?.cancel()
         csvImportRestoreJob = null
         runCatching {
             app.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        csvImportSessionStore.begin(trackId, uri.toString(), today)
+        val session = csvImportSessionStore.begin(
+            trackId = trackId,
+            trackName = projection.track.name,
+            trackUuid = projection.track.uuid,
+            trackCreatedAtMillis = projection.track.createdAtMillis,
+            batchUuid = UUID.randomUUID().toString(),
+            uri = uri.toString(),
+            fileLabel = resolveCsvFileLabel(uri),
+            today = today,
+        )
+        _csvImportRequestState.value = PersistenceRequestState.Idle
         importUri = uri
         importToday = today
-        importUnits = BuiltInUnits.all + customUnits
-        startCsvImport(trackId)
+        startCsvImport(session)
+        return true
     }
 
     fun retryCsvImport() {
-        val trackId = _csvImportState.value.trackId ?: return
-        if (importUri != null && importToday != null) startCsvImport(trackId)
+        if (_csvImportRequestState.value is PersistenceRequestState.Running) return
+        val session = csvImportSessionStore.descriptor ?: return
+        val current = _csvImportState.value
+        val frozenForm = current.openingForm ?: current.preparation?.form
+        _csvImportState.value = session.uiState(
+            phase = TrackCsvImportPhase.Reading,
+            openingForm = frozenForm,
+        )
+        val lookupGeneration = requestTrackReload()
+        restoreCsvImportSession(
+            descriptor = session,
+            minimumLookupGeneration = lookupGeneration,
+            frozenForm = frozenForm,
+        )
     }
 
     fun updateCsvImportMapping(mapping: TrackCsvMapping) {
         val current = _csvImportState.value
         val trackId = current.trackId ?: return
         val text = importCsvText ?: return
-        val projection = uiState.value.track(trackId) ?: return
-        csvImportSessionStore.updateMapping(mapping)
+        val openingForm = importCsvForm?.takeIf { it.track.id == trackId } ?: return
+        if (current.commitAttempted || _csvImportRequestState.value !is PersistenceRequestState.Idle) return
+        val session = csvImportSessionStore.updateMapping(mapping) ?: return
         csvImportJob?.cancel()
-        _csvImportState.value = current.copy(
+        _csvImportState.value = session.uiState(
             phase = TrackCsvImportPhase.Previewing,
-            mapping = mapping,
-            preview = null,
-            errorMessage = null,
+            openingForm = openingForm,
         )
         csvImportJob = viewModelScope.launch {
-            val result = try {
-                Result.success(withContext(Dispatchers.Default) {
-                    previewTrackCsvImport(projection, text, mapping, requireNotNull(importToday), importUnits)
-                })
+            try {
+                val preview = buildCsvPreview(openingForm, text, mapping, requireNotNull(importToday))
+                if (!csvImportSessionStore.descriptor.matchesSession(session)) return@launch
+                val preparation = prepareCsvRequest(session, openingForm, preview, mapping)
+                val finalSession = if (preparation == null) session else {
+                    csvImportSessionStore.recordPreparation(session, preparation) ?: return@launch
+                }
+                _csvImportState.value = finalSession.uiState(
+                    phase = TrackCsvImportPhase.Ready,
+                    headers = preview.headers,
+                    openingForm = openingForm,
+                    preview = preview,
+                    preparation = preparation,
+                )
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
-                Result.failure(error)
+                if (!csvImportSessionStore.descriptor.matchesSession(session)) return@launch
+                _csvImportState.value = session.uiState(
+                    phase = TrackCsvImportPhase.Error,
+                    openingForm = openingForm,
+                    errorMessage = error.message
+                        ?: "Could not build the CSV preview. Check the column mapping or choose another file.",
+                )
             }
-            if (_csvImportState.value.trackId != trackId || _csvImportState.value.mapping != mapping) return@launch
-            _csvImportState.value = trackCsvPreviewCompletion(_csvImportState.value, result)
         }
     }
 
-    fun cancelCsvImport() {
+    fun cancelCsvImport(): Boolean {
+        if (_csvImportRequestState.value is PersistenceRequestState.Running) return false
+        clearCsvImportSession()
+        return true
+    }
+
+    private fun clearCsvImportSession() {
         csvImportRestoreJob?.cancel()
         csvImportRestoreJob = null
         csvImportJob?.cancel()
         csvImportJob = null
         importCsvText = null
+        importCsvForm = null
         importUri = null
         importToday = null
-        importUnits = emptyList()
         csvImportSessionStore.clear()
+        _csvImportRequestState.value = PersistenceRequestState.Idle
         _csvImportState.value = TrackCsvImportUiState()
     }
 
@@ -1143,77 +1558,239 @@ class TrackViewModel(
             "Whip data is unavailable while recovery is in progress"
         }
 
-    private fun restoreCsvImportSession(descriptor: TrackCsvImportSessionDescriptor) {
+    private suspend fun buildCsvPreview(
+        openingForm: TrackEntryFormSnapshot,
+        text: String,
+        mapping: TrackCsvMapping,
+        today: LocalDate,
+    ): TrackCsvImportPreview = withContext(Dispatchers.Default) {
+        previewTrackCsvImport(openingForm, text, mapping, today)
+    }
+
+    private suspend fun prepareCsvRequest(
+        session: TrackCsvImportSessionDescriptor,
+        openingForm: TrackEntryFormSnapshot,
+        preview: TrackCsvImportPreview,
+        mapping: TrackCsvMapping,
+    ): TrackCsvImportPreparation? {
+        if (preview.validRows <= 0 || preview.invalidRows != 0) return null
+        require(preview.validRows <= TRACK_CSV_MAX_DATA_ROWS) {
+            "Import at most 5,000 Entries at a time. Split this CSV into smaller files."
+        }
+        return checkNotNull(app.withUserDataAccess {
+            repository.prepareCsvImport(
+                openingForm = openingForm,
+                batchUuid = session.batchUuid,
+                payloadFingerprint = requireNotNull(session.rawPayloadFingerprint),
+                mapping = mapping,
+                defaultEntryDate = LocalDate.ofEpochDay(session.todayEpochDay),
+                drafts = preview.validDrafts,
+            )
+        }) { "Whip data is temporarily unavailable." }
+    }
+
+    private fun resolveCsvFileLabel(uri: Uri): String = runCatching {
+        app.contentResolver.query(
+            uri,
+            arrayOf(OpenableColumns.DISPLAY_NAME),
+            null,
+            null,
+            null,
+        )?.use { cursor ->
+            val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (index >= 0 && cursor.moveToFirst()) cursor.getString(index)?.trim() else null
+        }
+    }.getOrNull()?.takeIf(String::isNotBlank) ?: uri.toString()
+
+    private fun restoreCsvImportSession(
+        descriptor: TrackCsvImportSessionDescriptor,
+        minimumLookupGeneration: Int = reloadKey.value,
+        frozenForm: TrackEntryFormSnapshot? = _csvImportState.value.openingForm,
+    ) {
         csvImportRestoreJob?.cancel()
         csvImportRestoreJob = viewModelScope.launch {
-            val loadedState = uiState.first { !it.loading }
-            if (csvImportSessionStore.descriptor != descriptor) return@launch
+            if (!csvImportSessionStore.descriptor.matchesSession(descriptor)) return@launch
+            descriptor.preparedReceiptEnvelope?.let { expectedReceipt ->
+                val verificationResult = runCatching {
+                    checkNotNull(app.withUserDataAccess {
+                        repository.verifyCsvImportReceipt(expectedReceipt)
+                    }) { "Whip data is unavailable while recovery is in progress" }
+                }
+                if (!csvImportSessionStore.descriptor.matchesSession(descriptor)) return@launch
+                verificationResult.exceptionOrNull()?.let { error ->
+                    _csvImportState.value = descriptor.uiState(
+                        phase = TrackCsvImportPhase.Error,
+                        errorMessage = error.message
+                            ?: "Whip could not verify the previous import. Try again before choosing a different file.",
+                    )
+                    return@launch
+                }
+                when (val verification = verificationResult.getOrThrow()) {
+                    is TrackCsvImportReceiptVerification.Exact -> {
+                        _csvImportState.value = descriptor.uiState(
+                            phase = TrackCsvImportPhase.Complete,
+                            completionReceipt = verification.receipt,
+                        )
+                        return@launch
+                    }
+                    is TrackCsvImportReceiptVerification.Collision -> {
+                        _csvImportState.value = descriptor.uiState(
+                            phase = TrackCsvImportPhase.Error,
+                            requiresNewFile = true,
+                            errorMessage =
+                                "Whip found a different completed import for this saved session. " +
+                                    "Cancel and select the file again to start a new review.",
+                        )
+                        return@launch
+                    }
+                    is TrackCsvImportReceiptVerification.Missing -> Unit
+                }
+            }
+            val loadedState = uiState.first {
+                !it.loading && it.lookupGeneration >= minimumLookupGeneration
+            }
+            if (!csvImportSessionStore.descriptor.matchesSession(descriptor)) return@launch
+            // A projection load failure is not evidence that the saved target
+            // was deleted. Keep the durable session and let the dialog offer a
+            // retry that owns a newer lookup generation.
+            if (loadedState.errorMessage != null) return@launch
             if (loadedState.track(descriptor.trackId) == null) {
-                _csvImportState.value = TrackCsvImportUiState(
-                    trackId = descriptor.trackId,
+                _csvImportState.value = descriptor.uiState(
                     phase = TrackCsvImportPhase.Error,
-                    mapping = descriptor.mapping,
-                    errorMessage = "This Track is no longer available. Cancel this import and choose another Track.",
+                    requiresNewFile = true,
+                    errorMessage =
+                        "${descriptor.trackName} is no longer available. No Entries were imported. " +
+                            "Cancel this import or choose another file after selecting an available Track.",
                 )
                 return@launch
             }
-            importUnits = BuiltInUnits.all + withContext(Dispatchers.IO) {
-                app.measurementRepository.customUnits.first()
-            }
-            if (csvImportSessionStore.descriptor != descriptor) return@launch
-            startCsvImport(descriptor.trackId)
+            importUri = Uri.parse(descriptor.uri)
+            importToday = LocalDate.ofEpochDay(descriptor.todayEpochDay)
+            startCsvImport(descriptor, recovering = true, frozenForm = frozenForm)
         }
     }
 
-    private fun startCsvImport(trackId: Long) {
+    private fun startCsvImport(
+        openingSession: TrackCsvImportSessionDescriptor,
+        recovering: Boolean = false,
+        frozenForm: TrackEntryFormSnapshot? = null,
+    ) {
         val uri = importUri ?: return
         val today = importToday ?: return
-        val session = csvImportSessionStore.descriptor?.takeIf { it.trackId == trackId }
+        if (!csvImportSessionStore.descriptor.matchesSession(openingSession)) return
         csvImportJob?.cancel()
-        _csvImportState.value = TrackCsvImportUiState(
-            trackId = trackId,
+        _csvImportState.value = openingSession.uiState(
             phase = TrackCsvImportPhase.Reading,
-            mapping = session?.mapping ?: TrackCsvMapping(),
+            openingForm = frozenForm,
         )
         csvImportJob = viewModelScope.launch {
+            var ownedSession = openingSession
+            var ownedForm: TrackEntryFormSnapshot? = frozenForm
             try {
+                val openingForm = frozenForm ?: checkNotNull(app.withUserDataAccess {
+                    TrackCsvImportFormLookup(repository.csvImportForm(openingSession.trackId))
+                }) { "Whip data is unavailable while recovery is in progress" }.form
+                    ?: error("${openingSession.trackName} is no longer available. No Entries were imported.")
+                if (!csvImportSessionStore.descriptor.matchesSession(openingSession)) return@launch
+                if (!openingSession.ownsTrackIdentity(openingForm)) {
+                    _csvImportState.value = openingSession.uiState(
+                        phase = TrackCsvImportPhase.Error,
+                        requiresNewFile = true,
+                        errorMessage =
+                            "The target Track changed after this file was selected. No Entries were imported. " +
+                                "Cancel this import or choose Replace File to begin a new review for the current Track.",
+                    )
+                    return@launch
+                }
+                importCsvForm = openingForm
+                ownedForm = openingForm
+                _csvImportState.value = openingSession.uiState(
+                    phase = TrackCsvImportPhase.Reading,
+                    openingForm = openingForm,
+                )
                 val text = withContext(Dispatchers.IO) {
-                    if (session == null) readCsvText(uri) else reloadTrackCsvText(session) { savedUri ->
+                    reloadTrackCsvText(openingSession) { savedUri ->
                         readCsvText(Uri.parse(savedUri))
                     }
                 }
-                val projection = uiState.value.track(trackId) ?: error("This Track is no longer available")
-                val prepared = withContext(Dispatchers.Default) {
+                val payloadFingerprint = withContext(Dispatchers.Default) { trackCsvPayloadFingerprint(text) }
+                if (
+                    openingSession.rawPayloadFingerprint != null &&
+                    openingSession.rawPayloadFingerprint != payloadFingerprint
+                ) {
+                    _csvImportState.value = openingSession.uiState(
+                        phase = TrackCsvImportPhase.Error,
+                        openingForm = openingForm,
+                        requiresNewFile = true,
+                        errorMessage =
+                            "The selected file changed after this preview was saved. " +
+                                "Choose Replace File to review the current contents as a new import.",
+                    )
+                    return@launch
+                }
+                val headers = withContext(Dispatchers.Default) {
                     validateTrackCsvEnvelope(text)
-                    val headers = trackCsvHeaders(text).map(String::trim)
+                    trackCsvHeaders(text).map(String::trim).also { headers ->
                     require(headers.isNotEmpty()) { "The CSV file has no header row. Choose a file whose first row contains column names." }
                     require(headers.size <= TRACK_CSV_MAX_COLUMNS) { "This CSV has more than 100 columns. Remove unused columns and try again." }
-                    val mapping = session?.takeIf { it.mappingInitialized }?.mapping
-                        ?: defaultTrackCsvMapping(projection, headers)
-                    val previewResult = try {
-                        Result.success(previewTrackCsvImport(projection, text, mapping, today, importUnits))
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (error: Throwable) {
-                        Result.failure(error)
                     }
-                    Triple(headers, mapping, previewResult)
                 }
+                val mapping = openingSession.takeIf { it.mappingInitialized }?.mapping
+                    ?: defaultTrackCsvMapping(openingForm.fields, headers)
+                val session = if (openingSession.rawPayloadFingerprint == null) {
+                    csvImportSessionStore.recordLoadedPayload(openingSession, payloadFingerprint, mapping)
+                        ?: return@launch
+                } else {
+                    openingSession
+                }
+                ownedSession = session
                 importCsvText = text
-                csvImportSessionStore.updateMapping(prepared.second)
-                _csvImportState.value = trackCsvPreviewCompletion(TrackCsvImportUiState(
-                    trackId = trackId,
+                _csvImportState.value = session.uiState(
                     phase = TrackCsvImportPhase.Previewing,
-                    headers = prepared.first,
-                    mapping = prepared.second,
-                ), prepared.third)
+                    headers = headers,
+                    openingForm = openingForm,
+                )
+                val preview = buildCsvPreview(openingForm, text, mapping, today)
+                val preparation = prepareCsvRequest(session, openingForm, preview, mapping)
+                if (openingSession.preparedReceiptEnvelope != null && (
+                        preparation == null ||
+                            preparation.request.receiptEnvelope() != openingSession.preparedReceiptEnvelope
+                    )
+                ) {
+                    _csvImportState.value = openingSession.uiState(
+                        phase = TrackCsvImportPhase.Error,
+                        openingForm = openingForm,
+                        requiresNewFile = true,
+                        errorMessage =
+                            "This Track or import setup changed after the preview was saved. " +
+                                "Choose Replace File to review it as a new import.",
+                    )
+                    return@launch
+                }
+                val finalSession = if (preparation == null || session.preparedReceiptEnvelope != null) {
+                    session
+                } else {
+                    csvImportSessionStore.recordPreparation(session, preparation) ?: return@launch
+                }
+                ownedSession = finalSession
+                if (!csvImportSessionStore.descriptor.matchesSession(finalSession)) return@launch
+                _csvImportState.value = finalSession.uiState(
+                    phase = TrackCsvImportPhase.Ready,
+                    headers = headers,
+                    openingForm = openingForm,
+                    preview = preview,
+                    preparation = preparation,
+                    recoveryNotice = if (recovering && openingSession.commitAttempted) {
+                        "No completed import was found. Review this preview, then import again when you are ready."
+                    } else null,
+                )
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
-                _csvImportState.value = TrackCsvImportUiState(
-                    trackId = trackId,
+                if (!csvImportSessionStore.descriptor.matchesSession(ownedSession)) return@launch
+                _csvImportState.value = ownedSession.uiState(
                     phase = TrackCsvImportPhase.Error,
-                    mapping = session?.mapping ?: TrackCsvMapping(),
+                    openingForm = ownedForm,
                     errorMessage = error.message ?: "Could not read this CSV. Choose another file and try again.",
                 )
             }
@@ -1260,7 +1837,7 @@ class TrackViewModel(
                 require(total <= TRACK_CSV_MAX_FILE_BYTES) { "Choose a CSV smaller than 5 MB." }
                 output.write(buffer, 0, count)
             }
-            output.toString(Charsets.UTF_8.name()).removePrefix("\uFEFF")
+            decodeTrackCsvUtf8(output.toByteArray())
         }
     }
 

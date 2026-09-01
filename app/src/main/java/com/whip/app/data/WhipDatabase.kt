@@ -66,8 +66,9 @@ import com.whip.app.domain.normalizedIdentityEmoji
         TrackEntryEntity::class,
         TrackValueEntity::class,
         TrackEntrySearchEntity::class,
+        TrackCsvImportReceiptEntity::class,
     ],
-    version = 38,
+    version = 39,
     exportSchema = true,
 )
 abstract class WhipDatabase : RoomDatabase() {
@@ -817,6 +818,34 @@ abstract class WhipDatabase : RoomDatabase() {
             }
         }
 
+        /** Adds a private, digest-only receipt for process-death-safe Track CSV imports. */
+        val migration38To39 = object : Migration(38, 39) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS track_csv_import_receipts (
+                        batchUuid TEXT NOT NULL,
+                        trackId INTEGER NOT NULL,
+                        trackUuid TEXT NOT NULL,
+                        trackCreatedAtMillis INTEGER NOT NULL,
+                        requestFingerprint TEXT NOT NULL,
+                        fingerprintVersion INTEGER NOT NULL,
+                        entryIdentityDigest TEXT NOT NULL,
+                        rowCount INTEGER NOT NULL,
+                        identityVersion INTEGER NOT NULL,
+                        committedAtMillis INTEGER NOT NULL,
+                        PRIMARY KEY(batchUuid),
+                        FOREIGN KEY(trackId) REFERENCES tracks(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_track_csv_import_receipts_trackId " +
+                        "ON track_csv_import_receipts (trackId)",
+                )
+            }
+        }
+
         /**
          * Repository checks provide friendly errors; these triggers are the final consistency
          * boundary for concurrent writers, restored data, and any future write path.
@@ -858,6 +887,7 @@ abstract class WhipDatabase : RoomDatabase() {
                     migration35To36,
                     migration36To37,
                     migration37To38,
+                    migration38To39,
                 )
                 .addCallback(integrityGuardCallback)
                 .build()

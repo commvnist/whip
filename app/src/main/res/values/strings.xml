@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">Whip</string>
     <string name="action_cancel">Cancel</string>
+    <string name="action_done">Done</string>
     <string name="action_replace_everything">Replace Everything</string>
     <string name="action_try_again">Try Again</string>
     <string name="startup_recovery_checking_title">Checking Your Data</string>
@@ -129,6 +130,19 @@
     <string name="track_csv_import_reading">Reading and checking the selected file…</string>
     <string name="track_csv_import_previewing">Rebuilding the validation preview…</string>
     <string name="track_csv_import_title">Import %1$s Entries</string>
+    <string name="track_csv_import_pane_title">Import Track Entries</string>
+    <string name="track_csv_importing_accessibility">Importing Entries</string>
+    <string name="track_csv_checking_target">Checking whether the target Track is available…</string>
+    <string name="track_csv_target_lookup_failed">Whip couldn’t check whether %1$s is still available: %2$s. Nothing was imported. Your reviewed import is still here; try again.</string>
+    <string name="track_csv_archived_target_recovery">%1$s is archived. Cancel this import, restore the Track, then reopen CSV Import.</string>
+    <string name="track_csv_unknown_track">Track</string>
+    <string name="track_csv_file_unavailable">Selected CSV</string>
+    <string name="track_csv_fallback_date">Rows without a date will use %1$s</string>
+    <string name="track_csv_fallback_date_unavailable">Rows without a date will use the saved import date</string>
+    <plurals name="track_csv_mapped_fields">
+        <item quantity="one">%1$d Field mapped</item>
+        <item quantity="other">%1$d Fields mapped</item>
+    </plurals>
     <string name="track_csv_mapping_description">Map CSV columns to the current Fields. Import never changes the Track structure or creates Choice options silently.</string>
     <string name="track_csv_entry_date">Entry Date</string>
     <string name="track_csv_use_today_date">Use Today\'s Date</string>
@@ -137,11 +151,25 @@
     <string name="track_csv_unit_field">%1$s Unit</string>
     <string name="track_csv_use_current_unit">Use Track’s Current Unit</string>
     <string name="track_csv_choose_another_file">Choose Another File</string>
+    <string name="track_csv_replace_file">Replace File</string>
+    <string name="track_csv_review_field_mapping">Review Field Mapping (%1$d mapped)</string>
+    <string name="track_csv_hide_field_mapping">Hide Field Mapping</string>
     <string name="track_csv_validation_preview">Validation Preview</string>
     <string name="track_csv_validation_summary">%1$d rows · %2$d valid · %3$d invalid</string>
     <string name="track_csv_issue_row">Row %1$d: %2$s</string>
     <string name="track_csv_fix_invalid_rows">Fix every invalid row before importing. No Entries are written until the entire preview is valid.</string>
     <string name="track_csv_importing">Importing…</string>
+    <string name="track_csv_import_complete_title">Import Complete</string>
+    <string name="track_csv_import_not_finished">Import Didn’t Finish</string>
+    <string name="track_csv_import_retry_exact">The reviewed import is still here. Retry without changing its file or mapping.</string>
+    <plurals name="track_csv_import_completed">
+        <item quantity="one">%1$d Entry was imported.</item>
+        <item quantity="other">%1$d Entries were imported.</item>
+    </plurals>
+    <plurals name="track_csv_import_already_completed">
+        <item quantity="one">This %1$d-Entry import had already finished. Nothing was duplicated.</item>
+        <item quantity="other">This %1$d-Entry import had already finished. Nothing was duplicated.</item>
+    </plurals>
     <plurals name="track_csv_import_entries">
         <item quantity="one">Import %1$d Entry</item>
         <item quantity="other">Import %1$d Entries</item>

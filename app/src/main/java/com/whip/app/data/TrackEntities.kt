@@ -186,3 +186,33 @@ data class TrackEntrySearchEntity(
     val trackId: Long,
     val content: String,
 )
+
+/**
+ * Private commit receipt for process-death-safe CSV import retry. It stores no
+ * URI, header, mapping, or imported values; those are represented only by
+ * versioned digests.
+ */
+@Entity(
+    tableName = "track_csv_import_receipts",
+    foreignKeys = [
+        ForeignKey(
+            entity = TrackEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["trackId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("trackId")],
+)
+data class TrackCsvImportReceiptEntity(
+    @PrimaryKey val batchUuid: String,
+    val trackId: Long,
+    val trackUuid: String,
+    val trackCreatedAtMillis: Long,
+    val requestFingerprint: String,
+    val fingerprintVersion: Int,
+    val entryIdentityDigest: String,
+    val rowCount: Int,
+    val identityVersion: Int,
+    val committedAtMillis: Long,
+)

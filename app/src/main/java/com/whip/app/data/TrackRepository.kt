@@ -5,9 +5,20 @@ import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.DeletedTrackEntry
+import com.whip.app.domain.TRACK_CSV_ENTRY_IDENTITY_VERSION
+import com.whip.app.domain.TRACK_CSV_IMPORT_FINGERPRINT_VERSION
+import com.whip.app.domain.TRACK_CSV_MAX_IMPORT_ROWS
 import com.whip.app.domain.Track
 import com.whip.app.domain.TrackChoiceOption
 import com.whip.app.domain.TrackChoiceOptionDraft
+import com.whip.app.domain.TrackCsvImportConflictException
+import com.whip.app.domain.TrackCsvImportConflictKind
+import com.whip.app.domain.TrackCsvImportPreparation
+import com.whip.app.domain.TrackCsvImportReceipt
+import com.whip.app.domain.TrackCsvImportReceiptEnvelope
+import com.whip.app.domain.TrackCsvImportReceiptVerification
+import com.whip.app.domain.TrackCsvImportRequest
+import com.whip.app.domain.TrackCsvMapping
 import com.whip.app.domain.TrackDraft
 import com.whip.app.domain.TrackEntry
 import com.whip.app.domain.TrackEntryBoundary
@@ -43,7 +54,12 @@ import com.whip.app.domain.TrackValueDraft
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.formatTrackScaleValue
+import com.whip.app.domain.deterministicTrackCsvEntryUuid
+import com.whip.app.domain.hasExactCsvBoundary
 import com.whip.app.domain.normalizeTrackScaleValue
+import com.whip.app.domain.prepareTrackCsvImportRequest
+import com.whip.app.domain.receiptEnvelope
+import com.whip.app.domain.trackCsvEntryIdentityDigest
 import com.whip.app.domain.validateTrackEntryDraft
 import com.whip.app.domain.validated
 import java.security.MessageDigest
@@ -116,7 +132,19 @@ interface TrackRepository {
     suspend fun prepareEntryCreate(trackId: Long): TrackEntryCreatePreparation?
     suspend fun prepareEntryEdit(entryId: Long): TrackEntryEditSnapshot?
     suspend fun addEntry(request: TrackEntryCreateRequest, draft: TrackEntryDraft): TrackEntryMutationReceipt
-    suspend fun importEntries(trackId: Long, drafts: List<TrackEntryDraft>): List<Long>
+    suspend fun csvImportForm(trackId: Long): TrackEntryFormSnapshot?
+    suspend fun prepareCsvImport(
+        openingForm: TrackEntryFormSnapshot,
+        batchUuid: String,
+        payloadFingerprint: String,
+        mapping: TrackCsvMapping,
+        defaultEntryDate: LocalDate,
+        drafts: List<TrackEntryDraft>,
+    ): TrackCsvImportPreparation
+    suspend fun verifyCsvImportReceipt(
+        expected: TrackCsvImportReceiptEnvelope,
+    ): TrackCsvImportReceiptVerification
+    suspend fun importEntries(request: TrackCsvImportRequest, drafts: List<TrackEntryDraft>): TrackCsvImportReceipt
     suspend fun updateEntry(expectedBoundary: TrackEntryBoundary, draft: TrackEntryDraft): TrackEntryMutationReceipt
     suspend fun deleteEntry(expectedBoundary: TrackEntryBoundary): TrackEntryMutationReceipt
     suspend fun restoreEntry(deleted: DeletedTrackEntry): TrackEntryMutationReceipt
@@ -131,6 +159,9 @@ class RoomTrackRepository(
     private val database: WhipDatabase,
     private val clock: WhipClock,
     private val ids: WhipIdGenerator,
+    private val csvImportCheckpoint: suspend (insertedRows: Int) -> Unit = {
+        currentCoroutineContext().ensureActive()
+    },
 ) : TrackRepository {
     private val dao = database.trackDao()
     private val linkDao = database.linkDao()
@@ -760,20 +791,228 @@ class RoomTrackRepository(
         ).entry.id
     }
 
-    override suspend fun importEntries(trackId: Long, drafts: List<TrackEntryDraft>): List<Long> = database.withTransaction {
-        require(drafts.isNotEmpty()) { "There are no valid CSV rows to import" }
-        val form = loadEntryFormSnapshot(trackId) ?: throw TrackEntryConflictException(
-            TrackEntryConflictKind.ParentMissing,
-            "Track no longer exists",
-        )
-        requireWritableEntryForm(form)
-        drafts.forEach(::requireGenericEntryProvenance)
-        // Normalize the complete batch before the first insert. A bad row
-        // cannot leave a partial import, even before Room rolls back.
-        val normalized = drafts.map { normalizeEntryDraft(form.boundary(), it, verifyLiveUnits = true) }
-        normalized.map { entry ->
-            insertEntryLocked(form, ids.nextId(), entry, null, "").entry.id
+    override suspend fun csvImportForm(trackId: Long): TrackEntryFormSnapshot? = database.withTransaction {
+        loadEntryFormSnapshot(trackId)?.toDomainSnapshot()
+    }
+
+    override suspend fun prepareCsvImport(
+        openingForm: TrackEntryFormSnapshot,
+        batchUuid: String,
+        payloadFingerprint: String,
+        mapping: TrackCsvMapping,
+        defaultEntryDate: LocalDate,
+        drafts: List<TrackEntryDraft>,
+    ): TrackCsvImportPreparation = database.withTransaction {
+        if (!openingForm.hasExactCsvBoundary()) {
+            throw TrackCsvImportConflictException(
+                TrackCsvImportConflictKind.RequestMalformed,
+                "The CSV form snapshot is inconsistent.",
+            )
         }
+        val opening = openingForm.boundary
+        val form = loadEntryFormSnapshot(opening.trackId) ?: throw TrackCsvImportConflictException(
+            TrackCsvImportConflictKind.TargetMissing,
+            "The Track no longer exists.",
+        )
+        if (form.track.uuid != opening.trackUuid || form.track.createdAtMillis != opening.trackCreatedAtMillis) {
+            throw TrackCsvImportConflictException(
+                TrackCsvImportConflictKind.IdentityChanged,
+                "The Track identity changed after this CSV file was opened.",
+            )
+        }
+        if (!form.boundary().sameCsvFormContractAs(opening)) {
+            throw TrackCsvImportConflictException(
+                TrackCsvImportConflictKind.FormChanged,
+                "The Track form changed after this CSV file was opened. Review the mapping again.",
+            )
+        }
+        if (!opening.writable || form.track.archived) {
+            throw TrackCsvImportConflictException(
+                TrackCsvImportConflictKind.FormChanged,
+                "Restore this Track before importing Entries.",
+            )
+        }
+        drafts.forEach { draft ->
+            if (draft.sourceOccurrenceId != null || draft.sourceExplanation.isNotBlank()) {
+                throw TrackCsvImportConflictException(
+                    TrackCsvImportConflictKind.RequestMalformed,
+                    "CSV imports cannot claim automation provenance.",
+                )
+            }
+        }
+        try {
+            // Selected/default units are compared to the opening snapshot here;
+            // a custom-unit rename, symbol, archive, factor, or offset drift is
+            // never blessed by reading a newer form. Validate each distinct
+            // contract once, then use that frozen map for every imported cell.
+            val normalization = csvEntryNormalizationContext(
+                opening = opening,
+                live = form.boundary(),
+                drafts = drafts,
+            )
+            drafts.forEach { draft ->
+                currentCoroutineContext().ensureActive()
+                normalizeEntryDraft(normalization, draft, verifyLiveUnits = false)
+            }
+        } catch (cause: TrackEntryConflictException) {
+            throw TrackCsvImportConflictException(
+                TrackCsvImportConflictKind.FormChanged,
+                cause.message ?: "The Track form changed after this CSV file was opened.",
+            )
+        }
+        TrackCsvImportPreparation(
+            request = prepareTrackCsvImportRequest(
+                batchUuid = batchUuid,
+                openingFormBoundary = opening,
+                payloadFingerprint = payloadFingerprint,
+                mapping = mapping,
+                defaultEntryDate = defaultEntryDate,
+                drafts = drafts,
+            ),
+            form = openingForm,
+        )
+    }
+
+    override suspend fun verifyCsvImportReceipt(
+        expected: TrackCsvImportReceiptEnvelope,
+    ): TrackCsvImportReceiptVerification {
+        val committed = dao.getCsvImportReceipt(expected.batchUuid)
+            ?: return TrackCsvImportReceiptVerification.Missing(expected)
+        return if (committed.receiptEnvelope() == expected) {
+            TrackCsvImportReceiptVerification.Exact(committed.toDomain(alreadyApplied = true))
+        } else {
+            TrackCsvImportReceiptVerification.Collision(expected, committed.receiptEnvelope())
+        }
+    }
+
+    override suspend fun importEntries(
+        request: TrackCsvImportRequest,
+        drafts: List<TrackEntryDraft>,
+    ): TrackCsvImportReceipt = database.withTransaction {
+        // Outcome verification is deliberately first. A completed retry must
+        // remain resolvable after the Track form changes or is archived.
+        val committedReceipt = dao.getCsvImportReceipt(request.batchUuid)
+        val canonicalRequest = runCatching {
+            prepareTrackCsvImportRequest(
+                batchUuid = request.batchUuid,
+                openingFormBoundary = request.openingFormBoundary,
+                payloadFingerprint = request.payloadFingerprint,
+                mapping = request.mapping,
+                defaultEntryDate = request.defaultEntryDate,
+                drafts = drafts,
+            )
+        }.getOrNull()
+        if (committedReceipt != null) {
+            if (
+                committedReceipt.matches(request) && canonicalRequest == request &&
+                request.hasValidIdentityEnvelope()
+            ) {
+                return@withTransaction committedReceipt.toDomain(alreadyApplied = true)
+            }
+            throw TrackCsvImportConflictException(
+                TrackCsvImportConflictKind.BatchIdentityCollision,
+                "This CSV batch identity is already committed with different content.",
+            )
+        }
+
+        if (canonicalRequest == null) {
+            throw TrackCsvImportConflictException(
+                TrackCsvImportConflictKind.RequestMalformed,
+                "The CSV import request is malformed.",
+            )
+        }
+        if (canonicalRequest != request) {
+            throw TrackCsvImportConflictException(
+                TrackCsvImportConflictKind.RequestMalformed,
+                "The CSV preview no longer matches the prepared import request.",
+            )
+        }
+
+        val opening = request.openingFormBoundary
+        val form = loadEntryFormSnapshot(opening.trackId) ?: throw TrackCsvImportConflictException(
+            TrackCsvImportConflictKind.TargetMissing,
+            "The Track no longer exists.",
+        )
+        if (form.track.uuid != opening.trackUuid || form.track.createdAtMillis != opening.trackCreatedAtMillis) {
+            throw TrackCsvImportConflictException(
+                TrackCsvImportConflictKind.IdentityChanged,
+                "The Track identity changed after this CSV preview was prepared.",
+            )
+        }
+        if (!form.boundary().sameCsvFormContractAs(opening)) {
+            throw TrackCsvImportConflictException(
+                TrackCsvImportConflictKind.FormChanged,
+                "The Track form changed after this CSV preview was prepared. Review the mapping again.",
+            )
+        }
+        if (!opening.writable || form.track.archived) {
+            throw TrackCsvImportConflictException(
+                TrackCsvImportConflictKind.FormChanged,
+                "Restore this Track before importing Entries.",
+            )
+        }
+        drafts.forEach { draft ->
+            if (draft.sourceOccurrenceId != null || draft.sourceExplanation.isNotBlank()) {
+                throw TrackCsvImportConflictException(
+                    TrackCsvImportConflictKind.RequestMalformed,
+                    "CSV imports cannot claim automation provenance.",
+                )
+            }
+        }
+        val normalized: List<NormalizedTrackEntryDraft> = try {
+            val normalization = csvEntryNormalizationContext(
+                opening = opening,
+                live = form.boundary(),
+                drafts = drafts,
+            )
+            val rows = mutableListOf<NormalizedTrackEntryDraft>()
+            for (draft in drafts) {
+                currentCoroutineContext().ensureActive()
+                rows += normalizeEntryDraft(normalization, draft, verifyLiveUnits = false)
+            }
+            rows
+        } catch (cause: TrackEntryConflictException) {
+            throw TrackCsvImportConflictException(
+                TrackCsvImportConflictKind.FormChanged,
+                cause.message ?: "The Track form changed after this CSV preview was prepared.",
+            )
+        }
+
+        if (request.entryUuids.distinct().size != request.entryUuids.size) {
+            throw TrackCsvImportConflictException(
+                TrackCsvImportConflictKind.RequestMalformed,
+                "The CSV request contains duplicate generated Entry identities.",
+            )
+        }
+        // Keep well below SQLite's platform-dependent bind limit while
+        // avoiding 5,000 individual preflight queries for a maximum batch.
+        var collidingEntry: TrackEntryEntity? = null
+        for (chunk in request.entryUuids.chunked(500)) {
+            collidingEntry = dao.getEntriesByUuids(chunk).firstOrNull()
+            if (collidingEntry != null) break
+        }
+        if (collidingEntry != null) {
+            throw TrackCsvImportConflictException(
+                TrackCsvImportConflictKind.EntryIdentityCollision,
+                "A generated CSV Entry identity already exists without its batch receipt.",
+            )
+        }
+
+        insertCsvEntriesLocked(form, request.entryUuids, normalized)
+        val committed = TrackCsvImportReceiptEntity(
+            batchUuid = request.batchUuid,
+            trackId = form.track.id,
+            trackUuid = form.track.uuid,
+            trackCreatedAtMillis = form.track.createdAtMillis,
+            requestFingerprint = request.requestFingerprint,
+            fingerprintVersion = request.fingerprintVersion,
+            entryIdentityDigest = request.entryIdentityDigest,
+            rowCount = request.rowCount,
+            identityVersion = request.identityVersion,
+            committedAtMillis = clock.now().toEpochMilli(),
+        )
+        dao.insertCsvImportReceipt(committed)
+        committed.toDomain(alreadyApplied = false)
     }
 
     override suspend fun updateEntry(
@@ -1095,6 +1334,36 @@ class RoomTrackRepository(
         dao.upsertSearch(TrackEntrySearchEntity(entry.id, track.id, content))
     }
 
+    private fun csvSearchContent(
+        track: Track,
+        fields: List<TrackField>,
+        options: List<TrackChoiceOption>,
+        entry: NormalizedTrackEntryDraft,
+    ): String = buildList {
+        add(track.name)
+        add(track.area)
+        add(track.tags.joinToString(" "))
+        fields.forEach { field ->
+            add(field.name)
+            val value = entry.values[field.id]
+            add(
+                when (field.type) {
+                    TrackFieldType.ShortText, TrackFieldType.LongText -> value?.textValue.orEmpty()
+                    TrackFieldType.Number -> listOfNotNull(
+                        value?.enteredNumber,
+                        value?.enteredUnitId,
+                        value?.canonicalNumber,
+                    ).joinToString(" ")
+                    TrackFieldType.SingleChoice ->
+                        options.firstOrNull { it.id == value?.choiceOptionId }?.label.orEmpty()
+                    TrackFieldType.Scale -> value?.scaleValue?.let(::formatTrackScaleValue).orEmpty()
+                    TrackFieldType.Date -> value?.dateEpochDay?.let(LocalDate::ofEpochDay)?.toString().orEmpty()
+                    TrackFieldType.YesNo -> value?.booleanValue?.let { if (it) "Yes" else "No" }.orEmpty()
+                },
+            )
+        }
+    }.filter(String::isNotBlank).joinToString(" ")
+
     private suspend fun insertFields(trackId: Long, drafts: List<TrackFieldDraft>, now: Long) {
         drafts.forEachIndexed { position, draft ->
             val fieldId = dao.insertField(draft.toEntity(trackId, position, ids.nextId(), now))
@@ -1281,23 +1550,36 @@ class RoomTrackRepository(
         boundary: TrackEntryFormBoundary,
         draft: TrackEntryDraft,
         verifyLiveUnits: Boolean,
+    ): NormalizedTrackEntryDraft = normalizeEntryDraft(
+        context = entryNormalizationContext(boundary),
+        draft = draft,
+        verifyLiveUnits = verifyLiveUnits,
+    )
+
+    private suspend fun normalizeEntryDraft(
+        context: TrackEntryNormalizationContext,
+        draft: TrackEntryDraft,
+        verifyLiveUnits: Boolean,
     ): NormalizedTrackEntryDraft {
-        val fields = boundary.fieldContracts.map(TrackEntryFieldContract::toDomain)
-        val options = boundary.choiceContracts.map(TrackEntryChoiceContract::toDomain)
-        validateTrackEntryDraft(fields, options, draft)
-        val fieldByUuid = fields.associateBy(TrackField::uuid)
-        val expectedUnitById = boundary.unitContracts.associateBy(TrackEntryUnitContract::id)
+        validateTrackEntryDraft(context.fields, context.options, draft)
         val normalized = linkedMapOf<Long, NormalizedTrackValue>()
         draft.values.forEach { (fieldUuid, value) ->
-            val field = requireNotNull(fieldByUuid[fieldUuid]) { "Entry contains a Field that no longer exists" }
+            val field = requireNotNull(context.fieldByUuid[fieldUuid]) { "Entry contains a Field that no longer exists" }
             val selectedUnit = if (field.type == TrackFieldType.Number) {
                 val unitId = value.enteredUnitId ?: field.unitId
-                val expected = unitId?.let(expectedUnitById::get) ?: throw TrackEntryConflictException(
+                val expected = unitId?.let(context.expectedUnitById::get) ?: throw TrackEntryConflictException(
                     TrackEntryConflictKind.FormChanged,
                     "${field.name}'s unit was not available when this Entry form opened.",
                 )
                 require(expected.dimension == field.dimension) { "${field.name}'s entry unit is incompatible" }
-                if (verifyLiveUnits) {
+                if (context.frozenUnitById != null) {
+                    if (context.frozenUnitById[expected.id] != expected) {
+                        throw TrackEntryConflictException(
+                            TrackEntryConflictKind.FormChanged,
+                            "${field.name}'s selected unit changed while this Entry form was open.",
+                        )
+                    }
+                } else if (verifyLiveUnits) {
                     val live = resolveUnit(expected.id)?.toEntryContract()
                     if (live != expected) {
                         throw TrackEntryConflictException(
@@ -1329,7 +1611,7 @@ class RoomTrackRepository(
                 )
                 TrackFieldType.SingleChoice -> NormalizedTrackValue(
                     fieldId = field.id,
-                    choiceOptionId = options.first { option ->
+                    choiceOptionId = context.options.first { option ->
                         option.fieldId == field.id && option.uuid == value.choiceOptionUuid
                     }.id,
                 )
@@ -1353,6 +1635,72 @@ class RoomTrackRepository(
             }
         }
         return NormalizedTrackEntryDraft(draft.entryDate, normalized)
+    }
+
+    private data class TrackEntryNormalizationContext(
+        val fields: List<TrackField>,
+        val options: List<TrackChoiceOption>,
+        val fieldByUuid: Map<String, TrackField>,
+        val expectedUnitById: Map<String, TrackEntryUnitContract>,
+        val frozenUnitById: Map<String, TrackEntryUnitContract>?,
+    )
+
+    private fun entryNormalizationContext(
+        boundary: TrackEntryFormBoundary,
+        frozenUnitById: Map<String, TrackEntryUnitContract>? = null,
+    ): TrackEntryNormalizationContext {
+        val fields = boundary.fieldContracts.map(TrackEntryFieldContract::toDomain)
+        return TrackEntryNormalizationContext(
+            fields = fields,
+            options = boundary.choiceContracts.map(TrackEntryChoiceContract::toDomain),
+            fieldByUuid = fields.associateBy(TrackField::uuid),
+            expectedUnitById = boundary.unitContracts.associateBy(TrackEntryUnitContract::id),
+            frozenUnitById = frozenUnitById,
+        )
+    }
+
+    /**
+     * The current form is loaded once inside the import transaction. Only the
+     * Number units actually selected (or used as Field defaults) belong to the
+     * CSV concurrency contract: unrelated units may change without invalidating
+     * a prepared batch. Comparing this distinct set once avoids two live unit
+     * lookups for every cell across preview validation and commit.
+     */
+    private fun csvEntryNormalizationContext(
+        opening: TrackEntryFormBoundary,
+        live: TrackEntryFormBoundary,
+        drafts: List<TrackEntryDraft>,
+    ): TrackEntryNormalizationContext {
+        val fieldByUuid = opening.fieldContracts.associateBy(TrackEntryFieldContract::uuid)
+        val expectedUnitById = opening.unitContracts.associateBy(TrackEntryUnitContract::id)
+        val liveUnitById = live.unitContracts.associateBy(TrackEntryUnitContract::id)
+        val frozenUnitById = linkedMapOf<String, TrackEntryUnitContract>()
+        drafts.forEach { draft ->
+            draft.values.forEach valueLoop@{ (fieldUuid, value) ->
+                val field = fieldByUuid[fieldUuid] ?: return@valueLoop
+                if (field.type != TrackFieldType.Number) return@valueLoop
+                val unitId = value.enteredUnitId ?: field.unitId ?: throw TrackEntryConflictException(
+                    TrackEntryConflictKind.FormChanged,
+                    "${field.name}'s unit was not available when this Entry form opened.",
+                )
+                if (unitId in frozenUnitById) return@valueLoop
+                val expected = expectedUnitById[unitId] ?: throw TrackEntryConflictException(
+                    TrackEntryConflictKind.FormChanged,
+                    "${field.name}'s unit was not available when this Entry form opened.",
+                )
+                if (expected.dimension != field.dimension || liveUnitById[unitId] != expected) {
+                    throw TrackEntryConflictException(
+                        TrackEntryConflictKind.FormChanged,
+                        "${field.name}'s selected unit changed while this Entry form was open.",
+                    )
+                }
+                require(!expected.archived || expected.id == field.unitId) {
+                    "${expected.name} is archived; restore it before using it for ${field.name}"
+                }
+                frozenUnitById[unitId] = expected
+            }
+        }
+        return entryNormalizationContext(opening, frozenUnitById)
     }
 
     private suspend fun insertEntryLocked(
@@ -1379,6 +1727,47 @@ class RoomTrackRepository(
         return requireNotNull(loadEntrySnapshot(entryId))
     }
 
+    /**
+     * Batch-only insertion path. The already validated form and normalized
+     * values are sufficient to build FTS content; rereading the form, Entry,
+     * and values for every row would turn a 5,000-row import into thousands of
+     * discarded snapshot queries.
+     */
+    private suspend fun insertCsvEntriesLocked(
+        form: TrackEntryFormRows,
+        entryUuids: List<String>,
+        normalized: List<NormalizedTrackEntryDraft>,
+    ) {
+        check(entryUuids.size == normalized.size)
+        val track = form.track.toDomain()
+        val fields = form.fields.map(TrackFieldEntity::toDomain)
+        val options = form.options.map(TrackChoiceOptionEntity::toDomain)
+        normalized.forEachIndexed { index, entry ->
+            currentCoroutineContext().ensureActive()
+            val now = clock.now().toEpochMilli()
+            val entryId = dao.insertEntry(
+                TrackEntryEntity(
+                    uuid = entryUuids[index],
+                    trackId = form.track.id,
+                    entryEpochDay = entry.entryDate.toEpochDay(),
+                    sourceOccurrenceId = null,
+                    sourceExplanation = "",
+                    createdAtMillis = now,
+                    updatedAtMillis = now,
+                ),
+            )
+            upsertNormalizedValues(entryId, entry.values, emptyMap(), now)
+            dao.upsertSearch(
+                TrackEntrySearchEntity(
+                    rowId = entryId,
+                    trackId = form.track.id,
+                    content = csvSearchContent(track, fields, options, entry),
+                ),
+            )
+            csvImportCheckpoint(index + 1)
+        }
+    }
+
     private suspend fun upsertNormalizedValues(
         entryId: Long,
         values: Map<Long, NormalizedTrackValue>,
@@ -1386,6 +1775,7 @@ class RoomTrackRepository(
         now: Long,
     ) {
         values.forEach { (fieldId, value) ->
+            currentCoroutineContext().ensureActive()
             val current = existingValues[fieldId]
             dao.upsertValue(
                 TrackValueEntity(
@@ -2004,6 +2394,64 @@ private fun TrackEntryFormBoundary.sameContractAs(other: TrackEntryFormBoundary)
     trackId == other.trackId && trackUuid == other.trackUuid &&
         trackCreatedAtMillis == other.trackCreatedAtMillis && writable == other.writable &&
         semanticRevisionToken == other.semanticRevisionToken
+
+/**
+ * CSV freezes every Field and Choice contract, independent of presentation
+ * ordering. Unit contracts are checked for each selected/default Number value
+ * by normalizeEntryDraft; unrelated selectable-unit decoration is not a form
+ * conflict.
+ */
+private fun TrackEntryFormBoundary.sameCsvFormContractAs(other: TrackEntryFormBoundary): Boolean =
+    sameContractAs(other) &&
+        fieldContracts.sortedBy(TrackEntryFieldContract::id) == other.fieldContracts.sortedBy(TrackEntryFieldContract::id) &&
+        choiceContracts.sortedBy(TrackEntryChoiceContract::id) == other.choiceContracts.sortedBy(TrackEntryChoiceContract::id)
+
+private fun TrackCsvImportRequest.hasValidIdentityEnvelope(): Boolean = runCatching {
+    require(fingerprintVersion == TRACK_CSV_IMPORT_FINGERPRINT_VERSION)
+    require(identityVersion == TRACK_CSV_ENTRY_IDENTITY_VERSION)
+    require(rowCount in 1..TRACK_CSV_MAX_IMPORT_ROWS)
+    require(entryUuids.size == rowCount && entryUuids.distinct().size == rowCount)
+    val expected = (0 until rowCount).map { ordinal ->
+        deterministicTrackCsvEntryUuid(batchUuid, requestFingerprint, ordinal, identityVersion)
+    }
+    require(entryUuids == expected)
+    require(entryIdentityDigest == trackCsvEntryIdentityDigest(expected, identityVersion))
+}.isSuccess
+
+private fun TrackCsvImportReceiptEntity.matches(request: TrackCsvImportRequest): Boolean =
+    batchUuid == request.batchUuid && trackId == request.openingFormBoundary.trackId &&
+        trackUuid == request.openingFormBoundary.trackUuid &&
+        trackCreatedAtMillis == request.openingFormBoundary.trackCreatedAtMillis &&
+        requestFingerprint == request.requestFingerprint && fingerprintVersion == request.fingerprintVersion &&
+        entryIdentityDigest == request.entryIdentityDigest && rowCount == request.rowCount &&
+        identityVersion == request.identityVersion
+
+private fun TrackCsvImportReceiptEntity.receiptEnvelope() = TrackCsvImportReceiptEnvelope(
+    batchUuid = batchUuid,
+    trackId = trackId,
+    trackUuid = trackUuid,
+    trackCreatedAtMillis = trackCreatedAtMillis,
+    requestFingerprint = requestFingerprint,
+    entryIdentityDigest = entryIdentityDigest,
+    rowCount = rowCount,
+    fingerprintVersion = fingerprintVersion,
+    identityVersion = identityVersion,
+)
+
+private fun TrackCsvImportReceiptEntity.toDomain(alreadyApplied: Boolean) = TrackCsvImportReceipt(
+    batchUuid = batchUuid,
+    trackId = trackId,
+    trackUuid = trackUuid,
+    trackCreatedAtMillis = trackCreatedAtMillis,
+    requestFingerprint = requestFingerprint,
+    entryIdentityDigest = entryIdentityDigest,
+    rowCount = rowCount,
+    fingerprintVersion = fingerprintVersion,
+    identityVersion = identityVersion,
+    committedAtMillis = committedAtMillis,
+    changed = !alreadyApplied,
+    alreadyApplied = alreadyApplied,
+)
 
 private fun TrackFieldEntity.toEntryContract() = TrackEntryFieldContract(
     id = id,

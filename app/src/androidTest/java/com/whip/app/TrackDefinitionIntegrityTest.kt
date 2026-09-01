@@ -20,6 +20,7 @@ import com.whip.app.data.TriggerRuleEntity
 import com.whip.app.data.UnitDefinitionEntity
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.TrackChoiceOptionDraft
+import com.whip.app.domain.TrackCsvMapping
 import com.whip.app.domain.TrackDefinitionConflictException
 import com.whip.app.domain.TrackDefinitionConflictKind
 import com.whip.app.domain.TrackDraft
@@ -29,6 +30,7 @@ import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackProjection
 import com.whip.app.domain.TrackValueDraft
 import com.whip.app.domain.UnitDimension
+import com.whip.app.domain.trackCsvPayloadFingerprint
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -155,15 +157,27 @@ class TrackDefinitionIntegrityTest {
         val trackId = tracks.create(textFieldDraft())
         val opening = requireNotNull(tracks.projection(trackId))
         val boundary = requireNotNull(tracks.definitionBoundary(trackId))
-        val entryId = tracks.importEntries(
-            trackId,
-            listOf(
-                TrackEntryDraft(
-                    TestClock.today(),
-                    mapOf(opening.primaryField.uuid to TrackValueDraft(textValue = "Imported safely")),
-                ),
+        val importedDrafts = listOf(
+            TrackEntryDraft(
+                TestClock.today(),
+                mapOf(opening.primaryField.uuid to TrackValueDraft(textValue = "Imported safely")),
             ),
-        ).single()
+        )
+        val preparation = requireNotNull(
+            tracks.prepareCsvImport(
+                openingForm = requireNotNull(tracks.csvImportForm(trackId)),
+                batchUuid = "8060d0d9-9a55-4ebd-805e-ee88ee04c16e",
+                payloadFingerprint = trackCsvPayloadFingerprint("Title\nImported safely\n"),
+                mapping = TrackCsvMapping(
+                    fieldColumns = mapOf(opening.primaryField.uuid to "Title"),
+                ),
+                defaultEntryDate = TestClock.today(),
+                drafts = importedDrafts,
+            ),
+        )
+        val importReceipt = tracks.importEntries(preparation.request, importedDrafts)
+        val entryId = requireNotNull(database.trackDao().getEntryByUuid(preparation.request.entryUuids.single())).id
+        assertEquals(1, importReceipt.rowCount)
 
         val receipt = tracks.update(trackId, opening.toDraft().copy(description = "Metadata only"), boundary)
 

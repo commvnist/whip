@@ -1111,6 +1111,88 @@ class WhipDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrationThirtyEightToThirtyNinePreservesTrackHistoryAndSearchAndCreatesCascadingEmptyReceipts() {
+        helper.createDatabase(V38_DATABASE_NAME, 38).apply {
+            insertMainArea()
+            execSQL(
+                "INSERT INTO tracks " +
+                    "(id, uuid, name, description, icon, areaId, area, tagsCsv, pinned, archived, position, createdAtMillis, updatedAtMillis) " +
+                    "VALUES (41, 'track-migration-38', 'Migration Track', '', '📋', 'main', 'Main', '', 0, 0, 0, 100, 200)",
+            )
+            execSQL(
+                "INSERT INTO track_fields " +
+                    "(id, uuid, trackId, name, type, position, required, primaryField, showInList, dimension, unitId, precision, scaleMin, scaleMax, scaleLowLabel, scaleHighLabel, createdAtMillis, updatedAtMillis, scaleStep) " +
+                    "VALUES (42, 'field-migration-38', 41, 'Title', 'ShortText', 0, 1, 1, 1, NULL, NULL, 0, NULL, NULL, '', '', 100, 200, 1)",
+            )
+            execSQL(
+                "INSERT INTO track_entries " +
+                    "(id, uuid, trackId, entryEpochDay, sourceOccurrenceId, sourceExplanation, createdAtMillis, updatedAtMillis) " +
+                    "VALUES (43, 'entry-migration-38', 41, 20697, NULL, '', 300, 400)",
+            )
+            execSQL(
+                "INSERT INTO track_values " +
+                    "(id, uuid, entryId, fieldId, textValue, enteredNumber, canonicalNumber, enteredUnitId, dateEpochDay, booleanValue, choiceOptionId, scaleValue, createdAtMillis, updatedAtMillis) " +
+                    "VALUES (44, 'value-migration-38', 43, 42, 'Preserved searchable history', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 300, 400)",
+            )
+            execSQL(
+                "INSERT INTO track_entry_search (rowid, trackId, content) " +
+                    "VALUES (43, 41, 'Migration Track Title Preserved searchable history')",
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            V38_DATABASE_NAME,
+            39,
+            true,
+            WhipDatabase.migration38To39,
+        ).use { database ->
+            database.query(
+                "SELECT t.uuid, f.uuid, e.uuid, e.entryEpochDay, v.uuid, v.textValue " +
+                    "FROM tracks t JOIN track_fields f ON f.trackId = t.id " +
+                    "JOIN track_entries e ON e.trackId = t.id " +
+                    "JOIN track_values v ON v.entryId = e.id AND v.fieldId = f.id WHERE t.id = 41",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("track-migration-38", cursor.getString(0))
+                assertEquals("field-migration-38", cursor.getString(1))
+                assertEquals("entry-migration-38", cursor.getString(2))
+                assertEquals(20697L, cursor.getLong(3))
+                assertEquals("value-migration-38", cursor.getString(4))
+                assertEquals("Preserved searchable history", cursor.getString(5))
+            }
+            database.query("SELECT rowid, trackId, content FROM track_entry_search WHERE rowid = 43").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(43L, cursor.getLong(0))
+                assertEquals(41L, cursor.getLong(1))
+                assertTrue(cursor.getString(2).contains("Preserved searchable history"))
+            }
+            database.query("SELECT COUNT(*) FROM track_csv_import_receipts").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+            }
+
+            // MigrationTestHelper opens the raw SupportSQLiteDatabase without Room's
+            // normal foreign-key configuration; enable it to exercise the declared
+            // on-delete lifecycle rather than only inspecting the schema.
+            database.execSQL("PRAGMA foreign_keys = ON")
+            database.execSQL(
+                "INSERT INTO track_csv_import_receipts " +
+                    "(batchUuid, trackId, trackUuid, trackCreatedAtMillis, requestFingerprint, fingerprintVersion, " +
+                    "entryIdentityDigest, rowCount, identityVersion, committedAtMillis) " +
+                    "VALUES ('38f00aae-477c-4fcb-8082-c35e29e70ddd', 41, 'track-migration-38', 100, " +
+                    "'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 1, " +
+                    "'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 1, 1, 500)",
+            )
+            database.execSQL("DELETE FROM tracks WHERE id = 41")
+            database.query("SELECT COUNT(*) FROM track_csv_import_receipts").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+            }
+        }
+    }
+
     private fun androidx.sqlite.db.SupportSQLiteDatabase.insertMainArea() {
         execSQL(
             "INSERT INTO areas (id, name, nameKey, position, archived, createdAtMillis, updatedAtMillis) " +
@@ -1194,6 +1276,7 @@ class WhipDatabaseMigrationTest {
         const val V35_DATABASE_NAME = "adaptive-training-max-v35-to-v36-migration"
         const val V36_DATABASE_NAME = "prescribed-classification-v36-to-v37-migration"
         const val V37_DATABASE_NAME = "goal-lifecycle-v37-to-v38-migration"
+        const val V38_DATABASE_NAME = "track-csv-receipt-v38-to-v39-migration"
 
         val allMigrations: Array<Migration> = arrayOf(
             WhipDatabase.migration1To2,
@@ -1215,6 +1298,7 @@ class WhipDatabaseMigrationTest {
             WhipDatabase.migration35To36,
             WhipDatabase.migration36To37,
             WhipDatabase.migration37To38,
+            WhipDatabase.migration38To39,
         )
     }
 }
