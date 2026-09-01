@@ -86,6 +86,7 @@ import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitEndType
 import com.whip.app.domain.HabitLog
 import com.whip.app.domain.HabitLogStatus
+import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitSkip
 import com.whip.app.domain.HabitTrackingMode
@@ -151,6 +152,7 @@ fun HabitAreaContent(
     showWorkspace: Boolean = true,
     onReorderModeChange: (Boolean) -> Unit = {},
     reorderDismissRequest: Int = 0,
+    mutationRequestNamespace: String = "habit-workspace",
 ) {
     val localDestinationState = rememberSaveable { mutableStateOf(HabitDestination.Today) }
     val activeDestinationState = destinationState ?: localDestinationState
@@ -174,6 +176,7 @@ fun HabitAreaContent(
     var actionsHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var numericLogHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var pauseRequestHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var editingPauseId by rememberSaveable { mutableStateOf<Long?>(null) }
     var templatesOpen by rememberSaveable { mutableStateOf(false) }
     var reorderAllRequested by rememberSaveable { mutableStateOf(false) }
     var templateDraft by rememberSaveable { mutableStateOf<HabitDraft?>(null) }
@@ -188,11 +191,50 @@ fun HabitAreaContent(
         .associateBy { it.habit.id }
     val editing = editingHabitId?.let(editorProgressById::get)
     val actions = actionsHabitId?.let(progressById::get)
-    val numericLog = numericLogHabitId?.let(progressById::get)
-    val pauseRequest = pauseRequestHabitId?.let(progressById::get)
-    val historicalLogHabit = historicalLogHabitId?.let(progressById::get)
-    val editingLog = editingLogHabitId?.let(progressById::get)?.let { item ->
-        editingLogId?.let { id -> state.logs.firstOrNull { it.id == id } }?.let { item to it }
+    val numericLog = numericLogHabitId?.let(editorProgressById::get)
+    val pauseRequest = pauseRequestHabitId?.let(editorProgressById::get)
+    val historicalLogHabit = historicalLogHabitId?.let(editorProgressById::get)
+    val restoredLogTarget = editingLogId?.let { id -> editorState.logs.firstOrNull { it.id == id } }
+    val liveEditingLog = restoredLogTarget?.takeIf { it.habitId == editingLogHabitId }
+    LaunchedEffect(editingLogHabitId, editingLogId, restoredLogTarget) {
+        if (restoredLogTarget != null && restoredLogTarget.habitId != editingLogHabitId) {
+            editingLogHabitId = null
+            editingLogId = null
+        }
+    }
+    var editingLogSnapshot by rememberSaveable(editingLogId) { mutableStateOf(liveEditingLog) }
+    LaunchedEffect(editingLogId, liveEditingLog) {
+        editingLogSnapshot = when {
+            editingLogId == null -> null
+            liveEditingLog != null -> liveEditingLog
+            editingLogSnapshot?.id == editingLogId -> editingLogSnapshot
+            else -> null
+        }
+    }
+    val editingLog = editingLogHabitId?.let(editorProgressById::get)?.let { item ->
+        (liveEditingLog ?: editingLogSnapshot?.takeIf {
+            it.id == editingLogId && it.habitId == editingLogHabitId
+        })?.let { item to it }
+    }
+    val restoredPauseTarget = editingPauseId?.let { id -> editorState.pauses.firstOrNull { it.id == id } }
+    val liveEditingPause = restoredPauseTarget?.takeIf { it.habitId == pauseRequestHabitId }
+    LaunchedEffect(pauseRequestHabitId, editingPauseId, restoredPauseTarget) {
+        if (restoredPauseTarget != null && restoredPauseTarget.habitId != pauseRequestHabitId) {
+            pauseRequestHabitId = null
+            editingPauseId = null
+        }
+    }
+    var editingPauseSnapshot by rememberSaveable(editingPauseId) { mutableStateOf(liveEditingPause) }
+    LaunchedEffect(editingPauseId, liveEditingPause) {
+        editingPauseSnapshot = when {
+            editingPauseId == null -> null
+            liveEditingPause != null -> liveEditingPause
+            editingPauseSnapshot?.id == editingPauseId -> editingPauseSnapshot
+            else -> null
+        }
+    }
+    val editingPause = liveEditingPause ?: editingPauseSnapshot?.takeIf {
+        it.id == editingPauseId && it.habitId == pauseRequestHabitId
     }
     val deleteCandidate = deleteCandidateHabitId?.let { id ->
         progressById[id]?.habit ?: state.archived.firstOrNull { it.id == id }
@@ -209,6 +251,28 @@ fun HabitAreaContent(
             templateDraft = null
         },
     )
+    val authoredMutationSurfaceOpen = actionsHabitId != null ||
+        numericLogHabitId != null ||
+        historicalLogHabitId != null ||
+        editingLogHabitId != null ||
+        pauseRequestHabitId != null
+    val authoredMutationState by viewModel.authoredMutationState.collectAsStateWithLifecycle()
+    val authoredMutationCoordinator = if (authoredMutationSurfaceOpen) {
+        rememberPersistenceRequestCoordinator(
+            state = authoredMutationState,
+            consume = viewModel::consumeAuthoredMutationResult,
+            key = mutationRequestNamespace,
+            requestNamespace = mutationRequestNamespace,
+            onPersisted = {
+                numericLogHabitId = null
+                historicalLogHabitId = null
+                editingLogHabitId = null
+                editingLogId = null
+                pauseRequestHabitId = null
+                editingPauseId = null
+            },
+        )
+    } else null
     fun latestPeriodLog(item: HabitDayProgress): HabitLog? = state.logs
         .asSequence()
         .filter { it.habitId == item.habit.id && it.localDate in item.habit.periodBounds(item.date) }
@@ -362,15 +426,23 @@ fun HabitAreaContent(
         )
     }
     actions?.let { item ->
+        val mutationCoordinator = authoredMutationCoordinator ?: return@let
         HabitActionsDialog(
             item,
             modifier = modifier,
-            onDismiss = { actionsHabitId = null },
+            onDismiss = {
+                mutationCoordinator.clear()
+                actionsHabitId = null
+            },
             onEdit = { editingHabitId = item.habit.id; actionsHabitId = null },
             onDuplicate = { viewModel.duplicate(item.habit.id); actionsHabitId = null },
             onPin = { viewModel.setPinned(item.habit.id, !item.habit.pinned); actionsHabitId = null },
             onPause = { viewModel.setPaused(item.habit.id, !item.habit.paused); actionsHabitId = null },
-            onSchedulePause = { pauseRequestHabitId = item.habit.id; actionsHabitId = null },
+            onSchedulePause = {
+                pauseRequestHabitId = item.habit.id
+                editingPauseId = null
+                actionsHabitId = null
+            },
             onQuick = {
                 if (item.habit.trackingMode in setOf(HabitTrackingMode.Rating, HabitTrackingMode.LogOnly)) {
                     numericLogHabitId = item.habit.id
@@ -380,14 +452,33 @@ fun HabitAreaContent(
                 }
             },
             onSkip = { skipConfirmationHabitId = item.habit.id; actionsHabitId = null },
-            onUndoSkip = { viewModel.undoSkip(item.habit.id, item.date); actionsHabitId = null },
+            onUndoSkip = {
+                val requestId = mutationCoordinator.begin()
+                if (requestId != null && !viewModel.undoSkip(item.habit.id, item.date, requestId)) {
+                    mutationCoordinator.finishFailure("Another Habit history change is already finishing.")
+                }
+            },
+            onUndoHistoricalSkip = { date ->
+                val requestId = mutationCoordinator.begin()
+                if (requestId != null && !viewModel.undoSkip(item.habit.id, date, requestId)) {
+                    mutationCoordinator.finishFailure("Another Habit history change is already finishing.")
+                }
+            },
             logs = state.logs.filter { it.habitId == item.habit.id },
             skips = state.skips.filter { it.habitId == item.habit.id },
+            pauses = state.pauses.filter { it.habitId == item.habit.id },
             onAddHistoricalLog = { historicalLogHabitId = item.habit.id; actionsHabitId = null },
             onEditLog = { log -> editingLogHabitId = item.habit.id; editingLogId = log.id; actionsHabitId = null },
+            onEditPause = { pause ->
+                pauseRequestHabitId = item.habit.id
+                editingPauseId = pause.id
+                actionsHabitId = null
+            },
             onArchive = { viewModel.setArchived(item.habit.id, !item.habit.archived); actionsHabitId = null },
             onDelete = { deleteCandidateHabitId = item.habit.id; actionsHabitId = null },
             lowPressureMode = lowPressureMode,
+            mutationSaving = mutationCoordinator.saving,
+            mutationError = mutationCoordinator.errorMessage,
         )
     }
     skipConfirmationHabitId?.let { habitId ->
@@ -419,52 +510,128 @@ fun HabitAreaContent(
             onConfirm = { viewModel.deletePermanently(habit.id); deleteCandidateHabitId = null },
         )
     }
-    numericLog?.let { item ->
-        HabitValueDialog(
-            item = item,
-            onDismiss = { numericLogHabitId = null },
-            onLog = { value, note ->
-                if (item.habit.trackingMode == HabitTrackingMode.LogOnly) {
-                    viewModel.log(item.habit.id, value, note = note)
-                } else {
-                    viewModel.setPeriodValue(item, requireNotNull(value), note)
-                }
-                numericLogHabitId = null
-            },
-        )
-    }
-    historicalLogHabit?.let { item ->
-        HabitHistoryLogDialog(
-            item = item,
-            log = null,
-            initialDate = state.currentDate.minusDays(1),
-            onDismiss = { historicalLogHabitId = null },
-            onSave = { value, status, date, note ->
-                viewModel.log(item.habit.id, value, status, date, note)
-                historicalLogHabitId = null
-            },
-        )
-    }
-    editingLog?.let { (item, log) ->
-        HabitHistoryLogDialog(
-            item = item,
-            log = log,
-            initialDate = log.localDate,
-            onDismiss = { editingLogHabitId = null; editingLogId = null },
-            onSave = { value, status, date, note ->
-                viewModel.updateLog(log.id, value, status, date, note)
-                editingLogHabitId = null; editingLogId = null
-            },
-            onDelete = {
-                viewModel.undoLog(log.id, item.habit.id)
-                editingLogHabitId = null; editingLogId = null
-            },
-        )
-    }
-    pauseRequest?.let { item ->
-        HabitPauseDialog(state.currentDate, { pauseRequestHabitId = null }) { start, end, note ->
-            viewModel.addPause(item.habit.id, start, end, note)
-            pauseRequestHabitId = null
+    if (authoredMutationCoordinator != null) {
+        numericLog?.let { item ->
+            HabitValueDialog(
+                item = item,
+                saving = authoredMutationCoordinator.saving,
+                persistenceError = authoredMutationCoordinator.errorMessage,
+                onDismiss = {
+                    authoredMutationCoordinator.clear()
+                    numericLogHabitId = null
+                },
+                onLog = { value, note ->
+                    val requestId = authoredMutationCoordinator.begin()
+                    if (requestId != null) {
+                        val accepted = if (item.habit.trackingMode == HabitTrackingMode.LogOnly) {
+                            viewModel.log(item.habit.id, value, note = note, requestId = requestId)
+                        } else {
+                            viewModel.setPeriodValue(item, requireNotNull(value), note, requestId = requestId)
+                        }
+                        if (!accepted) authoredMutationCoordinator.finishFailure(
+                            "Another Habit history change is already finishing.",
+                        )
+                    }
+                },
+            )
+        }
+        historicalLogHabit?.let { item ->
+            HabitHistoryLogDialog(
+                item = item,
+                log = null,
+                initialDate = state.currentDate.minusDays(1),
+                saving = authoredMutationCoordinator.saving,
+                persistenceError = authoredMutationCoordinator.errorMessage,
+                onDismiss = {
+                    authoredMutationCoordinator.clear()
+                    historicalLogHabitId = null
+                },
+                onSave = { value, status, date, note ->
+                    val requestId = authoredMutationCoordinator.begin()
+                    if (requestId != null && !viewModel.log(
+                            item.habit.id,
+                            value,
+                            status,
+                            date,
+                            note,
+                            requestId,
+                        )
+                    ) authoredMutationCoordinator.finishFailure(
+                        "Another Habit history change is already finishing.",
+                    )
+                },
+            )
+        }
+        editingLog?.let { (item, log) ->
+            HabitHistoryLogDialog(
+                item = item,
+                log = log,
+                initialDate = log.localDate,
+                saving = authoredMutationCoordinator.saving,
+                persistenceError = authoredMutationCoordinator.errorMessage,
+                onDismiss = {
+                    authoredMutationCoordinator.clear()
+                    editingLogHabitId = null
+                    editingLogId = null
+                },
+                onSave = { value, status, date, note ->
+                    val requestId = authoredMutationCoordinator.begin()
+                    if (requestId != null && !viewModel.updateLog(
+                            log.id,
+                            value,
+                            status,
+                            date,
+                            note,
+                            item.habit.id,
+                            requestId,
+                        )
+                    ) authoredMutationCoordinator.finishFailure(
+                        "Another Habit history change is already finishing.",
+                    )
+                },
+                onDelete = {
+                    val requestId = authoredMutationCoordinator.begin()
+                    if (requestId != null && !viewModel.undoLog(log.id, item.habit.id, requestId)) {
+                        authoredMutationCoordinator.finishFailure(
+                            "Another Habit history change is already finishing.",
+                        )
+                    }
+                },
+            )
+        }
+        pauseRequest?.let { item ->
+            HabitPauseDialog(
+                today = state.currentDate,
+                pause = editingPause,
+                saving = authoredMutationCoordinator.saving,
+                persistenceError = authoredMutationCoordinator.errorMessage,
+                onDismiss = {
+                    authoredMutationCoordinator.clear()
+                    pauseRequestHabitId = null
+                    editingPauseId = null
+                },
+                onSave = { start, end, note ->
+                    val requestId = authoredMutationCoordinator.begin()
+                    if (requestId != null) {
+                        val accepted = editingPause?.let { pause ->
+                            viewModel.updatePause(pause.id, item.habit.id, start, end, note, requestId)
+                        } ?: viewModel.addPause(item.habit.id, start, end, note, requestId)
+                        if (!accepted) authoredMutationCoordinator.finishFailure(
+                            "Another Habit schedule change is already finishing.",
+                        )
+                    }
+                },
+                onDelete = editingPause?.let { pause ->
+                    {
+                        val requestId = authoredMutationCoordinator.begin()
+                        if (requestId != null && !viewModel.deletePause(pause.id, item.habit.id, requestId)) {
+                            authoredMutationCoordinator.finishFailure(
+                                "Another Habit schedule change is already finishing.",
+                            )
+                        }
+                    }
+                },
+            )
         }
     }
     if (templatesOpen) {
@@ -2042,7 +2209,13 @@ internal fun HabitEditorDialog(
 }
 
 @Composable
-internal fun HabitValueDialog(item: HabitDayProgress, onDismiss: () -> Unit, onLog: (Double?, String) -> Unit) {
+internal fun HabitValueDialog(
+    item: HabitDayProgress,
+    onDismiss: () -> Unit,
+    onLog: (Double?, String) -> Unit,
+    saving: Boolean = false,
+    persistenceError: String? = null,
+) {
     var value by rememberSaveable(item.habit.id, item.date) {
         mutableStateOf(
             if (item.habit.trackingMode == HabitTrackingMode.LogOnly && item.value == 0.0) ""
@@ -2051,15 +2224,39 @@ internal fun HabitValueDialog(item: HabitDayProgress, onDismiss: () -> Unit, onL
     }
     var note by rememberSaveable(item.habit.id, item.date) { mutableStateOf("") }
     val logOnly = item.habit.trackingMode == HabitTrackingMode.LogOnly
+    val setsPeriodTotal = item.habit.trackingMode in setOf(
+        HabitTrackingMode.Count,
+        HabitTrackingMode.Decimal,
+        HabitTrackingMode.Duration,
+    )
     val parsedValue = value.toWhipDoubleOrNull()
     val validValue = if (logOnly) value.isBlank() || parsedValue?.isFinite() == true else parsedValue?.isFinite() == true
     PaneAwareAlertDialog(
+        testTag = "habit-value-dialog",
         onDismissRequest = onDismiss,
         title = { Text(item.habit.todayCheckInTitle()) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PersistenceFailureNotice(persistenceError, testTag = "habit-value-save-problem")
                 Text("${item.habit.icon} ${item.habit.name}", style = MaterialTheme.typography.titleMedium)
-                NumberTextField(value, { value = it }, item.habit.historyAmountLabel(optional = logOnly))
+                if (setsPeriodTotal) Text(
+                    "Current ${item.habit.periodTotalDescription()}: " +
+                        "${formatHabitValue(item.value, item.habit.precision)} " +
+                        "${item.habit.unitId.unitLabel()}. Saving sets this total; it does not add to it.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                NumberTextField(
+                    value,
+                    { value = it },
+                    if (setsPeriodTotal) item.habit.periodTotalAmountLabel()
+                    else item.habit.historyAmountLabel(optional = logOnly),
+                    modifier = Modifier.testTag("habit-value-input"),
+                    enabled = !saving,
+                )
                 if (logOnly) Text(
                     "A note is enough; add a number only when it is useful.",
                     style = MaterialTheme.typography.bodySmall,
@@ -2069,7 +2266,8 @@ internal fun HabitValueDialog(item: HabitDayProgress, onDismiss: () -> Unit, onL
                     note,
                     { note = it },
                     label = { Text(if (logOnly) "What happened? (optional)" else "Note (optional)") },
-                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !saving,
+                    modifier = Modifier.fillMaxWidth().testTag("habit-value-note"),
                 )
                 if (item.habit.quickActions.isNotEmpty()) {
                     FlowRow(
@@ -2079,14 +2277,21 @@ internal fun HabitValueDialog(item: HabitDayProgress, onDismiss: () -> Unit, onL
                     ) {
                         item.habit.quickActions.forEach { quick ->
                             val label = editableNumericValue(quick)
-                            WhipTextButton(onClick = { value = label }) { Text(label) }
+                            WhipTextButton(enabled = !saving, onClick = { value = label }) { Text(label) }
                         }
                     }
                 }
             }
         },
-        confirmButton = { WhipTextButton(enabled = validValue, onClick = { onLog(parsedValue, note) }) { Text(if (logOnly) "Add Entry" else "Save") } },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = {
+            WhipTextButton(
+                enabled = validValue && !saving,
+                onClick = { onLog(parsedValue, note) },
+            ) { Text(if (saving) "Saving…" else if (logOnly) "Add Entry" else "Save") }
+        },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
+        inputBlocked = saving,
+        inputBlockedLabel = "Saving Habit Check-In",
     )
 }
 
@@ -2098,6 +2303,8 @@ internal fun HabitHistoryLogDialog(
     onDismiss: () -> Unit,
     onSave: (Double?, HabitLogStatus, LocalDate, String) -> Unit,
     onDelete: (() -> Unit)? = null,
+    saving: Boolean = false,
+    persistenceError: String? = null,
 ) {
     val editorKey = "habit-log-${log?.id ?: "${item.habit.id}-${initialDate.toEpochDay()}"}"
     var value by rememberSaveable(editorKey) { mutableStateOf(log?.value?.let(::editableNumericValue).orEmpty()) }
@@ -2115,12 +2322,21 @@ internal fun HabitHistoryLogDialog(
         else -> value.isBlank() || parsedValue?.isFinite() == true
     }
     PaneAwareAlertDialog(
+        testTag = "habit-history-dialog",
         onDismissRequest = onDismiss,
         title = { Text(item.habit.historyDialogTitle(editing = log != null)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+            ) {
+                PersistenceFailureNotice(persistenceError, testTag = "habit-history-save-problem")
                 Text("${item.habit.icon} ${item.habit.name}", style = MaterialTheme.typography.titleMedium)
-                WhipOutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
+                WhipOutlinedButton(
+                    enabled = !saving,
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text("Date · ${date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
                 }
                 if (showsAmount) {
@@ -2131,6 +2347,8 @@ internal fun HabitHistoryLogDialog(
                             unitId = log?.enteredUnitId ?: item.habit.unitId,
                             optional = !requiresAmount,
                         ),
+                        modifier = Modifier.testTag("habit-history-value"),
+                        enabled = !saving,
                     )
                     if (!requiresAmount) Text(
                         "A note is enough; add a number only when it is useful.",
@@ -2142,13 +2360,14 @@ internal fun HabitHistoryLogDialog(
                     note,
                     { note = it },
                     label = { Text(if (mode == HabitTrackingMode.LogOnly) "What happened? (optional)" else "Note (optional)") },
-                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !saving,
+                    modifier = Modifier.fillMaxWidth().testTag("habit-history-note"),
                 )
             }
         },
         confirmButton = {
             WhipTextButton(
-                enabled = amountIsValid,
+                enabled = amountIsValid && !saving,
                 onClick = {
                     val effectiveValue = when (mode) {
                         HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist -> 1.0
@@ -2160,16 +2379,18 @@ internal fun HabitHistoryLogDialog(
                     }
                     onSave(effectiveValue, effectiveStatus, date, note)
                 },
-            ) { Text(if (log == null) "Record" else "Save Changes") }
+            ) { Text(if (saving) "Saving…" else if (log == null) "Record" else "Save Changes") }
         },
         dismissButton = {
             Row {
-                if (onDelete != null) WhipTextButton(onClick = { confirmDelete = true }) {
+                if (onDelete != null) WhipTextButton(enabled = !saving, onClick = { confirmDelete = true }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
-                WhipTextButton(onClick = onDismiss) { Text("Cancel") }
+                WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") }
             }
         },
+        inputBlocked = saving,
+        inputBlockedLabel = if (onDelete != null && confirmDelete) "Updating Habit History" else "Saving Habit History",
     )
     if (showDatePicker) {
         WhipDatePickerDialog(date, { showDatePicker = false }, { selected -> date = selected; showDatePicker = false })
@@ -2193,7 +2414,7 @@ internal fun HabitHistoryLogDialog(
 }
 
 @Composable
-private fun HabitActionsDialog(
+internal fun HabitActionsDialog(
     item: HabitDayProgress,
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit,
@@ -2205,13 +2426,18 @@ private fun HabitActionsDialog(
     onQuick: () -> Unit,
     onSkip: () -> Unit,
     onUndoSkip: () -> Unit,
+    onUndoHistoricalSkip: (LocalDate) -> Unit,
     logs: List<HabitLog>,
     skips: List<HabitSkip>,
+    pauses: List<HabitPause>,
     onAddHistoricalLog: () -> Unit,
     onEditLog: (HabitLog) -> Unit,
+    onEditPause: (HabitPause) -> Unit,
     onArchive: () -> Unit,
     onDelete: () -> Unit,
     lowPressureMode: Boolean = false,
+    mutationSaving: Boolean = false,
+    mutationError: String? = null,
 ) {
     var visibleLogs by rememberSaveable(item.habit.id) { mutableIntStateOf(8) }
     var section by rememberSaveable(item.habit.id) {
@@ -2249,11 +2475,14 @@ private fun HabitActionsDialog(
         legacySurfaceTag = "habit-detail-surface",
         legacySectionTagPrefix = "habit-detail-section",
         primaryAction = primaryAction,
+        inputBlocked = mutationSaving,
+        inputBlockedLabel = "Saving Habit History",
         content = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(WhipSpacing.screenExpanded),
             ) {
+                PersistenceFailureNotice(mutationError, testTag = "habit-actions-save-problem")
                 when (section) {
                     HabitDetailSection.Today -> {
                         EntityInspectorGroup("Today's check-in") {
@@ -2319,10 +2548,11 @@ private fun HabitActionsDialog(
                                         enabled = event.value.isUserEditable(),
                                         onClick = { if (event.value.isUserEditable()) onEditLog(event.value) },
                                     )
-                                    is HabitHistoryEvent.Skip -> Text(
-                                        "Skipped · ${event.value.localDate.relativeActivityDate(item.date)}",
-                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    is HabitHistoryEvent.Skip -> EntityInspectorAction(
+                                        id = "skip-${event.value.localDate.toEpochDay()}",
+                                        label = "Skipped · ${event.value.localDate.relativeActivityDate(item.date)}",
+                                        supportingText = "Undo this skip and return the day to its normal schedule.",
+                                        onClick = { onUndoHistoricalSkip(event.value.localDate) },
                                     )
                                 }
                             }
@@ -2372,6 +2602,16 @@ private fun HabitActionsDialog(
                                         supportingText = "Choose a start and end date without changing the Habit.",
                                         icon = Icons.Outlined.CalendarMonth,
                                     )
+                                    pauses.sortedByDescending(HabitPause::startDate).forEach { pause ->
+                                        WhipActionDivider()
+                                        WhipActionRow(
+                                            title = pause.displayDateRange(),
+                                            onClick = { onEditPause(pause) },
+                                            modifier = Modifier.testTag("entity-inspector-action-pause-${pause.id}"),
+                                            supportingText = pause.note.ifBlank { "Scheduled pause · tap to edit or delete" },
+                                            icon = Icons.Outlined.CalendarMonth,
+                                        )
+                                    }
                                 }
                             }
                             EntityInspectorGroup("Manage") {
@@ -2474,7 +2714,31 @@ private fun HabitDayProgress.inspectorPrimaryActionLabel(): String = when (habit
 internal fun Habit.todayCheckInTitle(): String = when (trackingMode) {
     HabitTrackingMode.Rating -> "Rate Today"
     HabitTrackingMode.LogOnly -> "Add an Entry"
+    HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.Duration ->
+        "Set ${periodTotalTitle()}"
     else -> "Log Today's Progress"
+}
+
+private fun Habit.periodTotalTitle(): String = when (targetPeriod) {
+    TargetPeriod.Occurrence, TargetPeriod.Day -> "Today's Total"
+    TargetPeriod.Week -> "This Week's Total"
+    TargetPeriod.Month -> "This Month's Total"
+    TargetPeriod.RollingDays -> "Current ${rollingDays?.coerceAtLeast(1) ?: 1}-Day Total"
+}
+
+private fun Habit.periodTotalDescription(): String = when (targetPeriod) {
+    TargetPeriod.Occurrence, TargetPeriod.Day -> "today's total"
+    TargetPeriod.Week -> "this week's total"
+    TargetPeriod.Month -> "this month's total"
+    TargetPeriod.RollingDays -> "current ${rollingDays?.coerceAtLeast(1) ?: 1}-day total"
+}
+
+private fun Habit.periodTotalAmountLabel(): String {
+    val unit = unitId.unitLabel()
+    return buildString {
+        append(periodTotalTitle())
+        if (unit.isNotBlank()) append(" ($unit)")
+    }
 }
 
 internal fun Habit.pastCheckInActionLabel(): String = when (trackingMode) {
@@ -2549,25 +2813,145 @@ internal fun LocalDate.relativeActivityDate(today: LocalDate): String = when (th
 }
 
 @Composable
-private fun HabitPauseDialog(today: LocalDate, onDismiss: () -> Unit, onSave: (LocalDate, LocalDate?, String) -> Unit) {
-    var start by rememberSaveable { mutableStateOf(today) }
-    var end by rememberSaveable { mutableStateOf<LocalDate?>(today) }
-    var note by rememberSaveable { mutableStateOf("") }
-    var pickingStart by rememberSaveable { mutableStateOf(false) }
-    var pickingEnd by rememberSaveable { mutableStateOf(false) }
+internal fun HabitPauseDialog(
+    today: LocalDate,
+    pause: HabitPause? = null,
+    onDismiss: () -> Unit,
+    onSave: (LocalDate, LocalDate?, String) -> Unit,
+    onDelete: (() -> Unit)? = null,
+    saving: Boolean = false,
+    persistenceError: String? = null,
+) {
+    val editorKey = "habit-pause-${pause?.id ?: "new"}"
+    var start by rememberSaveable(editorKey) { mutableStateOf(pause?.startDate ?: today) }
+    var end by rememberSaveable(editorKey) { mutableStateOf(pause?.endDate ?: today.takeIf { pause == null }) }
+    var note by rememberSaveable(editorKey) { mutableStateOf(pause?.note.orEmpty()) }
+    var pickingStart by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var pickingEnd by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var confirmDelete by rememberSaveable(editorKey) { mutableStateOf(false) }
+    val validRange = end == null || !requireNotNull(end).isBefore(start)
     PaneAwareAlertDialog(
+        testTag = "habit-pause-dialog",
         onDismissRequest = onDismiss,
-        title = { Text("Schedule Habit Pause") },
-        text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            WhipOutlinedButton(onClick = { pickingStart = true }) { Text("Start ${start.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}") }
-            WhipOutlinedButton(onClick = { pickingEnd = true }) { Text(end?.let { "End ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" } ?: "No End Date") }
-            OutlinedTextField(note, { note = it }, label = { Text("Optional note") })
-        } },
-        confirmButton = { WhipTextButton(enabled = end == null || !requireNotNull(end).isBefore(start), onClick = { onSave(start, end, note) }) { Text("Save Pause") } },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        title = { Text(if (pause == null) "Schedule Habit Pause" else "Edit Scheduled Pause") },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PersistenceFailureNotice(persistenceError, testTag = "habit-pause-save-problem")
+                Text(
+                    "Scheduled pauses exclude these dates from check-ins, streak misses, and reminders.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                WhipOutlinedButton(
+                    enabled = !saving,
+                    onClick = { pickingStart = true },
+                    modifier = Modifier.fillMaxWidth().testTag("habit-pause-start"),
+                ) {
+                    Text("Start · ${start.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
+                }
+                end?.let { selectedEnd ->
+                    WhipOutlinedButton(
+                        enabled = !saving,
+                        onClick = { pickingEnd = true },
+                        modifier = Modifier.fillMaxWidth().testTag("habit-pause-end"),
+                    ) {
+                        Text("End · ${selectedEnd.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
+                    }
+                    WhipTextButton(
+                        enabled = !saving,
+                        onClick = { end = null },
+                        modifier = Modifier.testTag("habit-pause-no-end"),
+                    ) { Text("No End Date") }
+                } ?: run {
+                    Text(
+                        "No end date · this pause continues until you edit or delete it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    WhipOutlinedButton(
+                        enabled = !saving,
+                        onClick = {
+                            end = start
+                            pickingEnd = true
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("habit-pause-set-end"),
+                    ) { Text("Set End Date") }
+                }
+                if (!validRange) Text(
+                    "End date cannot be before the start date.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                OutlinedTextField(
+                    value = note,
+                    onValueChange = { note = it },
+                    enabled = !saving,
+                    label = { Text("Reason or note (optional)") },
+                    modifier = Modifier.fillMaxWidth().testTag("habit-pause-note"),
+                )
+            }
+        },
+        confirmButton = {
+            WhipTextButton(
+                enabled = validRange && !saving,
+                onClick = { onSave(start, end, note) },
+                modifier = Modifier.testTag("habit-pause-save"),
+            ) { Text(if (saving) "Saving…" else if (pause == null) "Schedule Pause" else "Save Changes") }
+        },
+        dismissButton = {
+            Row {
+                if (onDelete != null) WhipTextButton(
+                    enabled = !saving,
+                    onClick = { confirmDelete = true },
+                    modifier = Modifier.testTag("habit-pause-delete"),
+                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") }
+            }
+        },
+        inputBlocked = saving,
+        inputBlockedLabel = if (pause == null) "Scheduling Habit Pause" else "Saving Scheduled Pause",
     )
-    if (pickingStart) WhipDatePickerDialog(start, { pickingStart = false }, { start = it; pickingStart = false })
-    if (pickingEnd) WhipDatePickerDialog(end ?: start, { pickingEnd = false }, { end = it; pickingEnd = false })
+    if (pickingStart && !saving) WhipDatePickerDialog(
+        start,
+        { pickingStart = false },
+        { selected ->
+            start = selected
+            if (end?.isBefore(selected) == true) end = selected
+            pickingStart = false
+        },
+    )
+    if (pickingEnd && !saving) WhipDatePickerDialog(
+        end ?: start,
+        { pickingEnd = false },
+        { selected ->
+            end = selected
+            pickingEnd = false
+        },
+    )
+    if (confirmDelete && onDelete != null && !saving) PaneAwareAlertDialog(
+        onDismissRequest = { confirmDelete = false },
+        title = { Text("Delete Scheduled Pause?") },
+        text = { Text("These dates will return to the Habit schedule. Existing check-ins and history will not be removed.") },
+        confirmButton = {
+            WhipTextButton(
+                onClick = {
+                    confirmDelete = false
+                    onDelete()
+                },
+                modifier = Modifier.testTag("habit-pause-confirm-delete"),
+            ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+        },
+        dismissButton = { WhipTextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+    )
+}
+
+private fun HabitPause.displayDateRange(): String {
+    val formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+    return endDate?.let { "${startDate.format(formatter)} – ${it.format(formatter)}" }
+        ?: "From ${startDate.format(formatter)} · no end date"
 }
 
 private fun TargetComparison.displayLabel(): String = when (this) {

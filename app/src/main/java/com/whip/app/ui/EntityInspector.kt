@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -90,6 +91,8 @@ internal fun EntityInspector(
     legacySurfaceTag: String? = null,
     legacySectionTagPrefix: String? = null,
     primaryAction: EntityInspectorPrimaryAction? = null,
+    inputBlocked: Boolean = false,
+    inputBlockedLabel: String = "Saving",
     content: @Composable () -> Unit,
 ) {
     val placement = LocalWhipDialogPlacement.current
@@ -99,7 +102,7 @@ internal fun EntityInspector(
     val paneDescription = "$entityType details for $title"
     val sectionStateHolder = rememberSaveableStateHolder()
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!inputBlocked) onDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         BoxWithConstraints(
@@ -121,11 +124,13 @@ internal fun EntityInspector(
                 shadowElevation = 6.dp,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag("entity-inspector"),
-                ) {
+                Box {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("entity-inspector")
+                            .then(if (inputBlocked) Modifier.clearAndSetSemantics {} else Modifier),
+                    ) {
                     EntityInspectorHeader(
                         entityType = entityType,
                         title = title,
@@ -172,6 +177,8 @@ internal fun EntityInspector(
                             }
                         }
                     }
+                    }
+                    PersistenceSavingOverlay(active = inputBlocked, label = inputBlockedLabel)
                 }
             }
         }

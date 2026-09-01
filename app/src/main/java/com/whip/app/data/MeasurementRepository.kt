@@ -386,7 +386,7 @@ class RoomMeasurementRepository(
         BuiltInUnits.get(id) ?: dao.getUnit(id)?.toDomain()
 }
 
-private fun UnitDefinitionEntity.toDomain() = UnitDefinition(
+internal fun UnitDefinitionEntity.toDomain() = UnitDefinition(
     id = id,
     name = name,
     symbol = symbol,

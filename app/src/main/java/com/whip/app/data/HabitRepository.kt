@@ -26,10 +26,13 @@ import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.toWeekdayMask
 import com.whip.app.domain.toWeekdays
 import com.whip.app.domain.isScheduledOn
+import com.whip.app.domain.valueForPeriod
 import com.whip.app.domain.validationErrors
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.math.abs
+import kotlin.math.max
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -49,7 +52,15 @@ interface HabitRepository {
     suspend fun setPinned(id: Long, pinned: Boolean)
     suspend fun setPaused(id: Long, paused: Boolean)
     suspend fun reorder(ids: List<Long>)
-    suspend fun addPause(id: Long, start: LocalDate, end: LocalDate?, note: String = "")
+    suspend fun addPause(id: Long, start: LocalDate, end: LocalDate?, note: String = ""): Long
+    suspend fun updatePause(
+        pauseId: Long,
+        start: LocalDate,
+        end: LocalDate?,
+        note: String = "",
+        expectedHabitId: Long? = null,
+    ): Long
+    suspend fun deletePause(pauseId: Long, expectedHabitId: Long? = null): Long
     suspend fun skipDay(habitId: Long, date: LocalDate)
     suspend fun undoSkip(habitId: Long, date: LocalDate)
     suspend fun log(
@@ -62,7 +73,8 @@ interface HabitRepository {
         sourceType: MetricSourceType = MetricSourceType.Manual,
         sourceId: String? = null,
     ): Long
-    suspend fun undoLog(logId: Long)
+    suspend fun setPeriodValue(habitId: Long, date: LocalDate, value: Double, note: String = ""): Long?
+    suspend fun undoLog(logId: Long, expectedHabitId: Long? = null): Long
     suspend fun updateLog(
         logId: Long,
         value: Double?,
@@ -70,7 +82,8 @@ interface HabitRepository {
         date: LocalDate,
         note: String = "",
         enteredUnitId: String? = null,
-    )
+        expectedHabitId: Long? = null,
+    ): Long
     suspend fun setCheckOff(habitId: Long, date: LocalDate, completed: Boolean)
     suspend fun toggleChecklistItem(habitId: Long, itemId: Long, date: LocalDate, completed: Boolean)
     suspend fun startTimer(habitId: Long)
@@ -173,9 +186,41 @@ class RoomHabitRepository(
         }
     }
 
-    override suspend fun addPause(id: Long, start: LocalDate, end: LocalDate?, note: String) {
+    override suspend fun addPause(id: Long, start: LocalDate, end: LocalDate?, note: String): Long {
         require(end == null || !end.isBefore(start)) { "Pause end cannot precede its start" }
-        dao.insertPause(HabitPauseEntity(habitId = id, startEpochDay = start.toEpochDay(), endEpochDay = end?.toEpochDay(), note = note.trim()))
+        requireNotNull(dao.getHabit(id)) { "Habit no longer exists" }
+        return dao.insertPause(HabitPauseEntity(habitId = id, startEpochDay = start.toEpochDay(), endEpochDay = end?.toEpochDay(), note = note.trim()))
+    }
+
+    override suspend fun updatePause(
+        pauseId: Long,
+        start: LocalDate,
+        end: LocalDate?,
+        note: String,
+        expectedHabitId: Long?,
+    ): Long = database.withTransaction {
+        require(end == null || !end.isBefore(start)) { "Pause end cannot precede its start" }
+        val current = dao.getPause(pauseId) ?: error("Scheduled pause no longer exists")
+        require(expectedHabitId == null || current.habitId == expectedHabitId) {
+            "Scheduled pause does not belong to the selected Habit"
+        }
+        dao.updatePause(
+            current.copy(
+                startEpochDay = start.toEpochDay(),
+                endEpochDay = end?.toEpochDay(),
+                note = note.trim(),
+            ),
+        )
+        current.habitId
+    }
+
+    override suspend fun deletePause(pauseId: Long, expectedHabitId: Long?): Long = database.withTransaction {
+        val current = dao.getPause(pauseId) ?: error("Scheduled pause no longer exists")
+        require(expectedHabitId == null || current.habitId == expectedHabitId) {
+            "Scheduled pause does not belong to the selected Habit"
+        }
+        check(dao.deletePause(pauseId) == 1) { "Scheduled pause no longer exists" }
+        current.habitId
     }
 
     override suspend fun log(
@@ -240,10 +285,36 @@ class RoomHabitRepository(
         )
     }
 
-    override suspend fun undoLog(logId: Long) = database.withTransaction {
-        val log = dao.getLog(logId) ?: return@withTransaction
+    override suspend fun setPeriodValue(
+        habitId: Long,
+        date: LocalDate,
+        value: Double,
+        note: String,
+    ): Long? = database.withTransaction {
+        require(value.isFinite()) { "Habit value must be finite" }
+        val habit = dao.getHabit(habitId)?.toDomain() ?: error("Habit no longer exists")
+        val current = habit.valueForPeriod(
+            logs = dao.getLogsForHabit(habitId).map(HabitLogEntity::toDomain),
+            date = date,
+            customUnits = database.measurementDao().getAllUnits().map(UnitDefinitionEntity::toDomain),
+        )
+        val rawDelta = value - current
+        // Ignore only binary representation noise. A relative epsilon grows
+        // without bound and can erase real authored changes at large totals.
+        val tolerance = max(1e-12, 4.0 * max(Math.ulp(value), Math.ulp(current)))
+        val delta = rawDelta.takeUnless { abs(it) <= tolerance } ?: 0.0
+        if (delta == 0.0 && note.isBlank()) return@withTransaction null
+        log(habitId, delta, date = date, note = note)
+    }
+
+    override suspend fun undoLog(logId: Long, expectedHabitId: Long?): Long = database.withTransaction {
+        val log = dao.getLog(logId) ?: error("Habit log no longer exists")
+        require(expectedHabitId == null || log.habitId == expectedHabitId) {
+            "Habit log does not belong to the selected Habit"
+        }
         log.metricEntryId?.let { measurementRepository.deleteEntry(it) }
         dao.deleteLog(logId)
+        log.habitId
     }
 
     override suspend fun updateLog(
@@ -253,8 +324,12 @@ class RoomHabitRepository(
         date: LocalDate,
         note: String,
         enteredUnitId: String?,
-    ) = database.withTransaction {
+        expectedHabitId: Long?,
+    ): Long = database.withTransaction {
         val existing = dao.getLog(logId) ?: error("Habit log no longer exists")
+        require(expectedHabitId == null || existing.habitId == expectedHabitId) {
+            "Habit log does not belong to the selected Habit"
+        }
         val habit = dao.getHabit(existing.habitId)?.toDomain() ?: error("Habit no longer exists")
         val effectiveValue = if (habit.trackingMode == HabitTrackingMode.CheckOff && status in setOf(HabitLogStatus.Recorded, HabitLogStatus.Success)) {
             value ?: 1.0
@@ -277,8 +352,10 @@ class RoomHabitRepository(
             timestamp = instant,
             localDate = date,
             zoneId = zone,
-            sourceType = MetricSourceType.valueOf(existing.sourceType),
-            sourceId = existing.sourceId,
+            // Metric entries backing Habit logs always retain their Habit wrapper
+            // provenance, even when the log itself records an initiating source.
+            sourceType = MetricSourceType.Habit,
+            sourceId = existing.uuid,
             note = note,
             existingEntryId = existing.metricEntryId,
         )
@@ -294,6 +371,7 @@ class RoomHabitRepository(
                 updatedAtMillis = clock.now().toEpochMilli(),
             ),
         )
+        existing.habitId
     }
 
     override suspend fun setCheckOff(habitId: Long, date: LocalDate, completed: Boolean) {
@@ -368,8 +446,9 @@ class RoomHabitRepository(
         )
     }
 
-    override suspend fun undoSkip(habitId: Long, date: LocalDate) {
-        dao.deleteSkip(habitId, date.toEpochDay())
+    override suspend fun undoSkip(habitId: Long, date: LocalDate) = database.withTransaction {
+        requireNotNull(dao.getHabit(habitId)) { "Habit no longer exists" }
+        check(dao.deleteSkip(habitId, date.toEpochDay()) == 1) { "Skipped day no longer exists" }
     }
 
     override suspend fun startTimer(habitId: Long) {

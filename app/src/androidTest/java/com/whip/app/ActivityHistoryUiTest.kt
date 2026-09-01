@@ -1,27 +1,54 @@
 package com.whip.app
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertContentDescriptionContains
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.junit4.StateRestorationTester
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
+import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitDayProgress
 import com.whip.app.domain.HabitDayState
 import com.whip.app.domain.HabitEndType
 import com.whip.app.domain.HabitLog
 import com.whip.app.domain.HabitLogStatus
+import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitScheduleType
+import com.whip.app.domain.HabitSkip
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.TargetComparison
 import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDimension
 import com.whip.app.ui.HabitHistoryLogDialog
+import com.whip.app.ui.HabitActionsDialog
+import com.whip.app.ui.HabitAreaContent
+import com.whip.app.ui.HabitPauseDialog
+import com.whip.app.ui.HabitUiState
+import com.whip.app.ui.HabitViewModel
+import com.whip.app.ui.HabitValueDialog
+import com.whip.app.ui.LocalWhipDialogPlacement
+import com.whip.app.ui.WhipDialogPlacement
 import com.whip.app.ui.theme.WhipTheme
 import java.time.DayOfWeek
 import java.time.Instant
@@ -30,6 +57,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -111,6 +139,295 @@ class ActivityHistoryUiTest {
         assertEquals(false, deleted)
         compose.onNodeWithTag("habit-history-confirm-delete").performClick()
         assertEquals(true, deleted)
+    }
+
+    @Test
+    fun valueDraftIsShieldedDuringPersistenceAndRetainedAfterFailure() {
+        var saving by mutableStateOf(false)
+        var error by mutableStateOf<String?>(null)
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                HabitValueDialog(
+                    item = progress(HabitTrackingMode.Count),
+                    onDismiss = {},
+                    onLog = { _, _ -> saving = true },
+                    saving = saving,
+                    persistenceError = error,
+                )
+            }
+        }
+
+        compose.onNodeWithTag("habit-value-input").performTextReplacement("6")
+        compose.onNodeWithTag("habit-value-note").performTextReplacement("Felt strong")
+        compose.onNodeWithText("Save").performClick()
+        compose.onNodeWithTag("persistence-saving-overlay")
+            .assertIsDisplayed()
+            .assertContentDescriptionContains("Editing is temporarily unavailable", substring = true)
+        compose.onAllNodesWithTag("habit-value-input").assertCountEquals(0)
+        pressBack()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+
+        compose.runOnIdle {
+            saving = false
+            error = "Storage unavailable"
+        }
+        compose.onNodeWithTag("habit-value-save-problem").assertIsDisplayed()
+        compose.onNodeWithTag("habit-value-input").assertTextContains("6")
+        compose.onNodeWithTag("habit-value-note").assertTextContains("Felt strong")
+        compose.onNodeWithText("Save").assertIsEnabled()
+    }
+
+    @Test
+    fun absoluteValueEditorExplainsThatALowerNumberSetsRatherThanAdds() {
+        var savedValue: Double? = null
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                HabitValueDialog(
+                    item = progress(HabitTrackingMode.Count).copy(value = 5.0),
+                    onDismiss = {},
+                    onLog = { value, _ -> savedValue = value },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Set Today's Total").assertIsDisplayed()
+        compose.onNodeWithText("Saving sets this total; it does not add to it.", substring = true)
+            .assertIsDisplayed()
+        compose.onNodeWithTag("habit-value-input").performTextReplacement("3")
+        compose.onNodeWithText("Save").performClick()
+
+        compose.runOnIdle { assertEquals(3.0, savedValue ?: -1.0, 0.0) }
+    }
+
+    @Test
+    fun editedHistoryDraftWaitsForItsExactOutcomeAndSurvivesFailure() {
+        var saving by mutableStateOf(false)
+        var error by mutableStateOf<String?>(null)
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                HabitHistoryLogDialog(
+                    item = progress(HabitTrackingMode.Count),
+                    log = log().copy(value = 1.0, status = HabitLogStatus.Recorded, note = "Original"),
+                    initialDate = today.minusDays(1),
+                    onDismiss = {},
+                    onSave = { _, _, _, _ -> saving = true },
+                    saving = saving,
+                    persistenceError = error,
+                )
+            }
+        }
+
+        compose.onNodeWithTag("habit-history-value").performTextReplacement("4")
+        compose.onNodeWithTag("habit-history-note").performTextReplacement("Corrected")
+        compose.onNodeWithText("Save Changes").performClick()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        compose.onAllNodesWithTag("habit-history-value").assertCountEquals(0)
+
+        compose.runOnIdle {
+            saving = false
+            error = "History could not be updated"
+        }
+        compose.onNodeWithTag("habit-history-save-problem").assertIsDisplayed()
+        compose.onNodeWithTag("habit-history-value").assertTextContains("4")
+        compose.onNodeWithTag("habit-history-note").assertTextContains("Corrected")
+        compose.onNodeWithText("Save Changes").assertIsEnabled()
+    }
+
+    @Test
+    fun scheduledPauseSupportsNoEndDateRetainsFailureDraftAndConfirmsDelete() {
+        var saving by mutableStateOf(false)
+        var error by mutableStateOf<String?>(null)
+        var savedEnd: LocalDate? = today
+        var deleted = false
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                HabitPauseDialog(
+                    today = today,
+                    pause = HabitPause(8, 1, today, today.plusDays(3), "Travel"),
+                    onDismiss = {},
+                    onSave = { _, end, _ ->
+                        savedEnd = end
+                        saving = true
+                    },
+                    onDelete = { deleted = true },
+                    saving = saving,
+                    persistenceError = error,
+                )
+            }
+        }
+
+        compose.onNodeWithTag("habit-pause-no-end").performClick()
+        compose.onNodeWithTag("habit-pause-note").performTextReplacement("Long recovery")
+        compose.onNodeWithTag("habit-pause-save").performClick()
+        compose.runOnIdle { assertNull(savedEnd) }
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+
+        compose.runOnIdle {
+            saving = false
+            error = "Storage unavailable"
+        }
+        compose.onNodeWithTag("habit-pause-save-problem").assertIsDisplayed()
+        compose.onNodeWithText("No end date", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("habit-pause-note").assertTextContains("Long recovery")
+        compose.onNodeWithTag("habit-pause-delete").performClick()
+        compose.onNodeWithText("Delete Scheduled Pause?").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(false, deleted) }
+        compose.onNodeWithTag("habit-pause-confirm-delete").performClick()
+        compose.runOnIdle { assertEquals(true, deleted) }
+    }
+
+    @Test
+    fun inspectorMakesScheduledPausesEditableAndHistoricalSkipsUndoable() {
+        val pause = HabitPause(8, 1, today.plusDays(1), null, "Travel")
+        val skippedDate = today.minusDays(2)
+        val skip = HabitSkip("skip-1", 1, skippedDate, 1L, 1L, 1L)
+        var editedPauseId: Long? = null
+        var undoneSkipDate: LocalDate? = null
+        var saving by mutableStateOf(false)
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                HabitActionsDialog(
+                    item = progress(HabitTrackingMode.CheckOff),
+                    onDismiss = {},
+                    onEdit = {},
+                    onDuplicate = {},
+                    onPin = {},
+                    onPause = {},
+                    onSchedulePause = {},
+                    onQuick = {},
+                    onSkip = {},
+                    onUndoSkip = {},
+                    onUndoHistoricalSkip = { undoneSkipDate = it; saving = true },
+                    logs = emptyList(),
+                    skips = listOf(skip),
+                    pauses = listOf(pause),
+                    onAddHistoricalLog = {},
+                    onEditLog = {},
+                    onEditPause = { editedPauseId = it.id },
+                    onArchive = {},
+                    onDelete = {},
+                    mutationSaving = saving,
+                )
+            }
+        }
+
+        compose.onNodeWithText("Options").performClick()
+        compose.onNodeWithTag("entity-inspector-action-pause-8").performScrollTo().assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(8L, editedPauseId) }
+
+        compose.onNodeWithText("History").performClick()
+        compose.onNodeWithTag("entity-inspector-action-skip-${skippedDate.toEpochDay()}")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .performClick()
+        compose.runOnIdle { assertEquals(skippedDate, undoneSkipDate) }
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        compose.onAllNodesWithTag("entity-inspector-action-skip-${skippedDate.toEpochDay()}")
+            .assertCountEquals(0)
+    }
+
+    @Test
+    fun removedLogSnapshotKeepsHabitHistoryEditorRestorableUntilRequestDelivery() {
+        var state by mutableStateOf(
+            HabitUiState(
+                today = listOf(progress(HabitTrackingMode.Count)),
+                all = listOf(progress(HabitTrackingMode.Count)),
+                logs = listOf(log().copy(status = HabitLogStatus.Recorded, note = "Retained after commit")),
+                currentDate = today,
+                loading = false,
+            ),
+        )
+        var openRequest by mutableStateOf<Long?>(1L)
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                val habitViewModel: HabitViewModel = viewModel()
+                HabitAreaContent(
+                    state = state,
+                    innerPadding = PaddingValues(),
+                    viewModel = habitViewModel,
+                    openHabitIdRequest = openRequest,
+                    onOpenHabitRequestConsumed = { openRequest = null },
+                    showWorkspace = false,
+                )
+            }
+        }
+
+        compose.onNodeWithText("History").performClick()
+        compose.onNodeWithTag("entity-inspector-action-log-2").performClick()
+        compose.onNodeWithTag("habit-history-dialog").assertIsDisplayed()
+        compose.runOnIdle { state = state.copy(logs = emptyList()) }
+        restoration.emulateSavedInstanceStateRestore()
+
+        compose.onNodeWithTag("habit-history-dialog").assertIsDisplayed()
+        compose.onNodeWithTag("habit-history-note").assertTextContains("Retained after commit")
+    }
+
+    @Test
+    fun removedPauseSnapshotKeepsHabitPauseEditorRestorableUntilRequestDelivery() {
+        val pause = HabitPause(8, 1, today.plusDays(1), null, "Retained recovery")
+        var state by mutableStateOf(
+            HabitUiState(
+                today = listOf(progress(HabitTrackingMode.Count)),
+                all = listOf(progress(HabitTrackingMode.Count)),
+                pauses = listOf(pause),
+                currentDate = today,
+                loading = false,
+            ),
+        )
+        var openRequest by mutableStateOf<Long?>(1L)
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                val habitViewModel: HabitViewModel = viewModel()
+                HabitAreaContent(
+                    state = state,
+                    innerPadding = PaddingValues(),
+                    viewModel = habitViewModel,
+                    openHabitIdRequest = openRequest,
+                    onOpenHabitRequestConsumed = { openRequest = null },
+                    showWorkspace = false,
+                )
+            }
+        }
+
+        compose.onNodeWithText("Options").performClick()
+        compose.onNodeWithTag("entity-inspector-action-pause-8").performScrollTo().performClick()
+        compose.onNodeWithTag("habit-pause-dialog").assertIsDisplayed()
+        compose.runOnIdle { state = state.copy(pauses = emptyList()) }
+        restoration.emulateSavedInstanceStateRestore()
+
+        compose.onNodeWithTag("habit-pause-dialog").assertIsDisplayed()
+        compose.onNodeWithTag("habit-pause-note").assertTextContains("Retained recovery")
+    }
+
+    @Test
+    fun pauseEditorRemainsScrollableAndActionableAt320DpAndTwoHundredPercentText() {
+        val largeText = Density(compose.density.density, fontScale = 2f)
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalDensity provides largeText,
+                LocalWhipDialogPlacement provides WhipDialogPlacement(maxWidth = 320.dp),
+            ) {
+                WhipTheme(darkTheme = true, dynamicColor = false) {
+                    HabitPauseDialog(
+                        today = today,
+                        pause = HabitPause(8, 1, today, null, "A long recovery note that must remain reachable"),
+                        onDismiss = {},
+                        onSave = { _, _, _ -> },
+                        onDelete = {},
+                        persistenceError = "Storage is temporarily unavailable; review the retained draft and try again.",
+                    )
+                }
+            }
+        }
+
+        val dialog = compose.onNodeWithTag("habit-pause-dialog").getUnclippedBoundsInRoot()
+        assertTrue(dialog.right - dialog.left <= 321.dp)
+        compose.onNodeWithTag("habit-pause-note").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("habit-pause-save").assertIsDisplayed().assertIsEnabled()
+        val save = compose.onNodeWithTag("habit-pause-save").getUnclippedBoundsInRoot()
+        assertTrue(save.bottom - save.top >= 48.dp)
     }
 
     private fun progress(mode: HabitTrackingMode) = HabitDayProgress(

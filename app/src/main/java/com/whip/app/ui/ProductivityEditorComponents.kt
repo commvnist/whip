@@ -306,6 +306,7 @@ internal fun BoxScope.PersistenceSavingOverlay(
 internal class EntitySaveCoordinator internal constructor(
     private val requestIdState: MutableState<String?>,
     private val errorMessageState: MutableState<String?>,
+    private val requestNamespace: String? = null,
 ) {
     val requestId: String? get() = requestIdState.value
     val saving: Boolean get() = requestId != null
@@ -314,7 +315,9 @@ internal class EntitySaveCoordinator internal constructor(
     fun begin(): String? {
         if (saving) return null
         errorMessageState.value = null
-        return UuidWhipIdGenerator.nextId().also { requestIdState.value = it }
+        val generated = UuidWhipIdGenerator.nextId()
+        return (requestNamespace?.let { "$it:$generated" } ?: generated)
+            .also { requestIdState.value = it }
     }
 
     fun clear() {
@@ -339,15 +342,16 @@ internal class EntitySaveCoordinator internal constructor(
  * with an actionable in-editor warning instead of remaining stuck on Saving.
  */
 @Composable
-internal fun rememberEntitySaveCoordinator(
-    state: PersistenceRequestState<EntitySaveReceipt>,
+internal fun <T> rememberPersistenceRequestCoordinator(
+    state: PersistenceRequestState<T>,
     consume: (String) -> Unit,
     key: Any? = Unit,
-    onPersisted: (EntitySaveReceipt) -> Unit,
+    requestNamespace: String? = null,
+    onPersisted: (T) -> Unit,
 ): EntitySaveCoordinator {
     val requestIdState = rememberSaveable(key) { mutableStateOf<String?>(null) }
     val errorMessageState = rememberSaveable(key) { mutableStateOf<String?>(null) }
-    val coordinator = EntitySaveCoordinator(requestIdState, errorMessageState)
+    val coordinator = EntitySaveCoordinator(requestIdState, errorMessageState, requestNamespace)
     val latestState by rememberUpdatedState(state)
     val latestConsume by rememberUpdatedState(consume)
     val latestOnPersisted by rememberUpdatedState(onPersisted)
@@ -356,9 +360,24 @@ internal fun rememberEntitySaveCoordinator(
         val requestId = requestIdState.value
         if (requestId == null) {
             // The editor that owned this terminal result may have left composition
-            // after persistence finished but before it could acknowledge delivery.
-            // Reclaim only terminal outcomes; a live Running request still owns itself.
-            if (state is PersistenceRequestState.Finished) latestConsume(state.requestId)
+            // after persistence finished but before it could acknowledge delivery. A
+            // same-surface replacement can reclaim immediately. A different surface
+            // waits briefly so a still-composed owner always gets first delivery.
+            if (state is PersistenceRequestState.Finished) {
+                val belongsToThisSurface = requestNamespace == null ||
+                    state.requestId.startsWith("$requestNamespace:")
+                if (belongsToThisSurface) {
+                    latestConsume(state.requestId)
+                } else {
+                    delay(250)
+                    val current = latestState
+                    if (
+                        requestIdState.value == null &&
+                        current is PersistenceRequestState.Finished &&
+                        current.requestId == state.requestId
+                    ) latestConsume(state.requestId)
+                }
+            }
             return@LaunchedEffect
         }
         suspend fun releaseIfOrphaned() {
@@ -392,13 +411,30 @@ internal fun rememberEntitySaveCoordinator(
                     }
                 }
             } else {
-                latestConsume(state.requestId)
+                // This coordinator cannot acknowledge another surface's result.
+                // The owning coordinator, or the delayed stale-result path above,
+                // is responsible for consuming it.
                 releaseIfOrphaned()
             }
         }
     }
     return coordinator
 }
+
+@Composable
+internal fun rememberEntitySaveCoordinator(
+    state: PersistenceRequestState<EntitySaveReceipt>,
+    consume: (String) -> Unit,
+    key: Any? = Unit,
+    requestNamespace: String? = null,
+    onPersisted: (EntitySaveReceipt) -> Unit,
+): EntitySaveCoordinator = rememberPersistenceRequestCoordinator(
+    state = state,
+    consume = consume,
+    key = key,
+    requestNamespace = requestNamespace,
+    onPersisted = onPersisted,
+)
 
 /**
  * A full-window dialog whose card can be positioned wholly inside the active fold pane.
@@ -504,6 +540,8 @@ internal fun PaneAwareAlertDialog(
     dismissButton: @Composable () -> Unit = {},
     paneTitle: String = "Dialog",
     stableHeight: Boolean = false,
+    inputBlocked: Boolean = false,
+    inputBlockedLabel: String = "Saving",
 ) {
     val placement = LocalWhipDialogPlacement.current
     val resolvedModifier = if (modifier == Modifier) {
@@ -512,13 +550,15 @@ internal fun PaneAwareAlertDialog(
     ProductivityEditorDialog(
         modifier = resolvedModifier.widthIn(min = 280.dp, max = WhipContentWidth.compactDialog),
         testTag = testTag,
-        onDismissRequest = onDismissRequest,
+        onDismissRequest = { if (!inputBlocked) onDismissRequest() },
         title = title,
         text = text,
         confirmButton = confirmButton,
         dismissButton = dismissButton,
         paneTitle = paneTitle,
         stableHeight = stableHeight,
+        inputBlocked = inputBlocked,
+        inputBlockedLabel = inputBlockedLabel,
     )
 }
 

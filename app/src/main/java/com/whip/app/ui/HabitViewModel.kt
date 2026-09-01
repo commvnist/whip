@@ -14,9 +14,11 @@ import com.whip.app.core.revealHomeSection
 import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipResult
 import com.whip.app.core.completeCommittedEntitySave
+import com.whip.app.core.completeCommittedPersistence
 import com.whip.app.core.saveFollowUpWarning
 import com.whip.app.core.tryStartPersistenceRequest
 import com.whip.app.data.HabitRepository
+import com.whip.app.reminders.HabitReminderScheduler
 import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitChecklistItem
 import com.whip.app.domain.HabitChecklistState
@@ -59,6 +61,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
@@ -79,6 +82,54 @@ data class HabitUiState(
     val sourceMetrics: List<MetricDefinition> = emptyList(),
 )
 
+internal enum class HabitMutationKind {
+    LogCreated,
+    LogUpdated,
+    LogDeleted,
+    PauseCreated,
+    PauseUpdated,
+    PauseDeleted,
+    SkipDeleted,
+    ValueUnchanged,
+}
+
+internal data class HabitMutationReceipt(
+    val kind: HabitMutationKind,
+    val habitId: Long,
+    val logId: Long? = null,
+    val pauseId: Long? = null,
+    val effectiveDate: LocalDate? = null,
+    val warnings: List<String> = emptyList(),
+)
+
+internal class CommittedHabitMutationCancellation(
+    val receipt: HabitMutationReceipt,
+    cause: CancellationException,
+) : CancellationException(cause.message) {
+    init { initCause(cause) }
+}
+
+internal suspend fun completeCommittedHabitMutation(
+    commit: suspend () -> HabitMutationReceipt,
+    followUp: suspend (HabitMutationReceipt) -> HabitMutationReceipt,
+): HabitMutationReceipt = completeCommittedPersistence(
+    commit = commit,
+    followUp = followUp,
+    onCancellation = { committed, cancelled -> CommittedHabitMutationCancellation(committed, cancelled) },
+    onOrdinaryFailure = { committed ->
+        val subject = if (committed.kind in setOf(
+                HabitMutationKind.PauseCreated,
+                HabitMutationKind.PauseUpdated,
+                HabitMutationKind.PauseDeleted,
+            )
+        ) "schedule change" else "history change"
+        committed.copy(
+            warnings = committed.warnings +
+                "Some post-save updates did not finish; the Habit $subject itself was saved.",
+        )
+    },
+)
+
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class HabitViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as WhipApplication
@@ -91,9 +142,23 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         PersistenceRequestState.Idle,
     )
     val editorSaveState: StateFlow<PersistenceRequestState<EntitySaveReceipt>> = _editorSaveState.asStateFlow()
+    private val _authoredMutationState = MutableStateFlow<PersistenceRequestState<HabitMutationReceipt>>(
+        PersistenceRequestState.Idle,
+    )
+    internal val authoredMutationState: StateFlow<PersistenceRequestState<HabitMutationReceipt>> =
+        _authoredMutationState.asStateFlow()
     private val reloadKey = MutableStateFlow(0)
 
-    init { viewModelScope.launch { runCatching { reminders.syncAll() } } }
+    init {
+        viewModelScope.launch { runCatching { reminders.syncAll() } }
+        viewModelScope.launch {
+            app.userDataGeneration.drop(1).collect {
+                _editorSaveState.value = PersistenceRequestState.Idle
+                _authoredMutationState.value = PersistenceRequestState.Idle
+                _operationStatus.value = OperationStatus.Idle
+            }
+        }
+    }
 
     private val pausesAndSkips = combine(repository.pauses, repository.skips, ::Pair)
 
@@ -133,6 +198,11 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
     fun consumeEditorSaveResult(requestId: String) {
         if ((_editorSaveState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
             _editorSaveState.value = PersistenceRequestState.Idle
+        }
+    }
+    fun consumeAuthoredMutationResult(requestId: String) {
+        if ((_authoredMutationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _authoredMutationState.value = PersistenceRequestState.Idle
         }
     }
     fun retryLoading() { reloadKey.value++ }
@@ -218,9 +288,75 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
     }
     fun reorder(ids: List<Long>) = runSilentReorder { repository.reorder(ids) }
     fun setPaused(id: Long, paused: Boolean) = runOperation("Updating habit…", if (paused) "Habit paused" else "Habit resumed") { repository.setPaused(id, paused); reminders.syncHabit(id) }
-    fun addPause(id: Long, start: LocalDate, end: LocalDate?, note: String) = runOperation("Scheduling pause…", "Pause scheduled") {
-        repository.addPause(id, start, end, note)
-        reminders.syncHabit(id)
+    fun addPause(
+        id: Long,
+        start: LocalDate,
+        end: LocalDate?,
+        note: String,
+        requestId: String? = null,
+    ): Boolean = runAuthoredMutation(
+        running = "Scheduling pause…",
+        success = "Pause scheduled",
+        requestId = requestId,
+        savedDescription = "scheduled pause",
+    ) {
+        completeCommittedHabitMutation(
+            commit = {
+                val pauseId = repository.addPause(id, start, end, note)
+                HabitMutationReceipt(HabitMutationKind.PauseCreated, id, pauseId = pauseId, effectiveDate = start)
+            },
+            followUp = { committed -> committed.withReminderRefresh(reminders, id) },
+        )
+    }
+    fun updatePause(
+        pauseId: Long,
+        habitId: Long,
+        start: LocalDate,
+        end: LocalDate?,
+        note: String,
+        requestId: String? = null,
+    ): Boolean = runAuthoredMutation(
+        running = "Saving scheduled pause…",
+        success = "Scheduled pause updated",
+        requestId = requestId,
+        savedDescription = "scheduled pause",
+    ) {
+        completeCommittedHabitMutation(
+            commit = {
+                val savedHabitId = repository.updatePause(
+                    pauseId,
+                    start,
+                    end,
+                    note,
+                    expectedHabitId = habitId,
+                )
+                HabitMutationReceipt(
+                    HabitMutationKind.PauseUpdated,
+                    savedHabitId,
+                    pauseId = pauseId,
+                    effectiveDate = start,
+                )
+            },
+            followUp = { committed -> committed.withReminderRefresh(reminders, committed.habitId) },
+        )
+    }
+    fun deletePause(
+        pauseId: Long,
+        habitId: Long,
+        requestId: String? = null,
+    ): Boolean = runAuthoredMutation(
+        running = "Deleting scheduled pause…",
+        success = "Scheduled pause deleted",
+        requestId = requestId,
+        savedDescription = "scheduled pause deletion",
+    ) {
+        completeCommittedHabitMutation(
+            commit = {
+                val savedHabitId = repository.deletePause(pauseId, expectedHabitId = habitId)
+                HabitMutationReceipt(HabitMutationKind.PauseDeleted, savedHabitId, pauseId = pauseId)
+            },
+            followUp = { committed -> committed.withReminderRefresh(reminders, committed.habitId) },
+        )
     }
     fun skipDay(habitId: Long, date: LocalDate) = runOperation(
         "Skipping today…",
@@ -230,23 +366,50 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         repository.skipDay(habitId, date)
         reminders.syncHabit(habitId)
     }
-    fun undoSkip(habitId: Long, date: LocalDate) = runOperation(
-        "Restoring today…",
-        "Skip undone",
-        successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+    fun undoSkip(
+        habitId: Long,
+        date: LocalDate,
+        requestId: String? = null,
+    ): Boolean = runAuthoredMutation(
+        running = "Restoring scheduled day…",
+        success = "Skip undone",
+        requestId = requestId,
+        savedDescription = "skipped-day change",
     ) {
-        repository.undoSkip(habitId, date)
-        reminders.syncHabit(habitId)
+        completeCommittedHabitMutation(
+            commit = {
+                repository.undoSkip(habitId, date)
+                HabitMutationReceipt(HabitMutationKind.SkipDeleted, habitId, effectiveDate = date)
+            },
+            followUp = { committed -> committed.withReminderRefresh(reminders, habitId) },
+        )
     }
-    fun log(habitId: Long, value: Double?, status: HabitLogStatus = HabitLogStatus.Recorded, date: LocalDate? = null, note: String = "") =
-        runOperation(
-            "Saving check-in…",
-            "Habit logged",
-            successFeedbackPresentation = OperationFeedbackPresentation.Inline,
-        ) {
-            repository.log(habitId, value, status, date, note = note)
-            reminders.syncHabit(habitId)
-        }
+    fun log(
+        habitId: Long,
+        value: Double?,
+        status: HabitLogStatus = HabitLogStatus.Recorded,
+        date: LocalDate? = null,
+        note: String = "",
+        requestId: String? = null,
+    ): Boolean = runAuthoredMutation(
+        running = "Saving check-in…",
+        success = "Habit logged",
+        requestId = requestId,
+        savedDescription = "check-in",
+    ) {
+        completeCommittedHabitMutation(
+            commit = {
+                val logId = repository.log(habitId, value, status, date, note = note)
+                HabitMutationReceipt(
+                    HabitMutationKind.LogCreated,
+                    habitId,
+                    logId = logId,
+                    effectiveDate = date ?: clock.today(),
+                )
+            },
+            followUp = { committed -> committed.withReminderRefresh(reminders, habitId) },
+        )
+    }
     fun addValue(item: HabitDayProgress, amount: Double) {
         if (!amount.isFinite() || amount == 0.0) return
         log(item.habit.id, amount, date = item.date)
@@ -255,34 +418,84 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         val amount = minOf(item.habit.quickIncrement, item.value.coerceAtLeast(0.0))
         if (amount > 0.0) log(item.habit.id, -amount, date = item.date)
     }
-    fun setPeriodValue(item: HabitDayProgress, value: Double, note: String = "") {
-        if (!value.isFinite()) return
-        val loggedValue = when (item.habit.trackingMode) {
-            HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.Duration -> value - item.value
-            else -> value
-        }
-        if (loggedValue != 0.0 || note.isNotBlank()) log(item.habit.id, loggedValue, date = item.date, note = note)
-    }
-    fun undoLog(logId: Long, habitId: Long? = null) = runOperation(
-        "Undoing check-in…",
-        "Check-in removed",
-        successFeedbackPresentation = OperationFeedbackPresentation.Inline,
-    ) {
-        val resolvedHabitId = habitId ?: app.database.habitDao().getLog(logId)?.habitId
-        repository.undoLog(logId)
-        resolvedHabitId?.let { reminders.syncHabit(it) }
-    }
-    fun updateLog(logId: Long, value: Double?, status: HabitLogStatus, date: LocalDate, note: String) =
-        runOperation(
-            "Updating check-in…",
-            "Check-in updated",
-            successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+    fun setPeriodValue(
+        item: HabitDayProgress,
+        value: Double,
+        note: String = "",
+        requestId: String? = null,
+    ): Boolean {
+        if (!value.isFinite()) return false
+        if (item.habit.trackingMode !in setOf(
+                HabitTrackingMode.Count,
+                HabitTrackingMode.Decimal,
+                HabitTrackingMode.Duration,
+            )
+        ) return log(item.habit.id, value, date = item.date, note = note, requestId = requestId)
+        return runAuthoredMutation(
+            running = "Saving check-in…",
+            success = "Habit value saved",
+            requestId = requestId,
+            savedDescription = "check-in",
         ) {
-            val habitId = app.database.habitDao().getLog(logId)?.habitId
-                ?: error("Habit log no longer exists")
-            repository.updateLog(logId, value, status, date, note)
-            reminders.syncHabit(habitId)
+            completeCommittedHabitMutation(
+                commit = {
+                    val logId = repository.setPeriodValue(item.habit.id, item.date, value, note)
+                    HabitMutationReceipt(
+                        kind = if (logId == null) HabitMutationKind.ValueUnchanged else HabitMutationKind.LogCreated,
+                        habitId = item.habit.id,
+                        logId = logId,
+                        effectiveDate = item.date,
+                    )
+                },
+                followUp = { committed ->
+                    if (committed.logId == null) committed else committed.withReminderRefresh(reminders, item.habit.id)
+                },
+            )
         }
+    }
+    fun undoLog(logId: Long, habitId: Long? = null, requestId: String? = null): Boolean = runAuthoredMutation(
+        running = "Undoing check-in…",
+        success = "Check-in removed",
+        requestId = requestId,
+        savedDescription = "check-in deletion",
+    ) {
+        completeCommittedHabitMutation(
+            commit = {
+                val resolvedHabitId = repository.undoLog(logId, expectedHabitId = habitId)
+                HabitMutationReceipt(HabitMutationKind.LogDeleted, resolvedHabitId, logId = logId)
+            },
+            followUp = { committed -> committed.withReminderRefresh(reminders, committed.habitId) },
+        )
+    }
+    fun updateLog(
+        logId: Long,
+        value: Double?,
+        status: HabitLogStatus,
+        date: LocalDate,
+        note: String,
+        expectedHabitId: Long? = null,
+        requestId: String? = null,
+    ): Boolean = runAuthoredMutation(
+        running = "Updating check-in…",
+        success = "Check-in updated",
+        requestId = requestId,
+        savedDescription = "check-in",
+    ) {
+        completeCommittedHabitMutation(
+            commit = {
+                val habitId = repository.updateLog(
+                    logId,
+                    value,
+                    status,
+                    date,
+                    note,
+                    expectedHabitId = expectedHabitId,
+                )
+                HabitMutationReceipt(HabitMutationKind.LogUpdated, habitId, logId = logId, effectiveDate = date)
+            },
+            followUp = { committed -> committed.withReminderRefresh(reminders, committed.habitId) },
+        )
+    }
     fun setCheckOff(habitId: Long, date: LocalDate, completed: Boolean) =
         runOperation(
             "Updating habit…",
@@ -350,6 +563,76 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun runAuthoredMutation(
+        running: String,
+        success: String,
+        requestId: String?,
+        savedDescription: String,
+        block: suspend () -> HabitMutationReceipt,
+    ): Boolean {
+        if (requestId != null && !_authoredMutationState.tryStartPersistenceRequest(requestId)) return false
+        _operationStatus.value = OperationStatus.Running(running)
+        viewModelScope.launch {
+            fun successResult(receipt: HabitMutationReceipt): WhipResult.Success<HabitMutationReceipt> {
+                val message = if (receipt.warnings.isEmpty()) success else {
+                    "$success · ${receipt.warnings.joinToString(" ")}"
+                }
+                _operationStatus.value = OperationStatus.Succeeded(
+                    message,
+                    if (requestId == null) OperationFeedbackPresentation.Inline
+                    else OperationFeedbackPresentation.Snackbar,
+                )
+                return WhipResult.Success(receipt)
+            }
+            val result = try {
+                val receipt = checkNotNull(app.withUserDataAccess { block() }) {
+                    "Whip data is unavailable while recovery is in progress"
+                }
+                successResult(receipt)
+            } catch (cancelled: CommittedHabitMutationCancellation) {
+                if (requestId != null && currentCoroutineContext().isActive) {
+                    successResult(
+                        cancelled.receipt.copy(
+                            warnings = cancelled.receipt.warnings +
+                                "Some post-save updates were interrupted; the $savedDescription was saved.",
+                        ),
+                    )
+                } else {
+                    if ((_authoredMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _authoredMutationState.value = PersistenceRequestState.Idle
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw cancelled
+                }
+            } catch (cancelled: CancellationException) {
+                if (requestId != null && currentCoroutineContext().isActive) {
+                    _operationStatus.value = OperationStatus.Idle
+                    WhipResult.Failure(
+                        "The $savedDescription save was interrupted. Your changes are still here.",
+                        cancelled,
+                    )
+                } else {
+                    if ((_authoredMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _authoredMutationState.value = PersistenceRequestState.Idle
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw cancelled
+                }
+            } catch (error: Exception) {
+                _operationStatus.value = if (requestId == null) {
+                    OperationStatus.Failed(error.message ?: "Something went wrong", error)
+                } else OperationStatus.Idle
+                WhipResult.Failure(error.message ?: "The $savedDescription could not be saved.", error)
+            }
+            if (requestId != null &&
+                (_authoredMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId
+            ) {
+                _authoredMutationState.value = PersistenceRequestState.Finished(requestId, result)
+            }
+        }
+        return true
+    }
+
     private fun runEntitySaveOperation(
         running: String,
         success: String,
@@ -404,6 +687,24 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
             runCatching { onFinished(result) }
         }
     }
+}
+
+private suspend fun HabitMutationReceipt.withReminderRefresh(
+    scheduler: HabitReminderScheduler,
+    habitId: Long,
+): HabitMutationReceipt {
+    val subject = if (kind in setOf(
+            HabitMutationKind.PauseCreated,
+            HabitMutationKind.PauseUpdated,
+            HabitMutationKind.PauseDeleted,
+        )
+    ) "schedule change" else "history change"
+    val warning = saveFollowUpWarning(
+        "Reminder refresh did not finish. The $subject was saved. Open Edit Habit and save once to refresh reminders.",
+    ) {
+        scheduler.syncHabit(habitId)
+    }
+    return if (warning == null) this else copy(warnings = warnings + warning)
 }
 
 internal fun mirrorMetricEntriesAsHabitLogs(

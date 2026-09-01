@@ -56,6 +56,9 @@ interface HabitDao {
     @Query("SELECT * FROM habit_pauses WHERE habitId = :habitId")
     suspend fun getPauses(habitId: Long): List<HabitPauseEntity>
 
+    @Query("SELECT * FROM habit_pauses WHERE id = :id")
+    suspend fun getPause(id: Long): HabitPauseEntity?
+
     @Query("SELECT * FROM habit_logs")
     suspend fun getAllLogs(): List<HabitLogEntity>
 
@@ -101,11 +104,15 @@ interface HabitDao {
     @Update suspend fun updateHabit(entity: HabitEntity)
     @Update suspend fun updateChecklistItem(entity: HabitChecklistItemEntity)
     @Update suspend fun updateLog(entity: HabitLogEntity)
+    @Update suspend fun updatePause(entity: HabitPauseEntity)
 
     @Upsert suspend fun upsertChecklistState(entity: HabitChecklistStateEntity)
 
     @Query("DELETE FROM habit_logs WHERE id = :id")
     suspend fun deleteLog(id: Long)
+
+    @Query("DELETE FROM habit_pauses WHERE id = :id")
+    suspend fun deletePause(id: Long): Int
 
     @Query("DELETE FROM habit_checklist_items WHERE id = :id")
     suspend fun deleteChecklistItem(id: Long): Int

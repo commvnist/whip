@@ -121,3 +121,14 @@
 - Context: Public completion snapshots are user history; some other retained tables merely duplicate canonical state.
 - Decision: Preserve or migrate completion snapshots through backup/restore. Omit redundant internals only after proving canonical equivalence and explicitly retiring their lifecycle.
 - Status: Accepted; implementation pending.
+
+### DEC-20260831-015 — Habit authored history is request-owned; lightweight reversible actions remain lightweight
+
+- Context: Habit value, history, pause, and skip dialogs dismissed after dispatch, while Home and the Habit workspace shared one ViewModel outcome channel. A generic optimistic path could lose drafts or lie after deletion; applying a modal coordinator to every quick increment would make routine check-ins irritating.
+- Position A: Keep optimistic dispatch-and-dismiss for all Habit mutations and rely on global status.
+- Position B: Route every Habit action, including single-tap increments and checklist toggles, through one blocking authored-mutation coordinator.
+- Evidence and constraints: Log/pause edits carry user-authored drafts and historical meaning; deletes can remove the live row before result delivery; reminders are post-commit derived work; Home/workspace surfaces may exchange ownership; numeric IDs can alias after replace restore; current-total Set is absolute and custom-unit-aware; rapid skip undo must be exactly once. Quick increments and check-offs are intentionally low-cost, immediately reversible interactions.
+- Failure modes: Position A loses retry context, permits duplicate destructive taps, and can mutate a wrong restored child without parent validation. Position B adds modal latency and excess coordination to frequent one-handed actions, and one undifferentiated surface can steal another surface's terminal result. Unbounded relative floating tolerance can also silently erase real large-value changes.
+- Synthesis/decision: Use typed request ownership for draft-bearing or destructive Habit history, pause, absolute-total, and skip-undo flows. Bind child mutations to the expected Habit inside the transaction; retain saveable child snapshots; namespace each UI surface; let another namespace reclaim only an abandoned terminal after an owner grace period; reset state at the user-data generation boundary; treat the Room mutation as commit and reminders as warning-capable follow-up. Keep ordinary quick increments/check-offs on the existing lighter path. Compare Set totals with a small ULP-bounded noise tolerance, not a magnitude-relative epsilon.
+- Why this is superior for Whip: It protects authored data, history, lifecycle recovery, and cross-surface correctness exactly where failure is costly while preserving the speed of everyday Habit check-ins.
+- Status: Accepted, implemented, independently challenged, and fully verified for the Habit secondary-mutation family; other `FND-20260831-019` families remain open.

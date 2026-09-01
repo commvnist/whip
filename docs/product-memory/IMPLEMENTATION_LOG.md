@@ -83,3 +83,16 @@
 - Related: `FND-20260831-010`, `FND-20260831-019`, `DEC-20260831-011`.
 - Verification: `VER-20260831-010`.
 - Status: Implemented, independently accepted, fully verified, committed, and pushed; integrated physical-device release remains deferred.
+
+### IMP-20260831-009 — Request-owned Habit history, pauses, totals, and skip undo
+
+- Behavior changed: Current Habit totals, past check-ins, edited/deleted logs, scheduled pauses, and historical skip undo now remain open and input-shielded until their exact request settles. Failure is announced inline with the draft retained; success closes editors exactly once. The Habit inspector exposes editable scheduled pauses and historical skipped days. Absolute Count/Decimal/Duration entry now says which period total is being set, shows the current total, and explicitly says Save sets rather than adds.
+- Architecture: A typed `HabitMutationReceipt` and committed-mutation boundary separate authoritative Room writes from reminder follow-up warnings. Generic persistence coordination now namespaces Home quick entry, Home Habit details, and the Habit workspace; a non-owner cannot steal another surface's result, while an abandoned terminal is reclaimed after an owner grace period. Log/pause snapshots are saveable through target removal and recreation. `UserDataGenerationBoundary` recreates screen identity state after replace restore, and `HabitViewModel` clears outstanding request state on generation changes.
+- Correctness: Repository transactions re-read log/pause ownership and require the expected Habit before update/delete. Skip undo requires one exact stored Habit/date row. Absolute Set re-reads the authoritative Room total and all custom units, ignores only bounded binary ULP noise, and writes real high-magnitude changes. Editing a Habit log preserves the backing Measurement entry's Habit/UUID provenance.
+- Accessibility/UX: Saving produces one accessible interaction-blocking overlay for dialogs or the full Habit inspector. Draft fields remain scrollable; a 320dp/200%-text regression proves the pause dialog stays within its pane and its Save target remains at least 48dp. State-restoration regressions cover log/pause target removal and user-data-generation replacement.
+- Persistence/history impact: No Room schema or portable-backup change. Existing Habits, logs, skips, pauses, custom units, reminder definitions, and historical timestamps remain unchanged. Previously completed history is never recomputed from current settings.
+- Important files: `AppRuntime.kt`, `HabitModels.kt`, `HabitDao.kt`, `HabitRepository.kt`, `MeasurementDao.kt`, `MeasurementRepository.kt`, `CoordinatedReminderRepositories.kt`, `HabitViewModel.kt`, `HabitScreens.kt`, `EntityInspector.kt`, `ProductivityEditorComponents.kt`, `WhipApp.kt`, and focused JVM/Android regressions.
+- Commit/push: Focused Habit-mutation commit containing this entry on `origin/main`.
+- Related: `FND-20260831-019`, `DEC-20260831-015`.
+- Verification: `VER-20260831-011`.
+- Status: Implemented, independently accepted, and fully verified; integrated physical-device release remains deferred while the maximum-quality goal continues.

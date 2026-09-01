@@ -167,7 +167,7 @@ data class HabitLog(
     val metricEntryId: String?,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
-)
+) : java.io.Serializable
 
 data class HabitChecklistState(
     val habitId: Long,
@@ -184,7 +184,7 @@ data class HabitPause(
     val startDate: LocalDate,
     val endDate: LocalDate?,
     val note: String,
-)
+) : java.io.Serializable
 
 data class HabitSkip(
     val uuid: String,

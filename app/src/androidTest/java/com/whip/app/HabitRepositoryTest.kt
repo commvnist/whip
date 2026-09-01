@@ -102,6 +102,17 @@ class HabitRepositoryTest {
         assertTrue(repository.logs.first().isEmpty())
     }
 
+    @Test fun historyDeletionRejectsTheWrongHabitOwnerWithoutRemovingAnything() = runBlocking {
+        val first = repository.create(HabitDraft(name = "First", startDate = FixedClock.today()))
+        val second = repository.create(HabitDraft(name = "Second", startDate = FixedClock.today()))
+        val logId = repository.log(first, 1.0)
+
+        assertTrue(runCatching { repository.undoLog(logId, expectedHabitId = second) }.isFailure)
+        assertEquals(logId, repository.logs.first().single().id)
+        assertEquals(first, repository.undoLog(logId, expectedHabitId = first))
+        assertTrue(repository.logs.first().isEmpty())
+    }
+
     @Test fun checkOffCanBeToggledWithoutLeavingAZeroLog() = runBlocking {
         val id = repository.create(HabitDraft(name = "Check", startDate = FixedClock.today()))
         repository.setCheckOff(id, FixedClock.today(), true)
@@ -123,6 +134,188 @@ class HabitRepositoryTest {
         assertEquals(FixedClock.today().minusDays(2), updated.localDate)
         assertEquals("corrected", updated.note)
         assertEquals(FixedClock.today().minusDays(2), database.measurementDao().observeEntries().first().single().localEpochDay.let(LocalDate::ofEpochDay))
+    }
+
+    @Test fun settingAPeriodValueUsesTheAuthoritativeStoredTotalInsteadOfAStaleProjection() = runBlocking {
+        val today = FixedClock.today()
+        val id = repository.create(
+            HabitDraft(
+                name = "Water",
+                trackingMode = HabitTrackingMode.Count,
+                targetMin = 8.0,
+                startDate = today,
+            ),
+        )
+        repository.log(id, 2.0, date = today)
+
+        val firstSetId = repository.setPeriodValue(id, today, 5.0)
+        assertTrue(firstSetId != null)
+        assertEquals(listOf(2.0, 3.0), repository.logs.first().sortedBy { it.id }.mapNotNull { it.value })
+        assertEquals(null, repository.setPeriodValue(id, today, 5.0))
+
+        // A separate check-in may arrive after the UI projected its value. The
+        // next absolute Set must reread Room and write only the remaining delta.
+        repository.log(id, 1.0, date = today)
+        repository.setPeriodValue(id, today, 8.0)
+        val habit = repository.habits.first().single()
+        assertEquals(8.0, habit.valueForPeriod(repository.logs.first(), today), 0.0)
+        assertEquals(
+            listOf(2.0, 3.0, 1.0, 2.0),
+            repository.logs.first().sortedBy { it.id }.mapNotNull { it.value },
+        )
+    }
+
+    @Test fun settingDisplayedDecimalTotalDoesNotCreateMicroscopicCorrectionLog() = runBlocking {
+        val today = FixedClock.today()
+        val id = repository.create(
+            HabitDraft(
+                name = "Water",
+                trackingMode = HabitTrackingMode.Decimal,
+                targetMin = 1.0,
+                startDate = today,
+            ),
+        )
+        repository.log(id, 0.1, date = today)
+        repository.log(id, 0.2, date = today)
+
+        assertEquals(null, repository.setPeriodValue(id, today, 0.3))
+        assertEquals(2, repository.logs.first().size)
+    }
+
+    @Test fun settingHighMagnitudeTotalNeverTreatsARealChangeAsFloatingNoise() = runBlocking {
+        val today = FixedClock.today()
+        val id = repository.create(
+            HabitDraft(
+                name = "Large total",
+                trackingMode = HabitTrackingMode.Count,
+                targetMin = 1.0,
+                startDate = today,
+            ),
+        )
+        repository.log(id, 1_000_000_000_000.0, date = today)
+
+        val correctionId = repository.setPeriodValue(id, today, 999_999_999_500.0)
+        val oneUnitCorrectionId = repository.setPeriodValue(id, today, 999_999_999_501.0)
+
+        assertTrue(correctionId != null)
+        assertTrue(oneUnitCorrectionId != null)
+        assertEquals(
+            listOf(1_000_000_000_000.0, -500.0, 1.0),
+            repository.logs.first().sortedBy { it.id }.mapNotNull { it.value },
+        )
+    }
+
+    @Test fun settingCustomUnitTotalUsesStoredConversionsAndNoOpsWhenUnchanged() = runBlocking {
+        val today = FixedClock.today()
+        val glassUnitId = measurements.createCustomUnit("glass", "gl", UnitDimension.Volume, 250.0)
+        val id = repository.create(
+            HabitDraft(
+                name = "Water",
+                trackingMode = HabitTrackingMode.Decimal,
+                dimension = UnitDimension.Volume,
+                unitId = glassUnitId,
+                targetMin = 8.0,
+                startDate = today,
+            ),
+        )
+        repository.log(id, 2.0, date = today)
+
+        repository.setPeriodValue(id, today, 3.0)
+        assertEquals(3.0, repository.habits.first().single().valueForPeriod(repository.logs.first(), today), 0.0)
+        assertEquals(750.0, repository.logs.first().sumOf { it.canonicalValue ?: 0.0 }, 0.0)
+        assertEquals(null, repository.setPeriodValue(id, today, 3.0))
+        assertEquals(2, repository.logs.first().size)
+    }
+
+    @Test fun scheduledPausesCanBeCreatedEditedMadeOpenEndedAndDeleted() = runBlocking {
+        val today = FixedClock.today()
+        val habitId = repository.create(HabitDraft(name = "Training", startDate = today))
+
+        val pauseId = repository.addPause(habitId, today.plusDays(1), today.plusDays(4), "  Travel  ")
+        val created = repository.pauses.first().single()
+        assertEquals(pauseId, created.id)
+        assertEquals("Travel", created.note)
+        assertEquals(today.plusDays(4), created.endDate)
+
+        assertEquals(habitId, repository.updatePause(pauseId, today.plusDays(2), null, "Recovery"))
+        val updated = repository.pauses.first().single()
+        assertEquals(today.plusDays(2), updated.startDate)
+        assertEquals(null, updated.endDate)
+        assertEquals("Recovery", updated.note)
+
+        assertEquals(habitId, repository.deletePause(pauseId))
+        assertTrue(repository.pauses.first().isEmpty())
+        assertTrue(runCatching { repository.deletePause(pauseId) }.isFailure)
+    }
+
+    @Test fun scheduledPauseMutationsRejectInvalidOrMissingTargets() = runBlocking {
+        val today = FixedClock.today()
+        val habitId = repository.create(HabitDraft(name = "Training", startDate = today))
+        assertTrue(
+            runCatching {
+                repository.addPause(habitId, today.plusDays(2), today.plusDays(1))
+            }.isFailure,
+        )
+        assertTrue(runCatching { repository.addPause(Long.MAX_VALUE, today, null) }.isFailure)
+        assertTrue(runCatching { repository.updatePause(Long.MAX_VALUE, today, null) }.isFailure)
+    }
+
+    @Test fun skipUndoRequiresAnExistingExactRecord() = runBlocking {
+        val today = FixedClock.today()
+        val habitId = repository.create(HabitDraft(name = "Training", startDate = today))
+        repository.skipDay(habitId, today)
+
+        repository.undoSkip(habitId, today)
+
+        assertTrue(repository.skips.first().isEmpty())
+        assertTrue(runCatching { repository.undoSkip(habitId, today) }.isFailure)
+        assertTrue(runCatching { repository.undoSkip(Long.MAX_VALUE, today) }.isFailure)
+    }
+
+    @Test fun historyAndPauseUpdatesRejectTheWrongHabitOwnerWithoutMutation() = runBlocking {
+        val today = FixedClock.today()
+        val first = repository.create(
+            HabitDraft(name = "First", trackingMode = HabitTrackingMode.Count, startDate = today),
+        )
+        val second = repository.create(
+            HabitDraft(name = "Second", trackingMode = HabitTrackingMode.Count, startDate = today),
+        )
+        val logId = repository.log(first, 1.0, date = today, note = "original")
+        val pauseId = repository.addPause(first, today.plusDays(1), today.plusDays(2), "original")
+
+        assertTrue(
+            runCatching {
+                repository.updateLog(
+                    logId,
+                    9.0,
+                    HabitLogStatus.Recorded,
+                    today.minusDays(1),
+                    "wrong owner",
+                    expectedHabitId = second,
+                )
+            }.isFailure,
+        )
+        assertTrue(
+            runCatching {
+                repository.updatePause(
+                    pauseId,
+                    today.plusDays(4),
+                    null,
+                    "wrong owner",
+                    expectedHabitId = second,
+                )
+            }.isFailure,
+        )
+        assertTrue(runCatching { repository.deletePause(pauseId, expectedHabitId = second) }.isFailure)
+
+        val log = repository.logs.first().single()
+        assertEquals(1.0, log.value ?: -1.0, 0.0)
+        assertEquals(today, log.localDate)
+        assertEquals("original", log.note)
+        val pause = repository.pauses.first().single()
+        assertEquals(today.plusDays(1), pause.startDate)
+        assertEquals(today.plusDays(2), pause.endDate)
+        assertEquals("original", pause.note)
     }
 
     @Test fun customVolumeUnitUsesItsCanonicalConversionFactor() = runBlocking {
@@ -218,6 +411,26 @@ class HabitRepositoryTest {
         val edited = repository.logs.first().single()
         assertEquals("kilogram", edited.enteredUnitId)
         assertEquals(100.0, edited.canonicalValue ?: -1.0, 0.0)
+    }
+
+    @Test fun editingHabitLogKeepsBackingMeasurementOwnedByHabitWrapper() = runBlocking {
+        val today = FixedClock.today()
+        val habitId = repository.create(
+            HabitDraft(name = "Water", trackingMode = HabitTrackingMode.Count, startDate = today),
+        )
+        val logId = repository.log(
+            habitId,
+            1.0,
+            sourceType = MetricSourceType.Habit,
+            sourceId = "notification-action-1",
+        )
+        val logUuid = repository.logs.first().single().uuid
+
+        repository.updateLog(logId, 2.0, HabitLogStatus.Recorded, today, "corrected")
+
+        val measurement = database.measurementDao().observeEntries().first().single()
+        assertEquals(MetricSourceType.Habit.name, measurement.sourceType)
+        assertEquals(logUuid, measurement.sourceId)
     }
 
     @Test fun checklistInsertReorderAndRemovalPreserveItemCompletionIdentity() = runBlocking {

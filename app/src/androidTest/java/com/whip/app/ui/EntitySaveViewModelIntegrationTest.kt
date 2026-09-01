@@ -10,6 +10,8 @@ import com.whip.app.core.WhipResult
 import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.HabitDraft
+import com.whip.app.domain.HabitLogStatus
+import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.TaskDraft
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
@@ -89,6 +91,81 @@ class EntitySaveViewModelIntegrationTest {
         } as PersistenceRequestState.Finished<EntitySaveReceipt>
         assertTrue(finished.result is WhipResult.Failure)
         assertTrue(app.habitRepository.habits.first().none { it.name == "Must not appear" })
+        assertEquals(OperationStatus.Idle, viewModel.operationStatus.value)
+    }
+
+    @Test
+    fun habitHistoryRequestAdmitsExactlyOneMutationAndReturnsItsTypedReceipt() = runBlocking {
+        val habitId = app.habitRepository.create(
+            HabitDraft(
+                name = "Owned check-in",
+                trackingMode = HabitTrackingMode.Count,
+                startDate = LocalDate.of(2026, 8, 31),
+            ),
+        )
+        val viewModel = HabitViewModel(app)
+
+        assertTrue(viewModel.log(habitId, 3.0, requestId = "history-one"))
+        assertEquals(false, viewModel.log(habitId, 9.0, requestId = "history-two"))
+        @Suppress("UNCHECKED_CAST")
+        val finished = withTimeout(5_000) {
+            viewModel.authoredMutationState.first { it is PersistenceRequestState.Finished }
+        } as PersistenceRequestState.Finished<HabitMutationReceipt>
+        val success = finished.result as WhipResult.Success
+
+        assertEquals("history-one", finished.requestId)
+        assertEquals(HabitMutationKind.LogCreated, success.value.kind)
+        assertEquals(habitId, success.value.habitId)
+        assertTrue(success.value.logId != null)
+        assertEquals(listOf(3.0), app.habitRepository.logs.first().mapNotNull { it.value })
+        assertTrue(viewModel.operationStatus.value is OperationStatus.Succeeded)
+    }
+
+    @Test
+    fun missingHabitHistoryTargetReturnsAnOwnedFailureWithoutGlobalErrorNoise() = runBlocking {
+        val viewModel = HabitViewModel(app)
+        assertTrue(
+            viewModel.updateLog(
+                logId = Long.MAX_VALUE,
+                value = 1.0,
+                status = HabitLogStatus.Recorded,
+                date = LocalDate.of(2026, 8, 31),
+                note = "retained draft",
+                requestId = "missing-log",
+            ),
+        )
+
+        @Suppress("UNCHECKED_CAST")
+        val finished = withTimeout(5_000) {
+            viewModel.authoredMutationState.first { it is PersistenceRequestState.Finished }
+        } as PersistenceRequestState.Finished<HabitMutationReceipt>
+        assertTrue(finished.result is WhipResult.Failure)
+        assertEquals(OperationStatus.Idle, viewModel.operationStatus.value)
+    }
+
+    @Test
+    fun historicalSkipUndoAdmitsOneTapAndReportsARepeatedMissingTargetAsOwnedFailure() = runBlocking {
+        val date = LocalDate.of(2026, 8, 31)
+        val habitId = app.habitRepository.create(HabitDraft(name = "Training", startDate = date))
+        app.habitRepository.skipDay(habitId, date)
+        val viewModel = HabitViewModel(app)
+
+        assertTrue(viewModel.undoSkip(habitId, date, requestId = "skip-undo-one"))
+        assertEquals(false, viewModel.undoSkip(habitId, date, requestId = "skip-undo-two"))
+        @Suppress("UNCHECKED_CAST")
+        val success = withTimeout(5_000) {
+            viewModel.authoredMutationState.first { it is PersistenceRequestState.Finished }
+        } as PersistenceRequestState.Finished<HabitMutationReceipt>
+        assertEquals(HabitMutationKind.SkipDeleted, (success.result as WhipResult.Success).value.kind)
+        assertTrue(app.habitRepository.skips.first().isEmpty())
+
+        viewModel.consumeAuthoredMutationResult(success.requestId)
+        assertTrue(viewModel.undoSkip(habitId, date, requestId = "skip-undo-missing"))
+        @Suppress("UNCHECKED_CAST")
+        val missing = withTimeout(5_000) {
+            viewModel.authoredMutationState.first { it is PersistenceRequestState.Finished }
+        } as PersistenceRequestState.Finished<HabitMutationReceipt>
+        assertTrue(missing.result is WhipResult.Failure)
         assertEquals(OperationStatus.Idle, viewModel.operationStatus.value)
     }
 

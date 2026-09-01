@@ -125,16 +125,35 @@ class CommittedEntitySaveCancellation(
 suspend fun completeCommittedEntitySave(
     commit: suspend () -> EntitySaveReceipt,
     followUp: suspend (EntitySaveReceipt) -> EntitySaveReceipt,
-): EntitySaveReceipt {
+): EntitySaveReceipt = completeCommittedPersistence(
+    commit = commit,
+    followUp = followUp,
+    onCancellation = { committed, cancelled -> CommittedEntitySaveCancellation(committed, cancelled) },
+    onOrdinaryFailure = { committed ->
+        committed.copy(
+            warnings = committed.warnings + "Some post-save updates did not finish; the item itself was saved.",
+        )
+    },
+)
+
+/**
+ * Shared commit point for authored mutations with domain-specific receipts.
+ * The caller owns warning wording and the typed cancellation wrapper; this
+ * keeps post-commit truth central without reducing domain outcomes to strings.
+ */
+suspend fun <T> completeCommittedPersistence(
+    commit: suspend () -> T,
+    followUp: suspend (T) -> T,
+    onCancellation: (T, CancellationException) -> CancellationException,
+    onOrdinaryFailure: (T) -> T,
+): T {
     val committed = commit()
     return try {
         followUp(committed)
     } catch (cancelled: CancellationException) {
-        throw CommittedEntitySaveCancellation(committed, cancelled)
+        throw onCancellation(committed, cancelled)
     } catch (_: Exception) {
-        committed.copy(
-            warnings = committed.warnings + "Some post-save updates did not finish; the item itself was saved.",
-        )
+        onOrdinaryFailure(committed)
     }
 }
 

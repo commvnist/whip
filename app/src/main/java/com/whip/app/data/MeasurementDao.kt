@@ -35,6 +35,9 @@ interface MeasurementDao {
     @Query("SELECT * FROM unit_definitions WHERE id = :id")
     suspend fun getUnit(id: String): UnitDefinitionEntity?
 
+    @Query("SELECT * FROM unit_definitions")
+    suspend fun getAllUnits(): List<UnitDefinitionEntity>
+
     @Query("SELECT * FROM areas WHERE id = :id")
     suspend fun getArea(id: String): AreaEntity?
 

@@ -69,6 +69,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -515,6 +516,14 @@ internal fun <T> pinnedHomeSummary(
 internal fun gymHomeItemCount(hasActiveSession: Boolean, pinnedRoutineCount: Int): Int =
     if (hasActiveSession) 1 else pinnedRoutineCount
 
+@Composable
+internal fun UserDataGenerationBoundary(
+    generation: Long,
+    content: @Composable () -> Unit,
+) {
+    key(generation) { content() }
+}
+
 internal fun globalAddAvailable(
     appDestination: AppDestination,
     gymDestination: GymDestination,
@@ -566,8 +575,9 @@ fun WhipApp(
     settingsViewModel: SettingsViewModel = viewModel(),
     trackViewModel: TrackViewModel = viewModel(),
 ) {
-    val observedCalendarContext by (LocalContext.current.applicationContext as WhipApplication)
-        .calendarContext.collectAsStateWithLifecycle()
+    val app = LocalContext.current.applicationContext as WhipApplication
+    val observedCalendarContext by app.calendarContext.collectAsStateWithLifecycle()
+    val userDataGeneration by app.userDataGeneration.collectAsStateWithLifecycle()
     val observedTaskState by taskViewModel.uiState.collectAsStateWithLifecycle()
     val gymState by gymViewModel.uiState.collectAsStateWithLifecycle()
     val observedHabitState by habitViewModel.uiState.collectAsStateWithLifecycle()
@@ -763,122 +773,124 @@ fun WhipApp(
             LocalCompactItemLayout provides settingsState.settings.compactItemLayout,
             LocalCompactItemExpansionState provides compactItemExpansionState,
         ) {
-        WhipScreen(
-            state = state.forArea(areaScope),
-            unscopedTaskState = state,
-            gymState = gymState,
-            gymViewModel = gymViewModel,
-            habitState = habitState.forArea(areaScope),
-            unscopedHabitState = habitState,
-            habitViewModel = habitViewModel,
-            goalState = goalState.forArea(areaScope),
-            unscopedGoalState = goalState,
-            goalViewModel = goalViewModel,
-            settingsState = settingsState,
-            settingsViewModel = settingsViewModel,
-            trackState = when (areaScope) {
-                AreaScope.All -> trackState
-                AreaScope.Unassigned -> trackState
-                is AreaScope.One -> trackState.forArea(areaScope.areaId)
-            },
-            unscopedTrackState = trackState,
-            trackViewModel = trackViewModel,
-            areaScope = areaScope,
-            onSelectAreaScope = { selected ->
-                sessionAreaScopeKey = selected.storageKey
-                transientAreaScopeKey = null
-                settingsViewModel.setAreaScope(selected)
-            },
-            onTemporarilySelectAreaScope = { selected ->
-                transientAreaScopeKey = selected
-                    .takeUnless { it.hasSameVisibleAreaAs(sessionAreaScope, settingsState.areas) }
-                    ?.storageKey
-            },
-            transientAreaScope = transientAreaScopeKey != null,
-            onRestoreAreaScope = { transientAreaScopeKey = null },
-            pendingAreaBadgeId = pendingAreaBadgeId,
-            onAreaBadgeConsumed = { pendingAreaBadgeId = null },
-            modifier = Modifier.fillMaxSize(),
-            adaptiveLayout = adaptiveLayout,
-            foldInfo = foldInfo,
-            operationStatus = operationStatus,
-            taskEditorSaveState = taskEditorSaveState,
-            onTaskEditorSaveResultConsumed = taskViewModel::consumeEditorSaveResult,
-            onOperationStatusConsumed = taskViewModel::consumeOperationStatus,
-            taskUndoMessage = pendingTaskUndoMessage,
-            taskUndoToken = pendingTaskUndoToken,
-            quickAddedTaskId = pendingQuickAddTaskId,
-            onTaskUndo = { token -> taskViewModel.undoLastTaskAction(token) },
-            onTaskUndoDismissed = { token -> taskViewModel.clearPendingUndo(token) },
-            gymOperationStatus = gymOperationStatus,
-            onGymOperationStatusConsumed = gymViewModel::consumeOperationStatus,
-            machineArchiveUndoId = pendingMachineArchiveUndo,
-            onMachineArchiveUndo = { id -> gymViewModel.undoLastMachineArchive(id) },
-            onMachineArchiveUndoDismissed = { id -> gymViewModel.clearPendingMachineArchiveUndo(id) },
-            habitOperationStatus = habitOperationStatus,
-            onHabitOperationStatusConsumed = habitViewModel::consumeOperationStatus,
-            goalOperationStatus = goalOperationStatus,
-            onGoalOperationStatusConsumed = goalViewModel::consumeOperationStatus,
-            trackOperationStatus = trackOperationStatus,
-            onTrackOperationStatusConsumed = trackViewModel::consumeOperationStatus,
-            trackEntryUndoId = lastDeletedTrackEntry?.token,
-            onTrackEntryUndo = { id -> trackViewModel.undoEntryDeletion(id) },
-            onTrackEntryUndoDismissed = { id -> trackViewModel.clearEntryUndo(id) },
-            domainRetryActions = DomainRetryActions(
-                tasks = taskViewModel::retryLoading,
-                habits = habitViewModel::retryLoading,
-                goals = goalViewModel::retryLoading,
-                tracks = trackViewModel::retryLoading,
-                gym = gymViewModel::retryLoading,
-            ),
-            onSaveTask = { id, draft, from -> taskViewModel.saveTask(id, draft, from) },
-            onSaveTaskRequest = { id, draft, from, requestId ->
-                taskViewModel.saveTask(id, draft, from, requestId = requestId)
-            },
-            onQuickAddTask = { capture, date, areaId ->
-                taskViewModel.quickAddTask(capture, date, areaId)
-            },
-            onQuickAddTaskWithResult = { capture, date, areaId, onFinished ->
-                taskViewModel.quickAddTask(capture, date, areaId, onFinished)
-            },
-            onComplete = taskViewModel::complete,
-            onSkip = taskViewModel::skip,
-            onReschedule = taskViewModel::reschedule,
-            onSetStepCompleted = taskViewModel::setStepCompleted,
-            onPromoteStep = taskViewModel::promoteStep,
-            onArchive = taskViewModel::archive,
-            onRestore = taskViewModel::restore,
-            onDeleteTaskPermanently = taskViewModel::deletePermanently,
-            taskDeletionImpact = taskDeletionImpact,
-            onPreviewTaskDeletion = taskViewModel::previewPermanentDeletion,
-            onClearTaskDeletionPreview = taskViewModel::clearPermanentDeletionPreview,
-            onReopen = taskViewModel::reopen,
-            onReopenOccurrence = taskViewModel::reopenOccurrence,
-            onResetOccurrence = taskViewModel::resetOccurrence,
-            onSetTaskPinned = taskViewModel::setPinned,
-            onBulkCompleteTasks = taskViewModel::completeAll,
-            onBulkArchiveTasks = taskViewModel::archiveAll,
-            onBulkRestoreTasks = taskViewModel::restoreAll,
-            onBulkReopenTasks = taskViewModel::reopenAll,
-            onBulkPinTasks = taskViewModel::pinAll,
-            onBulkPostponeTasks = taskViewModel::postponeAll,
-            onBulkEditTasks = taskViewModel::editAll,
-            onBulkDeleteTasksPermanently = taskViewModel::deleteAllPermanently,
-            taskDeletionBatchImpact = taskDeletionBatchImpact,
-            onPreviewBulkTaskDeletion = taskViewModel::previewPermanentDeletions,
-            onClearBulkTaskDeletionPreview = taskViewModel::clearPermanentDeletionBatchPreview,
-            onReorderTasks = taskViewModel::reorder,
-            onPlanMyDay = taskViewModel::planMyDay,
-            onDuplicateTask = taskViewModel::duplicate,
-            onRequestNotificationPermission = onRequestNotificationPermission,
-            initialAction = initialAction,
-            initialEntityId = initialEntityId,
-            initialOccurrenceEpochDay = initialOccurrenceEpochDay,
-            initialSharedText = initialSharedText,
-            initialDeliveryId = initialDeliveryId,
-            launchAreaSelectionReady = requestedLaunchDeliveryId == 0L ||
-                transientAreaScopeDelivery == requestedLaunchDeliveryId,
-        )
+            UserDataGenerationBoundary(userDataGeneration) {
+                WhipScreen(
+                    state = state.forArea(areaScope),
+                    unscopedTaskState = state,
+                    gymState = gymState,
+                    gymViewModel = gymViewModel,
+                    habitState = habitState.forArea(areaScope),
+                    unscopedHabitState = habitState,
+                    habitViewModel = habitViewModel,
+                    goalState = goalState.forArea(areaScope),
+                    unscopedGoalState = goalState,
+                    goalViewModel = goalViewModel,
+                    settingsState = settingsState,
+                    settingsViewModel = settingsViewModel,
+                    trackState = when (areaScope) {
+                        AreaScope.All -> trackState
+                        AreaScope.Unassigned -> trackState
+                        is AreaScope.One -> trackState.forArea(areaScope.areaId)
+                    },
+                    unscopedTrackState = trackState,
+                    trackViewModel = trackViewModel,
+                    areaScope = areaScope,
+                    onSelectAreaScope = { selected ->
+                        sessionAreaScopeKey = selected.storageKey
+                        transientAreaScopeKey = null
+                        settingsViewModel.setAreaScope(selected)
+                    },
+                    onTemporarilySelectAreaScope = { selected ->
+                        transientAreaScopeKey = selected
+                            .takeUnless { it.hasSameVisibleAreaAs(sessionAreaScope, settingsState.areas) }
+                            ?.storageKey
+                    },
+                    transientAreaScope = transientAreaScopeKey != null,
+                    onRestoreAreaScope = { transientAreaScopeKey = null },
+                    pendingAreaBadgeId = pendingAreaBadgeId,
+                    onAreaBadgeConsumed = { pendingAreaBadgeId = null },
+                    modifier = Modifier.fillMaxSize(),
+                    adaptiveLayout = adaptiveLayout,
+                    foldInfo = foldInfo,
+                    operationStatus = operationStatus,
+                    taskEditorSaveState = taskEditorSaveState,
+                    onTaskEditorSaveResultConsumed = taskViewModel::consumeEditorSaveResult,
+                    onOperationStatusConsumed = taskViewModel::consumeOperationStatus,
+                    taskUndoMessage = pendingTaskUndoMessage,
+                    taskUndoToken = pendingTaskUndoToken,
+                    quickAddedTaskId = pendingQuickAddTaskId,
+                    onTaskUndo = { token -> taskViewModel.undoLastTaskAction(token) },
+                    onTaskUndoDismissed = { token -> taskViewModel.clearPendingUndo(token) },
+                    gymOperationStatus = gymOperationStatus,
+                    onGymOperationStatusConsumed = gymViewModel::consumeOperationStatus,
+                    machineArchiveUndoId = pendingMachineArchiveUndo,
+                    onMachineArchiveUndo = { id -> gymViewModel.undoLastMachineArchive(id) },
+                    onMachineArchiveUndoDismissed = { id -> gymViewModel.clearPendingMachineArchiveUndo(id) },
+                    habitOperationStatus = habitOperationStatus,
+                    onHabitOperationStatusConsumed = habitViewModel::consumeOperationStatus,
+                    goalOperationStatus = goalOperationStatus,
+                    onGoalOperationStatusConsumed = goalViewModel::consumeOperationStatus,
+                    trackOperationStatus = trackOperationStatus,
+                    onTrackOperationStatusConsumed = trackViewModel::consumeOperationStatus,
+                    trackEntryUndoId = lastDeletedTrackEntry?.token,
+                    onTrackEntryUndo = { id -> trackViewModel.undoEntryDeletion(id) },
+                    onTrackEntryUndoDismissed = { id -> trackViewModel.clearEntryUndo(id) },
+                    domainRetryActions = DomainRetryActions(
+                        tasks = taskViewModel::retryLoading,
+                        habits = habitViewModel::retryLoading,
+                        goals = goalViewModel::retryLoading,
+                        tracks = trackViewModel::retryLoading,
+                        gym = gymViewModel::retryLoading,
+                    ),
+                    onSaveTask = { id, draft, from -> taskViewModel.saveTask(id, draft, from) },
+                    onSaveTaskRequest = { id, draft, from, requestId ->
+                        taskViewModel.saveTask(id, draft, from, requestId = requestId)
+                    },
+                    onQuickAddTask = { capture, date, areaId ->
+                        taskViewModel.quickAddTask(capture, date, areaId)
+                    },
+                    onQuickAddTaskWithResult = { capture, date, areaId, onFinished ->
+                        taskViewModel.quickAddTask(capture, date, areaId, onFinished)
+                    },
+                    onComplete = taskViewModel::complete,
+                    onSkip = taskViewModel::skip,
+                    onReschedule = taskViewModel::reschedule,
+                    onSetStepCompleted = taskViewModel::setStepCompleted,
+                    onPromoteStep = taskViewModel::promoteStep,
+                    onArchive = taskViewModel::archive,
+                    onRestore = taskViewModel::restore,
+                    onDeleteTaskPermanently = taskViewModel::deletePermanently,
+                    taskDeletionImpact = taskDeletionImpact,
+                    onPreviewTaskDeletion = taskViewModel::previewPermanentDeletion,
+                    onClearTaskDeletionPreview = taskViewModel::clearPermanentDeletionPreview,
+                    onReopen = taskViewModel::reopen,
+                    onReopenOccurrence = taskViewModel::reopenOccurrence,
+                    onResetOccurrence = taskViewModel::resetOccurrence,
+                    onSetTaskPinned = taskViewModel::setPinned,
+                    onBulkCompleteTasks = taskViewModel::completeAll,
+                    onBulkArchiveTasks = taskViewModel::archiveAll,
+                    onBulkRestoreTasks = taskViewModel::restoreAll,
+                    onBulkReopenTasks = taskViewModel::reopenAll,
+                    onBulkPinTasks = taskViewModel::pinAll,
+                    onBulkPostponeTasks = taskViewModel::postponeAll,
+                    onBulkEditTasks = taskViewModel::editAll,
+                    onBulkDeleteTasksPermanently = taskViewModel::deleteAllPermanently,
+                    taskDeletionBatchImpact = taskDeletionBatchImpact,
+                    onPreviewBulkTaskDeletion = taskViewModel::previewPermanentDeletions,
+                    onClearBulkTaskDeletionPreview = taskViewModel::clearPermanentDeletionBatchPreview,
+                    onReorderTasks = taskViewModel::reorder,
+                    onPlanMyDay = taskViewModel::planMyDay,
+                    onDuplicateTask = taskViewModel::duplicate,
+                    onRequestNotificationPermission = onRequestNotificationPermission,
+                    initialAction = initialAction,
+                    initialEntityId = initialEntityId,
+                    initialOccurrenceEpochDay = initialOccurrenceEpochDay,
+                    initialSharedText = initialSharedText,
+                    initialDeliveryId = initialDeliveryId,
+                    launchAreaSelectionReady = requestedLaunchDeliveryId == 0L ||
+                        transientAreaScopeDelivery == requestedLaunchDeliveryId,
+                )
+            }
         }
     }
 }
@@ -2259,6 +2271,7 @@ fun WhipScreen(
                     onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
                     onAreaChanged = { keepSavedItemVisible(it.areaId, it.areaVerified) },
                     showWorkspace = false,
+                    mutationRequestNamespace = "home-habit-area",
                 )
                 if (goalViewModel != null) GoalAreaContent(
                     state = goalState,
@@ -2389,6 +2402,7 @@ fun WhipScreen(
                         destinationState = habitDestinationState,
                         onReorderModeChange = { reorderModeActive = it },
                         reorderDismissRequest = reorderDismissRequest,
+                        mutationRequestNamespace = "habit-workspace",
                     )
                 } else RoadmapEmptyArea("Habits", "Habits are loading.", innerPadding)
             }
@@ -2628,16 +2642,36 @@ fun WhipScreen(
         )
     }
     homeHabitValueItem?.let { item ->
+        val viewModel = habitViewModel ?: return@let
+        val authoredMutationState by viewModel.authoredMutationState.collectAsStateWithLifecycle()
+        val authoredMutationCoordinator = rememberPersistenceRequestCoordinator(
+            state = authoredMutationState,
+            consume = viewModel::consumeAuthoredMutationResult,
+            key = "home-habit-${item.habit.id}",
+            requestNamespace = "home-habit-quick",
+            onPersisted = { homeHabitValueItemId = null },
+        )
         HabitValueDialog(
             item = item,
-            onDismiss = { homeHabitValueItemId = null },
-            onLog = { value, note ->
-                if (item.habit.trackingMode == com.whip.app.domain.HabitTrackingMode.LogOnly) {
-                    habitViewModel?.log(item.habit.id, value, note = note)
-                } else {
-                    habitViewModel?.setPeriodValue(item, requireNotNull(value), note)
-                }
+            saving = authoredMutationCoordinator.saving,
+            persistenceError = authoredMutationCoordinator.errorMessage,
+            onDismiss = {
+                authoredMutationCoordinator.clear()
                 homeHabitValueItemId = null
+            },
+            onLog = { value, note ->
+                val requestId = authoredMutationCoordinator.begin() ?: return@HabitValueDialog
+                val accepted =
+                if (item.habit.trackingMode == com.whip.app.domain.HabitTrackingMode.LogOnly) {
+                    viewModel.log(item.habit.id, value, note = note, requestId = requestId)
+                } else {
+                    viewModel.setPeriodValue(item, requireNotNull(value), note, requestId = requestId)
+                }
+                if (!accepted) {
+                    authoredMutationCoordinator.finishFailure(
+                        "Another Habit history change is already finishing.",
+                    )
+                }
             },
         )
     }

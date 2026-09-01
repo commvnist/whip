@@ -82,6 +82,15 @@ internal class CoordinatedHabitRepository(
     override suspend fun reorder(ids: List<Long>) = mutate { delegate.reorder(ids) }
     override suspend fun addPause(id: Long, start: LocalDate, end: LocalDate?, note: String) =
         mutate { delegate.addPause(id, start, end, note) }
+    override suspend fun updatePause(
+        pauseId: Long,
+        start: LocalDate,
+        end: LocalDate?,
+        note: String,
+        expectedHabitId: Long?,
+    ) = mutate { delegate.updatePause(pauseId, start, end, note, expectedHabitId) }
+    override suspend fun deletePause(pauseId: Long, expectedHabitId: Long?) =
+        mutate { delegate.deletePause(pauseId, expectedHabitId) }
     override suspend fun skipDay(habitId: Long, date: LocalDate) = mutate { delegate.skipDay(habitId, date) }
     override suspend fun undoSkip(habitId: Long, date: LocalDate) = mutate { delegate.undoSkip(habitId, date) }
     override suspend fun log(
@@ -94,7 +103,10 @@ internal class CoordinatedHabitRepository(
         sourceType: MetricSourceType,
         sourceId: String?,
     ) = mutate { delegate.log(habitId, value, status, date, timestamp, note, sourceType, sourceId) }
-    override suspend fun undoLog(logId: Long) = mutate { delegate.undoLog(logId) }
+    override suspend fun setPeriodValue(habitId: Long, date: LocalDate, value: Double, note: String) =
+        mutate { delegate.setPeriodValue(habitId, date, value, note) }
+    override suspend fun undoLog(logId: Long, expectedHabitId: Long?) =
+        mutate { delegate.undoLog(logId, expectedHabitId) }
     override suspend fun updateLog(
         logId: Long,
         value: Double?,
@@ -102,7 +114,8 @@ internal class CoordinatedHabitRepository(
         date: LocalDate,
         note: String,
         enteredUnitId: String?,
-    ) = mutate { delegate.updateLog(logId, value, status, date, note, enteredUnitId) }
+        expectedHabitId: Long?,
+    ) = mutate { delegate.updateLog(logId, value, status, date, note, enteredUnitId, expectedHabitId) }
     override suspend fun setCheckOff(habitId: Long, date: LocalDate, completed: Boolean) =
         mutate { delegate.setCheckOff(habitId, date, completed) }
     override suspend fun toggleChecklistItem(habitId: Long, itemId: Long, date: LocalDate, completed: Boolean) =

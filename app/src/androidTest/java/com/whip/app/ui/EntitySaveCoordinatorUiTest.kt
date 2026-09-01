@@ -5,6 +5,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.input.key.Key
@@ -174,6 +175,37 @@ class EntitySaveCoordinatorUiTest {
     }
 
     @Test
+    fun userDataGenerationChangeDropsStaleIdentityStateAndRestoresOnlyTheNewGeneration() {
+        var generation by mutableStateOf(0L)
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                UserDataGenerationBoundary(generation) {
+                    var selectedId by rememberSaveable { mutableStateOf<Long?>(null) }
+                    Column {
+                        Text(selectedId?.toString() ?: "No selection", modifier = androidx.compose.ui.Modifier.testTag("selected-id"))
+                        WhipButton(onClick = { selectedId = if (generation == 0L) 41L else 72L }) {
+                            Text("Select identity")
+                        }
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithText("Select identity").performClick()
+        compose.onNodeWithText("41").assertIsDisplayed()
+        compose.runOnIdle { generation = 1L }
+        compose.onNodeWithText("No selection").assertIsDisplayed()
+        compose.onNodeWithText("Select identity").performClick()
+        compose.onNodeWithText("72").assertIsDisplayed()
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        compose.onNodeWithText("72").assertIsDisplayed()
+        compose.onAllNodesWithText("41").assertCountEquals(0)
+    }
+
+    @Test
     fun terminalResultFromAnEditorThatLeftCompositionIsReclaimed() {
         var state by mutableStateOf<PersistenceRequestState<EntitySaveReceipt>>(
             PersistenceRequestState.Finished(
@@ -205,6 +237,128 @@ class EntitySaveCoordinatorUiTest {
         compose.onNodeWithText("Save").performClick()
         compose.onNodeWithText("Saving…").assertIsDisplayed()
         compose.runOnIdle { assertTrue(state is PersistenceRequestState.Running) }
+    }
+
+    @Test
+    fun abandonedTerminalResultsAreReclaimedAcrossNamespacedSurfacesInBothDirections() {
+        var state by mutableStateOf<PersistenceRequestState<EntitySaveReceipt>>(PersistenceRequestState.Idle)
+        var showHome by mutableStateOf(true)
+        var showWorkspace by mutableStateOf(false)
+        val consumed = mutableListOf<String>()
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Column {
+                    if (showHome) {
+                        val home = rememberEntitySaveCoordinator(
+                            state = state,
+                            consume = { requestId ->
+                                consumed += requestId
+                                state = PersistenceRequestState.Idle
+                            },
+                            requestNamespace = "home-habit-quick",
+                            onPersisted = {},
+                        )
+                        WhipButton(
+                            onClick = {
+                                home.begin()?.let { state = PersistenceRequestState.Running(it) }
+                            },
+                        ) { Text("Home save") }
+                    }
+                    if (showWorkspace) {
+                        val workspace = rememberEntitySaveCoordinator(
+                            state = state,
+                            consume = { requestId ->
+                                consumed += requestId
+                                state = PersistenceRequestState.Idle
+                            },
+                            requestNamespace = "habit-workspace",
+                            onPersisted = {},
+                        )
+                        WhipButton(
+                            onClick = {
+                                workspace.begin()?.let { state = PersistenceRequestState.Running(it) }
+                            },
+                        ) { Text("Workspace save") }
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithText("Home save").performClick()
+        val homeRequest = (state as PersistenceRequestState.Running).requestId
+        compose.runOnIdle {
+            showHome = false
+            showWorkspace = true
+            state = PersistenceRequestState.Finished(
+                homeRequest,
+                WhipResult.Success(EntitySaveReceipt(1, null)),
+            )
+        }
+        compose.waitUntil(2_000) { state is PersistenceRequestState.Idle }
+        compose.runOnIdle { assertEquals(listOf(homeRequest), consumed) }
+
+        compose.onNodeWithText("Workspace save").performClick()
+        val workspaceRequest = (state as PersistenceRequestState.Running).requestId
+        compose.runOnIdle {
+            showWorkspace = false
+            showHome = true
+            state = PersistenceRequestState.Finished(
+                workspaceRequest,
+                WhipResult.Success(EntitySaveReceipt(2, null)),
+            )
+        }
+        compose.waitUntil(2_000) { state is PersistenceRequestState.Idle }
+        compose.runOnIdle { assertEquals(listOf(homeRequest, workspaceRequest), consumed) }
+    }
+
+    @Test
+    fun nonOwningNamespaceCannotStealTerminalDeliveryFromComposedOwner() {
+        var state by mutableStateOf<PersistenceRequestState<EntitySaveReceipt>>(PersistenceRequestState.Idle)
+        var homePersisted = 0
+        var workspacePersisted = 0
+        val consumed = mutableListOf<String>()
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Column {
+                    val home = rememberEntitySaveCoordinator(
+                        state = state,
+                        consume = { requestId ->
+                            consumed += requestId
+                            state = PersistenceRequestState.Idle
+                        },
+                        requestNamespace = "home-habit-quick",
+                        onPersisted = { homePersisted++ },
+                    )
+                    rememberEntitySaveCoordinator(
+                        state = state,
+                        consume = { requestId ->
+                            consumed += requestId
+                            state = PersistenceRequestState.Idle
+                        },
+                        requestNamespace = "habit-workspace",
+                        onPersisted = { workspacePersisted++ },
+                    )
+                    WhipButton(
+                        onClick = { home.begin()?.let { state = PersistenceRequestState.Running(it) } },
+                    ) { Text("Owned home save") }
+                }
+            }
+        }
+
+        compose.onNodeWithText("Owned home save").performClick()
+        val requestId = (state as PersistenceRequestState.Running).requestId
+        compose.runOnIdle {
+            state = PersistenceRequestState.Finished(
+                requestId,
+                WhipResult.Success(EntitySaveReceipt(3, null)),
+            )
+        }
+
+        compose.waitUntil(2_000) { homePersisted == 1 }
+        compose.runOnIdle {
+            assertEquals(0, workspacePersisted)
+            assertEquals(listOf(requestId), consumed)
+        }
     }
 
     @Test
