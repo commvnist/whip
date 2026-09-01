@@ -6,9 +6,8 @@ import android.content.Context
 class NotificationActionLedger(context: Context) {
     private val preferences = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
 
-    @Synchronized
     @android.annotation.SuppressLint("UseKtx")
-    fun begin(actionId: String, nowMillis: Long = System.currentTimeMillis()): Boolean {
+    fun begin(actionId: String, nowMillis: Long = System.currentTimeMillis()): Boolean = synchronized(lock) {
         if (actionId.isBlank()) return false
         val existing = preferences.getLong(actionId, 0L)
         if (existing > 0L) return false
@@ -18,21 +17,19 @@ class NotificationActionLedger(context: Context) {
         preferences.all.forEach { (key, value) ->
             if ((value as? Long)?.let { kotlin.math.abs(it) < cutoff } == true) editor.remove(key)
         }
-        return editor.commit()
+        editor.commit()
     }
 
-    @Synchronized
     @android.annotation.SuppressLint("UseKtx")
-    fun complete(actionId: String, nowMillis: Long = System.currentTimeMillis()): Boolean {
+    fun complete(actionId: String, nowMillis: Long = System.currentTimeMillis()): Boolean = synchronized(lock) {
         if (preferences.getLong(actionId, 0L) >= 0L) return false
-        return preferences.edit().putLong(actionId, nowMillis.coerceAtLeast(1L)).commit()
+        preferences.edit().putLong(actionId, nowMillis.coerceAtLeast(1L)).commit()
     }
 
-    @Synchronized
     @android.annotation.SuppressLint("UseKtx")
-    fun release(actionId: String): Boolean {
+    fun release(actionId: String): Boolean = synchronized(lock) {
         if (preferences.getLong(actionId, 0L) >= 0L) return false
-        return preferences.edit().remove(actionId).commit()
+        preferences.edit().remove(actionId).commit()
     }
 
     /** Compatibility helper for actions that have no fallible mutation. */
@@ -40,6 +37,7 @@ class NotificationActionLedger(context: Context) {
         begin(actionId, nowMillis) && complete(actionId, nowMillis)
 
     private companion object {
+        val lock = Any()
         const val PREFERENCES = "notification_action_receipts"
         const val RETENTION_MILLIS = 31L * 24L * 60L * 60L * 1_000L
         const val IN_FLIGHT_TIMEOUT_MILLIS = 5L * 60L * 1_000L

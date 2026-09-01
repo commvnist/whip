@@ -17,6 +17,8 @@ import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TargetComparison
 import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.TaskStep
+import com.whip.app.domain.TaskStepDraft
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WhipTask
 import java.time.DayOfWeek
@@ -44,12 +46,28 @@ class ReminderInvalidationTest {
     fun schedulingAndProgressSemanticsStillReschedule() {
         val goalDraft = GoalDraft(name = "Read", type = GoalType.ReachValue, startDate = today, reminderMinutes = 540)
         assertTrue(goal(goalDraft).reminderDefinitionChanged(goalDraft.copy(reminderMinutes = 600)))
+        assertTrue(goal(goalDraft).reminderDefinitionChanged(goalDraft.copy(type = GoalType.ElapsedSince)))
 
         val habitDraft = HabitDraft(name = "Walk", startDate = today, reminderMinutes = listOf(540))
         assertTrue(habit(habitDraft).reminderDefinitionChanged(habitDraft.copy(scheduleType = HabitScheduleType.SelectedWeekdays, weekdays = setOf(DayOfWeek.MONDAY))))
+        assertTrue(habit(habitDraft).reminderDefinitionChanged(habitDraft.copy(quickIncrement = 5.0)))
 
         val taskDraft = TaskDraft(title = "Plan", scheduleKind = ScheduleKind.Once, date = today, timeMinutes = 600, reminderEnabled = true)
         assertTrue(task(taskDraft).reminderDefinitionChanged(taskDraft.copy(timeMinutes = 630)))
+
+        val taskWithStep = task(taskDraft).copy(
+            steps = listOf(TaskStep(7, 1, "Review", 0, createdAtMillis = 0, updatedAtMillis = 0)),
+        )
+        assertTrue(
+            taskWithStep.reminderDefinitionChanged(
+                taskDraft.copy(steps = listOf(TaskStepDraft(title = "New step", position = 0))),
+            ),
+        )
+        assertFalse(
+            taskWithStep.reminderDefinitionChanged(
+                taskDraft.copy(steps = listOf(TaskStepDraft(id = 7, title = "Renamed", position = 0))),
+            ),
+        )
     }
 
     private fun goal(draft: GoalDraft) = Goal(

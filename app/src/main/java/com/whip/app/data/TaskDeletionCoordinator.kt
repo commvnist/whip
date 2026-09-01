@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.TriggerTargetType
 import com.whip.app.domain.OccurrenceState
+import com.whip.app.reminders.ReminderDeliveryCoordinator
 
 /**
  * Owns the cross-feature cleanup required when a task is permanently deleted.
@@ -11,10 +12,14 @@ import com.whip.app.domain.OccurrenceState
  * Direct task children use foreign-key cascades. Links and automations are intentionally
  * polymorphic, so they must be removed explicitly to avoid orphan rules and derived data.
  */
-class TaskDeletionCoordinator(
+class TaskDeletionCoordinator internal constructor(
     private val database: WhipDatabase,
     private val taskRepository: TaskRepository,
     private val linkRepository: LinkRepository,
+    private val reminderDeliveryCoordinator: ReminderDeliveryCoordinator? = null,
+    private val onDeletionPrepared: (Set<Long>) -> Unit = {},
+    private val onDeletionCommitted: (Set<Long>) -> Unit = {},
+    private val onDeletionInterrupted: suspend () -> Unit = {},
 ) {
     suspend fun preview(taskId: Long): TaskDeletionImpact = database.withTransaction {
         previewWithinTransaction(taskId)
@@ -42,27 +47,44 @@ class TaskDeletionCoordinator(
     suspend fun delete(
         taskIds: Set<Long>,
         expectedRevisionTokens: Map<Long, Long>? = null,
-    ): TaskDeletionBatchSummary = database.withTransaction {
-        val impact = previewBatchWithinTransaction(taskIds)
-        if (impact.taskIds.isEmpty()) return@withTransaction TaskDeletionBatchSummary()
-        require(
-            expectedRevisionTokens == null ||
-                (impact.taskIds == impact.requestedTaskIds && expectedRevisionTokens == impact.revisionTokens),
-        ) {
-            "One or more tasks changed after the deletion preview. Review the updated impact before deleting."
-        }
+    ): TaskDeletionBatchSummary {
+        val requestedTaskIds = taskIds.filterTo(linkedSetOf()) { it > 0 }
+        return try {
+            withReminderStateBoundary {
+                onDeletionPrepared(requestedTaskIds)
+                val summary = database.withTransaction {
+                    val impact = previewBatchWithinTransaction(taskIds)
+                    if (impact.taskIds.isEmpty()) return@withTransaction TaskDeletionBatchSummary()
+                    require(
+                        expectedRevisionTokens == null ||
+                            (impact.taskIds == impact.requestedTaskIds &&
+                                expectedRevisionTokens == impact.revisionTokens),
+                    ) {
+                        "One or more tasks changed after the deletion preview. Review the updated impact before deleting."
+                    }
 
-        impact.linkRuleIds.forEach { linkRepository.deleteRule(it) }
-        impact.automationRuleIds.forEach { linkRepository.deleteTrigger(it) }
-        impact.taskIds.sorted().forEach { taskId ->
-            check(taskRepository.deletePermanently(taskId)) { "Task no longer exists" }
+                    impact.linkRuleIds.forEach { linkRepository.deleteRule(it) }
+                    impact.automationRuleIds.forEach { linkRepository.deleteTrigger(it) }
+                    impact.taskIds.sorted().forEach { taskId ->
+                        check(taskRepository.deletePermanently(taskId)) { "Task no longer exists" }
+                    }
+                    TaskDeletionBatchSummary(
+                        tasksDeleted = impact.taskIds.size,
+                        linkRulesDeleted = impact.linkRuleIds.size,
+                        automationRulesDeleted = impact.automationRuleIds.size,
+                    )
+                }
+                onDeletionCommitted(requestedTaskIds)
+                summary
+            }
+        } catch (error: Throwable) {
+            onDeletionInterrupted()
+            throw error
         }
-        TaskDeletionBatchSummary(
-            tasksDeleted = impact.taskIds.size,
-            linkRulesDeleted = impact.linkRuleIds.size,
-            automationRulesDeleted = impact.automationRuleIds.size,
-        )
     }
+
+    private suspend fun <T> withReminderStateBoundary(block: suspend () -> T): T =
+        reminderDeliveryCoordinator?.withStateBoundary(block) ?: block()
 
     private suspend fun previewWithinTransaction(taskId: Long): TaskDeletionImpact {
         val task = taskRepository.getTask(taskId) ?: return TaskDeletionImpact(taskId = taskId)

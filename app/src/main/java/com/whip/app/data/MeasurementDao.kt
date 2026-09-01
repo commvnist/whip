@@ -50,6 +50,9 @@ interface MeasurementDao {
     @Query("SELECT * FROM metric_entries")
     suspend fun getAllEntries(): List<MetricEntryEntity>
 
+    @Query("SELECT * FROM metric_entries WHERE metricId = :metricId")
+    suspend fun getEntriesForMetric(metricId: String): List<MetricEntryEntity>
+
     @Query("SELECT * FROM metric_entries WHERE sourceType = :sourceType AND sourceId LIKE :sourcePrefix || '%'")
     suspend fun getEntriesBySourcePrefix(sourceType: String, sourcePrefix: String): List<MetricEntryEntity>
 

@@ -35,6 +35,8 @@ import com.whip.app.domain.TrackFieldDraft
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.WorkoutSetDraft
 import java.time.Instant
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -57,6 +59,10 @@ class WhipComposeSemanticsTest {
 
     @Test
     fun globalAddAndHabitEditorAreReachableThroughComposeSemantics() {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        val previousMonthLabel = YearMonth.from(app.clock.today())
+            .minusMonths(1)
+            .format(DateTimeFormatter.ofPattern("MMMM yyyy"))
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.wakeUp()
         device.executeShellCommand("wm dismiss-keyguard")
@@ -80,7 +86,7 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithTag("task-calendar").performScrollTo()
             compose.onNodeWithText("Previous").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.waitForIdle()
-            compose.onNodeWithText("July 2026").fetchSemanticsNode()
+            compose.onNodeWithText(previousMonthLabel).fetchSemanticsNode()
             openSettings()
             compose.onNodeWithTag("settings-section-Appearance & Home").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Home Overview"))

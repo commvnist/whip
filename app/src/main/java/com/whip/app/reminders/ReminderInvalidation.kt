@@ -13,7 +13,8 @@ import com.whip.app.domain.WhipTask
  * database, and scheduler work to the user's Save action.
  */
 internal fun Goal.reminderDefinitionChanged(draft: GoalDraft): Boolean =
-    reminderMinutes != draft.reminderMinutes ||
+    type != draft.type ||
+        reminderMinutes != draft.reminderMinutes ||
         startDate != draft.startDate ||
         deadline != draft.deadline
 
@@ -35,6 +36,7 @@ internal fun Habit.reminderDefinitionChanged(draft: HabitDraft): Boolean =
         endType != draft.endType ||
         endDate != draft.endDate ||
         endValue != draft.endValue ||
+        quickIncrement != draft.quickIncrement ||
         reminderMinutes.normalizedMinutes() != draft.reminderMinutes.normalizedMinutes() ||
         weekdayReminderMinutes.normalizedWeekdayMinutes() != draft.weekdayReminderMinutes.normalizedWeekdayMinutes() ||
         weekStart != draft.weekStart ||
@@ -48,7 +50,14 @@ internal fun WhipTask.reminderDefinitionChanged(draft: TaskDraft): Boolean =
         reminderEnabled != draft.reminderEnabled ||
         deadline != draft.deadline ||
         reminderOffsetsMinutes.normalizedMinutes() != draft.reminderOffsetsMinutes.normalizedMinutes() ||
-        missedOccurrencePolicy != draft.missedOccurrencePolicy
+        missedOccurrencePolicy != draft.missedOccurrencePolicy ||
+        activeStepIdentityChanged(draft)
+
+private fun WhipTask.activeStepIdentityChanged(draft: TaskDraft): Boolean {
+    val currentIds = steps.filterNot { it.archived }.map { it.id }.toSet()
+    val proposed = draft.steps.filter { it.title.isNotBlank() }
+    return proposed.any { it.id == null } || proposed.mapNotNull { it.id }.toSet() != currentIds
+}
 
 private fun List<Int>.normalizedMinutes(): List<Int> = distinct().sorted()
 

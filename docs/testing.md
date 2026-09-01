@@ -107,7 +107,7 @@ Every product area has fast domain coverage and at least one persisted or UI
 path. New behavior must add its regression to the narrowest applicable suite
 and update this matrix if it introduces a new feature area.
 
-Current baseline: 915 product tests—419 fast JVM tests and 496 Android
+Current baseline: 967 product tests—451 fast JVM tests and 516 Android
 instrumentation tests—plus 9 Macrobenchmark/Baseline Profile scenarios, lint,
 debug/release/benchmark builds, and the disposable API 34 emulator suite. API
 26 and API 37 compatibility runs cover the minimum and target/latest platform;
@@ -158,7 +158,7 @@ cannot replace the operating system UI.
 | Full backup/restore, encryption, and tamper safety | filename/retention policy and codec rules | all first-class domains, routines, settings, checksum/authentication rejection, recovery rollback, and dormant legacy-rule handling | restore preview, passphrase, and folder controls |
 | Portable folder, crash-safe staging, retention, and scheduled backup | `PortableBackupPolicyTest` | manager recreation, staged write/read/rename/read verification, corrupt cleanup, validate-before-prune, empty-source protection, unique WorkManager job | Settings portable-backup journey |
 | Health-backed Habits and Goals | goal/habit/source rules | fake-provider import/update/delete, provenance, and reconciliation | source choice and Settings reconciliation paths |
-| Notification actions and reminder health | reminder/outcome rules | action ledger idempotency and scheduler reconstruction | per-channel health, exact-record routes, permission-ungranted creation, and explicit opt-in request paths |
+| Notification delivery, actions, and reminder health | exact versioned claims, live Task/Habit/Goal eligibility, quiet-hour/time-zone rules, malformed/early/stale rejection, definition fingerprints, and invalidation policy | awaited scheduler reconstruction, source-backed Habit synchronization, production mutation linearization, serialized Settings snapshots, one-time legacy upgrade, and durable deletion cleanup across rollback/process interruption | real worker posting/non-posting, exact idempotent notification actions, time broadcasts, per-channel health, exact-record routes, permission-ungranted creation, and explicit opt-in request paths |
 | Long histories and bounded graphs | 100,000-point `LargeHistoryRegressionTest` | bounded queries/projections | graph screen smoke and `DenseDataBenchmark` |
 | Accessibility, interaction grammar, locale, and large text | localized number/range rules | Compose Accessibility Test Framework on API 34+ | `InteractionControlUiTest` verifies roles, state, 48 dp targets, scrollable tabs, 200% font, and RTL; `ProductivityCardDesignUiTest` locks Task/Habit/Goal identity, action, and edit columns to one hierarchy; adaptive suites cover labeled actions and live/error semantics |
 

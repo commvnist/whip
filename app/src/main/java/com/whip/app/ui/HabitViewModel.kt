@@ -205,8 +205,9 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         "Check-in removed",
         successFeedbackPresentation = OperationFeedbackPresentation.Inline,
     ) {
+        val resolvedHabitId = habitId ?: app.database.habitDao().getLog(logId)?.habitId
         repository.undoLog(logId)
-        habitId?.let { reminders.syncHabit(it) }
+        resolvedHabitId?.let { reminders.syncHabit(it) }
     }
     fun updateLog(logId: Long, value: Double?, status: HabitLogStatus, date: LocalDate, note: String) =
         runOperation(
@@ -214,7 +215,10 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
             "Check-in updated",
             successFeedbackPresentation = OperationFeedbackPresentation.Inline,
         ) {
+            val habitId = app.database.habitDao().getLog(logId)?.habitId
+                ?: error("Habit log no longer exists")
             repository.updateLog(logId, value, status, date, note)
+            reminders.syncHabit(habitId)
         }
     fun setCheckOff(habitId: Long, date: LocalDate, completed: Boolean) =
         runOperation(
@@ -235,7 +239,10 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
             reminders.syncHabit(habitId)
         }
     fun startTimer(habitId: Long) = runOperation("Starting timer…", "Habit timer started") { repository.startTimer(habitId) }
-    fun stopTimer(habitId: Long) = runOperation("Stopping timer…", "Duration logged") { repository.stopTimer(habitId) }
+    fun stopTimer(habitId: Long) = runOperation("Stopping timer…", "Duration logged") {
+        repository.stopTimer(habitId)
+        reminders.syncHabit(habitId)
+    }
     private val reorderMutex = Mutex()
 
     private fun runSilentReorder(block: suspend () -> Unit) {

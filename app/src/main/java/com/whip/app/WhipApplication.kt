@@ -6,25 +6,41 @@ import com.whip.app.core.SettingsWhipClock
 import com.whip.app.core.SharedPreferencesSettingsRepository
 import com.whip.app.core.UuidWhipIdGenerator
 import com.whip.app.data.RoomTaskRepository
+import com.whip.app.data.TaskRepository
 import com.whip.app.data.RoomMeasurementRepository
+import com.whip.app.data.MeasurementRepository
 import com.whip.app.data.RoomAreaRepository
 import com.whip.app.data.RoomGymRepository
 import com.whip.app.data.RoomRoutineRepository
 import com.whip.app.data.RoomHabitRepository
+import com.whip.app.data.HabitRepository
 import com.whip.app.data.RoomGoalRepository
+import com.whip.app.data.GoalRepository
 import com.whip.app.data.RoomLinkRepository
 import com.whip.app.data.RoomTrackRepository
 import com.whip.app.data.RoomBackupRepository
 import com.whip.app.data.TaskDeletionCoordinator
 import com.whip.app.data.DomainDeletionCoordinator
 import com.whip.app.data.AreaDeletionCoordinator
+import com.whip.app.data.AreaDeletionSummary
 import com.whip.app.data.PortableBackupManager
 import com.whip.app.data.PortableBackupScheduler
 import com.whip.app.data.PORTABLE_BACKUP_WORK_NAME
 import com.whip.app.data.WhipDatabase
 import com.whip.app.data.RestoreRecoveryManager
 import com.whip.app.reminders.ReminderNotifications
+import com.whip.app.reminders.ReminderDeliveryCoordinator
+import com.whip.app.reminders.ReminderDeletionCleanupStore
+import com.whip.app.reminders.ReminderDomain
+import com.whip.app.reminders.CoordinatedTaskRepository
+import com.whip.app.reminders.CoordinatedMeasurementRepository
+import com.whip.app.reminders.CoordinatedHabitRepository
+import com.whip.app.reminders.CoordinatedGoalRepository
+import com.whip.app.reminders.ReminderRuntimeMaintenance
 import com.whip.app.reminders.ReminderScheduler
+import com.whip.app.reminders.SharedPreferencesReminderClaimVersionStore
+import com.whip.app.reminders.cancelVisibleReminderNotifications
+import com.whip.app.reminders.cancelVisibleTaskNotifications
 import com.whip.app.reminders.RestTimerNotifications
 import com.whip.app.reminders.RestTimerScheduler
 import com.whip.app.reminders.HabitReminderScheduler
@@ -48,6 +64,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
@@ -58,6 +75,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.work.Configuration
 import androidx.work.WorkManager
 import com.whip.app.reminders.ALL_WHIP_WORK_TAG
+import com.whip.app.domain.MetricEntry
+import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.core.zoneId
 import com.whip.app.core.currentDateFlow
@@ -77,18 +96,34 @@ class WhipApplication : Application(), Configuration.Provider {
     val clock by lazy { SettingsWhipClock(settingsRepository) }
     val idGenerator = UuidWhipIdGenerator
     val database by lazy { WhipDatabase.get(this) }
-    val taskRepository by lazy { RoomTaskRepository(database, clock) }
-    val measurementRepository by lazy {
+    internal val rawTaskRepository by lazy { RoomTaskRepository(database, clock) }
+    private val reminderDeletionCleanupStore by lazy { ReminderDeletionCleanupStore(this) }
+    val taskRepository: TaskRepository by lazy {
+        CoordinatedTaskRepository(rawTaskRepository, reminderDeliveryCoordinator)
+    }
+    internal val rawMeasurementRepository by lazy {
         RoomMeasurementRepository(database, clock, idGenerator)
+    }
+    val measurementRepository: MeasurementRepository by lazy {
+        CoordinatedMeasurementRepository(rawMeasurementRepository, reminderDeliveryCoordinator)
     }
     val areaRepository by lazy { RoomAreaRepository(database, clock, idGenerator) }
     val gymRepository by lazy { RoomGymRepository(database, clock, idGenerator, settingsRepository) }
     val routineRepository by lazy { RoomRoutineRepository(database, clock, idGenerator, settingsRepository) }
-    val habitRepository by lazy {
-        RoomHabitRepository(database, measurementRepository, clock, idGenerator)
+    internal val rawHabitRepository by lazy {
+        RoomHabitRepository(database, rawMeasurementRepository, clock, idGenerator)
     }
-    val goalRepository by lazy {
-        RoomGoalRepository(database, measurementRepository, clock, idGenerator)
+    val habitRepository: HabitRepository by lazy {
+        CoordinatedHabitRepository(rawHabitRepository, reminderDeliveryCoordinator)
+    }
+    internal val rawGoalRepository by lazy {
+        RoomGoalRepository(database, rawMeasurementRepository, clock, idGenerator)
+    }
+    val goalRepository: GoalRepository by lazy {
+        CoordinatedGoalRepository(rawGoalRepository, reminderDeliveryCoordinator)
+    }
+    private val rawLinkRepository by lazy {
+        RoomLinkRepository(database, rawMeasurementRepository, clock, idGenerator)
     }
     val linkRepository by lazy {
         RoomLinkRepository(database, measurementRepository, clock, idGenerator)
@@ -97,13 +132,48 @@ class WhipApplication : Application(), Configuration.Provider {
         RoomTrackRepository(database, clock, idGenerator)
     }
     val taskDeletionCoordinator by lazy {
-        TaskDeletionCoordinator(database, taskRepository, linkRepository)
+        TaskDeletionCoordinator(
+            database,
+            rawTaskRepository,
+            rawLinkRepository,
+            reminderDeliveryCoordinator,
+            onDeletionPrepared = { ids -> prepareReminderDeletion(ReminderDomain.Task, ids) },
+            onDeletionCommitted = { ids -> commitReminderDeletion(ReminderDomain.Task, ids) },
+            onDeletionInterrupted = ::reconcilePendingReminderDeletions,
+        )
     }
     val domainDeletionCoordinator by lazy {
-        DomainDeletionCoordinator(database, linkRepository, routineRepository)
+        DomainDeletionCoordinator(
+            database,
+            rawLinkRepository,
+            routineRepository,
+            reminderDeliveryCoordinator,
+            onDeletionPrepared = ::prepareReminderDeletion,
+            onDeletionCommitted = ::commitReminderDeletion,
+            onDeletionInterrupted = ::reconcilePendingReminderDeletions,
+        )
     }
     val areaDeletionCoordinator by lazy {
-        AreaDeletionCoordinator(database, areaRepository, taskDeletionCoordinator, domainDeletionCoordinator)
+        val taskDeletionsWithinArea = TaskDeletionCoordinator(
+            database,
+            rawTaskRepository,
+            rawLinkRepository,
+        )
+        val domainDeletionsWithinArea = DomainDeletionCoordinator(
+            database,
+            rawLinkRepository,
+            routineRepository,
+        )
+        AreaDeletionCoordinator(
+            database,
+            areaRepository,
+            taskDeletionsWithinArea,
+            domainDeletionsWithinArea,
+            reminderDeliveryCoordinator,
+            onDeletionPrepared = ::prepareAreaReminderDeletion,
+            onDeletionCommitted = ::commitAreaReminderDeletion,
+            onDeletionInterrupted = ::reconcilePendingReminderDeletions,
+        )
     }
     val backupRepository by lazy { RoomBackupRepository(database, settingsRepository, areaRepository) }
     private val restoreRecoveryManager by lazy { RestoreRecoveryManager(this, backupRepository) }
@@ -115,10 +185,27 @@ class WhipApplication : Application(), Configuration.Provider {
         )
     }
     val portableBackupScheduler by lazy { PortableBackupScheduler(this) }
+    internal val reminderDeliveryCoordinator by lazy { ReminderDeliveryCoordinator() }
     val reminderScheduler by lazy { ReminderScheduler(this, settingsRepository) }
     val restTimerScheduler by lazy { RestTimerScheduler(this) }
     val habitReminderScheduler by lazy { HabitReminderScheduler(this, settingsRepository) }
     val goalReminderScheduler by lazy { GoalReminderScheduler(this, settingsRepository) }
+    private val reminderRuntimeMaintenance by lazy {
+        ReminderRuntimeMaintenance(
+            versionStore = SharedPreferencesReminderClaimVersionStore(this),
+            cancelVisibleLegacyReminders = { cancelVisibleReminderNotifications(this) },
+            syncTaskReminders = {
+                reminderScheduler.syncAll(allowDuringRecovery = true)
+            },
+            syncHabitReminders = {
+                habitReminderScheduler.syncAll(allowDuringRecovery = true)
+            },
+            syncGoalReminders = {
+                goalReminderScheduler.syncAll(allowDuringRecovery = true)
+            },
+            refreshWidgets = { WhipWidgetProvider.updateAll(this) },
+        )
+    }
     val automationPromptScheduler by lazy { AutomationPromptScheduler(this) }
     val focusTimerScheduler by lazy { FocusTimerScheduler(this) }
     val healthConnectManager by lazy { HealthConnectManager(this, measurementRepository, settingsRepository) }
@@ -200,12 +287,25 @@ class WhipApplication : Application(), Configuration.Provider {
         )
     }
 
+    internal suspend fun reconcileReminderTimeInvalidation(action: String) =
+        withUserDataAccess {
+            reminderRuntimeMaintenance.handleSystemTimeInvalidation(
+                action = action,
+                followsDeviceTimeZone = settingsRepository.current().timeZoneId == null,
+            )
+        }
+
     private suspend fun initializeNormalRuntime(backgroundAlreadyRebuilt: Boolean) {
         if (normalRuntimeJob?.isActive == true) return
         val settings = settingsRepository.current()
         if (!backgroundAlreadyRebuilt) {
             areaRepository.ensureDefaultArea()
         }
+        // Existing persisted reminder work cannot be trusted across a delivery
+        // claim schema change. This is awaited while the startup recovery gate
+        // is still closed, before receivers or normal runtime jobs can schedule.
+        reconcilePendingReminderDeletions()
+        reminderRuntimeMaintenance.upgradeDeliveryClaimsIfRequired()
         portableBackupScheduler.sync(portableBackupManager.state.value, allowDuringRecovery = true)
         if (!backgroundAlreadyRebuilt) {
             val deadline = settings.focusTimerDeadlineMillis
@@ -238,6 +338,48 @@ class WhipApplication : Application(), Configuration.Provider {
                 areaRepository.areas.map { Unit }, settingsRepository.currentDateFlow(clock).map { Unit },
             ).debounce(250).collectLatest {
                 withUserDataAccess { WhipWidgetProvider.updateAll(this@WhipApplication) }
+            }
+        }
+        // A source-backed Habit can cross its target without a Habit mutation:
+        // Health Connect, imports, Tracks, Goals, and manual measurements all
+        // write metric entries directly. Diff those shared flows here so every
+        // writer gets the same bounded reminder reconciliation.
+        runtimeScope.launch {
+            var previousByMetric = emptyMap<String, List<MetricEntry>>()
+            measurementRepository.entries.debounce(250).collect { entries ->
+                val currentByMetric = entries.groupBy(MetricEntry::metricId)
+                val changedMetricIds = (previousByMetric.keys + currentByMetric.keys)
+                    .filterTo(sortedSetOf()) { metricId ->
+                        previousByMetric[metricId] != currentByMetric[metricId]
+                    }
+                try {
+                    changedMetricIds.forEach { metricId ->
+                        habitReminderScheduler.syncSourceMetric(metricId)
+                    }
+                    previousByMetric = currentByMetric
+                } catch (error: Throwable) {
+                    Log.e(LOG_TAG, "Could not reconcile metric-backed Habit reminders", error)
+                }
+            }
+        }
+        // Unit edits can change the canonical value of both a Habit target and
+        // its historical logs. Include removals by comparing the union of IDs.
+        runtimeScope.launch {
+            var previousUnits = emptyMap<String, UnitDefinition>()
+            measurementRepository.customUnits.debounce(250).collect { units ->
+                val currentUnits = units.associateBy(UnitDefinition::id)
+                val changedUnitIds = (previousUnits.keys + currentUnits.keys)
+                    .filterTo(sortedSetOf()) { unitId ->
+                        previousUnits[unitId] != currentUnits[unitId]
+                    }
+                try {
+                    changedUnitIds.forEach { unitId ->
+                        habitReminderScheduler.syncUnit(unitId)
+                    }
+                    previousUnits = currentUnits
+                } catch (error: Throwable) {
+                    Log.e(LOG_TAG, "Could not reconcile unit-backed Habit reminders", error)
+                }
             }
         }
     }
@@ -304,6 +446,61 @@ class WhipApplication : Application(), Configuration.Provider {
             restTimerScheduler.schedule(session.id, seconds, null, allowDuringRecovery = true)
         }
         portableBackupScheduler.sync(portableBackupManager.state.value, allowDuringRecovery = true)
+    }
+
+    private fun prepareReminderDeletion(domain: ReminderDomain, entityIds: Set<Long>) {
+        reminderDeletionCleanupStore.prepare(domain, entityIds)
+    }
+
+    private fun commitReminderDeletion(domain: ReminderDomain, entityIds: Set<Long>) {
+        val notifications = NotificationManagerCompat.from(this)
+        entityIds.forEach { id ->
+            when (domain) {
+                ReminderDomain.Task -> cancelVisibleTaskNotifications(this, id)
+                ReminderDomain.Habit -> notifications.cancel(HabitReminderNotifications.notificationId(id))
+                ReminderDomain.Goal -> notifications.cancel(GoalReminderNotifications.notificationId(id))
+            }
+        }
+        reminderDeletionCleanupStore.clear(domain, entityIds)
+    }
+
+    private fun prepareAreaReminderDeletion(summary: AreaDeletionSummary) {
+        prepareReminderDeletion(ReminderDomain.Task, summary.taskIds.toSet())
+        prepareReminderDeletion(ReminderDomain.Habit, summary.habitIds.toSet())
+        prepareReminderDeletion(ReminderDomain.Goal, summary.goalIds.toSet())
+    }
+
+    private fun commitAreaReminderDeletion(summary: AreaDeletionSummary) {
+        commitReminderDeletion(ReminderDomain.Task, summary.taskIds.toSet())
+        commitReminderDeletion(ReminderDomain.Habit, summary.habitIds.toSet())
+        commitReminderDeletion(ReminderDomain.Goal, summary.goalIds.toSet())
+    }
+
+    internal suspend fun reconcilePendingReminderDeletions() {
+        reminderDeletionCleanupStore.pending().forEach { pending ->
+            val entityStillExists = when (pending.domain) {
+                ReminderDomain.Task -> database.taskDao().getTask(pending.entityId) != null
+                ReminderDomain.Habit -> database.habitDao().getHabit(pending.entityId) != null
+                ReminderDomain.Goal -> database.goalDao().getGoal(pending.entityId) != null
+            }
+            if (!entityStillExists) {
+                when (pending.domain) {
+                    ReminderDomain.Task -> reminderScheduler.syncTask(
+                        pending.entityId,
+                        allowDuringRecovery = true,
+                    )
+                    ReminderDomain.Habit -> habitReminderScheduler.syncHabit(
+                        pending.entityId,
+                        allowDuringRecovery = true,
+                    )
+                    ReminderDomain.Goal -> goalReminderScheduler.syncGoal(
+                        pending.entityId,
+                        allowDuringRecovery = true,
+                    )
+                }
+            }
+            reminderDeletionCleanupStore.clear(pending.domain, setOf(pending.entityId))
+        }
     }
 
     private companion object {

@@ -103,7 +103,9 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         draft.tags.filter { tag -> existing?.tags?.none { it.equals(tag, ignoreCase = true) } != false }
             .forEach { app.measurementRepository.ensureTag(it) }
     }
-    fun duplicate(id: Long) = runOperation("Duplicating goal…", "Goal duplicated") { repository.duplicate(id) }
+    fun duplicate(id: Long) = runOperation("Duplicating goal…", "Goal duplicated") {
+        reminders.syncGoal(repository.duplicate(id))
+    }
     fun setStatus(id: Long, status: GoalStatus) = runOperation(
         "Updating goal…",
         "Goal ${status.name.lowercase()}",
@@ -140,6 +142,7 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
     ) { repository.toggleMilestone(id, completed) }
     fun resetElapsedStart(id: Long, start: Instant) = runOperation("Resetting timer…", "Timer reset") {
         repository.resetElapsedStart(id, start)
+        reminders.syncGoal(id)
     }
     private val reorderMutex = Mutex()
 

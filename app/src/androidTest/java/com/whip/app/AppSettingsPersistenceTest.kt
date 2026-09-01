@@ -17,6 +17,9 @@ import com.whip.app.domain.CustomIdentityEmoji
 import com.whip.app.domain.AreaScope
 import com.whip.app.domain.PersonalRecordType
 import java.time.DayOfWeek
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -124,5 +127,44 @@ class AppSettingsPersistenceTest {
         SharedPreferencesSettingsRepository(context).update { expected }
 
         assertEquals(expected, SharedPreferencesSettingsRepository(context).current())
+    }
+
+    @Test
+    fun concurrentRepositoryInstancesDoNotLoseUnrelatedSettingsUpdates() {
+        val first = SharedPreferencesSettingsRepository(context)
+        val second = SharedPreferencesSettingsRepository(context)
+        val firstTransformEntered = CountDownLatch(1)
+        val releaseFirstTransform = CountDownLatch(1)
+        val secondTransformEntered = CountDownLatch(1)
+        val deadline = System.currentTimeMillis() + 60_000L
+
+        val quietHoursWrite = thread(name = "quiet-hours-settings-write") {
+            first.update { current ->
+                firstTransformEntered.countDown()
+                check(releaseFirstTransform.await(5, TimeUnit.SECONDS))
+                current.copy(quietStartMinutes = 1_320, quietEndMinutes = 420)
+            }
+        }
+        assertTrue(firstTransformEntered.await(5, TimeUnit.SECONDS))
+        val timerWrite = thread(name = "timer-settings-write") {
+            second.update { current ->
+                secondTransformEntered.countDown()
+                current.copy(focusTimerDeadlineMillis = deadline, focusTimerTaskId = 42L)
+            }
+        }
+
+        assertFalse(secondTransformEntered.await(100, TimeUnit.MILLISECONDS))
+        releaseFirstTransform.countDown()
+        quietHoursWrite.join(5_000)
+        timerWrite.join(5_000)
+        assertFalse(quietHoursWrite.isAlive)
+        assertFalse(timerWrite.isAlive)
+        assertTrue(secondTransformEntered.await(1, TimeUnit.SECONDS))
+
+        val saved = SharedPreferencesSettingsRepository(context).current()
+        assertEquals(1_320, saved.quietStartMinutes)
+        assertEquals(420, saved.quietEndMinutes)
+        assertEquals(deadline, saved.focusTimerDeadlineMillis)
+        assertEquals(42L, saved.focusTimerTaskId)
     }
 }

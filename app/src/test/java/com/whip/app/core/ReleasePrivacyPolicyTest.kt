@@ -77,7 +77,21 @@ class ReleasePrivacyPolicyTest {
             ".reminders.ReminderActionReceiver",
             ".reminders.HabitReminderActionReceiver",
             ".reminders.GoalReminderActionReceiver",
+            ".reminders.ReminderTimeChangeReceiver",
         ).forEach { name -> assertEquals("false", receivers.getValue(name).androidAttribute("exported")) }
+
+        val timeReceiver = receivers.getValue(".reminders.ReminderTimeChangeReceiver")
+        val timeActions = timeReceiver.getElementsByTagName("action")
+        assertEquals(
+            setOf(
+                "android.intent.action.DATE_CHANGED",
+                "android.intent.action.TIME_SET",
+                "android.intent.action.TIMEZONE_CHANGED",
+            ),
+            (0 until timeActions.length).map {
+                (timeActions.item(it) as Element).androidAttribute("name")
+            }.toSet(),
+        )
         assertEquals(
             "android.permission.BIND_APPWIDGET",
             receivers.getValue(".widget.WhipWidgetProvider").androidAttribute("permission"),

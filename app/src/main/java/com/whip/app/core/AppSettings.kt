@@ -228,7 +228,7 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
     ).normalized()
 
     @SuppressLint("UseKtx")
-    override fun update(transform: (AppSettings) -> AppSettings) {
+    override fun update(transform: (AppSettings) -> AppSettings) = synchronized(updateLock) {
         val value = transform(current()).normalized()
         preferences.edit()
             .putBoolean("setupCompleted", value.setupCompleted)
@@ -296,6 +296,11 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .putNullableLong("focusTimerDeadlineMillis", value.focusTimerDeadlineMillis)
             .putNullableLong("focusTimerTaskId", value.focusTimerTaskId)
             .apply()
+    }
+
+    private companion object {
+        /** All repository instances target the same process-local preference file. */
+        val updateLock = Any()
     }
 }
 

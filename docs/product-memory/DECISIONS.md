@@ -71,15 +71,19 @@
 ### DEC-20260831-009 — Reminder workers re-resolve live delivery eligibility
 
 - Context: WorkManager inputs can outlive edits, completions, pauses, skips, moves, and reminder configuration.
-- Decision: Treat queued payloads as hints. Immediately before notification, require the exact current logical occurrence and scheduled definition; missing/stale state fails closed and resynchronizes future work.
-- Why this is superior for Whip: It extends the existing strong notification-action validation boundary to delivery itself.
-- Status: Accepted; implementation pending.
+- Position A: add persisted schedule revisions and cancellation calls to every mutation, or generalize reminders behind a reusable scheduling DSL.
+- Position B: treat every queued delivery as an untrusted versioned claim, resolve exact live domain eligibility at the last responsible moment, and linearize production mutation versus resolve/post without changing user history.
+- Evidence and constraints: reminder truth includes Task occurrences, Habit pauses/skips/checklists/source metrics, Goal type/status/deadline, quiet hours, time zone, and custom-unit history—not one entity row. Room changes coroutine identity inside transactions; WorkManager and NotificationManager cannot share Room atomicity; queued work and action intents survive process death and edits.
+- Failure modes: a row revision misses settings/source/history changes and requires a schema/backup migration; cancellation-only still loses races; a generic DSL hides domain semantics. Claims alone fail if fingerprints include mutable performance history, if notification actions are weaker, if settings writers lose updates, or if mutation commits can occur between resolve and post. Reentrant coroutine-context locks deadlock across Room; mixed entity/state lock order deadlocks during rebuild.
+- Synthesis/decision: use definition-only deterministic fingerprints plus live eligibility, exact action claims, scheduled-versus-snoozed kinds, one-time legacy upgrade, awaited queue operations, bounded source invalidation, a strictly non-reentrant mutation/delivery boundary, raw delegates under one explicit outer owner, entity→state lock order, and a durable deletion-cleanup journal. Missing/malformed/stale work succeeds silently without posting and reconciles authoritative future work.
+- Why this is superior for Whip: It covers the real cross-domain sources of reminder truth, preserves all existing history and persistence formats, remains understandable per domain, and makes race outcomes deterministic without a speculative scheduling language or fragile scattered flags.
+- Status: Accepted, implemented, adversarially challenged, and verified.
 
 ### DEC-20260831-010 — Live time behavior uses one explicit Whip zone and date flow
 
 - Context: System-zone shortcuts and repository-triggered date snapshots can make screens and reminders disagree.
 - Decision: Route live date/time behavior through the active Whip zone and current-date flow; reschedule follow-device work on system time/zone changes; do not reinterpret saved historical local dates.
-- Status: Accepted; implementation pending.
+- Status: Accepted; system reminder-rescheduling prerequisite implemented, broader live-date consumers pending.
 
 ### DEC-20260831-011 — Save-dependent navigation occurs only after confirmed persistence
 

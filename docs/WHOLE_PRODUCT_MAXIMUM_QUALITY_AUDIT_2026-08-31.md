@@ -83,8 +83,9 @@ These values are source- and emulator-informed heuristic estimates, not observed
 - Affected users: recurring Task, Habit, and Goal reminder users who edit, move, complete, skip, pause, disable, or delete near worker execution.
 - Reproduction: allow queued work to race one of those mutations.
 - Source: `ReminderWorker.kt`, `ReminderScheduler.kt`, `HabitReminderScheduler.kt`, `GoalReminderScheduler.kt`.
-- Recommended solution: central live delivery-target resolvers and scheduled-definition fingerprints shared with action validation.
-- Regression gate: every mutation race plus valid current deliveries and idempotent actions.
+- Implemented solution: versioned exact delivery claims, domain-specific live target resolvers, definition-only fingerprints, exact idempotent actions, awaited WorkManager replacement, source/settings invalidation, a non-reentrant production mutation/resolve-post boundary, serialized full-snapshot Settings writes, legacy upgrade, and a durable deletion-cleanup journal spanning Room and visible platform notifications.
+- Regression result: valid current delivery, stale/malformed/early work, scheduled/snoozed claims, complete/skip/move/pause/source-progress races, notification actions, mutation linearization, settings lost updates, rollback, process-interrupted deletion cleanup, and legacy upgrade are automated. All 451 JVM and 516 Android tests pass on the disposable API 34 emulator.
+- Remediation status: resolved and verified in `IMP-20260831-005` / `VER-20260831-007`; no schema or backup-format change and no historical recomputation.
 - Durable record: `FND-20260831-008`, `DEC-20260831-009`.
 
 ### P1 — Time and logical-date behavior is not uniformly tied to Whip's configured zone
@@ -98,6 +99,7 @@ These values are source- and emulator-informed heuristic estimates, not observed
 - Affected users: travelers, shift workers, overnight users, pinned-zone users, and users with custom day cutoffs.
 - Source: `SettingsViewModel.kt`, `AppSettings.kt`, `TrackViewModel.kt`, `UnifiedSearchDialog.kt`, `GoalScreens.kt`, `AndroidManifest.xml`.
 - Recommended solution: current-date flow for Tracks, explicit active-zone inputs, and narrow time/timezone invalidation for follow-device schedules and widgets.
+- Remediation status: partially implemented. `DATE_CHANGED`, `TIME_SET`, and `TIMEZONE_CHANGED` now trigger serialized reminder reconciliation with fixed-zone protection; the Track/Search/elapsed-Goal live-date consumers remain open.
 - Regression gate: same-date zone changes, logical-date changes, custom cutoff, DST, fixed-zone no-op, and no repository emission.
 - Durable record: `FND-20260831-009`, `DEC-20260831-010`.
 

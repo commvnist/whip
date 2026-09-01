@@ -3,7 +3,9 @@ package com.whip.app
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.reminders.NotificationActionLedger
+import java.util.Collections
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -42,5 +44,28 @@ class NotificationActionLedgerTest {
         assertTrue(ledger.begin(action, 3_000_000L))
         assertFalse(ledger.begin(action, 3_299_999L))
         assertTrue(ledger.begin(action, 3_300_001L))
+    }
+
+    @Test
+    fun separateReceiverLedgerInstancesClaimConcurrentlyOnlyOnce() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val action = "test-${UUID.randomUUID()}"
+        val ready = CountDownLatch(16)
+        val start = CountDownLatch(1)
+        val results = Collections.synchronizedList(mutableListOf<Boolean>())
+        val threads = List(16) {
+            Thread {
+                ready.countDown()
+                start.await()
+                results += NotificationActionLedger(context).begin(action, 4_000_000L)
+            }.apply { start() }
+        }
+
+        ready.await()
+        start.countDown()
+        threads.forEach(Thread::join)
+
+        assertTrue(results.count { it } == 1)
+        assertTrue(NotificationActionLedger(context).complete(action, 4_000_001L))
     }
 }

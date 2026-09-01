@@ -72,6 +72,18 @@ unchanged child rows, or rebuild Track entry search.
 Changes to cadence, reminder timing, Track Fields, or searchable Track metadata
 still invalidate the corresponding derived state.
 
+Queued Task, Habit, and Goal reminder work is never authoritative. Each request
+carries a versioned claim for one stable entity, logical day, exact trigger,
+delivery kind, and semantic fingerprint. Immediately before posting or acting,
+the domain resolver loads current occurrence/progress/settings state and rejects
+missing, malformed, early, or stale work. Production reminder-relevant commits
+and resolve/post decisions share a non-reentrant state boundary; code that also
+uses a per-entity scheduler lock always acquires entity then state. Raw repository
+delegates exist only below one explicit outer boundary so Room transaction
+coroutine changes cannot create reentrant-lock deadlocks. A private durable
+cleanup journal bridges permanent deletion across Room and Android notification
+state without altering backed-up user data or historical records.
+
 Habit occurrence state has one neutral user action: **Skip Today**. A skip is
 visible in the Today card, History, Insights, and exports; it suppresses that
 day's reminder, is excluded from completion-rate

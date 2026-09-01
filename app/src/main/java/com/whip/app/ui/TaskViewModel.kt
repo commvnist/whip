@@ -270,6 +270,8 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
         ) {
             val promotedTaskId = repository.promoteStep(item, stepId)
+            reminders.syncTask(item.task.id)
+            reminders.syncTask(promotedTaskId)
             offerUndo(
                 "Move to a new Task can be undone",
                 TaskUndoAction.Promote(promotedTaskId, item.task.id, stepId),
@@ -421,7 +423,9 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun duplicate(taskId: Long) {
-        runOperation("Duplicating task…", "Copy added to Inbox") { repository.duplicate(taskId) }
+        runOperation("Duplicating task…", "Copy added to Inbox") {
+            reminders.syncTask(repository.duplicate(taskId))
+        }
     }
 
     fun postponeAll(items: List<ScheduledTask>, newDate: LocalDate) {
@@ -578,7 +582,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                 is TaskUndoAction.Reschedule -> repository.restoreSchedules(listOf(action.item))
                 is TaskUndoAction.RescheduleMany -> repository.restoreSchedules(action.items)
                 is TaskUndoAction.Restore -> action.taskIds.forEach { repository.restore(it) }
-                is TaskUndoAction.DeleteCreated -> repository.deletePermanently(action.taskId)
+                is TaskUndoAction.DeleteCreated -> app.taskDeletionCoordinator.delete(action.taskId)
                 is TaskUndoAction.PlanMyDay -> {
                     repository.restorePlan(action.items)
                 }

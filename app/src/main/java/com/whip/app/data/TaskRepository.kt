@@ -78,12 +78,12 @@ class RoomTaskRepository(
     private val areaRepository = RoomAreaRepository(database, clock, UuidWhipIdGenerator)
 
     override val tasks: Flow<List<WhipTask>> = dao.observeAllTasks().map { tasks ->
-        tasks.map(TaskEntity::toDomain)
+        tasks.mapNotNull { task -> runCatching(task::toDomain).getOrNull() }
     }
 
     override val occurrences: Flow<List<TaskOccurrence>> =
         dao.observeOccurrences().map { occurrences ->
-            occurrences.map(TaskOccurrenceEntity::toDomain)
+            occurrences.mapNotNull { occurrence -> runCatching(occurrence::toDomain).getOrNull() }
         }
 
     override val steps: Flow<List<TaskStep>> = dao.observeSteps().map { steps ->

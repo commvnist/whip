@@ -75,8 +75,12 @@
 - Observed: Task, Habit, and Goal workers do not all re-resolve the exact current occurrence, configuration, schedule version, and pause/skip/completion state immediately before posting.
 - Expected: Missing or stale delivery targets fail closed; valid current targets still notify and schedule the next occurrence.
 - Why it matters: Obsolete prompts teach reminder-dependent and ADHD users to ignore Whip.
-- Evidence: `ReminderWorker.kt`, `ReminderScheduler.kt`, `HabitReminderScheduler.kt`, `GoalReminderScheduler.kt`.
-- Status: Confirmed; remediation pending after the recovery gate.
+- Affected users: recurring Task users, every Habit/Goal reminder user, source-backed Habit users, travelers, users editing near delivery, and users acting from the notification shade.
+- Root cause: queued WorkManager inputs were treated as authority; delivery/action rules were split across schedulers and presentation paths; cancellation was not awaited; mutable source/history/settings state lacked one final linearization boundary; and deletion crossed Room/NotificationManager without durable cleanup intent.
+- Resolution: Every Task/Habit/Goal request now carries a versioned exact claim containing stable identity, logical day, trigger, kind, and deterministic definition fingerprint. Workers and actions resolve live domain state immediately before posting/mutation, fail closed on malformed or stale input, distinguish scheduled/snoozed/optional work, and reconcile current future work. A non-reentrant state boundary linearizes production repository commits with resolve/post while explicit raw composition and entity→state lock order avoid Room/deadlock traps. Quiet/time-zone writes and full-snapshot settings writes are serialized; source-backed Habit invalidation is bounded; legacy queues are rebuilt once; system time broadcasts reconcile the relevant schedules; and a durable deletion-cleanup journal bridges Room commit with visible-notification/work cleanup across rollback or process death.
+- Compatibility: No Room schema or backup-format change. Historical occurrences, completed records, saved logical dates, custom units, and restored data remain unchanged; legacy unverifiable work is canceled/rebuilt rather than accepted.
+- Evidence: `ReminderDeliveryClaims.kt`, `CoordinatedReminderRepositories.kt`, `ReminderDeletionCleanupStore.kt`, `ReminderWorker.kt`, `ReminderScheduler.kt`, `HabitReminderScheduler.kt`, `GoalReminderScheduler.kt`, `ReminderActionReceiver.kt`, `ReminderRuntimeMaintenance.kt`, `ReminderTimeChangeReceiver.kt`, `WhipApplication.kt`, and focused JVM/Android regression suites.
+- Status: Resolved and verified on the disposable emulator; see `IMP-20260831-005` and `VER-20260831-007`.
 
 ### FND-20260831-009 — Time and logical-date semantics diverge from configured Whip time
 
@@ -84,7 +88,8 @@
 - Observed: Follow-device zone changes do not reschedule work; Tracks can retain yesterday without a repository emission; Search and elapsed Goal detail use the system zone directly.
 - Expected: One explicit active zone/current-date flow controls live behavior while saved historical dates remain immutable.
 - Evidence: `SettingsViewModel.kt`, `AppSettings.kt`, `TrackViewModel.kt`, `UnifiedSearchDialog.kt`, `GoalScreens.kt`, `AndroidManifest.xml`.
-- Status: Confirmed; remediation pending.
+- Partial resolution: `DATE_CHANGED`, `TIME_SET`, and `TIMEZONE_CHANGED` now enter one serialized receiver path; follow-device reminders rebuild on zone changes while fixed-zone schedules remain fixed, and wall-clock changes always reconcile. Track, Search, and elapsed-Goal live-date consumers remain unresolved.
+- Status: Partially remediated; keep open for the remaining explicit-zone/current-date consumers.
 
 ### FND-20260831-010 — Productivity saves can change Area scope before persistence succeeds
 

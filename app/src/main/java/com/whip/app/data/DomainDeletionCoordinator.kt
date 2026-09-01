@@ -4,16 +4,22 @@ import androidx.room.withTransaction
 import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.TriggerTargetType
 import com.whip.app.domain.WorkoutSessionState
+import com.whip.app.reminders.ReminderDeliveryCoordinator
+import com.whip.app.reminders.ReminderDomain
 import java.time.LocalDate
 
 /**
  * Performs irreversible cross-feature deletion without leaving polymorphic links,
  * generated measurements, automation events, or gym references behind.
  */
-class DomainDeletionCoordinator(
+class DomainDeletionCoordinator internal constructor(
     private val database: WhipDatabase,
     private val linkRepository: LinkRepository,
     private val routineRepository: RoutineRepository,
+    private val reminderDeliveryCoordinator: ReminderDeliveryCoordinator? = null,
+    private val onDeletionPrepared: (ReminderDomain, Set<Long>) -> Unit = { _, _ -> },
+    private val onDeletionCommitted: (ReminderDomain, Set<Long>) -> Unit = { _, _ -> },
+    private val onDeletionInterrupted: suspend () -> Unit = {},
 ) {
     suspend fun previewMachineDeletion(machineId: Long): MachineDeletionImpact? = database.withTransaction {
         buildMachineDeletionImpact(machineId)
@@ -50,41 +56,45 @@ class DomainDeletionCoordinator(
         )
     }
 
-    suspend fun deleteHabit(habitId: Long): DomainDeletionSummary {
-        val summary = database.withTransaction {
-            val habit = database.habitDao().getHabit(habitId) ?: return@withTransaction DomainDeletionSummary()
-            val links = database.linkDao().getRules().filter { rule ->
-                (rule.sourceType == LinkSourceType.Habit.name && rule.sourceEntityId == habitId) ||
-                    rule.sourceMetricId == habit.metricId
+    suspend fun deleteHabit(habitId: Long): DomainDeletionSummary =
+        withDurableReminderDeletion(ReminderDomain.Habit, habitId) {
+            val summary = database.withTransaction {
+                val habit = database.habitDao().getHabit(habitId)
+                    ?: return@withTransaction DomainDeletionSummary()
+                val links = database.linkDao().getRules().filter { rule ->
+                    (rule.sourceType == LinkSourceType.Habit.name && rule.sourceEntityId == habitId) ||
+                        rule.sourceMetricId == habit.metricId
+                }
+                links.forEach { linkRepository.deleteRule(it.id) }
+                val triggers = database.linkDao().getTriggerRules().filter { rule ->
+                    (rule.targetType == TriggerTargetType.Habit.name && rule.targetEntityId == habitId) ||
+                        (rule.sourceType == LinkSourceType.Habit.name && rule.sourceEntityId == habitId)
+                }
+                triggers.forEach { linkRepository.deleteTrigger(it.id) }
+                check(database.habitDao().deleteHabit(habitId) == 1) { "Habit no longer exists" }
+                database.measurementDao().deleteMetric(habit.metricId)
+                DomainDeletionSummary(true, links.size, triggers.size)
             }
-            links.forEach { linkRepository.deleteRule(it.id) }
-            val triggers = database.linkDao().getTriggerRules().filter { rule ->
-                (rule.targetType == TriggerTargetType.Habit.name && rule.targetEntityId == habitId) ||
-                    (rule.sourceType == LinkSourceType.Habit.name && rule.sourceEntityId == habitId)
-            }
-            triggers.forEach { linkRepository.deleteTrigger(it.id) }
-            check(database.habitDao().deleteHabit(habitId) == 1) { "Habit no longer exists" }
-            database.measurementDao().deleteMetric(habit.metricId)
-            DomainDeletionSummary(true, links.size, triggers.size)
+            linkRepository.rebuildAll()
+            summary
         }
-        linkRepository.rebuildAll()
-        return summary
-    }
 
-    suspend fun deleteGoal(goalId: Long): DomainDeletionSummary {
-        val summary = database.withTransaction {
-            val goal = database.goalDao().getGoal(goalId) ?: return@withTransaction DomainDeletionSummary()
-            val links = database.linkDao().getRules().filter { rule ->
-                rule.targetGoalId == goalId || rule.sourceMetricId == goal.metricId
+    suspend fun deleteGoal(goalId: Long): DomainDeletionSummary =
+        withDurableReminderDeletion(ReminderDomain.Goal, goalId) {
+            val summary = database.withTransaction {
+                val goal = database.goalDao().getGoal(goalId)
+                    ?: return@withTransaction DomainDeletionSummary()
+                val links = database.linkDao().getRules().filter { rule ->
+                    rule.targetGoalId == goalId || rule.sourceMetricId == goal.metricId
+                }
+                links.forEach { linkRepository.deleteRule(it.id) }
+                check(database.goalDao().deleteGoal(goalId) == 1) { "Goal no longer exists" }
+                database.measurementDao().deleteMetric(goal.metricId)
+                DomainDeletionSummary(true, links.size)
             }
-            links.forEach { linkRepository.deleteRule(it.id) }
-            check(database.goalDao().deleteGoal(goalId) == 1) { "Goal no longer exists" }
-            database.measurementDao().deleteMetric(goal.metricId)
-            DomainDeletionSummary(true, links.size)
+            linkRepository.rebuildAll()
+            summary
         }
-        linkRepository.rebuildAll()
-        return summary
-    }
 
     suspend fun deleteTrack(trackId: Long): DomainDeletionSummary {
         val summary = database.withTransaction {
@@ -166,6 +176,26 @@ class DomainDeletionCoordinator(
             } else if (retained.joinToString(",") != preset.exerciseIdsCsv) {
                 database.routineDao().updateGraphPreset(preset.copy(exerciseIdsCsv = retained.joinToString(",")))
             }
+        }
+    }
+
+    private suspend fun <T> withReminderStateBoundary(block: suspend () -> T): T =
+        reminderDeliveryCoordinator?.withStateBoundary(block) ?: block()
+
+    private suspend fun <T> withDurableReminderDeletion(
+        domain: ReminderDomain,
+        entityId: Long,
+        block: suspend () -> T,
+    ): T {
+        val ids = setOf(entityId)
+        return try {
+            withReminderStateBoundary {
+                onDeletionPrepared(domain, ids)
+                block().also { onDeletionCommitted(domain, ids) }
+            }
+        } catch (error: Throwable) {
+            onDeletionInterrupted()
+            throw error
         }
     }
 

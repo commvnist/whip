@@ -2,9 +2,9 @@ package com.whip.app.ui
 
 import android.app.Application
 import android.net.Uri
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.work.WorkManager
 import com.whip.app.WhipApplication
 import com.whip.app.core.AppSettings
 import com.whip.app.core.HomeSection
@@ -18,7 +18,6 @@ import com.whip.app.data.EncryptedBackupCodec
 import com.whip.app.data.PortableBackupOutcome
 import com.whip.app.data.PortableBackupState
 import com.whip.app.health.HealthConnectStatus
-import com.whip.app.reminders.ALL_WHIP_WORK_TAG
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
@@ -69,6 +68,11 @@ data class AreaUsageCounts(
 ) {
     val total: Int get() = tasks + habits + goals + tracks
 }
+
+internal fun reminderDeliverySemanticsChanged(before: AppSettings, after: AppSettings): Boolean =
+    before.quietStartMinutes != after.quietStartMinutes ||
+        before.quietEndMinutes != after.quietEndMinutes ||
+        before.timeZoneId != after.timeZoneId
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as WhipApplication
@@ -170,18 +174,26 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun update(transform: (AppSettings) -> AppSettings) {
-        val change = app.tryWithUserDataAccessNow {
+        val preview = app.tryWithUserDataAccessNow {
             val before = repository.current()
-            repository.update(transform)
-            before to repository.current()
+            before to transform(before)
         } ?: return
-        val (before, after) = change
-        if (
-            before.quietStartMinutes != after.quietStartMinutes ||
-            before.quietEndMinutes != after.quietEndMinutes ||
-            before.timeZoneId != after.timeZoneId
-        ) {
-            viewModelScope.launch {
+
+        if (!reminderDeliverySemanticsChanged(preview.first, preview.second)) {
+            app.tryWithUserDataAccessNow { repository.update(transform) }
+            return
+        }
+
+        viewModelScope.launch {
+            reminderSettingsUpdateMutex.withLock {
+                val change = app.withUserDataAccess {
+                    app.reminderDeliveryCoordinator.withStateBoundary {
+                        val before = repository.current()
+                        repository.update(transform)
+                        before to repository.current()
+                    }
+                } ?: return@withLock
+                if (!reminderDeliverySemanticsChanged(change.first, change.second)) return@withLock
                 runCatching { app.reminderScheduler.syncAll() }
                 runCatching { app.habitReminderScheduler.syncAll() }
                 runCatching { app.goalReminderScheduler.syncAll() }
@@ -481,9 +493,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             runCatching {
                 withContext(Dispatchers.IO) {
                     app.withUserDataAccess {
-                        backups.mergeBackup(pendingRestoreJson ?: error("Choose a backup first")).also {
-                            app.rebuildBackgroundState()
+                        val summary = app.reminderDeliveryCoordinator.withStateBoundary {
+                            backups.mergeBackup(
+                                pendingRestoreJson ?: error("Choose a backup first"),
+                            ).also { NotificationManagerCompat.from(app).cancelAll() }
                         }
+                        app.rebuildBackgroundState()
+                        summary
                     } ?: error("Whip data is unavailable while recovery is in progress")
                 }
             }.onSuccess { summary ->
@@ -543,8 +559,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     ) {
         app.withUserDataAccess {
             app.portableBackupManager.clearFolder()
-            backups.deleteAllData()
-            WorkManager.getInstance(app).cancelAllWorkByTag(ALL_WHIP_WORK_TAG).result.get()
+            app.reminderDeliveryCoordinator.withStateBoundary {
+                NotificationManagerCompat.from(app).cancelAll()
+                backups.deleteAllData()
+                NotificationManagerCompat.from(app).cancelAll()
+            }
+            app.rebuildBackgroundState()
         } ?: error("Whip data is unavailable while recovery is in progress")
     }
     fun createCustomUnit(
@@ -637,6 +657,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     private val areaReorderMutex = Mutex()
+    private val reminderSettingsUpdateMutex = Mutex()
 
     private fun runIo(
         success: String,

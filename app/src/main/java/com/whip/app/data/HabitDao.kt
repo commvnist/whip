@@ -36,11 +36,31 @@ interface HabitDao {
     @Query("SELECT id FROM habits WHERE archived = 0 AND (reminderMinutesCsv != '' OR weekdayReminderMinutesCsv != '')")
     suspend fun getReminderHabitIds(): List<Long>
 
+    @Query(
+        """SELECT id FROM habits
+            WHERE archived = 0
+              AND sourceMetricId = :sourceMetricId
+              AND (reminderMinutesCsv != '' OR weekdayReminderMinutesCsv != '')""",
+    )
+    suspend fun getReminderHabitIdsForSourceMetric(sourceMetricId: String): List<Long>
+
+    @Query(
+        """SELECT DISTINCT habits.id FROM habits
+            LEFT JOIN habit_logs ON habit_logs.habitId = habits.id
+            WHERE habits.archived = 0
+              AND (habits.unitId = :unitId OR habit_logs.enteredUnitId = :unitId)
+              AND (habits.reminderMinutesCsv != '' OR habits.weekdayReminderMinutesCsv != '')""",
+    )
+    suspend fun getReminderHabitIdsForUnit(unitId: String): List<Long>
+
     @Query("SELECT * FROM habit_pauses WHERE habitId = :habitId")
     suspend fun getPauses(habitId: Long): List<HabitPauseEntity>
 
     @Query("SELECT * FROM habit_logs")
     suspend fun getAllLogs(): List<HabitLogEntity>
+
+    @Query("SELECT * FROM habit_logs WHERE habitId = :habitId")
+    suspend fun getLogsForHabit(habitId: Long): List<HabitLogEntity>
 
     @Query("SELECT * FROM habit_skips")
     suspend fun getAllSkips(): List<HabitSkipEntity>

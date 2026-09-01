@@ -38,6 +38,9 @@ object ReminderNotifications {
         context: Context,
         task: WhipTask,
         originalEpochDay: Long?,
+        offsetMinutes: Int,
+        stableEntityId: String,
+        definitionFingerprint: String,
         allowDirectCompletion: Boolean = true,
     ) {
         if (
@@ -87,6 +90,9 @@ object ReminderNotifications {
                                     ReminderActionReceiver.EXTRA_ORIGINAL_EPOCH_DAY,
                                     originalEpochDay ?: Long.MIN_VALUE,
                                 )
+                                .putExtra(ReminderActionReceiver.EXTRA_OFFSET_MINUTES, offsetMinutes)
+                                .putExtra(ReminderActionReceiver.EXTRA_STABLE_ENTITY_ID, stableEntityId)
+                                .putExtra(ReminderActionReceiver.EXTRA_DEFINITION_FINGERPRINT, definitionFingerprint)
                                 .putExtra(ReminderActionReceiver.EXTRA_ACTION_TOKEN, actionToken)
                                 .putExtra(USER_DATA_GENERATION_KEY, dataGeneration),
                             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
@@ -105,6 +111,9 @@ object ReminderNotifications {
                             .setAction(ReminderActionReceiver.ACTION_SNOOZE)
                             .putExtra(ReminderActionReceiver.EXTRA_TASK_ID, task.id)
                             .putExtra(ReminderActionReceiver.EXTRA_ORIGINAL_EPOCH_DAY, originalEpochDay ?: Long.MIN_VALUE)
+                            .putExtra(ReminderActionReceiver.EXTRA_OFFSET_MINUTES, offsetMinutes)
+                            .putExtra(ReminderActionReceiver.EXTRA_STABLE_ENTITY_ID, stableEntityId)
+                            .putExtra(ReminderActionReceiver.EXTRA_DEFINITION_FINGERPRINT, definitionFingerprint)
                             .putExtra(ReminderActionReceiver.EXTRA_ACTION_TOKEN, actionToken)
                             .putExtra(USER_DATA_GENERATION_KEY, dataGeneration),
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
@@ -116,7 +125,14 @@ object ReminderNotifications {
         NotificationManagerCompat.from(context).notify(task.id.hashCode(), notification)
     }
 
-    fun showCompletionUndo(context: Context, task: WhipTask, originalEpochDay: Long?) {
+    fun showCompletionUndo(
+        context: Context,
+        task: WhipTask,
+        originalEpochDay: Long?,
+        offsetMinutes: Int,
+        stableEntityId: String,
+        definitionFingerprint: String,
+    ) {
         if (
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
@@ -129,6 +145,9 @@ object ReminderNotifications {
                 .setAction(ReminderActionReceiver.ACTION_UNDO)
                 .putExtra(ReminderActionReceiver.EXTRA_TASK_ID, task.id)
                 .putExtra(ReminderActionReceiver.EXTRA_ORIGINAL_EPOCH_DAY, originalEpochDay ?: Long.MIN_VALUE)
+                .putExtra(ReminderActionReceiver.EXTRA_OFFSET_MINUTES, offsetMinutes)
+                .putExtra(ReminderActionReceiver.EXTRA_STABLE_ENTITY_ID, stableEntityId)
+                .putExtra(ReminderActionReceiver.EXTRA_DEFINITION_FINGERPRINT, definitionFingerprint)
                 .putExtra(ReminderActionReceiver.EXTRA_ACTION_TOKEN, System.currentTimeMillis())
                 .putExtra(USER_DATA_GENERATION_KEY, dataGeneration),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,

@@ -39,3 +39,14 @@
 - Related: `FND-20260831-007`, `DEC-20260831-008`.
 - Verification: `VER-20260831-006`.
 - Status: Implemented and verified; physical-device release is deferred until the integrated goal release.
+
+### IMP-20260831-005 — Exact live reminder delivery integrity
+
+- Behavior changed: Task, Habit, and Goal reminder work is now an untrusted, versioned exact claim. Delivery and notification actions re-resolve live eligibility, timing, occurrence state, optional action semantics, source-backed progress, and semantic fingerprints before posting or mutating. Stale/malformed work fails closed and reconciles; visible notifications are removed on relevant edits/deletions; early execution requeues the still-due reminder; quiet-hour rollover includes the prior logical day; and fixed/follow-device time behavior is explicitly reconciled.
+- Architecture: Production Task/Habit/Goal/Measurement mutations and worker resolve/post decisions share a non-reentrant state boundary. Raw delegates are passed only beneath one outer owner, entity locks always precede state locks, full-snapshot Settings updates are process-serialized, and durable deletion cleanup spans Room and NotificationManager across rollback/process death. One-time claim-version maintenance cancels legacy visible reminders and durably marks success only after every domain rebuild completes.
+- Important files: `WhipApplication.kt`, `AndroidManifest.xml`, `core/AppSettings.kt`, deletion coordinators, DAO/repository malformed-data guards, `reminders/ReminderDeliveryClaims.kt`, `CoordinatedReminderRepositories.kt`, `ReminderDeletionCleanupStore.kt`, `ReminderRuntimeMaintenance.kt`, `ReminderTimeChangeReceiver.kt`, all three reminder schedulers/workers/actions/notifications, related ViewModels, and focused JVM/Android tests.
+- Persistence/history impact: No Room schema or portable-backup format change. A private claim-version marker and private deletion-cleanup journal are operational metadata only. Existing Task occurrences, Habit logs/skips/pauses, Goal progress, completed workouts, custom units, and historical local dates are preserved and never retroactively recomputed.
+- Commit/push: Focused reminder-integrity commit containing this entry on `origin/main`.
+- Related: `FND-20260831-008`, partial prerequisite work for `FND-20260831-009`, and `DEC-20260831-009`.
+- Verification: `VER-20260831-007`.
+- Status: Implemented and verified; physical-device release remains deferred until the integrated maximum-quality goal release.
