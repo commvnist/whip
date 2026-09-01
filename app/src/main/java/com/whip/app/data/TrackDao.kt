@@ -73,6 +73,9 @@ interface TrackDao {
     @Query("SELECT * FROM track_values WHERE entryId = :entryId")
     suspend fun getValues(entryId: Long): List<TrackValueEntity>
 
+    @Query("SELECT * FROM track_values WHERE uuid = :uuid")
+    suspend fun getValueByUuid(uuid: String): TrackValueEntity?
+
     @Query("SELECT * FROM track_values WHERE entryId IN (:entryIds)")
     suspend fun getValuesForEntries(entryIds: List<Long>): List<TrackValueEntity>
 
@@ -99,7 +102,7 @@ interface TrackDao {
     @Insert suspend fun insertOption(entity: TrackChoiceOptionEntity): Long
     @Update suspend fun updateOption(entity: TrackChoiceOptionEntity)
     @Insert suspend fun insertEntry(entity: TrackEntryEntity): Long
-    @Update suspend fun updateEntry(entity: TrackEntryEntity)
+    @Update suspend fun updateEntry(entity: TrackEntryEntity): Int
     @Upsert suspend fun upsertValue(entity: TrackValueEntity): Long
 
     @Query("DELETE FROM track_values WHERE id = :id")

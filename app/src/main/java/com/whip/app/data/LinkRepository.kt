@@ -306,7 +306,7 @@ class RoomLinkRepository(
         require(rule.action == TriggerAction.PromptTrackEntry.name && rule.targetType == TriggerTargetType.Track.name) {
             "This prompt does not create a Track Entry"
         }
-        val entryId = RoomTrackRepository(database, clock, ids).addEntry(
+        val entryId = RoomTrackRepository(database, clock, ids).addPromptEntry(
             rule.targetEntityId,
             draft.copy(
                 sourceOccurrenceId = occurrence.id,

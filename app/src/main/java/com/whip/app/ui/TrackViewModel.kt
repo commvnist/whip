@@ -31,7 +31,15 @@ import com.whip.app.domain.TrackDefinitionBoundary
 import com.whip.app.domain.TrackDefinitionConflictException
 import com.whip.app.domain.TrackDefinitionConflictKind
 import com.whip.app.domain.TrackDefinitionRemovalReview
+import com.whip.app.domain.TrackEntryBoundary
+import com.whip.app.domain.TrackEntryConflictException
+import com.whip.app.domain.TrackEntryConflictKind
+import com.whip.app.domain.TrackEntryCreatePreparation
+import com.whip.app.domain.TrackEntryCreateRequest
 import com.whip.app.domain.TrackEntryDraft
+import com.whip.app.domain.TrackEntryEditSnapshot
+import com.whip.app.domain.TrackEntryMutationKind
+import com.whip.app.domain.TrackEntryMutationReceipt
 import com.whip.app.domain.TrackEntryPage
 import com.whip.app.domain.TrackField
 import com.whip.app.domain.TrackProjection
@@ -88,6 +96,61 @@ data class PendingTrackEntryUndo(
     val deletedEntry: DeletedTrackEntry,
 )
 
+internal data class TrackEntryUndoUiState(
+    val token: Long? = null,
+    /** Exact immutable deletion snapshot retained across a failed restore. */
+    val deletedEntry: DeletedTrackEntry? = null,
+    val status: OperationStatus = OperationStatus.Idle,
+)
+
+internal fun supersededEntryUndoState(
+    pending: PendingTrackEntryUndo?,
+): TrackEntryUndoUiState? = pending?.let {
+    TrackEntryUndoUiState(
+        token = it.token,
+        deletedEntry = null,
+        status = OperationStatus.Failed(
+            "Undo is no longer available because another Entry deletion is finishing. " +
+                "The previous Entry was not restored.",
+        ),
+    )
+}
+
+internal fun entryUndoStateAfterNewDeletionRecorded(
+    current: TrackEntryUndoUiState,
+): TrackEntryUndoUiState = if (
+    current.status is OperationStatus.Failed && current.deletedEntry == null
+) {
+    TrackEntryUndoUiState()
+} else {
+    current
+}
+
+internal data class TrackEntryPreparationUiState(
+    val sessionId: Long? = null,
+    val trackId: Long? = null,
+    val entryId: Long? = null,
+    val loading: Boolean = false,
+    val createPreparation: TrackEntryCreatePreparation? = null,
+    val editSnapshot: TrackEntryEditSnapshot? = null,
+    val errorMessage: String? = null,
+    val conflictKind: TrackEntryConflictKind? = null,
+)
+
+internal data class TrackEntryConflictUiState(
+    val requestId: String,
+    val kind: TrackEntryConflictKind,
+    val message: String,
+)
+
+internal data class TrackEntryDeletePreparationUiState(
+    val sessionId: Long? = null,
+    val entryId: Long? = null,
+    val loading: Boolean = false,
+    val snapshot: TrackEntryEditSnapshot? = null,
+    val errorMessage: String? = null,
+)
+
 internal data class TrackDefinitionReviewUiState(
     val sessionId: Long? = null,
     val trackId: Long? = null,
@@ -102,6 +165,10 @@ internal data class TrackDefinitionReviewUiState(
 )
 
 private data class TrackDefinitionBoundaryLookup(val boundary: TrackDefinitionBoundary?)
+private data class TrackEntryPreparationLookup(
+    val createPreparation: TrackEntryCreatePreparation? = null,
+    val editSnapshot: TrackEntryEditSnapshot? = null,
+)
 
 private fun TrackDefinitionConflictKind.requiresCopyRecovery(): Boolean = this in setOf(
     TrackDefinitionConflictKind.TargetMissing,
@@ -328,14 +395,31 @@ class TrackViewModel(
     )
     val definitionSaveState: StateFlow<PersistenceRequestState<EntitySaveReceipt>> =
         _definitionSaveState.asStateFlow()
+    private val _entryMutationState = MutableStateFlow<PersistenceRequestState<TrackEntryMutationReceipt>>(
+        PersistenceRequestState.Idle,
+    )
+    val entryMutationState: StateFlow<PersistenceRequestState<TrackEntryMutationReceipt>> =
+        _entryMutationState.asStateFlow()
+    private val _entryPreparationState = MutableStateFlow(TrackEntryPreparationUiState())
+    internal val entryPreparationState: StateFlow<TrackEntryPreparationUiState> =
+        _entryPreparationState.asStateFlow()
+    private val _entryConflictState = MutableStateFlow<TrackEntryConflictUiState?>(null)
+    internal val entryConflictState: StateFlow<TrackEntryConflictUiState?> = _entryConflictState.asStateFlow()
+    private val _entryDeletePreparationState = MutableStateFlow(TrackEntryDeletePreparationUiState())
+    internal val entryDeletePreparationState: StateFlow<TrackEntryDeletePreparationUiState> =
+        _entryDeletePreparationState.asStateFlow()
     private val _definitionReviewState = MutableStateFlow(TrackDefinitionReviewUiState())
     internal val definitionReviewState: StateFlow<TrackDefinitionReviewUiState> =
         _definitionReviewState.asStateFlow()
     private var definitionReviewGeneration = 0L
+    private var entryPreparationGeneration = 0L
+    private var entryDeletePreparationGeneration = 0L
     private val operationMutex = Mutex()
     private var recoveryAcknowledgement: CompletableDeferred<Unit>? = null
     private val _lastDeletedEntry = MutableStateFlow<PendingTrackEntryUndo?>(null)
     val lastDeletedEntry: StateFlow<PendingTrackEntryUndo?> = _lastDeletedEntry.asStateFlow()
+    private val _entryUndoState = MutableStateFlow(TrackEntryUndoUiState())
+    internal val entryUndoState: StateFlow<TrackEntryUndoUiState> = _entryUndoState.asStateFlow()
     private var nextEntryUndoToken = 0L
     private val reloadKey = MutableStateFlow(0)
     private val _csvImportState = MutableStateFlow(
@@ -381,10 +465,17 @@ class TrackViewModel(
         viewModelScope.launch {
             app.userDataGeneration.drop(1).collect {
                 _lastDeletedEntry.value = null
+                _entryUndoState.value = TrackEntryUndoUiState()
                 recoveryAcknowledgement?.complete(Unit)
                 recoveryAcknowledgement = null
                 _operationStatus.value = OperationStatus.Idle
                 _definitionSaveState.value = PersistenceRequestState.Idle
+                _entryMutationState.value = PersistenceRequestState.Idle
+                entryPreparationGeneration++
+                _entryPreparationState.value = TrackEntryPreparationUiState()
+                _entryConflictState.value = null
+                entryDeletePreparationGeneration++
+                _entryDeletePreparationState.value = TrackEntryDeletePreparationUiState()
                 definitionReviewGeneration++
                 _definitionReviewState.value = TrackDefinitionReviewUiState()
                 cancelCsvImport()
@@ -405,6 +496,134 @@ class TrackViewModel(
         if ((_definitionSaveState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
             _definitionSaveState.value = PersistenceRequestState.Idle
         }
+    }
+
+    fun consumeEntryMutationResult(requestId: String) {
+        if ((_entryMutationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _entryMutationState.value = PersistenceRequestState.Idle
+        }
+    }
+
+    fun prepareEntryEditor(sessionId: Long, trackId: Long, entryId: Long?) {
+        val current = _entryPreparationState.value
+        if (
+            current.sessionId == sessionId &&
+            current.trackId == trackId &&
+            current.entryId == entryId &&
+            (current.loading || current.createPreparation != null || current.editSnapshot != null || current.conflictKind != null)
+        ) return
+        val generation = ++entryPreparationGeneration
+        _entryPreparationState.value = TrackEntryPreparationUiState(
+            sessionId = sessionId,
+            trackId = trackId,
+            entryId = entryId,
+            loading = true,
+        )
+        viewModelScope.launch {
+            val result = runCatching {
+                checkNotNull(app.withUserDataAccess {
+                    if (entryId == null) {
+                        TrackEntryPreparationLookup(createPreparation = repository.prepareEntryCreate(trackId))
+                    } else {
+                        TrackEntryPreparationLookup(editSnapshot = repository.prepareEntryEdit(entryId))
+                    }
+                }) { "Whip data is unavailable while recovery is in progress" }
+            }
+            if (entryPreparationGeneration != generation) return@launch
+            result.fold(
+                onSuccess = { lookup ->
+                    val createPreparation = lookup.createPreparation?.takeIf {
+                        it.request.openingFormBoundary.trackId == trackId && it.form.track.id == trackId
+                    }
+                    val editSnapshot = lookup.editSnapshot?.takeIf {
+                        it.boundary.formBoundary.trackId == trackId && it.boundary.entryId == entryId
+                    }
+                    val missing = if (entryId == null) createPreparation == null else editSnapshot == null
+                    _entryPreparationState.value = TrackEntryPreparationUiState(
+                        sessionId = sessionId,
+                        trackId = trackId,
+                        entryId = entryId,
+                        createPreparation = createPreparation,
+                        editSnapshot = editSnapshot,
+                        errorMessage = if (missing) {
+                            if (entryId == null) "This Track is no longer available. No Entry was added."
+                            else "This Entry is no longer available. It was not reinterpreted as a new Entry."
+                        } else null,
+                        conflictKind = if (missing) {
+                            if (entryId == null) TrackEntryConflictKind.ParentMissing
+                            else TrackEntryConflictKind.TargetMissing
+                        } else null,
+                    )
+                },
+                onFailure = { error ->
+                    if (error is CancellationException) throw error
+                    val conflict = (error as? TrackEntryConflictException)?.kind
+                    _entryPreparationState.value = TrackEntryPreparationUiState(
+                        sessionId = sessionId,
+                        trackId = trackId,
+                        entryId = entryId,
+                        errorMessage = error.message ?: "Could not verify this Entry.",
+                        conflictKind = conflict,
+                    )
+                },
+            )
+        }
+    }
+
+    fun clearEntryEditorState(sessionId: Long? = null) {
+        if (sessionId != null && _entryPreparationState.value.sessionId != sessionId) return
+        entryPreparationGeneration++
+        _entryPreparationState.value = TrackEntryPreparationUiState()
+        _entryConflictState.value = null
+    }
+
+    fun prepareEntryDelete(sessionId: Long, entryId: Long) {
+        val current = _entryDeletePreparationState.value
+        if (
+            current.sessionId == sessionId && current.entryId == entryId &&
+            (current.loading || current.snapshot != null)
+        ) return
+        val generation = ++entryDeletePreparationGeneration
+        _entryDeletePreparationState.value = TrackEntryDeletePreparationUiState(
+            sessionId = sessionId,
+            entryId = entryId,
+            loading = true,
+        )
+        viewModelScope.launch {
+            val result = runCatching {
+                checkNotNull(app.withUserDataAccess {
+                    TrackEntryPreparationLookup(editSnapshot = repository.prepareEntryEdit(entryId))
+                }) {
+                    "Whip data is unavailable while recovery is in progress"
+                }.editSnapshot
+            }
+            if (entryDeletePreparationGeneration != generation) return@launch
+            result.fold(
+                onSuccess = { snapshot ->
+                    _entryDeletePreparationState.value = TrackEntryDeletePreparationUiState(
+                        sessionId = sessionId,
+                        entryId = entryId,
+                        snapshot = snapshot,
+                        errorMessage = if (snapshot == null) "This Entry is no longer available." else null,
+                    )
+                },
+                onFailure = { error ->
+                    if (error is CancellationException) throw error
+                    _entryDeletePreparationState.value = TrackEntryDeletePreparationUiState(
+                        sessionId = sessionId,
+                        entryId = entryId,
+                        errorMessage = error.message ?: "The Entry could not be prepared for deletion.",
+                    )
+                },
+            )
+        }
+    }
+
+    fun clearEntryDeletePreparation(sessionId: Long? = null) {
+        if (sessionId != null && _entryDeletePreparationState.value.sessionId != sessionId) return
+        entryDeletePreparationGeneration++
+        _entryDeletePreparationState.value = TrackEntryDeletePreparationUiState()
+        _entryConflictState.value = null
     }
 
     fun prepareDefinitionEditor(
@@ -638,15 +857,67 @@ class TrackViewModel(
         app.domainDeletionCoordinator.deleteTrack(id)
     }
 
-    fun saveEntry(trackId: Long, entryId: Long?, draft: TrackEntryDraft, onSaved: (Long) -> Unit = {}) = runOperation(
-        if (entryId == null) "Adding Entry…" else "Saving Entry…",
-        if (entryId == null) "Entry added" else "Entry saved",
-    ) {
-        val savedId = if (entryId == null) repository.addEntry(trackId, draft) else {
-            repository.updateEntry(entryId, draft)
-            entryId
+    fun saveEntry(
+        trackId: Long,
+        entryId: Long?,
+        createRequest: TrackEntryCreateRequest?,
+        expectedBoundary: TrackEntryBoundary?,
+        draft: TrackEntryDraft,
+        requestId: String,
+    ): Boolean {
+        if (!_entryMutationState.tryStartPersistenceRequest(requestId)) return false
+        _entryConflictState.value = null
+        viewModelScope.launch {
+            val result = try {
+                val receipt = checkNotNull(app.withUserDataAccess {
+                    operationMutex.withLock {
+                        if (entryId == null) {
+                            val request = requireNotNull(createRequest) {
+                                "The Entry form has not finished loading. Try again."
+                            }
+                            require(request.openingFormBoundary.trackId == trackId) {
+                                "The Entry form belongs to a different Track."
+                            }
+                            repository.addEntry(request, draft)
+                        } else {
+                            val boundary = requireNotNull(expectedBoundary) {
+                                "The Entry has not finished loading. Try again."
+                            }
+                            require(boundary.formBoundary.trackId == trackId && boundary.entryId == entryId) {
+                                "The Entry editor no longer matches its saved target."
+                            }
+                            repository.updateEntry(boundary, draft)
+                        }
+                    }
+                }) { "Whip data is unavailable while recovery is in progress" }
+                WhipResult.Success(receipt)
+            } catch (cancelled: CancellationException) {
+                if (currentCoroutineContext().isActive) {
+                    WhipResult.Failure(
+                        "The Entry change was interrupted. Your draft is still here; verify history before retrying.",
+                        cancelled,
+                    )
+                } else {
+                    if ((_entryMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _entryMutationState.value = PersistenceRequestState.Idle
+                    }
+                    throw cancelled
+                }
+            } catch (error: Exception) {
+                (error as? TrackEntryConflictException)?.let { conflict ->
+                    _entryConflictState.value = TrackEntryConflictUiState(
+                        requestId = requestId,
+                        kind = conflict.kind,
+                        message = conflict.message ?: "The Entry changed before this request could finish.",
+                    )
+                }
+                WhipResult.Failure(error.message ?: "The Entry could not be saved.", error)
+            }
+            if ((_entryMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                _entryMutationState.value = PersistenceRequestState.Finished(requestId, result)
+            }
         }
-        onSaved(savedId)
+        return true
     }
 
     fun importEntries(trackId: Long, drafts: List<TrackEntryDraft>, onSaved: (Int) -> Unit = {}) = runOperation(
@@ -661,32 +932,128 @@ class TrackViewModel(
         onSaved(importedCount)
     }
 
-    fun deleteEntry(entryId: Long): Unit {
-        val undoToken = ++nextEntryUndoToken
-        runOperation(
-            "Deleting Entry…",
-            "Entry deleted",
-            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
-        recoveryToken = undoToken,
-        ) {
-            val deletedEntry = repository.deleteEntry(entryId) ?: error("Entry no longer exists")
-            _lastDeletedEntry.value = PendingTrackEntryUndo(undoToken, deletedEntry)
+    fun deleteEntry(expectedBoundary: TrackEntryBoundary, requestId: String): Boolean {
+        if (_entryUndoState.value.status !is OperationStatus.Idle) return false
+        if (!_entryMutationState.tryStartPersistenceRequest(requestId)) return false
+        supersededEntryUndoState(_lastDeletedEntry.value)?.let { superseded ->
+            _lastDeletedEntry.value = null
+            _entryUndoState.value = superseded
         }
+        _entryConflictState.value = null
+        viewModelScope.launch {
+            val result = try {
+                val receipt = checkNotNull(app.withUserDataAccess {
+                    operationMutex.withLock {
+                        repository.deleteEntry(expectedBoundary).also(::recordEntryDeletionRecovery)
+                    }
+                }) { "Whip data is unavailable while recovery is in progress" }
+                WhipResult.Success(receipt)
+            } catch (cancelled: CancellationException) {
+                if (currentCoroutineContext().isActive) {
+                    WhipResult.Failure(
+                        "The Entry deletion was interrupted. The Entry may still exist; verify history before retrying.",
+                        cancelled,
+                    )
+                } else {
+                    if ((_entryMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _entryMutationState.value = PersistenceRequestState.Idle
+                    }
+                    throw cancelled
+                }
+            } catch (error: Exception) {
+                (error as? TrackEntryConflictException)?.let { conflict ->
+                    _entryConflictState.value = TrackEntryConflictUiState(
+                        requestId = requestId,
+                        kind = conflict.kind,
+                        message = conflict.message ?: "The Entry changed before deletion could finish.",
+                    )
+                }
+                WhipResult.Failure(error.message ?: "The Entry could not be deleted.", error)
+            }
+            if ((_entryMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                _entryMutationState.value = PersistenceRequestState.Finished(requestId, result)
+            }
+        }
+        return true
     }
 
     fun undoEntryDeletion(expectedToken: Long) {
-        if (_lastDeletedEntry.value?.token != expectedToken) return
-        runOperation("Restoring Entry…", "Entry restored") {
-            _lastDeletedEntry.value
-                ?.takeIf { it.token == expectedToken }
-                ?.let { repository.restoreEntry(it.deletedEntry) }
-            if (_lastDeletedEntry.value?.token == expectedToken) _lastDeletedEntry.value = null
+        val currentUndo = _entryUndoState.value
+        val deletedSnapshot = when {
+            currentUndo.token == expectedToken && currentUndo.status is OperationStatus.Failed ->
+                currentUndo.deletedEntry
+            currentUndo.status is OperationStatus.Idle ->
+                _lastDeletedEntry.value?.takeIf { it.token == expectedToken }?.deletedEntry
+            else -> null
+        } ?: return
+        // Admission is synchronous on the main thread. Keep the exact Undo
+        // snapshot and surface Retry instead of silently dropping an Undo tap
+        // that races an already-admitted Entry mutation.
+        if (_entryMutationState.value is PersistenceRequestState.Running) {
+            _entryUndoState.value = TrackEntryUndoUiState(
+                token = expectedToken,
+                deletedEntry = deletedSnapshot,
+                status = OperationStatus.Failed(
+                    "Another Entry change is finishing. Retry Undo.",
+                ),
+            )
+            return
+        }
+        _entryUndoState.value = TrackEntryUndoUiState(
+            token = expectedToken,
+            deletedEntry = deletedSnapshot,
+            status = OperationStatus.Running("Restoring Entry…"),
+        )
+        viewModelScope.launch {
+            try {
+                checkNotNull(app.withUserDataAccess {
+                    operationMutex.withLock { repository.restoreEntry(deletedSnapshot) }
+                }) { "Whip data is unavailable while recovery is in progress" }
+                if (_lastDeletedEntry.value?.token == expectedToken) _lastDeletedEntry.value = null
+                if (_entryUndoState.value.token == expectedToken) {
+                    _entryUndoState.value = TrackEntryUndoUiState(
+                        token = expectedToken,
+                        deletedEntry = deletedSnapshot,
+                        status = OperationStatus.Succeeded(
+                            "Entry restored",
+                            OperationFeedbackPresentation.Snackbar,
+                            expectedToken,
+                        ),
+                    )
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                if (_entryUndoState.value.token == expectedToken) {
+                    _entryUndoState.value = TrackEntryUndoUiState(
+                        token = expectedToken,
+                        deletedEntry = deletedSnapshot,
+                        status = OperationStatus.Failed(
+                            error.message ?: "The Entry could not be restored.",
+                            error,
+                        ),
+                    )
+                }
+            }
         }
     }
 
     fun clearEntryUndo(expectedToken: Long) {
         if (_lastDeletedEntry.value?.token == expectedToken) _lastDeletedEntry.value = null
     }
+
+    fun consumeEntryUndoStatus(expectedToken: Long) {
+        if (_entryUndoState.value.token == expectedToken) {
+            _entryUndoState.value = TrackEntryUndoUiState()
+        }
+    }
+
+    fun entryDeletionUndoToken(receipt: TrackEntryMutationReceipt): Long? = _lastDeletedEntry.value
+        ?.takeIf { pending ->
+            receipt.kind == TrackEntryMutationKind.Delete &&
+                pending.deletedEntry.entry.uuid == receipt.entryUuid
+        }
+        ?.token
 
     fun prepareCsvImport(trackId: Long, uri: Uri, today: LocalDate, customUnits: List<UnitDefinition>) {
         csvImportRestoreJob?.cancel()
@@ -921,6 +1288,16 @@ class TrackViewModel(
                 }
             }
         }
+    }
+
+    private fun recordEntryDeletionRecovery(receipt: TrackEntryMutationReceipt) {
+        if (receipt.kind != TrackEntryMutationKind.Delete || !receipt.changed) return
+        val deleted = requireNotNull(receipt.deletedEntry) {
+            "A deleted Entry receipt must include an exact recovery snapshot."
+        }
+        val token = ++nextEntryUndoToken
+        _entryUndoState.value = entryUndoStateAfterNewDeletionRecorded(_entryUndoState.value)
+        _lastDeletedEntry.value = PendingTrackEntryUndo(token, deleted)
     }
 
     private fun runDefinitionSaveOperation(

@@ -667,16 +667,14 @@ class BackupRepositoryTest {
                 sourceSnapshot = "{}",
             ),
         )
-        val sourceEntryId = tracks.addEntry(
-            trackId,
+        val sourceEntryId = links.fulfillTrackPrompt(
+            sourceOccurrenceId,
             TrackEntryDraft(
                 entryDate = FixedClock.today(),
                 values = mapOf(track.primaryField.uuid to TrackValueDraft(textValue = "Imported Reading Habit")),
-                sourceOccurrenceId = sourceOccurrenceId,
                 sourceExplanation = "Preserved fulfilled prompt",
             ),
         )
-        database.linkDao().fulfillTriggerOccurrence(sourceOccurrenceId, sourceEntryId, FixedClock.now().toEpochMilli())
         val portable = backups.exportBackup()
 
         backups.deleteAllData()

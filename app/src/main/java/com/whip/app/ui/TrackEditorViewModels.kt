@@ -6,6 +6,8 @@ import com.whip.app.domain.TrackDefinitionBoundary
 import com.whip.app.domain.TrackDefinitionRemovalReview
 import com.whip.app.domain.TrackDraft
 import com.whip.app.domain.TrackEntryDraft
+import com.whip.app.domain.editableNumericValue
+import com.whip.app.domain.toWhipDoubleOrNull
 import java.io.Serializable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -97,6 +99,11 @@ internal data class TrackEntryEditorState(
     val token: String = "",
     val dataGeneration: Long = 0L,
     val draft: TrackEntryDraft? = null,
+    /**
+     * User-authored Number text is retained separately from its parsed value so
+     * an optional but malformed value cannot be mistaken for an intentional blank.
+     */
+    val rawNumberValues: Map<String, String> = emptyMap(),
 ) : Serializable
 
 internal class TrackEntryEditorViewModel(
@@ -112,12 +119,39 @@ internal class TrackEntryEditorViewModel(
             mutableState.value.token == token &&
             mutableState.value.dataGeneration == dataGeneration
         ) return
-        set(TrackEntryEditorState(token = token, dataGeneration = dataGeneration, draft = initialDraft))
+        set(
+            TrackEntryEditorState(
+                token = token,
+                dataGeneration = dataGeneration,
+                draft = initialDraft,
+                rawNumberValues = initialDraft.values.mapNotNull { (fieldUuid, value) ->
+                    value.enteredNumber?.let { fieldUuid to editableNumericValue(it) }
+                }.toMap(),
+            ),
+        )
     }
 
     fun updateDraft(transform: (TrackEntryDraft) -> TrackEntryDraft) {
         val draft = mutableState.value.draft ?: return
         set(mutableState.value.copy(draft = transform(draft)))
+    }
+
+    fun updateNumberValue(fieldUuid: String, rawText: String, enteredUnitId: String?) {
+        val draft = mutableState.value.draft ?: return
+        val current = draft.values[fieldUuid]
+        set(
+            mutableState.value.copy(
+                draft = draft.copy(
+                    values = draft.values + (
+                        fieldUuid to (current ?: com.whip.app.domain.TrackValueDraft()).copy(
+                            enteredNumber = rawText.toWhipDoubleOrNull(),
+                            enteredUnitId = enteredUnitId,
+                        )
+                    ),
+                ),
+                rawNumberValues = mutableState.value.rawNumberValues + (fieldUuid to rawText),
+            ),
+        )
     }
 
     fun clear() {

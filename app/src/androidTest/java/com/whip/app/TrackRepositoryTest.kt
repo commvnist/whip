@@ -8,6 +8,8 @@ import com.whip.app.core.WhipIdGenerator
 import com.whip.app.data.RoomAreaRepository
 import com.whip.app.data.RoomTrackRepository
 import com.whip.app.data.WhipDatabase
+import com.whip.app.data.buildTrackCsv
+import com.whip.app.data.requireTrackCsvExportWithinLimit
 import com.whip.app.domain.TrackAggregation
 import com.whip.app.domain.TrackChoiceOptionDraft
 import com.whip.app.domain.TrackDraft
@@ -30,6 +32,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -201,7 +204,7 @@ class TrackRepositoryTest {
 
         val deleted = requireNotNull(tracks.deleteEntry(entryId))
         assertTrue(requireNotNull(tracks.projection(id)).entries.isEmpty())
-        val restored = tracks.restoreEntry(deleted)
+        val restored = tracks.restoreEntryId(deleted)
         assertNotNull(tracks.projection(id)?.entries?.firstOrNull { it.entry.id == restored })
     }
 
@@ -307,12 +310,159 @@ class TrackRepositoryTest {
         assertEquals(205, allIds.distinct().size)
     }
 
+    @Test fun duplicatePreservesCompleteTypedDefinitionWithFreshIdentitiesAndNoHistory() = runBlocking {
+        val sourceId = tracks.create(allTypesDraft())
+        val source = requireNotNull(tracks.projection(sourceId))
+        val byName = source.fields.associateBy { it.name }
+        val selected = source.optionsFor(requireNotNull(byName["Status"]).id).single { it.label.startsWith("Ready") }
+        tracks.addEntry(
+            sourceId,
+            TrackEntryDraft(
+                entryDate = TestClock.today(),
+                values = mapOf(
+                    requireNotNull(byName["Title"]).uuid to TrackValueDraft(textValue = "Do not copy history"),
+                    requireNotNull(byName["Notes"]).uuid to TrackValueDraft(textValue = "Private notes"),
+                    requireNotNull(byName["Amount"]).uuid to TrackValueDraft(enteredNumber = 2.5),
+                    requireNotNull(byName["Status"]).uuid to TrackValueDraft(choiceOptionUuid = selected.uuid),
+                    requireNotNull(byName["Rating"]).uuid to TrackValueDraft(scaleValue = 3.5),
+                    requireNotNull(byName["When"]).uuid to TrackValueDraft(dateValue = LocalDate.of(2026, 8, 22)),
+                    requireNotNull(byName["Confirmed"]).uuid to TrackValueDraft(booleanValue = true),
+                ),
+            ),
+        )
+
+        val duplicateId = tracks.duplicate(sourceId)
+        val duplicate = requireNotNull(tracks.projection(duplicateId))
+
+        assertEquals("${source.track.name} Copy", duplicate.track.name)
+        assertEquals(source.track.description, duplicate.track.description)
+        assertEquals(source.track.icon, duplicate.track.icon)
+        assertEquals(source.track.areaId, duplicate.track.areaId)
+        assertEquals(source.track.tags, duplicate.track.tags)
+        assertTrue(duplicate.entries.isEmpty())
+        assertNotEquals(source.track.uuid, duplicate.track.uuid)
+        assertEquals(source.fields.map { it.name }, duplicate.fields.map { it.name })
+        source.fields.zip(duplicate.fields).forEach { (before, after) ->
+            assertNotEquals(before.id, after.id)
+            assertNotEquals(before.uuid, after.uuid)
+            assertEquals(before.type, after.type)
+            assertEquals(before.required, after.required)
+            assertEquals(before.primary, after.primary)
+            assertEquals(before.showInList, after.showInList)
+            assertEquals(before.dimension, after.dimension)
+            assertEquals(before.unitId, after.unitId)
+            assertEquals(before.precision, after.precision)
+            assertEquals(before.scaleMin, after.scaleMin)
+            assertEquals(before.scaleMax, after.scaleMax)
+            assertEquals(before.scaleStep, after.scaleStep, 0.0)
+            assertEquals(before.scaleLowLabel, after.scaleLowLabel)
+            assertEquals(before.scaleHighLabel, after.scaleHighLabel)
+            val beforeOptions = source.optionsFor(before.id)
+            val afterOptions = duplicate.optionsFor(after.id)
+            assertEquals(beforeOptions.map { it.label }, afterOptions.map { it.label })
+            beforeOptions.zip(afterOptions).forEach { (beforeOption, afterOption) ->
+                assertNotEquals(beforeOption.id, afterOption.id)
+                assertNotEquals(beforeOption.uuid, afterOption.uuid)
+                assertEquals(beforeOption.position, afterOption.position)
+            }
+        }
+    }
+
+    @Test fun csvExportEscapesAndFormatsEveryValueTypeAtItsExactUtf8Boundary() = runBlocking {
+        val trackId = tracks.create(allTypesDraft().copy(name = "CSV all types"))
+        val projection = requireNotNull(tracks.projection(trackId))
+        val fields = projection.fields.associateBy { it.name }
+        val selected = projection.optionsFor(requireNotNull(fields["Status"]).id).single { it.label == "Ready, \"now\"" }
+        tracks.addEntry(
+            trackId,
+            TrackEntryDraft(
+                entryDate = TestClock.today(),
+                values = mapOf(
+                    requireNotNull(fields["Title"]).uuid to TrackValueDraft(textValue = "Comma, quote \" and emoji 😀"),
+                    requireNotNull(fields["Notes"]).uuid to TrackValueDraft(textValue = "café · 中"),
+                    requireNotNull(fields["Amount"]).uuid to TrackValueDraft(enteredNumber = 2.5),
+                    requireNotNull(fields["Status"]).uuid to TrackValueDraft(choiceOptionUuid = selected.uuid),
+                    requireNotNull(fields["Rating"]).uuid to TrackValueDraft(scaleValue = 4.5),
+                    requireNotNull(fields["When"]).uuid to TrackValueDraft(dateValue = LocalDate.of(2026, 8, 20)),
+                    requireNotNull(fields["Confirmed"]).uuid to TrackValueDraft(booleanValue = false),
+                ),
+            ),
+        )
+        val stored = requireNotNull(tracks.projection(trackId))
+        val csv = buildTrackCsv(stored)
+
+        assertTrue(csv.contains("\"Comma, quote \"\" and emoji 😀\""))
+        assertTrue(csv.contains("\"café · 中\""))
+        assertTrue(csv.contains("\"Ready, \"\"now\"\"\""))
+        assertTrue(csv.contains("\"2.5\",\"count\",\"2.5\""))
+        assertTrue(csv.contains("\"4.5\""))
+        assertTrue(csv.contains("\"2026-08-20\""))
+        assertTrue(csv.contains("\"No\""))
+        val exactBytes = csv.encodeToByteArray().size
+        assertEquals(csv, buildTrackCsv(stored, maxBytes = exactBytes))
+        assertTrue(runCatching { buildTrackCsv(stored, maxBytes = exactBytes - 1) }.isFailure)
+        assertEquals(csv, tracks.exportCsv(trackId))
+    }
+
+    @Test fun csvSizeGuardCountsAsciiTwoByteThreeByteAndSurrogateUtf8Exactly() = runBlocking {
+        listOf(
+            "A" to 1,
+            "é" to 2,
+            "中" to 3,
+            "😀" to 4,
+            "Aé中😀" to 10,
+        ).forEach { (value, expectedBytes) ->
+            requireTrackCsvExportWithinLimit(value, maxBytes = expectedBytes)
+            assertTrue(
+                "Expected $value to exceed ${expectedBytes - 1} bytes",
+                runCatching {
+                    requireTrackCsvExportWithinLimit(value, maxBytes = expectedBytes - 1)
+                }.exceptionOrNull() is IllegalArgumentException,
+            )
+        }
+    }
+
     private fun booksDraft() = TrackDraft(
         name = "Books Read",
         fields = listOf(
             TrackFieldDraft("Title", TrackFieldType.ShortText, required = true, primary = true),
             TrackFieldDraft("Genre", TrackFieldType.SingleChoice, options = listOf(TrackChoiceOptionDraft("History"), TrackChoiceOptionDraft("Fiction"))),
             TrackFieldDraft("Rating", TrackFieldType.Number, dimension = UnitDimension.Unitless, unitId = "unitless"),
+        ),
+    )
+
+    private fun allTypesDraft() = TrackDraft(
+        name = "Complete Track",
+        description = "Every first-class Field type",
+        icon = "🧪",
+        tags = listOf("complete", "typed"),
+        fields = listOf(
+            TrackFieldDraft("Title", TrackFieldType.ShortText, required = true, primary = true),
+            TrackFieldDraft("Notes", TrackFieldType.LongText, showInList = true),
+            TrackFieldDraft(
+                "Amount",
+                TrackFieldType.Number,
+                showInList = true,
+                dimension = UnitDimension.Count,
+                unitId = "count",
+                precision = 1,
+            ),
+            TrackFieldDraft(
+                "Status",
+                TrackFieldType.SingleChoice,
+                options = listOf(TrackChoiceOptionDraft("Ready, \"now\""), TrackChoiceOptionDraft("Waiting")),
+            ),
+            TrackFieldDraft(
+                "Rating",
+                TrackFieldType.Scale,
+                scaleMin = 1,
+                scaleMax = 5,
+                scaleStep = 0.5,
+                scaleLowLabel = "Low",
+                scaleHighLabel = "High",
+            ),
+            TrackFieldDraft("When", TrackFieldType.Date),
+            TrackFieldDraft("Confirmed", TrackFieldType.YesNo),
         ),
     )
 

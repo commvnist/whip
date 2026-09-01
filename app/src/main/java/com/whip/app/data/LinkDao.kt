@@ -93,6 +93,9 @@ interface LinkDao {
     @Query("SELECT * FROM trigger_occurrences WHERE id = :id")
     suspend fun getTriggerOccurrence(id: Long): TriggerOccurrenceEntity?
 
+    @Query("SELECT * FROM trigger_occurrences WHERE fulfilledEntryId = :entryId ORDER BY id")
+    suspend fun getTriggerOccurrencesForFulfilledEntry(entryId: Long): List<TriggerOccurrenceEntity>
+
     @Insert suspend fun insertRule(entity: LinkRuleEntity): Long
     @Update suspend fun updateRule(entity: LinkRuleEntity)
     @Upsert suspend fun upsertContribution(entity: ContributionEntity): Long
@@ -161,4 +164,7 @@ interface LinkDao {
 
     @Query("UPDATE trigger_occurrences SET fulfilledEntryId = :entryId, deliveredAtMillis = :now, dismissedAtMillis = NULL, remindAtMillis = NULL WHERE id = :id")
     suspend fun fulfillTriggerOccurrence(id: Long, entryId: Long, now: Long): Int
+
+    @Query("UPDATE trigger_occurrences SET fulfilledEntryId = :entryId WHERE id = :id AND fulfilledEntryId IS NULL")
+    suspend fun restoreTriggerOccurrenceFulfillment(id: Long, entryId: Long): Int
 }

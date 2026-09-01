@@ -10,7 +10,21 @@ import com.whip.app.domain.TrackChoiceOption
 import com.whip.app.domain.TrackChoiceOptionDraft
 import com.whip.app.domain.TrackDraft
 import com.whip.app.domain.TrackEntry
+import com.whip.app.domain.TrackEntryBoundary
+import com.whip.app.domain.TrackEntryConflictException
+import com.whip.app.domain.TrackEntryConflictKind
+import com.whip.app.domain.TrackEntryChoiceContract
+import com.whip.app.domain.TrackEntryCreatePreparation
+import com.whip.app.domain.TrackEntryCreateRequest
 import com.whip.app.domain.TrackEntryDraft
+import com.whip.app.domain.TrackEntryEditSnapshot
+import com.whip.app.domain.TrackEntryFormBoundary
+import com.whip.app.domain.TrackEntryFormSnapshot
+import com.whip.app.domain.TrackEntryFieldContract
+import com.whip.app.domain.TrackEntryFulfillmentSnapshot
+import com.whip.app.domain.TrackEntryMutationKind
+import com.whip.app.domain.TrackEntryMutationReceipt
+import com.whip.app.domain.TrackEntryUnitContract
 import com.whip.app.domain.TrackEntryPage
 import com.whip.app.domain.TrackEntryProjection
 import com.whip.app.domain.TrackDefinitionBoundary
@@ -99,11 +113,13 @@ interface TrackRepository {
     suspend fun setPinned(id: Long, pinned: Boolean)
     suspend fun setArchived(id: Long, archived: Boolean)
     suspend fun reorder(ids: List<Long>)
-    suspend fun addEntry(trackId: Long, draft: TrackEntryDraft): Long
+    suspend fun prepareEntryCreate(trackId: Long): TrackEntryCreatePreparation?
+    suspend fun prepareEntryEdit(entryId: Long): TrackEntryEditSnapshot?
+    suspend fun addEntry(request: TrackEntryCreateRequest, draft: TrackEntryDraft): TrackEntryMutationReceipt
     suspend fun importEntries(trackId: Long, drafts: List<TrackEntryDraft>): List<Long>
-    suspend fun updateEntry(entryId: Long, draft: TrackEntryDraft)
-    suspend fun deleteEntry(entryId: Long): DeletedTrackEntry?
-    suspend fun restoreEntry(deleted: DeletedTrackEntry): Long
+    suspend fun updateEntry(expectedBoundary: TrackEntryBoundary, draft: TrackEntryDraft): TrackEntryMutationReceipt
+    suspend fun deleteEntry(expectedBoundary: TrackEntryBoundary): TrackEntryMutationReceipt
+    suspend fun restoreEntry(deleted: DeletedTrackEntry): TrackEntryMutationReceipt
     suspend fun projection(trackId: Long): TrackProjection?
     suspend fun entryPage(trackId: Long, offset: Int, limit: Int): TrackEntryPage
     suspend fun searchEntryIds(trackId: Long, query: String): Set<Long>
@@ -183,6 +199,104 @@ class RoomTrackRepository(
             ?.let { dao.getOptionsForFields(it.map(TrackFieldEntity::id)) }
             .orEmpty()
         return TrackDefinitionSnapshot(track, fields, options)
+    }
+
+    private suspend fun loadEntryFormSnapshot(trackId: Long): TrackEntryFormRows? {
+        val track = dao.getTrack(trackId) ?: return null
+        val fields = dao.getFields(trackId)
+        val options = fields.takeIf { it.isNotEmpty() }
+            ?.let { dao.getOptionsForFields(it.map(TrackFieldEntity::id)) }
+            .orEmpty()
+        val dimensions = fields.mapNotNull { field ->
+            field.dimension?.let(UnitDimension::valueOf)
+        }.toSet()
+        val units = (BuiltInUnits.all + database.measurementDao().getAllUnits().map(UnitDefinitionEntity::toDomain))
+            .distinctBy(UnitDefinition::id)
+            .filter { it.dimension in dimensions }
+        return TrackEntryFormRows(track, fields, options, units)
+    }
+
+    private suspend fun loadEntrySnapshot(entryId: Long): TrackEntrySnapshot? {
+        val entry = dao.getEntry(entryId) ?: return null
+        val form = loadEntryFormSnapshot(entry.trackId) ?: return null
+        return TrackEntrySnapshot(form, entry, dao.getValues(entryId))
+    }
+
+    private fun requireMatchingEntryFormBoundary(
+        snapshot: TrackEntryFormRows?,
+        expected: TrackEntryFormBoundary,
+    ): TrackEntryFormRows {
+        val current = snapshot ?: throw TrackEntryConflictException(
+            TrackEntryConflictKind.ParentMissing,
+            "This Track no longer exists. Your Entry has not been saved.",
+        )
+        val boundary = current.boundary()
+        if (
+            boundary.trackId != expected.trackId ||
+            boundary.trackUuid != expected.trackUuid ||
+            boundary.trackCreatedAtMillis != expected.trackCreatedAtMillis
+        ) {
+            throw TrackEntryConflictException(
+                TrackEntryConflictKind.IdentityChanged,
+                "The Track identity changed while this Entry form was open.",
+            )
+        }
+        if (!boundary.sameContractAs(expected)) {
+            throw TrackEntryConflictException(
+                TrackEntryConflictKind.FormChanged,
+                "This Entry form changed while it was open. Review the latest Fields and try again.",
+            )
+        }
+        return current
+    }
+
+    private fun requireWritableEntryForm(form: TrackEntryFormRows) {
+        if (form.track.archived) {
+            throw TrackEntryConflictException(
+                TrackEntryConflictKind.FormChanged,
+                "Restore this Track before adding or editing Entries.",
+            )
+        }
+    }
+
+    private suspend fun requireEntryIdentity(
+        expected: TrackEntryBoundary,
+        missingKind: TrackEntryConflictKind = TrackEntryConflictKind.TargetMissing,
+    ): TrackEntrySnapshot {
+        val row = dao.getEntry(expected.entryId)
+        if (row == null) {
+            dao.getEntryByUuid(expected.entryUuid)?.let {
+                throw TrackEntryConflictException(
+                    TrackEntryConflictKind.IdentityChanged,
+                    "The Entry identity changed while this request was open.",
+                )
+            }
+            throw TrackEntryConflictException(
+                missingKind,
+                if (missingKind == TrackEntryConflictKind.OutcomeUnknown) {
+                    "This Entry is no longer present, so this deletion cannot be safely attributed to the current request."
+                } else {
+                    "This Entry no longer exists. Your draft has not been discarded."
+                },
+            )
+        }
+        val current = loadEntrySnapshot(row.id) ?: throw TrackEntryConflictException(
+            TrackEntryConflictKind.ParentMissing,
+            "The Track for this Entry no longer exists.",
+        )
+        if (
+            row.id != expected.entryId || row.uuid != expected.entryUuid ||
+            row.createdAtMillis != expected.entryCreatedAtMillis ||
+            current.form.track.id != expected.formBoundary.trackId ||
+            current.form.track.uuid != expected.formBoundary.trackUuid ||
+            current.form.track.createdAtMillis != expected.formBoundary.trackCreatedAtMillis
+        ) {
+            throw TrackEntryConflictException(
+                TrackEntryConflictKind.IdentityChanged,
+                "The Entry or its Track identity changed while this request was open.",
+            )
+        }
+        return current
     }
 
     private fun requireMatchingDefinitionBoundary(
@@ -541,106 +655,276 @@ class RoomTrackRepository(
         }
     }
 
-    override suspend fun addEntry(trackId: Long, draft: TrackEntryDraft): Long = database.withTransaction {
-        val track = dao.getTrack(trackId) ?: error("Track no longer exists")
-        require(!track.archived) { "Restore this Track before adding Entries" }
-        val fields = dao.getFields(trackId).map(TrackFieldEntity::toDomain)
-        val options = fields.takeIf { it.isNotEmpty() }
-            ?.let { dao.getOptionsForFields(it.map(TrackField::id)) }
-            .orEmpty()
-            .map(TrackChoiceOptionEntity::toDomain)
-        validateTrackEntryDraft(fields, options, draft)
-        val now = clock.now().toEpochMilli()
-        val entryId = dao.insertEntry(
-            TrackEntryEntity(
-                uuid = ids.nextId(),
-                trackId = trackId,
-                entryEpochDay = draft.entryDate.toEpochDay(),
-                sourceOccurrenceId = draft.sourceOccurrenceId,
-                sourceExplanation = draft.sourceExplanation.trim(),
-                createdAtMillis = now,
-                updatedAtMillis = now,
+    override suspend fun prepareEntryCreate(trackId: Long): TrackEntryCreatePreparation? = database.withTransaction {
+        val form = loadEntryFormSnapshot(trackId) ?: return@withTransaction null
+        TrackEntryCreatePreparation(
+            request = TrackEntryCreateRequest(
+                entryUuid = ids.nextId(),
+                openingFormBoundary = form.boundary(),
             ),
+            form = form.toDomainSnapshot(),
         )
-        upsertDraftValues(entryId, fields, options, draft.values, emptyMap(), now)
-        rebuildSearchEntry(trackId, entryId)
-        entryId
+    }
+
+    override suspend fun prepareEntryEdit(entryId: Long): TrackEntryEditSnapshot? = database.withTransaction {
+        loadEntrySnapshot(entryId)?.toEditSnapshot()
+    }
+
+    override suspend fun addEntry(
+        request: TrackEntryCreateRequest,
+        draft: TrackEntryDraft,
+    ): TrackEntryMutationReceipt = database.withTransaction {
+        requireGenericEntryProvenance(draft)
+        require(request.entryUuid.isNotBlank()) { "Entry identity is required" }
+
+        // Stable identity is the create idempotency key. Compare against the
+        // opening contract before consulting the current form so a committed
+        // retry still resolves after, for example, a new required Field appears.
+        dao.getEntryByUuid(request.entryUuid)?.let { existing ->
+            val existingSnapshot = loadEntrySnapshot(existing.id) ?: throw TrackEntryConflictException(
+                TrackEntryConflictKind.IdentityCollision,
+                "An Entry with this identity already exists but could not be verified.",
+            )
+            val intended = normalizeEntryDraft(request.openingFormBoundary, draft, verifyLiveUnits = false)
+            if (
+                existing.trackId == request.openingFormBoundary.trackId &&
+                existingSnapshot.form.track.uuid == request.openingFormBoundary.trackUuid &&
+                existingSnapshot.form.track.createdAtMillis == request.openingFormBoundary.trackCreatedAtMillis &&
+                existingSnapshot.matches(intended, sourceOccurrenceId = null, sourceExplanation = "")
+            ) {
+                return@withTransaction existingSnapshot.receipt(
+                    kind = TrackEntryMutationKind.Create,
+                    changed = false,
+                    alreadyApplied = true,
+                )
+            }
+            throw TrackEntryConflictException(
+                TrackEntryConflictKind.IdentityCollision,
+                "An Entry with this stable identity already exists with different content.",
+            )
+        }
+
+        val form = requireMatchingEntryFormBoundary(
+            loadEntryFormSnapshot(request.openingFormBoundary.trackId),
+            request.openingFormBoundary,
+        )
+        requireWritableEntryForm(form)
+        val normalized = normalizeEntryDraft(request.openingFormBoundary, draft, verifyLiveUnits = true)
+        insertEntryLocked(
+            form = form,
+            entryUuid = request.entryUuid,
+            normalized = normalized,
+            sourceOccurrenceId = null,
+            sourceExplanation = "",
+        ).receipt(kind = TrackEntryMutationKind.Create, changed = true, alreadyApplied = false)
+    }
+
+    /**
+     * Narrow trusted caller for LinkRepository's enclosing prompt transaction.
+     * Generic Entry APIs intentionally cannot author these provenance columns.
+     */
+    internal suspend fun addPromptEntry(trackId: Long, draft: TrackEntryDraft): Long = database.withTransaction {
+        val occurrenceId = draft.sourceOccurrenceId ?: throw TrackEntryConflictException(
+            TrackEntryConflictKind.ProvenanceChanged,
+            "A prompt Entry requires its source occurrence.",
+        )
+        val occurrence = linkDao.getTriggerOccurrence(occurrenceId) ?: throw TrackEntryConflictException(
+            TrackEntryConflictKind.ProvenanceChanged,
+            "The source prompt no longer exists.",
+        )
+        val rule = linkDao.getTriggerRule(occurrence.triggerRuleId) ?: throw TrackEntryConflictException(
+            TrackEntryConflictKind.ProvenanceChanged,
+            "The source prompt definition no longer exists.",
+        )
+        if (
+            occurrence.fulfilledEntryId != null || rule.targetEntityId != trackId ||
+            rule.action != "PromptTrackEntry" || rule.targetType != "Track"
+        ) {
+            throw TrackEntryConflictException(
+                TrackEntryConflictKind.ProvenanceChanged,
+                "This prompt can no longer create an Entry for this Track.",
+            )
+        }
+        val form = loadEntryFormSnapshot(trackId) ?: throw TrackEntryConflictException(
+            TrackEntryConflictKind.ParentMissing,
+            "The prompt's target Track no longer exists.",
+        )
+        requireWritableEntryForm(form)
+        val normalized = normalizeEntryDraft(form.boundary(), draft, verifyLiveUnits = true)
+        insertEntryLocked(
+            form = form,
+            entryUuid = ids.nextId(),
+            normalized = normalized,
+            sourceOccurrenceId = occurrence.id,
+            sourceExplanation = draft.sourceExplanation,
+        ).entry.id
     }
 
     override suspend fun importEntries(trackId: Long, drafts: List<TrackEntryDraft>): List<Long> = database.withTransaction {
         require(drafts.isNotEmpty()) { "There are no valid CSV rows to import" }
-        val track = dao.getTrack(trackId) ?: error("Track no longer exists")
-        require(!track.archived) { "Restore this Track before importing Entries" }
-        val fields = dao.getFields(trackId).map(TrackFieldEntity::toDomain)
-        val options = fields.takeIf { it.isNotEmpty() }
-            ?.let { dao.getOptionsForFields(it.map(TrackField::id)) }
-            .orEmpty()
-            .map(TrackChoiceOptionEntity::toDomain)
-        // Validate the complete batch before the first insert. A bad row cannot
-        // leave a partially imported Track even before Room rolls back.
-        drafts.forEach { validateTrackEntryDraft(fields, options, it) }
-        val trackDomain = track.toDomain()
-        drafts.map { draft ->
-            val now = clock.now().toEpochMilli()
-            val entryId = dao.insertEntry(
-                TrackEntryEntity(
-                    uuid = ids.nextId(),
-                    trackId = trackId,
-                    entryEpochDay = draft.entryDate.toEpochDay(),
-                    sourceOccurrenceId = draft.sourceOccurrenceId,
-                    sourceExplanation = draft.sourceExplanation.trim(),
-                    createdAtMillis = now,
+        val form = loadEntryFormSnapshot(trackId) ?: throw TrackEntryConflictException(
+            TrackEntryConflictKind.ParentMissing,
+            "Track no longer exists",
+        )
+        requireWritableEntryForm(form)
+        drafts.forEach(::requireGenericEntryProvenance)
+        // Normalize the complete batch before the first insert. A bad row
+        // cannot leave a partial import, even before Room rolls back.
+        val normalized = drafts.map { normalizeEntryDraft(form.boundary(), it, verifyLiveUnits = true) }
+        normalized.map { entry ->
+            insertEntryLocked(form, ids.nextId(), entry, null, "").entry.id
+        }
+    }
+
+    override suspend fun updateEntry(
+        expectedBoundary: TrackEntryBoundary,
+        draft: TrackEntryDraft,
+    ): TrackEntryMutationReceipt = database.withTransaction {
+        requireGenericEntryProvenance(draft)
+        val current = requireEntryIdentity(expectedBoundary)
+        val intendedFromOpeningForm = normalizeEntryDraft(
+            expectedBoundary.formBoundary,
+            draft,
+            verifyLiveUnits = false,
+        )
+        if (current.matches(intendedFromOpeningForm, current.entry.sourceOccurrenceId, current.entry.sourceExplanation)) {
+            return@withTransaction current.receipt(
+                kind = TrackEntryMutationKind.Update,
+                changed = false,
+                alreadyApplied = true,
+            )
+        }
+        val currentFormBoundary = current.form.boundary()
+        if (!currentFormBoundary.sameContractAs(expectedBoundary.formBoundary)) {
+            throw TrackEntryConflictException(
+                TrackEntryConflictKind.FormChanged,
+                "This Entry form changed while the editor was open. Review the latest Fields and try again.",
+            )
+        }
+        requireWritableEntryForm(current.form)
+        val normalized = normalizeEntryDraft(expectedBoundary.formBoundary, draft, verifyLiveUnits = true)
+        if (current.boundary().semanticRevisionToken != expectedBoundary.semanticRevisionToken) {
+            throw TrackEntryConflictException(
+                TrackEntryConflictKind.EntryChanged,
+                "This Entry changed while the editor was open. Review the latest values and try again.",
+            )
+        }
+
+        val now = clock.now().toEpochMilli()
+        check(
+            dao.updateEntry(
+                current.entry.copy(
+                    entryEpochDay = normalized.entryDate.toEpochDay(),
+                    // Automation provenance is immutable outside the trusted
+                    // prompt transaction.
+                    sourceOccurrenceId = current.entry.sourceOccurrenceId,
+                    sourceExplanation = current.entry.sourceExplanation,
                     updatedAtMillis = now,
                 ),
-            )
-            upsertDraftValues(entryId, fields, options, draft.values, emptyMap(), now)
-            val entry = requireNotNull(dao.getEntry(entryId)).toDomain()
-            val values = dao.getValues(entryId).map(TrackValueEntity::toDomain)
-            upsertSearchProjection(trackDomain, fields, options, entry, values)
-            entryId
-        }
-    }
-
-    override suspend fun updateEntry(entryId: Long, draft: TrackEntryDraft) = database.withTransaction {
-        val existing = dao.getEntry(entryId) ?: error("Entry no longer exists")
-        val track = dao.getTrack(existing.trackId) ?: error("Track no longer exists")
-        require(!track.archived) { "Restore this Track before editing Entries" }
-        val fields = dao.getFields(existing.trackId).map(TrackFieldEntity::toDomain)
-        val options = fields.takeIf { it.isNotEmpty() }
-            ?.let { dao.getOptionsForFields(it.map(TrackField::id)) }
-            .orEmpty()
-            .map(TrackChoiceOptionEntity::toDomain)
-        validateTrackEntryDraft(fields, options, draft)
-        val now = clock.now().toEpochMilli()
-        dao.updateEntry(
-            existing.copy(
-                entryEpochDay = draft.entryDate.toEpochDay(),
-                sourceExplanation = draft.sourceExplanation.trim().ifBlank { existing.sourceExplanation },
-                updatedAtMillis = now,
-            ),
+            ) == 1,
+        ) { "Entry no longer exists" }
+        upsertNormalizedValues(current.entry.id, normalized.values, current.values.associateBy(TrackValueEntity::fieldId), now)
+        val retainedFieldIds = normalized.values.keys.toList()
+        if (retainedFieldIds.isEmpty()) dao.deleteValues(current.entry.id)
+        else dao.deleteValuesOutsideFields(current.entry.id, retainedFieldIds)
+        rebuildSearchEntry(current.entry.trackId, current.entry.id)
+        requireNotNull(loadEntrySnapshot(current.entry.id)).receipt(
+            kind = TrackEntryMutationKind.Update,
+            changed = true,
+            alreadyApplied = false,
         )
-        val existingValues = dao.getValues(entryId).associateBy(TrackValueEntity::fieldId)
-        upsertDraftValues(entryId, fields, options, draft.values, existingValues, now)
-        val retainedFields = draft.values.mapNotNull { (fieldUuid, value) ->
-            fields.firstOrNull { it.uuid == fieldUuid }?.takeUnless { value.isBlankFor(it.type) }?.id
+    }
+
+    override suspend fun deleteEntry(expectedBoundary: TrackEntryBoundary): TrackEntryMutationReceipt = database.withTransaction {
+        val current = requireEntryIdentity(expectedBoundary, missingKind = TrackEntryConflictKind.OutcomeUnknown)
+        if (!current.form.boundary().sameContractAs(expectedBoundary.formBoundary)) {
+            throw TrackEntryConflictException(
+                TrackEntryConflictKind.FormChanged,
+                "This Entry form changed before deletion. Review the latest Entry before deleting it.",
+            )
         }
-        if (retainedFields.isEmpty()) dao.deleteValues(entryId)
-        else dao.deleteValuesOutsideFields(entryId, retainedFields)
-        rebuildSearchEntry(existing.trackId, entryId)
-        Unit
+        if (current.boundary().semanticRevisionToken != expectedBoundary.semanticRevisionToken) {
+            throw TrackEntryConflictException(
+                TrackEntryConflictKind.EntryChanged,
+                "This Entry changed before deletion. Review the latest values before deleting it.",
+            )
+        }
+        val fulfilled = linkDao.getTriggerOccurrencesForFulfilledEntry(current.entry.id)
+        val sourceOccurrence = current.entry.sourceOccurrenceId?.let { sourceOccurrenceId ->
+            linkDao.getTriggerOccurrence(sourceOccurrenceId) ?: throw TrackEntryConflictException(
+                TrackEntryConflictKind.ProvenanceChanged,
+                "This Entry's source occurrence is missing, so an exact Undo cannot be guaranteed.",
+            )
+        }
+        val deleted = DeletedTrackEntry(
+            entry = current.entry.toDomain(),
+            values = current.values.map(TrackValueEntity::toDomain),
+            openingFormBoundary = current.form.boundary(),
+            sourceOccurrence = sourceOccurrence?.toTrackEntrySnapshot(),
+            fulfilledOccurrences = fulfilled.map(TriggerOccurrenceEntity::toTrackEntrySnapshot),
+        )
+        dao.deleteSearch(current.entry.id)
+        check(dao.deleteEntry(current.entry.id) == 1) { "Entry no longer exists" }
+        fulfilled.forEach { before ->
+            val after = requireNotNull(linkDao.getTriggerOccurrence(before.id)) {
+                "Trigger occurrence changed during Entry deletion"
+            }
+            check(after == before.copy(fulfilledEntryId = null)) {
+                "Trigger occurrence changed during Entry deletion"
+            }
+        }
+        TrackEntryMutationReceipt(
+            kind = TrackEntryMutationKind.Delete,
+            trackId = current.form.track.id,
+            trackUuid = current.form.track.uuid,
+            entryId = current.entry.id,
+            entryUuid = current.entry.uuid,
+            changed = true,
+            alreadyApplied = false,
+            affectedValueCount = current.values.size,
+            postBoundary = null,
+            deletedEntry = deleted,
+        )
     }
 
-    override suspend fun deleteEntry(entryId: Long): DeletedTrackEntry? = database.withTransaction {
-        val entry = dao.getEntry(entryId) ?: return@withTransaction null
-        val values = dao.getValues(entryId)
-        dao.deleteSearch(entryId)
-        check(dao.deleteEntry(entryId) == 1) { "Entry no longer exists" }
-        DeletedTrackEntry(entry.toDomain(), values.map(TrackValueEntity::toDomain))
-    }
-
-    override suspend fun restoreEntry(deleted: DeletedTrackEntry): Long = database.withTransaction {
-        require(dao.getEntryByUuid(deleted.entry.uuid) == null) { "Entry has already been restored" }
-        requireNotNull(dao.getTrack(deleted.entry.trackId)) { "Track no longer exists" }
+    override suspend fun restoreEntry(deleted: DeletedTrackEntry): TrackEntryMutationReceipt = database.withTransaction {
+        dao.getEntryByUuid(deleted.entry.uuid)?.let { existing ->
+            val current = loadEntrySnapshot(existing.id) ?: throw TrackEntryConflictException(
+                TrackEntryConflictKind.IdentityCollision,
+                "The restored Entry identity could not be verified.",
+            )
+            if (
+                current.form.track.id != deleted.openingFormBoundary.trackId ||
+                current.form.track.uuid != deleted.openingFormBoundary.trackUuid ||
+                current.form.track.createdAtMillis != deleted.openingFormBoundary.trackCreatedAtMillis
+            ) {
+                throw TrackEntryConflictException(
+                    TrackEntryConflictKind.IdentityCollision,
+                    "An Entry with this stable identity exists under a different Track identity.",
+                )
+            }
+            if (
+                current.matchesDeleted(deleted) &&
+                restoredOccurrencesMatch(deleted.fulfilledOccurrences, existing.id) &&
+                sourceOccurrenceMatches(deleted, existing.id)
+            ) {
+                return@withTransaction current.receipt(
+                    kind = TrackEntryMutationKind.Restore,
+                    changed = false,
+                    alreadyApplied = true,
+                )
+            }
+            throw TrackEntryConflictException(
+                TrackEntryConflictKind.IdentityCollision,
+                "An Entry with this stable identity already exists with different history.",
+            )
+        }
+        val form = loadEntryFormSnapshot(deleted.entry.trackId) ?: throw TrackEntryConflictException(
+            TrackEntryConflictKind.ParentMissing,
+            "The Track for this deleted Entry no longer exists.",
+        )
+        validateRestoreCompatibility(deleted, form)
+        validateOccurrencesBeforeRestore(deleted)
         val restoredId = dao.insertEntry(
             TrackEntryEntity(
                 uuid = deleted.entry.uuid,
@@ -649,16 +933,29 @@ class RoomTrackRepository(
                 sourceOccurrenceId = deleted.entry.sourceOccurrenceId,
                 sourceExplanation = deleted.entry.sourceExplanation,
                 createdAtMillis = deleted.entry.createdAtMillis,
-                updatedAtMillis = clock.now().toEpochMilli(),
+                updatedAtMillis = deleted.entry.updatedAtMillis,
             ),
         )
         deleted.values.forEach { value ->
             dao.upsertValue(
-                value.toEntity(entryId = restoredId, id = 0, updatedAtMillis = clock.now().toEpochMilli()),
+                value.toEntity(entryId = restoredId, id = 0, updatedAtMillis = value.updatedAtMillis),
             )
         }
+        deleted.fulfilledOccurrences.forEach { occurrence ->
+            check(linkDao.restoreTriggerOccurrenceFulfillment(occurrence.id, restoredId) == 1) {
+                "Trigger occurrence changed before Entry restoration"
+            }
+        }
         rebuildSearchEntry(deleted.entry.trackId, restoredId)
-        restoredId
+        val restored = requireNotNull(loadEntrySnapshot(restoredId))
+        check(
+            restored.matchesDeleted(deleted) &&
+                restoredOccurrencesMatch(deleted.fulfilledOccurrences, restoredId) &&
+                sourceOccurrenceMatches(deleted, restoredId),
+        ) {
+            "Entry restoration did not preserve its exact history"
+        }
+        restored.receipt(kind = TrackEntryMutationKind.Restore, changed = true, alreadyApplied = false)
     }
 
     override suspend fun projection(trackId: Long): TrackProjection? = database.withTransaction {
@@ -971,25 +1268,141 @@ class RoomTrackRepository(
         }
     }
 
-    private suspend fun upsertDraftValues(
+    private fun requireGenericEntryProvenance(draft: TrackEntryDraft) {
+        if (draft.sourceOccurrenceId != null || draft.sourceExplanation.isNotBlank()) {
+            throw TrackEntryConflictException(
+                TrackEntryConflictKind.ProvenanceChanged,
+                "Automation provenance can only be authored by the trusted prompt workflow.",
+            )
+        }
+    }
+
+    private suspend fun normalizeEntryDraft(
+        boundary: TrackEntryFormBoundary,
+        draft: TrackEntryDraft,
+        verifyLiveUnits: Boolean,
+    ): NormalizedTrackEntryDraft {
+        val fields = boundary.fieldContracts.map(TrackEntryFieldContract::toDomain)
+        val options = boundary.choiceContracts.map(TrackEntryChoiceContract::toDomain)
+        validateTrackEntryDraft(fields, options, draft)
+        val fieldByUuid = fields.associateBy(TrackField::uuid)
+        val expectedUnitById = boundary.unitContracts.associateBy(TrackEntryUnitContract::id)
+        val normalized = linkedMapOf<Long, NormalizedTrackValue>()
+        draft.values.forEach { (fieldUuid, value) ->
+            val field = requireNotNull(fieldByUuid[fieldUuid]) { "Entry contains a Field that no longer exists" }
+            val selectedUnit = if (field.type == TrackFieldType.Number) {
+                val unitId = value.enteredUnitId ?: field.unitId
+                val expected = unitId?.let(expectedUnitById::get) ?: throw TrackEntryConflictException(
+                    TrackEntryConflictKind.FormChanged,
+                    "${field.name}'s unit was not available when this Entry form opened.",
+                )
+                require(expected.dimension == field.dimension) { "${field.name}'s entry unit is incompatible" }
+                if (verifyLiveUnits) {
+                    val live = resolveUnit(expected.id)?.toEntryContract()
+                    if (live != expected) {
+                        throw TrackEntryConflictException(
+                            TrackEntryConflictKind.FormChanged,
+                            "${field.name}'s selected unit changed while this Entry form was open.",
+                        )
+                    }
+                }
+                expected
+            } else {
+                null
+            }
+            if (value.isBlankFor(field.type)) return@forEach
+            normalized[field.id] = when (field.type) {
+                TrackFieldType.ShortText, TrackFieldType.LongText -> NormalizedTrackValue(
+                    fieldId = field.id,
+                    textValue = value.textValue?.trim(),
+                )
+                TrackFieldType.Number -> NormalizedTrackValue(
+                    fieldId = field.id,
+                    enteredNumber = value.enteredNumber,
+                    canonicalNumber = value.enteredNumber?.let { entered ->
+                        val unit = requireNotNull(selectedUnit)
+                        ((entered + unit.toCanonicalOffset) * unit.toCanonicalFactor).also { canonical ->
+                            require(canonical.isFinite()) { "${field.name}'s converted value is too large" }
+                        }
+                    },
+                    enteredUnitId = requireNotNull(selectedUnit).id,
+                )
+                TrackFieldType.SingleChoice -> NormalizedTrackValue(
+                    fieldId = field.id,
+                    choiceOptionId = options.first { option ->
+                        option.fieldId == field.id && option.uuid == value.choiceOptionUuid
+                    }.id,
+                )
+                TrackFieldType.Scale -> NormalizedTrackValue(
+                    fieldId = field.id,
+                    scaleValue = normalizeTrackScaleValue(
+                        requireNotNull(value.scaleValue),
+                        requireNotNull(field.scaleMin),
+                        requireNotNull(field.scaleMax),
+                        field.scaleStep,
+                    ),
+                )
+                TrackFieldType.Date -> NormalizedTrackValue(
+                    fieldId = field.id,
+                    dateEpochDay = value.dateValue?.toEpochDay(),
+                )
+                TrackFieldType.YesNo -> NormalizedTrackValue(
+                    fieldId = field.id,
+                    booleanValue = value.booleanValue,
+                )
+            }
+        }
+        return NormalizedTrackEntryDraft(draft.entryDate, normalized)
+    }
+
+    private suspend fun insertEntryLocked(
+        form: TrackEntryFormRows,
+        entryUuid: String,
+        normalized: NormalizedTrackEntryDraft,
+        sourceOccurrenceId: Long?,
+        sourceExplanation: String,
+    ): TrackEntrySnapshot {
+        val now = clock.now().toEpochMilli()
+        val entryId = dao.insertEntry(
+            TrackEntryEntity(
+                uuid = entryUuid,
+                trackId = form.track.id,
+                entryEpochDay = normalized.entryDate.toEpochDay(),
+                sourceOccurrenceId = sourceOccurrenceId,
+                sourceExplanation = sourceExplanation.trim(),
+                createdAtMillis = now,
+                updatedAtMillis = now,
+            ),
+        )
+        upsertNormalizedValues(entryId, normalized.values, emptyMap(), now)
+        rebuildSearchEntry(form.track.id, entryId)
+        return requireNotNull(loadEntrySnapshot(entryId))
+    }
+
+    private suspend fun upsertNormalizedValues(
         entryId: Long,
-        fields: List<TrackField>,
-        options: List<TrackChoiceOption>,
-        values: Map<String, TrackValueDraft>,
+        values: Map<Long, NormalizedTrackValue>,
         existingValues: Map<Long, TrackValueEntity>,
         now: Long,
     ) {
-        fields.forEach { field ->
-            val value = values[field.uuid] ?: return@forEach
-            if (value.isBlankFor(field.type)) return@forEach
-            val current = existingValues[field.id]
+        values.forEach { (fieldId, value) ->
+            val current = existingValues[fieldId]
             dao.upsertValue(
-                value.toEntity(
+                TrackValueEntity(
+                    id = current?.id ?: 0,
+                    uuid = current?.uuid ?: ids.nextId(),
                     entryId = entryId,
-                    field = field,
-                    options = options.filter { it.fieldId == field.id },
-                    current = current,
-                    now = now,
+                    fieldId = fieldId,
+                    textValue = value.textValue,
+                    enteredNumber = value.enteredNumber,
+                    canonicalNumber = value.canonicalNumber,
+                    enteredUnitId = value.enteredUnitId,
+                    dateEpochDay = value.dateEpochDay,
+                    booleanValue = value.booleanValue,
+                    choiceOptionId = value.choiceOptionId,
+                    scaleValue = value.scaleValue,
+                    createdAtMillis = current?.createdAtMillis ?: now,
+                    updatedAtMillis = now,
                 ),
             )
         }
@@ -1104,41 +1517,316 @@ class RoomTrackRepository(
             )
         }
 
-    private suspend fun TrackValueDraft.toEntity(
-        entryId: Long,
-        field: TrackField,
-        options: List<TrackChoiceOption>,
-        current: TrackValueEntity?,
-        now: Long,
-    ): TrackValueEntity {
-        val numberUnit = enteredUnitId?.let { resolveUnit(it) }
-            ?: field.unitId?.let { resolveUnit(it) }
-        if (field.type == TrackFieldType.Number) {
-            require(numberUnit?.dimension == field.dimension) { "${field.name}'s entry unit is incompatible" }
+    private suspend fun validateRestoreCompatibility(
+        deleted: DeletedTrackEntry,
+        currentForm: TrackEntryFormRows,
+    ) {
+        val opening = deleted.openingFormBoundary
+        if (
+            currentForm.track.id != opening.trackId || currentForm.track.uuid != opening.trackUuid ||
+            currentForm.track.createdAtMillis != opening.trackCreatedAtMillis
+        ) {
+            throw TrackEntryConflictException(
+                TrackEntryConflictKind.IdentityChanged,
+                "The deleted Entry's Track identity is no longer available.",
+            )
         }
-        return TrackValueEntity(
-            id = current?.id ?: 0,
-            uuid = current?.uuid ?: ids.nextId(),
-            entryId = entryId,
-            fieldId = field.id,
-            textValue = textValue?.trim().takeIf { field.type in setOf(TrackFieldType.ShortText, TrackFieldType.LongText) },
-            enteredNumber = enteredNumber.takeIf { field.type == TrackFieldType.Number },
-            canonicalNumber = if (field.type == TrackFieldType.Number) {
-                enteredNumber?.let { requireNotNull(numberUnit).toCanonical(it) }
-            } else {
-                null
+        require(deleted.values.map(TrackFieldValue::uuid).distinct().size == deleted.values.size) {
+            "Deleted Entry contains duplicate value identities"
+        }
+        require(deleted.values.map(TrackFieldValue::fieldId).distinct().size == deleted.values.size) {
+            "Deleted Entry contains duplicate Field values"
+        }
+        val openingFields = opening.fieldContracts.associateBy(TrackEntryFieldContract::id)
+        val currentFields = currentForm.fields.associateBy(TrackFieldEntity::id)
+        val openingChoices = opening.choiceContracts.associateBy(TrackEntryChoiceContract::id)
+        val currentChoices = currentForm.options.associateBy(TrackChoiceOptionEntity::id)
+        val openingUnits = opening.unitContracts.associateBy(TrackEntryUnitContract::id)
+        deleted.values.forEach { value ->
+            dao.getValueByUuid(value.uuid)?.let {
+                throw TrackEntryConflictException(
+                    TrackEntryConflictKind.IdentityCollision,
+                    "A saved value already uses the deleted value's stable identity.",
+                )
+            }
+            val beforeField = openingFields[value.fieldId] ?: restoreConflict("A deleted value's Field contract is missing.")
+            val field = currentFields[value.fieldId] ?: restoreConflict("A deleted value's Field no longer exists.")
+            if (
+                field.uuid != beforeField.uuid || field.trackId != currentForm.track.id ||
+                field.type != beforeField.type.name
+            ) {
+                restoreConflict("A deleted value's Field identity or type changed.")
+            }
+            validateStoredValueShape(value, beforeField.type)
+            when (beforeField.type) {
+                TrackFieldType.Number -> {
+                    if (field.dimension != beforeField.dimension?.name) {
+                        restoreConflict("A deleted Number value's measurement type changed.")
+                    }
+                    val unitId = value.enteredUnitId ?: restoreConflict("A deleted Number value has no unit.")
+                    val beforeUnit = openingUnits[unitId] ?: restoreConflict("A deleted Number value's unit contract is missing.")
+                    val currentUnit = resolveUnit(unitId)?.toEntryContract()
+                        ?: restoreConflict("A deleted Number value's unit no longer exists.")
+                    if (!currentUnit.sameStoredNumberSemanticsAs(beforeUnit) || currentUnit.dimension.name != field.dimension) {
+                        restoreConflict("A deleted Number value's unit semantics changed.")
+                    }
+                }
+                TrackFieldType.SingleChoice -> {
+                    val choiceId = value.choiceOptionId ?: restoreConflict("A deleted Choice value is incomplete.")
+                    val beforeChoice = openingChoices[choiceId] ?: restoreConflict("A deleted Choice contract is missing.")
+                    val choice = currentChoices[choiceId] ?: restoreConflict("A deleted Choice no longer exists.")
+                    if (choice.uuid != beforeChoice.uuid || choice.fieldId != field.id || beforeChoice.fieldId != field.id) {
+                        restoreConflict("A deleted Choice identity or ownership changed.")
+                    }
+                }
+                TrackFieldType.Scale -> {
+                    val scale = value.scaleValue ?: restoreConflict("A deleted Scale value is incomplete.")
+                    if (
+                        normalizeTrackScaleValue(
+                            scale,
+                            field.scaleMin ?: restoreConflict("The Scale minimum is missing."),
+                            field.scaleMax ?: restoreConflict("The Scale maximum is missing."),
+                            field.scaleStep,
+                        ) == null
+                    ) {
+                        restoreConflict("A deleted Scale value no longer fits the current Scale.")
+                    }
+                }
+                else -> Unit
+            }
+        }
+        deleted.entry.sourceOccurrenceId?.let { sourceId ->
+            if (deleted.sourceOccurrence?.id != sourceId) {
+                throw TrackEntryConflictException(
+                    TrackEntryConflictKind.ProvenanceChanged,
+                    "The deleted Entry's exact source occurrence was not captured.",
+                )
+            }
+        }
+    }
+
+    private suspend fun validateOccurrencesBeforeRestore(deleted: DeletedTrackEntry) {
+        require(deleted.fulfilledOccurrences.map(TrackEntryFulfillmentSnapshot::id).distinct().size == deleted.fulfilledOccurrences.size) {
+            "Deleted Entry contains duplicate occurrence identities"
+        }
+        val exactOccurrences = (deleted.fulfilledOccurrences + listOfNotNull(deleted.sourceOccurrence))
+            .distinctBy(TrackEntryFulfillmentSnapshot::id)
+        exactOccurrences.forEach { expected ->
+            val fulfilledThisEntry = expected.fulfilledEntryId == deleted.entry.id
+            if (expected.fulfilledEntryId != deleted.entry.id) {
+                if (deleted.fulfilledOccurrences.any { it.id == expected.id }) {
+                    throw TrackEntryConflictException(
+                        TrackEntryConflictKind.ProvenanceChanged,
+                        "A saved fulfillment occurrence does not belong to this deleted Entry.",
+                    )
+                }
+            }
+            val current = linkDao.getTriggerOccurrence(expected.id)
+            val expectedAfterDelete = expected.copy(
+                fulfilledEntryId = if (fulfilledThisEntry) null else expected.fulfilledEntryId,
+            )
+            if (current?.toTrackEntrySnapshot() != expectedAfterDelete) {
+                throw TrackEntryConflictException(
+                    TrackEntryConflictKind.ProvenanceChanged,
+                    "A source occurrence changed before this Entry could be restored.",
+                )
+            }
+        }
+    }
+
+    private suspend fun restoredOccurrencesMatch(
+        expected: List<TrackEntryFulfillmentSnapshot>,
+        restoredEntryId: Long,
+    ): Boolean = expected.all { occurrence ->
+        linkDao.getTriggerOccurrence(occurrence.id)?.toTrackEntrySnapshot() ==
+            occurrence.copy(fulfilledEntryId = restoredEntryId)
+    }
+
+    private suspend fun sourceOccurrenceMatches(deleted: DeletedTrackEntry, restoredEntryId: Long): Boolean {
+        val expected = deleted.sourceOccurrence ?: return deleted.entry.sourceOccurrenceId == null
+        val fulfilledId = if (expected.fulfilledEntryId == deleted.entry.id) restoredEntryId else expected.fulfilledEntryId
+        return linkDao.getTriggerOccurrence(expected.id)?.toTrackEntrySnapshot() ==
+            expected.copy(fulfilledEntryId = fulfilledId)
+    }
+
+    private fun restoreConflict(message: String): Nothing = throw TrackEntryConflictException(
+        TrackEntryConflictKind.RestoreIncompatible,
+        message,
+    )
+
+}
+
+private data class TrackEntryFormRows(
+    val track: TrackEntity,
+    val fields: List<TrackFieldEntity>,
+    val options: List<TrackChoiceOptionEntity>,
+    val units: List<UnitDefinition>,
+) {
+    fun boundary(): TrackEntryFormBoundary {
+        val fieldContracts = fields.map(TrackFieldEntity::toEntryContract)
+        val choiceContracts = options.map(TrackChoiceOptionEntity::toEntryContract)
+        val unitContracts = units.map(UnitDefinition::toEntryContract).sortedBy(TrackEntryUnitContract::id)
+        val unitById = unitContracts.associateBy(TrackEntryUnitContract::id)
+        return TrackEntryFormBoundary(
+            trackId = track.id,
+            trackUuid = track.uuid,
+            trackCreatedAtMillis = track.createdAtMillis,
+            writable = !track.archived,
+            semanticRevisionToken = canonicalTrackRevision {
+                value("track.id", track.id)
+                value("track.uuid", track.uuid)
+                value("track.created", track.createdAtMillis)
+                value("track.writable", !track.archived)
+                fieldContracts.sortedBy(TrackEntryFieldContract::id).forEach(::row)
+                choiceContracts.sortedBy(TrackEntryChoiceContract::id).forEach(::row)
+                // Non-default units are carried for selected-unit validation but
+                // do not invalidate a form unless the user actually chose them.
+                fieldContracts.filter { it.type == TrackFieldType.Number }
+                    .mapNotNull(TrackEntryFieldContract::unitId)
+                    .distinct()
+                    .sorted()
+                    .forEach { unitId ->
+                        value("defaultUnit.id", unitId)
+                        unitById[unitId]?.let(::row)
+                    }
             },
-            enteredUnitId = numberUnit?.id.takeIf { field.type == TrackFieldType.Number },
-            dateEpochDay = dateValue?.toEpochDay().takeIf { field.type == TrackFieldType.Date },
-            booleanValue = booleanValue.takeIf { field.type == TrackFieldType.YesNo },
-            choiceOptionId = choiceOptionUuid?.let { uuid -> options.first { it.uuid == uuid }.id }
-                .takeIf { field.type == TrackFieldType.SingleChoice },
-            scaleValue = scaleValue.takeIf { field.type == TrackFieldType.Scale },
-            createdAtMillis = current?.createdAtMillis ?: now,
-            updatedAtMillis = now,
+            fieldContracts = fieldContracts,
+            choiceContracts = choiceContracts,
+            unitContracts = unitContracts,
         )
     }
+
+    fun toDomainSnapshot(): TrackEntryFormSnapshot = TrackEntryFormSnapshot(
+        boundary = boundary(),
+        track = track.toDomain(),
+        fields = fields.map(TrackFieldEntity::toDomain),
+        options = options.map(TrackChoiceOptionEntity::toDomain),
+        units = units.map(UnitDefinition::toEntryContract),
+    )
 }
+
+private data class TrackEntrySnapshot(
+    val form: TrackEntryFormRows,
+    val entry: TrackEntryEntity,
+    val values: List<TrackValueEntity>,
+) {
+    fun boundary(): TrackEntryBoundary {
+        val enteredUnits = values.mapNotNull(TrackValueEntity::enteredUnitId)
+            .distinct()
+            .mapNotNull { id -> form.units.firstOrNull { it.id == id } }
+            .map(UnitDefinition::toEntryContract)
+            .sortedBy(TrackEntryUnitContract::id)
+        return TrackEntryBoundary(
+            formBoundary = form.boundary(),
+            entryId = entry.id,
+            entryUuid = entry.uuid,
+            entryCreatedAtMillis = entry.createdAtMillis,
+            semanticRevisionToken = canonicalTrackRevision {
+                value("entry.id", entry.id)
+                value("entry.uuid", entry.uuid)
+                value("entry.trackId", entry.trackId)
+                value("entry.date", entry.entryEpochDay)
+                value("entry.sourceOccurrenceId", entry.sourceOccurrenceId)
+                value("entry.sourceExplanation", entry.sourceExplanation)
+                values.sortedBy(TrackValueEntity::id).forEach(::entryRow)
+                enteredUnits.forEach(::row)
+            },
+            enteredUnitContracts = enteredUnits,
+        )
+    }
+
+    fun toEditSnapshot(): TrackEntryEditSnapshot {
+        val domainFields = form.fields.map(TrackFieldEntity::toDomain)
+        val domainOptions = form.options.map(TrackChoiceOptionEntity::toDomain)
+        val valueByField = values.associateBy(TrackValueEntity::fieldId)
+        val draft = TrackEntryDraft(
+            entryDate = LocalDate.ofEpochDay(entry.entryEpochDay),
+            values = domainFields.associate { field ->
+                val value = valueByField[field.id]
+                field.uuid to TrackValueDraft(
+                    textValue = value?.textValue,
+                    enteredNumber = value?.enteredNumber,
+                    enteredUnitId = value?.enteredUnitId ?: field.unitId,
+                    dateValue = value?.dateEpochDay?.let(LocalDate::ofEpochDay),
+                    booleanValue = value?.booleanValue,
+                    choiceOptionUuid = domainOptions.firstOrNull { it.id == value?.choiceOptionId }?.uuid,
+                    scaleValue = value?.scaleValue,
+                )
+            },
+        )
+        val domainEntry = entry.toDomain()
+        val domainValues = values.map(TrackValueEntity::toDomain).associateBy(TrackFieldValue::fieldId)
+        val projection = TrackProjection(
+            track = form.track.toDomain(),
+            fields = domainFields,
+            options = domainOptions,
+            entries = listOf(TrackEntryProjection(domainEntry, domainValues)),
+        )
+        return TrackEntryEditSnapshot(
+            boundary = boundary(),
+            form = form.toDomainSnapshot(),
+            draft = draft,
+            displayName = projection.primaryText(projection.entries.single()),
+            populatedValueCount = values.size,
+        )
+    }
+
+    fun matches(
+        normalized: NormalizedTrackEntryDraft,
+        sourceOccurrenceId: Long?,
+        sourceExplanation: String,
+    ): Boolean =
+        entry.entryEpochDay == normalized.entryDate.toEpochDay() &&
+            entry.sourceOccurrenceId == sourceOccurrenceId &&
+            entry.sourceExplanation == sourceExplanation &&
+            values.associateBy(TrackValueEntity::fieldId).let { current ->
+                current.keys == normalized.values.keys && normalized.values.all { (fieldId, expected) ->
+                    current[fieldId]?.matches(expected) == true
+                }
+            }
+
+    fun matchesDeleted(deleted: DeletedTrackEntry): Boolean =
+        entry.uuid == deleted.entry.uuid && entry.trackId == deleted.entry.trackId &&
+            entry.entryEpochDay == deleted.entry.entryDate.toEpochDay() &&
+            entry.sourceOccurrenceId == deleted.entry.sourceOccurrenceId &&
+            entry.sourceExplanation == deleted.entry.sourceExplanation &&
+            entry.createdAtMillis == deleted.entry.createdAtMillis &&
+            entry.updatedAtMillis == deleted.entry.updatedAtMillis &&
+            values.matchDeleted(deleted.values)
+
+    fun receipt(
+        kind: TrackEntryMutationKind,
+        changed: Boolean,
+        alreadyApplied: Boolean,
+    ): TrackEntryMutationReceipt = TrackEntryMutationReceipt(
+        kind = kind,
+        trackId = form.track.id,
+        trackUuid = form.track.uuid,
+        entryId = entry.id,
+        entryUuid = entry.uuid,
+        changed = changed,
+        alreadyApplied = alreadyApplied,
+        affectedValueCount = values.size,
+        postBoundary = boundary(),
+    )
+}
+
+private data class NormalizedTrackEntryDraft(
+    val entryDate: LocalDate,
+    val values: Map<Long, NormalizedTrackValue>,
+)
+
+private data class NormalizedTrackValue(
+    val fieldId: Long,
+    val textValue: String? = null,
+    val enteredNumber: Double? = null,
+    val canonicalNumber: Double? = null,
+    val enteredUnitId: String? = null,
+    val dateEpochDay: Long? = null,
+    val booleanValue: Boolean? = null,
+    val choiceOptionId: Long? = null,
+    val scaleValue: Double? = null,
+)
 
 private data class TrackDefinitionSnapshot(
     val track: TrackEntity,
@@ -1311,6 +1999,189 @@ private class CanonicalTrackRevisionBuilder {
 
 private inline fun canonicalTrackRevision(block: CanonicalTrackRevisionBuilder.() -> Unit): String =
     CanonicalTrackRevisionBuilder().apply(block).digest()
+
+private fun TrackEntryFormBoundary.sameContractAs(other: TrackEntryFormBoundary): Boolean =
+    trackId == other.trackId && trackUuid == other.trackUuid &&
+        trackCreatedAtMillis == other.trackCreatedAtMillis && writable == other.writable &&
+        semanticRevisionToken == other.semanticRevisionToken
+
+private fun TrackFieldEntity.toEntryContract() = TrackEntryFieldContract(
+    id = id,
+    uuid = uuid,
+    trackId = trackId,
+    name = name,
+    type = TrackFieldType.valueOf(type),
+    required = required,
+    primary = primaryField,
+    dimension = dimension?.let(UnitDimension::valueOf),
+    unitId = unitId,
+    precision = precision,
+    scaleMin = scaleMin,
+    scaleMax = scaleMax,
+    scaleLowLabel = scaleLowLabel,
+    scaleHighLabel = scaleHighLabel,
+    scaleStep = scaleStep,
+)
+
+private fun TrackChoiceOptionEntity.toEntryContract() = TrackEntryChoiceContract(
+    id = id,
+    uuid = uuid,
+    fieldId = fieldId,
+    label = label,
+)
+
+private fun UnitDefinition.toEntryContract() = TrackEntryUnitContract(
+    id = id,
+    name = name,
+    symbol = symbol,
+    dimension = dimension,
+    toCanonicalFactor = toCanonicalFactor,
+    toCanonicalOffset = toCanonicalOffset,
+    archived = archived,
+)
+
+private fun TrackEntryFieldContract.toDomain() = TrackField(
+    id = id,
+    uuid = uuid,
+    trackId = trackId,
+    name = name,
+    type = type,
+    position = 0,
+    required = required,
+    primary = primary,
+    showInList = false,
+    dimension = dimension,
+    unitId = unitId,
+    precision = precision,
+    scaleMin = scaleMin,
+    scaleMax = scaleMax,
+    scaleLowLabel = scaleLowLabel,
+    scaleHighLabel = scaleHighLabel,
+    createdAtMillis = 0,
+    updatedAtMillis = 0,
+    scaleStep = scaleStep,
+)
+
+private fun TrackEntryChoiceContract.toDomain() = TrackChoiceOption(
+    id = id,
+    uuid = uuid,
+    fieldId = fieldId,
+    label = label,
+    position = 0,
+    createdAtMillis = 0,
+    updatedAtMillis = 0,
+)
+
+private fun CanonicalTrackRevisionBuilder.row(contract: TrackEntryFieldContract) {
+    value("form.field.id", contract.id); value("form.field.uuid", contract.uuid)
+    value("form.field.trackId", contract.trackId); value("form.field.name", contract.name)
+    value("form.field.type", contract.type.name); value("form.field.required", contract.required)
+    value("form.field.primary", contract.primary); value("form.field.dimension", contract.dimension?.name)
+    value("form.field.unitId", contract.unitId); value("form.field.precision", contract.precision)
+    value("form.field.scaleMin", contract.scaleMin); value("form.field.scaleMax", contract.scaleMax)
+    value("form.field.scaleLowLabel", contract.scaleLowLabel); value("form.field.scaleHighLabel", contract.scaleHighLabel)
+    value("form.field.scaleStep", contract.scaleStep)
+}
+
+private fun CanonicalTrackRevisionBuilder.row(contract: TrackEntryChoiceContract) {
+    value("form.choice.id", contract.id); value("form.choice.uuid", contract.uuid)
+    value("form.choice.fieldId", contract.fieldId); value("form.choice.label", contract.label)
+}
+
+private fun CanonicalTrackRevisionBuilder.row(contract: TrackEntryUnitContract) {
+    value("form.unit.id", contract.id); value("form.unit.name", contract.name)
+    value("form.unit.symbol", contract.symbol); value("form.unit.dimension", contract.dimension.name)
+    value("form.unit.factor", contract.toCanonicalFactor); value("form.unit.offset", contract.toCanonicalOffset)
+    value("form.unit.archived", contract.archived)
+}
+
+private fun CanonicalTrackRevisionBuilder.entryRow(row: TrackValueEntity) {
+    value("entry.value.id", row.id); value("entry.value.uuid", row.uuid)
+    value("entry.value.entryId", row.entryId); value("entry.value.fieldId", row.fieldId)
+    value("entry.value.text", row.textValue); value("entry.value.enteredNumber", row.enteredNumber)
+    value("entry.value.canonicalNumber", row.canonicalNumber); value("entry.value.unit", row.enteredUnitId)
+    value("entry.value.date", row.dateEpochDay); value("entry.value.boolean", row.booleanValue)
+    value("entry.value.choice", row.choiceOptionId); value("entry.value.scale", row.scaleValue)
+}
+
+private fun TrackValueEntity.matches(expected: NormalizedTrackValue): Boolean =
+    fieldId == expected.fieldId && textValue == expected.textValue &&
+        enteredNumber.rawEquals(expected.enteredNumber) && canonicalNumber.rawEquals(expected.canonicalNumber) &&
+        enteredUnitId == expected.enteredUnitId && dateEpochDay == expected.dateEpochDay &&
+        booleanValue == expected.booleanValue && choiceOptionId == expected.choiceOptionId &&
+        scaleValue.rawEquals(expected.scaleValue)
+
+private fun List<TrackValueEntity>.matchDeleted(expected: List<TrackFieldValue>): Boolean {
+    if (size != expected.size) return false
+    val expectedByUuid = expected.associateBy(TrackFieldValue::uuid)
+    return all { current ->
+        val old = expectedByUuid[current.uuid] ?: return@all false
+        current.fieldId == old.fieldId && current.textValue == old.textValue &&
+            current.enteredNumber.rawEquals(old.enteredNumber) && current.canonicalNumber.rawEquals(old.canonicalNumber) &&
+            current.enteredUnitId == old.enteredUnitId && current.dateEpochDay == old.dateValue?.toEpochDay() &&
+            current.booleanValue == old.booleanValue && current.choiceOptionId == old.choiceOptionId &&
+            current.scaleValue.rawEquals(old.scaleValue) && current.createdAtMillis == old.createdAtMillis &&
+            current.updatedAtMillis == old.updatedAtMillis
+    }
+}
+
+private fun Double?.rawEquals(other: Double?): Boolean = when {
+    this == null || other == null -> this == null && other == null
+    else -> java.lang.Double.doubleToRawLongBits(this) == java.lang.Double.doubleToRawLongBits(other)
+}
+
+private fun TrackEntryUnitContract.sameStoredNumberSemanticsAs(other: TrackEntryUnitContract): Boolean =
+    id == other.id && dimension == other.dimension &&
+        toCanonicalFactor.rawEquals(other.toCanonicalFactor) &&
+        toCanonicalOffset.rawEquals(other.toCanonicalOffset)
+
+private fun TriggerOccurrenceEntity.toTrackEntrySnapshot() = TrackEntryFulfillmentSnapshot(
+    id = id,
+    triggerRuleId = triggerRuleId,
+    sourceEventId = sourceEventId,
+    availableAtMillis = availableAtMillis,
+    deliveredAtMillis = deliveredAtMillis,
+    dismissedAtMillis = dismissedAtMillis,
+    remindAtMillis = remindAtMillis,
+    fulfilledEntryId = fulfilledEntryId,
+    sourceSnapshot = sourceSnapshot,
+)
+
+private fun validateStoredValueShape(value: TrackFieldValue, type: TrackFieldType) {
+    val valid = when (type) {
+        TrackFieldType.ShortText, TrackFieldType.LongText ->
+            value.textValue != null && value.enteredNumber == null && value.canonicalNumber == null &&
+                value.enteredUnitId == null && value.dateValue == null && value.booleanValue == null &&
+                value.choiceOptionId == null && value.scaleValue == null
+        TrackFieldType.Number ->
+            value.textValue == null && value.enteredNumber?.isFinite() == true &&
+                value.canonicalNumber?.isFinite() == true && value.enteredUnitId != null &&
+                value.dateValue == null && value.booleanValue == null && value.choiceOptionId == null &&
+                value.scaleValue == null
+        TrackFieldType.SingleChoice ->
+            value.textValue == null && value.enteredNumber == null && value.canonicalNumber == null &&
+                value.enteredUnitId == null && value.dateValue == null && value.booleanValue == null &&
+                value.choiceOptionId != null && value.scaleValue == null
+        TrackFieldType.Scale ->
+            value.textValue == null && value.enteredNumber == null && value.canonicalNumber == null &&
+                value.enteredUnitId == null && value.dateValue == null && value.booleanValue == null &&
+                value.choiceOptionId == null && value.scaleValue?.isFinite() == true
+        TrackFieldType.Date ->
+            value.textValue == null && value.enteredNumber == null && value.canonicalNumber == null &&
+                value.enteredUnitId == null && value.dateValue != null && value.booleanValue == null &&
+                value.choiceOptionId == null && value.scaleValue == null
+        TrackFieldType.YesNo ->
+            value.textValue == null && value.enteredNumber == null && value.canonicalNumber == null &&
+                value.enteredUnitId == null && value.dateValue == null && value.booleanValue != null &&
+                value.choiceOptionId == null && value.scaleValue == null
+    }
+    if (!valid) {
+        throw TrackEntryConflictException(
+            TrackEntryConflictKind.RestoreIncompatible,
+            "A deleted value no longer has a valid ${type.name} shape.",
+        )
+    }
+}
 
 private fun trackRemovalRevision(
     definitionRevisionToken: String,

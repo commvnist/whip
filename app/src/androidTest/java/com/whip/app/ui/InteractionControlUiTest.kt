@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
@@ -1319,10 +1320,168 @@ class InteractionControlUiTest {
         }
 
         compose.onNodeWithTag("track-entry-number-temperature").performTextReplacement("-")
-        compose.onNodeWithTag("track-entry-number-temperature").assertTextEquals("°C", "-")
-        compose.runOnIdle { assertEquals(null, value.enteredNumber) }
+        val partialInput = compose.onNodeWithTag("track-entry-number-temperature")
+            .fetchSemanticsNode().config[SemanticsProperties.EditableText]
+        assertEquals("-", partialInput.text)
+        compose.runOnIdle {
+            assertEquals(null, value.enteredNumber)
+        }
 
         compose.onNodeWithTag("track-entry-number-temperature").performTextReplacement("-12.345678")
         compose.runOnIdle { assertEquals(-12.345678, value.enteredNumber ?: 0.0, 0.0) }
     }
+
+    @Test
+    fun optionalMalformedTrackNumberIsNamedAndAnnouncesItsValidationError() {
+        val field = numberTrackField()
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                TrackEntryField(
+                    field = field,
+                    value = TrackValueDraft(enteredUnitId = "celsius"),
+                    options = emptyList(),
+                    units = BuiltInUnits.all,
+                    showError = true,
+                    errorMessage = "Enter a valid Temperature",
+                    numberText = "-",
+                    onNumberText = {},
+                    onValue = {},
+                )
+            }
+        }
+
+        val input = compose.onNodeWithTag("track-entry-number-temperature")
+            .fetchSemanticsNode().config
+        assertEquals("-", input[SemanticsProperties.EditableText].text)
+        assertTrue(input[SemanticsProperties.ContentDescription].single().contains("Temperature"))
+        assertEquals("Enter a valid Temperature", input[SemanticsProperties.Error])
+        val error = compose.onNodeWithContentDescription("Enter a valid Temperature")
+            .assertIsDisplayed()
+            .fetchSemanticsNode().config
+        assertEquals(LiveRegionMode.Polite, error[SemanticsProperties.LiveRegion])
+    }
+
+    @Test
+    fun trackNumberUnitSelectorKeepsTheUsersActiveNonDefaultUnitSelected() {
+        val units = listOf(
+            UnitDefinition("kilograms", "kilograms", "kg", UnitDimension.Mass, 1.0),
+            UnitDefinition("pounds", "pounds", "lb", UnitDimension.Mass, 0.45359237),
+        )
+        var value by mutableStateOf(TrackValueDraft(enteredNumber = 225.0, enteredUnitId = "pounds"))
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                TrackEntryField(
+                    field = numberTrackField(
+                        uuid = "load",
+                        name = "Load",
+                        dimension = UnitDimension.Mass,
+                        unitId = "kilograms",
+                    ),
+                    value = value,
+                    options = emptyList(),
+                    units = units,
+                    showError = false,
+                    onValue = { value = it },
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Entered Unit for Load: pounds (lb)")
+            .assertIsDisplayed()
+            .performClick()
+        compose.onAllNodesWithText("pounds (lb)").assertCountEquals(2)
+        compose.onNodeWithContentDescription("Selected").assertIsDisplayed()
+        compose.runOnIdle { assertEquals("pounds", value.enteredUnitId) }
+    }
+
+    @Test
+    fun trackNumberUnitSelectorRetainsAndLabelsAnArchivedHistoricalUnit() {
+        val units = listOf(
+            UnitDefinition("kilograms", "kilograms", "kg", UnitDimension.Mass, 1.0),
+            UnitDefinition(
+                "stone-old",
+                "stone",
+                "st",
+                UnitDimension.Mass,
+                6.35029318,
+                archived = true,
+            ),
+        )
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                TrackEntryField(
+                    field = numberTrackField(
+                        uuid = "load",
+                        name = "Load",
+                        dimension = UnitDimension.Mass,
+                        unitId = "kilograms",
+                    ),
+                    value = TrackValueDraft(enteredNumber = 12.0, enteredUnitId = "stone-old"),
+                    options = emptyList(),
+                    units = units,
+                    showError = false,
+                    onValue = {},
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription(
+            "Entered Unit for Load: stone (st) · Archived (retained)",
+        ).assertIsDisplayed()
+        compose.onNodeWithContentDescription(
+            "Load, entered in stone, archived unit retained",
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun trackNumberEntryRemainsUsableAtCompactWidthAndTwoHundredPercentText() {
+        val field = numberTrackField()
+        compose.setContent {
+            val original = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(original.density, fontScale = 2f),
+            ) {
+                WhipTheme(dynamicColor = false) {
+                    Box(Modifier.width(320.dp)) {
+                        TrackEntryField(
+                            field = field,
+                            value = TrackValueDraft(enteredNumber = 21.0, enteredUnitId = "celsius"),
+                            options = emptyList(),
+                            units = BuiltInUnits.all,
+                            showError = false,
+                            onValue = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("track-entry-number-temperature").assertIsDisplayed()
+    }
+
+    private fun numberTrackField(
+        uuid: String = "temperature",
+        name: String = "Temperature",
+        dimension: UnitDimension = UnitDimension.Temperature,
+        unitId: String = "celsius",
+    ) = TrackField(
+        id = 1,
+        uuid = uuid,
+        trackId = 1,
+        name = name,
+        type = TrackFieldType.Number,
+        position = 0,
+        required = false,
+        primary = false,
+        showInList = true,
+        dimension = dimension,
+        unitId = unitId,
+        precision = 6,
+        scaleMin = null,
+        scaleMax = null,
+        scaleLowLabel = "",
+        scaleHighLabel = "",
+        createdAtMillis = 1,
+        updatedAtMillis = 1,
+    )
 }

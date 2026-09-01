@@ -72,6 +72,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.listSaver
@@ -85,9 +86,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -115,7 +119,12 @@ import com.whip.app.domain.TrackDraft
 import com.whip.app.domain.TrackDefinitionBoundary
 import com.whip.app.domain.TrackDefinitionConflictKind
 import com.whip.app.domain.TrackDefinitionRemovalReview
+import com.whip.app.domain.TrackEntryConflictKind
+import com.whip.app.domain.TrackEntryCreatePreparation
 import com.whip.app.domain.TrackEntryDraft
+import com.whip.app.domain.TrackEntryEditSnapshot
+import com.whip.app.domain.TrackEntryFormSnapshot
+import com.whip.app.domain.TrackEntryMutationReceipt
 import com.whip.app.domain.TrackEntryPage
 import com.whip.app.domain.TrackEntryProjection
 import com.whip.app.domain.TrackField
@@ -142,6 +151,7 @@ import java.io.Serializable
 import java.util.Locale
 import java.util.Base64
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import androidx.compose.runtime.rememberCoroutineScope
 
 private fun encodeSavedText(value: String?): String = value?.let {
@@ -245,10 +255,18 @@ internal sealed interface TrackEditorRoute : Serializable {
     data class Entry(
         val trackId: Long,
         val entryId: Long? = null,
+        val openingCreatePreparation: TrackEntryCreatePreparation? = null,
+        val openingEditSnapshot: TrackEntryEditSnapshot? = null,
         override val openingDataGeneration: Long,
         override val sessionId: Long,
     ) : TrackEditorRoute
 }
+
+internal data class TrackEntryDeleteCandidate(
+    val sessionId: Long,
+    val openingDataGeneration: Long,
+    val snapshot: TrackEntryEditSnapshot,
+) : Serializable
 
 @Composable
 internal fun TrackAreaContent(
@@ -280,7 +298,10 @@ internal fun TrackAreaContent(
     onShowAllAreasForReorder: () -> Unit = {},
     onReorderModeChange: (Boolean) -> Unit = {},
     reorderDismissRequest: Int = 0,
+    onEntryMutationPersisted: (TrackEntryMutationReceipt) -> Unit = {},
 ) {
+    val app = LocalContext.current.applicationContext as WhipApplication
+    val userDataGeneration by app.userDataGeneration.collectAsStateWithLifecycle()
     val localSelectedTrackState = rememberSaveable { mutableStateOf<Long?>(null) }
     val activeSelectedTrackState = selectedTrackState ?: localSelectedTrackState
     var selectedTrackId by activeSelectedTrackState
@@ -292,12 +313,30 @@ internal fun TrackAreaContent(
     val activeDestinationState = destinationState ?: localDestinationState
     var destination by activeDestinationState
     var deleteTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var deleteEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var deleteEntrySessionId by rememberSaveable { mutableLongStateOf(0L) }
+    var deleteEntryOpeningDataGeneration by rememberSaveable { mutableStateOf<Long?>(null) }
+    var deleteEntryCandidate by rememberSaveable { mutableStateOf<TrackEntryDeleteCandidate?>(null) }
     var importTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
     var exportTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
     val csvImportState by viewModel.csvImportState.collectAsStateWithLifecycle()
     val csvExportState by viewModel.csvExportState.collectAsStateWithLifecycle()
+    val entryDeletePreparationState by viewModel.entryDeletePreparationState.collectAsStateWithLifecycle()
+    val entryMutationState by viewModel.entryMutationState.collectAsStateWithLifecycle()
     val defaultCsvFileName = stringResource(R.string.track_csv_default_export_name)
     val selected = selectedTrackId?.let(state::track)
+    fun requestEntryDelete(entryId: Long) {
+        deleteEntrySessionId += 1L
+        deleteEntryOpeningDataGeneration = userDataGeneration
+        deleteEntryId = entryId
+        deleteEntryCandidate = null
+    }
+    fun closeEntryDelete() {
+        viewModel.clearEntryDeletePreparation(deleteEntrySessionId)
+        deleteEntryId = null
+        deleteEntryOpeningDataGeneration = null
+        deleteEntryCandidate = null
+    }
     val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) {
             viewModel.cancelCsvImport()
@@ -324,6 +363,33 @@ internal fun TrackAreaContent(
     LaunchedEffect(csvImportState.trackId, csvImportState.phase) {
         if (csvImportState.phase != TrackCsvImportPhase.Idle) {
             csvImportState.trackId?.let { importTrackId = it }
+        }
+    }
+    LaunchedEffect(deleteEntryId, deleteEntrySessionId) {
+        deleteEntryId?.let { viewModel.prepareEntryDelete(deleteEntrySessionId, it) }
+    }
+    LaunchedEffect(
+        deleteEntryId,
+        deleteEntrySessionId,
+        entryDeletePreparationState.sessionId,
+        entryDeletePreparationState.snapshot,
+    ) {
+        val snapshot = entryDeletePreparationState.snapshot
+        if (
+            snapshot != null &&
+            entryDeletePreparationState.sessionId == deleteEntrySessionId &&
+            entryDeletePreparationState.entryId == deleteEntryId
+        ) {
+            deleteEntryCandidate = TrackEntryDeleteCandidate(
+                sessionId = deleteEntrySessionId,
+                openingDataGeneration = deleteEntryOpeningDataGeneration ?: userDataGeneration,
+                snapshot = snapshot,
+            )
+        }
+    }
+    LaunchedEffect(userDataGeneration, deleteEntryOpeningDataGeneration) {
+        if (deleteEntryOpeningDataGeneration?.let { it != userDataGeneration } == true) {
+            closeEntryDelete()
         }
     }
 
@@ -402,7 +468,7 @@ internal fun TrackAreaContent(
             onEditTrack = { onEditorRequest(TrackEditorIntent.Definition(projection.track.id)) },
             onAddEntry = { onEditorRequest(TrackEditorIntent.Entry(projection.track.id)) },
             onEditEntry = { onEditorRequest(TrackEditorIntent.Entry(projection.track.id, it)) },
-            onDeleteEntry = viewModel::deleteEntry,
+            onDeleteEntry = ::requestEntryDelete,
             onSetPinned = { viewModel.setPinned(projection.track.id, it) },
             onSetArchived = { viewModel.setArchived(projection.track.id, it) },
             onDuplicate = { viewModel.duplicate(projection.track.id) },
@@ -470,7 +536,7 @@ internal fun TrackAreaContent(
                     onEditEntry = { trackId, entryId ->
                         onEditorRequest(TrackEditorIntent.Entry(trackId, entryId))
                     },
-                    onDeleteEntry = viewModel::deleteEntry,
+                    onDeleteEntry = ::requestEntryDelete,
                     dialogModifier = dialogModifier,
                     onRetryLoading = viewModel::retryLoading,
                 )
@@ -501,6 +567,47 @@ internal fun TrackAreaContent(
             dismissButton = { WhipTextButton(onClick = { deleteTrackId = null }) { Text("Cancel") } },
         )
     }
+    if (deleteEntryId != null && deleteEntryCandidate == null) {
+        val preparationBelongs = entryDeletePreparationState.sessionId == deleteEntrySessionId &&
+            entryDeletePreparationState.entryId == deleteEntryId
+        PaneAwareAlertDialog(
+            modifier = dialogModifier,
+            testTag = "track-entry-delete-preparation",
+            paneTitle = "Prepare Entry Deletion",
+            onDismissRequest = ::closeEntryDelete,
+            title = { Text(if (preparationBelongs && entryDeletePreparationState.errorMessage != null) "Entry Could Not Be Verified" else "Preparing Entry Deletion") },
+            text = {
+                if (preparationBelongs && entryDeletePreparationState.errorMessage != null) {
+                    PersistenceFailureNotice(
+                        entryDeletePreparationState.errorMessage,
+                        testTag = "track-entry-delete-preparation-problem",
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        LinearProgressIndicator(Modifier.fillMaxWidth())
+                        Text("Whip is verifying the exact Entry and saved values before showing the deletion review.")
+                    }
+                }
+            },
+            confirmButton = {
+                if (preparationBelongs && entryDeletePreparationState.errorMessage != null) {
+                    WhipTextButton(onClick = {
+                        viewModel.clearEntryDeletePreparation(deleteEntrySessionId)
+                        deleteEntryId?.let { viewModel.prepareEntryDelete(deleteEntrySessionId, it) }
+                    }) { Text("Try Again") }
+                }
+            },
+            dismissButton = { WhipTextButton(onClick = ::closeEntryDelete) { Text("Cancel") } },
+        )
+    }
+    TrackEntryDeleteRoute(
+        candidate = deleteEntryCandidate,
+        state = entryMutationState,
+        viewModel = viewModel,
+        modifier = dialogModifier,
+        onPersisted = onEntryMutationPersisted,
+        onClose = ::closeEntryDelete,
+    )
     val importProjection = importTrackId?.let(state::track)
     if (
         importProjection != null &&
@@ -575,6 +682,84 @@ internal fun TrackAreaContent(
             },
         )
     }
+}
+
+@Composable
+private fun TrackEntryDeleteRoute(
+    candidate: TrackEntryDeleteCandidate?,
+    state: com.whip.app.core.PersistenceRequestState<TrackEntryMutationReceipt>,
+    viewModel: TrackViewModel,
+    modifier: Modifier,
+    onPersisted: (TrackEntryMutationReceipt) -> Unit,
+    onClose: () -> Unit,
+) {
+    candidate ?: return
+    val requestNamespace = "track-entry-delete-${candidate.sessionId}-g${candidate.openingDataGeneration}"
+    val coordinator = rememberPersistenceRequestCoordinator(
+        state = state,
+        consume = viewModel::consumeEntryMutationResult,
+        key = requestNamespace,
+        requestNamespace = requestNamespace,
+        orphanedMessage =
+            "The previous Entry deletion was interrupted and its outcome is unknown. " +
+                "Close this review and verify Track history before retrying.",
+        onPersisted = { receipt ->
+            if (
+                receipt.kind == com.whip.app.domain.TrackEntryMutationKind.Delete &&
+                receipt.entryId == candidate.snapshot.boundary.entryId &&
+                receipt.entryUuid == candidate.snapshot.boundary.entryUuid
+            ) {
+                onPersisted(receipt)
+                onClose()
+            }
+        },
+    )
+    val snapshot = candidate.snapshot
+    PaneAwareAlertDialog(
+        modifier = modifier,
+        testTag = "track-entry-row-delete-confirmation",
+        paneTitle = "Delete Entry",
+        inputBlocked = coordinator.saving,
+        inputBlockedLabel = "Deleting Entry",
+        onDismissRequest = {
+            coordinator.clear()
+            onClose()
+        },
+        title = { Text("Delete ${snapshot.displayName}?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                PersistenceFailureNotice(
+                    coordinator.errorMessage,
+                    testTag = "track-entry-row-delete-problem",
+                )
+                Text(
+                    "This removes the Entry dated ${snapshot.draft.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} " +
+                        "from ${snapshot.form.track.name}, including ${quantityLabel(snapshot.populatedValueCount, "saved value")}.",
+                )
+                Text("You can use Undo immediately after deletion.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        confirmButton = {
+            WhipTextButton(
+                enabled = !coordinator.saving,
+                onClick = {
+                    val requestId = coordinator.begin()
+                    if (requestId != null && !viewModel.deleteEntry(snapshot.boundary, requestId)) {
+                        coordinator.finishFailure("Another Entry change is already finishing.")
+                    }
+                },
+            ) { Text("Delete Entry", color = MaterialTheme.colorScheme.error) }
+        },
+        dismissButton = {
+            WhipTextButton(
+                enabled = !coordinator.saving,
+                onClick = {
+                    coordinator.clear()
+                    onClose()
+                },
+            ) { Text("Keep Entry") }
+        },
+    )
 }
 
 private enum class TrackActivityDateRange(val label: String) {
@@ -1510,23 +1695,55 @@ private fun TrackEntriesPage(
     var totalEntryCount by remember(projection.track.id) { mutableIntStateOf(projection.entries.size) }
     var pageLoading by remember(projection.track.id) { mutableStateOf(true) }
     var pageError by remember(projection.track.id) { mutableStateOf<String?>(null) }
+    var pageLoadGeneration by remember(projection.track.id) { mutableLongStateOf(0L) }
+    var searchGeneration by remember(projection.track.id) { mutableLongStateOf(0L) }
     var viewEntryId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
     val coroutineScope = rememberCoroutineScope()
-    val pageVersion = projection.entries.maxOfOrNull { it.entry.updatedAtMillis } ?: 0L
+    // Use exact structural equality instead of timestamps. Value and Choice
+    // replacements do not necessarily touch the parent Entry timestamp, and two
+    // legitimate writes can share the same millisecond.
+    val pageContentVersion = remember(projection.fields, projection.options, projection.entries) {
+        TrackEntryPageContentVersion(
+            fields = projection.fields,
+            options = projection.options,
+            entries = projection.entries,
+        )
+    }
     suspend fun reloadPage() {
+        val generation = ++pageLoadGeneration
         pageLoading = true
         pageError = null
-        runCatching { loadEntryPage(0, TRACK_ENTRY_PAGE_SIZE) }
-            .onSuccess { page -> pagedEntries = page.entries; totalEntryCount = page.totalCount }
-            .onFailure { pageError = it.message ?: "Entries could not be loaded" }
-        pageLoading = false
+        try {
+            val page = loadEntryPage(0, TRACK_ENTRY_PAGE_SIZE)
+            if (pageLoadGeneration == generation) {
+                pagedEntries = page.entries
+                totalEntryCount = page.totalCount
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Throwable) {
+            if (pageLoadGeneration == generation) {
+                pageError = error.message ?: "Entries could not be loaded"
+            }
+        } finally {
+            if (pageLoadGeneration == generation) pageLoading = false
+        }
     }
-    LaunchedEffect(projection.track.id, projection.entries.size, pageVersion) { reloadPage() }
-    LaunchedEffect(query, projection.entries.size) {
-        if (query.isBlank()) searchMatches = null
-        else {
-            kotlinx.coroutines.delay(120)
-            searchMatches = runCatching { searchEntryIds(query) }.getOrNull()
+    LaunchedEffect(projection.track.id, pageContentVersion) { reloadPage() }
+    LaunchedEffect(query, pageContentVersion) {
+        val generation = ++searchGeneration
+        if (query.isBlank()) {
+            searchMatches = null
+        } else {
+            try {
+                kotlinx.coroutines.delay(120)
+                val matches = searchEntryIds(query)
+                if (searchGeneration == generation) searchMatches = matches
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Throwable) {
+                if (searchGeneration == generation) searchMatches = null
+            }
         }
     }
     val sortField = projection.fields.firstOrNull { it.id == sortFieldId }
@@ -1624,15 +1841,24 @@ private fun TrackEntriesPage(
                 WhipOutlinedButton(
                     onClick = {
                         coroutineScope.launch {
+                            val generation = ++pageLoadGeneration
                             pageLoading = true
                             pageError = null
-                            runCatching { loadEntryPage(pagedEntries.size, TRACK_ENTRY_PAGE_SIZE) }
-                                .onSuccess { page ->
+                            try {
+                                val page = loadEntryPage(pagedEntries.size, TRACK_ENTRY_PAGE_SIZE)
+                                if (pageLoadGeneration == generation) {
                                     pagedEntries = (pagedEntries + page.entries).distinctBy { it.entry.id }
                                     totalEntryCount = page.totalCount
                                 }
-                                .onFailure { pageError = it.message ?: "More Entries could not be loaded" }
-                            pageLoading = false
+                            } catch (cancelled: CancellationException) {
+                                throw cancelled
+                            } catch (error: Throwable) {
+                                if (pageLoadGeneration == generation) {
+                                    pageError = error.message ?: "More Entries could not be loaded"
+                                }
+                            } finally {
+                                if (pageLoadGeneration == generation) pageLoading = false
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -1705,6 +1931,12 @@ private fun TrackEntriesPage(
 }
 
 private const val TRACK_ENTRY_PAGE_SIZE = 100
+
+internal data class TrackEntryPageContentVersion(
+    val fields: List<TrackField>,
+    val options: List<TrackChoiceOption>,
+    val entries: List<TrackEntryProjection>,
+)
 
 @Composable
 private fun TrackEntryRow(
@@ -2779,11 +3011,14 @@ private fun TrackFieldEditor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun TrackEntryEditor(
-    projection: TrackProjection,
-    initial: TrackEntryProjection?,
-    customUnits: List<UnitDefinition>,
+    form: TrackEntryFormSnapshot,
+    editSnapshot: TrackEntryEditSnapshot?,
+    duplicateEntries: List<TrackEntryProjection> = emptyList(),
     today: LocalDate,
     saving: Boolean,
+    persistenceError: String? = null,
+    conflictKind: TrackEntryConflictKind? = null,
+    conflictMessage: String? = null,
     modifier: Modifier,
     sessionId: Long = 0L,
     onDismiss: () -> Unit,
@@ -2793,80 +3028,172 @@ internal fun TrackEntryEditor(
 ) {
     val app = LocalContext.current.applicationContext as WhipApplication
     val dataGeneration by app.userDataGeneration.collectAsStateWithLifecycle()
-    val token = "entry-${projection.track.id}-${initial?.entry?.id ?: "new"}-$sessionId-g$dataGeneration"
-    val stateHolder: TrackEntryEditorViewModel = viewModel(key = "track-$token")
-    val savedState by stateHolder.state.collectAsStateWithLifecycle()
-    val initialValues = remember(initial?.entry?.id, dataGeneration) {
-        projection.fields.associate { field ->
-            val value = initial?.value(field.id)
-            field.uuid to TrackValueDraft(
-                    textValue = value?.textValue,
-                    enteredNumber = value?.enteredNumber,
-                    enteredUnitId = value?.enteredUnitId ?: field.unitId,
-                    dateValue = value?.dateValue,
-                    booleanValue = value?.booleanValue,
-                    choiceOptionUuid = projection.options.firstOrNull { it.id == value?.choiceOptionId }?.uuid,
-                    scaleValue = value?.scaleValue,
-                )
+    val projection = remember(form, duplicateEntries) {
+        TrackProjection(form.track, form.fields, form.options, duplicateEntries)
+    }
+    val units = remember(form.units) {
+        form.units.map { contract ->
+            UnitDefinition(
+                id = contract.id,
+                name = contract.name,
+                symbol = contract.symbol,
+                dimension = contract.dimension,
+                toCanonicalFactor = contract.toCanonicalFactor,
+                toCanonicalOffset = contract.toCanonicalOffset,
+                archived = contract.archived,
+            )
         }
     }
-    val initialEntryDate = initial?.entry?.entryDate ?: today
-    val initialDraft = remember(token, initialValues, initialEntryDate) {
-        TrackEntryDraft(
-            entryDate = initialEntryDate,
-            values = initialValues,
+    val editing = editSnapshot != null
+    val token = "entry-${form.track.id}-${editSnapshot?.boundary?.entryId ?: "new"}-$sessionId-g$dataGeneration"
+    val stateHolder: TrackEntryEditorViewModel = viewModel(key = "track-$token")
+    val savedState by stateHolder.state.collectAsStateWithLifecycle()
+    val initialDraft = remember(token, editSnapshot, today) {
+        editSnapshot?.draft ?: TrackEntryDraft(
+            entryDate = today,
+            values = form.fields.associate { field ->
+                field.uuid to TrackValueDraft(enteredUnitId = field.unitId)
+            },
         )
     }
     LaunchedEffect(token, dataGeneration) {
         stateHolder.initialize(token, initialDraft, dataGeneration)
     }
-    val draft = savedState.takeIf {
+    val editorState = savedState.takeIf {
         it.token == token && it.dataGeneration == dataGeneration
-    }?.draft ?: initialDraft
+    } ?: TrackEntryEditorState(token = token, dataGeneration = dataGeneration, draft = initialDraft)
+    val draft = editorState.draft ?: initialDraft
     val values = draft.values
     val entryDate = draft.entryDate
     var datePickerOpen by rememberSaveable(token) { mutableStateOf(false) }
     var attempted by rememberSaveable(token) { mutableStateOf(false) }
     var unsavedConfirm by rememberSaveable(token) { mutableStateOf(false) }
     var possibleMatchId by rememberSaveable(token) { mutableStateOf<Long?>(null) }
-    val dirty = draft != initialDraft
+    var deleteConfirm by rememberSaveable(token) { mutableStateOf(false) }
+    var validationScrollFieldUuid by rememberSaveable(token) { mutableStateOf<String?>(null) }
+    val editorListState = rememberLazyListState()
+    val initialRawNumbers = remember(initialDraft) {
+        initialDraft.values.mapNotNull { (fieldUuid, value) ->
+            value.enteredNumber?.let { fieldUuid to editableNumericValue(it) }
+        }.toMap()
+    }
+    val dirty = draft != initialDraft || editorState.rawNumberValues.any { (fieldUuid, raw) ->
+        raw != initialRawNumbers[fieldUuid].orEmpty()
+    }
     fun dismissAndClear() { stateHolder.clear(); onDismiss() }
     fun requestDismiss() { if (dirty) unsavedConfirm = true else dismissAndClear() }
     val missing = projection.fields.filter { it.required && values[it.uuid]?.isBlankFor(it.type) != false }
+    val invalidNumbers = projection.fields.filter { field ->
+        if (field.type != TrackFieldType.Number) return@filter false
+        val current = values[field.uuid] ?: TrackValueDraft(enteredUnitId = field.unitId)
+        val raw = editorState.rawNumberValues[field.uuid]
+            ?: current.enteredNumber?.let(::editableNumericValue).orEmpty()
+        raw.isNotBlank() && raw.toWhipDoubleOrNull() == null
+    }
+    val validationMessages = buildList {
+        missing.forEach { add("${it.name} is required.") }
+        invalidNumbers.filterNot { it in missing }.forEach { add("Enter a valid ${it.name}.") }
+    }
     val duplicatePrimaryMatches = projection.identityKey(values)?.let { entered ->
             projection.entries.filter { candidate ->
-                candidate.entry.id != initial?.entry?.id && projection.identityKey(candidate) == entered
+                candidate.entry.id != editSnapshot?.boundary?.entryId && projection.identityKey(candidate) == entered
             }.take(3)
         }.orEmpty()
-    BackHandler(enabled = true, onBack = ::requestDismiss)
+    LaunchedEffect(persistenceError, conflictKind) {
+        if (!persistenceError.isNullOrBlank() || conflictKind != null) editorListState.scrollToItem(0)
+    }
+    LaunchedEffect(validationScrollFieldUuid) {
+        val fieldUuid = validationScrollFieldUuid ?: return@LaunchedEffect
+        val fieldIndex = projection.fields.indexOfFirst { it.uuid == fieldUuid }.coerceAtLeast(0)
+        val precedingItems = 2 +
+            (if (!persistenceError.isNullOrBlank() && conflictKind == null) 1 else 0) +
+            (if (conflictKind != null) 1 else 0) +
+            (if (attempted && validationMessages.isNotEmpty()) 1 else 0)
+        editorListState.animateScrollToItem(precedingItems + fieldIndex)
+        validationScrollFieldUuid = null
+    }
+    BackHandler(enabled = true) { if (!saving) requestDismiss() }
 
     WhipFullScreenSurface(
-        if (initial == null) "Add Entry" else "Edit Entry",
+        if (!editing) "Add Entry" else "Edit Entry",
         modifier.testTag("track-entry-editor-surface"),
     ) {
+        Box(Modifier.fillMaxSize()) {
         Scaffold(
+            modifier = if (saving) Modifier.clearAndSetSemantics {} else Modifier,
             topBar = { TopAppBar(
-                title = { Text(if (initial == null) "Add Entry" else "Edit Entry") },
-                navigationIcon = { IconButton(onClick = ::requestDismiss) { Icon(Icons.Outlined.Close, "Close Entry Editor") } },
-                actions = { WhipTextButton(enabled = !saving, onClick = { attempted = true; if (missing.isEmpty()) onSave(draft) }) { Text(if (saving) "Saving…" else if (initial == null) "Add" else "Save") } },
+                title = { Text(if (!editing) "Add Entry" else "Edit Entry") },
+                navigationIcon = { IconButton(enabled = !saving, onClick = ::requestDismiss) { Icon(Icons.Outlined.Close, "Close Entry Editor") } },
+                actions = { WhipTextButton(enabled = !saving && conflictKind == null, onClick = {
+                    attempted = true
+                    if (validationMessages.isEmpty()) onSave(draft)
+                    else validationScrollFieldUuid = (missing + invalidNumbers).firstOrNull()?.uuid
+                }) { Text(if (saving) "Saving…" else if (!editing) "Add" else "Save") } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             ) },
         ) { padding ->
             LazyColumn(
-                Modifier.fillMaxSize().padding(padding),
+                Modifier.fillMaxSize().padding(padding).testTag("track-entry-editor-list"),
+                state = editorListState,
                 contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, 96.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                item { WhipPageHeader(if (initial == null) "New ${projection.primaryField.name}" else projection.primaryText(requireNotNull(initial)), "Fields follow the reusable ${projection.track.name} structure.") }
+                item { Text("* Required field", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                if (!persistenceError.isNullOrBlank() && conflictKind == null) item {
+                    PersistenceFailureNotice(persistenceError, testTag = "track-entry-persistence-problem")
+                }
+                if (conflictKind != null) item {
+                    WhipStatusCard(
+                        kind = WhipStatusKind.Error,
+                        title = when (conflictKind) {
+                            TrackEntryConflictKind.EntryChanged,
+                            TrackEntryConflictKind.FormChanged,
+                            TrackEntryConflictKind.IdentityChanged,
+                            TrackEntryConflictKind.ProvenanceChanged,
+                            -> "Entry Changed Elsewhere"
+                            TrackEntryConflictKind.TargetMissing,
+                            TrackEntryConflictKind.ParentMissing,
+                            -> "Entry Is No Longer Available"
+                            TrackEntryConflictKind.OutcomeUnknown -> "Entry Outcome Is Unknown"
+                            else -> "Entry Could Not Be Changed Safely"
+                        },
+                        message = (conflictMessage ?: persistenceError ?: "The Entry no longer matches the version you opened.") +
+                            " Your draft is still here. Close and review the current Track history before deciding what to do next.",
+                        modifier = Modifier.testTag("track-entry-conflict"),
+                    )
+                }
+                if (attempted && validationMessages.isNotEmpty()) item {
+                    FormValidationSummary(
+                        messages = validationMessages,
+                        visible = true,
+                        testTag = "track-entry-save-problem",
+                    )
+                }
+                item { WhipPageHeader(if (!editing) "New ${projection.primaryField.name}" else requireNotNull(editSnapshot).displayName, "Fields follow the reusable ${projection.track.name} structure.") }
                 items(projection.fields, key = TrackField::uuid) { field ->
                     val current = values[field.uuid] ?: TrackValueDraft(enteredUnitId = field.unitId)
+                    val invalidNumber = field in invalidNumbers
                     TrackEntryField(
                         field = field,
                         value = current,
                         options = projection.optionsFor(field.id),
-                        units = BuiltInUnits.all + customUnits,
+                        units = units,
                         today = today,
-                        showError = attempted && field.required && current.isBlankFor(field.type),
+                        showError = attempted && ((field.required && current.isBlankFor(field.type)) || invalidNumber),
+                        errorMessage = when {
+                            attempted && invalidNumber -> "Enter a valid ${field.name}"
+                            attempted && field.required && current.isBlankFor(field.type) -> "${field.name} is required"
+                            else -> null
+                        },
+                        numberText = editorState.rawNumberValues[field.uuid]
+                            ?: current.enteredNumber?.let(::editableNumericValue).orEmpty(),
+                        onNumberText = { raw ->
+                            stateHolder.updateNumberValue(
+                                fieldUuid = field.uuid,
+                                rawText = raw,
+                                enteredUnitId = current.enteredUnitId ?: field.unitId,
+                            )
+                        },
                         onValue = { value -> stateHolder.updateDraft { it.copy(values = it.values + (field.uuid to value)) } },
                     )
                 }
@@ -2885,35 +3212,38 @@ internal fun TrackEntryEditor(
                 }
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Entry Date", style = MaterialTheme.typography.labelLarge)
-                        WhipOutlinedButton(onClick = { datePickerOpen = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Entry Date", modifier = Modifier.clearAndSetSemantics {}, style = MaterialTheme.typography.labelLarge)
+                        WhipOutlinedButton(
+                            onClick = { datePickerOpen = true },
+                            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Entry Date, ${entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" },
+                        ) {
                             Text(entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)), modifier = Modifier.weight(1f))
                         }
                         Text("The date this fact belongs to. Backdating does not change its creation time.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                if (attempted && missing.isNotEmpty()) item {
-                    Text("Complete ${missing.joinToString { it.name }} before saving.", color = MaterialTheme.colorScheme.error)
-                }
                 onDelete?.let { action -> item {
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))
                     WhipTextButton(
-                        onClick = { stateHolder.clear(); action() },
+                        enabled = !saving,
+                        onClick = { deleteConfirm = true },
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("Delete Entry", color = MaterialTheme.colorScheme.error) }
                 } }
             }
         }
+        PersistenceSavingOverlay(active = saving, label = if (deleteConfirm) "Deleting Entry" else "Saving Entry")
+        }
     }
-    if (datePickerOpen) WhipDatePickerDialog(entryDate, { datePickerOpen = false }, { selected -> stateHolder.updateDraft { it.copy(entryDate = selected) }; datePickerOpen = false })
-    if (unsavedConfirm) PaneAwareAlertDialog(
+    if (datePickerOpen && !saving) WhipDatePickerDialog(entryDate, { datePickerOpen = false }, { selected -> stateHolder.updateDraft { it.copy(entryDate = selected) }; datePickerOpen = false })
+    if (unsavedConfirm && !saving) PaneAwareAlertDialog(
         onDismissRequest = { unsavedConfirm = false },
         title = { Text("Discard Unsaved Entry?") },
         text = { Text("Your changes to this Entry have not been saved.") },
         confirmButton = { WhipTextButton(onClick = { unsavedConfirm = false; dismissAndClear() }) { Text("Discard", color = MaterialTheme.colorScheme.error) } },
         dismissButton = { WhipTextButton(onClick = { unsavedConfirm = false }) { Text("Keep Editing") } },
     )
-    possibleMatchId?.let { matchId -> projection.entries.firstOrNull { it.entry.id == matchId }?.let { match ->
+    if (!saving) possibleMatchId?.let { matchId -> projection.entries.firstOrNull { it.entry.id == matchId }?.let { match ->
         PaneAwareAlertDialog(
             onDismissRequest = { possibleMatchId = null },
             title = { Text(projection.primaryText(match)) },
@@ -2921,7 +3251,7 @@ internal fun TrackEntryEditor(
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Existing Entry · ${match.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
                     projection.fields.filterNot(TrackField::primary).mapNotNull { field ->
-                        projection.formattedValue(match, field, BuiltInUnits.all + customUnits)
+                        projection.formattedValue(match, field, units)
                             .takeIf(String::isNotBlank)?.let { field.name to it }
                     }.take(4).forEach { (name, value) -> Text("$name · $value", style = MaterialTheme.typography.bodySmall) }
                     Text("Editing the existing Entry will discard this unsaved new Entry.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -2931,6 +3261,43 @@ internal fun TrackEntryEditor(
             dismissButton = { WhipTextButton(onClick = { possibleMatchId = null }) { Text("Keep New Entry") } },
         )
     } }
+    val deleteAction = onDelete
+    if (deleteConfirm && deleteAction != null) PaneAwareAlertDialog(
+        testTag = "track-entry-delete-confirmation",
+        onDismissRequest = { deleteConfirm = false },
+        paneTitle = "Delete Entry",
+        inputBlocked = saving,
+        inputBlockedLabel = "Deleting Entry",
+        title = { Text("Delete ${editSnapshot?.displayName ?: "Entry"}?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (!persistenceError.isNullOrBlank()) {
+                    PersistenceFailureNotice(persistenceError, testTag = "track-entry-delete-problem")
+                }
+                Text(
+                    "This removes the Entry dated ${editSnapshot?.draft?.entryDate?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} " +
+                        "and ${quantityLabel(editSnapshot?.populatedValueCount ?: 0, "saved value")}."
+                )
+                Text("You can use Undo immediately after deletion.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        confirmButton = {
+            WhipTextButton(
+                enabled = !saving,
+                onClick = deleteAction,
+                modifier = Modifier.testTag("track-entry-delete-confirm"),
+            ) {
+                Text("Delete Entry", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            WhipTextButton(
+                enabled = !saving,
+                onClick = { deleteConfirm = false },
+                modifier = Modifier.testTag("track-entry-delete-cancel"),
+            ) { Text("Keep Entry") }
+        },
+    )
 }
 
 @Composable
@@ -2941,50 +3308,105 @@ internal fun TrackEntryField(
     units: List<UnitDefinition>,
     today: LocalDate = LocalWhipToday.current,
     showError: Boolean,
+    errorMessage: String? = null,
+    numberText: String? = null,
+    onNumberText: ((String) -> Unit)? = null,
     onValue: (TrackValueDraft) -> Unit,
 ) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Text(field.name + if (field.required) " *" else "", style = MaterialTheme.typography.labelLarge)
+        val accessibleFieldName = field.name + if (field.required) ", required" else ""
+        if (field.type !in setOf(TrackFieldType.ShortText, TrackFieldType.LongText, TrackFieldType.Number)) {
+            Text(
+                field.name + if (field.required) " *" else "",
+                modifier = Modifier.clearAndSetSemantics {},
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
         when (field.type) {
             TrackFieldType.ShortText -> OutlinedTextField(
                 value.textValue.orEmpty(),
                 { onValue(value.copy(textValue = it.take(300))) },
+                label = { Text(field.name + if (field.required) " *" else "") },
                 singleLine = true,
                 isError = showError,
-                modifier = Modifier.fillMaxWidth().testTag("track-entry-short-text-${field.uuid}"),
+                modifier = Modifier.fillMaxWidth().testTag("track-entry-short-text-${field.uuid}").semantics {
+                    contentDescription = accessibleFieldName
+                    if (showError) error(errorMessage ?: "${field.name} is invalid")
+                },
             )
             TrackFieldType.LongText -> OutlinedTextField(
                 value.textValue.orEmpty(),
                 { onValue(value.copy(textValue = it.take(5_000))) },
+                label = { Text(field.name + if (field.required) " *" else "") },
                 minLines = 3,
                 maxLines = 8,
                 isError = showError,
-                modifier = Modifier.fillMaxWidth().testTag("track-entry-long-text-${field.uuid}"),
+                modifier = Modifier.fillMaxWidth().testTag("track-entry-long-text-${field.uuid}").semantics {
+                    contentDescription = accessibleFieldName
+                    if (showError) error(errorMessage ?: "${field.name} is invalid")
+                },
             )
             TrackFieldType.Number -> {
                 val unit = units.firstOrNull { it.id == (value.enteredUnitId ?: field.unitId) }
-                var numberText by rememberSaveable(field.uuid) {
+                var fallbackNumberText by rememberSaveable(field.uuid) {
                     mutableStateOf(value.enteredNumber?.let(::editableNumericValue).orEmpty())
                 }
+                val displayedNumberText = numberText ?: fallbackNumberText
                 OutlinedTextField(
-                    numberText,
+                    displayedNumberText,
                     { input ->
-                        numberText = input
-                        onValue(
-                            value.copy(
-                                enteredNumber = input.toWhipDoubleOrNull(),
-                                enteredUnitId = value.enteredUnitId ?: field.unitId,
-                            ),
+                        if (onNumberText != null) onNumberText(input) else {
+                            fallbackNumberText = input
+                            onValue(
+                                value.copy(
+                                    enteredNumber = input.toWhipDoubleOrNull(),
+                                    enteredUnitId = value.enteredUnitId ?: field.unitId,
+                                ),
+                            )
+                        }
+                    },
+                    label = {
+                        Text(
+                            buildString {
+                                append(field.name)
+                                if (field.required) append(" *")
+                                unit?.let {
+                                    append(" (")
+                                    append(it.symbol.ifBlank { it.name })
+                                    if (it.archived) append(", archived")
+                                    append(")")
+                                }
+                            },
                         )
                     },
-                    label = { Text(unit?.symbol?.takeIf(String::isNotBlank) ?: "Value") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     isError = showError,
-                    modifier = Modifier.fillMaxWidth().testTag("track-entry-number-${field.uuid}"),
+                    modifier = Modifier.fillMaxWidth().testTag("track-entry-number-${field.uuid}").semantics {
+                        contentDescription = buildString {
+                            append(accessibleFieldName)
+                            unit?.let {
+                                append(", entered in ${it.name}")
+                                if (it.archived) append(", archived unit retained")
+                            }
+                        }
+                        if (showError) error(errorMessage ?: "${field.name} is invalid")
+                    },
                 )
-                val compatible = units.filter { it.dimension == field.dimension && !it.archived }
-                if (compatible.size > 1) SelectionField("Entered Unit", compatible, compatible.firstOrNull { it.id == value.enteredUnitId } ?: compatible.first(), ::unitDefinitionDisplayLabel, { onValue(value.copy(enteredUnitId = it.id)) })
+                val activeCompatible = units.filter { it.dimension == field.dimension && !it.archived }
+                val selectedUnit = units.firstOrNull { it.id == (value.enteredUnitId ?: field.unitId) }
+                    ?.takeIf { it.dimension == field.dimension }
+                val compatible = buildList {
+                    selectedUnit?.let(::add)
+                    addAll(activeCompatible.filterNot { it.id == selectedUnit?.id })
+                }
+                if (compatible.size > 1) SelectionField(
+                    "Entered Unit for ${field.name}",
+                    compatible,
+                    selectedUnit?.takeIf { selected -> compatible.any { it.id == selected.id } } ?: compatible.first(),
+                    { candidate -> unitDefinitionDisplayLabel(candidate) + if (candidate.archived) " · Archived (retained)" else "" },
+                    { selected -> onValue(value.copy(enteredUnitId = selected.id)) },
+                )
             }
             TrackFieldType.SingleChoice -> {
                 val selected = options.firstOrNull { it.uuid == value.choiceOptionUuid }
@@ -3058,16 +3480,27 @@ internal fun TrackEntryField(
             }
             TrackFieldType.Date -> {
                 var open by rememberSaveable(field.uuid) { mutableStateOf(false) }
-                WhipOutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) { Text(value.dateValue?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "Choose Date", modifier = Modifier.weight(1f)) }
+                WhipOutlinedButton(
+                    onClick = { open = true },
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "$accessibleFieldName, choose date" },
+                ) { Text(value.dateValue?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "Choose Date", modifier = Modifier.weight(1f)) }
                 if (open) WhipDatePickerDialog(value.dateValue ?: today, { open = false }, { onValue(value.copy(dateValue = it)); open = false })
             }
             TrackFieldType.YesNo -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (!field.required) WhipFilterChip(value.booleanValue == null, { onValue(value.copy(booleanValue = null)) }, { Text("Unanswered") })
-                WhipFilterChip(value.booleanValue == true, { onValue(value.copy(booleanValue = true)) }, { Text("Yes") })
-                WhipFilterChip(value.booleanValue == false, { onValue(value.copy(booleanValue = false)) }, { Text("No") })
+                if (!field.required) WhipFilterChip(value.booleanValue == null, { onValue(value.copy(booleanValue = null)) }, { Text("Unanswered") }, Modifier.semantics { contentDescription = "${field.name}, unanswered" })
+                WhipFilterChip(value.booleanValue == true, { onValue(value.copy(booleanValue = true)) }, { Text("Yes") }, Modifier.semantics { contentDescription = "${field.name}, yes" })
+                WhipFilterChip(value.booleanValue == false, { onValue(value.copy(booleanValue = false)) }, { Text("No") }, Modifier.semantics { contentDescription = "${field.name}, no" })
             }
         }
-        if (showError) Text("${field.name} is required", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        if (showError) Text(
+            errorMessage ?: "${field.name} is required",
+            modifier = Modifier.semantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = errorMessage ?: "${field.name} is required"
+            },
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
 

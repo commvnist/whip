@@ -181,6 +181,8 @@ import com.whip.app.core.openingAreaScope
 import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.TrackProjection
+import com.whip.app.domain.TrackEntryMutationKind
+import com.whip.app.domain.TrackEntryMutationReceipt
 import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.TriggerTargetType
 import com.whip.app.domain.TriggerAction
@@ -196,8 +198,6 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.Job
 import com.whip.app.widget.WhipWidgetProvider
 
 internal enum class AppDestination {
@@ -209,22 +209,6 @@ internal enum class AppDestination {
     Tracks,
     Settings,
 }
-
-private data class TaskSnackbarVisuals(
-    override val message: String,
-    override val actionLabel: String?,
-    override val withDismissAction: Boolean,
-    override val duration: SnackbarDuration,
-    val undoToken: Long?,
-    val quickAdd: Boolean,
-) : SnackbarVisuals
-
-private data class TransientFeedbackRequest(
-    val source: String,
-    val priority: Int,
-    val recoverable: Boolean,
-    val show: suspend () -> Unit,
-)
 
 internal fun transientFeedbackSurvivesDestinationChange(recoverable: Boolean): Boolean = recoverable
 
@@ -1037,6 +1021,8 @@ fun WhipScreen(
     foldInfo: WhipFoldInfo? = null,
 ) {
     val compactItemExpansionState = LocalCompactItemExpansionState.current
+    val trackEntryUndoStateHolder = trackViewModel?.entryUndoState?.collectAsStateWithLifecycle()
+    val trackEntryUndoState = trackEntryUndoStateHolder?.value ?: TrackEntryUndoUiState()
     var appDestination by rememberSaveable { mutableStateOf(AppDestination.Home) }
     var settingsCallerDestination by rememberSaveable { mutableStateOf(AppDestination.Home) }
     var taskDestination by rememberSaveable { mutableStateOf(TaskDestination.Today) }
@@ -1109,111 +1095,30 @@ fun WhipScreen(
     var searchPreviouslyOpen by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val transientFeedbackScope = rememberCoroutineScope()
-    var transientFeedbackJob by remember { mutableStateOf<Job?>(null) }
-    var activeTransientFeedback by remember { mutableStateOf<TransientFeedbackRequest?>(null) }
-    var transientFeedbackGeneration by remember { mutableLongStateOf(0L) }
-    val pendingTransientFeedback = remember { ArrayDeque<TransientFeedbackRequest>() }
-    fun startTransientFeedback(request: TransientFeedbackRequest) {
-        val generation = ++transientFeedbackGeneration
-        activeTransientFeedback = request
-        transientFeedbackJob = transientFeedbackScope.launch {
-            try {
-                request.show()
-            } finally {
-                if (generation == transientFeedbackGeneration) {
-                    transientFeedbackJob = null
-                    activeTransientFeedback = null
-                    pendingTransientFeedback.removeFirstOrNull()?.let(::startTransientFeedback)
-                }
-            }
-        }
+    val transientFeedbackCoordinator = remember(snackbarHostState, transientFeedbackScope) {
+        TransientFeedbackCoordinator(snackbarHostState, transientFeedbackScope)
     }
     fun presentTransientFeedback(
         source: String,
         priority: Int,
         recoverable: Boolean = false,
         block: suspend () -> Unit,
-    ) {
-        val request = TransientFeedbackRequest(source, priority, recoverable, block)
-        val active = activeTransientFeedback
-        if (transientFeedbackJob?.isActive != true || active == null) {
-            startTransientFeedback(request)
-            return
-        }
-        when {
-            recoverable && active.recoverable && source == active.source -> {
-                transientFeedbackJob?.cancel()
-                snackbarHostState.currentSnackbarData?.dismiss()
-                startTransientFeedback(request)
-            }
-            active.recoverable -> {
-                if (priority >= 2) {
-                    pendingTransientFeedback.removeAll {
-                        it.source == source && it.recoverable == recoverable
-                    }
-                    pendingTransientFeedback.addLast(request)
-                }
-            }
-            recoverable -> {
-                transientFeedbackJob?.cancel()
-                snackbarHostState.currentSnackbarData?.dismiss()
-                startTransientFeedback(request)
-            }
-            active.priority >= 3 -> {
-                if (priority >= 3) pendingTransientFeedback.addLast(request)
-            }
-            priority >= 3 -> {
-                transientFeedbackJob?.cancel()
-                snackbarHostState.currentSnackbarData?.dismiss()
-                startTransientFeedback(request)
-            }
-            else -> {
-                transientFeedbackJob?.cancel()
-                snackbarHostState.currentSnackbarData?.dismiss()
-                startTransientFeedback(request)
-            }
-        }
+    ) = transientFeedbackCoordinator.present(source, priority, recoverable, block)
+    fun presentTrackEntryMutation(receipt: TrackEntryMutationReceipt) {
+        presentTrackEntryMutationFeedback(
+            receipt = receipt,
+            undoToken = trackViewModel?.entryDeletionUndoToken(receipt),
+            snackbarHostState = snackbarHostState,
+            onUndo = onTrackEntryUndo,
+            onUndoDismissed = onTrackEntryUndoDismissed,
+            presentFeedback = ::presentTransientFeedback,
+        )
     }
-    fun invalidateTransientFeedback(source: String, preserveRecoveries: Boolean = false) {
-        pendingTransientFeedback.removeAll {
-            it.source == source && (!preserveRecoveries || !it.recoverable)
-        }
-        val active = activeTransientFeedback
-        if (active?.source != source || (preserveRecoveries && active.recoverable)) return
-        transientFeedbackGeneration++
-        transientFeedbackJob?.cancel()
-        transientFeedbackJob = null
-        activeTransientFeedback = null
-        snackbarHostState.currentSnackbarData?.dismiss()
-        pendingTransientFeedback.removeFirstOrNull()?.let(::startTransientFeedback)
-    }
-    fun invalidateTransientRecovery(source: String) {
-        pendingTransientFeedback.removeAll { it.source == source && it.recoverable }
-        val active = activeTransientFeedback
-        if (active?.source != source || !active.recoverable) return
-        transientFeedbackGeneration++
-        transientFeedbackJob?.cancel()
-        transientFeedbackJob = null
-        activeTransientFeedback = null
-        snackbarHostState.currentSnackbarData?.dismiss()
-        pendingTransientFeedback.removeFirstOrNull()?.let(::startTransientFeedback)
-    }
+    fun invalidateTransientFeedback(source: String, preserveRecoveries: Boolean = false) =
+        transientFeedbackCoordinator.invalidate(source, preserveRecoveries)
+    fun invalidateTransientRecovery(source: String) = transientFeedbackCoordinator.invalidateRecovery(source)
     LaunchedEffect(appDestination) {
-        pendingTransientFeedback.removeAll {
-            !transientFeedbackSurvivesDestinationChange(it.recoverable)
-        }
-        if (activeTransientFeedback?.let {
-                transientFeedbackSurvivesDestinationChange(it.recoverable)
-            } == true
-        ) {
-            return@LaunchedEffect
-        }
-        transientFeedbackGeneration++
-        transientFeedbackJob?.cancel()
-        transientFeedbackJob = null
-        activeTransientFeedback = null
-        snackbarHostState.currentSnackbarData?.dismiss()
-        pendingTransientFeedback.removeFirstOrNull()?.let(::startTransientFeedback)
+        transientFeedbackCoordinator.onDestinationChanged()
     }
     val allScheduledTasks = unscopedTaskState.inbox + unscopedTaskState.today +
         unscopedTaskState.upcoming + unscopedTaskState.planning +
@@ -1434,187 +1339,49 @@ fun WhipScreen(
         },
     )
 
-    LaunchedEffect(operationStatus) {
-        if (
-            operationStatus is OperationStatus.Running ||
-            (operationStatus is OperationStatus.Succeeded &&
-                operationStatus.feedbackPresentation == OperationFeedbackPresentation.Inline)
-        ) {
-            invalidateTransientFeedback("tasks")
-        }
-        operationStatus.deliverTransientMessage(onOperationStatusConsumed) { message ->
-            val quickAddedId = quickAddedTaskId
-            val undoMessage = taskUndoMessage
-            val undoToken = taskUndoToken
-            val succeeded = operationStatus is OperationStatus.Succeeded
-            presentTransientFeedback(
-                source = "tasks",
-                priority = when {
-                    operationStatus is OperationStatus.Failed -> 3
-                    undoMessage != null -> 2
-                    else -> 1
-                },
-                recoverable = undoToken != null,
-            ) {
-                try {
-                    val result = snackbarHostState.showSnackbar(
-                        TaskSnackbarVisuals(
-                            message = message,
-                            actionLabel = when {
-                            !succeeded || undoMessage == null -> null
-                            quickAddedId != null -> "Edit"
-                            else -> "Undo"
-                            },
-                            withDismissAction = undoToken != null || !succeeded,
-                            duration = if (succeeded) SnackbarDuration.Long else SnackbarDuration.Indefinite,
-                            undoToken = undoToken,
-                            quickAdd = quickAddedId != null,
-                        ),
-                    )
-                    if (undoToken == null) return@presentTransientFeedback
-                    when {
-                        quickAddedId != null && result == SnackbarResult.ActionPerformed -> {
-                            val item = allScheduledTasks.firstOrNull { it.task.id == quickAddedId }
-                            if (item != null) openTaskEditor(item) else {
-                                taskEditorOpen = true
-                                taskEditorTaskId = quickAddedId
-                                taskEditorSnapshot = null
-                                taskEditorBoundary = null
-                                taskEditorFromEpochDay = null
-                                taskEditorCapture = ""
-                                taskEditorInitialScheduleEpochDay = null
-                                taskEditorInitialPlacement = null
-                                taskEditorSessionId++
-                            }
-                            onTaskUndoDismissed(undoToken)
-                        }
-                        quickAddedId == null && result == SnackbarResult.ActionPerformed -> onTaskUndo(undoToken)
-                        else -> Unit
-                    }
-                } finally {
-                    undoToken?.let(onTaskUndoDismissed)
-                }
+    WhipOperationFeedbackHost(
+        taskStatus = operationStatus,
+        taskUndoMessage = taskUndoMessage,
+        taskUndoToken = taskUndoToken,
+        quickAddedTaskId = quickAddedTaskId,
+        onTaskStatusConsumed = onOperationStatusConsumed,
+        onEditQuickAddedTask = { quickAddedId ->
+            val item = allScheduledTasks.firstOrNull { it.task.id == quickAddedId }
+            if (item != null) openTaskEditor(item) else {
+                taskEditorOpen = true
+                taskEditorTaskId = quickAddedId
+                taskEditorSnapshot = null
+                taskEditorBoundary = null
+                taskEditorFromEpochDay = null
+                taskEditorCapture = ""
+                taskEditorInitialScheduleEpochDay = null
+                taskEditorInitialPlacement = null
+                taskEditorSessionId++
             }
-        }
-    }
-
-    LaunchedEffect(gymOperationStatus) {
-        if (
-            gymOperationStatus is OperationStatus.Running ||
-            (gymOperationStatus is OperationStatus.Succeeded &&
-                gymOperationStatus.feedbackPresentation == OperationFeedbackPresentation.Inline)
-        ) {
-            invalidateTransientFeedback("gym", preserveRecoveries = true)
-        }
-        gymOperationStatus.deliverTransientMessage(onGymOperationStatusConsumed) { message ->
-            val archiveUndoId = (gymOperationStatus as? OperationStatus.Succeeded)
-                ?.recoveryToken
-                ?.takeIf { it == machineArchiveUndoId }
-            val archiveUndoAvailable = archiveUndoId != null
-            val succeeded = gymOperationStatus is OperationStatus.Succeeded
-            presentTransientFeedback(
-                source = "gym",
-                priority = when {
-                    gymOperationStatus is OperationStatus.Failed -> 3
-                    archiveUndoAvailable -> 2
-                    else -> 1
-                },
-                recoverable = archiveUndoAvailable,
-            ) {
-                try {
-                    val result = snackbarHostState.showSnackbar(
-                        message = message,
-                        actionLabel = "Undo".takeIf { succeeded && archiveUndoAvailable },
-                        withDismissAction = archiveUndoAvailable || gymOperationStatus is OperationStatus.Failed,
-                        duration = if (gymOperationStatus is OperationStatus.Failed) SnackbarDuration.Indefinite else SnackbarDuration.Long,
-                    )
-                    if (result == SnackbarResult.ActionPerformed && archiveUndoId != null) onMachineArchiveUndo(archiveUndoId)
-                } finally {
-                    archiveUndoId?.let(onMachineArchiveUndoDismissed)
-                }
-            }
-        }
-    }
-    LaunchedEffect(habitOperationStatus) {
-        if (
-            habitOperationStatus is OperationStatus.Running ||
-            (habitOperationStatus is OperationStatus.Succeeded &&
-                habitOperationStatus.feedbackPresentation == OperationFeedbackPresentation.Inline)
-        ) {
-            invalidateTransientFeedback("habits")
-        }
-        habitOperationStatus.deliverTransientMessage(onHabitOperationStatusConsumed) { message ->
-            presentTransientFeedback(source = "habits", priority = if (habitOperationStatus is OperationStatus.Failed) 3 else 1) {
-                snackbarHostState.showSnackbar(
-                    message = message,
-                    withDismissAction = habitOperationStatus is OperationStatus.Failed,
-                    duration = if (habitOperationStatus is OperationStatus.Failed) SnackbarDuration.Indefinite else SnackbarDuration.Long,
-                )
-            }
-        }
-    }
-    LaunchedEffect(goalOperationStatus) {
-        if (
-            goalOperationStatus is OperationStatus.Running ||
-            (goalOperationStatus is OperationStatus.Succeeded &&
-                goalOperationStatus.feedbackPresentation == OperationFeedbackPresentation.Inline)
-        ) {
-            invalidateTransientFeedback("goals")
-        }
-        goalOperationStatus.deliverTransientMessage(onGoalOperationStatusConsumed) { message ->
-            presentTransientFeedback(source = "goals", priority = if (goalOperationStatus is OperationStatus.Failed) 3 else 1) {
-                snackbarHostState.showSnackbar(
-                    message = message,
-                    withDismissAction = goalOperationStatus is OperationStatus.Failed,
-                    duration = if (goalOperationStatus is OperationStatus.Failed) SnackbarDuration.Indefinite else SnackbarDuration.Long,
-                )
-            }
-        }
-    }
-    LaunchedEffect(trackOperationStatus) {
-        if (
-            trackOperationStatus is OperationStatus.Running ||
-            (trackOperationStatus is OperationStatus.Succeeded &&
-                trackOperationStatus.feedbackPresentation == OperationFeedbackPresentation.Inline)
-        ) {
-            invalidateTransientFeedback("tracks", preserveRecoveries = true)
-        }
-        trackOperationStatus.deliverTransientMessage(onTrackOperationStatusConsumed) { message ->
-            val succeeded = trackOperationStatus is OperationStatus.Succeeded
-            val undoEntryId = (trackOperationStatus as? OperationStatus.Succeeded)
-                ?.recoveryToken
-                ?.takeIf { succeeded && it == trackEntryUndoId }
-            val undoAvailable = undoEntryId != null
-            presentTransientFeedback(
-                source = "tracks",
-                priority = when {
-                    trackOperationStatus is OperationStatus.Failed -> 3
-                    undoAvailable -> 2
-                    else -> 1
-                },
-                recoverable = undoAvailable,
-            ) {
-                try {
-                    val result = snackbarHostState.showSnackbar(
-                        message,
-                        actionLabel = "Undo".takeIf { undoAvailable },
-                        withDismissAction = undoAvailable || trackOperationStatus is OperationStatus.Failed,
-                        duration = if (trackOperationStatus is OperationStatus.Failed) SnackbarDuration.Indefinite else SnackbarDuration.Long,
-                    )
-                    if (result == SnackbarResult.ActionPerformed && undoEntryId != null) onTrackEntryUndo(undoEntryId)
-                } finally {
-                    undoEntryId?.let(onTrackEntryUndoDismissed)
-                }
-            }
-        }
-    }
-
-    LaunchedEffect(machineArchiveUndoId) {
-        if (machineArchiveUndoId == null) invalidateTransientRecovery("gym")
-    }
-    LaunchedEffect(trackEntryUndoId) {
-        if (trackEntryUndoId == null) invalidateTransientRecovery("tracks")
-    }
+        },
+        onTaskUndo = onTaskUndo,
+        onTaskUndoDismissed = onTaskUndoDismissed,
+        gymStatus = gymOperationStatus,
+        machineArchiveUndoToken = machineArchiveUndoId,
+        onGymStatusConsumed = onGymOperationStatusConsumed,
+        onMachineArchiveUndo = onMachineArchiveUndo,
+        onMachineArchiveUndoDismissed = onMachineArchiveUndoDismissed,
+        habitStatus = habitOperationStatus,
+        onHabitStatusConsumed = onHabitOperationStatusConsumed,
+        goalStatus = goalOperationStatus,
+        onGoalStatusConsumed = onGoalOperationStatusConsumed,
+        trackStatus = trackOperationStatus,
+        onTrackStatusConsumed = onTrackOperationStatusConsumed,
+        trackEntryUndoState = trackEntryUndoState,
+        trackEntryUndoToken = trackEntryUndoId,
+        onTrackEntryUndo = onTrackEntryUndo,
+        onTrackEntryUndoDismissed = onTrackEntryUndoDismissed,
+        onTrackEntryUndoStatusConsumed = { token -> trackViewModel?.consumeEntryUndoStatus(token) },
+        snackbarHostState = snackbarHostState,
+        presentFeedback = ::presentTransientFeedback,
+        invalidateFeedback = ::invalidateTransientFeedback,
+        invalidateRecovery = ::invalidateTransientRecovery,
+    )
 
     LaunchedEffect(areaMoveNotice) {
         val message = areaMoveNotice ?: return@LaunchedEffect
@@ -2623,6 +2390,7 @@ fun WhipScreen(
                     onShowAllAreasForReorder = { onTemporarilySelectAreaScope(AreaScope.All) },
                     onReorderModeChange = { reorderModeActive = it },
                     reorderDismissRequest = reorderDismissRequest,
+                    onEntryMutationPersisted = ::presentTrackEntryMutation,
                 ) else RoadmapEmptyArea("Tracks", "Tracks are loading.", innerPadding)
             }
             AppDestination.Settings -> {
@@ -3039,6 +2807,7 @@ fun WhipScreen(
         onDefinitionPersisted = { receipt ->
             keepSavedItemVisible(receipt.areaId, receipt.areaVerified)
         },
+        onEntryPersisted = ::presentTrackEntryMutation,
     )
     FirstRunSetupRoute(
         settingsState = settingsState,
@@ -3139,7 +2908,16 @@ private fun resolveTrackEditorRoute(
     )
 }
 
-internal enum class TrackEntryRouteAvailability { Available, TrackMissing, EntryMissing }
+internal enum class TrackEntryRouteAvailability {
+    Loading,
+    LoadFailed,
+    Preparing,
+    PreparationFailed,
+    Available,
+    TrackMissing,
+    EntryMissing,
+    TrackArchived,
+}
 
 internal fun trackEditorRouteMatchesGeneration(
     route: TrackEditorRoute,
@@ -3149,16 +2927,50 @@ internal fun trackEditorRouteMatchesGeneration(
 internal fun trackEntryRouteAvailability(
     route: TrackEditorRoute.Entry,
     unscopedTrackState: TrackUiState,
+    preparationState: TrackEntryPreparationUiState = TrackEntryPreparationUiState(),
 ): TrackEntryRouteAvailability {
-    val projection = unscopedTrackState.track(route.trackId)
-        ?: return TrackEntryRouteAvailability.TrackMissing
-    return if (
-        route.entryId != null && projection.entries.none { it.entry.id == route.entryId }
-    ) {
-        TrackEntryRouteAvailability.EntryMissing
-    } else {
-        TrackEntryRouteAvailability.Available
+    val preparedForm = route.openingCreatePreparation?.form ?: route.openingEditSnapshot?.form
+    if (preparedForm != null) {
+        return if (preparedForm.boundary.writable) {
+            TrackEntryRouteAvailability.Available
+        } else {
+            TrackEntryRouteAvailability.TrackArchived
+        }
     }
+    val preparationMatches = preparationState.sessionId == route.sessionId &&
+        preparationState.trackId == route.trackId &&
+        preparationState.entryId == route.entryId
+    if (preparationMatches && preparationState.loading) return TrackEntryRouteAvailability.Preparing
+    if (preparationMatches && preparationState.errorMessage != null) {
+        return when (preparationState.conflictKind) {
+            com.whip.app.domain.TrackEntryConflictKind.ParentMissing -> TrackEntryRouteAvailability.TrackMissing
+            com.whip.app.domain.TrackEntryConflictKind.TargetMissing -> TrackEntryRouteAvailability.EntryMissing
+            else -> TrackEntryRouteAvailability.PreparationFailed
+        }
+    }
+    if (unscopedTrackState.loading) return TrackEntryRouteAvailability.Loading
+    if (unscopedTrackState.errorMessage != null) return TrackEntryRouteAvailability.LoadFailed
+    return TrackEntryRouteAvailability.Preparing
+}
+
+internal fun trackEntryReceiptMatchesRoute(
+    route: TrackEditorRoute.Entry,
+    receipt: TrackEntryMutationReceipt,
+    userDataGeneration: Long,
+): Boolean {
+    if (route.openingDataGeneration != userDataGeneration || receipt.trackId != route.trackId) return false
+    return when {
+        route.entryId == null -> receipt.kind == TrackEntryMutationKind.Create &&
+            receipt.entryUuid == route.openingCreatePreparation?.request?.entryUuid
+        else -> receipt.kind in setOf(TrackEntryMutationKind.Update, TrackEntryMutationKind.Delete) &&
+            receipt.entryId == route.entryId && receipt.entryUuid == route.openingEditSnapshot?.boundary?.entryUuid
+    }
+}
+
+internal fun trackEntryUndoRetryToken(
+    state: TrackEntryUndoUiState,
+): Long? = state.token?.takeIf {
+    state.status is OperationStatus.Failed && state.deletedEntry != null
 }
 
 @Composable
@@ -3179,6 +2991,7 @@ private fun TrackEditorRouteHost(
     trackOperationStatus: OperationStatus,
     onGenerationInvalidated: suspend () -> Unit,
     onDefinitionPersisted: (EntitySaveReceipt) -> Unit,
+    onEntryPersisted: (TrackEntryMutationReceipt) -> Unit,
 ) {
     val route = routeState.value
     route ?: return
@@ -3186,6 +2999,8 @@ private fun TrackEditorRouteHost(
         LaunchedEffect(route.sessionId, userDataGeneration) {
             if (route is TrackEditorRoute.Definition) {
                 trackViewModel?.clearDefinitionEditorState(route.sessionId)
+            } else if (route is TrackEditorRoute.Entry) {
+                trackViewModel?.clearEntryEditorState(route.sessionId)
             }
             routeState.value = null
             onGenerationInvalidated()
@@ -3196,6 +3011,12 @@ private fun TrackEditorRouteHost(
     val definitionSaveState = saveStateState?.value ?: PersistenceRequestState.Idle
     val reviewStateState = trackViewModel?.definitionReviewState?.collectAsStateWithLifecycle()
     val definitionReviewState = reviewStateState?.value ?: TrackDefinitionReviewUiState()
+    val entryMutationStateState = trackViewModel?.entryMutationState?.collectAsStateWithLifecycle()
+    val entryMutationState = entryMutationStateState?.value ?: PersistenceRequestState.Idle
+    val entryPreparationStateState = trackViewModel?.entryPreparationState?.collectAsStateWithLifecycle()
+    val entryPreparationState = entryPreparationStateState?.value ?: TrackEntryPreparationUiState()
+    val entryConflictStateState = trackViewModel?.entryConflictState?.collectAsStateWithLifecycle()
+    val entryConflictState = entryConflictStateState?.value
     RootEditorHost(
         adaptiveLayout = adaptiveLayout,
         foldInfo = foldInfo,
@@ -3245,45 +3066,165 @@ private fun TrackEditorRouteHost(
                 },
             )
             is TrackEditorRoute.Entry -> {
-                val projection = unscopedTrackState.track(route.trackId)
-                val initial = route.entryId?.let { entryId ->
-                    projection?.entries?.firstOrNull { it.entry.id == entryId }
+                LaunchedEffect(route.sessionId, route.trackId, route.entryId) {
+                    if (route.openingCreatePreparation == null && route.openingEditSnapshot == null) {
+                        trackViewModel?.prepareEntryEditor(route.sessionId, route.trackId, route.entryId)
+                    }
                 }
-                when (trackEntryRouteAvailability(route, unscopedTrackState)) {
+                LaunchedEffect(
+                    route.sessionId,
+                    entryPreparationState.sessionId,
+                    entryPreparationState.createPreparation,
+                    entryPreparationState.editSnapshot,
+                ) {
+                    if (
+                        entryPreparationState.sessionId == route.sessionId &&
+                        entryPreparationState.trackId == route.trackId &&
+                        entryPreparationState.entryId == route.entryId &&
+                        route.openingCreatePreparation == null &&
+                        route.openingEditSnapshot == null
+                    ) {
+                        val active = routeState.value as? TrackEditorRoute.Entry
+                        if (
+                            active?.sessionId == route.sessionId &&
+                            active.trackId == route.trackId &&
+                            active.entryId == route.entryId
+                        ) {
+                            entryPreparationState.createPreparation?.let {
+                                routeState.value = active.copy(openingCreatePreparation = it)
+                            } ?: entryPreparationState.editSnapshot?.let {
+                                routeState.value = active.copy(openingEditSnapshot = it)
+                            }
+                        }
+                    }
+                }
+                val projection = unscopedTrackState.track(route.trackId)
+                val requestNamespace = "track-entry-${route.sessionId}-g${route.openingDataGeneration}"
+                val entryCoordinator = rememberPersistenceRequestCoordinator(
+                    state = entryMutationState,
+                    consume = { requestId -> trackViewModel?.consumeEntryMutationResult(requestId) },
+                    key = requestNamespace,
+                    requestNamespace = requestNamespace,
+                    orphanedMessage =
+                        "The previous Entry change was interrupted and its outcome is unknown. " +
+                            "Close this editor and verify the Track history before retrying.",
+                    onPersisted = { receipt ->
+                        val active = routeState.value as? TrackEditorRoute.Entry
+                        if (
+                            active?.sessionId == route.sessionId &&
+                            active.trackId == route.trackId &&
+                            active.entryId == route.entryId &&
+                            trackEntryReceiptMatchesRoute(active, receipt, userDataGeneration)
+                        ) {
+                            onEntryPersisted(receipt)
+                            trackViewModel?.clearEntryEditorState(route.sessionId)
+                            routeState.value = null
+                        }
+                    },
+                )
+                fun closeEntryEditor() {
+                    entryCoordinator.clear()
+                    trackViewModel?.clearEntryEditorState(route.sessionId)
+                    val active = routeState.value as? TrackEditorRoute.Entry
+                    if (active?.sessionId == route.sessionId) routeState.value = null
+                }
+                val conflict = entryConflictState?.takeIf {
+                    it.requestId.startsWith("$requestNamespace:")
+                }
+                when (trackEntryRouteAvailability(route, unscopedTrackState, entryPreparationState)) {
+                    TrackEntryRouteAvailability.Loading -> TrackEntryUnavailableRoute(
+                        title = "Loading Entry",
+                        message = "Whip is loading the Track and its Entry history.",
+                        modifier = editorModifier,
+                        kind = WhipStatusKind.Loading,
+                        onDismiss = ::closeEntryEditor,
+                    )
+                    TrackEntryRouteAvailability.LoadFailed -> TrackEntryUnavailableRoute(
+                        title = "Entry Could Not Load",
+                        message = unscopedTrackState.errorMessage ?: "The Track could not be loaded.",
+                        modifier = editorModifier,
+                        actionLabel = "Try Again",
+                        onAction = { trackViewModel?.retryLoading() },
+                        onDismiss = ::closeEntryEditor,
+                    )
+                    TrackEntryRouteAvailability.Preparing -> TrackEntryUnavailableRoute(
+                        title = "Preparing Entry",
+                        message = "Whip is verifying the exact Track form before editing is enabled.",
+                        modifier = editorModifier,
+                        kind = WhipStatusKind.Loading,
+                        onDismiss = ::closeEntryEditor,
+                    )
+                    TrackEntryRouteAvailability.PreparationFailed -> TrackEntryUnavailableRoute(
+                        title = "Entry Could Not Be Verified",
+                        message = entryPreparationState.errorMessage ?: "The Entry could not be verified safely.",
+                        modifier = editorModifier,
+                        actionLabel = "Try Again",
+                        onAction = {
+                            trackViewModel?.clearEntryEditorState(route.sessionId)
+                            trackViewModel?.prepareEntryEditor(route.sessionId, route.trackId, route.entryId)
+                        },
+                        onDismiss = ::closeEntryEditor,
+                    )
                     TrackEntryRouteAvailability.TrackMissing -> TrackEntryUnavailableRoute(
                         title = "Track Unavailable",
                         message = "This Track is no longer available. No Entry was added or changed.",
                         modifier = editorModifier,
-                        onDismiss = { routeState.value = null },
+                        onDismiss = ::closeEntryEditor,
                     )
                     TrackEntryRouteAvailability.EntryMissing -> TrackEntryUnavailableRoute(
                         title = "Entry Unavailable",
                         message = "This Entry is no longer available. It was not reinterpreted as a new Entry.",
                         modifier = editorModifier,
-                        onDismiss = { routeState.value = null },
+                        onDismiss = ::closeEntryEditor,
+                    )
+                    TrackEntryRouteAvailability.TrackArchived -> TrackEntryUnavailableRoute(
+                        title = "Track Archived",
+                        message = "History remains available, but this Track must be restored before an Entry can be added or edited.",
+                        modifier = editorModifier,
+                        onDismiss = ::closeEntryEditor,
                     )
                     TrackEntryRouteAvailability.Available -> {
                     TrackEntryEditor(
-                        projection = requireNotNull(projection),
-                        initial = initial,
-                        customUnits = settingsState.customUnits,
+                        form = requireNotNull(
+                            route.openingCreatePreparation?.form ?: route.openingEditSnapshot?.form,
+                        ),
+                        editSnapshot = route.openingEditSnapshot,
+                        duplicateEntries = projection?.entries.orEmpty(),
                         today = trackState.currentDate,
-                        saving = trackOperationStatus is OperationStatus.Running,
+                        saving = entryCoordinator.saving,
+                        persistenceError = entryCoordinator.errorMessage,
+                        conflictKind = conflict?.kind,
+                        conflictMessage = conflict?.message,
                         modifier = editorModifier,
                         sessionId = route.sessionId,
-                        onDismiss = { routeState.value = null },
+                        onDismiss = ::closeEntryEditor,
                         onSave = { draft ->
-                            trackViewModel?.saveEntry(route.trackId, route.entryId, draft) {
-                                routeState.value = null
+                            val requestId = entryCoordinator.begin()
+                            if (requestId != null) {
+                                val accepted = trackViewModel?.saveEntry(
+                                    trackId = route.trackId,
+                                    entryId = route.entryId,
+                                    createRequest = route.openingCreatePreparation?.request,
+                                    expectedBoundary = route.openingEditSnapshot?.boundary,
+                                    draft = draft,
+                                    requestId = requestId,
+                                ) == true
+                                if (!accepted) {
+                                    entryCoordinator.finishFailure("Another Entry change is already finishing.")
+                                }
                             }
                         },
-                        onDelete = route.entryId?.let { entryId ->
+                        onDelete = route.openingEditSnapshot?.boundary?.let { boundary ->
                             {
-                                trackViewModel?.deleteEntry(entryId)
-                                routeState.value = null
+                                val requestId = entryCoordinator.begin()
+                                if (requestId != null && trackViewModel?.deleteEntry(boundary, requestId) != true) {
+                                    entryCoordinator.finishFailure("Another Entry change is already finishing.")
+                                }
                             }
                         },
                         onOpenExisting = { existingId ->
+                            entryCoordinator.clear()
+                            trackViewModel?.clearEntryEditorState(route.sessionId)
                             val nextSession = sessionState.value + 1L
                             sessionState.value = nextSession
                             routeState.value = TrackEditorRoute.Entry(
@@ -3308,6 +3249,9 @@ internal fun TrackEntryUnavailableRoute(
     message: String,
     modifier: Modifier,
     onDismiss: () -> Unit,
+    kind: WhipStatusKind = WhipStatusKind.Error,
+    actionLabel: String = "Close",
+    onAction: () -> Unit = onDismiss,
 ) {
     BackHandler(onBack = onDismiss)
     WhipFullScreenSurface(title = title, modifier = modifier.testTag("track-entry-unavailable")) {
@@ -3331,11 +3275,11 @@ internal fun TrackEntryUnavailableRoute(
                 contentAlignment = Alignment.Center,
             ) {
                 WhipStatusCard(
-                    kind = WhipStatusKind.Error,
+                    kind = kind,
                     title = title,
                     message = message,
-                    actionLabel = "Close",
-                    onAction = onDismiss,
+                    actionLabel = actionLabel,
+                    onAction = onAction,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

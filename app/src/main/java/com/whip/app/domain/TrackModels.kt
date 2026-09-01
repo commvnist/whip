@@ -68,7 +68,7 @@ data class Track(
     val position: Int,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
-)
+) : Serializable
 
 data class TrackField(
     val id: Long,
@@ -90,7 +90,7 @@ data class TrackField(
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
     val scaleStep: Double = 1.0,
-)
+) : Serializable
 
 data class TrackChoiceOption(
     val id: Long,
@@ -100,7 +100,7 @@ data class TrackChoiceOption(
     val position: Int,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
-)
+) : Serializable
 
 data class TrackEntry(
     val id: Long,
@@ -111,7 +111,7 @@ data class TrackEntry(
     val sourceExplanation: String = "",
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
-)
+) : Serializable
 
 /**
  * One typed value row. Repository validation guarantees that exactly the
@@ -132,7 +132,7 @@ data class TrackFieldValue(
     val scaleValue: Double? = null,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
-)
+) : Serializable
 
 data class TrackValueDraft(
     val textValue: String? = null,
@@ -181,7 +181,153 @@ data class TrackEntryPage(
 data class DeletedTrackEntry(
     val entry: TrackEntry,
     val values: List<TrackFieldValue>,
-)
+    val openingFormBoundary: TrackEntryFormBoundary,
+    val sourceOccurrence: TrackEntryFulfillmentSnapshot? = null,
+    val fulfilledOccurrences: List<TrackEntryFulfillmentSnapshot> = emptyList(),
+) : Serializable
+
+/**
+ * Compact, process-saveable contract for the Entry form a user actually saw.
+ * Presentation-only Track/Field ordering is deliberately excluded; every
+ * semantic label, type, unit, range, and Choice identity is included.
+ */
+data class TrackEntryFormBoundary(
+    val trackId: Long,
+    val trackUuid: String,
+    val trackCreatedAtMillis: Long,
+    val writable: Boolean,
+    val semanticRevisionToken: String,
+    val fieldContracts: List<TrackEntryFieldContract> = emptyList(),
+    val choiceContracts: List<TrackEntryChoiceContract> = emptyList(),
+    /** Units selectable for this form; only a draft's selected/default unit is checked at commit. */
+    val unitContracts: List<TrackEntryUnitContract> = emptyList(),
+) : Serializable
+
+/** Exact optimistic-concurrency boundary for one historical Entry. */
+data class TrackEntryBoundary(
+    val formBoundary: TrackEntryFormBoundary,
+    val entryId: Long,
+    val entryUuid: String,
+    val entryCreatedAtMillis: Long,
+    val semanticRevisionToken: String,
+    val enteredUnitContracts: List<TrackEntryUnitContract> = emptyList(),
+) : Serializable
+
+data class TrackEntryFieldContract(
+    val id: Long,
+    val uuid: String,
+    val trackId: Long,
+    val name: String,
+    val type: TrackFieldType,
+    val required: Boolean,
+    val primary: Boolean,
+    val dimension: UnitDimension?,
+    val unitId: String?,
+    val precision: Int,
+    val scaleMin: Int?,
+    val scaleMax: Int?,
+    val scaleLowLabel: String,
+    val scaleHighLabel: String,
+    val scaleStep: Double,
+) : Serializable
+
+data class TrackEntryChoiceContract(
+    val id: Long,
+    val uuid: String,
+    val fieldId: Long,
+    val label: String,
+) : Serializable
+
+data class TrackEntryUnitContract(
+    val id: String,
+    val name: String,
+    val symbol: String,
+    val dimension: UnitDimension,
+    val toCanonicalFactor: Double,
+    val toCanonicalOffset: Double,
+    val archived: Boolean,
+) : Serializable
+
+/** Stable identity is allocated before persistence so Create can be retried safely. */
+data class TrackEntryCreateRequest(
+    val entryUuid: String,
+    val openingFormBoundary: TrackEntryFormBoundary,
+) : Serializable
+
+/** Exact form rows rendered by an Entry editor, read with its boundary. */
+data class TrackEntryFormSnapshot(
+    val boundary: TrackEntryFormBoundary,
+    val track: Track,
+    val fields: List<TrackField>,
+    val options: List<TrackChoiceOption>,
+    val units: List<TrackEntryUnitContract>,
+) : Serializable
+
+data class TrackEntryCreatePreparation(
+    val request: TrackEntryCreateRequest,
+    val form: TrackEntryFormSnapshot,
+) : Serializable
+
+/** Atomic edit/delete opening state; never pair a fresh boundary with a stale Flow row. */
+data class TrackEntryEditSnapshot(
+    val boundary: TrackEntryBoundary,
+    val form: TrackEntryFormSnapshot,
+    val draft: TrackEntryDraft,
+    val displayName: String,
+    val populatedValueCount: Int,
+) : Serializable
+
+enum class TrackEntryMutationKind {
+    Create,
+    Update,
+    Delete,
+    Restore,
+}
+
+enum class TrackEntryConflictKind {
+    TargetMissing,
+    ParentMissing,
+    IdentityChanged,
+    FormChanged,
+    EntryChanged,
+    IdentityCollision,
+    ProvenanceChanged,
+    RestoreIncompatible,
+    OutcomeUnknown,
+}
+
+class TrackEntryConflictException(
+    val kind: TrackEntryConflictKind,
+    message: String,
+) : IllegalStateException(message)
+
+/** Exact historical Trigger occurrence captured before its Entry link is cleared. */
+data class TrackEntryFulfillmentSnapshot(
+    val id: Long,
+    val triggerRuleId: Long,
+    val sourceEventId: String,
+    val availableAtMillis: Long,
+    val deliveredAtMillis: Long?,
+    val dismissedAtMillis: Long?,
+    val remindAtMillis: Long?,
+    val fulfilledEntryId: Long?,
+    val sourceSnapshot: String,
+) : Serializable
+
+/** Authoritative result built inside the transaction that committed the mutation. */
+data class TrackEntryMutationReceipt(
+    val kind: TrackEntryMutationKind,
+    val trackId: Long,
+    val trackUuid: String,
+    val entryId: Long,
+    val entryUuid: String,
+    val changed: Boolean,
+    val alreadyApplied: Boolean,
+    val affectedValueCount: Int,
+    val postBoundary: TrackEntryBoundary? = null,
+    val deletedEntry: DeletedTrackEntry? = null,
+    val warnings: List<String> = emptyList(),
+) : Serializable
 
 data class TrackProjection(
     val track: Track,
@@ -452,9 +598,41 @@ fun validateTrackEntryDraft(
     require(draft.values.keys.all(fieldByUuid::containsKey)) { "Entry contains a Field that no longer exists" }
     fields.forEach { field ->
         val value = draft.values[field.uuid]
+        if (value != null) validateTrackValueShape(field, value)
         require(!field.required || value?.isBlankFor(field.type) == false) { "${field.name} is required" }
         if (value == null || value.isBlankFor(field.type)) return@forEach
         validateTrackValue(field, options.filter { it.fieldId == field.id }, value)
+    }
+}
+
+/**
+ * Reject payload left behind by a stale editor after a Field type change.
+ * Merely looking at the column for the current type would make a valid value
+ * for the old type appear blank and could silently discard authored data.
+ */
+private fun validateTrackValueShape(field: TrackField, value: TrackValueDraft) {
+    val unexpected = when (field.type) {
+        TrackFieldType.ShortText, TrackFieldType.LongText ->
+            value.enteredNumber != null || value.enteredUnitId != null || value.dateValue != null ||
+                value.booleanValue != null || value.choiceOptionUuid != null || value.scaleValue != null
+        TrackFieldType.Number ->
+            value.textValue != null || value.dateValue != null || value.booleanValue != null ||
+                value.choiceOptionUuid != null || value.scaleValue != null
+        TrackFieldType.SingleChoice ->
+            value.textValue != null || value.enteredNumber != null || value.enteredUnitId != null ||
+                value.dateValue != null || value.booleanValue != null || value.scaleValue != null
+        TrackFieldType.Scale ->
+            value.textValue != null || value.enteredNumber != null || value.enteredUnitId != null ||
+                value.dateValue != null || value.booleanValue != null || value.choiceOptionUuid != null
+        TrackFieldType.Date ->
+            value.textValue != null || value.enteredNumber != null || value.enteredUnitId != null ||
+                value.booleanValue != null || value.choiceOptionUuid != null || value.scaleValue != null
+        TrackFieldType.YesNo ->
+            value.textValue != null || value.enteredNumber != null || value.enteredUnitId != null ||
+                value.dateValue != null || value.choiceOptionUuid != null || value.scaleValue != null
+    }
+    require(!unexpected) {
+        "${field.name} contains a value for a different Field type. Review the latest Entry form."
     }
 }
 
