@@ -22,7 +22,7 @@ This is the canonical cross-session entry point for Whip product and engineering
 
 ## Active direction
 
-- `FB-20260831-012`: run the reusable maximum-quality whole-product goal. The prompt exists, but that new exhaustive iteration has not yet been executed.
+- `FB-20260831-012`: the maximum-quality whole-product goal is active. Iteration 1 is inventorying every surface and running independent Product Director, productivity/ADHD/UX, and accessibility/mobile/QA/architecture investigations before selecting the first remediation chunks.
 - `FB-20260831-013`: keep durable project memory outside chat. The infrastructure and skill package are structurally validated; future task use will validate whether the protocol needs adjustment.
 - `FB-20260831-014`: commit and push each coherent verified chunk for easier tracking and reverts. The workflow rule is implemented and structurally validated in the skill, workspace instructions, memory schema, and whole-product goal.
 - Treat subjective fixes in release 0.3.34 as awaiting continued real-user validation even where automated and device checks pass.
