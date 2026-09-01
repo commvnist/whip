@@ -125,6 +125,21 @@ enum class WorkoutSessionState {
     Discarded,
 }
 
+/** What happened to an exercise placement after it was snapshotted into a workout. */
+enum class WorkoutExerciseOutcome {
+    Active,
+    Removed,
+    Substituted,
+}
+
+/** Why a snapshotted set stopped being executable while its historical fact was retained. */
+enum class WorkoutSetRemovalReason {
+    Removed,
+    Skipped,
+    ExerciseRemoved,
+    ExerciseSubstituted,
+}
+
 enum class WorkoutSetClassification {
     WarmUp,
     Working,
@@ -453,6 +468,10 @@ data class WorkoutSession(
     val invalidatedMainExerciseIds: Set<Long> = emptySet(),
     val sourceRoutinePhaseLabel: String = "",
     val sourceRoutinePhaseRole: RoutineProgramPhaseRole = RoutineProgramPhaseRole.Standard,
+    /** Monotonic revision of performed/prescribed workout content; timer and metadata do not change it. */
+    val workoutRevision: Long = 0,
+    val restTimerRevision: Long = 0,
+    val restTimerCleanupPending: Boolean = false,
 )
 
 data class WorkoutGroup(
@@ -511,6 +530,9 @@ data class WorkoutExercise(
     val placementKindSnapshot: RoutinePlacementKind = RoutinePlacementKind.General,
     val assistanceCategorySnapshot: RoutineAssistanceCategory = RoutineAssistanceCategory.Unspecified,
     val jokerSetsEnabledSnapshot: Boolean = false,
+    val outcome: WorkoutExerciseOutcome = WorkoutExerciseOutcome.Active,
+    val outcomeAtMillis: Long? = null,
+    val replacementWorkoutExerciseUuid: String? = null,
 )
 
 /** Stable equipment partition captured when the workout placement is created. */
@@ -674,6 +696,10 @@ data class WorkoutSet(
     val optionalWorkKindSnapshot: RoutineOptionalWorkKind = RoutineOptionalWorkKind.None,
     /** Immutable authored set type, even when [classification] is changed to Failure. */
     val prescribedClassificationSnapshot: WorkoutSetClassification = classification,
+    /** True only when routine instantiation made this set part of progression eligibility. */
+    val requiredForProgressionSnapshot: Boolean = false,
+    /** Null while executable; otherwise explains why the retained snapshot left the workout lane. */
+    val removalReason: WorkoutSetRemovalReason? = null,
 )
 
 data class WorkoutSummary(

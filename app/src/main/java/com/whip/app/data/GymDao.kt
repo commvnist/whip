@@ -54,6 +54,9 @@ interface GymDao {
     @Query("SELECT * FROM workout_sets")
     suspend fun getAllWorkoutSets(): List<WorkoutSetEntity>
 
+    @Query("SELECT * FROM workout_groups")
+    suspend fun getAllWorkoutGroups(): List<WorkoutGroupEntity>
+
     @Query("SELECT * FROM exercises WHERE id = :id")
     suspend fun getExercise(id: Long): ExerciseEntity?
 
@@ -160,6 +163,95 @@ interface GymDao {
     @Update suspend fun updateWorkoutExercise(entity: WorkoutExerciseEntity)
     @Update suspend fun updateWorkoutSet(entity: WorkoutSetEntity)
     @Update suspend fun updateWorkoutGroup(entity: WorkoutGroupEntity)
+
+    @Query(
+        "UPDATE workout_sessions SET name = :name, notes = :notes, " +
+            "keepScreenAwake = :keepScreenAwake, updatedAtMillis = :updatedAtMillis WHERE id = :id",
+    )
+    suspend fun updateSessionMetadata(
+        id: Long,
+        name: String,
+        notes: String,
+        keepScreenAwake: Boolean,
+        updatedAtMillis: Long,
+    ): Int
+
+    @Query(
+        "UPDATE workout_sessions SET state = 'Active', archived = 0, endedAtMillis = NULL, " +
+            "restTimerDeadlineMillis = NULL, restTimerDurationSeconds = NULL, " +
+            "restTimerRevision = restTimerRevision + 1, restTimerCleanupPending = 1, " +
+            "updatedAtMillis = :updatedAtMillis WHERE id = :id AND state != 'Active'",
+    )
+    suspend fun resumeSession(id: Long, updatedAtMillis: Long): Int
+
+    @Query(
+        "UPDATE workout_sessions SET state = 'Discarded', archived = 1, " +
+            "endedAtMillis = COALESCE(endedAtMillis, :updatedAtMillis), " +
+            "restTimerDeadlineMillis = NULL, restTimerDurationSeconds = NULL, " +
+            "restTimerRevision = restTimerRevision + 1, restTimerCleanupPending = 1, " +
+            "updatedAtMillis = :updatedAtMillis WHERE id = :id AND state = 'Active'",
+    )
+    suspend fun discardActiveSession(id: Long, updatedAtMillis: Long): Int
+
+    @Query(
+        "UPDATE workout_sessions SET state = 'Finished', archived = 0, " +
+            "restTimerRevision = restTimerRevision + 1, restTimerCleanupPending = 1, " +
+            "updatedAtMillis = :updatedAtMillis " +
+            "WHERE id = :id AND state = 'Discarded'",
+    )
+    suspend fun restoreDiscardedSession(id: Long, updatedAtMillis: Long): Int
+
+    @Query(
+        "UPDATE workout_sessions SET restTimerDeadlineMillis = :deadlineMillis, " +
+            "restTimerDurationSeconds = :durationSeconds, restTimerRevision = restTimerRevision + 1, " +
+            "restTimerCleanupPending = 1, " +
+            "updatedAtMillis = :updatedAtMillis " +
+            "WHERE id = :id AND state = 'Active'",
+    )
+    suspend fun updateActiveSessionTimer(
+        id: Long,
+        deadlineMillis: Long?,
+        durationSeconds: Int?,
+        updatedAtMillis: Long,
+    ): Int
+
+    @Query(
+        "UPDATE workout_sessions SET restTimerCleanupPending = 0 " +
+            "WHERE id = :id AND restTimerRevision = :expectedTimerRevision " +
+            "AND restTimerCleanupPending = 1",
+    )
+    suspend fun acknowledgeRestTimerCleanup(id: Long, expectedTimerRevision: Long): Int
+
+    @Query(
+        "UPDATE workout_sessions SET restTimerDeadlineMillis = NULL, restTimerDurationSeconds = NULL, " +
+            "restTimerRevision = restTimerRevision + 1, restTimerCleanupPending = 1, " +
+            "updatedAtMillis = :updatedAtMillis WHERE id = :id AND state = 'Active' " +
+            "AND restTimerRevision = :expectedTimerRevision " +
+            "AND restTimerDeadlineMillis = :expectedDeadlineMillis",
+    )
+    suspend fun completeActiveRestTimerDelivery(
+        id: Long,
+        expectedTimerRevision: Long,
+        expectedDeadlineMillis: Long,
+        updatedAtMillis: Long,
+    ): Int
+
+    @Query(
+        "UPDATE workout_sessions SET workoutRevision = workoutRevision + 1, " +
+            "updatedAtMillis = :updatedAtMillis WHERE id = :id AND state = 'Active'",
+    )
+    suspend fun bumpActiveWorkoutRevision(id: Long, updatedAtMillis: Long): Int
+
+    @Query(
+        "UPDATE workout_sessions SET requiredMainWorkInvalidated = 1, " +
+            "invalidatedMainExerciseIdsCsv = :invalidatedExerciseIdsCsv, " +
+            "updatedAtMillis = :updatedAtMillis WHERE id = :id AND state = 'Active'",
+    )
+    suspend fun invalidateActiveSessionMainWork(
+        id: Long,
+        invalidatedExerciseIdsCsv: String,
+        updatedAtMillis: Long,
+    ): Int
 
     @Upsert suspend fun upsertCategoryJoin(entity: ExerciseCategoryJoinEntity)
     @Upsert suspend fun upsertMachineExerciseJoin(entity: GymMachineExerciseJoinEntity)

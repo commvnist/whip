@@ -196,6 +196,11 @@ data class WorkoutSessionEntity(
     val invalidatedMainExerciseIdsCsv: String = "",
     val sourceRoutinePhaseLabel: String = "",
     val sourceRoutinePhaseRole: String = "Standard",
+    val workoutRevision: Long = 0,
+    /** Monotonic identity for timer/scheduler hand-offs; independent from workout content. */
+    val restTimerRevision: Long = 0,
+    /** Durable hand-off from a timer/session commit to notification and WorkManager cleanup. */
+    val restTimerCleanupPending: Boolean = false,
 )
 
 @Entity(
@@ -300,6 +305,9 @@ data class WorkoutExerciseEntity(
     val placementKindSnapshot: String = "General",
     val assistanceCategorySnapshot: String = "Unspecified",
     val jokerSetsEnabledSnapshot: Boolean = false,
+    val outcome: String = "Active",
+    val outcomeAtMillis: Long? = null,
+    val replacementWorkoutExerciseUuid: String? = null,
 )
 
 @Entity(
@@ -361,4 +369,6 @@ data class WorkoutSetEntity(
     val optionalWorkKindSnapshot: String = "None",
     /** Immutable authored set type. [classification] remains the performed outcome. */
     val prescribedClassificationSnapshot: String = "Working",
+    val requiredForProgressionSnapshot: Boolean = false,
+    val removalReason: String? = null,
 )

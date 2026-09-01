@@ -7,6 +7,7 @@ import com.whip.app.domain.WhipTask
 import com.whip.app.domain.WorkoutSessionState
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -80,6 +81,57 @@ class ReminderWorkerRulesTest {
         assertFalse(restTimerShouldNotify(WorkoutSessionState.Discarded.name, 10_000L, 10_000L))
         assertFalse(restTimerShouldNotify(WorkoutSessionState.Active.name, null, 10_000L))
         assertFalse(restTimerShouldNotify(WorkoutSessionState.Active.name, 20_000L, 10_000L))
+    }
+
+    @Test
+    fun restTimerRecoveryCeilsAnImminentDeadlineInsteadOfCancellingIt() {
+        assertEquals(1, restTimerScheduleDelaySeconds(deadlineMillis = 10_001L, nowMillis = 10_000L))
+        assertEquals(1, restTimerScheduleDelaySeconds(deadlineMillis = 10_999L, nowMillis = 10_000L))
+        assertEquals(2, restTimerScheduleDelaySeconds(deadlineMillis = 11_001L, nowMillis = 10_000L))
+        assertEquals(null, restTimerScheduleDelaySeconds(deadlineMillis = 10_000L, nowMillis = 10_000L))
+    }
+
+    @Test
+    fun restTimerDeliveryPostsBeforePersistenceAndReplaysTheSameNotificationAfterFailure() = runBlocking {
+        var posts = 0
+        var completionAttempts = 0
+        var staleCancellations = 0
+
+        val interrupted = runCatching {
+            deliverRestTimerAtLeastOnce(
+                post = { posts++ },
+                complete = {
+                    completionAttempts++
+                    error("Database unavailable after notification post")
+                },
+                cancelStale = { staleCancellations++ },
+            )
+        }
+        assertTrue(interrupted.isFailure)
+        assertEquals(1, posts)
+
+        assertTrue(
+            deliverRestTimerAtLeastOnce(
+                post = { posts++ },
+                complete = {
+                    completionAttempts++
+                    true
+                },
+                cancelStale = { staleCancellations++ },
+            ),
+        )
+        assertEquals(2, posts)
+        assertEquals(2, completionAttempts)
+        assertEquals(0, staleCancellations)
+
+        assertFalse(
+            deliverRestTimerAtLeastOnce(
+                post = { posts++ },
+                complete = { false },
+                cancelStale = { staleCancellations++ },
+            ),
+        )
+        assertEquals(1, staleCancellations)
     }
 
     @Test

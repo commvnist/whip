@@ -342,6 +342,7 @@ class RoomBackupRepository(
         val tableNames = tables.keys().asSequence().toSet()
         val expected = when (dbVersion) {
             BACKUP_DATABASE_VERSION -> EXPORT_TABLES.toSet()
+            16 -> EXPORT_TABLES.toSet()
             15, 14 -> VERSION_FIFTEEN_EXPORT_TABLES.toSet()
             13 -> VERSION_THIRTEEN_EXPORT_TABLES.toSet()
             9 -> VERSION_THIRTEEN_EXPORT_TABLES.toSet()
@@ -459,7 +460,38 @@ class RoomBackupRepository(
                 }
             }
         }
+        if (databaseVersion < 17) upgradeWorkoutProgressionRequirements(tables)
         retireAutomationBackupRows(tables)
+    }
+
+    /** Mirrors the Room 39 -> 40 authored-requirement backfill for portable backups. */
+    private fun upgradeWorkoutProgressionRequirements(tables: JSONObject) {
+        val routineSessions = mutableMapOf<Long, Long>()
+        tables.optJSONArray("workout_sessions")?.forEachObject { session ->
+            if (session.has("sourceRoutineId") && !session.isNull("sourceRoutineId")) {
+                routineSessions[session.getLong("id")] = session.optLong("createdAtMillis")
+            }
+        }
+        val routinePlacements = mutableMapOf<Long, Pair<Long, Long>>()
+        tables.optJSONArray("workout_exercises")?.forEachObject { placement ->
+            routineSessions[placement.optLong("sessionId")]?.let { sessionCreatedAt ->
+                routinePlacements[placement.getLong("id")] =
+                    sessionCreatedAt to placement.optLong("createdAtMillis")
+            }
+        }
+        tables.optJSONArray("workout_sets")?.forEachObject { set ->
+            if (!set.has("requiredForProgressionSnapshot")) {
+                val sourceCreatedAt = routinePlacements[set.optLong("workoutExerciseId")]
+                val setCreatedAt = set.optLong("createdAtMillis")
+                set.put(
+                    "requiredForProgressionSnapshot",
+                    sourceCreatedAt != null &&
+                        set.optString("workSectionSnapshot", "Unspecified") != "Optional" &&
+                        (set.hasImmutableAuthoredPrescription() ||
+                            sourceCreatedAt.first == setCreatedAt && sourceCreatedAt.second == setCreatedAt),
+                )
+            }
+        }
     }
 
     /** Mirrors the Room 32 -> 33 semantic backfill for checksum-valid portable backups. */
@@ -744,6 +776,9 @@ private fun ContentValues.applyBackupCompatibilityDefaults(table: String) {
         if (!containsKey("invalidatedMainExerciseIdsCsv")) put("invalidatedMainExerciseIdsCsv", "")
         if (!containsKey("sourceRoutinePhaseLabel")) put("sourceRoutinePhaseLabel", "")
         if (!containsKey("sourceRoutinePhaseRole")) put("sourceRoutinePhaseRole", "Standard")
+        if (!containsKey("workoutRevision")) put("workoutRevision", 0L)
+        if (!containsKey("restTimerRevision")) put("restTimerRevision", 0L)
+        if (!containsKey("restTimerCleanupPending")) put("restTimerCleanupPending", false)
     }
     if (table == "workout_exercises") {
         if (!containsKey("trainingMaxUnitIdSnapshot")) put("trainingMaxUnitIdSnapshot", "")
@@ -772,6 +807,9 @@ private fun ContentValues.applyBackupCompatibilityDefaults(table: String) {
             )
         }
         if (!containsKey("jokerSetsEnabledSnapshot")) put("jokerSetsEnabledSnapshot", false)
+        if (!containsKey("outcome")) put("outcome", "Active")
+        if (!containsKey("outcomeAtMillis")) putNull("outcomeAtMillis")
+        if (!containsKey("replacementWorkoutExerciseUuid")) putNull("replacementWorkoutExerciseUuid")
     }
     if (table == "workout_sets") {
         if (!containsKey("workSectionSnapshot")) put("workSectionSnapshot", "Unspecified")
@@ -779,7 +817,53 @@ private fun ContentValues.applyBackupCompatibilityDefaults(table: String) {
         if (!containsKey("prescribedClassificationSnapshot")) {
             put("prescribedClassificationSnapshot", getAsString("classification") ?: "Working")
         }
+        if (!containsKey("requiredForProgressionSnapshot")) {
+            put(
+                "requiredForProgressionSnapshot",
+                hasImmutableAuthoredPrescription(),
+            )
+        }
+        if (!containsKey("removalReason")) {
+            if (getAsLong("deletedAtMillis") != null) put("removalReason", "Removed")
+            else putNull("removalReason")
+        }
     }
+}
+
+private fun JSONObject.hasImmutableAuthoredPrescription(): Boolean {
+    val workSection = optString("workSectionSnapshot", "Unspecified")
+    if (workSection == "Optional") return false
+    return workSection in setOf("Main", "Supplemental", "Assistance") ||
+        listOf(
+            "prescribedCanonicalWeightKg",
+            "prescribedEnteredWeight",
+            "prescribedWeightUnitId",
+            "prescribedRepetitions",
+            "prescribedRepetitionsMax",
+            "prescribedRpe",
+            "prescribedRir",
+            "prescribedDurationSeconds",
+            "prescribedMachineLoadValue",
+        ).any { key -> has(key) && !isNull(key) } ||
+        optString("prescriptionSourceLabel").isNotBlank()
+}
+
+private fun ContentValues.hasImmutableAuthoredPrescription(): Boolean {
+    val workSection = getAsString("workSectionSnapshot") ?: "Unspecified"
+    if (workSection == "Optional") return false
+    return workSection in setOf("Main", "Supplemental", "Assistance") ||
+        listOf(
+            "prescribedCanonicalWeightKg",
+            "prescribedEnteredWeight",
+            "prescribedWeightUnitId",
+            "prescribedRepetitions",
+            "prescribedRepetitionsMax",
+            "prescribedRpe",
+            "prescribedRir",
+            "prescribedDurationSeconds",
+            "prescribedMachineLoadValue",
+        ).any { key -> containsKey(key) && get(key) != null } ||
+        getAsString("prescriptionSourceLabel").orEmpty().isNotBlank()
 }
 
 private fun ContentValues.retireAutomation(table: String) {
@@ -942,6 +1026,7 @@ private fun remapPolymorphicReferences(
         "workout_sessions" -> {
             remap("sourceRoutineId", "gym_routines")
             remap("sourceRoutineDayId", "routine_days")
+            remapCsv("invalidatedMainExerciseIdsCsv", "exercises")
         }
         "workout_exercises" -> {
             remap("machineId", "gym_machines")
@@ -1014,7 +1099,7 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 private const val BACKUP_FORMAT = "whip-backup"
 private const val ENVELOPE_VERSION = 2
 private const val OLDEST_COMPATIBLE_DATABASE_VERSION = 5
-private const val BACKUP_DATABASE_VERSION = 16
+private const val BACKUP_DATABASE_VERSION = 17
 
 private fun ContentValues.normalizeIdentityEmoji(table: String) {
     val defaultEmoji = when (table) {

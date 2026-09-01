@@ -68,7 +68,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         TrackEntrySearchEntity::class,
         TrackCsvImportReceiptEntity::class,
     ],
-    version = 39,
+    version = 40,
     exportSchema = true,
 )
 abstract class WhipDatabase : RoomDatabase() {
@@ -846,6 +846,62 @@ abstract class WhipDatabase : RoomDatabase() {
             }
         }
 
+        /** Preserves active-workout history and gives finish an exact reviewed graph revision. */
+        val migration39To40 = object : Migration(39, 40) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE workout_sessions ADD COLUMN workoutRevision INTEGER NOT NULL DEFAULT 0",
+                )
+                db.execSQL(
+                    "ALTER TABLE workout_sessions ADD COLUMN restTimerRevision INTEGER NOT NULL DEFAULT 0",
+                )
+                db.execSQL(
+                    "ALTER TABLE workout_sessions ADD COLUMN restTimerCleanupPending INTEGER NOT NULL DEFAULT 0",
+                )
+                // A pre-upgrade process may have died after a timer notification became visible
+                // but before a finish/discard/stop follow-up cancelled it. One idempotent cleanup
+                // pass is safer than assuming historical scheduler delivery completed.
+                db.execSQL("UPDATE workout_sessions SET restTimerCleanupPending = 1")
+                db.execSQL(
+                    "ALTER TABLE workout_exercises ADD COLUMN outcome TEXT NOT NULL DEFAULT 'Active'",
+                )
+                db.execSQL("ALTER TABLE workout_exercises ADD COLUMN outcomeAtMillis INTEGER")
+                db.execSQL(
+                    "ALTER TABLE workout_exercises ADD COLUMN replacementWorkoutExerciseUuid TEXT",
+                )
+                db.execSQL(
+                    "ALTER TABLE workout_sets ADD COLUMN requiredForProgressionSnapshot INTEGER NOT NULL DEFAULT 0",
+                )
+                db.execSQL("ALTER TABLE workout_sets ADD COLUMN removalReason TEXT")
+                // `planned` is execution state: completing a set clears it. Recover authored
+                // routine requirements from immutable prescription/source snapshots instead, so
+                // an active routine spanning the upgrade keeps both successful and failed work.
+                db.execSQL(
+                    "UPDATE workout_sets SET requiredForProgressionSnapshot = 1 " +
+                        "WHERE workSectionSnapshot != 'Optional' AND (" +
+                        "workSectionSnapshot IN ('Main', 'Supplemental', 'Assistance') OR " +
+                        "prescribedCanonicalWeightKg IS NOT NULL OR prescribedEnteredWeight IS NOT NULL OR " +
+                        "prescribedWeightUnitId IS NOT NULL OR prescribedRepetitions IS NOT NULL OR " +
+                        "prescribedRepetitionsMax IS NOT NULL OR prescribedRpe IS NOT NULL OR " +
+                        "prescribedRir IS NOT NULL OR prescribedDurationSeconds IS NOT NULL OR " +
+                        "prescribedMachineLoadValue IS NOT NULL OR prescriptionSourceLabel != '' OR EXISTS (" +
+                        "SELECT 1 FROM workout_exercises source_we " +
+                        "JOIN workout_sessions source_s ON source_s.id = source_we.sessionId " +
+                        "WHERE source_we.id = workout_sets.workoutExerciseId " +
+                        "AND source_we.createdAtMillis = workout_sets.createdAtMillis " +
+                        "AND source_s.createdAtMillis = workout_sets.createdAtMillis)) " +
+                        "AND workoutExerciseId IN (" +
+                        "SELECT we.id FROM workout_exercises we " +
+                        "JOIN workout_sessions s ON s.id = we.sessionId " +
+                        "WHERE s.sourceRoutineId IS NOT NULL)",
+                )
+                db.execSQL(
+                    "UPDATE workout_sets SET removalReason = 'Removed' " +
+                        "WHERE deletedAtMillis IS NOT NULL AND removalReason IS NULL",
+                )
+            }
+        }
+
         /**
          * Repository checks provide friendly errors; these triggers are the final consistency
          * boundary for concurrent writers, restored data, and any future write path.
@@ -888,6 +944,7 @@ abstract class WhipDatabase : RoomDatabase() {
                     migration36To37,
                     migration37To38,
                     migration38To39,
+                    migration39To40,
                 )
                 .addCallback(integrityGuardCallback)
                 .build()

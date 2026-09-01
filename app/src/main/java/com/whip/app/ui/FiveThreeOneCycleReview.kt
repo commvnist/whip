@@ -19,6 +19,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.whip.app.domain.FiveThreeOneEvidenceKind
@@ -167,7 +170,7 @@ internal fun GymUiState.activeFiveThreeOneCycleReview(): FiveThreeOneCycleReview
             standardIncrement = standard,
             allowNonStandardHigher = routine.allowNonStandardHigherSuggestions,
         )
-        val activeLiftWork = activeWorkoutExercises.filter { it.exercise.id == exerciseId }
+        val activeLiftWork = activeWorkoutPerformanceExercises.filter { it.exercise.id == exerciseId }
         val currentRequiredMainPassed = if (activeLiftWork.isEmpty()) {
             // Other lifts were performed on earlier days in this cycle. Their persisted per-lift
             // eligibility and immutable evidence remain authoritative at the final-day review.
@@ -207,15 +210,28 @@ private enum class CycleReviewChoice { Suggestion, Standard, Hold, Ignore, Custo
 internal fun FiveThreeOneCycleReviewDialog(
     review: FiveThreeOneCycleReview,
     modifier: Modifier = Modifier,
+    saving: Boolean = false,
+    errorMessage: String? = null,
+    reviewRevision: Long? = null,
     onDismiss: () -> Unit,
     onApply: (List<TrainingMaxCycleDecision>) -> Unit,
 ) {
-    var choices by rememberSaveable(review.cycle, review.lifts.map { it.exerciseId }) {
+    val reviewIdentity = review.lifts.map { lift ->
+        listOf(
+            lift.exerciseId,
+            lift.currentTrainingMax,
+            lift.eligible,
+            lift.recommendation.category,
+            lift.recommendation.suggestedDelta,
+            lift.recommendation.confidence,
+        )
+    }
+    var choices by rememberSaveable(review.cycle, reviewRevision, reviewIdentity) {
         mutableStateOf(review.lifts.associate { lift ->
             lift.exerciseId to if (lift.eligible) CycleReviewChoice.Standard.name else CycleReviewChoice.Hold.name
         })
     }
-    var customValues by rememberSaveable(review.cycle, review.lifts.map { it.exerciseId }) {
+    var customValues by rememberSaveable(review.cycle, reviewRevision, reviewIdentity) {
         mutableStateOf(review.lifts.associate { it.exerciseId to "0" })
     }
     val decisions = remember(review, choices, customValues) {
@@ -260,7 +276,7 @@ internal fun FiveThreeOneCycleReviewDialog(
         }
     }
     PaneAwareAlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text("Review Cycle ${review.cycle} Training Maxes") },
         text = {
             Column(
@@ -272,6 +288,14 @@ internal fun FiveThreeOneCycleReviewDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                errorMessage?.let { message ->
+                    Text(
+                        message,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
                 review.lifts.forEach { lift ->
                     val recommendation = lift.recommendation
                     val maximumDelta = if (recommendation.category == FiveThreeOneProgressionCategory.CautiousHigherIncrease) {
@@ -407,12 +431,12 @@ internal fun FiveThreeOneCycleReviewDialog(
         },
         confirmButton = {
             WhipButton(
-                enabled = decisions.size == review.lifts.size,
+                enabled = decisions.size == review.lifts.size && !saving,
                 onClick = { onApply(decisions) },
                 modifier = Modifier.testTag("apply-training-max-decisions"),
-            ) { Text("Apply Decisions & Finish") }
+            ) { Text(if (saving) "Finishing…" else "Apply Decisions & Finish") }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Keep Training") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss, enabled = !saving) { Text("Keep Training") } },
         modifier = modifier,
     )
 }

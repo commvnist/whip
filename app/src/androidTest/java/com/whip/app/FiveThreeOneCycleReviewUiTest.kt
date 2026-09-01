@@ -1,6 +1,9 @@
 package com.whip.app
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -37,7 +40,7 @@ class FiveThreeOneCycleReviewUiTest {
                 FiveThreeOneCycleReviewDialog(
                     review = review(),
                     onDismiss = {},
-                    onApply = { applied = it },
+                    onApply = { decisions -> applied = decisions },
                 )
             }
         }
@@ -98,6 +101,43 @@ class FiveThreeOneCycleReviewUiTest {
 
         compose.onNodeWithTag("training-max-review-7").assertIsDisplayed()
         compose.onNodeWithTag("apply-training-max-decisions").assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test
+    fun changedEvidenceResetsAChoiceInsteadOfApplyingAnUnreviewedSuggestion() {
+        var currentReview by mutableStateOf(review())
+        var revision by mutableStateOf(4L)
+        var applied: List<TrainingMaxCycleDecision>? = null
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                FiveThreeOneCycleReviewDialog(
+                    review = currentReview,
+                    reviewRevision = revision,
+                    onDismiss = {},
+                    onApply = { applied = it },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("training-max-choice-suggestion-7").performClick()
+        compose.runOnIdle {
+            val lift = currentReview.lifts.single()
+            currentReview = currentReview.copy(
+                lifts = listOf(
+                    lift.copy(
+                        recommendation = lift.recommendation.copy(
+                            suggestedDelta = 2.5,
+                            confidence = 0.61,
+                        ),
+                    ),
+                ),
+            )
+            revision = 5
+        }
+        compose.onNodeWithTag("apply-training-max-decisions").performClick()
+        compose.runOnIdle {
+            assertEquals(TrainingMaxDecisionAction.UseStandard, requireNotNull(applied).single().action)
+        }
     }
 
     private fun review() = FiveThreeOneCycleReview(

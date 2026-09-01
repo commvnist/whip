@@ -51,6 +51,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -102,11 +103,13 @@ import com.whip.app.domain.ExerciseTrackingType
 import com.whip.app.domain.BodyweightLoadPolicy
 import com.whip.app.domain.WorkoutSession
 import com.whip.app.domain.WorkoutExercise
+import com.whip.app.domain.WorkoutExerciseOutcome
 import com.whip.app.domain.WorkoutGroup
 import com.whip.app.domain.WorkoutGroupType
 import com.whip.app.domain.WorkoutSet
 import com.whip.app.domain.WorkoutSetClassification
 import com.whip.app.domain.WorkoutSetDraft
+import com.whip.app.domain.WorkoutSetRemovalReason
 import com.whip.app.domain.WeightEquipmentSetup
 import com.whip.app.domain.validateWorkoutSetDraft
 import com.whip.app.domain.GymRoutine
@@ -501,17 +504,26 @@ fun GymAreaContent(
     val routineDeletionPreviewError by viewModel.routineDeletionPreviewError.collectAsStateWithLifecycle()
     val routineDeletionTargetMissing by viewModel.routineDeletionTargetMissing.collectAsStateWithLifecycle()
     val gymDeletionState by viewModel.gymDeletionState.collectAsStateWithLifecycle()
+    val sessionMutationState by viewModel.sessionMutationState.collectAsStateWithLifecycle()
     val orphanedGymDeletionRequestId by viewModel.orphanedGymDeletionRequestId.collectAsStateWithLifecycle()
     var exerciseEditorId by rememberSaveable { mutableStateOf<Long?>(null) }
     var creatingExercise by rememberSaveable { mutableStateOf(false) }
     var addCreatedExerciseToSession by rememberSaveable { mutableStateOf<Long?>(null) }
     var exerciseActionsId by rememberSaveable { mutableStateOf<Long?>(null) }
     var showExercisePicker by rememberSaveable { mutableStateOf(false) }
+    var exercisePickerError by rememberSaveable { mutableStateOf<String?>(null) }
+    var machineChoiceError by rememberSaveable { mutableStateOf<String?>(null) }
+    var newlyAddedWorkoutExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
     var showStartWorkout by rememberSaveable { mutableStateOf(false) }
     var showEditWorkout by rememberSaveable { mutableStateOf(false) }
     var finishConfirmation by rememberSaveable { mutableStateOf(false) }
+    var finishError by rememberSaveable { mutableStateOf<String?>(null) }
+    var finishReviewSessionId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var finishReviewSessionUuid by rememberSaveable { mutableStateOf<String?>(null) }
+    var finishReviewRevision by rememberSaveable { mutableStateOf<Long?>(null) }
     var trainingMaxCycleReviewOpen by rememberSaveable { mutableStateOf(false) }
     var discardConfirmation by rememberSaveable { mutableStateOf(false) }
+    var discardError by rememberSaveable { mutableStateOf<String?>(null) }
     var showGroupDialog by rememberSaveable { mutableStateOf(false) }
     var editedSetId by rememberSaveable { mutableStateOf<Long?>(null) }
     var exerciseNotesEditorId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -558,6 +570,69 @@ fun GymAreaContent(
     val workoutDeleteCandidate = workoutDeleteCandidateId?.let { id -> state.allSessions.firstOrNull { it.id == id } }
     val historyWorkoutEditor = historyWorkoutEditorId?.let { id -> state.history.firstOrNull { it.id == id } }
     val routineDeleteCandidate = routineDeleteCandidateId?.let { id -> (state.routines + state.archivedRoutines).firstOrNull { it.id == id } }
+    val reviewedFinishBoundary = if (
+        finishReviewSessionId != null && finishReviewSessionUuid != null && finishReviewRevision != null
+    ) {
+        WorkoutFinishBoundary(
+            sessionId = requireNotNull(finishReviewSessionId),
+            sessionUuid = requireNotNull(finishReviewSessionUuid),
+            workoutRevision = requireNotNull(finishReviewRevision),
+        )
+    } else null
+    val captureFinishBoundary: () -> WorkoutFinishBoundary? = {
+        state.activeSession?.let { session ->
+            WorkoutFinishBoundary(session.id, session.uuid, session.workoutRevision).also { boundary ->
+                finishReviewSessionId = boundary.sessionId
+                finishReviewSessionUuid = boundary.sessionUuid
+                finishReviewRevision = boundary.workoutRevision
+            }
+        }
+    }
+    val sessionMutationCoordinator = rememberPersistenceRequestCoordinator(
+        state = sessionMutationState,
+        consume = viewModel::consumeSessionMutationResult,
+        key = "gym-active-session-mutation",
+        requestNamespace = "gym-active-session",
+        orphanedMessage =
+            "The previous workout change was interrupted. Check the active workout or History before retrying.",
+        onPersisted = { receipt ->
+            when (receipt.kind) {
+                GymSessionMutationKind.ExerciseAdded,
+                GymSessionMutationKind.ExerciseSubstituted,
+                -> {
+                    newlyAddedWorkoutExerciseId = receipt.targetId
+                    destination = GymDestination.Workout
+                    showExercisePicker = false
+                    pendingMachineExerciseId = null
+                    substituteWorkoutExerciseId = null
+                    creatingExercise = false
+                    addCreatedExerciseToSession = null
+                    createForSubstitutionId = null
+                    catalogSavePending = false
+                    exercisePickerError = null
+                    machineChoiceError = null
+                }
+                GymSessionMutationKind.SetUpdated -> {
+                    if (editedSetId == receipt.targetId) editedSetId = null
+                }
+                GymSessionMutationKind.ExerciseDetailsUpdated -> {
+                    if (exerciseNotesEditorId == receipt.targetId) exerciseNotesEditorId = null
+                }
+                GymSessionMutationKind.WorkoutFinished -> {
+                    finishConfirmation = false
+                    trainingMaxCycleReviewOpen = false
+                    finishError = null
+                    finishReviewSessionId = null
+                    finishReviewSessionUuid = null
+                    finishReviewRevision = null
+                }
+                GymSessionMutationKind.WorkoutDiscarded -> {
+                    discardConfirmation = false
+                    discardError = null
+                }
+            }
+        },
+    )
     val deletionTargetKey = when {
         exerciseDeleteCandidateId != null -> "exercise-${exerciseDeleteCandidateId}"
         routineDeleteCandidateId != null -> "routine-${routineDeleteCandidateId}"
@@ -682,6 +757,7 @@ fun GymAreaContent(
         }
     }
     fun closeCatalogEditors() {
+        if (!sessionMutationCoordinator.saving) sessionMutationCoordinator.clear()
         creatingMachine = false
         creatingExerciseForMachine = false
         createdExerciseForMachineId = null
@@ -792,24 +868,31 @@ fun GymAreaContent(
             GymDestination.Library -> GymLibraryLanding(onOpen = { destination = it })
             GymDestination.Workout -> WorkoutContent(
                 state = state,
-                requestedWorkoutExerciseId = requestedWorkoutExerciseId,
-                onRequestedWorkoutExerciseConsumed = onRequestedWorkoutExerciseConsumed,
+                requestedWorkoutExerciseId = newlyAddedWorkoutExerciseId ?: requestedWorkoutExerciseId,
+                onRequestedWorkoutExerciseConsumed = {
+                    if (newlyAddedWorkoutExerciseId != null) newlyAddedWorkoutExerciseId = null
+                    else onRequestedWorkoutExerciseConsumed()
+                },
                 onStart = { showStartWorkout = true },
                 onOpenRoutines = { destination = GymDestination.Routines },
                 onCreateExercise = { creatingExercise = true },
                 onEditWorkout = { showEditWorkout = true },
-                onAddExercise = { showExercisePicker = true },
+                onAddExercise = {
+                    exercisePickerError = null
+                    showExercisePicker = true
+                },
                 onAddSet = viewModel::addSet,
                 onEditSet = { set, _ -> editedSetId = set.id },
                 onEditExerciseNotes = { exerciseNotesEditorId = it.workoutExercise.id },
                 onCompleteSet = { id, completed ->
                     viewModel.completeSet(id, completed)
                 },
-                onSaveQuickSet = { id, workoutExerciseId, draft, addNext, restOverrideSeconds ->
-                    viewModel.saveQuickSet(id, workoutExerciseId, draft, addNext, restOverrideSeconds)
+                onSaveQuickSet = { boundary, draft, addNext, restOverrideSeconds ->
+                    viewModel.saveQuickSet(boundary, draft, addNext, restOverrideSeconds)
                 },
                 onDuplicateSet = viewModel::duplicateSet,
                 onDeleteSet = viewModel::deleteSet,
+                onSkipSet = viewModel::skipOptionalSet,
                 onUndoDeleteSet = viewModel::undoDeleteSet,
                 onRemoveExercise = viewModel::removeWorkoutExercise,
                 onRemoveFromGroup = viewModel::removeWorkoutExerciseFromGroup,
@@ -820,6 +903,7 @@ fun GymAreaContent(
                 onReorderExercises = viewModel::reorderWorkoutExercises,
                 onReorderSets = viewModel::reorderSets,
                 onFinish = {
+                    val boundary = captureFinishBoundary() ?: return@WorkoutContent
                     val hasIncompleteSets = state.activeWorkoutExercises.any { item ->
                         item.sets.any { it.isIncompleteRequiredWork() }
                     }
@@ -828,7 +912,13 @@ fun GymAreaContent(
                     } else if (state.activeFiveThreeOneCycleReview() != null) {
                         trainingMaxCycleReviewOpen = true
                     } else {
-                        state.activeSession?.let { viewModel.finishWorkout(it.id) }
+                        sessionMutationCoordinator.begin()?.let { requestId ->
+                            if (!viewModel.finishWorkout(boundary, requestId = requestId)) {
+                                sessionMutationCoordinator.finishFailure(
+                                    "Another workout change is still finishing. Wait for it before trying again.",
+                                )
+                            }
+                        }
                     }
                 },
                 onDiscard = { discardConfirmation = true },
@@ -974,7 +1064,10 @@ fun GymAreaContent(
             }.getOrDefault(EstimatedOneRepMaxFormula.Epley),
             platePresets = state.appSettings.platePresets,
             powerMode = state.appSettings.powerMode,
-            saving = catalogSavePending,
+            saving = catalogSavePending || sessionMutationCoordinator.saving,
+            errorMessage = sessionMutationCoordinator.errorMessage.takeIf {
+                addCreatedExerciseToSession != null || createForSubstitutionId != null
+            },
             onDismiss = {
                 if (creatingExerciseForMachine) {
                     creatingExercise = false
@@ -985,7 +1078,8 @@ fun GymAreaContent(
                 }
             },
             onSave = { draft ->
-                catalogSavePending = true
+                catalogSavePending = creatingExerciseForMachine ||
+                    (addCreatedExerciseToSession == null && createForSubstitutionId == null)
                 if (creatingExerciseForMachine) {
                     viewModel.createExerciseForMachine(draft) { createdId ->
                         catalogSavePending = false
@@ -996,22 +1090,30 @@ fun GymAreaContent(
                         }
                     }
                 } else {
-                val onFinished: (Boolean) -> Unit = { succeeded ->
-                    catalogSavePending = false
-                    if (succeeded) {
-                        if (addCreatedExerciseToSession != null) destination = GymDestination.Workout
-                        closeCatalogEditors()
+                    val sessionId = addCreatedExerciseToSession
+                    val substitutionId = createForSubstitutionId
+                    if (substitutionId != null) {
+                        sessionMutationCoordinator.begin()?.let { requestId ->
+                            if (!viewModel.createExerciseAndSubstitute(substitutionId, draft, requestId)) {
+                                sessionMutationCoordinator.finishFailure(
+                                    "Another workout change is still saving. Wait for it before trying again.",
+                                )
+                            }
+                        }
+                    } else if (sessionId != null) {
+                        sessionMutationCoordinator.begin()?.let { requestId ->
+                            if (!viewModel.createExerciseAndAdd(sessionId, draft, requestId)) {
+                                sessionMutationCoordinator.finishFailure(
+                                    "Another workout change is still saving. Wait for it before trying again.",
+                                )
+                            }
+                        }
+                    } else {
+                        viewModel.saveExercise(exerciseEditor?.id, draft) { succeeded ->
+                            catalogSavePending = false
+                            if (succeeded) closeCatalogEditors()
+                        }
                     }
-                }
-                val sessionId = addCreatedExerciseToSession
-                val substitutionId = createForSubstitutionId
-                if (substitutionId != null) {
-                    viewModel.createExerciseAndSubstitute(substitutionId, draft, onFinished)
-                } else if (sessionId != null) {
-                    viewModel.createExerciseAndAdd(sessionId, draft, onFinished)
-                } else {
-                    viewModel.saveExercise(exerciseEditor?.id, draft, onFinished)
-                }
                 }
             },
         )
@@ -1025,15 +1127,29 @@ fun GymAreaContent(
             machines = state.machines.filter { it.supportsExercise(item.exercise.id) },
             selectedMachineId = item.workoutExercise.machineId,
             machineLocked = item.sets.any { it.completed },
-            onDismiss = { exerciseNotesEditorId = null },
+            saving = sessionMutationCoordinator.saving,
+            errorMessage = sessionMutationCoordinator.errorMessage,
+            onDismiss = {
+                if (!sessionMutationCoordinator.saving) {
+                    sessionMutationCoordinator.clear()
+                    exerciseNotesEditorId = null
+                }
+            },
             onSave = { notes, machineId ->
-                viewModel.updateWorkoutExerciseDetails(
-                    item.workoutExercise.id,
-                    notes,
-                    item.workoutExercise.groupId,
-                    machineId,
-                )
-                exerciseNotesEditorId = null
+                sessionMutationCoordinator.begin()?.let { requestId ->
+                    if (!viewModel.updateWorkoutExerciseDetails(
+                            item.workoutExercise.id,
+                            notes,
+                            item.workoutExercise.groupId,
+                            machineId,
+                            requestId,
+                        )
+                    ) {
+                        sessionMutationCoordinator.finishFailure(
+                            "Another workout change is still saving. Wait for it before trying again.",
+                        )
+                    }
+                }
             },
             onCreateMachine = {
                 inlineMachineWorkoutExerciseId = item.workoutExercise.id
@@ -1279,21 +1395,48 @@ fun GymAreaContent(
             } else {
                 "This adds the exercise only to the active workout. Logged sets will appear in History."
             },
-            onDismiss = { showExercisePicker = false; substituteWorkoutExerciseId = null },
+            saving = sessionMutationCoordinator.saving,
+            errorMessage = exercisePickerError ?: sessionMutationCoordinator.errorMessage,
+            onDismiss = {
+                if (!sessionMutationCoordinator.saving) {
+                    sessionMutationCoordinator.clear()
+                    exercisePickerError = null
+                    showExercisePicker = false
+                    substituteWorkoutExerciseId = null
+                }
+            },
             onPick = { exercise ->
                 val machines = state.machines.filter { it.supportsExercise(exercise.id) }
                 if (machines.isEmpty()) {
                     val substitutionId = substituteWorkoutExerciseId
-                    if (substitutionId != null) viewModel.substituteWorkoutExercise(substitutionId, exercise.id, null)
-                    else state.activeSession?.let { session ->
-                        viewModel.addExercise(session.id, exercise.id) { succeeded ->
-                            if (succeeded) destination = GymDestination.Workout
+                    if (substitutionId != null) {
+                        exercisePickerError = null
+                        sessionMutationCoordinator.begin()?.let { requestId ->
+                            if (!viewModel.substituteWorkoutExercise(
+                                    substitutionId,
+                                    exercise.id,
+                                    null,
+                                    requestId,
+                                )
+                            ) {
+                                sessionMutationCoordinator.finishFailure(
+                                    "Another workout change is still saving. Wait for it before trying again.",
+                                )
+                            }
+                        }
+                    } else state.activeSession?.let { session ->
+                        exercisePickerError = null
+                        sessionMutationCoordinator.begin()?.let { requestId ->
+                            if (!viewModel.addExercise(session.id, exercise.id, requestId = requestId)) {
+                                sessionMutationCoordinator.finishFailure(
+                                    "Another workout change is still saving. Wait for it before trying again.",
+                                )
+                            }
                         }
                     }
-                    substituteWorkoutExerciseId = null
-                    showExercisePicker = false
                 } else {
                     pendingMachineExerciseId = exercise.id
+                    machineChoiceError = null
                     showExercisePicker = false
                 }
             },
@@ -1311,17 +1454,47 @@ fun GymAreaContent(
             modifier = dialogModifier,
             exercise = exercise,
             machines = state.machines.filter { it.supportsExercise(exercise.id) },
-            onDismiss = { pendingMachineExerciseId = null; substituteWorkoutExerciseId = null },
+            saving = sessionMutationCoordinator.saving,
+            errorMessage = machineChoiceError ?: sessionMutationCoordinator.errorMessage,
+            onDismiss = {
+                if (!sessionMutationCoordinator.saving) {
+                    sessionMutationCoordinator.clear()
+                    pendingMachineExerciseId = null
+                    substituteWorkoutExerciseId = null
+                    machineChoiceError = null
+                }
+            },
             onChoose = { machineId ->
                 val substitutionId = substituteWorkoutExerciseId
-                if (substitutionId != null) viewModel.substituteWorkoutExercise(substitutionId, exercise.id, machineId)
-                else state.activeSession?.let { session ->
-                    viewModel.addExercise(session.id, exercise.id, machineId) { succeeded ->
-                        if (succeeded) destination = GymDestination.Workout
+                machineChoiceError = null
+                if (substitutionId != null) {
+                    sessionMutationCoordinator.begin()?.let { requestId ->
+                        if (!viewModel.substituteWorkoutExercise(
+                                substitutionId,
+                                exercise.id,
+                                machineId,
+                                requestId,
+                            )
+                        ) {
+                            sessionMutationCoordinator.finishFailure(
+                                "Another workout change is still saving. Wait for it before trying again.",
+                            )
+                        }
+                    }
+                } else {
+                    val session = state.activeSession
+                    if (session == null) {
+                        machineChoiceError = "The active workout is no longer available."
+                    } else {
+                        sessionMutationCoordinator.begin()?.let { requestId ->
+                            if (!viewModel.addExercise(session.id, exercise.id, machineId, requestId)) {
+                                sessionMutationCoordinator.finishFailure(
+                                    "Another workout change is still saving. Wait for it before trying again.",
+                                )
+                            }
+                        }
                     }
                 }
-                substituteWorkoutExerciseId = null
-                pendingMachineExerciseId = null
             },
         )
     }
@@ -1385,21 +1558,39 @@ fun GymAreaContent(
             showRpe = effectiveShowRpe,
             showRir = (item.exercise.showRir ?: state.appSettings.showGymRir) && !effectiveShowRpe,
             showTempo = item.exercise.showTempo ?: state.appSettings.showGymTempo,
-            onDismiss = { editedSetId = null },
+            saving = sessionMutationCoordinator.saving,
+            errorMessage = sessionMutationCoordinator.errorMessage,
+            onDismiss = {
+                if (!sessionMutationCoordinator.saving) {
+                    sessionMutationCoordinator.clear()
+                    editedSetId = null
+                }
+            },
             onSave = { draft ->
-                viewModel.updateSet(set.id, draft)
-                editedSetId = null
+                sessionMutationCoordinator.begin()?.let { requestId ->
+                    if (!viewModel.updateSet(set.id, draft, requestId)) {
+                        sessionMutationCoordinator.finishFailure(
+                            "Another workout change is still saving. Wait for it before trying again.",
+                        )
+                    }
+                }
             },
         )
     }
 
     if (finishConfirmation) {
-        val completedSets = state.activeWorkoutExercises.sumOf { item -> item.sets.count { it.completed && it.deletedAtMillis == null } }
+        val completedSets = state.activeWorkoutPerformanceExercises.sumOf { item ->
+            item.sets.count { it.completed && it.deletedAtMillis == null }
+        }
+        val reviewedExerciseCount = state.activeWorkoutPerformanceExercises
+            .map { it.exercise.id }
+            .distinct()
+            .size
         val incompleteSets = state.activeWorkoutExercises.sumOf { item -> item.sets.count(WorkoutSet::isIncompleteRequiredWork) }
         val finishingSession = state.activeSession
         val programmedSession = finishingSession != null &&
             finishingSession.sourceRoutineProgramKind != RoutineProgramKind.Static
-        val heldMainLiftNames = state.activeWorkoutExercises.mapNotNull { item ->
+        val heldMainLiftNames = state.activeWorkoutPerformanceExercises.mapNotNull { item ->
             val required = item.sets.filter { it.workSectionSnapshot == RoutineWorkSection.Main }
             val missed = required.isNotEmpty() && required.any { set ->
                 !set.completed || set.deletedAtMillis != null ||
@@ -1426,23 +1617,43 @@ fun GymAreaContent(
             }
         } else ""
         ConfirmationDialog(
-            modifier = dialogModifier,
+            modifier = dialogModifier.testTag("finish-workout-confirmation"),
             title = "Review and Finish Workout?",
-            message = "${quantityLabel(state.activeWorkoutExercises.size, "exercise")} · ${quantityLabel(completedSets, "completed set")}" +
+            message = "${quantityLabel(reviewedExerciseCount, "exercise")} · ${quantityLabel(completedSets, "completed set")}" +
                 (if (incompleteSets > 0) {
                     " · $incompleteSets planned sets remain incomplete and stay visible in History."
                 } else {
                     ". History preserves every saved value and equipment snapshot. Resume the workout to change individual set values."
-                }) + progressionMessage,
+            }) + progressionMessage,
             confirmLabel = "Finish",
-            onDismiss = { finishConfirmation = false },
+            confirmTestTag = "finish-workout-confirm",
+            busy = sessionMutationCoordinator.saving,
+            errorMessage = finishError ?: sessionMutationCoordinator.errorMessage,
+            onDismiss = {
+                if (!sessionMutationCoordinator.saving) {
+                    sessionMutationCoordinator.clear()
+                    finishConfirmation = false
+                    finishReviewSessionId = null
+                    finishReviewSessionUuid = null
+                    finishReviewRevision = null
+                }
+            },
             onConfirm = {
-                finishConfirmation = false
-                if (state.activeFiveThreeOneCycleReview() != null) {
+                val boundary = reviewedFinishBoundary
+                val current = state.activeSession
+                if (current?.matchesFinishReview(boundary) != true) {
+                    finishError = "The workout changed after this review opened. Close this review, check the latest sets, and finish again."
+                } else if (state.activeFiveThreeOneCycleReview() != null) {
+                    finishConfirmation = false
                     trainingMaxCycleReviewOpen = true
                 } else {
-                    state.activeSession?.let { session ->
-                        viewModel.finishWorkout(session.id)
+                    finishError = null
+                    sessionMutationCoordinator.begin()?.let { requestId ->
+                        if (!viewModel.finishWorkout(requireNotNull(boundary), requestId = requestId)) {
+                            sessionMutationCoordinator.finishFailure(
+                                "Another workout change is still saving. Wait for it before trying again.",
+                            )
+                        }
                     }
                 }
             },
@@ -1455,10 +1666,32 @@ fun GymAreaContent(
             FiveThreeOneCycleReviewDialog(
                 review = review,
                 modifier = dialogModifier,
-                onDismiss = { trainingMaxCycleReviewOpen = false },
+                saving = sessionMutationCoordinator.saving,
+                errorMessage = sessionMutationCoordinator.errorMessage,
+                reviewRevision = reviewedFinishBoundary?.workoutRevision,
+                onDismiss = {
+                    if (!sessionMutationCoordinator.saving) {
+                        sessionMutationCoordinator.clear()
+                        trainingMaxCycleReviewOpen = false
+                        finishReviewSessionId = null
+                        finishReviewSessionUuid = null
+                        finishReviewRevision = null
+                    }
+                },
                 onApply = { decisions ->
-                    viewModel.finishWorkout(session.id, decisions) { succeeded ->
-                        if (succeeded) trainingMaxCycleReviewOpen = false
+                    val boundary = reviewedFinishBoundary
+                    if (!session.matchesFinishReview(boundary)) {
+                        sessionMutationCoordinator.finishFailure(
+                            "The workout changed after this review opened. Keep training, check the latest sets, and review the cycle again.",
+                        )
+                    } else {
+                        sessionMutationCoordinator.begin()?.let { requestId ->
+                            if (!viewModel.finishWorkout(requireNotNull(boundary), decisions, requestId)) {
+                                sessionMutationCoordinator.finishFailure(
+                                    "Another workout change is still saving. Wait for it before trying again.",
+                                )
+                            }
+                        }
                     }
                 },
             )
@@ -1470,10 +1703,25 @@ fun GymAreaContent(
             title = "Discard Workout?",
             message = "This hides the session from normal history. Your exercise library is not changed.",
             confirmLabel = "Discard",
-            onDismiss = { discardConfirmation = false },
+            busy = sessionMutationCoordinator.saving,
+            errorMessage = discardError ?: sessionMutationCoordinator.errorMessage,
+            onDismiss = {
+                if (!sessionMutationCoordinator.saving) {
+                    sessionMutationCoordinator.clear()
+                    discardConfirmation = false
+                }
+            },
             onConfirm = {
-                state.activeSession?.let { viewModel.discardWorkout(it.id) }
-                discardConfirmation = false
+                state.activeSession?.let { session ->
+                    discardError = null
+                    sessionMutationCoordinator.begin()?.let { requestId ->
+                        if (!viewModel.discardWorkout(session.id, requestId)) {
+                            sessionMutationCoordinator.finishFailure(
+                                "Another workout change is still saving. Wait for it before trying again.",
+                            )
+                        }
+                    }
+                }
             },
         )
     }
@@ -1539,7 +1787,10 @@ internal fun selectNextWorkoutSet(
 ): Pair<WorkoutExerciseUi, WorkoutSet>? {
     fun priority(set: WorkoutSet): Int? = when (set.workSectionSnapshot) {
         RoutineWorkSection.Main -> 0
-        RoutineWorkSection.Optional -> 0.takeIf { set.id in acceptedOptionalSetIds }
+        RoutineWorkSection.Optional -> when (set.optionalWorkKindSnapshot) {
+            RoutineOptionalWorkKind.Joker -> 0.takeIf { set.id in acceptedOptionalSetIds }
+            else -> 2
+        }
         RoutineWorkSection.Supplemental -> 1
         RoutineWorkSection.Assistance,
         RoutineWorkSection.Unspecified,
@@ -1576,8 +1827,24 @@ internal fun selectNextWorkoutSet(
     }
 }
 
+internal fun selectRequestedWorkoutSet(
+    items: List<WorkoutExerciseUi>,
+    requestedWorkoutExerciseId: Long?,
+): Pair<WorkoutExerciseUi, WorkoutSet>? = requestedWorkoutExerciseId?.let { requestedId ->
+    items.firstOrNull { it.workoutExercise.id == requestedId }?.let { item ->
+        item.sets.sortedBy(WorkoutSet::position).firstOrNull { set ->
+            !set.completed && set.deletedAtMillis == null &&
+                set.optionalWorkKindSnapshot != RoutineOptionalWorkKind.Joker
+        }?.let { set -> item to set }
+    }
+}
+
 internal fun WorkoutSet.isIncompleteRequiredWork(): Boolean =
     !completed && deletedAtMillis == null && workSectionSnapshot != RoutineWorkSection.Optional
+
+internal fun WorkoutSession.matchesFinishReview(boundary: WorkoutFinishBoundary?): Boolean =
+    boundary != null && id == boundary.sessionId && uuid == boundary.sessionUuid &&
+        workoutRevision == boundary.workoutRevision
 
 internal fun selectPendingOptionalWorkoutSet(
     items: List<WorkoutExerciseUi>,
@@ -1592,6 +1859,7 @@ internal fun selectPendingOptionalWorkoutSet(
         if (!mainWorkComplete) return@mapNotNull null
         item.sets.sortedBy(WorkoutSet::position).firstOrNull { set ->
             set.workSectionSnapshot == RoutineWorkSection.Optional &&
+                set.optionalWorkKindSnapshot == RoutineOptionalWorkKind.Joker &&
                 !set.completed && set.deletedAtMillis == null && set.id !in acceptedOptionalSetIds
         }?.let { set -> item to set }
     }
@@ -1687,11 +1955,12 @@ private fun WorkoutContent(
     onEditSet: (WorkoutSet, WorkoutExerciseUi) -> Unit,
     onEditExerciseNotes: (WorkoutExerciseUi) -> Unit,
     onCompleteSet: (Long, Boolean) -> Unit,
-    onSaveQuickSet: (Long, Long, WorkoutSetDraft, Boolean, Int?) -> Unit,
+    onSaveQuickSet: (QuickSetAuthorshipBoundary, WorkoutSetDraft, Boolean, Int?) -> Unit,
     onDuplicateSet: (Long) -> Unit,
     onDeleteSet: (Long) -> Unit,
+    onSkipSet: (Long, (Boolean) -> Unit) -> Unit,
     onUndoDeleteSet: (Long) -> Unit,
-    onRemoveExercise: (Long) -> Unit,
+    onRemoveExercise: (Long, (Boolean) -> Unit) -> Unit,
     onRemoveFromGroup: (Long) -> Unit,
     onSubstituteExercise: (Long) -> Unit,
     onReorderExercises: (Long, List<Long>) -> Unit,
@@ -1751,10 +2020,16 @@ private fun WorkoutContent(
 
     var acceptedOptionalSetIds by rememberSaveable(session.id) { mutableStateOf<List<Long>>(emptyList()) }
     var skippedOptionalSetId by rememberSaveable(session.id) { mutableStateOf<Long?>(null) }
+    var requestedExecutionExerciseId by rememberSaveable(session.id) { mutableStateOf<Long?>(null) }
     val acceptedOptionalIds = acceptedOptionalSetIds.toSet()
+    val requestedExecutionSet = selectRequestedWorkoutSet(
+        state.activeWorkoutExercises,
+        requestedExecutionExerciseId,
+    )
     val pendingOptionalSet = selectPendingOptionalWorkoutSet(state.activeWorkoutExercises, acceptedOptionalIds)
+        .takeIf { requestedExecutionSet == null }
     val nextExerciseByGroup = nextExerciseRotation(state.activeWorkoutExercises)
-    val nextSet = if (pendingOptionalSet == null) {
+    val nextSet = requestedExecutionSet ?: if (pendingOptionalSet == null) {
         selectNextWorkoutSet(state.activeWorkoutExercises, nextExerciseByGroup, acceptedOptionalIds)
     } else {
         null
@@ -1769,8 +2044,16 @@ private fun WorkoutContent(
         val blockIndex = workoutBlocks.indexOfFirst { block ->
             block.exercises.any { it.workoutExercise.id == requestedId }
         }
-        if (blockIndex >= 0) workoutListState.scrollToItem(blockIndex + 2)
-        onRequestedWorkoutExerciseConsumed()
+        if (blockIndex >= 0) {
+            requestedExecutionExerciseId = requestedId
+            workoutListState.scrollToItem(blockIndex + 2)
+            onRequestedWorkoutExerciseConsumed()
+        }
+    }
+    LaunchedEffect(requestedExecutionExerciseId, requestedExecutionSet?.second?.id) {
+        if (requestedExecutionExerciseId != null && requestedExecutionSet == null) {
+            requestedExecutionExerciseId = null
+        }
     }
     var lastFocusedSetId by rememberSaveable(session.id) { mutableStateOf(nextSet?.second?.id) }
     LaunchedEffect(nextSet?.second?.id) {
@@ -1883,21 +2166,38 @@ private fun WorkoutContent(
                                     ?: "Perform only if readiness and bar speed justify it.",
                                 style = MaterialTheme.typography.bodySmall,
                             )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                WhipButton(
-                                    onClick = {
-                                        skippedOptionalSetId = null
-                                        acceptedOptionalSetIds = acceptedOptionalSetIds + set.id
-                                    },
-                                    modifier = Modifier.weight(1f).testTag("perform-optional-set"),
-                                ) { Text("Perform Joker") }
-                                WhipOutlinedButton(
-                                    onClick = {
-                                        skippedOptionalSetId = set.id
-                                        onDeleteSet(set.id)
-                                    },
-                                    modifier = Modifier.weight(1f).testTag("skip-optional-set"),
-                                ) { Text("Skip") }
+                            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                                val stacked = maxWidth < 420.dp * LocalDensity.current.fontScale
+                                val perform: @Composable (Modifier) -> Unit = { buttonModifier ->
+                                    WhipButton(
+                                        onClick = {
+                                            skippedOptionalSetId = null
+                                            acceptedOptionalSetIds = acceptedOptionalSetIds + set.id
+                                        },
+                                        modifier = buttonModifier.testTag("perform-optional-set"),
+                                    ) { Text("Perform Joker") }
+                                }
+                                val skip: @Composable (Modifier) -> Unit = { buttonModifier ->
+                                    WhipOutlinedButton(
+                                        onClick = {
+                                            onSkipSet(set.id) { succeeded ->
+                                                if (succeeded) skippedOptionalSetId = set.id
+                                            }
+                                        },
+                                        modifier = buttonModifier.testTag("skip-optional-set"),
+                                    ) { Text("Skip Joker") }
+                                }
+                                if (stacked) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        perform(Modifier.fillMaxWidth())
+                                        skip(Modifier.fillMaxWidth())
+                                    }
+                                } else {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        perform(Modifier.weight(1f))
+                                        skip(Modifier.weight(1f))
+                                    }
+                                }
                             }
                         }
                     }
@@ -2001,6 +2301,7 @@ private fun WorkoutContent(
                     compactRows = state.appSettings.gymCompactSetRows,
                     showRpe = effectiveShowRpe,
                     showRir = (item.exercise.showRir ?: state.appSettings.showGymRir) && !effectiveShowRpe,
+                    workoutRevision = session.workoutRevision,
                     nextSetId = nextSet?.second?.id,
                     nextInGroup = item.group?.let { nextExerciseByGroup[it.id] == item.workoutExercise.id } == true,
                     canMoveUp = canMoveUp,
@@ -2010,17 +2311,18 @@ private fun WorkoutContent(
                     onMoveUp = { reorder(-1) },
                     onMoveDown = { reorder(1) },
                     onMoveBy = reorder,
-                    onRemoveExercise = { onRemoveExercise(item.workoutExercise.id) },
+                    onRemoveExercise = { onFinished ->
+                        onRemoveExercise(item.workoutExercise.id, onFinished)
+                    },
                     onRemoveFromGroup = { onRemoveFromGroup(item.workoutExercise.id) },
                     onSubstituteExercise = { onSubstituteExercise(item.workoutExercise.id) },
                     onAddSet = { onAddSet(item.workoutExercise.id) },
                     onEditSet = { onEditSet(it, item) },
                     onEditNotes = { onEditExerciseNotes(item) },
                     onCompleteSet = onCompleteSet,
-                    onSaveQuickSet = { setId, draft, addNext ->
+                    onSaveQuickSet = { boundary, draft, addNext ->
                         onSaveQuickSet(
-                            setId,
-                            item.workoutExercise.id,
+                            boundary,
                             draft,
                             addNext,
                             workoutRestOverrideSeconds,
@@ -2068,9 +2370,24 @@ private fun WorkoutContent(
             }
         }
         item {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                WhipButton(onClick = onFinish, modifier = Modifier.weight(1f)) { Text("Finish") }
-                WhipOutlinedButton(onClick = onDiscard, modifier = Modifier.weight(1f)) { Text("Discard") }
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                if (maxWidth < 360.dp * LocalDensity.current.fontScale) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        WhipButton(
+                            onClick = onFinish,
+                            modifier = Modifier.fillMaxWidth().testTag("active-workout-finish"),
+                        ) { Text("Finish Workout") }
+                        WhipOutlinedButton(onClick = onDiscard, modifier = Modifier.fillMaxWidth()) { Text("Discard Workout") }
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        WhipButton(
+                            onClick = onFinish,
+                            modifier = Modifier.weight(1f).testTag("active-workout-finish"),
+                        ) { Text("Finish") }
+                        WhipOutlinedButton(onClick = onDiscard, modifier = Modifier.weight(1f)) { Text("Discard") }
+                    }
+                }
             }
         }
     }
@@ -2150,6 +2467,7 @@ internal fun WorkoutExerciseCard(
     compactRows: Boolean,
     showRpe: Boolean,
     showRir: Boolean,
+    workoutRevision: Long = 0,
     nextSetId: Long?,
     nextInGroup: Boolean,
     canMoveUp: Boolean,
@@ -2159,14 +2477,14 @@ internal fun WorkoutExerciseCard(
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onMoveBy: (Int) -> Unit = { delta -> if (delta < 0) onMoveUp() else onMoveDown() },
-    onRemoveExercise: () -> Unit,
+    onRemoveExercise: ((Boolean) -> Unit) -> Unit,
     onRemoveFromGroup: () -> Unit = {},
     onSubstituteExercise: () -> Unit,
     onAddSet: () -> Unit,
     onEditSet: (WorkoutSet) -> Unit,
     onEditNotes: () -> Unit,
     onCompleteSet: (Long, Boolean) -> Unit,
-    onSaveQuickSet: (Long, WorkoutSetDraft, Boolean) -> Unit,
+    onSaveQuickSet: (QuickSetAuthorshipBoundary, WorkoutSetDraft, Boolean) -> Unit,
     onDuplicateSet: (Long) -> Unit,
     onDeleteSet: (Long) -> Unit,
     onUndoDeleteSet: (Long) -> Unit,
@@ -2174,6 +2492,8 @@ internal fun WorkoutExerciseCard(
 ) {
     var actionMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var removeConfirmation by rememberSaveable(item.workoutExercise.id) { mutableStateOf(false) }
+    var removeSaving by remember(item.workoutExercise.id) { mutableStateOf(false) }
+    var removeError by rememberSaveable(item.workoutExercise.id) { mutableStateOf<String?>(null) }
     var substituteConfirmation by rememberSaveable(item.workoutExercise.id) { mutableStateOf(false) }
     var setMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
     var setupExpanded by rememberSaveable(item.workoutExercise.id) { mutableStateOf(false) }
@@ -2372,9 +2692,10 @@ internal fun WorkoutExerciseCard(
                                 preferredDistanceUnitId = preferredDistanceUnitId,
                                 showRpe = showRpe,
                                 showRir = showRir,
+                                workoutRevision = workoutRevision,
                                 suggestedSet = suggestedSet,
                                 onMoreDetails = { onEditSet(set) },
-                                onSave = { draft, addNext -> onSaveQuickSet(set.id, draft, addNext) },
+                                onSave = onSaveQuickSet,
                             )
                         }
                     }
@@ -2515,20 +2836,35 @@ internal fun WorkoutExerciseCard(
         ConfirmationDialog(
             title = "Remove ${item.exercise.name}?",
             message = if (savedSetCount == 0) {
-                "This removes the exercise from the active workout."
+                "This removes the exercise from the active workout and records that outcome in History."
             } else {
-                "This removes ${quantityLabel(savedSetCount, "saved set")} from the active workout."
+                "Completed sets stay in History. Unperformed sets are marked as not performed because the exercise was removed." +
+                    if (item.workoutExercise.placementKindSnapshot == RoutinePlacementKind.MainLift) {
+                        " Removing prescribed Main work holds this lift's Training Max increase."
+                    } else ""
             },
             confirmLabel = "Remove Exercise",
-            onDismiss = { removeConfirmation = false },
-            onConfirm = { removeConfirmation = false; onRemoveExercise() },
+            busy = removeSaving,
+            errorMessage = removeError,
+            onDismiss = { if (!removeSaving) removeConfirmation = false },
+            onConfirm = {
+                removeSaving = true
+                removeError = null
+                onRemoveExercise { succeeded ->
+                    removeSaving = false
+                    if (succeeded) removeConfirmation = false
+                    else removeError = "Exercise was not removed. Review the error and try again."
+                }
+            },
         )
     }
     if (substituteConfirmation) {
-        val savedSetCount = item.sets.count { it.deletedAtMillis == null }
         ConfirmationDialog(
             title = "Replace ${item.exercise.name}?",
-            message = "Choosing a replacement removes ${quantityLabel(savedSetCount, "saved set")} from this workout. This cannot be undone.",
+            message = "Completed sets stay attached to ${item.exercise.name} in History. Unperformed sets are marked as replaced; the new exercise is logged separately." +
+                if (item.workoutExercise.placementKindSnapshot == RoutinePlacementKind.MainLift) {
+                    " Replacing prescribed Main work holds this lift's Training Max increase."
+                } else "",
             confirmLabel = "Choose Replacement",
             onDismiss = { substituteConfirmation = false },
             onConfirm = {
@@ -2558,6 +2894,27 @@ private fun WorkoutSetActionsMenu(
     }
 }
 
+private val QuickSetAuthorshipBoundarySaver = listSaver<QuickSetAuthorshipBoundary, Any>(
+    save = { boundary ->
+        listOf(
+            boundary.setId,
+            boundary.setUuid,
+            boundary.setUpdatedAtMillis,
+            boundary.workoutExerciseId,
+            boundary.workoutRevision,
+        )
+    },
+    restore = { saved ->
+        QuickSetAuthorshipBoundary(
+            setId = saved[0] as Long,
+            setUuid = saved[1] as String,
+            setUpdatedAtMillis = saved[2] as Long,
+            workoutExerciseId = saved[3] as Long,
+            workoutRevision = saved[4] as Long,
+        )
+    },
+)
+
 @Composable
 internal fun QuickSetEntry(
     set: WorkoutSet,
@@ -2568,9 +2925,10 @@ internal fun QuickSetEntry(
     preferredDistanceUnitId: String,
     showRpe: Boolean,
     showRir: Boolean,
+    workoutRevision: Long = 0,
     suggestedSet: WorkoutSet? = null,
     onMoreDetails: () -> Unit,
-    onSave: (WorkoutSetDraft, Boolean) -> Unit,
+    onSave: (QuickSetAuthorshipBoundary, WorkoutSetDraft, Boolean) -> Unit,
 ) {
     val policyExercise = workoutExercise.applyPolicySnapshot(exercise)
     val machineType = workoutExercise.machineLoadTypeSnapshot
@@ -2581,6 +2939,15 @@ internal fun QuickSetEntry(
     }
     val distanceUnitId = set.enteredDistanceUnitId ?: preferredDistanceUnitId
     val editorKey = "quick-set-${set.id}"
+    val authorshipBoundary = rememberSaveable(editorKey, saver = QuickSetAuthorshipBoundarySaver) {
+        QuickSetAuthorshipBoundary(
+            setId = set.id,
+            setUuid = set.uuid,
+            setUpdatedAtMillis = set.updatedAtMillis,
+            workoutExerciseId = workoutExercise.id,
+            workoutRevision = workoutRevision,
+        )
+    }
     var weight by rememberSaveable(editorKey) {
         mutableStateOf(
             set.enteredWeight?.let(::editableNumber)
@@ -2701,7 +3068,7 @@ internal fun QuickSetEntry(
     }
     fun submit(addNext: Boolean) {
         validationRequested = true
-        if (validationMessages.isEmpty()) onSave(draft, addNext)
+        if (validationMessages.isEmpty()) onSave(authorshipBoundary, draft, addNext)
     }
     Column(
         modifier = Modifier.fillMaxWidth().testTag("quick-set-${set.id}"),
@@ -4283,12 +4650,14 @@ private fun MachineChoiceDialog(
     modifier: Modifier = Modifier,
     exercise: Exercise,
     machines: List<GymMachine>,
+    saving: Boolean = false,
+    errorMessage: String? = null,
     onDismiss: () -> Unit,
     onChoose: (Long?) -> Unit,
 ) {
     PaneAwareAlertDialog(
         modifier = modifier,
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text("Equipment for ${exercise.name}") },
         text = {
             LazyColumn(
@@ -4296,16 +4665,36 @@ private fun MachineChoiceDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item { Text("Choose the exact machine so previous sets and progress remain comparable.") }
-                item { WhipOutlinedButton(onClick = { onChoose(null) }, modifier = Modifier.fillMaxWidth()) { Text("No Machine / Free Weights") } }
+                errorMessage?.let { message ->
+                    item {
+                        Text(
+                            message,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+                item {
+                    WhipOutlinedButton(
+                        onClick = { onChoose(null) },
+                        enabled = !saving,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(if (saving) "Saving equipment…" else "No Machine / Free Weights") }
+                }
                 items(machines, key = GymMachine::id) { machine ->
-                    WhipOutlinedButton(onClick = { onChoose(machine.id) }, modifier = Modifier.fillMaxWidth()) {
+                    WhipOutlinedButton(
+                        onClick = { onChoose(machine.id) },
+                        enabled = !saving,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Text(machine.displayName)
                     }
                 }
             }
         },
         confirmButton = {},
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = onDismiss, enabled = !saving) { Text("Cancel") } },
     )
 }
 
@@ -4751,7 +5140,7 @@ private fun WorkoutHistoryContent(
         ConfirmationDialog(
             modifier = dialogModifier,
             title = "Resume ${session?.name?.ifBlank { "Workout" } ?: "Workout"}?",
-            message = "This moves the finished workout out of History, makes it the active workout, and clears its previous end time. Use Edit Details if you only need to change its name or notes.",
+            message = "This moves the finished workout out of History and makes that same session active again. Its prior program-advance and Training Max decision remain recorded and will not run a second time when you finish again. Use Repeat Workout for a new session, or Edit Details for only its name and notes.",
             confirmLabel = "Resume Workout",
             onDismiss = { resumeCandidateId = null },
             onConfirm = { onResume(id); resumeCandidateId = null },
@@ -4791,6 +5180,7 @@ internal fun WorkoutHistoryCard(
     val activeSets = sets.filter { set ->
         set.deletedAtMillis == null && set.workoutExerciseId in workoutExerciseIds
     }
+    val historicalSets = sets.filter { set -> set.workoutExerciseId in workoutExerciseIds }
     val completedSets = activeSets.count(WorkoutSet::completed)
     val durationMinutes = session.endedAt?.let { endedAt ->
         Duration.between(session.startedAt, endedAt).toMinutes().coerceAtLeast(0)
@@ -4939,7 +5329,10 @@ internal fun WorkoutHistoryCard(
                 ) {
                     workoutExercises.forEach { workoutExercise ->
                         val sourceExercise = exerciseById[workoutExercise.exerciseId] ?: return@forEach
-                        val exerciseSets = activeSets.filter { it.workoutExerciseId == workoutExercise.id }
+                        val exerciseSets = historicalSets.filter { it.workoutExerciseId == workoutExercise.id }
+                        val replacementName = workoutExercise.replacementWorkoutExerciseUuid
+                            ?.let { replacementUuid -> workoutExercises.firstOrNull { it.uuid == replacementUuid } }
+                            ?.let { replacement -> exerciseById[replacement.exerciseId]?.name }
                         Surface(
                             modifier = Modifier.fillMaxWidth().testTag("history-exercise-row-${workoutExercise.id}"),
                             color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -4961,6 +5354,20 @@ internal fun WorkoutHistoryCard(
                                             maxLines = 2,
                                             overflow = TextOverflow.Ellipsis,
                                         )
+                                        when (workoutExercise.outcome) {
+                                            WorkoutExerciseOutcome.Active -> Unit
+                                            WorkoutExerciseOutcome.Removed -> Text(
+                                                "Removed during this workout",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.error,
+                                            )
+                                            WorkoutExerciseOutcome.Substituted -> Text(
+                                                replacementName?.let { "Replaced by $it during this workout" }
+                                                    ?: "Replaced during this workout",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.tertiary,
+                                            )
+                                        }
                                         val detail = buildList {
                                             if (exerciseSets.isNotEmpty()) add(quantityLabel(exerciseSets.size, "set"))
                                             workoutExercise.machineNameSnapshot.takeIf(String::isNotBlank)?.let { add("Equipment: $it") }
@@ -5098,6 +5505,13 @@ private fun HistoricalWorkoutSetRow(
         set.workSectionSnapshot == RoutineWorkSection.Optional -> "Optional"
         else -> null
     }
+    val removalLabel = when (set.removalReason) {
+        null -> null
+        WorkoutSetRemovalReason.Removed -> "Removed"
+        WorkoutSetRemovalReason.Skipped -> "Skipped"
+        WorkoutSetRemovalReason.ExerciseRemoved -> "Not performed · exercise removed"
+        WorkoutSetRemovalReason.ExerciseSubstituted -> "Not performed · exercise replaced"
+    }
     Surface(
         modifier = Modifier.fillMaxWidth().testTag("history-set-row-${set.id}"),
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -5112,7 +5526,7 @@ private fun HistoricalWorkoutSetRow(
                     add("Set $setNumber")
                     sectionLabel?.let(::add)
                     add(set.classification.uiLabel())
-                    add(if (set.completed) "Completed" else "Not completed")
+                    add(removalLabel ?: if (set.completed) "Completed" else "Not completed")
                 }.joinToString(" · "),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
@@ -5183,42 +5597,77 @@ private fun WorkoutExerciseNotesDialog(
     machines: List<GymMachine>,
     selectedMachineId: Long?,
     machineLocked: Boolean,
+    saving: Boolean,
+    errorMessage: String?,
     onDismiss: () -> Unit,
     onSave: (String, Long?) -> Unit,
     onCreateMachine: () -> Unit,
 ) {
     var notes by rememberSaveable(initialNotes) { mutableStateOf(initialNotes) }
     var machineId by rememberSaveable(selectedMachineId) { mutableStateOf(selectedMachineId) }
+    val dirty = notes != initialNotes || machineId != selectedMachineId
+    var showDiscardConfirmation by rememberSaveable(exerciseName, initialNotes, selectedMachineId) {
+        mutableStateOf(false)
+    }
+    fun requestDismiss() {
+        if (saving) return
+        if (dirty) showDiscardConfirmation = true else onDismiss()
+    }
     ProductivityEditorDialog(
         modifier = modifier,
         testTag = "workout-exercise-notes-editor",
         paneTitle = "$exerciseName Notes",
-        onDismissRequest = onDismiss,
+        onDismissRequest = ::requestDismiss,
         title = { Text("$exerciseName Notes") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(notes, { notes = it }, label = { Text("Notes for this workout") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    notes,
+                    { notes = it },
+                    enabled = !saving,
+                    label = { Text("Notes for this workout") },
+                    minLines = 3,
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 if (machines.isNotEmpty() || selectedMachineId != null) {
                     SelectionField(
                         label = "Machine",
                         values = listOf<GymMachine?>(null) + machines,
                         selected = machines.firstOrNull { it.id == machineId },
                         valueText = { it?.displayName ?: "No Machine / Free Weights" },
-                        enabled = !machineLocked,
+                        enabled = !machineLocked && !saving,
                         onSelect = { machineId = it?.id },
                     )
                     if (machineLocked) Text("Machine identity is locked after the first set. Add the exercise again to switch machines without reinterpreting history.", style = MaterialTheme.typography.bodySmall)
                 }
                 if (!machineLocked) {
-                    WhipOutlinedButton(onClick = onCreateMachine, modifier = Modifier.fillMaxWidth()) {
+                    WhipOutlinedButton(onClick = onCreateMachine, enabled = !saving, modifier = Modifier.fillMaxWidth()) {
                         Text("Create and Assign a Machine without Losing These Notes")
                     }
                 }
+                errorMessage?.let { message ->
+                    Text(
+                        message,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
             }
         },
-        confirmButton = { WhipTextButton(onClick = { onSave(notes, machineId) }) { Text("Save") } },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = {
+            WhipTextButton(
+                onClick = {
+                    onSave(notes, machineId)
+                },
+                enabled = !saving,
+            ) { Text(if (saving) "Saving…" else "Save") }
+        },
+        dismissButton = { WhipTextButton(onClick = ::requestDismiss, enabled = !saving) { Text("Cancel") } },
     )
+    if (showDiscardConfirmation) {
+        UnsavedChangesDialog("exercise details", { showDiscardConfirmation = false }, onDismiss, modifier)
+    }
 }
 
 @Composable
@@ -7272,6 +7721,7 @@ internal fun ExerciseEditorDialog(
     onDismiss: () -> Unit,
     onSave: (ExerciseDraft) -> Unit,
     saving: Boolean = false,
+    errorMessage: String? = null,
 ) {
     val editorKey = "exercise-${exercise?.id ?: "new"}-${if (exercise == null) initialName else "existing"}"
     var name by rememberSaveable(editorKey) { mutableStateOf(exercise?.name ?: initialName) }
@@ -7411,6 +7861,16 @@ internal fun ExerciseEditorDialog(
                         visible = true,
                         testTag = "exercise-save-problem",
                     )
+                }
+                errorMessage?.let { message ->
+                    item {
+                        Text(
+                            message,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                 }
                 item {
                     GymEnumDropdown("Tracking type", ExerciseTrackingType.entries, trackingType, ExerciseTrackingType::label) {
@@ -7734,6 +8194,8 @@ private fun WorkoutSetEditorDialog(
     showRpe: Boolean,
     showRir: Boolean,
     showTempo: Boolean,
+    saving: Boolean,
+    errorMessage: String?,
     onDismiss: () -> Unit,
     onSave: (WorkoutSetDraft) -> Unit,
 ) {
@@ -7830,6 +8292,13 @@ private fun WorkoutSetEditorDialog(
         workSection = set.workSectionSnapshot,
         optionalWorkKind = set.optionalWorkKindSnapshot,
     )
+    val initialDraft = remember(editorKey) { pendingDraft }
+    val dirty = pendingDraft != initialDraft
+    var showDiscardConfirmation by rememberSaveable(editorKey) { mutableStateOf(false) }
+    fun requestDismiss() {
+        if (saving) return
+        if (dirty) showDiscardConfirmation = true else onDismiss()
+    }
     val validationMessage = runCatching {
         validateWorkoutSetDraft(pendingDraft, policyExercise.trackingType, machineType, loadInterpretation)
     }.exceptionOrNull()?.message
@@ -7850,7 +8319,7 @@ private fun WorkoutSetEditorDialog(
         testTag = "workout-set-editor",
         primary = true,
         paneTitle = "Edit Set",
-        onDismissRequest = onDismiss,
+        onDismissRequest = ::requestDismiss,
         title = { Text("Edit Set · ${exercise.name}") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -7950,13 +8419,31 @@ private fun WorkoutSetEditorDialog(
                 validationMessage?.let { message ->
                     item { Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
                 }
+                errorMessage?.let { message ->
+                    item {
+                        Text(
+                            message,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
-            WhipTextButton(enabled = validationMessage == null, onClick = { onSave(pendingDraft) }) { Text("Save") }
+            WhipTextButton(
+                enabled = validationMessage == null && !saving,
+                onClick = {
+                    onSave(pendingDraft)
+                },
+            ) { Text(if (saving) "Saving…" else "Save") }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = ::requestDismiss, enabled = !saving) { Text("Cancel") } },
     )
+    if (showDiscardConfirmation) {
+        UnsavedChangesDialog("set", { showDiscardConfirmation = false }, onDismiss, modifier)
+    }
 }
 
 @Composable
@@ -8038,6 +8525,8 @@ private fun ExercisePickerDialog(
     preferredIds: List<Long> = emptyList(),
     title: String = "Add Exercise",
     supportingText: String? = null,
+    saving: Boolean = false,
+    errorMessage: String? = null,
     onDismiss: () -> Unit,
     onPick: (Exercise) -> Unit,
     onCreate: () -> Unit,
@@ -8045,7 +8534,7 @@ private fun ExercisePickerDialog(
     var query by rememberSaveable { mutableStateOf("") }
     PaneAwareAlertDialog(
         modifier = modifier,
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(title) },
         text = {
             LazyColumn(
@@ -8062,14 +8551,36 @@ private fun ExercisePickerDialog(
                         )
                     }
                 }
-                item { OutlinedTextField(query, { query = it }, label = { Text("Search") }, modifier = Modifier.fillMaxWidth()) }
+                errorMessage?.let { message ->
+                    item {
+                        Text(
+                            message,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+                item {
+                    OutlinedTextField(
+                        query,
+                        { query = it },
+                        enabled = !saving,
+                        label = { Text("Search") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 val visible = exercises.filter { exerciseMatchesQuery(it, query) }
                     .sortedWith(compareByDescending<Exercise> { it.id in preferredIds }.thenBy { it.name.lowercase() })
                 if (preferredIds.isNotEmpty()) item {
                     Text("Routine alternatives are shown first", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 }
                 items(visible, key = Exercise::id) { exercise ->
-                    WhipTextButton(onClick = { onPick(exercise) }, modifier = Modifier.fillMaxWidth()) {
+                    WhipTextButton(
+                        onClick = { onPick(exercise) },
+                        enabled = !saving,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Text(
                             exercise.name + if (exercise.id in preferredIds) " · Planned alternative" else "",
                             modifier = Modifier.fillMaxWidth(),
@@ -8079,8 +8590,12 @@ private fun ExercisePickerDialog(
                 if (exercises.isEmpty()) item { Text("Your library is empty.") }
             }
         },
-        confirmButton = { WhipTextButton(onClick = onCreate) { Text("Create New") } },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = {
+            WhipTextButton(onClick = onCreate, enabled = !saving) {
+                Text(if (saving) "Adding…" else "Create New")
+            }
+        },
+        dismissButton = { WhipTextButton(onClick = onDismiss, enabled = !saving) { Text("Cancel") } },
     )
 }
 
@@ -8218,7 +8733,7 @@ internal fun WorkoutEditorDialog(
     var keepAwake by rememberSaveable(editorKey) { mutableStateOf(session?.keepScreenAwake ?: initialKeepAwake) }
     var showDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
     var showDiscardConfirmation by rememberSaveable(editorKey) { mutableStateOf(false) }
-    var saving by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var saving by remember(editorKey) { mutableStateOf(false) }
     var saveError by rememberSaveable(editorKey) { mutableStateOf<String?>(null) }
     val fallbackSaveError = stringResource(R.string.gym_workout_save_failed)
     val editorFingerprint = listOf(name, notes, date, keepAwake).joinToString("\u001f")
@@ -8320,16 +8835,39 @@ private fun ConfirmationDialog(
     title: String,
     message: String,
     confirmLabel: String,
+    confirmTestTag: String? = null,
+    busy: Boolean = false,
+    errorMessage: String? = null,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
     PaneAwareAlertDialog(
         modifier = modifier,
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!busy) onDismiss() },
         title = { Text(title) },
-        text = { Text(message) },
-        confirmButton = { WhipTextButton(onClick = onConfirm) { Text(confirmLabel) } },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(message)
+                errorMessage?.let { error ->
+                    Text(
+                        error,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            WhipTextButton(
+                onClick = onConfirm,
+                enabled = !busy,
+                modifier = confirmTestTag?.let { Modifier.testTag(it) } ?: Modifier,
+            ) {
+                Text(if (busy) "Working…" else confirmLabel)
+            }
+        },
+        dismissButton = { WhipTextButton(onClick = onDismiss, enabled = !busy) { Text("Cancel") } },
     )
 }
 
@@ -8346,7 +8884,7 @@ internal fun WorkoutGroupDialog(
         mutableStateOf<Set<Long>>(exercises.take(2).mapTo(linkedSetOf()) { it.workoutExercise.id })
     }
     var showDiscardConfirmation by rememberSaveable { mutableStateOf(false) }
-    var saving by rememberSaveable { mutableStateOf(false) }
+    var saving by remember { mutableStateOf(false) }
     var saveError by rememberSaveable { mutableStateOf<String?>(null) }
     val fallbackSaveError = stringResource(R.string.gym_workout_group_save_failed)
     val editorFingerprint = listOf(name, type, selectedIds.sorted()).joinToString("\u001f")

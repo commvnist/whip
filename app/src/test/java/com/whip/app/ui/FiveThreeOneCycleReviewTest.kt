@@ -14,6 +14,7 @@ import com.whip.app.domain.RoutineProgressionMode
 import com.whip.app.domain.RoutineWorkSection
 import com.whip.app.domain.RoutineOptionalWorkKind
 import com.whip.app.domain.WorkoutExercise
+import com.whip.app.domain.WorkoutExerciseOutcome
 import com.whip.app.domain.WorkoutSession
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.WorkoutSet
@@ -122,6 +123,42 @@ class FiveThreeOneCycleReviewTest {
     }
 
     @Test
+    fun successfulRetiredMainWorkRemainsEligibleAfterSameLiftEquipmentSubstitution() {
+        val active = session(10, WorkoutSessionState.Active)
+        val retired = workoutExercise(1001, active.id).copy(
+            outcome = WorkoutExerciseOutcome.Substituted,
+            outcomeAtMillis = 5,
+            replacementWorkoutExerciseUuid = "workout-exercise-1002",
+        )
+        val replacement = workoutExercise(1002, active.id)
+        val completedMain = set(
+            101,
+            retired.id,
+            WorkoutSetClassification.Amrap,
+            RoutineWorkSection.Main,
+            reps = 8,
+        )
+        val replacementSet = set(
+            102,
+            replacement.id,
+            WorkoutSetClassification.Working,
+            RoutineWorkSection.Optional,
+            reps = 0,
+        ).copy(completed = false, completedAtMillis = null)
+        val review = requireNotNull(
+            state(
+                sessions = listOf(active),
+                workoutExercises = listOf(retired, replacement),
+                sets = listOf(completedMain, replacementSet),
+                activeSets = listOf(replacementSet),
+                allowHigher = false,
+            ).activeFiveThreeOneCycleReview(),
+        )
+
+        assertTrue(review.lifts.single().eligible)
+    }
+
+    @Test
     fun earlierDayLiftRemainsEligibleAtFinalDayReview() {
         val earlier = session(9, WorkoutSessionState.Finished).copy(sourceRoutineDayPosition = 0)
         val active = session(10, WorkoutSessionState.Active).copy(sourceRoutineDayPosition = 1)
@@ -137,14 +174,14 @@ class FiveThreeOneCycleReviewTest {
             allowHigher = false,
         )
         val bench = base.exercises.single().copy(id = 8, uuid = "exercise-8", name = "Bench Press")
+        val activeBenchUi = base.activeWorkoutExercises.single().copy(
+            workoutExercise = activePlacement,
+            exercise = bench,
+        )
         val reviewState = base.copy(
             exercises = base.exercises + bench,
-            activeWorkoutExercises = listOf(
-                base.activeWorkoutExercises.single().copy(
-                    workoutExercise = activePlacement,
-                    exercise = bench,
-                ),
-            ),
+            activeWorkoutExercises = listOf(activeBenchUi),
+            activeWorkoutPerformanceExercises = listOf(activeBenchUi),
             routineDays = listOf(
                 RoutineDay(2, "day-2", 1, "Zercher", 0, 1, 1),
                 RoutineDay(4, "day-4", 1, "Bench", 1, 1, 1),
@@ -278,13 +315,41 @@ class FiveThreeOneCycleReviewTest {
             createdAtMillis = 1,
             updatedAtMillis = 1,
         )
-        val activePlacement = workoutExercises.single { it.sessionId == active.id }
+        val activeUi = workoutExercises
+            .filter { it.sessionId == active.id && it.outcome == WorkoutExerciseOutcome.Active }
+            .map { placement ->
+                WorkoutExerciseUi(
+                    placement,
+                    exercise,
+                    activeSets.filter { it.workoutExerciseId == placement.id },
+                    emptyList(),
+                    0,
+                    null,
+                    null,
+                )
+            }
+        val performanceUi = workoutExercises
+            .filter { placement ->
+                placement.sessionId == active.id &&
+                    (placement.outcome == WorkoutExerciseOutcome.Active ||
+                        sets.any { it.workoutExerciseId == placement.id && it.completed && it.deletedAtMillis == null })
+            }
+            .map { placement ->
+                WorkoutExerciseUi(
+                    placement,
+                    exercise,
+                    sets.filter { it.workoutExerciseId == placement.id },
+                    emptyList(),
+                    0,
+                    null,
+                    null,
+                )
+            }
         return GymUiState(
             exercises = listOf(exercise),
             activeSession = active,
-            activeWorkoutExercises = listOf(
-                WorkoutExerciseUi(activePlacement, exercise, activeSets, emptyList(), 0, null, null),
-            ),
+            activeWorkoutExercises = activeUi,
+            activeWorkoutPerformanceExercises = performanceUi,
             allSessions = sessions,
             allWorkoutExercises = workoutExercises,
             allSets = sets,

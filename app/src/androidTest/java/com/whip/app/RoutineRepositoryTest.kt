@@ -150,6 +150,55 @@ class RoutineRepositoryTest {
     }
 
     @Test
+    fun saveWorkoutAsRoutineExcludesEmptyRetiredPlacementsAndKeepsPerformedRetiredWork() = runBlocking {
+        val pressId = gym.createExercise(ExerciseDraft("Press"))
+        val inclineId = gym.createExercise(ExerciseDraft("Incline press"))
+        val rowId = gym.createExercise(ExerciseDraft("Row"))
+        val sourceSessionId = gym.startWorkout("Reusable workout")
+
+        val unperformedPress = gym.addExerciseToWorkout(sourceSessionId, pressId)
+        gym.addSet(unperformedPress, WorkoutSetDraft(weight = 50.0, reps = 5, planned = true))
+        val activeIncline = gym.substituteWorkoutExercise(unperformedPress, inclineId)
+        val inclineSet = gym.sets.first().single { it.workoutExerciseId == activeIncline }
+        gym.updateSet(inclineSet.id, WorkoutSetDraft(weight = 45.0, reps = 8, completed = true))
+
+        val performedRow = gym.addExerciseToWorkout(sourceSessionId, rowId)
+        gym.addSet(
+            performedRow,
+            WorkoutSetDraft(
+                weight = 70.0,
+                reps = 10,
+                completed = true,
+                classification = WorkoutSetClassification.Failure,
+                workSection = RoutineWorkSection.Main,
+                mainWorkScheme = RoutineMainWorkScheme.ClassicPrSet,
+            ),
+        )
+        gym.removeWorkoutExercise(performedRow)
+
+        val routineId = routines.saveWorkoutAsRoutine(sourceSessionId, "Projected history")
+        val routineDayId = routines.days.first().single { it.routineId == routineId }.id
+        val savedPlacements = routines.exercises.first()
+            .filter { it.routineDayId == routineDayId }
+            .sortedBy { it.position }
+
+        assertEquals(listOf(inclineId, rowId), savedPlacements.map { it.exerciseId })
+        assertFalse(savedPlacements.any { it.exerciseId == pressId })
+        val savedSets = routines.sets.first()
+            .filter { set -> savedPlacements.any { it.id == set.routineExerciseId } }
+        assertEquals(2, savedSets.size)
+        val savedRowPlacement = savedPlacements.single { it.exerciseId == rowId }
+        val savedRowSet = savedSets.single { it.routineExerciseId == savedRowPlacement.id }.draft
+        assertEquals(10, savedRowSet.reps)
+        assertEquals(null, savedRowSet.repsMax)
+        assertEquals(WorkoutSetClassification.Working, savedRowSet.classification)
+        assertEquals(RoutineWorkSection.Unspecified, savedRowSet.workSection)
+        assertEquals(RoutineOptionalWorkKind.None, savedRowSet.optionalWorkKind)
+        assertEquals(null, savedRowSet.mainWorkScheme)
+        assertEquals(RoutinePlacementKind.General, savedRowPlacement.placementKind)
+    }
+
+    @Test
     fun activeRoutineWorkoutBlocksTemplateMutationUntilFinishOrDiscard() = runBlocking {
         val exerciseId = gym.createExercise(ExerciseDraft("Bench"))
         fun draft(name: String) = RoutineDraft(
@@ -454,9 +503,22 @@ class RoutineRepositoryTest {
                 placement.sessionId == completed && placement.id == workoutSet.workoutExerciseId
             }
         }
+        val completedPlacementId = set.workoutExerciseId
+        val workoutOnlySetId = gym.addSet(completedPlacementId)
+        assertFalse(gym.sets.first().single { it.id == workoutOnlySetId }.requiredForProgressionSnapshot)
         gym.setSetCompleted(set.id, completed = true, autoStartRest = false)
         gym.finishWorkout(completed)
 
+        assertEquals(1, routines.days.first().single().progressionIndex)
+
+        val removedRequired = routines.startRoutine(routineId)
+        val requiredSet = gym.sets.first().single { candidate ->
+            candidate.requiredForProgressionSnapshot && gym.workoutExercises.first().any { placement ->
+                placement.sessionId == removedRequired && placement.id == candidate.workoutExerciseId
+            }
+        }
+        gym.deleteSet(requiredSet.id)
+        gym.finishWorkout(removedRequired)
         assertEquals(1, routines.days.first().single().progressionIndex)
     }
 
@@ -510,6 +572,39 @@ class RoutineRepositoryTest {
         assertEquals(1, restored.currentProgramPhaseIndex)
         assertEquals(1, restored.currentProgramCycle)
         assertTrue(restored.trainingMaxIncreaseEligible)
+    }
+
+    @Test
+    fun activeRoutineWorkoutBlocksEveryProgramStateControl() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Program state guard"))
+        val routineId = routines.createRoutine(
+            RoutineDraft(
+                name = "Guarded program",
+                program = RoutineProgramDraft(kind = RoutineProgramKind.Custom, phaseCount = 1),
+                days = listOf(
+                    RoutineDayDraft(
+                        "A",
+                        listOf(
+                            RoutineExerciseDraft(
+                                exerciseId = exerciseId,
+                                plannedSets = listOf(
+                                    WorkoutSetDraft(weight = 50.0, reps = 5, workSection = RoutineWorkSection.Main),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val sessionId = routines.startRoutine(routineId)
+
+        assertTrue(runCatching { routines.setRoutineProgramPosition(routineId, 0, 0, 2) }.isFailure)
+        assertTrue(runCatching { routines.setRoutineTrainingMaxIncreaseEligible(routineId, false) }.isFailure)
+        assertTrue(runCatching { routines.resetRoutineProgramProgress(routineId) }.isFailure)
+
+        gym.discardWorkout(sessionId)
+        routines.setRoutineProgramPosition(routineId, 0, 0, 2)
+        assertEquals(2, routines.routines.first().single { it.id == routineId }.currentProgramCycle)
     }
 
     @Test
@@ -655,6 +750,24 @@ class RoutineRepositoryTest {
         assertTrue(routines.personalRecords.first().any {
             it.type == PersonalRecordType.ExerciseWorkoutVolume && it.value == 950.0 && it.current
         })
+    }
+
+    @Test
+    fun recordRebuildDeletesObsoleteRecordsAfterTheOnlyCompletedSetIsRemoved() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Bench"))
+        val sessionId = gym.startWorkout()
+        val placementId = gym.addExerciseToWorkout(sessionId, exerciseId)
+        val setId = gym.addSet(
+            placementId,
+            WorkoutSetDraft(weight = 100.0, reps = 5, completed = true),
+        )
+        routines.rebuildPersonalRecords(exerciseId)
+        assertTrue(routines.personalRecords.first().any { it.exerciseId == exerciseId })
+
+        gym.deleteSet(setId)
+        routines.rebuildPersonalRecords(exerciseId)
+
+        assertFalse(routines.personalRecords.first().any { it.exerciseId == exerciseId })
     }
 
     @Test
@@ -1043,7 +1156,10 @@ class RoutineRepositoryTest {
                 .filter { it.sessionId == sessionId }
                 .mapTo(mutableSetOf()) { it.id }
             gym.sets.first()
-                .filter { it.workoutExerciseId in placementIds && it.workSectionSnapshot == RoutineWorkSection.Main }
+                .filter {
+                    it.workoutExerciseId in placementIds &&
+                        it.workSectionSnapshot == RoutineWorkSection.Main && it.deletedAtMillis == null
+                }
                 .forEach { gym.setSetCompleted(it.id, completed = true, autoStartRest = false) }
         }
         suspend fun assertTrainingMaxes(bench: Double, squat: Double, row: Double) {

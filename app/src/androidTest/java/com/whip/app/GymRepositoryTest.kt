@@ -13,13 +13,22 @@ import com.whip.app.domain.GymMachineDraft
 import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.LoadInterpretation
+import com.whip.app.domain.RoutineMainWorkScheme
+import com.whip.app.domain.RoutineOptionalWorkKind
+import com.whip.app.domain.RoutineWorkSection
 import com.whip.app.domain.WorkoutSessionState
+import com.whip.app.domain.WorkoutExerciseOutcome
+import com.whip.app.domain.WorkoutSetClassification
+import com.whip.app.domain.WorkoutSetRemovalReason
 import com.whip.app.domain.WorkoutGroupType
 import com.whip.app.domain.WorkoutSetDraft
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -74,6 +83,21 @@ class GymRepositoryTest {
 
         repository.finishWorkout(sessionId)
         assertEquals(WorkoutSessionState.Finished, repository.sessions.first().single().state)
+    }
+
+    @Test
+    fun workoutSnapshotPairsAnInitialSetWithItsCommittedSessionRevision() = runBlocking {
+        val exerciseId = repository.createExercise(ExerciseDraft(name = "Goblet squat"))
+        val sessionId = repository.startWorkout(name = "Coherent workout")
+
+        val addition = repository.addExerciseWithInitialSetToWorkout(sessionId, exerciseId)
+        val snapshot = repository.workoutSnapshot.first { current ->
+            current.sets.any { it.id == addition.initialSetId }
+        }
+
+        assertEquals(addition.workoutExerciseId, snapshot.sets.single().workoutExerciseId)
+        assertEquals(2L, snapshot.sessions.single { it.id == sessionId }.workoutRevision)
+        assertEquals(addition.workoutExerciseId, snapshot.workoutExercises.single().id)
     }
 
     @Test
@@ -190,9 +214,72 @@ class GymRepositoryTest {
         val session = repository.sessions.first().single()
         assertEquals(90, session.restTimerDurationSeconds)
         assertEquals(FixedClock.now().toEpochMilli() + 90_000L, session.restTimerDeadlineMillis)
+        assertTrue(session.restTimerCleanupPending)
+
+        repository.acknowledgeRestTimerCleanup(sessionId, session.restTimerRevision)
+        assertFalse(repository.sessions.first().single().restTimerCleanupPending)
 
         repository.stopRestTimer(sessionId)
-        assertEquals(null, repository.sessions.first().single().restTimerDeadlineMillis)
+        val stopped = repository.sessions.first().single()
+        assertEquals(null, stopped.restTimerDeadlineMillis)
+        assertTrue(stopped.restTimerCleanupPending)
+
+        repository.acknowledgeRestTimerCleanup(sessionId, session.restTimerRevision)
+        assertTrue(repository.sessions.first().single().restTimerCleanupPending)
+        repository.acknowledgeRestTimerCleanup(sessionId, stopped.restTimerRevision)
+        assertFalse(repository.sessions.first().single().restTimerCleanupPending)
+    }
+
+    @Test
+    fun terminalSessionKeepsTimerCleanupPendingUntilSchedulerAcknowledgesIt() = runBlocking {
+        val sessionId = repository.startWorkout()
+        repository.startRestTimer(sessionId, 30)
+
+        repository.finishWorkout(sessionId)
+
+        val finished = repository.sessions.first().single()
+        assertEquals(WorkoutSessionState.Finished, finished.state)
+        assertEquals(null, finished.restTimerDeadlineMillis)
+        assertEquals(null, finished.restTimerDurationSeconds)
+        assertTrue(finished.restTimerCleanupPending)
+
+        repository.acknowledgeRestTimerCleanup(sessionId, finished.restTimerRevision)
+        assertFalse(repository.sessions.first().single().restTimerCleanupPending)
+    }
+
+    @Test
+    fun restTimerDeliveryCompletesOnlyTheExactScheduledRevisionAndDeadline() = runBlocking {
+        val sessionId = repository.startWorkout()
+        repository.startRestTimer(sessionId, 30)
+        val scheduled = repository.sessions.first().single()
+        val deadline = requireNotNull(scheduled.restTimerDeadlineMillis)
+
+        assertFalse(
+            repository.completeRestTimerDelivery(
+                sessionId,
+                scheduled.restTimerRevision + 1,
+                deadline,
+            ),
+        )
+        assertEquals(deadline, repository.sessions.first().single().restTimerDeadlineMillis)
+        assertTrue(
+            repository.completeRestTimerDelivery(
+                sessionId,
+                scheduled.restTimerRevision,
+                deadline,
+            ),
+        )
+        val delivered = repository.sessions.first().single()
+        assertEquals(null, delivered.restTimerDeadlineMillis)
+        assertTrue(delivered.restTimerCleanupPending)
+        assertEquals(scheduled.restTimerRevision + 1, delivered.restTimerRevision)
+        assertFalse(
+            repository.completeRestTimerDelivery(
+                sessionId,
+                scheduled.restTimerRevision,
+                deadline,
+            ),
+        )
     }
 
     @Test
@@ -233,7 +320,131 @@ class GymRepositoryTest {
     }
 
     @Test
-    fun substitutingBeforeAnyCompletedSetReplacesPlacementAndDropsItsDraftSets() = runBlocking {
+    fun quickSaveCommitsSetAppendTimerAndRevisionAsOneReviewedMutation() = runBlocking {
+        val exerciseId = repository.createExercise(ExerciseDraft(name = "Bench", defaultRestSeconds = 180))
+        val sessionId = repository.startWorkout("Atomic quick save")
+        val placementId = repository.addExerciseToWorkout(sessionId, exerciseId)
+        val setId = repository.addSet(placementId, WorkoutSetDraft(weight = 100.0, reps = 5))
+        val before = repository.sessions.first().single { it.id == sessionId }
+        val source = repository.sets.first().single { it.id == setId }
+
+        assertTrue(
+            runCatching {
+                repository.saveQuickSet(
+                    id = setId,
+                    expectedSetUuid = source.uuid,
+                    expectedSetUpdatedAtMillis = source.updatedAtMillis + 1,
+                    expectedWorkoutRevision = before.workoutRevision,
+                    draft = WorkoutSetDraft(weight = 105.0, reps = 5),
+                    addNext = true,
+                    autoStartRest = true,
+                    restOverrideSeconds = 300,
+                )
+            }.isFailure,
+        )
+        assertFalse(repository.sets.first().single { it.id == setId }.completed)
+
+        val receipt = repository.saveQuickSet(
+            id = setId,
+            expectedSetUuid = source.uuid,
+            expectedSetUpdatedAtMillis = source.updatedAtMillis,
+            expectedWorkoutRevision = before.workoutRevision,
+            draft = WorkoutSetDraft(weight = 105.0, reps = 5),
+            addNext = true,
+            autoStartRest = true,
+            restOverrideSeconds = 300,
+        )
+
+        val storedSets = repository.sets.first().sortedBy { it.position }
+        assertEquals(2, storedSets.size)
+        assertTrue(storedSets.first().completed)
+        assertEquals(receipt.appendedSetId, storedSets.last().id)
+        assertFalse(storedSets.last().completed)
+        assertEquals(RoutineWorkSection.Unspecified, storedSets.last().workSectionSnapshot)
+        assertEquals(RoutineOptionalWorkKind.None, storedSets.last().optionalWorkKindSnapshot)
+        assertFalse(storedSets.last().requiredForProgressionSnapshot)
+        val after = repository.sessions.first().single { it.id == sessionId }
+        assertEquals(before.workoutRevision + 1, after.workoutRevision)
+        assertEquals(300, after.restTimerDurationSeconds)
+        assertEquals(FixedClock.now().toEpochMilli() + 300_000L, after.restTimerDeadlineMillis)
+    }
+
+    @Test
+    fun concurrentQuickSavesAdmitOnlyOneCommitForTheReviewedBoundary() = runBlocking {
+        val exerciseId = repository.createExercise(ExerciseDraft(name = "Press"))
+        val sessionId = repository.startWorkout("Concurrent quick save")
+        val placementId = repository.addExerciseToWorkout(sessionId, exerciseId)
+        val setId = repository.addSet(placementId, WorkoutSetDraft(weight = 50.0, reps = 5))
+        val reviewedSession = repository.sessions.first().single { it.id == sessionId }
+        val reviewedSet = repository.sets.first().single { it.id == setId }
+
+        val outcomes = listOf(52.5, 55.0).map { weight ->
+            async(Dispatchers.Default) {
+                runCatching {
+                    repository.saveQuickSet(
+                        id = setId,
+                        expectedSetUuid = reviewedSet.uuid,
+                        expectedSetUpdatedAtMillis = reviewedSet.updatedAtMillis,
+                        expectedWorkoutRevision = reviewedSession.workoutRevision,
+                        draft = WorkoutSetDraft(weight = weight, reps = 5),
+                        addNext = false,
+                        autoStartRest = false,
+                    )
+                }
+            }
+        }.awaitAll()
+
+        assertEquals(1, outcomes.count { it.isSuccess })
+        assertEquals(1, outcomes.count { it.isFailure })
+        assertTrue(repository.sets.first().single { it.id == setId }.completed)
+        assertEquals(
+            reviewedSession.workoutRevision + 1,
+            repository.sessions.first().single { it.id == sessionId }.workoutRevision,
+        )
+    }
+
+    @Test
+    fun finishRejectsAWorkoutGraphThatChangedAfterReview() = runBlocking {
+        val exerciseId = repository.createExercise(ExerciseDraft(name = "Deadlift"))
+        val sessionId = repository.startWorkout("Revision boundary")
+        val placementId = repository.addExerciseToWorkout(sessionId, exerciseId)
+        val reviewedSession = repository.sessions.first().single { it.id == sessionId }
+        val reviewedRevision = reviewedSession.workoutRevision
+        val wrongIdentity = runCatching {
+            repository.finishWorkout(
+                sessionId,
+                expectedWorkoutRevision = reviewedRevision,
+                expectedSessionUuid = "different-workout",
+            )
+        }.exceptionOrNull()
+        assertTrue(wrongIdentity is IllegalArgumentException)
+        assertTrue(wrongIdentity?.message.orEmpty().contains("identity changed"))
+        assertEquals(WorkoutSessionState.Active, repository.sessions.first().single { it.id == sessionId }.state)
+
+        repository.addSet(placementId, WorkoutSetDraft(weight = 180.0, reps = 5, completed = true))
+
+        assertTrue(
+            runCatching {
+                repository.finishWorkout(
+                    sessionId,
+                    expectedWorkoutRevision = reviewedRevision,
+                    expectedSessionUuid = reviewedSession.uuid,
+                )
+            }.isFailure,
+        )
+        assertEquals(WorkoutSessionState.Active, repository.sessions.first().single { it.id == sessionId }.state)
+
+        val latestRevision = repository.sessions.first().single { it.id == sessionId }.workoutRevision
+        repository.finishWorkout(
+            sessionId,
+            expectedWorkoutRevision = latestRevision,
+            expectedSessionUuid = reviewedSession.uuid,
+        )
+        assertEquals(WorkoutSessionState.Finished, repository.sessions.first().single { it.id == sessionId }.state)
+    }
+
+    @Test
+    fun substitutingBeforeAnyCompletedSetRetiresPlacementAndPreservesItsDraftOutcome() = runBlocking {
         val press = repository.createExercise(ExerciseDraft(name = "Press"))
         val incline = repository.createExercise(ExerciseDraft(name = "Incline press"))
         val session = repository.startWorkout()
@@ -242,11 +453,16 @@ class GymRepositoryTest {
 
         val replacement = repository.substituteWorkoutExercise(original, incline)
 
-        val placements = repository.workoutExercises.first()
-        assertEquals(listOf(replacement), placements.map { it.id })
-        assertEquals(incline, placements.single().exerciseId)
-        assertEquals("Substitution for Press", placements.single().notes)
-        assertTrue(repository.sets.first().isEmpty())
+        val placements = repository.workoutExercises.first().associateBy { it.id }
+        assertEquals(WorkoutExerciseOutcome.Substituted, placements.getValue(original).outcome)
+        assertEquals(placements.getValue(replacement).uuid, placements.getValue(original).replacementWorkoutExerciseUuid)
+        assertEquals(WorkoutExerciseOutcome.Active, placements.getValue(replacement).outcome)
+        assertEquals(incline, placements.getValue(replacement).exerciseId)
+        assertEquals("Substitution for Press", placements.getValue(replacement).notes)
+        val retiredSet = repository.sets.first().single { it.workoutExerciseId == original }
+        assertNotNull(retiredSet.deletedAtMillis)
+        assertEquals(WorkoutSetRemovalReason.ExerciseSubstituted, retiredSet.removalReason)
+        assertEquals(1, repository.sets.first().count { it.workoutExerciseId == replacement })
     }
 
     @Test
@@ -271,13 +487,17 @@ class GymRepositoryTest {
 
         val replacement = repository.substituteWorkoutExercise(original, cable, machine)
 
-        val placements = repository.workoutExercises.first().sortedBy { it.position }
-        assertEquals(listOf(replacement), placements.map { it.id })
-        assertEquals("Cable tower · Public gym", placements.single().machineNameSnapshot)
-        assertEquals("pin", placements.single().machineLevelLabelSnapshot)
+        val placements = repository.workoutExercises.first().associateBy { it.id }
+        assertEquals(WorkoutExerciseOutcome.Substituted, placements.getValue(original).outcome)
+        assertEquals(WorkoutExerciseOutcome.Active, placements.getValue(replacement).outcome)
+        assertEquals("Cable tower · Public gym", placements.getValue(replacement).machineNameSnapshot)
+        assertEquals("pin", placements.getValue(replacement).machineLevelLabelSnapshot)
         val storedSets = repository.sets.first().associateBy { it.id }
-        assertFalse(storedSets.containsKey(completed))
-        assertFalse(storedSets.containsKey(incomplete))
+        assertTrue(storedSets.getValue(completed).completed)
+        assertEquals(null, storedSets.getValue(completed).deletedAtMillis)
+        assertNotNull(storedSets.getValue(incomplete).deletedAtMillis)
+        assertEquals(WorkoutSetRemovalReason.ExerciseSubstituted, storedSets.getValue(incomplete).removalReason)
+        assertEquals(1, storedSets.values.count { it.workoutExerciseId == replacement })
     }
 
     @Test
@@ -434,7 +654,9 @@ class GymRepositoryTest {
 
         repository.removeWorkoutExercise(firstPlacement)
 
-        assertEquals(null, repository.workoutExercises.first().single().groupId)
+        val placements = repository.workoutExercises.first().associateBy { it.id }
+        assertEquals(WorkoutExerciseOutcome.Removed, placements.getValue(firstPlacement).outcome)
+        assertEquals(null, placements.getValue(secondPlacement).groupId)
         assertTrue(repository.groups.first().isEmpty())
     }
 
@@ -687,6 +909,59 @@ class GymRepositoryTest {
         assertEquals("UTC", source.zoneId)
         assertEquals(FixedClock.today(), duplicate.localDate)
         assertEquals(FixedClock.zoneId().id, duplicate.zoneId)
+    }
+
+    @Test
+    fun duplicateWorkoutExcludesEmptyRetiredPlacementsAndReusesRetainedPerformedWork() = runBlocking {
+        val pressId = repository.createExercise(ExerciseDraft(name = "Press"))
+        val inclineId = repository.createExercise(ExerciseDraft(name = "Incline press"))
+        val rowId = repository.createExercise(ExerciseDraft(name = "Row"))
+        val sourceSessionId = repository.startWorkout(name = "Substitutions")
+
+        val unperformedPress = repository.addExerciseToWorkout(sourceSessionId, pressId)
+        repository.addSet(unperformedPress, WorkoutSetDraft(weight = 50.0, reps = 5, planned = true))
+        val activeIncline = repository.substituteWorkoutExercise(unperformedPress, inclineId)
+        val inclineSet = repository.sets.first().single { it.workoutExerciseId == activeIncline }
+        repository.updateSet(inclineSet.id, WorkoutSetDraft(weight = 45.0, reps = 8, completed = true))
+
+        val performedRow = repository.addExerciseToWorkout(sourceSessionId, rowId)
+        repository.addSet(
+            performedRow,
+            WorkoutSetDraft(
+                weight = 70.0,
+                reps = 10,
+                completed = true,
+                classification = WorkoutSetClassification.Failure,
+                workSection = RoutineWorkSection.Main,
+                mainWorkScheme = RoutineMainWorkScheme.ClassicPrSet,
+            ),
+        )
+        repository.removeWorkoutExercise(performedRow)
+        repository.finishWorkout(sourceSessionId)
+
+        val duplicateSessionId = repository.duplicateWorkout(sourceSessionId)
+        val duplicatePlacements = repository.workoutExercises.first()
+            .filter { it.sessionId == duplicateSessionId }
+            .sortedBy { it.position }
+
+        assertEquals(listOf(inclineId, rowId), duplicatePlacements.map { it.exerciseId })
+        assertTrue(duplicatePlacements.all { it.outcome == WorkoutExerciseOutcome.Active })
+        assertEquals(listOf(0, 1), duplicatePlacements.map { it.position })
+        assertFalse(duplicatePlacements.any { it.exerciseId == pressId })
+
+        val duplicatedSets = repository.sets.first()
+            .filter { set -> duplicatePlacements.any { it.id == set.workoutExerciseId } }
+        assertEquals(2, duplicatedSets.size)
+        assertTrue(duplicatedSets.none { it.completed })
+        assertTrue(duplicatedSets.all { it.deletedAtMillis == null })
+        assertTrue(duplicatedSets.all { !it.requiredForProgressionSnapshot })
+        val duplicatedRowSet = duplicatedSets.single { set ->
+            duplicatePlacements.single { it.id == set.workoutExerciseId }.exerciseId == rowId
+        }
+        assertEquals(10, duplicatedRowSet.repetitions)
+        assertEquals(WorkoutSetClassification.Working, duplicatedRowSet.classification)
+        assertEquals(RoutineWorkSection.Unspecified, duplicatedRowSet.workSectionSnapshot)
+        assertEquals(RoutineOptionalWorkKind.None, duplicatedRowSet.optionalWorkKindSnapshot)
     }
 
     @Test

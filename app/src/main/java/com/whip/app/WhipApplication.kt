@@ -44,6 +44,7 @@ import com.whip.app.reminders.cancelVisibleReminderNotifications
 import com.whip.app.reminders.cancelVisibleTaskNotifications
 import com.whip.app.reminders.RestTimerNotifications
 import com.whip.app.reminders.RestTimerScheduler
+import com.whip.app.reminders.restTimerScheduleDelaySeconds
 import com.whip.app.reminders.HabitReminderScheduler
 import com.whip.app.reminders.HabitReminderNotifications
 import com.whip.app.reminders.GoalReminderScheduler
@@ -455,11 +456,25 @@ class WhipApplication : Application(), Configuration.Provider {
                 focusTimerScheduler.schedule(taskId, deadline, allowDuringRecovery = true)
             }
         }
-        val session = gymRepository.sessions.first().firstOrNull { it.state == WorkoutSessionState.Active }
-        val seconds = session?.restTimerDeadlineMillis?.minus(System.currentTimeMillis())?.div(1_000L)?.toInt()
-        if (session != null && seconds != null && seconds > 0) {
-            restTimerScheduler.schedule(session.id, seconds, null, allowDuringRecovery = true)
+        val sessions = gymRepository.sessions.first()
+        val session = sessions.firstOrNull { it.state == WorkoutSessionState.Active }
+        val seconds = restTimerScheduleDelaySeconds(
+            session?.restTimerDeadlineMillis,
+            System.currentTimeMillis(),
+        )
+        if (session?.restTimerDeadlineMillis != null) {
+            restTimerScheduler.schedule(
+                sessionId = session.id,
+                seconds = seconds ?: 1,
+                nextLabel = null,
+                timerRevision = session.restTimerRevision,
+                expectedDeadlineMillis = session.restTimerDeadlineMillis,
+                allowDuringRecovery = true,
+            )
         }
+        sessions.asSequence()
+            .filter { it.restTimerCleanupPending }
+            .forEach { gymRepository.acknowledgeRestTimerCleanup(it.id, it.restTimerRevision) }
         portableBackupScheduler.sync(portableBackupManager.state.value, allowDuringRecovery = true)
     }
 

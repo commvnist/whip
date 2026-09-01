@@ -2,6 +2,7 @@ package com.whip.app
 
 import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -145,15 +146,24 @@ class FirstClassWorkflowE2ETest {
             val exerciseAdded = runBlocking {
                 withTimeoutOrNull(5_000) {
                     app.gymRepository.workoutExercises.first { rows -> rows.any { it.sessionId == session.id } }
+                        .single { it.sessionId == session.id }
                 }
             }
             checkNotNull(exerciseAdded) { "Exercise selection did not reach the active workout" }
-
-            compose.onNodeWithText("Add Set").performClick()
             val set = runBlocking {
-                withTimeoutOrNull(5_000) { app.gymRepository.sets.first { rows -> rows.isNotEmpty() }.single() }
+                withTimeoutOrNull(5_000) {
+                    app.gymRepository.sets.first { rows ->
+                        rows.any { it.workoutExerciseId == exerciseAdded.id }
+                    }.single { it.workoutExerciseId == exerciseAdded.id }
+                }
             }
-            checkNotNull(set) { "Set creation did not reach the repository" }
+            checkNotNull(set) { "Exercise selection did not create its editable initial set" }
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("workout-exercise-picker-scope").fetchSemanticsNodes().isEmpty()
+            }
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("quick-set-load-${set.id}").fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNodeWithTag("quick-set-load-${set.id}").performTextReplacement("24")
             compose.onNodeWithTag("quick-set-reps-${set.id}").performTextReplacement("10")
             closeSoftKeyboard()
@@ -173,13 +183,31 @@ class FirstClassWorkflowE2ETest {
                 withTimeoutOrNull(5_000) {
                     app.gymRepository.workoutExercises.first { rows ->
                         rows.any { it.sessionId == session.id && it.exerciseId == workoutOnlyExerciseId }
-                    }
+                    }.single { it.sessionId == session.id && it.exerciseId == workoutOnlyExerciseId }
                 }
             }
             checkNotNull(workoutOnlyExerciseAdded) { "Workout-only exercise selection did not reach the active session" }
+            val workoutOnlyInitialSet = runBlocking {
+                withTimeoutOrNull(5_000) {
+                    app.gymRepository.sets.first { rows ->
+                        rows.any { it.workoutExerciseId == workoutOnlyExerciseAdded.id }
+                    }.single { it.workoutExerciseId == workoutOnlyExerciseAdded.id }
+                }
+            }
+            checkNotNull(workoutOnlyInitialSet) { "Workout-only exercise did not receive its editable initial set" }
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("workout-exercise-picker-scope").fetchSemanticsNodes().isEmpty()
+            }
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("quick-set-load-${workoutOnlyInitialSet.id}")
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
 
-            compose.onNodeWithTag("active-workout-list").performScrollToNode(hasText("Finish"))
-            compose.onNodeWithText("Finish").performClick()
+            compose.onNodeWithTag("active-workout-list")
+                .performScrollToNode(hasTestTag("active-workout-finish"))
+            compose.onNodeWithTag("active-workout-finish").performClick()
+            compose.onNodeWithTag("finish-workout-confirmation").assertIsDisplayed()
+            compose.onNodeWithTag("finish-workout-confirm").performClick()
             val workoutFinished = runBlocking {
                 withTimeoutOrNull(5_000) {
                     app.gymRepository.sessions.first { rows ->

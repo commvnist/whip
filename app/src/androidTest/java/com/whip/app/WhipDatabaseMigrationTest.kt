@@ -1193,6 +1193,114 @@ class WhipDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrationThirtyNineToFortyRecoversActiveRoutineRequirementsFromImmutablePrescriptions() {
+        helper.createDatabase(V39_DATABASE_NAME, 39).apply {
+            execSQL("PRAGMA foreign_keys = OFF")
+            execSQL(
+                "INSERT INTO workout_sessions " +
+                    "(id, uuid, name, notes, startedAtMillis, localEpochDay, zoneId, state, keepScreenAwake, " +
+                    "archived, createdAtMillis, updatedAtMillis, sourceRoutineId, sourceRoutineProgramKind, " +
+                    "programProgressAdvanced, requiredMainWorkInvalidated, invalidatedMainExerciseIdsCsv, " +
+                    "sourceRoutinePhaseLabel, sourceRoutinePhaseRole) VALUES " +
+                    "(1, 'session-39', 'Active routine workout', '', 100, 1, 'UTC', 'Active', 0, 0, 100, 200, " +
+                    "77, 'Static', 0, 0, '', '', 'Standard')",
+            )
+            execSQL(
+                "INSERT INTO workout_exercises " +
+                    "(id, uuid, sessionId, exerciseId, position, notes, createdAtMillis, updatedAtMillis, " +
+                    "machineNameSnapshot, machineLoadTypeSnapshot, machineUnitIdSnapshot, machineLevelLabelSnapshot, " +
+                    "loadInterpretationSnapshot, trackingTypeSnapshot, bodyweightLoadPolicySnapshot, " +
+                    "effectiveBodyweightPercentSnapshot, oneRepMaxFormulaSnapshot, includeInVolumeSnapshot, " +
+                    "includeInPersonalRecordsSnapshot, exerciseWeightUnitSnapshot, loadMultiplierSnapshot, " +
+                    "machineConfigurationGroupSnapshot, machineConfigurationVersionSnapshot, machineConfigurationSnapshot, " +
+                    "machinePulleyRatioSnapshot, machineStackModeSnapshot, machineMassMappingCsvSnapshot, " +
+                    "alternativeExerciseIdsCsvSnapshot, trainingMaxUnitIdSnapshot, trainingMaxSourceSnapshot, " +
+                    "mainWorkSchemeSnapshot, supplementalSchemeSnapshot, assistanceRoleSnapshot, placementKindSnapshot, " +
+                    "assistanceCategorySnapshot, jokerSetsEnabledSnapshot) VALUES " +
+                    "(2, 'placement-39', 1, 99, 0, '', 100, 200, '', '', '', '', 'Total', 'WeightReps', " +
+                    "'ExternalWeightOnly', 100, 'Epley', 1, 1, 'kilogram', 1, '', 1, '', 1, 'Single', '', '', '', " +
+                    "'EstimatedOneRepMaxPercent', 'ClassicPrSet', 'FirstSetLast', 'MainLift', 'MainLift', 'Unspecified', 1), " +
+                    // An exercise plus initial set can share a later transaction timestamp.
+                    "(8, 'workout-only-placement-39', 1, 100, 1, '', 150, 200, '', '', '', '', 'Total', " +
+                    "'WeightReps', 'ExternalWeightOnly', 100, 'Epley', 1, 1, 'kilogram', 1, '', 1, '', 1, " +
+                    "'Single', '', '', '', 'EstimatedOneRepMaxPercent', 'Unspecified', 'None', 'Unspecified', " +
+                    "'Unspecified', 'Unspecified', 0)",
+            )
+            execSQL(
+                "INSERT INTO workout_sets " +
+                    "(id, uuid, workoutExerciseId, position, classification, planned, completed, note, tempo, " +
+                    "deletedAtMillis, createdAtMillis, updatedAtMillis, unilateral, prescriptionSourceLabel, " +
+                    "workSectionSnapshot, optionalWorkKindSnapshot, prescribedClassificationSnapshot, " +
+                    "prescribedRepetitions) VALUES " +
+                    // Real completion paths clear `planned`; immutable targets must retain both outcomes.
+                    "(3, 'success-39', 2, 0, 'Working', 0, 1, '', '', NULL, 100, 200, 0, '', " +
+                    "'Unspecified', 'None', 'Working', 5), " +
+                    "(4, 'failure-39', 2, 1, 'Failure', 0, 1, '', '', NULL, 100, 200, 0, '', " +
+                    "'Unspecified', 'None', 'Working', 5), " +
+                    // Optional authored work and an in-workout planned row are never requirements.
+                    "(5, 'optional-39', 2, 2, 'Working', 1, 0, '', '', 190, 100, 200, 0, '', " +
+                    "'Optional', 'Joker', 'Working', 3), " +
+                    // Creation provenance covers authored dimensions without a legacy prescribed column.
+                    "(6, 'source-only-39', 2, 3, 'Working', 0, 0, '', '', NULL, 100, 200, 0, '', " +
+                    "'Unspecified', 'None', 'Working', NULL), " +
+                    "(7, 'workout-only-39', 2, 4, 'Working', 1, 0, '', '', NULL, 150, 200, 0, '', " +
+                    "'Unspecified', 'None', 'Working', NULL), " +
+                    "(9, 'workout-only-initial-39', 8, 0, 'Working', 1, 0, '', '', NULL, 150, 200, 0, '', " +
+                    "'Unspecified', 'None', 'Working', NULL)",
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            V39_DATABASE_NAME,
+            40,
+            true,
+            WhipDatabase.migration39To40,
+        ).use { database ->
+            database.query(
+                "SELECT workoutRevision, restTimerRevision, restTimerCleanupPending " +
+                    "FROM workout_sessions WHERE id = 1",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(0L, cursor.getLong(0))
+                assertEquals(0L, cursor.getLong(1))
+                assertEquals(1, cursor.getInt(2))
+            }
+            database.query(
+                "SELECT outcome, outcomeAtMillis, replacementWorkoutExerciseUuid FROM workout_exercises WHERE id = 2",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("Active", cursor.getString(0))
+                assertTrue(cursor.isNull(1))
+                assertTrue(cursor.isNull(2))
+            }
+            database.query(
+                "SELECT requiredForProgressionSnapshot, removalReason FROM workout_sets ORDER BY id",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(1, cursor.getInt(0))
+                assertTrue(cursor.isNull(1))
+                check(cursor.moveToNext())
+                assertEquals(1, cursor.getInt(0))
+                assertTrue(cursor.isNull(1))
+                check(cursor.moveToNext())
+                assertEquals(0, cursor.getInt(0))
+                assertEquals("Removed", cursor.getString(1))
+                check(cursor.moveToNext())
+                assertEquals(1, cursor.getInt(0))
+                assertTrue(cursor.isNull(1))
+                check(cursor.moveToNext())
+                assertEquals(0, cursor.getInt(0))
+                assertTrue(cursor.isNull(1))
+                check(cursor.moveToNext())
+                assertEquals(0, cursor.getInt(0))
+                assertTrue(cursor.isNull(1))
+                assertFalse(cursor.moveToNext())
+            }
+        }
+    }
+
     private fun androidx.sqlite.db.SupportSQLiteDatabase.insertMainArea() {
         execSQL(
             "INSERT INTO areas (id, name, nameKey, position, archived, createdAtMillis, updatedAtMillis) " +
@@ -1277,6 +1385,7 @@ class WhipDatabaseMigrationTest {
         const val V36_DATABASE_NAME = "prescribed-classification-v36-to-v37-migration"
         const val V37_DATABASE_NAME = "goal-lifecycle-v37-to-v38-migration"
         const val V38_DATABASE_NAME = "track-csv-receipt-v38-to-v39-migration"
+        const val V39_DATABASE_NAME = "workout-revision-v39-to-v40-migration"
 
         val allMigrations: Array<Migration> = arrayOf(
             WhipDatabase.migration1To2,
@@ -1299,6 +1408,7 @@ class WhipDatabaseMigrationTest {
             WhipDatabase.migration36To37,
             WhipDatabase.migration37To38,
             WhipDatabase.migration38To39,
+            WhipDatabase.migration39To40,
         )
     }
 }

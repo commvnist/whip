@@ -179,7 +179,7 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val preview = backups.previewBackup(json)
         assertEquals(2, preview.envelopeVersion)
-        assertEquals(16, preview.databaseVersion)
+        assertEquals(17, preview.databaseVersion)
         assertTrue(preview.checksumValid)
         assertTrue(preview.settingsIncluded)
         assertTrue(preview.totalRecords >= 3)
@@ -227,7 +227,7 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val root = JSONObject(json)
 
-        assertEquals(16, root.getInt("databaseVersion"))
+        assertEquals(17, root.getInt("databaseVersion"))
         assertEquals(false, root.getJSONObject("tables").has("track_csv_import_receipts"))
         assertEquals(1, csvReceiptCount(committed.batchUuid))
 
@@ -476,6 +476,137 @@ class BackupRepositoryTest {
         )
     }
 
+    @Test fun versionSixteenBackupRestoresCompletedStaticRequirementsAndProgressionOutcomes() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Legacy static press"))
+        val routineId = routines.createRoutine(
+            RoutineDraft(
+                name = "Legacy static wave",
+                days = listOf(
+                    RoutineDayDraft(
+                        "Press",
+                        listOf(
+                            RoutineExerciseDraft(
+                                exerciseId = exerciseId,
+                                progressionPercentages = listOf(100.0, 105.0),
+                                plannedSets = listOf(
+                                    WorkoutSetDraft(weight = 50.0, reps = 5),
+                                    WorkoutSetDraft(
+                                        weight = 55.0,
+                                        reps = 3,
+                                        workSection = RoutineWorkSection.Optional,
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        suspend fun legacyVersionSixteenBackup(): String {
+            val root = JSONObject(backups.exportBackup()).put("databaseVersion", 16)
+            val tables = root.getJSONObject("tables")
+            val sessions = tables.getJSONArray("workout_sessions")
+            for (index in 0 until sessions.length()) sessions.getJSONObject(index).apply {
+                remove("workoutRevision")
+                remove("restTimerRevision")
+                remove("restTimerCleanupPending")
+            }
+            val placements = tables.getJSONArray("workout_exercises")
+            for (index in 0 until placements.length()) placements.getJSONObject(index).apply {
+                remove("outcome")
+                remove("outcomeAtMillis")
+                remove("replacementWorkoutExerciseUuid")
+            }
+            val sets = tables.getJSONArray("workout_sets")
+            for (index in 0 until sets.length()) sets.getJSONObject(index).apply {
+                remove("requiredForProgressionSnapshot")
+                remove("removalReason")
+            }
+            refreshBackupChecksum(root)
+            return root.toString()
+        }
+
+        val successfulSessionId = routines.startRoutine(routineId)
+        val successfulPlacementId = gym.workoutExercises.first().single {
+            it.sessionId == successfulSessionId
+        }.id
+        val successfulRequired = gym.sets.first().single {
+            it.workoutExerciseId == successfulPlacementId && it.workSectionSnapshot != RoutineWorkSection.Optional
+        }
+        gym.setSetCompleted(successfulRequired.id, completed = true, autoStartRest = false)
+        assertEquals(false, gym.sets.first().single { it.id == successfulRequired.id }.planned)
+
+        backups.restoreBackup(legacyVersionSixteenBackup())
+
+        val restoredSuccessSession = gym.sessions.first().single {
+            it.state == com.whip.app.domain.WorkoutSessionState.Active
+        }
+        assertEquals(0L, restoredSuccessSession.restTimerRevision)
+        assertEquals(false, restoredSuccessSession.restTimerCleanupPending)
+        val restoredSuccessPlacementId = gym.workoutExercises.first().single {
+            it.sessionId == restoredSuccessSession.id
+        }.id
+        val restoredSuccessSets = gym.sets.first().filter { it.workoutExerciseId == restoredSuccessPlacementId }
+        assertEquals(
+            true,
+            restoredSuccessSets.single { it.workSectionSnapshot != RoutineWorkSection.Optional }
+                .requiredForProgressionSnapshot,
+        )
+        assertEquals(
+            true,
+            restoredSuccessSets.single { it.workSectionSnapshot != RoutineWorkSection.Optional }.completed,
+        )
+        assertEquals(
+            false,
+            restoredSuccessSets.single { it.workSectionSnapshot != RoutineWorkSection.Optional }.planned,
+        )
+        assertEquals(
+            false,
+            restoredSuccessSets.single { it.workSectionSnapshot == RoutineWorkSection.Optional }
+                .requiredForProgressionSnapshot,
+        )
+        gym.finishWorkout(restoredSuccessSession.id)
+        assertEquals(1, routines.days.first().single().progressionIndex)
+
+        val restoredRoutineId = routines.routines.first().single { it.name == "Legacy static wave" }.id
+        val failedSessionId = routines.startRoutine(restoredRoutineId)
+        val failedPlacementId = gym.workoutExercises.first().single { it.sessionId == failedSessionId }.id
+        val failedRequired = gym.sets.first().single {
+            it.workoutExerciseId == failedPlacementId && it.workSectionSnapshot != RoutineWorkSection.Optional
+        }
+        gym.updateSet(
+            failedRequired.id,
+            WorkoutSetDraft(
+                weight = failedRequired.enteredWeight,
+                weightUnitId = failedRequired.enteredWeightUnitId ?: "kilogram",
+                reps = failedRequired.repetitions,
+                completed = true,
+                classification = WorkoutSetClassification.Failure,
+            ),
+        )
+        assertEquals(false, gym.sets.first().single { it.id == failedRequired.id }.planned)
+
+        backups.restoreBackup(legacyVersionSixteenBackup())
+
+        val restoredFailureSession = gym.sessions.first().single {
+            it.state == com.whip.app.domain.WorkoutSessionState.Active
+        }
+        val restoredFailurePlacementId = gym.workoutExercises.first().single {
+            it.sessionId == restoredFailureSession.id
+        }.id
+        val restoredFailure = gym.sets.first().single {
+            it.workoutExerciseId == restoredFailurePlacementId &&
+                it.workSectionSnapshot != RoutineWorkSection.Optional
+        }
+        assertEquals(true, restoredFailure.requiredForProgressionSnapshot)
+        assertEquals(true, restoredFailure.completed)
+        assertEquals(false, restoredFailure.planned)
+        assertEquals(WorkoutSetClassification.Failure, restoredFailure.classification)
+        gym.finishWorkout(restoredFailureSession.id)
+        assertEquals(1, routines.days.first().single().progressionIndex)
+    }
+
     @Test fun machineExerciseLinksAndLevelDirectionRoundTrip() = runBlocking {
         val rowId = gym.createExercise(ExerciseDraft(name = "Cable row"))
         val pressId = gym.createExercise(ExerciseDraft(name = "Cable press"))
@@ -547,7 +678,7 @@ class BackupRepositoryTest {
         )
 
         val exported = JSONObject(backups.exportBackup())
-        assertEquals(16, exported.getInt("databaseVersion"))
+        assertEquals(17, exported.getInt("databaseVersion"))
         assertEquals(0, exported.getJSONObject("tables").getJSONArray("link_rules").getJSONObject(0).getInt("enabled"))
         assertEquals(0, exported.getJSONObject("tables").getJSONArray("trigger_rules").getJSONObject(0).getInt("enabled"))
 
@@ -696,6 +827,40 @@ class BackupRepositoryTest {
         val second = backups.mergeBackup(portable)
         assertTrue(second.skippedExistingRecords > 0)
         assertEquals(countsBeforeSecondMerge, listOf(tasks.tasks.first().size, tasks.steps.first().size, habits.habits.first().size, habits.logs.first().size))
+    }
+
+    @Test fun mergeRemapsPerLiftTrainingMaxInvalidationEvidenceWhenExerciseIdsCollide() = runBlocking {
+        val importedExerciseId = gym.createExercise(ExerciseDraft("Imported Squat"))
+        val importedSessionId = gym.startWorkout("Imported cycle boundary")
+        gym.addExerciseToWorkout(importedSessionId, importedExerciseId)
+        gym.finishWorkout(importedSessionId)
+        val root = JSONObject(backups.exportBackup())
+        val sessionRows = root.getJSONObject("tables").getJSONArray("workout_sessions")
+        val importedSessionRow = (0 until sessionRows.length())
+            .map(sessionRows::getJSONObject)
+            .single { it.getLong("id") == importedSessionId }
+        importedSessionRow.put("requiredMainWorkInvalidated", 1)
+        importedSessionRow.put("invalidatedMainExerciseIdsCsv", importedExerciseId.toString())
+        backups.deleteAllData()
+        val localExerciseId = gym.createExercise(ExerciseDraft("Local Exercise"))
+        val tables = root.getJSONObject("tables")
+        val exerciseRows = tables.getJSONArray("exercises")
+        (0 until exerciseRows.length()).map(exerciseRows::getJSONObject)
+            .single { it.getLong("id") == importedExerciseId }
+            .put("id", localExerciseId)
+        val placementRows = tables.getJSONArray("workout_exercises")
+        (0 until placementRows.length()).map(placementRows::getJSONObject)
+            .filter { it.getLong("exerciseId") == importedExerciseId }
+            .forEach { it.put("exerciseId", localExerciseId) }
+        importedSessionRow.put("invalidatedMainExerciseIdsCsv", localExerciseId.toString())
+        refreshBackupChecksum(root)
+
+        backups.mergeBackup(root.toString())
+
+        val remappedExercise = gym.exercises.first().single { it.name == "Imported Squat" }
+        val remappedSession = gym.sessions.first().single { it.name == "Imported cycle boundary" }
+        assertTrue(remappedExercise.id != localExerciseId)
+        assertEquals(setOf(remappedExercise.id), remappedSession.invalidatedMainExerciseIds)
     }
 
     @Test fun mergeRemapsBothSidesOfFulfilledTrackPromptRelationship() = runBlocking {
@@ -953,7 +1118,7 @@ class BackupRepositoryTest {
     @Test fun nonCurrentBackupVersionsOrTableSetsCannotBePreviewedOrRestored() = runBlocking {
         habits.create(HabitDraft(name = "Keep local", startDate = FixedClock.today()))
         val current = backups.exportBackup()
-        val wrongDatabase = JSONObject(current).put("databaseVersion", 17).toString()
+        val wrongDatabase = JSONObject(current).put("databaseVersion", 18).toString()
         val wrongEnvelope = JSONObject(current).put("envelopeVersion", 1).toString()
         val incompleteTables = JSONObject(current).also {
             it.getJSONObject("tables").remove("tags")

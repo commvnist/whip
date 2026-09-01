@@ -269,12 +269,12 @@ class RoomRoutineRepository(
     }
 
     override suspend fun setRoutineArchived(id: Long, archived: Boolean) {
-        val routine = dao.getRoutine(id) ?: return
+        val routine = dao.getRoutine(id) ?: error("Routine no longer exists")
         dao.updateRoutine(routine.copy(archived = archived, updatedAtMillis = clock.now().toEpochMilli()))
     }
 
     override suspend fun setRoutinePinned(id: Long, pinned: Boolean) {
-        val routine = dao.getRoutine(id) ?: return
+        val routine = dao.getRoutine(id) ?: error("Routine no longer exists")
         dao.updateRoutine(routine.copy(pinned = pinned, updatedAtMillis = clock.now().toEpochMilli()))
     }
 
@@ -298,6 +298,9 @@ class RoomRoutineRepository(
         cycle: Int,
     ) = database.withTransaction {
         val routine = dao.getRoutine(routineId) ?: error("Routine no longer exists")
+        require(gymDao.getActiveSession()?.sourceRoutineId != routineId) {
+            "Finish or discard the active workout before changing program position"
+        }
         require(routine.programKind != RoutineProgramKind.Static.name) { "Static routines do not have a program position" }
         val days = dao.getDays(routineId)
         require(phaseIndex in 0 until routine.programPhaseCount) { "Program phase is out of range" }
@@ -316,6 +319,9 @@ class RoomRoutineRepository(
     override suspend fun setRoutineTrainingMaxIncreaseEligible(routineId: Long, eligible: Boolean) =
         database.withTransaction {
             val routine = dao.getRoutine(routineId) ?: error("Routine no longer exists")
+            require(gymDao.getActiveSession()?.sourceRoutineId != routineId) {
+                "Finish or discard the active workout before changing Training Max eligibility"
+            }
             require(routine.programKind != RoutineProgramKind.Static.name) {
                 "Static routines do not have Training Max eligibility"
             }
@@ -338,7 +344,10 @@ class RoomRoutineRepository(
         }
 
     override suspend fun resetRoutineProgramProgress(routineId: Long) = database.withTransaction {
-        val routine = dao.getRoutine(routineId) ?: return@withTransaction
+        val routine = dao.getRoutine(routineId) ?: error("Routine no longer exists")
+        require(gymDao.getActiveSession()?.sourceRoutineId != routineId) {
+            "Finish or discard the active workout before resetting program progress"
+        }
         val now = clock.now().toEpochMilli()
         dao.updateRoutine(
             routine.copy(
@@ -553,7 +562,8 @@ class RoomRoutineRepository(
                     gymDao.insertWorkoutSet(
                         previous.copy(
                             id = 0, uuid = ids.nextId(), workoutExerciseId = workoutExerciseId,
-                            position = 0, planned = true, completed = false,
+                            position = 0, classification = WorkoutSetClassification.Working.name,
+                            planned = true, completed = false,
                             completedAtMillis = null, deletedAtMillis = null,
                             createdAtMillis = now, updatedAtMillis = now,
                             prescribedCanonicalWeightKg = previous.canonicalWeightKg,
@@ -564,6 +574,12 @@ class RoomRoutineRepository(
                             prescribedRir = previous.rir,
                             prescribedDurationSeconds = previous.durationSeconds,
                             prescribedMachineLoadValue = previous.machineLoadValue,
+                            prescriptionSourceLabel = "Previous workout",
+                            workSectionSnapshot = RoutineWorkSection.Unspecified.name,
+                            optionalWorkKindSnapshot = RoutineOptionalWorkKind.None.name,
+                            prescribedClassificationSnapshot = WorkoutSetClassification.Working.name,
+                            requiredForProgressionSnapshot = true,
+                            removalReason = null,
                         ),
                     )
                 }
@@ -574,29 +590,16 @@ class RoomRoutineRepository(
 
     override suspend fun saveWorkoutAsRoutine(sessionId: Long, name: String): Long {
         val session = gymDao.getSession(sessionId) ?: error("Workout no longer exists")
-        val exerciseDrafts = gymDao.getWorkoutExercises(sessionId).map { workoutExercise ->
+        val exerciseDrafts = gymDao.getWorkoutExercises(sessionId).mapNotNull { sourceWorkoutExercise ->
+            val projection = sourceWorkoutExercise.toWorkoutReuseProjection(
+                gymDao.getWorkoutSets(sourceWorkoutExercise.id),
+            ) ?: return@mapNotNull null
+            val workoutExercise = projection.workoutExercise
             RoutineExerciseDraft(
                 exerciseId = workoutExercise.exerciseId,
                 notes = workoutExercise.notes,
                 groupKey = workoutExercise.groupId?.let { "Group $it" },
-                plannedSets = gymDao.getWorkoutSets(workoutExercise.id)
-                    .filter { it.deletedAtMillis == null }
-                    .map { set ->
-                        set.toDraft().let { draft ->
-                            when (draft.workSection) {
-                                RoutineWorkSection.Main -> draft.copy(
-                                    mainWorkScheme = workoutExercise.mainWorkSchemeSnapshot.toMainWorkScheme()
-                                        .takeUnless { it == RoutineMainWorkScheme.Unspecified },
-                                )
-                                RoutineWorkSection.Supplemental -> draft.copy(
-                                    supplementalScheme = workoutExercise.supplementalSchemeSnapshot
-                                        .toSupplementalScheme()
-                                        .takeUnless { it == RoutineSupplementalScheme.None },
-                                )
-                                else -> draft
-                            }
-                        }
-                    },
+                plannedSets = projection.sets.map(WorkoutSetEntity::toWorkoutReuseDraft),
                 machineId = workoutExercise.machineId,
                 equipmentBindingState = if (workoutExercise.machineProfileUuidSnapshot == null) {
                     RoutineEquipmentBindingState.None
@@ -617,18 +620,12 @@ class RoomRoutineRepository(
                 machineConfigurationGroupSnapshot = workoutExercise.machineConfigurationGroupSnapshot,
                 machineConfigurationVersionSnapshot = workoutExercise.machineConfigurationVersionSnapshot,
                 machineConfigurationSnapshot = workoutExercise.machineConfigurationSnapshot,
-                mainWorkScheme = workoutExercise.mainWorkSchemeSnapshot.toMainWorkScheme(),
-                supplementalScheme = workoutExercise.supplementalSchemeSnapshot.toSupplementalScheme(),
-                assistanceRole = runCatching {
-                    RoutineAssistanceRole.valueOf(workoutExercise.assistanceRoleSnapshot)
-                }.getOrDefault(RoutineAssistanceRole.Unspecified),
-                placementKind = runCatching {
-                    RoutinePlacementKind.valueOf(workoutExercise.placementKindSnapshot)
-                }.getOrDefault(RoutinePlacementKind.General),
-                assistanceCategory = runCatching {
-                    RoutineAssistanceCategory.valueOf(workoutExercise.assistanceCategorySnapshot)
-                }.getOrDefault(RoutineAssistanceCategory.Unspecified),
-                jokerSetsEnabled = workoutExercise.jokerSetsEnabledSnapshot,
+                mainWorkScheme = RoutineMainWorkScheme.Unspecified,
+                supplementalScheme = RoutineSupplementalScheme.None,
+                assistanceRole = RoutineAssistanceRole.Unspecified,
+                placementKind = RoutinePlacementKind.General,
+                assistanceCategory = RoutineAssistanceCategory.Unspecified,
+                jokerSetsEnabled = false,
             )
         }
         return createRoutine(
@@ -1637,6 +1634,8 @@ private fun RoutineSetEntity.toWorkoutSet(
         workSectionSnapshot = workSection,
         optionalWorkKindSnapshot = optionalWorkKind,
         prescribedClassificationSnapshot = classification,
+        requiredForProgressionSnapshot = workSection != RoutineWorkSection.Optional.name,
+        removalReason = null,
     )
 }
 
@@ -1741,20 +1740,19 @@ private fun RoutineProgramDraft.normalized(): RoutineProgramDraft = when (kind) 
     )
 }
 
-private fun WorkoutSetEntity.toDraft() = WorkoutSetDraft(
+/** Saving performed history as a static routine must not re-mint old program or failure state. */
+private fun WorkoutSetEntity.toWorkoutReuseDraft() = WorkoutSetDraft(
     weight = enteredWeight, weightUnitId = enteredWeightUnitId ?: "kilogram", reps = repetitions,
-    repsMax = prescribedRepetitionsMax,
+    repsMax = null,
     distance = enteredDistance, distanceUnitId = enteredDistanceUnitId ?: "kilometre",
     durationSeconds = durationSeconds, bodyweightKg = bodyweightKg,
     planned = true, completed = false,
-    classification = WorkoutSetClassification.valueOf(classification), note = note,
+    classification = WorkoutSetClassification.Working, note = note,
     rpe = rpe, rir = rir, tempo = tempo, restSeconds = restSeconds,
     machineLoadValue = machineLoadValue,
     unilateral = unilateral,
-    workSection = runCatching { RoutineWorkSection.valueOf(workSectionSnapshot) }
-        .getOrDefault(RoutineWorkSection.Unspecified),
-    optionalWorkKind = runCatching { RoutineOptionalWorkKind.valueOf(optionalWorkKindSnapshot) }
-        .getOrDefault(RoutineOptionalWorkKind.None),
+    workSection = RoutineWorkSection.Unspecified,
+    optionalWorkKind = RoutineOptionalWorkKind.None,
 )
 
 private fun ExerciseEntity.toDomainForRecords() = Exercise(

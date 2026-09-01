@@ -8,14 +8,20 @@ import com.whip.app.domain.Exercise
 import com.whip.app.domain.GymGraphRange
 import com.whip.app.domain.ExerciseTrackingType
 import com.whip.app.domain.LoadInterpretation
+import com.whip.app.domain.PersonalRecord
+import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.RoutineOptionalWorkKind
 import com.whip.app.domain.RoutineWorkSection
 import com.whip.app.domain.WorkoutExercise
+import com.whip.app.domain.WorkoutExerciseOutcome
 import com.whip.app.domain.WorkoutGroup
 import com.whip.app.domain.WorkoutGroupType
+import com.whip.app.domain.WorkoutSession
+import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.WorkoutSet
 import com.whip.app.domain.WorkoutSetClassification
 import java.time.LocalDate
+import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
@@ -62,6 +68,83 @@ class GymUxRulesTest {
                 configuredDurationSeconds = selectedDuration,
             ),
         )
+    }
+
+    @Test
+    fun finishReviewMatchesOnlyTheExactSessionIdentityAndRevision() {
+        val session = WorkoutSession(
+            id = 7,
+            uuid = "session-7",
+            name = "Workout",
+            notes = "",
+            startedAt = Instant.ofEpochMilli(1),
+            endedAt = null,
+            localDate = today,
+            zoneId = "UTC",
+            state = WorkoutSessionState.Active,
+            keepScreenAwake = false,
+            restTimerDeadlineMillis = null,
+            restTimerDurationSeconds = null,
+            archived = false,
+            createdAtMillis = 1,
+            updatedAtMillis = 1,
+            workoutRevision = 4,
+        )
+
+        assertTrue(session.matchesFinishReview(WorkoutFinishBoundary(7, "session-7", 4)))
+        assertTrue(!session.matchesFinishReview(WorkoutFinishBoundary(7, "session-7", 5)))
+        assertTrue(!session.matchesFinishReview(WorkoutFinishBoundary(7, "other-session", 4)))
+    }
+
+    @Test
+    fun personalRecordRecoveryKeepsAStaleRecordInTheRetrySetAfterItsLastSetWasRemoved() {
+        val placement = WorkoutExercise(
+            id = 11,
+            uuid = "placement-11",
+            sessionId = 7,
+            exerciseId = 22,
+            position = 0,
+            notes = "",
+            groupId = null,
+            createdAtMillis = 1,
+            updatedAtMillis = 1,
+            loadInterpretationSnapshot = LoadInterpretation.Total,
+        )
+        val removedLastSet = performanceSet(placement.id).copy(
+            completed = true,
+            deletedAtMillis = 3,
+        )
+        val staleRecord = PersonalRecord(
+            uuid = "stale-pr",
+            exerciseId = placement.exerciseId,
+            type = PersonalRecordType.MaxWeight,
+            value = 100.0,
+            secondaryValue = null,
+            unitId = "kilogram",
+            sourceSetId = removedLastSet.id,
+            sourceSessionId = placement.sessionId,
+            achievedAtMillis = 2,
+            current = true,
+            imported = false,
+            createdAtMillis = 2,
+            updatedAtMillis = 2,
+        )
+
+        val firstAttempt = personalRecordReconciliationExerciseIds(
+            listOf(removedLastSet),
+            listOf(placement),
+            listOf(staleRecord),
+        )
+        // A failed first rebuild leaves the PR row in Room, so a recreated ViewModel derives
+        // the same target and retries instead of losing the exercise from discovery.
+        val recreatedAttempt = personalRecordReconciliationExerciseIds(
+            listOf(removedLastSet),
+            listOf(placement),
+            listOf(staleRecord),
+        )
+
+        assertEquals(setOf(placement.exerciseId), firstAttempt)
+        assertEquals(firstAttempt, recreatedAttempt)
     }
 
     @Test
@@ -294,7 +377,79 @@ class GymUxRulesTest {
         assertNull(selectNextWorkoutSet(listOf(optional)))
         assertEquals(optional.workoutExercise.id, selectNextWorkoutSet(listOf(optional), acceptedOptionalSetIds = setOf(30L))?.first?.workoutExercise?.id)
         assertTrue(!optional.sets.single().isIncompleteRequiredWork())
+        val workoutOnlyOptional = optional.copy(
+            sets = listOf(optional.sets.single().copy(optionalWorkKindSnapshot = RoutineOptionalWorkKind.None)),
+        )
+        assertNull(selectPendingOptionalWorkoutSet(listOf(workoutOnlyOptional)))
+        assertEquals(
+            workoutOnlyOptional.workoutExercise.id,
+            selectNextWorkoutSet(listOf(workoutOnlyOptional))?.first?.workoutExercise?.id,
+        )
+        assertEquals(
+            workoutOnlyOptional.workoutExercise.id,
+            selectRequestedWorkoutSet(
+                listOf(main, workoutOnlyOptional),
+                workoutOnlyOptional.workoutExercise.id,
+            )?.first?.workoutExercise?.id,
+        )
     }
+
+    @Test
+    fun activePerformanceKeepsCompletedRetiredWorkWithoutResurrectingEmptyPlacements() {
+        fun placement(id: Long, outcome: WorkoutExerciseOutcome) = WorkoutExercise(
+            id = id,
+            uuid = "placement-$id",
+            sessionId = 1,
+            exerciseId = id,
+            position = id.toInt(),
+            notes = "",
+            groupId = null,
+            createdAtMillis = 1,
+            updatedAtMillis = 1,
+            loadInterpretationSnapshot = LoadInterpretation.Total,
+            outcome = outcome,
+        )
+        val active = placement(1, WorkoutExerciseOutcome.Active)
+        val performedRetired = placement(2, WorkoutExerciseOutcome.Substituted)
+        val emptyRetired = placement(3, WorkoutExerciseOutcome.Removed)
+
+        assertEquals(
+            listOf(active.id, performedRetired.id),
+            selectWorkoutPerformancePlacements(
+                listOf(active, performedRetired, emptyRetired),
+                listOf(performanceSet(workoutExerciseId = performedRetired.id)),
+                sessionId = 1,
+            ).map(WorkoutExercise::id),
+        )
+    }
+
+    private fun performanceSet(workoutExerciseId: Long) = WorkoutSet(
+        id = 90,
+        uuid = "performed-set",
+        workoutExerciseId = workoutExerciseId,
+        position = 0,
+        classification = WorkoutSetClassification.Working,
+        planned = false,
+        completed = true,
+        canonicalWeightKg = 100.0,
+        enteredWeight = 100.0,
+        enteredWeightUnitId = "kilogram",
+        repetitions = 5,
+        canonicalDistanceMetres = null,
+        enteredDistance = null,
+        enteredDistanceUnitId = null,
+        durationSeconds = null,
+        bodyweightKg = null,
+        note = "",
+        rpe = null,
+        rir = null,
+        tempo = "",
+        restSeconds = 120,
+        completedAtMillis = 2,
+        deletedAtMillis = null,
+        createdAtMillis = 1,
+        updatedAtMillis = 2,
+    )
 
     private fun testExercise(
         id: Long,

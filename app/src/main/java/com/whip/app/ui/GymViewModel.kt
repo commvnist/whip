@@ -18,18 +18,23 @@ import com.whip.app.data.CommittedRoutineDeletionCancellation
 import com.whip.app.data.ExerciseDeletionImpact
 import com.whip.app.data.RoutineDeletionImpact
 import com.whip.app.data.GymRepository
+import com.whip.app.data.GymWorkoutSnapshot
+import com.whip.app.data.QuickSetCommitReceipt
 import com.whip.app.data.RoutineRepository
+import com.whip.app.data.WorkoutFinishReceipt
 import com.whip.app.domain.Exercise
 import com.whip.app.domain.ExerciseCategory
 import com.whip.app.domain.ExerciseCategoryLink
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.WorkoutExercise
+import com.whip.app.domain.WorkoutExerciseOutcome
 import com.whip.app.domain.WorkoutGroup
 import com.whip.app.domain.WorkoutGroupType
 import com.whip.app.domain.WorkoutSession
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.WorkoutSet
 import com.whip.app.domain.WorkoutSetDraft
+import com.whip.app.domain.WorkoutSetRemovalReason
 import com.whip.app.domain.WorkoutSummary
 import com.whip.app.domain.GymRoutine
 import com.whip.app.domain.GymMachine
@@ -49,6 +54,7 @@ import com.whip.app.core.PlatePreset
 import com.whip.app.core.RepPrescriptionScheme
 import com.whip.app.core.TrackedGymRecord
 import com.whip.app.core.normalizeRestTimerPresets
+import com.whip.app.reminders.restTimerScheduleDelaySeconds
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -112,6 +118,22 @@ internal fun summarizePreviousSets(
     return PreviousSetSummary(visible, total)
 }
 
+internal fun personalRecordReconciliationExerciseIds(
+    sets: List<WorkoutSet>,
+    placements: List<WorkoutExercise>,
+    records: List<PersonalRecord>,
+): Set<Long> {
+    val completedPlacementIds = sets.asSequence()
+        .filter { it.completed && it.deletedAtMillis == null }
+        .mapTo(mutableSetOf(), WorkoutSet::workoutExerciseId)
+    return buildSet {
+        placements.asSequence()
+            .filter { it.id in completedPlacementIds }
+            .mapTo(this, WorkoutExercise::exerciseId)
+        records.mapTo(this, PersonalRecord::exerciseId)
+    }
+}
+
 data class GymUiState(
     val machines: List<GymMachine> = emptyList(),
     val archivedMachines: List<GymMachine> = emptyList(),
@@ -119,6 +141,7 @@ data class GymUiState(
     val archivedExercises: List<Exercise> = emptyList(),
     val activeSession: WorkoutSession? = null,
     val activeWorkoutExercises: List<WorkoutExerciseUi> = emptyList(),
+    val activeWorkoutPerformanceExercises: List<WorkoutExerciseUi> = emptyList(),
     val history: List<WorkoutSession> = emptyList(),
     val archivedWorkouts: List<WorkoutSession> = emptyList(),
     val allSessions: List<WorkoutSession> = emptyList(),
@@ -149,6 +172,35 @@ internal data class QuickSetState(
     val deleted: Boolean,
 )
 
+internal data class QuickSetAuthorshipBoundary(
+    val setId: Long,
+    val setUuid: String,
+    val setUpdatedAtMillis: Long,
+    val workoutExerciseId: Long,
+    val workoutRevision: Long,
+)
+
+internal data class WorkoutFinishBoundary(
+    val sessionId: Long,
+    val sessionUuid: String,
+    val workoutRevision: Long,
+)
+
+internal enum class GymSessionMutationKind {
+    ExerciseAdded,
+    ExerciseSubstituted,
+    SetUpdated,
+    ExerciseDetailsUpdated,
+    WorkoutFinished,
+    WorkoutDiscarded,
+}
+
+internal data class GymSessionMutationReceipt(
+    val kind: GymSessionMutationKind,
+    val targetId: Long? = null,
+    val warnings: List<String> = emptyList(),
+)
+
 internal enum class GymDeletionKind {
     Exercise,
     Routine,
@@ -169,6 +221,11 @@ internal class CommittedGymDeletionCancellation(
     init { initCause(cause) }
 }
 
+internal class CommittedGymMutationCancellation(cause: CancellationException) :
+    CancellationException(cause.message) {
+    init { initCause(cause) }
+}
+
 /** Append only after every existing set in the active workout has been completed. */
 internal fun shouldAppendAfterQuickSave(
     savedSetId: Long,
@@ -179,6 +236,20 @@ internal fun shouldAppendAfterQuickSave(
         set.workoutExerciseId in activeWorkoutExerciseIds &&
         !set.completed &&
         !set.deleted
+}
+
+internal fun selectWorkoutPerformancePlacements(
+    placements: List<WorkoutExercise>,
+    sets: List<WorkoutSet>,
+    sessionId: Long,
+): List<WorkoutExercise> {
+    val completedPlacementIds = sets.asSequence()
+        .filter { it.completed && it.deletedAtMillis == null }
+        .mapTo(mutableSetOf(), WorkoutSet::workoutExerciseId)
+    return placements.filter { placement ->
+        placement.sessionId == sessionId &&
+            (placement.outcome == WorkoutExerciseOutcome.Active || placement.id in completedPlacementIds)
+    }
 }
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -194,6 +265,11 @@ class GymViewModel @JvmOverloads constructor(
 
     private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
     val operationStatus: StateFlow<OperationStatus> = _operationStatus.asStateFlow()
+    private val _sessionMutationState = MutableStateFlow<PersistenceRequestState<GymSessionMutationReceipt>>(
+        PersistenceRequestState.Idle,
+    )
+    internal val sessionMutationState: StateFlow<PersistenceRequestState<GymSessionMutationReceipt>> =
+        _sessionMutationState.asStateFlow()
     private val _machineDeletionImpact = MutableStateFlow<MachineDeletionImpact?>(null)
     val machineDeletionImpact: StateFlow<MachineDeletionImpact?> = _machineDeletionImpact.asStateFlow()
     private val _machineDeletionInProgress = MutableStateFlow(false)
@@ -222,6 +298,7 @@ class GymViewModel @JvmOverloads constructor(
     val orphanedGymDeletionRequestId: StateFlow<String?> = _orphanedGymDeletionRequestId.asStateFlow()
     private val orphanRecoveryInProgressRequestId = MutableStateFlow<String?>(null)
     private val gymDeletionMutex = Mutex()
+    private val sessionMutationMutex = Mutex()
     private var exerciseDeletionPreviewGeneration = 0L
     private var routineDeletionPreviewGeneration = 0L
     private val _pendingMachineArchiveUndo = MutableStateFlow<Long?>(null)
@@ -231,14 +308,8 @@ class GymViewModel @JvmOverloads constructor(
     private val reloadKey = MutableStateFlow(0)
     private val savingQuickSetIds = mutableSetOf<Long>()
 
-    private val gymBaseData = combine(
-        repository.exercises,
-        repository.sessions,
-        repository.workoutExercises,
-        repository.sets,
-        repository.groups,
-    ) { exercises, sessions, workoutExercises, sets, groups ->
-        GymData(exercises, sessions, workoutExercises, sets, groups)
+    private val gymBaseData = repository.workoutSnapshot.map { snapshot ->
+        snapshot.toGymData()
     }
 
     private val gymData = combine(
@@ -278,6 +349,44 @@ class GymViewModel @JvmOverloads constructor(
     )
 
     init {
+        // Personal records and timer notifications are derived from durable workout rows.
+        // Reconcile them whenever Gym is opened so a process death or post-commit scheduler
+        // failure cannot leave the persisted workout in a permanently half-applied state.
+        viewModelScope.launch {
+            try {
+                app.withUserDataAccess {
+                    try {
+                        personalRecordReconciliationExerciseIds(
+                            sets = repository.sets.first(),
+                            placements = repository.workoutExercises.first(),
+                            records = routineRepository.personalRecords.first(),
+                        ).forEach { exerciseId ->
+                            routineRepository.rebuildPersonalRecords(exerciseId)
+                        }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        // A later Gym open retries from completed sets plus the still-present PR rows.
+                    }
+                    try {
+                        repository.sessions.first()
+                            .filter(WorkoutSession::restTimerCleanupPending)
+                            .forEach { session ->
+                                reconcilePersistedRestTimer(session.id)
+                            }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        // The durable pending bit keeps this exact cleanup retryable next time.
+                    }
+                    Unit
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // The durable workout remains authoritative; the next Gym open retries this pass.
+            }
+        }
         // Repair group invariants for a workout created by an older build before
         // the UI or rest-timer policy consumes its ordering.
         viewModelScope.launch {
@@ -306,6 +415,7 @@ class GymViewModel @JvmOverloads constructor(
                 _routineDeletionPreviewError.value = null
                 _routineDeletionTargetMissing.value = false
                 _gymDeletionState.value = PersistenceRequestState.Idle
+                _sessionMutationState.value = PersistenceRequestState.Idle
                 _orphanedGymDeletionRequestId.value = null
                 orphanRecoveryInProgressRequestId.value = null
                 exerciseDeletionPreviewGeneration++
@@ -317,6 +427,11 @@ class GymViewModel @JvmOverloads constructor(
 
     fun consumeOperationStatus() {
         _operationStatus.value = OperationStatus.Idle
+    }
+    fun consumeSessionMutationResult(requestId: String) {
+        if ((_sessionMutationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _sessionMutationState.value = PersistenceRequestState.Idle
+        }
     }
     fun consumeGymDeletionResult(requestId: String) {
         if ((_gymDeletionState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
@@ -753,21 +868,32 @@ class GymViewModel @JvmOverloads constructor(
         }
     }
 
-    fun createExerciseAndAdd(sessionId: Long, draft: ExerciseDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
-        "Creating exercise…",
-        "Exercise added to workout",
-        onFinished,
+    fun createExerciseAndAdd(
+        sessionId: Long,
+        draft: ExerciseDraft,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Creating exercise…",
+        success = "Exercise created · First set ready",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.ExerciseAdded),
     ) {
-        val exerciseId = repository.createExercise(draft)
-        repository.addExerciseToWorkout(sessionId, exerciseId)
+        val receipt = repository.createExerciseAndAddToWorkout(sessionId, draft)
+        GymSessionMutationReceipt(GymSessionMutationKind.ExerciseAdded, receipt.workoutExerciseId)
     }
 
-    fun createExerciseAndSubstitute(workoutExerciseId: Long, draft: ExerciseDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
-        "Creating substitution…",
-        "Exercise created and substituted",
-        onFinished,
+    fun createExerciseAndSubstitute(
+        workoutExerciseId: Long,
+        draft: ExerciseDraft,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Creating substitution…",
+        success = "Exercise created and substituted",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.ExerciseSubstituted),
     ) {
-        repository.substituteWorkoutExercise(workoutExerciseId, repository.createExercise(draft), null)
+        val replacementId = repository.createExerciseAndSubstitute(workoutExerciseId, draft)
+        GymSessionMutationReceipt(GymSessionMutationKind.ExerciseSubstituted, replacementId)
     }
 
     fun duplicateExercise(id: Long) = runOperation("Duplicating exercise…", "Exercise duplicated") {
@@ -827,7 +953,7 @@ class GymViewModel @JvmOverloads constructor(
     ) {
         val exerciseUuid = (uiState.value.exercises + uiState.value.archivedExercises)
             .firstOrNull { it.id == id }?.uuid
-        completeCommittedPersistence(
+        completeCommittedPersistence<GymDeletionReceipt>(
             commit = {
                 val summary = try {
                     app.domainDeletionCoordinator.deleteExercise(id, expectedRevisionToken)
@@ -930,40 +1056,91 @@ class GymViewModel @JvmOverloads constructor(
         onFinished,
     ) { repository.updateWorkout(id, name, notes, keepAwake) }
 
-    fun finishWorkout(
-        id: Long,
+    internal fun finishWorkout(
+        boundary: WorkoutFinishBoundary,
         trainingMaxDecisions: List<TrainingMaxCycleDecision>? = null,
-        onFinished: (Boolean) -> Unit = {},
-    ) = runOperation(
-        "Finishing workout…",
-        "Workout saved to history",
-        onFinished = onFinished,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Finishing workout…",
+        success = "Workout saved to history",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.WorkoutFinished, boundary.sessionId),
     ) {
-        val exerciseIds = uiState.value.activeWorkoutExercises.map { it.exercise.id }.distinct()
-        repository.finishWorkout(id, trainingMaxDecisions)
-        restTimerScheduler.cancel(id)
-        exerciseIds.forEach { routineRepository.rebuildPersonalRecords(it) }
-        app.linkRepository.rebuildAll()
+        var followUpWarning = false
+        completeCommittedPersistence<WorkoutFinishReceipt>(
+            commit = {
+                repository.finishWorkout(
+                    id = boundary.sessionId,
+                    trainingMaxDecisions = trainingMaxDecisions,
+                    expectedSessionUuid = boundary.sessionUuid,
+                    expectedWorkoutRevision = boundary.workoutRevision,
+                )
+            },
+            followUp = { receipt ->
+                reconcilePersistedRestTimer(receipt.sessionId)
+                receipt.exerciseIds.forEach { routineRepository.rebuildPersonalRecords(it) }
+                app.linkRepository.rebuildAll()
+                receipt
+            },
+            onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
+            onOrdinaryFailure = { committed -> committed.also { followUpWarning = true } },
+        )
+        GymSessionMutationReceipt(
+            GymSessionMutationKind.WorkoutFinished,
+            boundary.sessionId,
+            warnings = if (followUpWarning) {
+                listOf("Workout saved; background records will be reconciled when Gym opens again.")
+            } else emptyList(),
+        )
     }
 
     fun resumeWorkout(id: Long) = runOperation("Resuming workout…", "Workout resumed") {
-        repository.resumeWorkout(id)
-        app.linkRepository.rebuildAll()
+        completeCommittedPersistence<Unit>(
+            commit = { repository.resumeWorkout(id) },
+            followUp = {
+                reconcilePersistedRestTimer(id)
+                app.linkRepository.rebuildAll()
+            },
+            onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
+            onOrdinaryFailure = { },
+        )
     }
 
-    fun discardWorkout(id: Long) = runOperation(
-        "Discarding workout…",
-        "Workout discarded",
-        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+    fun discardWorkout(id: Long, requestId: String): Boolean = runSessionMutation(
+        running = "Discarding workout…",
+        success = "Workout discarded",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.WorkoutDiscarded, id),
     ) {
-        repository.discardWorkout(id)
-        restTimerScheduler.cancel(id)
-        app.linkRepository.rebuildAll()
+        var followUpWarning = false
+        completeCommittedPersistence<Unit>(
+            commit = { repository.discardWorkout(id) },
+            followUp = {
+                reconcilePersistedRestTimer(id)
+                app.linkRepository.rebuildAll()
+            },
+            onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
+            onOrdinaryFailure = { followUpWarning = true },
+        )
+        GymSessionMutationReceipt(
+            GymSessionMutationKind.WorkoutDiscarded,
+            id,
+            warnings = if (followUpWarning) {
+                listOf("Workout discarded; background cleanup will be reconciled when Gym opens again.")
+            } else emptyList(),
+        )
     }
 
     fun restoreWorkout(id: Long) = runOperation("Restoring workout…", "Workout restored to history") {
-        repository.restoreWorkout(id)
-        app.linkRepository.rebuildAll()
+        completeCommittedPersistence<Unit>(
+            commit = { repository.restoreWorkout(id) },
+            followUp = {
+                reconcilePersistedRestTimer(id)
+                app.linkRepository.rebuildAll()
+            },
+            onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
+            onOrdinaryFailure = { },
+        )
     }
 
     fun deleteWorkoutPermanently(id: Long) = runOperation(
@@ -987,36 +1164,62 @@ class GymViewModel @JvmOverloads constructor(
         sessionId: Long,
         exerciseId: Long,
         machineId: Long? = null,
-        onFinished: (Boolean) -> Unit = {},
-    ) = runOperation(
-        "Adding exercise…",
-        "Exercise added",
-        onFinished,
-    ) { repository.addExerciseToWorkout(sessionId, exerciseId, machineId) }
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Adding exercise…",
+        success = "Exercise added · First set ready",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.ExerciseAdded),
+    ) {
+        val receipt = repository.addExerciseWithInitialSetToWorkout(sessionId, exerciseId, machineId)
+        GymSessionMutationReceipt(GymSessionMutationKind.ExerciseAdded, receipt.workoutExerciseId)
+    }
 
     fun updateWorkoutExercise(id: Long, notes: String, groupId: Long?) = runOperation(
         "Saving exercise notes…",
         "Exercise updated",
     ) { repository.updateWorkoutExercise(id, notes, groupId) }
 
-    fun updateWorkoutExerciseDetails(id: Long, notes: String, groupId: Long?, machineId: Long?) = runOperation(
-        "Saving exercise details…",
-        "Exercise updated",
-    ) { repository.updateWorkoutExerciseDetails(id, notes, groupId, machineId) }
+    fun updateWorkoutExerciseDetails(
+        id: Long,
+        notes: String,
+        groupId: Long?,
+        machineId: Long?,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Saving exercise details…",
+        success = "Exercise updated",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.ExerciseDetailsUpdated, id),
+    ) {
+        repository.updateWorkoutExerciseDetails(id, notes, groupId, machineId)
+        GymSessionMutationReceipt(GymSessionMutationKind.ExerciseDetailsUpdated, id)
+    }
 
     fun setWorkoutExerciseMachine(id: Long, machineId: Long?) = runOperation(
         "Updating machine…",
         "Machine selection updated",
     ) { repository.setWorkoutExerciseMachine(id, machineId) }
 
-    fun substituteWorkoutExercise(id: Long, exerciseId: Long, machineId: Long?) = runOperation(
-        "Substituting exercise…",
-        "Exercise replaced",
-    ) { repository.substituteWorkoutExercise(id, exerciseId, machineId) }
+    fun substituteWorkoutExercise(
+        id: Long,
+        exerciseId: Long,
+        machineId: Long?,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Substituting exercise…",
+        success = "Exercise replaced · Completed history preserved",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.ExerciseSubstituted),
+    ) {
+        val replacementId = repository.substituteWorkoutExercise(id, exerciseId, machineId)
+        GymSessionMutationReceipt(GymSessionMutationKind.ExerciseSubstituted, replacementId)
+    }
 
-    fun removeWorkoutExercise(id: Long) = runOperation(
+    fun removeWorkoutExercise(id: Long, onFinished: (Boolean) -> Unit = {}) = runOperation(
         "Removing exercise…",
         "Exercise removed from workout",
+        onFinished,
     ) {
         repository.removeWorkoutExercise(id)
     }
@@ -1046,108 +1249,242 @@ class GymViewModel @JvmOverloads constructor(
         repository.addSet(workoutExerciseId)
     }
 
-    fun updateSet(id: Long, draft: WorkoutSetDraft) = runOperation("Saving set…", "Set saved") {
-        repository.updateSet(id, draft)
-        rebuildRecordsForSet(id)
+    fun updateSet(
+        id: Long,
+        draft: WorkoutSetDraft,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Saving set…",
+        success = "Set saved",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.SetUpdated, id),
+    ) {
+        var followUpWarning = false
+        completeCommittedPersistence<Unit>(
+            commit = { repository.updateSet(id, draft) },
+            followUp = { routineRepository.rebuildPersonalRecords(exerciseIdForSet(id)) },
+            onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
+            onOrdinaryFailure = { followUpWarning = true },
+        )
+        GymSessionMutationReceipt(
+            GymSessionMutationKind.SetUpdated,
+            id,
+            warnings = if (followUpWarning) {
+                listOf("Set saved; personal records will be reconciled when Gym opens again.")
+            } else emptyList(),
+        )
     }
 
-    fun saveQuickSet(
-        id: Long,
-        workoutExerciseId: Long,
+    internal fun saveQuickSet(
+        boundary: QuickSetAuthorshipBoundary,
         draft: WorkoutSetDraft,
         addNext: Boolean,
         restOverrideSeconds: Int? = null,
     ) {
-        if (!savingQuickSetIds.add(id)) return
+        if (!savingQuickSetIds.add(boundary.setId)) return
+        var postCommitWarning: String? = null
         runOperation(
             "Saving set…",
             if (addNext) "Set saved · Next set ready" else "Set saved",
+            successOverride = { postCommitWarning },
+            successFeedbackPresentationOverride = {
+                OperationFeedbackPresentation.Snackbar.takeIf { postCommitWarning != null }
+            },
         ) {
             try {
-                val workoutExercisesBefore = repository.workoutExercises.first()
-                val currentPlacement = workoutExercisesBefore.firstOrNull { it.id == workoutExerciseId }
-                    ?: error("Workout exercise no longer exists")
-                val activePlacementIds = workoutExercisesBefore
-                    .filter { it.sessionId == currentPlacement.sessionId }
-                    .mapTo(mutableSetOf(), WorkoutExercise::id)
-                val setStates = repository.sets.first().map { set ->
-                    QuickSetState(
-                        id = set.id,
-                        workoutExerciseId = set.workoutExerciseId,
-                        completed = set.completed,
-                        deleted = set.deletedAtMillis != null,
-                    )
+                var followUpWarning = false
+                completeCommittedPersistence<QuickSetCommitReceipt>(
+                    commit = {
+                        repository.saveQuickSet(
+                            id = boundary.setId,
+                            expectedSetUuid = boundary.setUuid,
+                            expectedSetUpdatedAtMillis = boundary.setUpdatedAtMillis,
+                            expectedWorkoutRevision = boundary.workoutRevision,
+                            draft = draft,
+                            addNext = addNext,
+                            autoStartRest = app.settingsRepository.current().restTimerAutoStart,
+                            restOverrideSeconds = restOverrideSeconds,
+                        )
+                    },
+                    followUp = { receipt ->
+                        routineRepository.rebuildPersonalRecords(receipt.exerciseId)
+                        if (receipt.restTimerSeconds != null) schedulePersistedRestTimer()
+                        receipt
+                    },
+                    onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
+                    onOrdinaryFailure = { committed -> committed.also { followUpWarning = true } },
+                ).also {
+                    if (followUpWarning) {
+                        postCommitWarning =
+                            "Set saved · Background records or timer notification will be reconciled when Gym opens again"
+                    }
                 }
-                val appendAfterSave = addNext && shouldAppendAfterQuickSave(id, activePlacementIds, setStates)
-
-                repository.updateSet(id, draft.copy(completed = false, planned = false))
-                repository.setSetCompleted(
-                    id,
-                    true,
-                    app.settingsRepository.current().restTimerAutoStart,
-                    restOverrideSeconds,
-                )
-                rebuildRecordsForSet(id)
-                if (appendAfterSave) {
-                    repository.addSet(
-                        workoutExerciseId,
-                        draft.copy(
-                            planned = false,
-                            completed = false,
-                            note = "",
-                            rpe = null,
-                            rir = null,
-                        ),
-                    )
-                }
-                schedulePersistedRestTimer()
             } finally {
-                savingQuickSetIds.remove(id)
+                savingQuickSetIds.remove(boundary.setId)
             }
         }
     }
 
-    fun completeSet(id: Long, completed: Boolean) = runOperation(
-        "Updating set…",
-        if (completed) "Set completed" else "Set reopened",
-        successFeedbackPresentation = OperationFeedbackPresentation.Inline,
-    ) {
-        repository.setSetCompleted(id, completed, app.settingsRepository.current().restTimerAutoStart)
-        rebuildRecordsForSet(id)
-        if (completed) schedulePersistedRestTimer()
+    fun completeSet(id: Long, completed: Boolean) {
+        var warning: String? = null
+        runOperation(
+            "Updating set…",
+            if (completed) "Set completed" else "Set reopened",
+            successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+            successOverride = { warning },
+            successFeedbackPresentationOverride = {
+                OperationFeedbackPresentation.Snackbar.takeIf { warning != null }
+            },
+        ) {
+        completeCommittedPersistence<Unit>(
+            commit = {
+                repository.setSetCompleted(id, completed, app.settingsRepository.current().restTimerAutoStart)
+            },
+            followUp = {
+                rebuildRecordsForSet(id)
+                if (completed) schedulePersistedRestTimer()
+            },
+            onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
+            onOrdinaryFailure = {
+                warning = "Set saved · Personal records or timer notification will be reconciled when Gym opens again"
+            },
+        )
+        }
     }
 
     fun duplicateSet(id: Long) = runOperation("Duplicating set…", "Set duplicated") {
         repository.duplicateSet(id)
     }
 
-    fun deleteSet(id: Long) = runOperation("Removing set…", "Set removed · Undo is available from its menu") {
-        repository.deleteSet(id)
-        rebuildRecordsForSet(id)
+    fun deleteSet(id: Long) {
+        var warning: String? = null
+        runOperation(
+            "Removing set…",
+            "Set removed · Undo is available from its menu",
+            successOverride = { warning },
+            successFeedbackPresentationOverride = {
+                OperationFeedbackPresentation.Snackbar.takeIf { warning != null }
+            },
+        ) {
+        completeCommittedPersistence<Unit>(
+            commit = { repository.deleteSet(id) },
+            followUp = { rebuildRecordsForSet(id) },
+            onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
+            onOrdinaryFailure = {
+                warning = "Set removed · Personal records will be reconciled when Gym opens again"
+            },
+        )
+        }
     }
 
-    fun undoDeleteSet(id: Long) = runOperation("Restoring set…", "Set restored") {
-        repository.undoDeleteSet(id)
-        rebuildRecordsForSet(id)
+    fun skipOptionalSet(id: Long, onFinished: (Boolean) -> Unit = {}) {
+        var warning: String? = null
+        runOperation(
+            "Skipping optional set…",
+            "Optional set skipped · Undo is available here",
+            onFinished,
+            successOverride = { warning },
+            successFeedbackPresentationOverride = {
+                OperationFeedbackPresentation.Snackbar.takeIf { warning != null }
+            },
+        ) {
+        completeCommittedPersistence<Unit>(
+            commit = { repository.deleteSet(id, WorkoutSetRemovalReason.Skipped) },
+            followUp = { rebuildRecordsForSet(id) },
+            onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
+            onOrdinaryFailure = {
+                warning = "Optional set skipped · Personal records will be reconciled when Gym opens again"
+            },
+        )
+        }
+    }
+
+    fun undoDeleteSet(id: Long) {
+        var warning: String? = null
+        runOperation(
+            "Restoring set…",
+            "Set restored",
+            successOverride = { warning },
+            successFeedbackPresentationOverride = {
+                OperationFeedbackPresentation.Snackbar.takeIf { warning != null }
+            },
+        ) {
+        completeCommittedPersistence<Unit>(
+            commit = { repository.undoDeleteSet(id) },
+            followUp = { rebuildRecordsForSet(id) },
+            onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
+            onOrdinaryFailure = {
+                warning = "Set restored · Personal records will be reconciled when Gym opens again"
+            },
+        )
+        }
     }
 
     fun reorderSets(workoutExerciseId: Long, ids: List<Long>) = runSilentReorder {
         repository.reorderSets(workoutExerciseId, ids)
     }
 
-    fun startRestTimer(sessionId: Long, seconds: Int) = runOperation("Starting timer…", "Rest timer started") {
-        repository.startRestTimer(sessionId, seconds)
-        restTimerScheduler.schedule(sessionId, seconds, nextExerciseLabel())
+    fun startRestTimer(sessionId: Long, seconds: Int) {
+        var warning: String? = null
+        runOperation(
+            "Starting timer…",
+            "Rest timer started",
+            successOverride = { warning },
+            successFeedbackPresentationOverride = {
+                OperationFeedbackPresentation.Snackbar.takeIf { warning != null }
+            },
+        ) {
+        completeCommittedPersistence<Unit>(
+            commit = { repository.startRestTimer(sessionId, seconds) },
+            followUp = { schedulePersistedRestTimer() },
+            onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
+            onOrdinaryFailure = {
+                warning = "Timer saved · Its notification will be reconciled when Gym opens again"
+            },
+        )
+        }
     }
 
-    fun adjustRestTimer(sessionId: Long, delta: Int) = runOperation("Adjusting timer…", "Timer adjusted") {
-        repository.adjustRestTimer(sessionId, delta)
-        schedulePersistedRestTimer()
+    fun adjustRestTimer(sessionId: Long, delta: Int) {
+        var warning: String? = null
+        runOperation(
+            "Adjusting timer…",
+            "Timer adjusted",
+            successOverride = { warning },
+            successFeedbackPresentationOverride = {
+                OperationFeedbackPresentation.Snackbar.takeIf { warning != null }
+            },
+        ) {
+        completeCommittedPersistence<Unit>(
+            commit = { repository.adjustRestTimer(sessionId, delta) },
+            followUp = { schedulePersistedRestTimer() },
+            onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
+            onOrdinaryFailure = {
+                warning = "Timer adjusted · Its notification will be reconciled when Gym opens again"
+            },
+        )
+        }
     }
 
-    fun stopRestTimer(sessionId: Long) = runOperation("Stopping timer…", "Timer stopped") {
-        repository.stopRestTimer(sessionId)
-        restTimerScheduler.cancel(sessionId)
+    fun stopRestTimer(sessionId: Long) {
+        var warning: String? = null
+        runOperation(
+            "Stopping timer…",
+            "Timer stopped",
+            successOverride = { warning },
+            successFeedbackPresentationOverride = {
+                OperationFeedbackPresentation.Snackbar.takeIf { warning != null }
+            },
+        ) {
+        completeCommittedPersistence<Unit>(
+            commit = { repository.stopRestTimer(sessionId) },
+            followUp = { reconcilePersistedRestTimer(sessionId) },
+            onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
+            onOrdinaryFailure = {
+                warning = "Timer stopped · Notification cleanup will be reconciled when Gym opens again"
+            },
+        )
+        }
     }
 
     fun updateRestTimerPresets(seconds: List<Int>) {
@@ -1304,21 +1641,40 @@ class GymViewModel @JvmOverloads constructor(
     ) { routineRepository.saveWorkoutAsRoutine(sessionId, name) }
 
     private suspend fun rebuildRecordsForSet(setId: Long) {
-        val state = uiState.value
-        val set = state.allSets.firstOrNull { it.id == setId } ?: return
-        val workoutExercise = state.allWorkoutExercises.firstOrNull { it.id == set.workoutExerciseId }
-            ?: return
-        routineRepository.rebuildPersonalRecords(workoutExercise.exerciseId)
+        routineRepository.rebuildPersonalRecords(exerciseIdForSet(setId))
+    }
+
+    private suspend fun exerciseIdForSet(setId: Long): Long {
+        val set = repository.sets.first().firstOrNull { it.id == setId } ?: error("Set no longer exists")
+        return repository.workoutExercises.first().firstOrNull { it.id == set.workoutExerciseId }?.exerciseId
+            ?: error("Workout exercise no longer exists")
     }
 
     private suspend fun schedulePersistedRestTimer() {
         val session = repository.sessions.first().firstOrNull { it.state == WorkoutSessionState.Active }
             ?: return
-        val remaining = session.restTimerDeadlineMillis
-            ?.let { ((it - clock.now().toEpochMilli() + 999) / 1_000).toInt() }
-            ?.takeIf { it > 0 }
-            ?: return
-        restTimerScheduler.schedule(session.id, remaining, nextExerciseLabel())
+        reconcilePersistedRestTimer(session.id, nextExerciseLabel())
+    }
+
+    private suspend fun reconcilePersistedRestTimer(sessionId: Long, nextLabel: String? = null) {
+        val session = repository.sessions.first().firstOrNull { it.id == sessionId } ?: return
+        if (!session.restTimerCleanupPending) return
+        val remaining = restTimerScheduleDelaySeconds(
+            session.restTimerDeadlineMillis,
+            clock.now().toEpochMilli(),
+        )
+        if (session.state == WorkoutSessionState.Active && session.restTimerDeadlineMillis != null) {
+            restTimerScheduler.schedule(
+                sessionId = session.id,
+                seconds = remaining ?: 1,
+                nextLabel = nextLabel,
+                timerRevision = session.restTimerRevision,
+                expectedDeadlineMillis = session.restTimerDeadlineMillis,
+            )
+        } else {
+            restTimerScheduler.cancel(session.id)
+        }
+        repository.acknowledgeRestTimerCleanup(session.id, session.restTimerRevision)
     }
 
     private suspend fun nextExerciseLabel(): String? {
@@ -1445,12 +1801,86 @@ class GymViewModel @JvmOverloads constructor(
         }
     }
 
+    private fun runSessionMutation(
+        running: String,
+        success: String,
+        requestId: String,
+        committedReceipt: GymSessionMutationReceipt,
+        block: suspend () -> GymSessionMutationReceipt,
+    ): Boolean {
+        if (!_sessionMutationState.tryStartPersistenceRequest(requestId)) return false
+        _operationStatus.value = OperationStatus.Running(running)
+        viewModelScope.launch {
+            fun successResult(receipt: GymSessionMutationReceipt): WhipResult.Success<GymSessionMutationReceipt> {
+                val message = if (receipt.warnings.isEmpty()) success else {
+                    "$success · ${receipt.warnings.joinToString(" ")}"
+                }
+                _operationStatus.value = OperationStatus.Succeeded(
+                    message,
+                    if (receipt.warnings.isEmpty()) {
+                        OperationFeedbackPresentation.Inline
+                    } else {
+                        OperationFeedbackPresentation.Snackbar
+                    },
+                )
+                return WhipResult.Success(receipt)
+            }
+
+            val result = try {
+                val receipt = checkNotNull(app.withUserDataAccess {
+                    sessionMutationMutex.withLock { block() }
+                }) { "Whip data is unavailable while recovery is in progress" }
+                successResult(receipt)
+            } catch (committed: CommittedGymMutationCancellation) {
+                if (currentCoroutineContext().isActive) {
+                    successResult(
+                        committedReceipt.copy(
+                            warnings = committedReceipt.warnings +
+                                "The change was saved; background reconciliation was interrupted and will retry when Gym opens again.",
+                        ),
+                    )
+                } else {
+                    if ((_sessionMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _sessionMutationState.value = PersistenceRequestState.Idle
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw committed
+                }
+            } catch (cancelled: CancellationException) {
+                if (currentCoroutineContext().isActive) {
+                    val message = "The change was interrupted. Your draft is still here; verify the workout before retrying."
+                    _operationStatus.value = OperationStatus.Failed(message, cancelled)
+                    WhipResult.Failure(
+                        message,
+                        cancelled,
+                    )
+                } else {
+                    if ((_sessionMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _sessionMutationState.value = PersistenceRequestState.Idle
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw cancelled
+                }
+            } catch (error: Exception) {
+                val message = error.message ?: "The workout change could not be saved."
+                _operationStatus.value = OperationStatus.Failed(message, error)
+                WhipResult.Failure(message, error)
+            }
+            if ((_sessionMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                _sessionMutationState.value = PersistenceRequestState.Finished(requestId, result)
+            }
+        }
+        return true
+    }
+
     private fun runOperation(
         running: String,
         success: String,
         onFinished: (Boolean) -> Unit = {},
         successFeedbackPresentation: OperationFeedbackPresentation = OperationFeedbackPresentation.Inline,
         recoveryToken: Long? = null,
+        successOverride: () -> String? = { null },
+        successFeedbackPresentationOverride: () -> OperationFeedbackPresentation? = { null },
         block: suspend () -> Unit,
     ) {
         _operationStatus.value = OperationStatus.Running(running)
@@ -1461,11 +1891,19 @@ class GymViewModel @JvmOverloads constructor(
                     Unit
                 }) { "Whip data is unavailable while recovery is in progress" }
                 _operationStatus.value = OperationStatus.Succeeded(
-                    success,
+                    successOverride() ?: success,
+                    successFeedbackPresentationOverride() ?: successFeedbackPresentation,
+                    recoveryToken,
+                )
+                runCatching { onFinished(true) }
+            } catch (committed: CommittedGymMutationCancellation) {
+                _operationStatus.value = OperationStatus.Succeeded(
+                    "$success · Saved; a follow-up update was interrupted",
                     successFeedbackPresentation,
                     recoveryToken,
                 )
                 runCatching { onFinished(true) }
+                if (!currentCoroutineContext().isActive) throw committed
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
@@ -1497,6 +1935,14 @@ private data class GymData(
     val machines: List<GymMachine> = emptyList(),
 )
 
+private fun GymWorkoutSnapshot.toGymData() = GymData(
+    exercises = exercises,
+    sessions = sessions,
+    workoutExercises = workoutExercises,
+    sets = sets,
+    groups = groups,
+)
+
 private data class RoutineBaseData(
     val routines: List<GymRoutine>,
     val days: List<RoutineDay>,
@@ -1509,7 +1955,7 @@ private data class RoutineBaseData(
 private fun buildGymUiState(data: GymData, routineData: RoutineBaseData, nowMillis: Long, appSettings: AppSettings): GymUiState {
     val exercisesById = data.exercises.associateBy(Exercise::id)
     val active = data.sessions.firstOrNull { it.state == WorkoutSessionState.Active }
-    val activeWorkoutExercises = active?.let { session ->
+    val activeSessionWorkoutExercises = active?.let { session ->
         data.workoutExercises
             .filter { it.sessionId == session.id }
             .sortedBy(WorkoutExercise::position)
@@ -1546,11 +1992,21 @@ private fun buildGymUiState(data: GymData, routineData: RoutineBaseData, nowMill
                 )
             }
     }.orEmpty()
+    val activeWorkoutExercises = activeSessionWorkoutExercises.filter {
+        it.workoutExercise.outcome == WorkoutExerciseOutcome.Active
+    }
+    val performancePlacementIds = active?.let { session ->
+        selectWorkoutPerformancePlacements(data.workoutExercises, data.sets, session.id)
+            .mapTo(mutableSetOf(), WorkoutExercise::id)
+    }.orEmpty()
+    val activeWorkoutPerformanceExercises = activeSessionWorkoutExercises.filter { item ->
+        item.workoutExercise.id in performancePlacementIds
+    }
     val summary = active?.let { session ->
         calculateWorkoutSummary(
             session = session,
-            workoutExercises = activeWorkoutExercises.map(WorkoutExerciseUi::workoutExercise),
-            sets = activeWorkoutExercises.flatMap(WorkoutExerciseUi::sets),
+            workoutExercises = activeWorkoutPerformanceExercises.map(WorkoutExerciseUi::workoutExercise),
+            sets = activeWorkoutPerformanceExercises.flatMap(WorkoutExerciseUi::sets),
             exercisesById = exercisesById,
             nowMillis = nowMillis,
             includeWarmups = appSettings.includeWarmupsInGymStats,
@@ -1568,6 +2024,7 @@ private fun buildGymUiState(data: GymData, routineData: RoutineBaseData, nowMill
         archivedExercises = data.exercises.filter(Exercise::archived),
         activeSession = active,
         activeWorkoutExercises = activeWorkoutExercises,
+        activeWorkoutPerformanceExercises = activeWorkoutPerformanceExercises,
         history = data.sessions.filter {
             it.state == WorkoutSessionState.Finished && !it.archived
         }.sortedByDescending(WorkoutSession::startedAt),
@@ -1599,8 +2056,8 @@ private fun GymUiState.withClockTick(now: Long): GymUiState {
     val updatedSummary = active?.let { session ->
         calculateWorkoutSummary(
             session = session,
-            workoutExercises = activeWorkoutExercises.map(WorkoutExerciseUi::workoutExercise),
-            sets = activeWorkoutExercises.flatMap(WorkoutExerciseUi::sets),
+            workoutExercises = activeWorkoutPerformanceExercises.map(WorkoutExerciseUi::workoutExercise),
+            sets = activeWorkoutPerformanceExercises.flatMap(WorkoutExerciseUi::sets),
             exercisesById = (exercises + archivedExercises).associateBy(Exercise::id),
             nowMillis = now,
             includeWarmups = appSettings.includeWarmupsInGymStats,
