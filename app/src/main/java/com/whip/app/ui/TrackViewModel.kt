@@ -9,9 +9,16 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.withTransaction
 import com.whip.app.WhipApplication
 import com.whip.app.core.HomeSection
+import com.whip.app.core.CommittedEntitySaveCancellation
+import com.whip.app.core.EntitySaveReceipt
 import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
+import com.whip.app.core.PersistenceRequestState
+import com.whip.app.core.WhipResult
+import com.whip.app.core.completeCommittedEntitySave
 import com.whip.app.core.revealHomeSection
+import com.whip.app.core.saveFollowUpWarning
+import com.whip.app.core.tryStartPersistenceRequest
 import com.whip.app.data.TrackRepository
 import com.whip.app.data.requireTrackCsvExportWithinLimit
 import com.whip.app.domain.DeletedTrackEntry
@@ -20,6 +27,10 @@ import com.whip.app.domain.TrackChoiceOption
 import com.whip.app.domain.TrackCsvImportPreview
 import com.whip.app.domain.TrackCsvMapping
 import com.whip.app.domain.TrackDraft
+import com.whip.app.domain.TrackDefinitionBoundary
+import com.whip.app.domain.TrackDefinitionConflictException
+import com.whip.app.domain.TrackDefinitionConflictKind
+import com.whip.app.domain.TrackDefinitionRemovalReview
 import com.whip.app.domain.TrackEntryDraft
 import com.whip.app.domain.TrackEntryPage
 import com.whip.app.domain.TrackField
@@ -52,6 +63,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -75,6 +87,36 @@ data class PendingTrackEntryUndo(
     val token: Long,
     val deletedEntry: DeletedTrackEntry,
 )
+
+internal data class TrackDefinitionReviewUiState(
+    val sessionId: Long? = null,
+    val trackId: Long? = null,
+    val loading: Boolean = false,
+    val boundary: TrackDefinitionBoundary? = null,
+    val review: TrackDefinitionRemovalReview? = null,
+    val reviewedDraft: TrackDraft? = null,
+    val reviewedChoiceReplacementIds: Map<Long, Long> = emptyMap(),
+    val errorMessage: String? = null,
+    val targetMissing: Boolean = false,
+    val conflictKind: TrackDefinitionConflictKind? = null,
+)
+
+private data class TrackDefinitionBoundaryLookup(val boundary: TrackDefinitionBoundary?)
+
+private fun TrackDefinitionConflictKind.requiresCopyRecovery(): Boolean = this in setOf(
+    TrackDefinitionConflictKind.TargetMissing,
+    TrackDefinitionConflictKind.IdentityChanged,
+    TrackDefinitionConflictKind.DefinitionChanged,
+)
+
+internal fun definitionConflictBelongsToEditor(
+    current: TrackDefinitionReviewUiState,
+    sessionId: Long,
+    trackId: Long,
+    expectedBoundary: TrackDefinitionBoundary,
+): Boolean = current.sessionId == sessionId &&
+    current.trackId == trackId &&
+    current.boundary == expectedBoundary
 
 internal const val TRACK_CSV_MAX_FILE_BYTES = 5 * 1024 * 1024
 internal const val TRACK_CSV_MAX_DATA_ROWS = 5_000
@@ -281,6 +323,15 @@ class TrackViewModel(
     private val restoredCsvImportSession = csvImportSessionStore.descriptor
     private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
     val operationStatus: StateFlow<OperationStatus> = _operationStatus.asStateFlow()
+    private val _definitionSaveState = MutableStateFlow<PersistenceRequestState<EntitySaveReceipt>>(
+        PersistenceRequestState.Idle,
+    )
+    val definitionSaveState: StateFlow<PersistenceRequestState<EntitySaveReceipt>> =
+        _definitionSaveState.asStateFlow()
+    private val _definitionReviewState = MutableStateFlow(TrackDefinitionReviewUiState())
+    internal val definitionReviewState: StateFlow<TrackDefinitionReviewUiState> =
+        _definitionReviewState.asStateFlow()
+    private var definitionReviewGeneration = 0L
     private val operationMutex = Mutex()
     private var recoveryAcknowledgement: CompletableDeferred<Unit>? = null
     private val _lastDeletedEntry = MutableStateFlow<PendingTrackEntryUndo?>(null)
@@ -333,6 +384,9 @@ class TrackViewModel(
                 recoveryAcknowledgement?.complete(Unit)
                 recoveryAcknowledgement = null
                 _operationStatus.value = OperationStatus.Idle
+                _definitionSaveState.value = PersistenceRequestState.Idle
+                definitionReviewGeneration++
+                _definitionReviewState.value = TrackDefinitionReviewUiState()
                 cancelCsvImport()
                 cancelCsvExport()
             }
@@ -347,28 +401,203 @@ class TrackViewModel(
 
     fun retryLoading() { reloadKey.value++ }
 
+    fun consumeDefinitionSaveResult(requestId: String) {
+        if ((_definitionSaveState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _definitionSaveState.value = PersistenceRequestState.Idle
+        }
+    }
+
+    fun prepareDefinitionEditor(
+        sessionId: Long,
+        trackId: Long,
+        openingDraft: TrackDraft,
+    ) {
+        val current = _definitionReviewState.value
+        if (
+            current.sessionId == sessionId &&
+            current.trackId == trackId &&
+            (current.loading || current.boundary != null || current.targetMissing)
+        ) return
+        val generation = ++definitionReviewGeneration
+        _definitionReviewState.value = TrackDefinitionReviewUiState(
+            sessionId = sessionId,
+            trackId = trackId,
+            loading = true,
+        )
+        viewModelScope.launch {
+            val result = runCatching {
+                checkNotNull(app.withUserDataAccess {
+                    TrackDefinitionBoundaryLookup(
+                        repository.definitionBoundary(trackId, openingDraft),
+                    )
+                }) { "Whip data is unavailable while recovery is in progress" }.boundary
+            }
+            if (definitionReviewGeneration != generation) return@launch
+            result.fold(
+                onSuccess = { boundary ->
+                    _definitionReviewState.value = TrackDefinitionReviewUiState(
+                        sessionId = sessionId,
+                        trackId = trackId,
+                        boundary = boundary,
+                        targetMissing = boundary == null,
+                        conflictKind = TrackDefinitionConflictKind.TargetMissing.takeIf { boundary == null },
+                        errorMessage = if (boundary == null) {
+                            "This Track is no longer available. Your draft is still here."
+                        } else null,
+                    )
+                },
+                onFailure = { error ->
+                    if (error is CancellationException) throw error
+                    val conflict = (error as? TrackDefinitionConflictException)?.kind
+                    _definitionReviewState.value = TrackDefinitionReviewUiState(
+                        sessionId = sessionId,
+                        trackId = trackId,
+                        errorMessage = error.message ?: "Could not verify the Track definition.",
+                        targetMissing = conflict == TrackDefinitionConflictKind.TargetMissing,
+                        conflictKind = conflict,
+                    )
+                },
+            )
+        }
+    }
+
+    fun reviewDefinitionUpdate(
+        sessionId: Long,
+        trackId: Long,
+        draft: TrackDraft,
+        expectedBoundary: TrackDefinitionBoundary,
+        choiceReplacementIds: Map<Long, Long>,
+    ) {
+        val generation = ++definitionReviewGeneration
+        _definitionReviewState.value = TrackDefinitionReviewUiState(
+            sessionId = sessionId,
+            trackId = trackId,
+            loading = true,
+            boundary = expectedBoundary,
+            reviewedDraft = draft,
+            reviewedChoiceReplacementIds = choiceReplacementIds,
+        )
+        viewModelScope.launch {
+            val result = runCatching {
+                checkNotNull(app.withUserDataAccess {
+                    repository.reviewDefinitionUpdate(
+                        trackId,
+                        draft,
+                        expectedBoundary,
+                        choiceReplacementIds,
+                    )
+                }) { "Whip data is unavailable while recovery is in progress" }
+            }
+            if (definitionReviewGeneration != generation) return@launch
+            result.fold(
+                onSuccess = { review ->
+                    _definitionReviewState.value = TrackDefinitionReviewUiState(
+                        sessionId = sessionId,
+                        trackId = trackId,
+                        boundary = expectedBoundary,
+                        review = review,
+                        reviewedDraft = draft,
+                        reviewedChoiceReplacementIds = choiceReplacementIds,
+                    )
+                },
+                onFailure = { error ->
+                    if (error is CancellationException) throw error
+                    val conflict = (error as? TrackDefinitionConflictException)?.kind
+                    _definitionReviewState.value = TrackDefinitionReviewUiState(
+                        sessionId = sessionId,
+                        trackId = trackId,
+                        boundary = expectedBoundary,
+                        reviewedDraft = draft,
+                        reviewedChoiceReplacementIds = choiceReplacementIds,
+                        errorMessage = error.message ?: "Could not review the Track definition.",
+                        targetMissing = conflict == TrackDefinitionConflictKind.TargetMissing,
+                        conflictKind = conflict,
+                    )
+                },
+            )
+        }
+    }
+
+    fun clearDefinitionEditorState(sessionId: Long? = null) {
+        if (sessionId != null && _definitionReviewState.value.sessionId != sessionId) return
+        definitionReviewGeneration++
+        _definitionReviewState.value = TrackDefinitionReviewUiState()
+    }
+
     fun saveTrack(
         id: Long?,
         draft: TrackDraft,
-        confirmedFieldValueDeletionIds: Set<Long> = emptySet(),
-        confirmedOptionValueDeletionIds: Set<Long> = emptySet(),
-        optionReplacementIds: Map<Long, Long> = emptyMap(),
-        onSaved: (Long) -> Unit = {},
-    ) = runOperation(if (id == null) "Creating Track…" else "Saving Track…", if (id == null) "Track created" else "Track saved") {
-        val existingTags = id?.let { uiState.value.track(it)?.track?.tags }
-        val savedId = if (id == null) repository.create(draft) else {
-            repository.update(
-                id,
-                draft,
-                confirmedFieldValueDeletionIds,
-                confirmedOptionValueDeletionIds,
-                optionReplacementIds,
+        sessionId: Long,
+        expectedBoundary: TrackDefinitionBoundary? = null,
+        reviewedRemoval: TrackDefinitionRemovalReview? = null,
+        requestId: String,
+    ): Boolean {
+        if (!_definitionSaveState.tryStartPersistenceRequest(requestId)) return false
+        runDefinitionSaveOperation(
+            runningMessage = if (id == null) "Creating Track…" else "Saving Track…",
+            successMessage = if (id == null) "Track created" else "Track saved",
+            requestId = requestId,
+        ) {
+            completeCommittedEntitySave(
+                commit = {
+                    val savedId = if (id == null) repository.create(draft) else try {
+                        repository.update(
+                            id,
+                            draft,
+                            requireNotNull(expectedBoundary) {
+                                "The Track definition has not finished loading. Try again."
+                            },
+                            reviewedRemoval,
+                        )
+                        id
+                    } catch (conflict: TrackDefinitionConflictException) {
+                        if (conflict.kind.requiresCopyRecovery()) {
+                            val current = _definitionReviewState.value
+                            if (definitionConflictBelongsToEditor(
+                                    current,
+                                    sessionId,
+                                    id,
+                                    requireNotNull(expectedBoundary),
+                                )
+                            ) {
+                                _definitionReviewState.value = current.copy(
+                                    loading = false,
+                                    review = null,
+                                    errorMessage = conflict.message,
+                                    targetMissing = conflict.kind == TrackDefinitionConflictKind.TargetMissing,
+                                    conflictKind = conflict.kind,
+                                )
+                            }
+                        }
+                        throw conflict
+                    }
+                    EntitySaveReceipt(savedId, draft.areaId, areaVerified = false)
+                },
+                followUp = { committed ->
+                    val savedId = requireNotNull(committed.entityId)
+                    var resolvedAreaId = committed.areaId
+                    var areaVerified = false
+                    val warnings = listOfNotNull(
+                        saveFollowUpWarning("Saved Area could not be verified; showing All Areas.") {
+                            val saved = requireNotNull(repository.projection(savedId)) {
+                                "Saved Track could not be reread"
+                            }
+                            resolvedAreaId = saved.track.areaId
+                            areaVerified = true
+                        },
+                        saveFollowUpWarning("Some tag suggestions did not refresh; the Track itself was saved.") {
+                            draft.tags.forEach { app.measurementRepository.ensureTag(it) }
+                        },
+                    )
+                    committed.copy(
+                        areaId = resolvedAreaId,
+                        warnings = warnings,
+                        areaVerified = areaVerified,
+                    )
+                },
             )
-            id
         }
-        draft.tags.filter { tag -> existingTags?.none { it.equals(tag, ignoreCase = true) } != false }
-            .forEach { app.measurementRepository.ensureTag(it) }
-        onSaved(savedId)
+        return true
     }
 
     fun duplicate(id: Long) = runOperation("Duplicating Track…", "Track structure duplicated") { repository.duplicate(id) }
@@ -690,6 +919,68 @@ class TrackViewModel(
                 } catch (error: Throwable) {
                     _operationStatus.value = OperationStatus.Failed(error.message ?: "Could not save the new order", error)
                 }
+            }
+        }
+    }
+
+    private fun runDefinitionSaveOperation(
+        runningMessage: String,
+        successMessage: String,
+        requestId: String,
+        block: suspend () -> EntitySaveReceipt,
+    ) {
+        _operationStatus.value = OperationStatus.Running(runningMessage)
+        viewModelScope.launch {
+            fun successResult(receipt: EntitySaveReceipt): WhipResult.Success<EntitySaveReceipt> {
+                val message = if (receipt.warnings.isEmpty()) successMessage else {
+                    "$successMessage · ${receipt.warnings.joinToString(" ")}"
+                }
+                _operationStatus.value = OperationStatus.Succeeded(
+                    message,
+                    OperationFeedbackPresentation.Snackbar,
+                )
+                return WhipResult.Success(receipt)
+            }
+            val result = try {
+                val receipt = checkNotNull(app.withUserDataAccess {
+                    operationMutex.withLock { block() }
+                }) { "Whip data is unavailable while recovery is in progress" }
+                successResult(receipt)
+            } catch (cancelled: CommittedEntitySaveCancellation) {
+                if (currentCoroutineContext().isActive) {
+                    successResult(
+                        cancelled.receipt.copy(
+                            warnings = cancelled.receipt.warnings +
+                                "Some post-save updates were interrupted; the Track itself was saved.",
+                        ),
+                    )
+                } else {
+                    if ((_definitionSaveState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _definitionSaveState.value = PersistenceRequestState.Idle
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw cancelled
+                }
+            } catch (cancelled: CancellationException) {
+                if (currentCoroutineContext().isActive) {
+                    _operationStatus.value = OperationStatus.Idle
+                    WhipResult.Failure(
+                        "The Track save was interrupted. Your changes are still here.",
+                        cancelled,
+                    )
+                } else {
+                    if ((_definitionSaveState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _definitionSaveState.value = PersistenceRequestState.Idle
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw cancelled
+                }
+            } catch (error: Exception) {
+                _operationStatus.value = OperationStatus.Idle
+                WhipResult.Failure(error.message ?: "The Track could not be saved.", error)
+            }
+            if ((_definitionSaveState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                _definitionSaveState.value = PersistenceRequestState.Finished(requestId, result)
             }
         }
     }

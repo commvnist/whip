@@ -800,6 +800,7 @@ fun WhipApp(
                     },
                     unscopedTrackState = trackState,
                     trackViewModel = trackViewModel,
+                    userDataGeneration = userDataGeneration,
                     areaScope = areaScope,
                     onSelectAreaScope = { selected ->
                         sessionAreaScopeKey = selected.storageKey
@@ -934,6 +935,7 @@ fun WhipScreen(
     trackState: TrackUiState = TrackUiState(),
     unscopedTrackState: TrackUiState = trackState,
     trackViewModel: TrackViewModel? = null,
+    userDataGeneration: Long = 0L,
     areaScope: AreaScope = AreaScope.fromStorageKey(settingsState.settings.activeAreaScope),
     onSelectAreaScope: (AreaScope) -> Unit = { settingsViewModel?.setAreaScope(it) },
     onTemporarilySelectAreaScope: (AreaScope) -> Unit = {},
@@ -1074,12 +1076,15 @@ fun WhipScreen(
     var editHabitIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var openGoalIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var editGoalIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
-    var openTrackIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
+    val openTrackIdRequestedState: MutableState<Long?> = rememberSaveable { mutableStateOf(null) }
+    var openTrackIdRequested by openTrackIdRequestedState
     var editTrackIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var openTrackEntryIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var addTrackEntryRequestedForId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var trackEditorSessionId by rememberSaveable { mutableLongStateOf(0L) }
-    var trackEditorRoute by rememberSaveable { mutableStateOf<TrackEditorRoute?>(null) }
+    val trackEditorSessionState: MutableState<Long> = rememberSaveable { mutableLongStateOf(0L) }
+    var trackEditorSessionId by trackEditorSessionState
+    val trackEditorRouteState: MutableState<TrackEditorRoute?> = rememberSaveable { mutableStateOf(null) }
+    var trackEditorRoute by trackEditorRouteState
     val selectedTrackState: MutableState<Long?> = rememberSaveable { mutableStateOf(null) }
     val trackWorkspaceDestinationState: MutableState<TrackWorkspaceDestination> = rememberSaveable {
         mutableStateOf(TrackWorkspaceDestination.Tracks)
@@ -1094,7 +1099,8 @@ fun WhipScreen(
     var areaManagerOpen by rememberSaveable { mutableStateOf(false) }
     var areaMoveNotice by rememberSaveable { mutableStateOf<String?>(null) }
     var areaMoveRestoreScope by rememberSaveable { mutableStateOf<String?>(null) }
-    var homeHabitValueItemId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val homeHabitValueItemIdState: MutableState<Long?> = rememberSaveable { mutableStateOf(null) }
+    var homeHabitValueItemId by homeHabitValueItemIdState
     var contentPaneExpanded by rememberSaveable { mutableStateOf(false) }
     var consumedLaunchDeliveryId by rememberSaveable { mutableStateOf<Long?>(null) }
     val workspaceStateHolder = rememberSaveableStateHolder()
@@ -1253,15 +1259,28 @@ fun WhipScreen(
         appDestination = AppDestination.Settings
     }
     fun openTrackEditor(intent: TrackEditorIntent) {
-        trackEditorSessionId += 1L
-        trackEditorRoute = when (intent) {
-            is TrackEditorIntent.Definition -> TrackEditorRoute.Definition(intent.trackId, trackEditorSessionId)
-            is TrackEditorIntent.Entry -> TrackEditorRoute.Entry(
-                trackId = intent.trackId,
-                entryId = intent.entryId,
-                sessionId = trackEditorSessionId,
-            )
+        val nextSessionId = trackEditorSessionId + 1L
+        val resolvedRoute = resolveTrackEditorRoute(
+            intent = intent,
+            unscopedTrackState = unscopedTrackState,
+            userDataGeneration = userDataGeneration,
+            sessionId = nextSessionId,
+        )
+        if (resolvedRoute == null) {
+            presentTransientFeedback(source = "track-editor-target", priority = 3, recoverable = true) {
+                snackbarHostState.showSnackbar(
+                    "That Track is no longer available. Your existing data was not changed.",
+                    withDismissAction = true,
+                    duration = SnackbarDuration.Long,
+                )
+            }
+            return
         }
+        if (intent is TrackEditorIntent.Definition) {
+            trackViewModel?.clearDefinitionEditorState()
+        }
+        trackEditorSessionId = nextSessionId
+        trackEditorRoute = resolvedRoute
     }
     fun closeSettings() {
         appDestination = settingsCallerDestination.takeUnless { it == AppDestination.Settings } ?: AppDestination.Home
@@ -2739,40 +2758,11 @@ fun WhipScreen(
             },
         )
     }
-    homeHabitValueItem?.let { item ->
-        val viewModel = habitViewModel ?: return@let
-        val authoredMutationState by viewModel.authoredMutationState.collectAsStateWithLifecycle()
-        val authoredMutationCoordinator = rememberPersistenceRequestCoordinator(
-            state = authoredMutationState,
-            consume = viewModel::consumeAuthoredMutationResult,
-            key = "home-habit-${item.habit.id}",
-            requestNamespace = "home-habit-quick",
-            onPersisted = { homeHabitValueItemId = null },
-        )
-        HabitValueDialog(
-            item = item,
-            saving = authoredMutationCoordinator.saving,
-            persistenceError = authoredMutationCoordinator.errorMessage,
-            onDismiss = {
-                authoredMutationCoordinator.clear()
-                homeHabitValueItemId = null
-            },
-            onLog = { value, note ->
-                val requestId = authoredMutationCoordinator.begin() ?: return@HabitValueDialog
-                val accepted =
-                if (item.habit.trackingMode == com.whip.app.domain.HabitTrackingMode.LogOnly) {
-                    viewModel.log(item.habit.id, value, note = note, requestId = requestId)
-                } else {
-                    viewModel.setPeriodValue(item, requireNotNull(value), note, requestId = requestId)
-                }
-                if (!accepted) {
-                    authoredMutationCoordinator.finishFailure(
-                        "Another Habit history change is already finishing.",
-                    )
-                }
-            },
-        )
-    }
+    HomeHabitValueRoute(
+        item = homeHabitValueItem,
+        itemIdState = homeHabitValueItemIdState,
+        viewModel = habitViewModel,
+    )
 
     editorRequest?.let { request ->
         TaskEditorDialog(
@@ -3018,87 +3008,473 @@ fun WhipScreen(
             },
         )
     }
-    trackEditorRoute?.let { route ->
-        RootEditorHost(
-            adaptiveLayout = adaptiveLayout,
-            foldInfo = foldInfo,
-            contentExpanded = contentPaneIsExpanded,
-        ) { editorModifier ->
-            when (route) {
-                is TrackEditorRoute.Definition -> {
-                    val initial = route.trackId?.let(trackState::track)
-                    TrackEditor(
+    TrackEditorRouteHost(
+        routeState = trackEditorRouteState,
+        sessionState = trackEditorSessionState,
+        openTrackIdState = openTrackIdRequestedState,
+        adaptiveLayout = adaptiveLayout,
+        foldInfo = foldInfo,
+        contentExpanded = contentPaneIsExpanded,
+        userDataGeneration = userDataGeneration,
+        unscopedTrackState = unscopedTrackState,
+        trackState = trackState,
+        settingsState = settingsState,
+        settingsViewModel = settingsViewModel,
+        defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
+        trackViewModel = trackViewModel,
+        trackOperationStatus = trackOperationStatus,
+        onGenerationInvalidated = {
+            presentTransientFeedback(
+                source = "track-editor-generation",
+                priority = 3,
+                recoverable = true,
+            ) {
+                snackbarHostState.showSnackbar(
+                    "Whip data changed while this Track editor was open. Reopen the Track to edit the restored version.",
+                    withDismissAction = true,
+                    duration = SnackbarDuration.Long,
+                )
+            }
+        },
+        onDefinitionPersisted = { receipt ->
+            keepSavedItemVisible(receipt.areaId, receipt.areaVerified)
+        },
+    )
+    FirstRunSetupRoute(
+        settingsState = settingsState,
+        settingsViewModel = settingsViewModel,
+        onRequestNotificationPermission = onRequestNotificationPermission,
+    )
+}
+
+@Composable
+private fun HomeHabitValueRoute(
+    item: HabitDayProgress?,
+    itemIdState: MutableState<Long?>,
+    viewModel: HabitViewModel?,
+) {
+    item ?: return
+    viewModel ?: return
+    val authoredMutationState by viewModel.authoredMutationState.collectAsStateWithLifecycle()
+    val authoredMutationCoordinator = rememberPersistenceRequestCoordinator(
+        state = authoredMutationState,
+        consume = viewModel::consumeAuthoredMutationResult,
+        key = "home-habit-${item.habit.id}",
+        requestNamespace = "home-habit-quick",
+        onPersisted = { itemIdState.value = null },
+    )
+    HabitValueDialog(
+        item = item,
+        saving = authoredMutationCoordinator.saving,
+        persistenceError = authoredMutationCoordinator.errorMessage,
+        onDismiss = {
+            authoredMutationCoordinator.clear()
+            itemIdState.value = null
+        },
+        onLog = { value, note ->
+            val requestId = authoredMutationCoordinator.begin() ?: return@HabitValueDialog
+            val accepted = if (item.habit.trackingMode == com.whip.app.domain.HabitTrackingMode.LogOnly) {
+                viewModel.log(item.habit.id, value, note = note, requestId = requestId)
+            } else {
+                viewModel.setPeriodValue(item, requireNotNull(value), note, requestId = requestId)
+            }
+            if (!accepted) {
+                authoredMutationCoordinator.finishFailure(
+                    "Another Habit history change is already finishing.",
+                )
+            }
+        },
+    )
+}
+
+@Composable
+private fun FirstRunSetupRoute(
+    settingsState: SettingsUiState,
+    settingsViewModel: SettingsViewModel?,
+    onRequestNotificationPermission: () -> Unit,
+) {
+    if (settingsState.settings.setupCompleted || settingsViewModel == null) return
+    FirstRunSetupDialog(
+        onComplete = { sections, power, pounds, lowPressure, notifications ->
+            settingsViewModel.completeSetup(sections, power, pounds, lowPressure)
+            if (notifications) onRequestNotificationPermission()
+        },
+        onUseDefaults = {
+            settingsViewModel.completeSetup(
+                DEFAULT_FIRST_RUN_HOME_SECTIONS,
+                powerMode = false,
+                usePounds = false,
+                lowPressureMode = false,
+            )
+        },
+    )
+}
+
+private fun resolveTrackEditorRoute(
+    intent: TrackEditorIntent,
+    unscopedTrackState: TrackUiState,
+    userDataGeneration: Long,
+    sessionId: Long,
+): TrackEditorRoute? = when (intent) {
+    is TrackEditorIntent.Definition -> {
+        val snapshot = intent.trackId?.let(unscopedTrackState::track)
+        if (intent.trackId != null && snapshot == null) {
+            null
+        } else {
+            TrackEditorRoute.Definition(
+                trackId = intent.trackId,
+                initialDraft = snapshot?.let { it.track.toDraft(it.fields, it.options) },
+                targetName = snapshot?.track?.name,
+                openingBoundary = null,
+                openingDataGeneration = userDataGeneration,
+                sessionId = sessionId,
+            )
+        }
+    }
+    is TrackEditorIntent.Entry -> TrackEditorRoute.Entry(
+        trackId = intent.trackId,
+        entryId = intent.entryId,
+        openingDataGeneration = userDataGeneration,
+        sessionId = sessionId,
+    )
+}
+
+internal enum class TrackEntryRouteAvailability { Available, TrackMissing, EntryMissing }
+
+internal fun trackEditorRouteMatchesGeneration(
+    route: TrackEditorRoute,
+    userDataGeneration: Long,
+): Boolean = route.openingDataGeneration == userDataGeneration
+
+internal fun trackEntryRouteAvailability(
+    route: TrackEditorRoute.Entry,
+    unscopedTrackState: TrackUiState,
+): TrackEntryRouteAvailability {
+    val projection = unscopedTrackState.track(route.trackId)
+        ?: return TrackEntryRouteAvailability.TrackMissing
+    return if (
+        route.entryId != null && projection.entries.none { it.entry.id == route.entryId }
+    ) {
+        TrackEntryRouteAvailability.EntryMissing
+    } else {
+        TrackEntryRouteAvailability.Available
+    }
+}
+
+@Composable
+private fun TrackEditorRouteHost(
+    routeState: MutableState<TrackEditorRoute?>,
+    sessionState: MutableState<Long>,
+    openTrackIdState: MutableState<Long?>,
+    adaptiveLayout: WhipAdaptiveLayout,
+    foldInfo: WhipFoldInfo?,
+    contentExpanded: Boolean,
+    userDataGeneration: Long,
+    unscopedTrackState: TrackUiState,
+    trackState: TrackUiState,
+    settingsState: SettingsUiState,
+    settingsViewModel: SettingsViewModel?,
+    defaultAreaId: String?,
+    trackViewModel: TrackViewModel?,
+    trackOperationStatus: OperationStatus,
+    onGenerationInvalidated: suspend () -> Unit,
+    onDefinitionPersisted: (EntitySaveReceipt) -> Unit,
+) {
+    val route = routeState.value
+    route ?: return
+    if (!trackEditorRouteMatchesGeneration(route, userDataGeneration)) {
+        LaunchedEffect(route.sessionId, userDataGeneration) {
+            if (route is TrackEditorRoute.Definition) {
+                trackViewModel?.clearDefinitionEditorState(route.sessionId)
+            }
+            routeState.value = null
+            onGenerationInvalidated()
+        }
+        return
+    }
+    val saveStateState = trackViewModel?.definitionSaveState?.collectAsStateWithLifecycle()
+    val definitionSaveState = saveStateState?.value ?: PersistenceRequestState.Idle
+    val reviewStateState = trackViewModel?.definitionReviewState?.collectAsStateWithLifecycle()
+    val definitionReviewState = reviewStateState?.value ?: TrackDefinitionReviewUiState()
+    RootEditorHost(
+        adaptiveLayout = adaptiveLayout,
+        foldInfo = foldInfo,
+        contentExpanded = contentExpanded,
+    ) { editorModifier ->
+        when (route) {
+            is TrackEditorRoute.Definition -> TrackDefinitionEditorRouteHost(
+                route = route,
+                liveInitial = route.trackId?.let(unscopedTrackState::track),
+                settingsState = settingsState,
+                settingsViewModel = settingsViewModel,
+                defaultAreaId = defaultAreaId,
+                trackViewModel = trackViewModel,
+                definitionSaveState = definitionSaveState,
+                definitionReviewState = definitionReviewState,
+                modifier = editorModifier,
+                onOpeningBoundary = { boundary ->
+                    val activeRoute = routeState.value as? TrackEditorRoute.Definition
+                    if (
+                        activeRoute?.sessionId == route.sessionId &&
+                        activeRoute.trackId == route.trackId &&
+                        activeRoute.openingBoundary == null
+                    ) {
+                        routeState.value = activeRoute.copy(openingBoundary = boundary)
+                    }
+                },
+                onPersisted = { receipt ->
+                    val activeRoute = routeState.value as? TrackEditorRoute.Definition
+                    if (
+                        activeRoute?.sessionId == route.sessionId &&
+                        activeRoute.trackId == route.trackId &&
+                        route.openingDataGeneration == userDataGeneration
+                    ) {
+                        onDefinitionPersisted(receipt)
+                        openTrackIdState.value = receipt.entityId
+                        trackViewModel?.clearDefinitionEditorState(route.sessionId)
+                        routeState.value = null
+                    }
+                },
+                onDismiss = {
+                    trackViewModel?.clearDefinitionEditorState(route.sessionId)
+                    val activeRoute = routeState.value as? TrackEditorRoute.Definition
+                    if (
+                        activeRoute?.sessionId == route.sessionId &&
+                        activeRoute.trackId == route.trackId
+                    ) routeState.value = null
+                },
+            )
+            is TrackEditorRoute.Entry -> {
+                val projection = unscopedTrackState.track(route.trackId)
+                val initial = route.entryId?.let { entryId ->
+                    projection?.entries?.firstOrNull { it.entry.id == entryId }
+                }
+                when (trackEntryRouteAvailability(route, unscopedTrackState)) {
+                    TrackEntryRouteAvailability.TrackMissing -> TrackEntryUnavailableRoute(
+                        title = "Track Unavailable",
+                        message = "This Track is no longer available. No Entry was added or changed.",
+                        modifier = editorModifier,
+                        onDismiss = { routeState.value = null },
+                    )
+                    TrackEntryRouteAvailability.EntryMissing -> TrackEntryUnavailableRoute(
+                        title = "Entry Unavailable",
+                        message = "This Entry is no longer available. It was not reinterpreted as a new Entry.",
+                        modifier = editorModifier,
+                        onDismiss = { routeState.value = null },
+                    )
+                    TrackEntryRouteAvailability.Available -> {
+                    TrackEntryEditor(
+                        projection = requireNotNull(projection),
                         initial = initial,
-                        areas = settingsState.areas,
                         customUnits = settingsState.customUnits,
-                        defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
+                        today = trackState.currentDate,
                         saving = trackOperationStatus is OperationStatus.Running,
                         modifier = editorModifier,
                         sessionId = route.sessionId,
-                        onDismiss = { trackEditorRoute = null },
-                        onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
-                        onCreateCustomUnit = { name, symbol, dimension, factor, result ->
-                            settingsViewModel?.createCustomUnit(name, symbol, dimension, factor, result)
-                                ?: result(Result.failure(IllegalStateException("Settings are unavailable")))
-                        },
-                        customIdentityEmojis = settingsState.settings.customIdentityEmojis,
-                        onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
-                        onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
-                        onSave = { draft, fieldDeletes, optionDeletes, optionReplacements ->
-                            trackViewModel?.saveTrack(route.trackId, draft, fieldDeletes, optionDeletes, optionReplacements) { saved ->
-                                openTrackIdRequested = saved
-                                trackEditorRoute = null
+                        onDismiss = { routeState.value = null },
+                        onSave = { draft ->
+                            trackViewModel?.saveEntry(route.trackId, route.entryId, draft) {
+                                routeState.value = null
                             }
                         },
+                        onDelete = route.entryId?.let { entryId ->
+                            {
+                                trackViewModel?.deleteEntry(entryId)
+                                routeState.value = null
+                            }
+                        },
+                        onOpenExisting = { existingId ->
+                            val nextSession = sessionState.value + 1L
+                            sessionState.value = nextSession
+                            routeState.value = TrackEditorRoute.Entry(
+                                trackId = route.trackId,
+                                entryId = existingId,
+                                openingDataGeneration = route.openingDataGeneration,
+                                sessionId = nextSession,
+                            )
+                        },
                     )
-                }
-                is TrackEditorRoute.Entry -> {
-                    trackState.track(route.trackId)?.let { projection ->
-                        TrackEntryEditor(
-                            projection = projection,
-                            initial = route.entryId?.let { id -> projection.entries.firstOrNull { it.entry.id == id } },
-                            customUnits = settingsState.customUnits,
-                            today = trackState.currentDate,
-                            saving = trackOperationStatus is OperationStatus.Running,
-                            modifier = editorModifier,
-                            sessionId = route.sessionId,
-                            onDismiss = { trackEditorRoute = null },
-                            onSave = { draft ->
-                                trackViewModel?.saveEntry(route.trackId, route.entryId, draft) {
-                                    trackEditorRoute = null
-                                }
-                            },
-                            onDelete = route.entryId?.let { entryId ->
-                                {
-                                    trackViewModel?.deleteEntry(entryId)
-                                    trackEditorRoute = null
-                                }
-                            },
-                            onOpenExisting = { existingId ->
-                                openTrackEditor(TrackEditorIntent.Entry(route.trackId, existingId))
-                            },
-                        )
                     }
                 }
             }
         }
     }
-    if (!settingsState.settings.setupCompleted && settingsViewModel != null) {
-        FirstRunSetupDialog(
-            onComplete = { sections, power, pounds, lowPressure, notifications ->
-                settingsViewModel.completeSetup(sections, power, pounds, lowPressure)
-                if (notifications) onRequestNotificationPermission()
-            },
-            onUseDefaults = {
-                settingsViewModel.completeSetup(
-                    DEFAULT_FIRST_RUN_HOME_SECTIONS,
-                    powerMode = false,
-                    usePounds = false,
-                    lowPressureMode = false,
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun TrackEntryUnavailableRoute(
+    title: String,
+    message: String,
+    modifier: Modifier,
+    onDismiss: () -> Unit,
+) {
+    BackHandler(onBack = onDismiss)
+    WhipFullScreenSurface(title = title, modifier = modifier.testTag("track-entry-unavailable")) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(title) },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Outlined.Close, "Close Entry Editor")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background,
+                    ),
                 )
             },
-        )
+        ) { padding ->
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                WhipStatusCard(
+                    kind = WhipStatusKind.Error,
+                    title = title,
+                    message = message,
+                    actionLabel = "Close",
+                    onAction = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun TrackDefinitionEditorRouteHost(
+    route: TrackEditorRoute.Definition,
+    liveInitial: TrackProjection?,
+    settingsState: SettingsUiState,
+    settingsViewModel: SettingsViewModel?,
+    defaultAreaId: String?,
+    trackViewModel: TrackViewModel?,
+    definitionSaveState: PersistenceRequestState<EntitySaveReceipt>,
+    definitionReviewState: TrackDefinitionReviewUiState,
+    modifier: Modifier,
+    onOpeningBoundary: (com.whip.app.domain.TrackDefinitionBoundary) -> Unit,
+    onPersisted: (EntitySaveReceipt) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    LaunchedEffect(route.sessionId, route.trackId, route.initialDraft) {
+        val trackId = route.trackId
+        val openingDraft = route.initialDraft
+        if (trackId != null && openingDraft != null) {
+            trackViewModel?.prepareDefinitionEditor(
+                route.sessionId,
+                trackId,
+                openingDraft,
+            )
+        }
+    }
+    LaunchedEffect(
+        route.sessionId,
+        definitionReviewState.boundary,
+        definitionReviewState.sessionId,
+    ) {
+        val boundary = definitionReviewState.boundary
+        if (
+            boundary != null &&
+            definitionReviewState.sessionId == route.sessionId &&
+            route.openingBoundary == null
+        ) {
+            onOpeningBoundary(boundary)
+        }
+    }
+    val definitionSaveCoordinator = rememberEntitySaveCoordinator(
+        state = definitionSaveState,
+        consume = { requestId -> trackViewModel?.consumeDefinitionSaveResult(requestId) },
+        key = "track-definition-${route.sessionId}",
+        requestNamespace = "track-definition-${route.sessionId}",
+        orphanedMessage =
+            "The previous Track save was interrupted and its outcome is unknown. " +
+                "Verify the Track list and do not retry until you know whether it was saved.",
+        onPersisted = onPersisted,
+    )
+    TrackEditor(
+        liveInitial = liveInitial,
+        targetTrackId = route.trackId,
+        openingDraft = route.initialDraft,
+        routeOpeningBoundary = route.openingBoundary,
+        targetName = route.targetName,
+        areas = settingsState.areas,
+        customUnits = settingsState.customUnits,
+        defaultAreaId = defaultAreaId,
+        saving = definitionSaveCoordinator.saving,
+        persistenceError = definitionSaveCoordinator.errorMessage,
+        definitionReviewState = definitionReviewState,
+        modifier = modifier,
+        sessionId = route.sessionId,
+        onDismiss = {
+            definitionSaveCoordinator.clear()
+            onDismiss()
+        },
+        onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
+        onCreateCustomUnit = { name, symbol, dimension, factor, result ->
+            settingsViewModel?.createCustomUnit(name, symbol, dimension, factor, result)
+                ?: result(Result.failure(IllegalStateException("Settings are unavailable")))
+        },
+        customIdentityEmojis = settingsState.settings.customIdentityEmojis,
+        onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
+        onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
+        onRetryPreparation = {
+            val trackId = route.trackId
+            val openingDraft = route.initialDraft
+            if (trackId != null && openingDraft != null) {
+                trackViewModel?.prepareDefinitionEditor(
+                    route.sessionId,
+                    trackId,
+                    openingDraft,
+                )
+            }
+        },
+        onReview = { draft, boundary, optionReplacements ->
+            val trackId = route.trackId
+            if (trackId != null) {
+                trackViewModel?.reviewDefinitionUpdate(
+                    route.sessionId,
+                    trackId,
+                    draft,
+                    boundary,
+                    optionReplacements,
+                )
+            }
+        },
+        onSave = { draft, boundary, reviewedRemoval ->
+            val requestId = definitionSaveCoordinator.begin()
+                ?: return@TrackEditor
+            val accepted = trackViewModel?.saveTrack(
+                route.trackId,
+                draft,
+                route.sessionId,
+                boundary,
+                reviewedRemoval,
+                requestId,
+            ) == true
+            if (!accepted) {
+                definitionSaveCoordinator.finishFailure(
+                    "Another Track definition change is already finishing.",
+                )
+            }
+        },
+        onSaveCopy = { draft ->
+            val requestId = definitionSaveCoordinator.begin()
+                ?: return@TrackEditor
+            val accepted = trackViewModel?.saveTrack(
+                id = null,
+                draft = draft,
+                sessionId = route.sessionId,
+                requestId = requestId,
+            ) == true
+            if (!accepted) {
+                definitionSaveCoordinator.finishFailure(
+                    "Another Track definition change is already finishing.",
+                )
+            }
+        },
+    )
 }
 
 @Composable

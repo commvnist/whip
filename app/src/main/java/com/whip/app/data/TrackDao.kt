@@ -79,6 +79,9 @@ interface TrackDao {
     @Query("SELECT * FROM track_values WHERE fieldId = :fieldId ORDER BY id")
     suspend fun getValuesForField(fieldId: Long): List<TrackValueEntity>
 
+    @Query("SELECT * FROM track_values WHERE choiceOptionId IN (:optionIds) ORDER BY id")
+    suspend fun getValuesForOptions(optionIds: List<Long>): List<TrackValueEntity>
+
     @Query("SELECT COUNT(*) FROM track_values WHERE fieldId = :fieldId")
     suspend fun countValuesForField(fieldId: Long): Int
 
@@ -107,6 +110,12 @@ interface TrackDao {
 
     @Query("DELETE FROM track_values WHERE entryId = :entryId")
     suspend fun deleteValues(entryId: Long): Int
+
+    @Query("DELETE FROM track_values WHERE choiceOptionId = :optionId")
+    suspend fun deleteValuesForOption(optionId: Long): Int
+
+    @Query("UPDATE track_values SET choiceOptionId = :replacementId, updatedAtMillis = :now WHERE choiceOptionId = :removedId")
+    suspend fun replaceChoiceOptionValues(removedId: Long, replacementId: Long, now: Long): Int
 
     @Query("DELETE FROM track_choice_options WHERE id = :id")
     suspend fun deleteOption(id: Long): Int

@@ -93,7 +93,8 @@ class TrackRepositoryTest {
             ),
         )
 
-        val impact = tracks.update(id, before.toDraft().copy(icon = "⚡"))
+        val boundary = requireNotNull(tracks.definitionBoundary(id))
+        val impact = tracks.update(id, before.toDraft().copy(icon = "⚡"), boundary)
 
         assertFalse(impact.schemaChanged)
         assertEquals("⚡", requireNotNull(tracks.projection(id)).track.icon)
@@ -144,7 +145,8 @@ class TrackRepositoryTest {
                 if (field.id == storedRating.id) field.copy(scaleStep = 1.0) else field
             },
         )
-        val rejected = runCatching { tracks.update(trackId, integerOnly) }
+        var boundary = requireNotNull(tracks.definitionBoundary(trackId))
+        val rejected = runCatching { tracks.update(trackId, integerOnly, boundary) }
         assertTrue(rejected.isFailure)
         assertTrue(rejected.exceptionOrNull()?.message.orEmpty().contains("existing Scale value"))
 
@@ -153,7 +155,8 @@ class TrackRepositoryTest {
                 if (field.id == storedRating.id) field.copy(scaleStep = 0.25) else field
             },
         )
-        tracks.update(trackId, quarterPoint)
+        boundary = requireNotNull(tracks.definitionBoundary(trackId))
+        tracks.update(trackId, quarterPoint, boundary)
         assertEquals(0.25, requireNotNull(tracks.projection(trackId)).fields.single { it.id == storedRating.id }.scaleStep, 0.0)
     }
 
@@ -185,10 +188,13 @@ class TrackRepositoryTest {
                 if (field.id == genre.id) field.copy(options = field.options.filterNot { it.id == history.id }) else field
             },
         )
-        val rejected = runCatching { tracks.update(id, draftWithoutHistory) }
+        val boundary = requireNotNull(tracks.definitionBoundary(id))
+        val rejected = runCatching { tracks.update(id, draftWithoutHistory, boundary) }
         assertTrue(rejected.isFailure)
-        assertTrue(rejected.exceptionOrNull()?.message.orEmpty().contains("Confirm"))
-        tracks.update(id, draftWithoutHistory, confirmedOptionValueDeletionIds = setOf(history.id))
+        assertTrue(rejected.exceptionOrNull()?.message.orEmpty().contains("Review"))
+        val review = tracks.reviewDefinitionUpdate(id, draftWithoutHistory, boundary)
+        assertEquals(1, review.removedChoices.single().savedValueCount)
+        tracks.update(id, draftWithoutHistory, boundary, review)
         projection = requireNotNull(tracks.projection(id))
         assertEquals("The Dispossessed, annotated", projection.primaryText(projection.entries.single()))
         assertEquals(null, projection.entries.single().value(genre.id))
@@ -230,7 +236,8 @@ class TrackRepositoryTest {
         assertEquals(2, projection.fields.count { it.showInList })
         assertEquals("Dune · Denis Villeneuve · 2021 count", projection.primaryText(projection.entries.single { it.entry.id == entryId }))
 
-        tracks.update(trackId, projection.toDraft())
+        val boundary = requireNotNull(tracks.definitionBoundary(trackId))
+        tracks.update(trackId, projection.toDraft(), boundary)
         projection = requireNotNull(tracks.projection(trackId))
         assertEquals(3, projection.primaryFields.size)
         assertTrue(projection.fields.first { it.name == "Director" }.showInList)
@@ -259,7 +266,14 @@ class TrackRepositoryTest {
             },
         )
 
-        tracks.update(trackId, withoutHistory, optionReplacementIds = mapOf(history.id to fiction.id))
+        val boundary = requireNotNull(tracks.definitionBoundary(trackId))
+        val review = tracks.reviewDefinitionUpdate(
+            trackId,
+            withoutHistory,
+            boundary,
+            choiceReplacementIds = mapOf(history.id to fiction.id),
+        )
+        tracks.update(trackId, withoutHistory, boundary, review)
 
         val updated = requireNotNull(tracks.projection(trackId))
         assertEquals(fiction.id, updated.entries.single().value(genre.id)?.choiceOptionId)

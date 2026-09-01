@@ -1,13 +1,98 @@
 package com.whip.app.domain
 
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
+import java.io.Serializable
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TrackDomainTest {
+    @Test fun definitionMutationContractsRemainProcessSaveableAndReportExactImpact() {
+        val boundary = TrackDefinitionBoundary(8, "track-8", 11, "definition-revision")
+        val fieldImpact = TrackFieldRemovalImpact(
+            fieldId = 21,
+            fieldUuid = "field-21",
+            fieldName = "Notes",
+            savedValueCount = 3,
+            childChoiceCount = 2,
+            legacyLinkSourceCount = 1,
+            legacyLinkConditionCount = 2,
+            legacyTriggerConditionCount = 3,
+            legacyTriggerMappingCount = 4,
+        )
+        val choiceImpact = TrackChoiceRemovalImpact(
+            optionId = 31,
+            optionUuid = "choice-31",
+            fieldId = 22,
+            fieldName = "Genre",
+            optionLabel = "History",
+            savedValueCount = 5,
+            replacementOptionId = 32,
+            replacementOptionLabel = "Fiction",
+            legacyLinkConditionCount = 2,
+            legacyTriggerConditionCount = 3,
+            legacyTriggerMappingCount = 4,
+            removedWithField = false,
+        )
+        val review = TrackDefinitionRemovalReview(
+            trackId = boundary.trackId,
+            definitionRevisionToken = boundary.semanticRevisionToken,
+            removalRevisionToken = "removal-revision",
+            removedFields = listOf(fieldImpact),
+            removedChoices = listOf(choiceImpact),
+            choiceReplacementIds = mapOf(choiceImpact.optionId to requireNotNull(choiceImpact.replacementOptionId)),
+        )
+        val restoredReview = serializedRoundTrip(review)
+
+        assertEquals("track-8", boundary.trackUuid)
+        assertEquals(11, boundary.trackCreatedAtMillis)
+        assertTrue(restoredReview.hasRemovals)
+        assertEquals("removal-revision", restoredReview.removalRevisionToken)
+        assertEquals(3, restoredReview.removedFields.single().legacyLinkReferenceCount)
+        assertEquals(7, restoredReview.removedFields.single().legacyTriggerReferenceCount)
+        assertTrue(restoredReview.removedChoices.single().replacesSavedValues)
+        assertEquals(2, restoredReview.removedChoices.single().legacyLinkReferenceCount)
+        assertEquals(7, restoredReview.removedChoices.single().legacyTriggerReferenceCount)
+        assertEquals("Fiction", restoredReview.removedChoices.single().replacementOptionLabel)
+        assertFalse(review.copy(removedFields = emptyList(), removedChoices = emptyList()).hasRemovals)
+
+        val receipt = serializedRoundTrip(
+            TrackDefinitionSaveReceipt(
+                trackId = 8,
+                schemaChanged = true,
+                removedFieldCount = 1,
+                removedChoiceCount = 1,
+                deletedValueCount = 3,
+                replacedValueCount = 5,
+                legacyLinkReferenceCount = 4,
+                legacyTriggerReferenceCount = 7,
+                warnings = listOf("Tag suggestions did not refresh"),
+            ),
+        )
+        assertTrue(receipt.schemaChanged)
+        assertEquals(1, receipt.removedFieldCount)
+        assertEquals(1, receipt.removedChoiceCount)
+        assertEquals(3, receipt.deletedValueCount)
+        assertEquals(5, receipt.replacedValueCount)
+        assertEquals(4, receipt.legacyLinkReferenceCount)
+        assertEquals(7, receipt.legacyTriggerReferenceCount)
+        assertEquals(1, receipt.warnings.size)
+
+        val conflict = TrackDefinitionConflictException(
+            TrackDefinitionConflictKind.RemovalImpactChanged,
+            "Review again",
+        )
+        assertEquals(TrackDefinitionConflictKind.RemovalImpactChanged, conflict.kind)
+        assertEquals("Review again", conflict.message)
+    }
+
     @Test fun scaleSupportsUserDefinedFractionalIncrementsWithoutRoundingEntries() {
         assertEquals(
             listOf(1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0),
@@ -201,4 +286,13 @@ B,Unknown,nope,,Maybe,wrong
         dimension: UnitDimension? = null,
         unitId: String? = null,
     ) = TrackField(id, uuid, 1, name, type, id.toInt(), required = primary, primary = primary, showInList = false, dimension = dimension, unitId = unitId, precision = 1, scaleMin = null, scaleMax = null, scaleLowLabel = "", scaleHighLabel = "", createdAtMillis = 1, updatedAtMillis = 1)
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <T : Serializable> serializedRoundTrip(value: T): T {
+        val bytes = ByteArrayOutputStream().use { output ->
+            ObjectOutputStream(output).use { it.writeObject(value) }
+            output.toByteArray()
+        }
+        return ObjectInputStream(ByteArrayInputStream(bytes)).use { it.readObject() as T }
+    }
 }

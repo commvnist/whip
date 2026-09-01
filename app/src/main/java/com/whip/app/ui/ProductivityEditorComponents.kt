@@ -348,6 +348,8 @@ internal fun <T> rememberPersistenceRequestCoordinator(
     key: Any? = Unit,
     requestNamespace: String? = null,
     onPersisted: (T) -> Unit,
+    orphanedMessage: String =
+        "The previous save was interrupted. Check whether the item already exists before retrying.",
 ): EntitySaveCoordinator {
     val requestIdState = rememberSaveable(key) { mutableStateOf<String?>(null) }
     val errorMessageState = rememberSaveable(key) { mutableStateOf<String?>(null) }
@@ -355,6 +357,7 @@ internal fun <T> rememberPersistenceRequestCoordinator(
     val latestState by rememberUpdatedState(state)
     val latestConsume by rememberUpdatedState(consume)
     val latestOnPersisted by rememberUpdatedState(onPersisted)
+    val latestOrphanedMessage by rememberUpdatedState(orphanedMessage)
 
     LaunchedEffect(requestIdState.value, state) {
         val requestId = requestIdState.value
@@ -390,7 +393,7 @@ internal fun <T> rememberPersistenceRequestCoordinator(
             }
             if (requestIdState.value == requestId && !matches) {
                 coordinator.finishFailure(
-                    "The previous save was interrupted. Check whether the item already exists before retrying.",
+                    latestOrphanedMessage,
                 )
             }
         }
@@ -428,12 +431,15 @@ internal fun rememberEntitySaveCoordinator(
     key: Any? = Unit,
     requestNamespace: String? = null,
     onPersisted: (EntitySaveReceipt) -> Unit,
+    orphanedMessage: String =
+        "The previous save was interrupted. Check whether the item already exists before retrying.",
 ): EntitySaveCoordinator = rememberPersistenceRequestCoordinator(
     state = state,
     consume = consume,
     key = key,
     requestNamespace = requestNamespace,
     onPersisted = onPersisted,
+    orphanedMessage = orphanedMessage,
 )
 
 /**

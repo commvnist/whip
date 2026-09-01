@@ -2,6 +2,8 @@ package com.whip.app.ui
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import com.whip.app.domain.TrackDefinitionBoundary
+import com.whip.app.domain.TrackDefinitionRemovalReview
 import com.whip.app.domain.TrackDraft
 import com.whip.app.domain.TrackEntryDraft
 import java.io.Serializable
@@ -17,8 +19,8 @@ internal data class TrackEditorState(
     val token: String = "",
     val dataGeneration: Long = 0L,
     val draft: TrackDraft? = null,
-    val confirmedFieldDeletes: Set<Long> = emptySet(),
-    val confirmedOptionDeletes: Set<Long> = emptySet(),
+    val openingBoundary: TrackDefinitionBoundary? = null,
+    val removalReview: TrackDefinitionRemovalReview? = null,
     val optionReplacementIds: Map<Long, Long> = emptyMap(),
 ) : Serializable
 
@@ -39,7 +41,36 @@ internal class TrackEditorViewModel(
     }
 
     fun updateDraft(transform: (TrackDraft) -> TrackDraft) = update { current ->
-        current.copy(draft = current.draft?.let(transform))
+        current.copy(
+            draft = current.draft?.let(transform),
+            removalReview = null,
+        )
+    }
+
+    fun installOpeningBoundary(boundary: TrackDefinitionBoundary) = update { current ->
+        if (current.draft == null || boundary.trackId <= 0L) current
+        else current.copy(openingBoundary = boundary)
+    }
+
+    fun installRemovalReview(review: TrackDefinitionRemovalReview) = update { current ->
+        if (current.openingBoundary?.trackId != review.trackId) current
+        else current.copy(removalReview = review)
+    }
+
+    fun clearRemovalReview() = update { it.copy(removalReview = null) }
+
+    fun clearOptionReplacements() = update {
+        it.copy(removalReview = null, optionReplacementIds = emptyMap())
+    }
+
+    fun updateOptionReplacement(optionId: Long, replacementId: Long?) = update { current ->
+        current.copy(
+            optionReplacementIds = if (replacementId == null) {
+                current.optionReplacementIds - optionId
+            } else {
+                current.optionReplacementIds + (optionId to replacementId)
+            },
+        )
     }
 
     fun update(transform: (TrackEditorState) -> TrackEditorState) {

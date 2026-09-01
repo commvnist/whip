@@ -13,8 +13,15 @@ import com.whip.app.domain.TrackEntry
 import com.whip.app.domain.TrackEntryDraft
 import com.whip.app.domain.TrackEntryPage
 import com.whip.app.domain.TrackEntryProjection
+import com.whip.app.domain.TrackDefinitionBoundary
+import com.whip.app.domain.TrackDefinitionConflictException
+import com.whip.app.domain.TrackDefinitionConflictKind
+import com.whip.app.domain.TrackDefinitionRemovalReview
+import com.whip.app.domain.TrackDefinitionSaveReceipt
+import com.whip.app.domain.TrackChoiceRemovalImpact
 import com.whip.app.domain.TrackField
 import com.whip.app.domain.TrackFieldDraft
+import com.whip.app.domain.TrackFieldRemovalImpact
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackFieldValue
 import com.whip.app.domain.TrackProjection
@@ -25,6 +32,7 @@ import com.whip.app.domain.formatTrackScaleValue
 import com.whip.app.domain.normalizeTrackScaleValue
 import com.whip.app.domain.validateTrackEntryDraft
 import com.whip.app.domain.validated
+import java.security.MessageDigest
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -69,13 +77,24 @@ interface TrackRepository {
     val projections: Flow<List<TrackProjection>>
 
     suspend fun create(draft: TrackDraft): Long
+    suspend fun definitionBoundary(
+        id: Long,
+        expectedDraft: TrackDraft? = null,
+    ): TrackDefinitionBoundary?
+
+    suspend fun reviewDefinitionUpdate(
+        id: Long,
+        draft: TrackDraft,
+        expectedBoundary: TrackDefinitionBoundary,
+        choiceReplacementIds: Map<Long, Long> = emptyMap(),
+    ): TrackDefinitionRemovalReview
+
     suspend fun update(
         id: Long,
         draft: TrackDraft,
-        confirmedFieldValueDeletionIds: Set<Long> = emptySet(),
-        confirmedOptionValueDeletionIds: Set<Long> = emptySet(),
-        optionReplacementIds: Map<Long, Long> = emptyMap(),
-    ): TrackUpdateImpact
+        expectedBoundary: TrackDefinitionBoundary,
+        reviewedRemoval: TrackDefinitionRemovalReview? = null,
+    ): TrackDefinitionSaveReceipt
     suspend fun duplicate(id: Long): Long
     suspend fun setPinned(id: Long, pinned: Boolean)
     suspend fun setArchived(id: Long, archived: Boolean)
@@ -92,16 +111,13 @@ interface TrackRepository {
     suspend fun rebuildSearchIndex(trackId: Long? = null)
 }
 
-data class TrackUpdateImpact(
-    val schemaChanged: Boolean,
-)
-
 class RoomTrackRepository(
     private val database: WhipDatabase,
     private val clock: WhipClock,
     private val ids: WhipIdGenerator,
 ) : TrackRepository {
     private val dao = database.trackDao()
+    private val linkDao = database.linkDao()
     private val areaRepository = RoomAreaRepository(database, clock, ids)
 
     override val tracks: Flow<List<Track>> = dao.observeTracks().map { rows -> rows.map(TrackEntity::toDomain) }
@@ -143,10 +159,236 @@ class RoomTrackRepository(
         }
     }
 
+    override suspend fun definitionBoundary(
+        id: Long,
+        expectedDraft: TrackDraft?,
+    ): TrackDefinitionBoundary? = database.withTransaction {
+        val snapshot = loadDefinitionSnapshot(id) ?: return@withTransaction null
+        if (expectedDraft != null) {
+            val validExpected = expectedDraft.validated()
+            if (!snapshot.matches(validExpected)) {
+                throw TrackDefinitionConflictException(
+                    TrackDefinitionConflictKind.DefinitionChanged,
+                    "This Track changed while the editor was opening. Review the latest definition and try again.",
+                )
+            }
+        }
+        snapshot.boundary()
+    }
+
+    private suspend fun loadDefinitionSnapshot(id: Long): TrackDefinitionSnapshot? {
+        val track = dao.getTrack(id) ?: return null
+        val fields = dao.getFields(id)
+        val options = fields.takeIf { it.isNotEmpty() }
+            ?.let { dao.getOptionsForFields(it.map(TrackFieldEntity::id)) }
+            .orEmpty()
+        return TrackDefinitionSnapshot(track, fields, options)
+    }
+
+    private fun requireMatchingDefinitionBoundary(
+        snapshot: TrackDefinitionSnapshot?,
+        expected: TrackDefinitionBoundary,
+    ): TrackDefinitionSnapshot {
+        val current = snapshot ?: throw TrackDefinitionConflictException(
+            TrackDefinitionConflictKind.TargetMissing,
+            "This Track no longer exists. Your draft has not been discarded.",
+        )
+        if (
+            current.track.id != expected.trackId ||
+            current.track.uuid != expected.trackUuid ||
+            current.track.createdAtMillis != expected.trackCreatedAtMillis
+        ) {
+            throw TrackDefinitionConflictException(
+                TrackDefinitionConflictKind.IdentityChanged,
+                "The Track identity changed while this editor was open. Review the latest definition and try again.",
+            )
+        }
+        if (current.boundary().semanticRevisionToken != expected.semanticRevisionToken) {
+            throw TrackDefinitionConflictException(
+                TrackDefinitionConflictKind.DefinitionChanged,
+                "This Track definition changed while this editor was open. Review the latest definition and try again.",
+            )
+        }
+        return current
+    }
+
+    override suspend fun reviewDefinitionUpdate(
+        id: Long,
+        draft: TrackDraft,
+        expectedBoundary: TrackDefinitionBoundary,
+        choiceReplacementIds: Map<Long, Long>,
+    ): TrackDefinitionRemovalReview = database.withTransaction {
+        require(id == expectedBoundary.trackId) { "Track boundary does not belong to this Track" }
+        val valid = draft.validated()
+        val snapshot = requireMatchingDefinitionBoundary(loadDefinitionSnapshot(id), expectedBoundary)
+        buildRemovalSnapshot(snapshot, valid, choiceReplacementIds).review
+    }
+
+    private suspend fun buildRemovalSnapshot(
+        definition: TrackDefinitionSnapshot,
+        draft: TrackDraft,
+        choiceReplacementIds: Map<Long, Long>,
+    ): TrackRemovalSnapshot {
+        val retainedFields = definition.resolveRetainedFields(draft)
+        val removedFields = definition.fields.filterNot { it.id in retainedFields }
+        val removedFieldIds = removedFields.mapTo(linkedSetOf(), TrackFieldEntity::id)
+        val retainedOptionIds = definition.resolveRetainedOptions(draft, retainedFields)
+        val removedOptions = definition.options.filter { option ->
+            option.fieldId in removedFieldIds || option.id !in retainedOptionIds
+        }
+        val removedOptionIds = removedOptions.mapTo(linkedSetOf(), TrackChoiceOptionEntity::id)
+        val independentlyRemovedOptionIds = removedOptions
+            .filterNot { it.fieldId in removedFieldIds }
+            .mapTo(linkedSetOf(), TrackChoiceOptionEntity::id)
+
+        require(choiceReplacementIds.keys.all { it in independentlyRemovedOptionIds }) {
+            "A Choice replacement no longer matches a removed Choice. Review the latest definition."
+        }
+        val optionById = definition.options.associateBy(TrackChoiceOptionEntity::id)
+        choiceReplacementIds.forEach { (removedId, replacementId) ->
+            val removed = optionById[removedId] ?: throw TrackDefinitionConflictException(
+                TrackDefinitionConflictKind.ReplacementUnavailable,
+                "A removed Choice no longer exists. Review the latest definition.",
+            )
+            val replacement = optionById[replacementId] ?: throw TrackDefinitionConflictException(
+                TrackDefinitionConflictKind.ReplacementUnavailable,
+                "A replacement Choice no longer exists. Choose another replacement.",
+            )
+            if (replacement.fieldId != removed.fieldId || replacement.id !in retainedOptionIds) {
+                throw TrackDefinitionConflictException(
+                    TrackDefinitionConflictKind.ReplacementUnavailable,
+                    "Choose a retained replacement from the same Field.",
+                )
+            }
+        }
+
+        val fieldValues = removedFields.flatMap { dao.getValuesForField(it.id) }
+        val optionValues = independentlyRemovedOptionIds.takeIf { it.isNotEmpty() }
+            ?.let { dao.getValuesForOptions(it.toList()) }
+            .orEmpty()
+        val affectedValues = (fieldValues + optionValues).distinctBy(TrackValueEntity::id).sortedBy(TrackValueEntity::id)
+
+        val linkRules = linkDao.getRules()
+        val linkConditions = linkDao.getAllRuleConditions()
+        val linkChoices = linkConditions.map(LinkRuleConditionEntity::id).takeIf { it.isNotEmpty() }
+            ?.let { linkDao.getLinkConditionChoices(it) }
+            .orEmpty()
+        val touchedLinkConditionIds = buildSet {
+            linkConditions.filterTo(mutableListOf()) { it.fieldId in removedFieldIds }
+                .mapTo(this, LinkRuleConditionEntity::id)
+            linkChoices.filter { it.optionId in removedOptionIds }
+                .mapTo(this, LinkConditionChoiceEntity::conditionId)
+        }
+        val affectedLinkConditions = linkConditions.filter { it.id in touchedLinkConditionIds }
+        val affectedLinkChoices = linkChoices.filter {
+            it.conditionId in touchedLinkConditionIds || it.optionId in removedOptionIds
+        }
+        val touchedLinkRuleIds = buildSet {
+            linkRules.filter { it.sourceFieldId in removedFieldIds }.mapTo(this, LinkRuleEntity::id)
+            affectedLinkConditions.mapTo(this, LinkRuleConditionEntity::linkRuleId)
+        }
+        val affectedLinkRules = linkRules.filter { it.id in touchedLinkRuleIds }
+
+        val triggerRules = linkDao.getTriggerRules()
+        val triggerConditions = linkDao.getAllTriggerConditions()
+        val triggerChoices = triggerConditions.map(TriggerRuleConditionEntity::id).takeIf { it.isNotEmpty() }
+            ?.let { linkDao.getTriggerConditionChoices(it) }
+            .orEmpty()
+        val triggerMappings = linkDao.getAllTriggerMappings()
+        val touchedTriggerConditionIds = buildSet {
+            triggerConditions.filter { it.fieldId in removedFieldIds }
+                .mapTo(this, TriggerRuleConditionEntity::id)
+            triggerChoices.filter { it.optionId in removedOptionIds }
+                .mapTo(this, TriggerConditionChoiceEntity::conditionId)
+        }
+        val affectedTriggerConditions = triggerConditions.filter { it.id in touchedTriggerConditionIds }
+        val affectedTriggerChoices = triggerChoices.filter {
+            it.conditionId in touchedTriggerConditionIds || it.optionId in removedOptionIds
+        }
+        val affectedTriggerMappings = triggerMappings.filter {
+            it.targetFieldId in removedFieldIds || it.constantChoiceOptionId in removedOptionIds
+        }
+        val touchedTriggerRuleIds = buildSet {
+            affectedTriggerConditions.mapTo(this, TriggerRuleConditionEntity::triggerRuleId)
+            affectedTriggerMappings.mapTo(this, TriggerFieldMappingEntity::triggerRuleId)
+        }
+        val affectedTriggerRules = triggerRules.filter { it.id in touchedTriggerRuleIds }
+
+        val fieldById = definition.fields.associateBy(TrackFieldEntity::id)
+        val fieldImpacts = removedFields.sortedBy(TrackFieldEntity::position).map { field ->
+            TrackFieldRemovalImpact(
+                fieldId = field.id,
+                fieldUuid = field.uuid,
+                fieldName = field.name,
+                savedValueCount = affectedValues.count { it.fieldId == field.id },
+                childChoiceCount = removedOptions.count { it.fieldId == field.id },
+                legacyLinkSourceCount = affectedLinkRules.count { it.sourceFieldId == field.id },
+                legacyLinkConditionCount = affectedLinkConditions.count { it.fieldId == field.id },
+                legacyTriggerConditionCount = affectedTriggerConditions.count { it.fieldId == field.id },
+                legacyTriggerMappingCount = affectedTriggerMappings.count { it.targetFieldId == field.id },
+            )
+        }
+        val choiceImpacts = removedOptions.sortedWith(
+            compareBy<TrackChoiceOptionEntity>({ fieldById[it.fieldId]?.position ?: Int.MAX_VALUE }, TrackChoiceOptionEntity::position),
+        ).map { option ->
+            val replacement = choiceReplacementIds[option.id]?.let(optionById::get)
+            TrackChoiceRemovalImpact(
+                optionId = option.id,
+                optionUuid = option.uuid,
+                fieldId = option.fieldId,
+                fieldName = fieldById[option.fieldId]?.name.orEmpty(),
+                optionLabel = option.label,
+                savedValueCount = affectedValues.count { it.choiceOptionId == option.id },
+                replacementOptionId = replacement?.id,
+                replacementOptionLabel = replacement?.label,
+                legacyLinkConditionCount = affectedLinkChoices.count { it.optionId == option.id },
+                legacyTriggerConditionCount = affectedTriggerChoices.count { it.optionId == option.id },
+                legacyTriggerMappingCount = affectedTriggerMappings.count { it.constantChoiceOptionId == option.id },
+                removedWithField = option.fieldId in removedFieldIds,
+            )
+        }
+        val boundaryToken = definition.boundary().semanticRevisionToken
+        val removalToken = trackRemovalRevision(
+            definitionRevisionToken = boundaryToken,
+            removedFields = removedFields,
+            removedOptions = removedOptions,
+            choiceReplacementIds = choiceReplacementIds,
+            affectedValues = affectedValues,
+            affectedLinkRules = affectedLinkRules,
+            affectedLinkConditions = affectedLinkConditions,
+            affectedLinkChoices = affectedLinkChoices,
+            affectedTriggerRules = affectedTriggerRules,
+            affectedTriggerConditions = affectedTriggerConditions,
+            affectedTriggerChoices = affectedTriggerChoices,
+            affectedTriggerMappings = affectedTriggerMappings,
+        )
+        val review = TrackDefinitionRemovalReview(
+            trackId = definition.track.id,
+            definitionRevisionToken = boundaryToken,
+            removalRevisionToken = removalToken,
+            removedFields = fieldImpacts,
+            removedChoices = choiceImpacts,
+            choiceReplacementIds = choiceReplacementIds.toSortedMap(),
+        )
+        return TrackRemovalSnapshot(
+            review = review,
+            removedFieldIds = removedFieldIds,
+            removedOptionIds = removedOptionIds,
+            affectedValues = affectedValues,
+            affectedLinkRules = affectedLinkRules,
+            affectedLinkConditions = affectedLinkConditions,
+            affectedLinkChoices = affectedLinkChoices,
+            affectedTriggerRules = affectedTriggerRules,
+            affectedTriggerConditions = affectedTriggerConditions,
+            affectedTriggerChoices = affectedTriggerChoices,
+            affectedTriggerMappings = affectedTriggerMappings,
+        )
+    }
+
     override suspend fun create(draft: TrackDraft): Long = database.withTransaction {
         val valid = draft.validated()
-        validateFieldUnits(valid.fields)
-        val area = areaRepository.resolve(valid.areaId, valid.area)
+        validateFieldUnits(valid.fields, emptyList())
+        val area = resolveAreaForDefinition(valid, existingAreaId = null)
         val now = clock.now().toEpochMilli()
         val trackId = dao.insertTrack(
             TrackEntity(
@@ -171,18 +413,35 @@ class RoomTrackRepository(
     override suspend fun update(
         id: Long,
         draft: TrackDraft,
-        confirmedFieldValueDeletionIds: Set<Long>,
-        confirmedOptionValueDeletionIds: Set<Long>,
-        optionReplacementIds: Map<Long, Long>,
-    ) = database.withTransaction {
+        expectedBoundary: TrackDefinitionBoundary,
+        reviewedRemoval: TrackDefinitionRemovalReview?,
+    ): TrackDefinitionSaveReceipt = database.withTransaction {
         val valid = draft.validated()
-        validateFieldUnits(valid.fields)
-        val existing = dao.getTrack(id) ?: error("Track no longer exists")
-        val area = areaRepository.resolve(valid.areaId, valid.area)
-        val existingFields = dao.getFields(id)
-        val existingOptions = existingFields.takeIf { it.isNotEmpty() }
-            ?.let { dao.getOptionsForFields(it.map(TrackFieldEntity::id)) }
-            .orEmpty()
+        require(id == expectedBoundary.trackId) { "Track boundary does not belong to this Track" }
+        val definition = requireMatchingDefinitionBoundary(loadDefinitionSnapshot(id), expectedBoundary)
+        val currentRemoval = buildRemovalSnapshot(
+            definition,
+            valid,
+            reviewedRemoval?.choiceReplacementIds.orEmpty(),
+        )
+        if (reviewedRemoval == null && currentRemoval.review.hasRemovals) {
+            throw TrackDefinitionConflictException(
+                TrackDefinitionConflictKind.RemovalImpactChanged,
+                "Review the exact Field, Choice, history, and legacy automation impact before saving.",
+            )
+        }
+        if (reviewedRemoval != null && reviewedRemoval != currentRemoval.review) {
+            throw TrackDefinitionConflictException(
+                TrackDefinitionConflictKind.RemovalImpactChanged,
+                "The removal impact changed after it was reviewed. Review the updated impact before saving.",
+            )
+        }
+        validateFieldUnits(valid.fields, definition.fields)
+        validateRetainedFieldChanges(definition, valid)
+        val existing = definition.track
+        val area = resolveAreaForDefinition(valid, existing.areaId)
+        val existingFields = definition.fields
+        val existingOptions = definition.options
         val fieldsChanged = !existingFields.matches(valid.fields, existingOptions)
         val searchMetadataChanged = existing.name != valid.name ||
             existing.areaId != area.id ||
@@ -203,13 +462,28 @@ class RoomTrackRepository(
             syncFields(
                 trackId = id,
                 drafts = valid.fields,
-                confirmedFieldValueDeletionIds = confirmedFieldValueDeletionIds,
-                confirmedOptionValueDeletionIds = confirmedOptionValueDeletionIds,
-                optionReplacementIds = optionReplacementIds,
+                removal = currentRemoval,
             )
         }
         if (fieldsChanged || searchMetadataChanged) rebuildSearchIndex(id)
-        TrackUpdateImpact(schemaChanged = fieldsChanged)
+        val replacedOptionIds = currentRemoval.review.choiceReplacementIds.keys
+        val replacedValues = currentRemoval.affectedValues.count { value ->
+            value.choiceOptionId?.let(replacedOptionIds::contains) == true
+        }
+        val deletedValues = currentRemoval.affectedValues.size - replacedValues
+        TrackDefinitionSaveReceipt(
+            trackId = id,
+            schemaChanged = fieldsChanged,
+            removedFieldCount = currentRemoval.review.removedFields.size,
+            removedChoiceCount = currentRemoval.review.removedChoices.size,
+            deletedValueCount = deletedValues,
+            replacedValueCount = replacedValues,
+            legacyLinkReferenceCount = currentRemoval.affectedLinkRules.size +
+                currentRemoval.affectedLinkConditions.size + currentRemoval.affectedLinkChoices.size,
+            legacyTriggerReferenceCount = currentRemoval.affectedTriggerRules.size +
+                currentRemoval.affectedTriggerConditions.size + currentRemoval.affectedTriggerChoices.size +
+                currentRemoval.affectedTriggerMappings.size,
+        )
     }
 
     override suspend fun duplicate(id: Long): Long {
@@ -536,9 +810,7 @@ class RoomTrackRepository(
     private suspend fun syncFields(
         trackId: Long,
         drafts: List<TrackFieldDraft>,
-        confirmedFieldValueDeletionIds: Set<Long>,
-        confirmedOptionValueDeletionIds: Set<Long>,
-        optionReplacementIds: Map<Long, Long> = emptyMap(),
+        removal: TrackRemovalSnapshot,
     ) {
         val now = clock.now().toEpochMilli()
         val existingFields = dao.getFields(trackId)
@@ -546,14 +818,11 @@ class RoomTrackRepository(
         val byUuid = existingFields.associateBy(TrackFieldEntity::uuid)
         val retainedFieldIds = mutableSetOf<Long>()
         drafts.forEachIndexed { position, draft ->
-            val current = draft.id?.let(byId::get) ?: draft.uuid?.let(byUuid::get)
+            val current = resolveExistingField(draft, byId, byUuid)
             val fieldId = if (current == null) {
                 dao.insertField(draft.toEntity(trackId, position, ids.nextId(), now))
             } else {
                 require(current.trackId == trackId) { "Field does not belong to this Track" }
-                if (current.type != draft.type.name && dao.countValuesForField(current.id) > 0) {
-                    error("${current.name} has saved values. Delete it and add a new Field instead of changing its type.")
-                }
                 if (current.type == TrackFieldType.Scale.name && draft.type == TrackFieldType.Scale) {
                     validateExistingScaleConfiguration(current.id, draft)
                 }
@@ -566,22 +835,30 @@ class RoomTrackRepository(
                 current.id
             }
             retainedFieldIds += fieldId
-            syncOptions(fieldId, draft.options, confirmedOptionValueDeletionIds, optionReplacementIds, now)
+            syncOptions(fieldId, draft.options, removal, now)
         }
-        existingFields.filterNot { it.id in retainedFieldIds }.forEach { field ->
-            val valueCount = dao.countValuesForField(field.id)
-            require(valueCount == 0 || field.id in confirmedFieldValueDeletionIds) {
-                "Deleting ${field.name} will permanently remove $valueCount saved values. Confirm this deletion first."
-            }
+        val fieldsToRemove = existingFields.filterNot { it.id in retainedFieldIds }
+        check(fieldsToRemove.mapTo(linkedSetOf(), TrackFieldEntity::id) == removal.removedFieldIds) {
+            "The Field removal impact changed before it could be committed"
+        }
+        fieldsToRemove.forEach { field ->
             check(dao.deleteField(field.id) == 1) { "Field no longer exists" }
+            check(dao.getField(field.id) == null && dao.getValuesForField(field.id).isEmpty()) {
+                "Field history was not removed exactly"
+            }
+            check(
+                linkDao.countLinkRulesForSourceField(field.id) == 0 &&
+                    linkDao.countLinkConditionsForField(field.id) == 0 &&
+                    linkDao.countTriggerConditionsForField(field.id) == 0 &&
+                    linkDao.countTriggerMappingsForField(field.id) == 0,
+            ) { "Legacy Field references were not reconciled exactly" }
         }
     }
 
     private suspend fun syncOptions(
         fieldId: Long,
         drafts: List<TrackChoiceOptionDraft>,
-        confirmedOptionValueDeletionIds: Set<Long>,
-        optionReplacementIds: Map<Long, Long>,
+        removal: TrackRemovalSnapshot,
         now: Long,
     ) {
         val existing = dao.getOptions(fieldId)
@@ -589,7 +866,7 @@ class RoomTrackRepository(
         val byUuid = existing.associateBy(TrackChoiceOptionEntity::uuid)
         val retainedIds = mutableSetOf<Long>()
         drafts.forEachIndexed { position, draft ->
-            val current = draft.id?.let(byId::get) ?: draft.uuid?.let(byUuid::get)
+            val current = resolveExistingOption(draft, byId, byUuid)
             val optionId = if (current == null) {
                 dao.insertOption(draft.toEntity(fieldId, position, ids.nextId(), now))
             } else {
@@ -601,37 +878,49 @@ class RoomTrackRepository(
             }
             retainedIds += optionId
         }
-        existing.filterNot { it.id in retainedIds }.forEach { option ->
-            val replacementId = optionReplacementIds[option.id]
+        val optionsToRemove = existing.filterNot { it.id in retainedIds }
+        val expectedRemovedIds = existing
+            .filter { it.id in removal.removedOptionIds }
+            .mapTo(linkedSetOf(), TrackChoiceOptionEntity::id)
+        check(optionsToRemove.mapTo(linkedSetOf(), TrackChoiceOptionEntity::id) == expectedRemovedIds) {
+            "The Choice removal impact changed before it could be committed"
+        }
+        optionsToRemove.forEach { option ->
+            val replacementId = removal.review.choiceReplacementIds[option.id]
+            val expectedValueCount = removal.affectedValues.count { it.choiceOptionId == option.id }
             if (replacementId != null) {
                 val replacement = dao.getOption(replacementId) ?: error("Replacement Choice no longer exists")
                 require(replacement.fieldId == fieldId && replacement.id in retainedIds) {
                     "Choose a retained Choice from ${replacement.label}'s Field"
                 }
-                replaceChoiceOption(option.id, replacement.id, now)
+                replaceChoiceOption(option.id, replacement.id, expectedValueCount, removal, now)
                 check(dao.deleteOption(option.id) == 1) { "Choice option no longer exists" }
                 return@forEach
             }
-            val valueCount = dao.countValuesForOption(option.id)
-            require(valueCount == 0 || option.id in confirmedOptionValueDeletionIds) {
-                "Deleting ${option.label} will permanently remove it from $valueCount Entries. Confirm this deletion first."
-            }
-            if (valueCount > 0) {
-                database.openHelper.writableDatabase.execSQL(
-                    "DELETE FROM track_values WHERE choiceOptionId = ?",
-                    arrayOf(option.id),
-                )
+            check(dao.deleteValuesForOption(option.id) == expectedValueCount) {
+                "Choice history changed before it could be deleted"
             }
             check(dao.deleteOption(option.id) == 1) { "Choice option no longer exists" }
+            check(
+                dao.countValuesForOption(option.id) == 0 &&
+                    linkDao.countLinkConditionsForOption(option.id) == 0 &&
+                    linkDao.countTriggerConditionsForOption(option.id) == 0 &&
+                    linkDao.countTriggerMappingsForOption(option.id) == 0,
+            ) { "Legacy Choice references were not reconciled exactly" }
         }
     }
 
-    private fun replaceChoiceOption(removedId: Long, replacementId: Long, now: Long) {
+    private suspend fun replaceChoiceOption(
+        removedId: Long,
+        replacementId: Long,
+        expectedValueCount: Int,
+        removal: TrackRemovalSnapshot,
+        now: Long,
+    ) {
         val db = database.openHelper.writableDatabase
-        db.execSQL(
-            "UPDATE track_values SET choiceOptionId = ?, updatedAtMillis = ? WHERE choiceOptionId = ?",
-            arrayOf(replacementId, now, removedId),
-        )
+        check(dao.replaceChoiceOptionValues(removedId, replacementId, now) == expectedValueCount) {
+            "Choice history changed before it could be replaced"
+        }
         db.execSQL(
             "INSERT OR IGNORE INTO link_condition_choices(conditionId, optionId) SELECT conditionId, ? FROM link_condition_choices WHERE optionId = ?",
             arrayOf(replacementId, removedId),
@@ -646,6 +935,40 @@ class RoomTrackRepository(
             "UPDATE trigger_field_mappings SET constantChoiceOptionId = ? WHERE constantChoiceOptionId = ?",
             arrayOf(replacementId, removedId),
         )
+        check(
+            dao.countValuesForOption(removedId) == 0 &&
+                linkDao.countLinkConditionsForOption(removedId) == 0 &&
+                linkDao.countTriggerConditionsForOption(removedId) == 0 &&
+                linkDao.countTriggerMappingsForOption(removedId) == 0,
+        ) { "Legacy Choice references were not replaced exactly" }
+        val expectedLinkConditions = removal.affectedLinkChoices
+            .filter { it.optionId == removedId }
+            .mapTo(linkedSetOf(), LinkConditionChoiceEntity::conditionId)
+        val currentLinkChoices = expectedLinkConditions.takeIf { it.isNotEmpty() }
+            ?.let { linkDao.getLinkConditionChoices(it.toList()) }
+            .orEmpty()
+        check(expectedLinkConditions.all { conditionId ->
+            currentLinkChoices.any { it.conditionId == conditionId && it.optionId == replacementId }
+        }) { "A legacy Link Choice replacement was lost" }
+        val expectedTriggerConditions = removal.affectedTriggerChoices
+            .filter { it.optionId == removedId }
+            .mapTo(linkedSetOf(), TriggerConditionChoiceEntity::conditionId)
+        val currentTriggerChoices = expectedTriggerConditions.takeIf { it.isNotEmpty() }
+            ?.let { linkDao.getTriggerConditionChoices(it.toList()) }
+            .orEmpty()
+        check(expectedTriggerConditions.all { conditionId ->
+            currentTriggerChoices.any { it.conditionId == conditionId && it.optionId == replacementId }
+        }) { "A legacy Trigger Choice replacement was lost" }
+        val expectedMappingIds = removal.affectedTriggerMappings
+            .filter { it.constantChoiceOptionId == removedId }
+            .mapTo(linkedSetOf(), TriggerFieldMappingEntity::id)
+        val currentMappings = linkDao.getAllTriggerMappings().filter { it.id in expectedMappingIds }
+        check(
+            currentMappings.mapTo(linkedSetOf(), TriggerFieldMappingEntity::id) == expectedMappingIds &&
+                currentMappings.all { it.constantChoiceOptionId == replacementId },
+        ) {
+            "A legacy Trigger mapping replacement was lost"
+        }
     }
 
     private suspend fun upsertDraftValues(
@@ -672,10 +995,79 @@ class RoomTrackRepository(
         }
     }
 
-    private suspend fun validateFieldUnits(fields: List<TrackFieldDraft>) {
+    private suspend fun validateFieldUnits(
+        fields: List<TrackFieldDraft>,
+        existingFields: List<TrackFieldEntity>,
+    ) {
+        val byId = existingFields.associateBy(TrackFieldEntity::id)
+        val byUuid = existingFields.associateBy(TrackFieldEntity::uuid)
         fields.filter { it.type == TrackFieldType.Number }.forEach { field ->
             val unit = resolveUnit(requireNotNull(field.unitId)) ?: error("${field.name} uses an unknown unit")
             require(unit.dimension == field.dimension) { "${field.name}'s unit does not match its measurement type" }
+            val current = resolveExistingField(field, byId, byUuid)
+            require(!unit.archived || current?.unitId == unit.id) {
+                "Restore ${unit.name} before selecting it for ${field.name}."
+            }
+        }
+    }
+
+    private suspend fun resolveAreaForDefinition(
+        draft: TrackDraft,
+        existingAreaId: String?,
+    ): AreaSelection {
+        val measurementDao = database.measurementDao()
+        val selectedBeforeResolve = when {
+            !draft.areaId.isNullOrBlank() -> measurementDao.getArea(requireNotNull(draft.areaId))
+            draft.area.isNotBlank() -> measurementDao.getAreaByNameKey(areaNameKey(draft.area))
+            else -> null
+        }
+        require(selectedBeforeResolve?.archived != true || selectedBeforeResolve.id == existingAreaId) {
+            "Restore ${selectedBeforeResolve?.name ?: "this Area"} before moving this Track into it."
+        }
+        if (selectedBeforeResolve?.archived == true) {
+            // Retaining an archived Area by its legacy display name must not call
+            // AreaRepository.create(), which intentionally restores archived
+            // Areas when users explicitly create/select them elsewhere.
+            return AreaSelection(selectedBeforeResolve.id, selectedBeforeResolve.name)
+        }
+        val resolved = areaRepository.resolve(draft.areaId, draft.area)
+        val selected = requireNotNull(resolved.id?.let { measurementDao.getArea(it) }) {
+            "Selected Area no longer exists"
+        }
+        require(!selected.archived || selected.id == existingAreaId) {
+            "Restore ${selected.name} before moving this Track into it."
+        }
+        return resolved
+    }
+
+    private suspend fun validateRetainedFieldChanges(
+        definition: TrackDefinitionSnapshot,
+        draft: TrackDraft,
+    ) {
+        val byId = definition.fields.associateBy(TrackFieldEntity::id)
+        val byUuid = definition.fields.associateBy(TrackFieldEntity::uuid)
+        draft.fields.forEach { fieldDraft ->
+            val current = resolveExistingField(fieldDraft, byId, byUuid) ?: return@forEach
+            val hasSavedValues = dao.countValuesForField(current.id) > 0
+            val hasLegacyDefinitionReferences =
+                linkDao.countLinkRulesForSourceField(current.id) > 0 ||
+                    linkDao.countLinkConditionsForField(current.id) > 0 ||
+                    linkDao.countTriggerConditionsForField(current.id) > 0 ||
+                    linkDao.countTriggerMappingsForField(current.id) > 0
+            if (current.type != fieldDraft.type.name) {
+                require(!hasSavedValues && !hasLegacyDefinitionReferences) {
+                    "${current.name} has saved values or legacy automation definitions. Delete it and add a new Field instead of changing its type."
+                }
+            }
+            if (
+                current.type == TrackFieldType.Number.name &&
+                fieldDraft.type == TrackFieldType.Number &&
+                current.dimension != fieldDraft.dimension?.name
+            ) {
+                require(!hasSavedValues && !hasLegacyDefinitionReferences) {
+                    "${current.name}'s measurement type cannot change while it has saved values or legacy automation definitions."
+                }
+            }
         }
     }
 
@@ -687,6 +1079,12 @@ class RoomTrackRepository(
             .firstOrNull { value -> normalizeTrackScaleValue(value, minimum, maximum, draft.scaleStep) == null }
         require(invalidSavedValue == null) {
             "An existing Scale value does not fit the new range and increment. Keep it selectable or edit that Entry first."
+        }
+        val invalidLegacyMapping = linkDao.getTriggerMappingsForField(fieldId)
+            .mapNotNull(TriggerFieldMappingEntity::constantScale)
+            .firstOrNull { value -> normalizeTrackScaleValue(value, minimum, maximum, draft.scaleStep) == null }
+        require(invalidLegacyMapping == null) {
+            "A legacy automation value does not fit the new Scale range and increment. Keep it selectable or replace the Field."
         }
     }
 
@@ -740,6 +1138,271 @@ class RoomTrackRepository(
             updatedAtMillis = now,
         )
     }
+}
+
+private data class TrackDefinitionSnapshot(
+    val track: TrackEntity,
+    val fields: List<TrackFieldEntity>,
+    val options: List<TrackChoiceOptionEntity>,
+) {
+    fun boundary(): TrackDefinitionBoundary = TrackDefinitionBoundary(
+        trackId = track.id,
+        trackUuid = track.uuid,
+        trackCreatedAtMillis = track.createdAtMillis,
+        semanticRevisionToken = canonicalTrackRevision {
+            value("track.id", track.id)
+            value("track.uuid", track.uuid)
+            value("track.name", track.name)
+            value("track.description", track.description)
+            value("track.icon", track.icon)
+            value("track.areaId", track.areaId)
+            value("track.tags", track.tagsCsv)
+            fields.sortedBy(TrackFieldEntity::id).forEach { field ->
+                value("field.id", field.id)
+                value("field.uuid", field.uuid)
+                value("field.trackId", field.trackId)
+                value("field.name", field.name)
+                value("field.type", field.type)
+                value("field.position", field.position)
+                value("field.required", field.required)
+                value("field.primary", field.primaryField)
+                value("field.showInList", field.showInList)
+                value("field.dimension", field.dimension)
+                value("field.unitId", field.unitId)
+                value("field.precision", field.precision)
+                value("field.scaleMin", field.scaleMin)
+                value("field.scaleMax", field.scaleMax)
+                value("field.scaleLowLabel", field.scaleLowLabel)
+                value("field.scaleHighLabel", field.scaleHighLabel)
+                value("field.scaleStep", field.scaleStep)
+            }
+            options.sortedBy(TrackChoiceOptionEntity::id).forEach { option ->
+                value("option.id", option.id)
+                value("option.uuid", option.uuid)
+                value("option.fieldId", option.fieldId)
+                value("option.label", option.label)
+                value("option.position", option.position)
+            }
+        },
+    )
+
+    fun matches(draft: TrackDraft): Boolean =
+        track.name == draft.name &&
+            track.description == draft.description &&
+            track.icon == draft.icon &&
+            track.areaId == draft.areaId &&
+            track.tagsCsv == draft.tags.joinToString(",") &&
+            fields.matches(draft.fields, options)
+
+    fun resolveRetainedFields(draft: TrackDraft): Set<Long> {
+        val byId = fields.associateBy(TrackFieldEntity::id)
+        val byUuid = fields.associateBy(TrackFieldEntity::uuid)
+        return draft.fields.mapNotNullTo(linkedSetOf()) { field ->
+            resolveExistingField(field, byId, byUuid)?.also { current ->
+                require(current.trackId == track.id) { "Field does not belong to this Track" }
+            }?.id
+        }
+    }
+
+    fun resolveRetainedOptions(draft: TrackDraft, retainedFieldIds: Set<Long>): Set<Long> {
+        val fieldById = fields.associateBy(TrackFieldEntity::id)
+        val fieldByUuid = fields.associateBy(TrackFieldEntity::uuid)
+        return buildSet {
+            draft.fields.forEach { fieldDraft ->
+                val currentField = resolveExistingField(fieldDraft, fieldById, fieldByUuid)
+                if (currentField == null) {
+                    require(fieldDraft.options.all { it.id == null && it.uuid == null }) {
+                        "A new Field cannot reuse an existing Choice identity"
+                    }
+                    return@forEach
+                }
+                require(currentField.id in retainedFieldIds)
+                val currentOptions = options.filter { it.fieldId == currentField.id }
+                val optionById = currentOptions.associateBy(TrackChoiceOptionEntity::id)
+                val optionByUuid = currentOptions.associateBy(TrackChoiceOptionEntity::uuid)
+                fieldDraft.options.mapNotNullTo(this) { option ->
+                    resolveExistingOption(option, optionById, optionByUuid)?.id
+                }
+            }
+        }
+    }
+}
+
+private data class TrackRemovalSnapshot(
+    val review: TrackDefinitionRemovalReview,
+    val removedFieldIds: Set<Long>,
+    val removedOptionIds: Set<Long>,
+    val affectedValues: List<TrackValueEntity>,
+    val affectedLinkRules: List<LinkRuleEntity>,
+    val affectedLinkConditions: List<LinkRuleConditionEntity>,
+    val affectedLinkChoices: List<LinkConditionChoiceEntity>,
+    val affectedTriggerRules: List<TriggerRuleEntity>,
+    val affectedTriggerConditions: List<TriggerRuleConditionEntity>,
+    val affectedTriggerChoices: List<TriggerConditionChoiceEntity>,
+    val affectedTriggerMappings: List<TriggerFieldMappingEntity>,
+)
+
+private fun resolveExistingField(
+    draft: TrackFieldDraft,
+    byId: Map<Long, TrackFieldEntity>,
+    byUuid: Map<String, TrackFieldEntity>,
+): TrackFieldEntity? {
+    val byDraftId = draft.id?.let { id ->
+        byId[id] ?: throw TrackDefinitionConflictException(
+            TrackDefinitionConflictKind.DefinitionChanged,
+            "A Field changed or no longer exists. Review the latest Track definition.",
+        )
+    }
+    val byDraftUuid = draft.uuid?.let { uuid ->
+        byUuid[uuid] ?: throw TrackDefinitionConflictException(
+            TrackDefinitionConflictKind.DefinitionChanged,
+            "A Field identity changed. Review the latest Track definition.",
+        )
+    }
+    require(byDraftId == null || byDraftUuid == null || byDraftId.id == byDraftUuid.id) {
+        "Field identity does not match its stable ID"
+    }
+    return byDraftId ?: byDraftUuid
+}
+
+private fun resolveExistingOption(
+    draft: TrackChoiceOptionDraft,
+    byId: Map<Long, TrackChoiceOptionEntity>,
+    byUuid: Map<String, TrackChoiceOptionEntity>,
+): TrackChoiceOptionEntity? {
+    val byDraftId = draft.id?.let { id ->
+        byId[id] ?: throw TrackDefinitionConflictException(
+            TrackDefinitionConflictKind.DefinitionChanged,
+            "A Choice changed or no longer exists. Review the latest Track definition.",
+        )
+    }
+    val byDraftUuid = draft.uuid?.let { uuid ->
+        byUuid[uuid] ?: throw TrackDefinitionConflictException(
+            TrackDefinitionConflictKind.DefinitionChanged,
+            "A Choice identity changed. Review the latest Track definition.",
+        )
+    }
+    require(byDraftId == null || byDraftUuid == null || byDraftId.id == byDraftUuid.id) {
+        "Choice identity does not match its stable ID"
+    }
+    return byDraftId ?: byDraftUuid
+}
+
+private class CanonicalTrackRevisionBuilder {
+    private val canonical = StringBuilder()
+
+    fun value(label: String, value: Any?) {
+        val encoded = when (value) {
+            null -> "null"
+            is Boolean -> if (value) "boolean:1" else "boolean:0"
+            is Double -> "double:${java.lang.Double.doubleToRawLongBits(value)}"
+            is Float -> "float:${java.lang.Float.floatToRawIntBits(value)}"
+            is Number -> "integer:${value.toLong()}"
+            else -> "string:$value"
+        }
+        canonical.append(label.length).append(':').append(label)
+            .append(encoded.length).append(':').append(encoded).append('\n')
+    }
+
+    fun digest(): String = MessageDigest.getInstance("SHA-256")
+        .digest(canonical.toString().toByteArray(Charsets.UTF_8))
+        .joinToString("") { byte -> "%02x".format(byte) }
+}
+
+private inline fun canonicalTrackRevision(block: CanonicalTrackRevisionBuilder.() -> Unit): String =
+    CanonicalTrackRevisionBuilder().apply(block).digest()
+
+private fun trackRemovalRevision(
+    definitionRevisionToken: String,
+    removedFields: List<TrackFieldEntity>,
+    removedOptions: List<TrackChoiceOptionEntity>,
+    choiceReplacementIds: Map<Long, Long>,
+    affectedValues: List<TrackValueEntity>,
+    affectedLinkRules: List<LinkRuleEntity>,
+    affectedLinkConditions: List<LinkRuleConditionEntity>,
+    affectedLinkChoices: List<LinkConditionChoiceEntity>,
+    affectedTriggerRules: List<TriggerRuleEntity>,
+    affectedTriggerConditions: List<TriggerRuleConditionEntity>,
+    affectedTriggerChoices: List<TriggerConditionChoiceEntity>,
+    affectedTriggerMappings: List<TriggerFieldMappingEntity>,
+): String = canonicalTrackRevision {
+    value("definition", definitionRevisionToken)
+    removedFields.sortedBy(TrackFieldEntity::id).forEach { value("remove.field", it.id) }
+    removedOptions.sortedBy(TrackChoiceOptionEntity::id).forEach { value("remove.option", it.id) }
+    choiceReplacementIds.toSortedMap().forEach { (removed, replacement) ->
+        value("replace.removed", removed)
+        value("replace.target", replacement)
+    }
+    affectedValues.sortedBy(TrackValueEntity::id).forEach(::row)
+    affectedLinkRules.sortedBy(LinkRuleEntity::id).forEach(::row)
+    affectedLinkConditions.sortedBy(LinkRuleConditionEntity::id).forEach(::row)
+    affectedLinkChoices.sortedWith(compareBy(LinkConditionChoiceEntity::conditionId, LinkConditionChoiceEntity::optionId)).forEach(::row)
+    affectedTriggerRules.sortedBy(TriggerRuleEntity::id).forEach(::row)
+    affectedTriggerConditions.sortedBy(TriggerRuleConditionEntity::id).forEach(::row)
+    affectedTriggerChoices.sortedWith(compareBy(TriggerConditionChoiceEntity::conditionId, TriggerConditionChoiceEntity::optionId)).forEach(::row)
+    affectedTriggerMappings.sortedBy(TriggerFieldMappingEntity::id).forEach(::row)
+}
+
+private fun CanonicalTrackRevisionBuilder.row(row: TrackValueEntity) {
+    value("row", "track_value")
+    value("id", row.id); value("uuid", row.uuid); value("entryId", row.entryId); value("fieldId", row.fieldId)
+    value("text", row.textValue); value("enteredNumber", row.enteredNumber); value("canonicalNumber", row.canonicalNumber)
+    value("enteredUnitId", row.enteredUnitId); value("date", row.dateEpochDay); value("boolean", row.booleanValue)
+    value("choice", row.choiceOptionId); value("scale", row.scaleValue)
+    value("created", row.createdAtMillis); value("updated", row.updatedAtMillis)
+}
+
+private fun CanonicalTrackRevisionBuilder.row(row: LinkRuleEntity) {
+    value("row", "link_rule")
+    value("id", row.id); value("uuid", row.uuid); value("name", row.name); value("kind", row.kind)
+    value("sourceType", row.sourceType); value("sourceEntityId", row.sourceEntityId); value("sourceMetricId", row.sourceMetricId)
+    value("sourceItemId", row.sourceItemId); value("sourceMetric", row.sourceMetric); value("targetGoalId", row.targetGoalId)
+    value("targetMilestoneId", row.targetMilestoneId); value("valueMode", row.valueMode); value("fixedValue", row.fixedValue)
+    value("multiplier", row.multiplier); value("offset", row.offset); value("retroactive", row.retroactiveFromEpochDay)
+    value("enabled", row.enabled); value("created", row.createdAtMillis); value("updated", row.updatedAtMillis)
+    value("aggregation", row.trackAggregation); value("sourceFieldId", row.sourceFieldId); value("conditionMode", row.conditionMode)
+}
+
+private fun CanonicalTrackRevisionBuilder.row(row: LinkRuleConditionEntity) {
+    value("row", "link_condition")
+    value("id", row.id); value("ruleId", row.linkRuleId); value("fieldId", row.fieldId); value("entryDate", row.entryDate)
+    value("operator", row.operator); value("position", row.position); value("text", row.textValue)
+    value("number", row.numberValue); value("secondNumber", row.secondNumberValue)
+    value("date", row.dateEpochDay); value("secondDate", row.secondDateEpochDay)
+}
+
+private fun CanonicalTrackRevisionBuilder.row(row: LinkConditionChoiceEntity) {
+    value("row", "link_choice"); value("conditionId", row.conditionId); value("optionId", row.optionId)
+}
+
+private fun CanonicalTrackRevisionBuilder.row(row: TriggerRuleEntity) {
+    value("row", "trigger_rule")
+    value("id", row.id); value("uuid", row.uuid); value("name", row.name); value("sourceType", row.sourceType)
+    value("sourceEntityId", row.sourceEntityId); value("sourceItemId", row.sourceItemId); value("outcome", row.outcome)
+    value("targetType", row.targetType); value("targetEntityId", row.targetEntityId); value("delay", row.delayMinutes)
+    value("quietStart", row.quietStartMinutes); value("quietEnd", row.quietEndMinutes); value("action", row.action)
+    value("notifications", row.notificationEnabled); value("conditionMode", row.conditionMode); value("enabled", row.enabled)
+    value("created", row.createdAtMillis); value("updated", row.updatedAtMillis)
+}
+
+private fun CanonicalTrackRevisionBuilder.row(row: TriggerRuleConditionEntity) {
+    value("row", "trigger_condition")
+    value("id", row.id); value("ruleId", row.triggerRuleId); value("fieldId", row.fieldId); value("entryDate", row.entryDate)
+    value("operator", row.operator); value("position", row.position); value("text", row.textValue)
+    value("number", row.numberValue); value("secondNumber", row.secondNumberValue)
+    value("date", row.dateEpochDay); value("secondDate", row.secondDateEpochDay)
+}
+
+private fun CanonicalTrackRevisionBuilder.row(row: TriggerConditionChoiceEntity) {
+    value("row", "trigger_choice"); value("conditionId", row.conditionId); value("optionId", row.optionId)
+}
+
+private fun CanonicalTrackRevisionBuilder.row(row: TriggerFieldMappingEntity) {
+    value("row", "trigger_mapping")
+    value("id", row.id); value("ruleId", row.triggerRuleId); value("fieldId", row.targetFieldId)
+    value("sourceProperty", row.sourceProperty); value("text", row.constantText); value("number", row.constantNumber)
+    value("unit", row.constantUnitId); value("date", row.constantDateEpochDay); value("boolean", row.constantBoolean)
+    value("choice", row.constantChoiceOptionId); value("scale", row.constantScale)
 }
 
 private fun List<TrackFieldEntity>.matches(

@@ -69,11 +69,17 @@ interface LinkDao {
     @Query("SELECT * FROM trigger_rule_conditions WHERE triggerRuleId = :ruleId ORDER BY position")
     suspend fun getTriggerConditions(ruleId: Long): List<TriggerRuleConditionEntity>
 
+    @Query("SELECT * FROM trigger_rule_conditions ORDER BY triggerRuleId, position")
+    suspend fun getAllTriggerConditions(): List<TriggerRuleConditionEntity>
+
     @Query("SELECT * FROM trigger_condition_choices WHERE conditionId IN (:conditionIds)")
     suspend fun getTriggerConditionChoices(conditionIds: List<Long>): List<TriggerConditionChoiceEntity>
 
     @Query("SELECT * FROM trigger_field_mappings WHERE triggerRuleId = :ruleId ORDER BY id")
     suspend fun getTriggerMappings(ruleId: Long): List<TriggerFieldMappingEntity>
+
+    @Query("SELECT * FROM trigger_field_mappings ORDER BY triggerRuleId, id")
+    suspend fun getAllTriggerMappings(): List<TriggerFieldMappingEntity>
 
     @Query("SELECT * FROM trigger_field_mappings WHERE targetFieldId = :fieldId ORDER BY id")
     suspend fun getTriggerMappingsForField(fieldId: Long): List<TriggerFieldMappingEntity>

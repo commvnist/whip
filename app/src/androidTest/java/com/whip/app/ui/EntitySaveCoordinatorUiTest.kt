@@ -10,6 +10,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertContentDescriptionContains
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertCountEquals
@@ -172,6 +173,42 @@ class EntitySaveCoordinatorUiTest {
         }
         compose.onNodeWithTag("save-failure").assertIsDisplayed()
         compose.onNodeWithText("Save").assertIsEnabled()
+    }
+
+    @Test
+    fun unknownTrackCreateOutcomeWarnsAgainstRetryUntilTheListIsVerified() {
+        var state by mutableStateOf<PersistenceRequestState<EntitySaveReceipt>>(PersistenceRequestState.Idle)
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                val coordinator = rememberEntitySaveCoordinator(
+                    state = state,
+                    consume = {},
+                    orphanedMessage =
+                        "The previous Track save was interrupted and its outcome is unknown. " +
+                            "Verify the Track list and do not retry until you know whether it was saved.",
+                    onPersisted = {},
+                )
+                Column {
+                    PersistenceFailureNotice(coordinator.errorMessage, testTag = "track-unknown-outcome")
+                    WhipButton(onClick = {
+                        coordinator.begin()?.let { state = PersistenceRequestState.Running(it) }
+                    }) { Text(if (coordinator.saving) "Saving…" else "Save") }
+                }
+            }
+        }
+
+        compose.onNodeWithText("Save").performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        state = PersistenceRequestState.Idle
+
+        compose.waitUntil(2_000) {
+            compose.onAllNodesWithTag("track-unknown-outcome")
+                .fetchSemanticsNodes(atLeastOneRootRequired = false).isNotEmpty()
+        }
+        compose.onNodeWithTag("track-unknown-outcome")
+            .assertContentDescriptionContains("Verify the Track list", substring = true)
+            .assertContentDescriptionContains("do not retry", substring = true)
     }
 
     @Test

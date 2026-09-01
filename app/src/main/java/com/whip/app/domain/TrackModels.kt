@@ -222,6 +222,102 @@ data class TrackProjection(
     }
 }
 
+/**
+ * Compact, process-saveable optimistic-concurrency boundary for an authored
+ * Track definition. Performance history is deliberately excluded so ordinary
+ * Entry logging does not invalidate a non-destructive definition edit.
+ */
+data class TrackDefinitionBoundary(
+    val trackId: Long,
+    val trackUuid: String,
+    val trackCreatedAtMillis: Long,
+    val semanticRevisionToken: String,
+) : Serializable
+
+/** User-facing impact of removing one persisted Field from a Track definition. */
+data class TrackFieldRemovalImpact(
+    val fieldId: Long,
+    val fieldUuid: String,
+    val fieldName: String,
+    val savedValueCount: Int,
+    val childChoiceCount: Int,
+    val legacyLinkSourceCount: Int,
+    val legacyLinkConditionCount: Int,
+    val legacyTriggerConditionCount: Int,
+    val legacyTriggerMappingCount: Int,
+) : Serializable {
+    val legacyLinkReferenceCount: Int
+        get() = legacyLinkSourceCount + legacyLinkConditionCount
+
+    val legacyTriggerReferenceCount: Int
+        get() = legacyTriggerConditionCount + legacyTriggerMappingCount
+}
+
+/**
+ * User-facing impact of deleting or replacing one persisted Choice. References
+ * are retained only as dormant compatibility metadata since automation retired.
+ */
+data class TrackChoiceRemovalImpact(
+    val optionId: Long,
+    val optionUuid: String,
+    val fieldId: Long,
+    val fieldName: String,
+    val optionLabel: String,
+    val savedValueCount: Int,
+    val replacementOptionId: Long? = null,
+    val replacementOptionLabel: String? = null,
+    val legacyLinkConditionCount: Int,
+    val legacyTriggerConditionCount: Int,
+    val legacyTriggerMappingCount: Int,
+    val removedWithField: Boolean,
+) : Serializable {
+    val replacesSavedValues: Boolean get() = replacementOptionId != null
+    val legacyLinkReferenceCount: Int get() = legacyLinkConditionCount
+    val legacyTriggerReferenceCount: Int
+        get() = legacyTriggerConditionCount + legacyTriggerMappingCount
+}
+
+/**
+ * Exact reviewed destructive subset of a Track-definition save. The removal
+ * token covers the plan, affected values, and dormant Link/Trigger rows.
+ */
+data class TrackDefinitionRemovalReview(
+    val trackId: Long,
+    val definitionRevisionToken: String,
+    val removalRevisionToken: String,
+    val removedFields: List<TrackFieldRemovalImpact>,
+    val removedChoices: List<TrackChoiceRemovalImpact>,
+    val choiceReplacementIds: Map<Long, Long> = emptyMap(),
+) : Serializable {
+    val hasRemovals: Boolean get() = removedFields.isNotEmpty() || removedChoices.isNotEmpty()
+}
+
+/** Authoritative result of one committed Track-definition mutation. */
+data class TrackDefinitionSaveReceipt(
+    val trackId: Long,
+    val schemaChanged: Boolean,
+    val removedFieldCount: Int = 0,
+    val removedChoiceCount: Int = 0,
+    val deletedValueCount: Int = 0,
+    val replacedValueCount: Int = 0,
+    val legacyLinkReferenceCount: Int = 0,
+    val legacyTriggerReferenceCount: Int = 0,
+    val warnings: List<String> = emptyList(),
+) : Serializable
+
+enum class TrackDefinitionConflictKind {
+    TargetMissing,
+    IdentityChanged,
+    DefinitionChanged,
+    RemovalImpactChanged,
+    ReplacementUnavailable,
+}
+
+class TrackDefinitionConflictException(
+    val kind: TrackDefinitionConflictKind,
+    message: String,
+) : IllegalStateException(message)
+
 private fun plainTrackNumber(value: Double): String =
     BigDecimal.valueOf(value).stripTrailingZeros().toPlainString()
 
@@ -283,6 +379,8 @@ fun TrackDraft.validated(): TrackDraft {
     require(normalizedNames.distinct().size == normalizedNames.size) { "Field names must be unique within a Track" }
     val stableIds = normalizedFields.mapNotNull(TrackFieldDraft::uuid)
     require(stableIds.distinct().size == stableIds.size) { "Field identities must be unique within a Track" }
+    val databaseIds = normalizedFields.mapNotNull(TrackFieldDraft::id)
+    require(databaseIds.distinct().size == databaseIds.size) { "Field identities must be unique within a Track" }
     return copy(
         name = normalizedName,
         description = description.trim(),
@@ -307,6 +405,10 @@ private fun TrackFieldDraft.validated(): TrackFieldDraft {
     require(normalizedOptions.map { it.label.lowercase(Locale.ROOT) }.distinct().size == normalizedOptions.size) {
         "Choice labels must be unique within a Field"
     }
+    val optionUuids = normalizedOptions.mapNotNull(TrackChoiceOptionDraft::uuid)
+    require(optionUuids.distinct().size == optionUuids.size) { "Choice identities must be unique within a Field" }
+    val optionIds = normalizedOptions.mapNotNull(TrackChoiceOptionDraft::id)
+    require(optionIds.distinct().size == optionIds.size) { "Choice identities must be unique within a Field" }
     when (type) {
         TrackFieldType.Number -> {
             require(dimension != null && !unitId.isNullOrBlank()) { "Choose a measurement type and unit" }

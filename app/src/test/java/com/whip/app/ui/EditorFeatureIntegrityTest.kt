@@ -130,7 +130,7 @@ class EditorFeatureIntegrityTest {
         ).forEach { copy -> assertTrue("Missing Track UX: $copy", trackUi.contains(copy)) }
         assertTrue(trackUi.contains("TRACK_ENTRY_PAGE_SIZE = 100"))
         assertTrue(trackUi.contains("Possible Existing"))
-        assertTrue(trackUi.contains("Replace With"))
+        assertTrue(trackUi.contains("Move Values to"))
         val appUi = File(uiRoot, "WhipApp.kt").readText()
         assertFalse(appUi.contains("Add Another"))
         assertFalse(appUi.contains("onCancelTrackOperation"))

@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
@@ -111,6 +112,9 @@ import com.whip.app.domain.TrackConditionOperator
 import com.whip.app.domain.TrackCsvImportPreview
 import com.whip.app.domain.TrackCsvMapping
 import com.whip.app.domain.TrackDraft
+import com.whip.app.domain.TrackDefinitionBoundary
+import com.whip.app.domain.TrackDefinitionConflictKind
+import com.whip.app.domain.TrackDefinitionRemovalReview
 import com.whip.app.domain.TrackEntryDraft
 import com.whip.app.domain.TrackEntryPage
 import com.whip.app.domain.TrackEntryProjection
@@ -227,15 +231,21 @@ internal sealed interface TrackEditorIntent : Serializable {
 
 internal sealed interface TrackEditorRoute : Serializable {
     val sessionId: Long
+    val openingDataGeneration: Long
 
     data class Definition(
         val trackId: Long?,
+        val initialDraft: TrackDraft?,
+        val targetName: String?,
+        val openingBoundary: TrackDefinitionBoundary?,
+        override val openingDataGeneration: Long,
         override val sessionId: Long,
     ) : TrackEditorRoute
 
     data class Entry(
         val trackId: Long,
         val entryId: Long? = null,
+        override val openingDataGeneration: Long,
         override val sessionId: Long,
     ) : TrackEditorRoute
 }
@@ -2124,11 +2134,17 @@ private fun TrackOptionsPage(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun TrackEditor(
-    initial: TrackProjection?,
+    liveInitial: TrackProjection?,
+    targetTrackId: Long?,
+    openingDraft: TrackDraft?,
+    routeOpeningBoundary: TrackDefinitionBoundary?,
+    targetName: String?,
     areas: List<Area>,
     customUnits: List<UnitDefinition>,
     defaultAreaId: String?,
     saving: Boolean,
+    persistenceError: String? = null,
+    definitionReviewState: TrackDefinitionReviewUiState = TrackDefinitionReviewUiState(),
     modifier: Modifier,
     sessionId: Long = 0L,
     onDismiss: () -> Unit,
@@ -2137,15 +2153,19 @@ internal fun TrackEditor(
     customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
     onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
-    onSave: (TrackDraft, Set<Long>, Set<Long>, Map<Long, Long>) -> Unit,
+    onRetryPreparation: () -> Unit,
+    onReview: (TrackDraft, TrackDefinitionBoundary, Map<Long, Long>) -> Unit,
+    onSave: (TrackDraft, TrackDefinitionBoundary?, TrackDefinitionRemovalReview?) -> Unit,
+    onSaveCopy: (TrackDraft) -> Unit = {},
 ) {
     val app = LocalContext.current.applicationContext as WhipApplication
     val dataGeneration by app.userDataGeneration.collectAsStateWithLifecycle()
-    val token = "track-${initial?.track?.id ?: "new"}-$sessionId-g$dataGeneration"
+    val editing = targetTrackId != null
+    val token = "track-${targetTrackId ?: "new"}-$sessionId-g$dataGeneration"
     val stateHolder: TrackEditorViewModel = viewModel(key = "track-editor-$token")
     val savedState by stateHolder.state.collectAsStateWithLifecycle()
-    val initialDraft = remember(initial?.track?.id, dataGeneration) {
-        initial?.track?.toDraft(initial.fields, initial.options) ?: TrackDraft(
+    val initialDraft = remember(targetTrackId, sessionId, dataGeneration) {
+        openingDraft ?: TrackDraft(
             name = "",
             areaId = defaultAreaId,
             fields = listOf(TrackFieldDraft("Name", TrackFieldType.ShortText, required = true, primary = true)),
@@ -2162,9 +2182,10 @@ internal fun TrackEditor(
     var editingFieldIndex by rememberSaveable(token) { mutableStateOf<Int?>(null) }
     var addingField by rememberSaveable(token) { mutableStateOf(false) }
     var confirmFieldDeleteIndex by rememberSaveable(token) { mutableStateOf<Int?>(null) }
-    var confirmOptionDeletion by rememberSaveable(token) { mutableStateOf(false) }
+    var removalReviewOpen by rememberSaveable(token) { mutableStateOf(false) }
     var unsavedConfirm by rememberSaveable(token) { mutableStateOf(false) }
     var validationError by rememberSaveable(token) { mutableStateOf<String?>(null) }
+    val editorListState = rememberLazyListState()
     val dirty = draft != initialDraft
     fun dismissAndClear() { stateHolder.clear(); onDismiss() }
     fun requestDismiss() { if (dirty) unsavedConfirm = true else dismissAndClear() }
@@ -2174,24 +2195,82 @@ internal fun TrackEditor(
             area = selectedArea?.name.orEmpty(),
         )
     }
-    fun removedOptionsNeedingDecision(): List<Pair<TrackChoiceOption, Int>> {
-        val retained = fields.flatMap(TrackFieldDraft::options).mapNotNull(TrackChoiceOptionDraft::id).toSet()
-        return initial?.options.orEmpty().filter { it.id !in retained }.map { option ->
-            option to initial?.entries.orEmpty().count { entry -> entry.value(option.fieldId)?.choiceOptionId == option.id }
-        }.filter { (_, entryCount) -> entryCount > 0 }
+    val reviewBelongsToEditor = definitionReviewState.sessionId == sessionId &&
+        definitionReviewState.trackId == targetTrackId
+    val reviewLoading = reviewBelongsToEditor && definitionReviewState.loading
+    val busy = saving || reviewLoading
+    val definitionConflict = definitionReviewState.conflictKind.takeIf {
+        reviewBelongsToEditor && it in setOf(
+            TrackDefinitionConflictKind.TargetMissing,
+            TrackDefinitionConflictKind.IdentityChanged,
+            TrackDefinitionConflictKind.DefinitionChanged,
+        )
     }
-    BackHandler(enabled = true, onBack = ::requestDismiss)
+    val targetUnavailable = editing && definitionConflict != null
+    val effectivePersistenceError = persistenceError ?: definitionReviewState.errorMessage.takeIf {
+        reviewBelongsToEditor && definitionConflict == null
+    }
+    LaunchedEffect(
+        routeOpeningBoundary,
+        definitionReviewState.boundary,
+        reviewBelongsToEditor,
+        savedState.draft,
+    ) {
+        val boundary = routeOpeningBoundary ?: definitionReviewState.boundary.takeIf {
+            reviewBelongsToEditor
+        }
+        boundary?.let(stateHolder::installOpeningBoundary)
+    }
+    LaunchedEffect(definitionReviewState.review, definitionReviewState.reviewedDraft, savedState.draft) {
+        val reviewed = definitionReviewState.review ?: return@LaunchedEffect
+        if (
+            !reviewBelongsToEditor ||
+            definitionReviewState.reviewedDraft != draft ||
+            definitionReviewState.reviewedChoiceReplacementIds != editorState.optionReplacementIds
+        ) return@LaunchedEffect
+        stateHolder.installRemovalReview(reviewed)
+        if (reviewed.hasRemovals) removalReviewOpen = true
+        else onSave(
+            draft,
+            definitionReviewState.boundary ?: editorState.openingBoundary,
+            reviewed,
+        )
+    }
+    LaunchedEffect(effectivePersistenceError) {
+        if (!effectivePersistenceError.isNullOrBlank()) {
+            if (
+                reviewBelongsToEditor &&
+                definitionReviewState.conflictKind == TrackDefinitionConflictKind.ReplacementUnavailable
+            ) {
+                stateHolder.clearOptionReplacements()
+            } else {
+                stateHolder.clearRemovalReview()
+            }
+            removalReviewOpen = false
+            editorListState.scrollToItem(0)
+        }
+    }
+    LaunchedEffect(definitionConflict) {
+        if (definitionConflict != null) {
+            stateHolder.clearRemovalReview()
+            removalReviewOpen = false
+            editorListState.scrollToItem(0)
+        }
+    }
+    BackHandler(enabled = true) { if (!busy) requestDismiss() }
 
     WhipFullScreenSurface(
-        title = if (initial == null) "Create Track" else "Edit Track",
+        title = if (editing) "Edit Track" else "Create Track",
         modifier = modifier.testTag("track-editor-surface"),
     ) {
+        Box(Modifier.fillMaxSize()) {
         Scaffold(
+            modifier = if (busy) Modifier.clearAndSetSemantics {} else Modifier,
             topBar = {
                 TopAppBar(
-                    title = { Text(if (initial == null) "Create Track" else "Edit Track") },
-                    navigationIcon = { IconButton(onClick = ::requestDismiss) { Icon(Icons.Outlined.Close, "Close Track Editor") } },
-                    actions = { WhipTextButton(enabled = !saving, onClick = {
+                    title = { Text(if (editing) "Edit Track" else "Create Track") },
+                    navigationIcon = { IconButton(enabled = !busy, onClick = ::requestDismiss) { Icon(Icons.Outlined.Close, "Close Track Editor") } },
+                    actions = { WhipTextButton(enabled = !busy && !targetUnavailable, onClick = {
                         if (draft.name.isBlank()) {
                             validationError = "Track name is required."
                             return@WhipTextButton
@@ -2200,7 +2279,7 @@ internal fun TrackEditor(
                             validationError = "Add at least one Entry Field."
                             return@WhipTextButton
                         }
-                        if (initial == null && areas.count { !it.archived } > 1 && draft.areaId == null) {
+                        if (!editing && areas.count { !it.archived } > 1 && draft.areaId == null) {
                             validationError = "Choose an Area for this Track."
                             return@WhipTextButton
                         }
@@ -2209,23 +2288,62 @@ internal fun TrackEditor(
                             .getOrNull()
                         if (valid != null) {
                             validationError = null
-                            val unconfirmed = removedOptionsNeedingDecision().filterNot { (option) ->
-                                option.id in editorState.confirmedOptionDeletes || option.id in editorState.optionReplacementIds
+                            if (!editing) {
+                                onSave(valid, null, null)
+                            } else {
+                                val boundary = editorState.openingBoundary
+                                if (boundary == null) {
+                                    validationError = "The Track definition is still being verified. Try again in a moment."
+                                    onRetryPreparation()
+                                } else {
+                                    val reviewed = editorState.removalReview
+                                    if (reviewed == null) {
+                                        onReview(valid, boundary, editorState.optionReplacementIds)
+                                    } else if (reviewed.hasRemovals) {
+                                        removalReviewOpen = true
+                                    } else {
+                                        onSave(valid, boundary, reviewed)
+                                    }
+                                }
                             }
-                            if (unconfirmed.isNotEmpty()) confirmOptionDeletion = true
-                            else onSave(valid, editorState.confirmedFieldDeletes, editorState.confirmedOptionDeletes, editorState.optionReplacementIds)
                         }
-                    }) { Text(if (saving) "Saving…" else "Save") } },
+                    }) { Text(if (saving) "Saving…" else if (reviewLoading) "Reviewing…" else "Save") } },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 )
             },
         ) { padding ->
             WhipReorderLazyColumn(
-                Modifier.fillMaxSize().padding(padding),
+                Modifier.fillMaxSize().padding(padding).testTag("track-editor-list"),
+                state = editorListState,
                 contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, 96.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 item { Text("* Required field", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                effectivePersistenceError?.let { message -> item { PersistenceFailureNotice(message, testTag = "track-persistence-save-problem") } }
+                definitionConflict?.let {
+                    item {
+                        WhipStatusCard(
+                            kind = WhipStatusKind.Error,
+                            title = if (definitionReviewState.targetMissing) {
+                                "Original Track Is Unavailable"
+                            } else {
+                                "Original Track Changed"
+                            },
+                            message =
+                                "Your draft is still here, and the original has not been changed by this save attempt. " +
+                                    "Save the draft as a new Track with fresh Field and Choice identities, then compare or reconcile them safely.",
+                            actionLabel = "Save Draft as New Track",
+                            onAction = {
+                                runCatching { currentDraft().validated() }
+                                    .onSuccess(onSaveCopy)
+                                    .onFailure {
+                                        validationError = it.message ?: "Review the Track fields."
+                                    }
+                            },
+                            modifier = Modifier.testTag("track-definition-conflict"),
+                        )
+                    }
+                }
                 validationError?.let { message -> item { FormValidationSummary(listOf(message), visible = true, testTag = "track-save-problem") } }
                 item { EditorSectionHeader("Identity", "Name this structured log and choose a simple visual identifier.") }
                 item { OutlinedTextField(draft.name, { value -> stateHolder.updateDraft { it.copy(name = value.replace('\n', ' ').replace('\r', ' ').take(100)) } }, label = { Text("Track Name *") }, singleLine = true, isError = validationError != null && draft.name.isBlank(), modifier = Modifier.fillMaxWidth().testTag("track-editor-name"), supportingText = if (validationError != null && draft.name.isBlank()) {{ Text("Track name is required") }} else {{ Text("${draft.name.length}/100") }}) }
@@ -2290,13 +2408,18 @@ internal fun TrackEditor(
                 item { OutlinedTextField(draft.tags.joinToString(", "), { value -> stateHolder.updateDraft { it.copy(tags = value.split(',').map(String::trim)) } }, label = { Text("Tags") }, supportingText = { Text("Separate optional track tags with commas.") }, modifier = Modifier.fillMaxWidth()) }
             }
         }
+        PersistenceSavingOverlay(
+            active = busy,
+            label = if (saving) "Saving Track" else "Reviewing Track Changes",
+        )
+        }
     }
 
     editingFieldIndex?.let { index -> fields.getOrNull(index)?.let { field ->
         TrackFieldEditor(
             initial = field,
             allUnits = BuiltInUnits.all + customUnits,
-            existingHasValues = field.id?.let { fieldId -> initial?.entries?.any { it.value(fieldId) != null } } == true,
+            existingHasValues = field.id?.let { fieldId -> liveInitial?.entries?.any { it.value(fieldId) != null } } == true,
             onDismiss = { editingFieldIndex = null },
             onCreateCustomUnit = onCreateCustomUnit,
             onSave = { updated ->
@@ -2317,17 +2440,24 @@ internal fun TrackEditor(
         onSave = { field -> stateHolder.updateDraft { it.copy(fields = it.fields + field) }; addingField = false },
     )
     confirmFieldDeleteIndex?.let { index -> fields.getOrNull(index)?.let { field ->
-        val valueCount = field.id?.let { id -> initial?.entries?.count { it.value(id) != null } } ?: 0
+        val valueCount = field.id?.let { id -> liveInitial?.entries?.count { it.value(id) != null } } ?: 0
         PaneAwareAlertDialog(
             onDismissRequest = { confirmFieldDeleteIndex = null },
-            title = { Text("Delete ${field.name} Field?") },
-            text = { Text(if (valueCount > 0) "This permanently deletes $valueCount saved values from existing Entries. Renaming or reordering keeps them." else "This Field has no saved values and can be removed safely.") },
+            title = { Text("Remove ${field.name} Field?") },
+            text = {
+                Text(
+                    buildString {
+                        append("This removes the Field from your draft. ")
+                        if (valueCount > 0) append("It had $valueCount saved values when this editor opened. ")
+                        append("Before Save, Whip will review the current exact impact on values and legacy automation definitions.")
+                    },
+                )
+            },
             confirmButton = { WhipTextButton(onClick = {
-                field.id?.let { id -> stateHolder.update { it.copy(confirmedFieldDeletes = it.confirmedFieldDeletes + id) } }
                 stateHolder.updateDraft { current -> current.copy(fields = current.fields.toMutableList().also { it.removeAt(index) }) }
                 confirmFieldDeleteIndex = null
                 editingFieldIndex = null
-            }) { Text("Delete Field", color = MaterialTheme.colorScheme.error) } },
+            }) { Text("Remove Field", color = MaterialTheme.colorScheme.error) } },
             dismissButton = {
                 Row {
                     WhipTextButton(onClick = { confirmFieldDeleteIndex = null }) { Text("Cancel") }
@@ -2342,42 +2472,103 @@ internal fun TrackEditor(
         confirmButton = { WhipTextButton(onClick = { unsavedConfirm = false; dismissAndClear() }) { Text("Discard", color = MaterialTheme.colorScheme.error) } },
         dismissButton = { WhipTextButton(onClick = { unsavedConfirm = false }) { Text("Keep Editing") } },
     )
-    if (confirmOptionDeletion) {
-        val impacts = removedOptionsNeedingDecision()
+    if (removalReviewOpen && editorState.removalReview != null) {
+        val review = requireNotNull(editorState.removalReview)
+        val reviewedOptionIds = review.removedChoices.mapTo(mutableSetOf()) { it.optionId }
+        val relevantDecisions = editorState.optionReplacementIds.filterKeys { it in reviewedOptionIds }
+        val reviewMatchesDecisions = review.choiceReplacementIds == relevantDecisions
         PaneAwareAlertDialog(
-            onDismissRequest = { confirmOptionDeletion = false },
-            title = { Text("Resolve Removed Choices") },
+            testTag = "track-definition-removal-review",
+            onDismissRequest = { if (!busy) removalReviewOpen = false },
+            title = { Text("Review Removed Track Data") },
+            paneTitle = "Track definition removal review",
+            stableHeight = true,
+            inputBlocked = busy,
+            inputBlockedLabel = if (saving) "Saving Track" else "Reviewing Updated Impact",
             text = {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    item { Text("For each removed Choice, move its Entries to a remaining Choice, or permanently delete its saved values.") }
-                    items(impacts, key = { it.first.id }) { (option, entryCount) ->
-                        val candidates = fields.firstOrNull { it.id == option.fieldId }?.options.orEmpty()
-                            .filter { it.id != null && it.id != option.id }
-                        SelectionField(
-                            "${option.label} · ${quantityLabel(entryCount, "Entry")}",
-                            listOf<TrackChoiceOptionDraft?>(null) + candidates,
-                            candidates.firstOrNull { it.id == editorState.optionReplacementIds[option.id] },
-                            { it?.label?.let { label -> "Replace With $label" } ?: "Delete Saved Values" },
-                            { replacement ->
-                                stateHolder.update { current -> current.copy(
-                                    optionReplacementIds = if (replacement?.id == null) current.optionReplacementIds - option.id
-                                    else current.optionReplacementIds + (option.id to replacement.id),
-                                ) }
-                            },
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().testTag("track-definition-removal-impact-list"),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    contentPadding = PaddingValues(bottom = 8.dp),
+                ) {
+                    item {
+                        Text(
+                            "Nothing changes until you apply this exact review. If saved values or legacy references change, Save stops and asks you to review again.",
                         )
+                    }
+                    review.removedFields.forEach { impact ->
+                        item(key = "field-${impact.fieldId}") {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(impact.fieldName, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "Remove ${quantityLabel(impact.savedValueCount, "saved value")} and ${quantityLabel(impact.childChoiceCount, "Choice")}",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                val legacyLinks = impact.legacyLinkReferenceCount
+                                val legacyTriggers = impact.legacyTriggerReferenceCount
+                                if (legacyLinks + legacyTriggers > 0) {
+                                    Text(
+                                        "Also retire ${quantityLabel(legacyLinks, "legacy Link reference")} and ${quantityLabel(legacyTriggers, "legacy Trigger reference")}.",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    review.removedChoices.forEach { impact ->
+                        item(key = "choice-${impact.optionId}") {
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("${impact.fieldName}: ${impact.optionLabel}", fontWeight = FontWeight.SemiBold)
+                                if (impact.removedWithField) {
+                                    Text(
+                                        "Removed with its Field · ${quantityLabel(impact.savedValueCount, "saved value")}",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                } else {
+                                    val candidates = fields.firstOrNull { it.id == impact.fieldId }?.options.orEmpty()
+                                        .filter { it.id != null && it.id != impact.optionId }
+                                    SelectionField(
+                                        "${quantityLabel(impact.savedValueCount, "saved value")}",
+                                        listOf<TrackChoiceOptionDraft?>(null) + candidates,
+                                        candidates.firstOrNull {
+                                            it.id == editorState.optionReplacementIds[impact.optionId]
+                                        },
+                                        { candidate ->
+                                            candidate?.label?.let { "Move Values to $it" } ?: "Delete Saved Values"
+                                        },
+                                        { replacement ->
+                                            stateHolder.updateOptionReplacement(impact.optionId, replacement?.id)
+                                        },
+                                    )
+                                }
+                                val legacyLinks = impact.legacyLinkReferenceCount
+                                val legacyTriggers = impact.legacyTriggerReferenceCount
+                                if (legacyLinks + legacyTriggers > 0) {
+                                    Text(
+                                        if (editorState.optionReplacementIds[impact.optionId] == null) {
+                                            "Retire ${quantityLabel(legacyLinks, "legacy Link reference")} and ${quantityLabel(legacyTriggers, "legacy Trigger reference")} with this Choice."
+                                        } else {
+                                            "Retarget ${quantityLabel(legacyLinks, "legacy Link reference")} and ${quantityLabel(legacyTriggers, "legacy Trigger reference")}; duplicate selections may consolidate."
+                                        },
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             },
             confirmButton = { WhipTextButton(onClick = {
-                val replaced = editorState.optionReplacementIds.keys
-                val confirmed = editorState.confirmedOptionDeletes + impacts.map { it.first.id }.filterNot { it in replaced }
-                stateHolder.update { it.copy(confirmedOptionDeletes = confirmed) }
-                confirmOptionDeletion = false
-                onSave(currentDraft(), editorState.confirmedFieldDeletes, confirmed, editorState.optionReplacementIds)
-            }) { Text("Apply Choices and Save") } },
+                val boundary = editorState.openingBoundary ?: return@WhipTextButton
+                if (reviewMatchesDecisions) {
+                    onSave(currentDraft(), boundary, review)
+                } else {
+                    onReview(currentDraft(), boundary, editorState.optionReplacementIds)
+                }
+            }) { Text(if (reviewMatchesDecisions) "Apply Reviewed Changes" else "Review Updated Impact") } },
             dismissButton = {
                 Row {
-                    WhipTextButton(onClick = { confirmOptionDeletion = false }) { Text("Keep Editing") }
+                    WhipTextButton(onClick = { if (!busy) removalReviewOpen = false }) { Text("Keep Editing") }
                 }
             },
         )
@@ -2410,6 +2601,7 @@ private fun TrackFieldEditor(
     var choices by rememberSaveable(initial.uuid, initial.id) {
         mutableStateOf(initial.options.ifEmpty { listOf(TrackChoiceOptionDraft("Option 1")) })
     }
+    var discardConfirm by rememberSaveable(initial.uuid, initial.id) { mutableStateOf(false) }
     val scaleMin = scaleMinText.trim().toIntOrNull()
     val scaleMax = scaleMaxText.trim().toIntOrNull()
     val scaleStep = scaleStepText.toWhipDoubleOrNull()
@@ -2422,8 +2614,25 @@ private fun TrackFieldEditor(
     } else null
     val scaleValues = scaleValuesResult?.getOrNull()
     val scaleError = scaleValuesResult?.exceptionOrNull()?.message
+    val dirty = name != initial.name ||
+        type != initial.type ||
+        required != initial.required ||
+        primary != initial.primary ||
+        showInList != initial.showInList ||
+        dimension != (initial.dimension ?: UnitDimension.Count) ||
+        unitId != (initial.unitId ?: allUnits.first { it.dimension == UnitDimension.Count }.id) ||
+        precision != initial.precision ||
+        scaleMinText != (initial.scaleMin ?: 1).toString() ||
+        scaleMaxText != (initial.scaleMax ?: 5).toString() ||
+        scaleStepText != formatTrackScaleValue(initial.scaleStep) ||
+        lowLabel != initial.scaleLowLabel ||
+        highLabel != initial.scaleHighLabel ||
+        choices != initial.options.ifEmpty { listOf(TrackChoiceOptionDraft("Option 1")) }
+    fun requestDismiss() {
+        if (dirty) discardConfirm = true else onDismiss()
+    }
     PaneAwareAlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = ::requestDismiss,
         title = { Text(if (initial.id == null && initial.uuid == null) "Add Field" else "Edit Field") },
         text = {
             WhipReorderLazyColumn(Modifier.fillMaxWidth().fillMaxHeight(0.72f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -2432,11 +2641,45 @@ private fun TrackFieldEditor(
                 if (existingHasValues) item { Text("A Field type can change only before it has saved values. Delete this Field and add another to change its type.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 when (type) {
                     TrackFieldType.Number -> {
-                        item { SelectionField("Measurement Type", UnitDimension.entries, dimension, UnitDimension::uiLabel, { selected ->
-                            dimension = selected
-                            unitId = allUnits.firstOrNull { it.dimension == selected && !it.archived }?.id.orEmpty()
-                        }) }
-                        item { UnitSelectionField(allUnits, unitId, dimension, { unitId = it }, onCreateCustomUnit, label = "Unit", supportingText = "Stored values keep both the entered unit and a canonical value for compatible Goals.") }
+                        item {
+                            SelectionField(
+                                "Measurement Type",
+                                UnitDimension.entries,
+                                dimension,
+                                UnitDimension::uiLabel,
+                                { selected ->
+                                    dimension = selected
+                                    unitId = allUnits.firstOrNull {
+                                        it.dimension == selected && !it.archived
+                                    }?.id.orEmpty()
+                                },
+                                enabled = !existingHasValues,
+                            )
+                        }
+                        if (existingHasValues) item {
+                            Text(
+                                "Saved values fix this Field's measurement type. You can still change its default unit within ${dimension.uiLabel().lowercase()} without rewriting history.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        item {
+                            val retainedUnit = allUnits.firstOrNull { it.id == unitId }
+                            val retainedArchivedUnit = retainedUnit?.takeIf(UnitDefinition::archived)
+                            UnitSelectionField(
+                                allUnits,
+                                unitId,
+                                dimension,
+                                { unitId = it },
+                                onCreateCustomUnit,
+                                label = if (retainedArchivedUnit == null) "Unit" else "Unit · Archived",
+                                supportingText = if (retainedArchivedUnit == null) {
+                                    "Stored values keep both the entered unit and a canonical value for compatible Goals."
+                                } else {
+                                    "${unitDefinitionDisplayLabel(retainedArchivedUnit)} is archived but remains the saved default. Choose an active unit to change it; history will not be recomputed."
+                                },
+                            )
+                        }
                         item { SelectionField("Decimal Places", (0..6).toList(), precision, Int::toString, { precision = it }) }
                     }
                     TrackFieldType.SingleChoice -> {
@@ -2516,7 +2759,20 @@ private fun TrackFieldEditor(
         confirmButton = { WhipTextButton(enabled = name.isNotBlank() && (type != TrackFieldType.SingleChoice || choices.all { it.label.isNotBlank() }) && (type != TrackFieldType.Scale || scaleValues != null), onClick = {
             onSave(initial.copy(name = name, type = type, required = required || primary, primary = primary, showInList = showInList, dimension = dimension.takeIf { type == TrackFieldType.Number }, unitId = unitId.takeIf { type == TrackFieldType.Number }, precision = precision, scaleMin = scaleMin.takeIf { type == TrackFieldType.Scale }, scaleMax = scaleMax.takeIf { type == TrackFieldType.Scale }, scaleLowLabel = lowLabel, scaleHighLabel = highLabel, scaleStep = scaleStep?.takeIf { type == TrackFieldType.Scale } ?: 1.0, options = choices.takeIf { type == TrackFieldType.SingleChoice }.orEmpty()))
         }) { Text("Save Field") } },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = ::requestDismiss) { Text("Cancel") } },
+    )
+    if (discardConfirm) PaneAwareAlertDialog(
+        onDismissRequest = { discardConfirm = false },
+        title = { Text("Discard Field Changes?") },
+        text = { Text("Your changes to this Field have not been applied to the Track draft.") },
+        confirmButton = {
+            WhipTextButton(onClick = { discardConfirm = false; onDismiss() }) {
+                Text("Discard Changes", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            WhipTextButton(onClick = { discardConfirm = false }) { Text("Keep Editing") }
+        },
     )
 }
 
