@@ -57,3 +57,104 @@
 - Root cause: Documentation was report-oriented rather than lifecycle-oriented.
 - Resolution: Personal `maintain-whip-memory` skill, workspace instructions, canonical ledgers, stable IDs, and a goal with mandatory memory checkpoints.
 - Status: Implemented; effectiveness must be validated through future tasks.
+
+### FND-20260831-007 — Failed restore recovery allowed normal startup to continue
+
+- Severity/category: P0 data integrity and recovery.
+- Observed: `WhipApplication.onCreate` discarded `recoverIfNeeded` failure, then initialized normal repositories, a default Area, scheduling, Health work, and widgets.
+- Expected: An unresolved recovery marker blocks every normal write-capable path until Retry succeeds.
+- Why it matters: New work can compound mixed state or later disappear when rollback succeeds.
+- Evidence: `WhipApplication.kt`, `RestoreRecoveryManager.kt`, and `../WHOLE_PRODUCT_MAXIMUM_QUALITY_AUDIT_2026-08-31.md`.
+- Root cause: Atomic restore recovery was treated as best-effort startup housekeeping.
+- Resolution: Fail-closed recovery gate is the active P0 remediation chunk.
+- Status: In remediation.
+
+### FND-20260831-008 — Reminder delivery trusts stale queued work
+
+- Severity/category: P1 correctness and user trust.
+- Observed: Task, Habit, and Goal workers do not all re-resolve the exact current occurrence, configuration, schedule version, and pause/skip/completion state immediately before posting.
+- Expected: Missing or stale delivery targets fail closed; valid current targets still notify and schedule the next occurrence.
+- Why it matters: Obsolete prompts teach reminder-dependent and ADHD users to ignore Whip.
+- Evidence: `ReminderWorker.kt`, `ReminderScheduler.kt`, `HabitReminderScheduler.kt`, `GoalReminderScheduler.kt`.
+- Status: Confirmed; remediation pending after the recovery gate.
+
+### FND-20260831-009 — Time and logical-date semantics diverge from configured Whip time
+
+- Severity/category: P1 date/time correctness.
+- Observed: Follow-device zone changes do not reschedule work; Tracks can retain yesterday without a repository emission; Search and elapsed Goal detail use the system zone directly.
+- Expected: One explicit active zone/current-date flow controls live behavior while saved historical dates remain immutable.
+- Evidence: `SettingsViewModel.kt`, `AppSettings.kt`, `TrackViewModel.kt`, `UnifiedSearchDialog.kt`, `GoalScreens.kt`, `AndroidManifest.xml`.
+- Status: Confirmed; remediation pending.
+
+### FND-20260831-010 — Productivity saves can change Area scope before persistence succeeds
+
+- Severity/category: P1 navigation and state integrity.
+- Observed: Task, Habit, and Goal save paths reconcile Area visibility before asynchronous Save confirms success.
+- Expected: Scope and success notices change only in the confirmed-success branch; failure retains draft and context.
+- Evidence: `WhipApp.kt`, `HabitScreens.kt`, `GoalScreens.kt`.
+- Status: Confirmed; remediation pending.
+
+### FND-20260831-011 — Large text removes every visible primary navigation label
+
+- Severity/category: P1 accessibility and navigation.
+- Observed: At font scale 1.5 the compact phone navigation becomes six icon-only destinations; screenshots are in `artifacts/full-product-audit/2026-08-31/baseline/`.
+- Expected: A measured named row, stable two-row named layout, or labeled drawer preserves visible destination names.
+- Affected users: Sighted low-vision, cognitive/ADHD, first-time, and narrow-landscape users.
+- Evidence: `WhipApp.kt`, `large-text-home.png`, `large-text-gym.png`.
+- Status: Confirmed; remediation pending.
+
+### FND-20260831-012 — Basic Habit creation exposes advanced schedule machinery
+
+- Severity/category: P1 creation UX and executive-function accessibility.
+- Observed: Reminder overrides, end conditions, and week-boundary configuration remain in the ordinary path even when advanced controls are meant to stay folded.
+- Expected: A visible reminder summary and progressively disclosed advanced configuration, auto-expanded for existing data, power mode, or errors.
+- Evidence: `HabitScreens.kt`, baseline Habit editor capture, specialist workflow review.
+- Status: Confirmed; remediation pending.
+
+### FND-20260831-013 — Settings can persist intermediate numeric and time edits
+
+- Severity/category: P1 configuration correctness.
+- Observed: Parseable keystrokes commit immediately, so replacing `300` with `600` can leave `6` or `60`; clock parsing accepts extra segments.
+- Expected: Local drafts, strict whole-field validation, and explicit IME/focus commit.
+- Evidence: `SettingsScreens.kt` numeric/time setting controls.
+- Status: Confirmed; remediation pending.
+
+### FND-20260831-014 — External shared text is unbounded across Activity recreation
+
+- Severity/category: P1 stability and input safety.
+- Observed: Arbitrary shared text is retained in Activity state and every additional line may become a subtask.
+- Expected: Intent-boundary title/notes/subtask budgets with explicit truncation or refusal feedback.
+- Evidence: `MainActivity.kt`, `TaskEditorDialog.kt`.
+- Status: Confirmed; remediation pending.
+
+### FND-20260831-015 — Legacy public Goal completion history is omitted from backup
+
+- Severity/category: P1 backup and historical integrity.
+- Observed: `goal_completion_snapshots` survives database upgrades but is absent from backup; replace restore deletes it.
+- Expected: Meaningful completion history is preserved directly or migrated into the current historical model.
+- Evidence: `GoalEntities.kt`, `BackupRepository.kt`, backup tests.
+- Status: Confirmed; remediation pending.
+
+### FND-20260831-016 — Abandoned Goals are labeled Completed
+
+- Severity/category: P2 information architecture and historical trust.
+- Observed: Completed and Abandoned Goals share the destination labeled Completed.
+- Expected: History/Closed organization with truthful Completed and Abandoned distinctions.
+- Evidence: `GoalViewModel.kt`, `GoalScreens.kt`.
+- Status: Confirmed; remediation pending.
+
+### FND-20260831-017 — Returning users lack a context-recovery path on clear Home
+
+- Severity/category: P2 ADHD and returning-user UX.
+- Observed: Existing Inbox, upcoming, paused, recent, or unpinned content can still yield only “Your Day Is Clear.”
+- Expected: A compact, nonjudgmental “Pick up where you left off” path distinct from first-run guidance.
+- Evidence: `WhipApp.kt` Home clear state.
+- Status: Confirmed; remediation pending.
+
+### FND-20260831-018 — Track list query behavior is unreachable
+
+- Severity/category: P2 discoverability and dead state.
+- Observed: Track list query/no-match/reorder logic exists but `AllTracksPage` exposes no setter.
+- Expected: Purposeful local search or removal of the unreachable branch in favor of explicit global Search routing.
+- Evidence: `TrackScreens.kt`.
+- Status: Confirmed; product decision pending.

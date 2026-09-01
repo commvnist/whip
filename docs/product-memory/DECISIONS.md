@@ -56,3 +56,50 @@
 - Decision: Use behavior-level chunks, explicit staging, focused commits, normal upstream pushes, reachability verification, and immediate blocker reporting. Never force-push or rewrite shared history.
 - Why this is superior for Whip: It balances traceability and safe reverts with buildable, comprehensible product changes.
 - Status: Accepted and implemented in the working protocol.
+
+### DEC-20260831-008 — Unresolved restore recovery fails closed
+
+- Context: Normal startup currently continues after recovery failure, allowing new writes into unresolved state.
+- Position A: Continue read/write startup and rely on the persistent marker for later Retry.
+- Position B: Block normal initialization until recovery succeeds.
+- Decision: Fail closed with a blocking accessible recovery state, Retry, preserved marker, and non-mutating guidance.
+- Why this is superior for Whip: Temporary unavailability is recoverable; post-failure writes that are later rolled back may not be.
+- Status: Accepted; implementation in progress.
+
+### DEC-20260831-009 — Reminder workers re-resolve live delivery eligibility
+
+- Context: WorkManager inputs can outlive edits, completions, pauses, skips, moves, and reminder configuration.
+- Decision: Treat queued payloads as hints. Immediately before notification, require the exact current logical occurrence and scheduled definition; missing/stale state fails closed and resynchronizes future work.
+- Why this is superior for Whip: It extends the existing strong notification-action validation boundary to delivery itself.
+- Status: Accepted; implementation pending.
+
+### DEC-20260831-010 — Live time behavior uses one explicit Whip zone and date flow
+
+- Context: System-zone shortcuts and repository-triggered date snapshots can make screens and reminders disagree.
+- Decision: Route live date/time behavior through the active Whip zone and current-date flow; reschedule follow-device work on system time/zone changes; do not reinterpret saved historical local dates.
+- Status: Accepted; implementation pending.
+
+### DEC-20260831-011 — Save-dependent navigation occurs only after confirmed persistence
+
+- Context: Area scope changes and success notices currently precede asynchronous persistence in several productivity editors.
+- Decision: Keep draft, editor, and scope unchanged until a typed successful save outcome is received; reconcile visibility only afterward.
+- Status: Accepted; implementation pending.
+
+### DEC-20260831-012 — Large text preserves visible destination names
+
+- Context: At 150% text, six direct phone destinations become icon-only.
+- Decision: Prefer a measured named row, then a stable two-row named layout, then a labeled drawer only when neither fits. Do not use an arbitrary normal-size More bucket.
+- Why this is superior for Whip: It preserves spatial memory and one-tap access while making increased text improve comprehension.
+- Status: Accepted; implementation pending.
+
+### DEC-20260831-013 — Habit reminders stay visible while advanced schedule controls are disclosed
+
+- Context: Hiding everything weakens reminder awareness; showing every weekday/end/week-boundary option overloads simple creation.
+- Decision: Keep a concise reminder summary in the basic path and disclose advanced controls, auto-expanding for existing data, power mode, or validation errors.
+- Status: Accepted; implementation pending.
+
+### DEC-20260831-014 — Preserve meaningful legacy Goal history, not every retired table
+
+- Context: Public completion snapshots are user history; some other retained tables merely duplicate canonical state.
+- Decision: Preserve or migrate completion snapshots through backup/restore. Omit redundant internals only after proving canonical equivalence and explicitly retiring their lifecycle.
+- Status: Accepted; implementation pending.

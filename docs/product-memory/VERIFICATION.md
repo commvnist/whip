@@ -36,3 +36,12 @@
 - Commit/push: Gym batch `5fc98dd` on `origin/main`; workflow batch is the commit containing `VER-20260831-004` on `origin/main`.
 - Related: `FB-20260831-014`, `DEC-20260831-007`, `IMP-20260831-003`.
 - Status: Structurally verified and pushed; future chunks provide behavioral validation.
+
+### VER-20260831-005 — Whole-product Iteration 1 baseline
+
+- Scope/environment: Current `main`; disposable Android emulator `emulator-5554` at 1080 × 2400/density 420; 100% and 150% text; independent source audits for all product areas, platform surfaces, architecture, accessibility, ADHD workflows, QA, persistence, and Gym constraints.
+- Commands: `scripts/check`; `WHIP_DEVICE=emulator-5554 scripts/device deploy`; non-destructive `scripts/device-artifacts capture` and `ui-dump`; source/test inventory and targeted static tracing.
+- Result: The default build gate completed successfully, including JVM-test task, Android-test compilation, lint, debug assembly, and coverage thresholds. The current build cold-launched on the emulator. Every root empty state, the primary creation editors, required-field Goal validation, Gym start flow, all Settings categories, and representative 150% text screens were captured and inspected.
+- Counts and exclusions: Source inventory remains 402 JVM and 482 Android tests. Some Gradle tasks were up-to-date, so this record does not claim 884 fresh test-method executions. Full instrumentation, populated workflow matrices, rotation/RTL/TalkBack, release build, and physical-device smoke remain later iteration gates.
+- Findings: `FND-20260831-007` through `FND-20260831-018`; detailed evidence in `../WHOLE_PRODUCT_MAXIMUM_QUALITY_AUDIT_2026-08-31.md`.
+- Status: Iteration 1 discovery verified; no release claim.

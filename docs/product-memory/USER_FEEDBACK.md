@@ -84,7 +84,7 @@ These records preserve durable user intent. “Released” means the change reac
 - User need: Run repeated whole-product discovery, remediation, focus-group review, QA, and release without losing detail between sessions.
 - Acceptance criteria: Invoke the memory protocol throughout; leave every finding, decision, implementation, verification result, residual risk, and next action in the repository.
 - Related: `DEC-20260831-006`, `MAXIMUM_QUALITY_GOAL.md`
-- Status: In progress; Iteration 1 whole-product discovery and independent specialist review began 2026-08-31.
+- Status: In progress; Iteration 1 inventory, emulator baseline, independent specialist review, cross-challenge, and Director synthesis completed 2026-08-31. P0 foundational remediation is active.
 
 ### FB-20260831-013 — Long-term memory outside chat
 
