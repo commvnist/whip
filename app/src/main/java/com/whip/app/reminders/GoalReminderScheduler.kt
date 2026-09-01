@@ -226,7 +226,7 @@ internal fun nextGoalReminder(
     quietEndMinutes: Int?,
 ): GoalReminderTime? {
     val minute = goal.reminderMinutes?.takeIf { it in 0..1_439 } ?: return null
-    if (goal.status != "Active") return null
+    if (goal.archived || goal.status != "Active") return null
     val after = Instant.ofEpochMilli(afterMillis).atZone(zone)
     val goalStart = runCatching { LocalDate.ofEpochDay(goal.startEpochDay) }.getOrNull() ?: return null
     val firstLogicalDate = after.toLocalDate().minusDays(1)
@@ -269,10 +269,11 @@ internal fun goalReminderSemanticFingerprint(
     quietStartMinutes: Int?,
     quietEndMinutes: Int?,
 ): String = reminderSemanticFingerprint(
-    "goal-v1",
+    "goal-v2",
     goal.uuid,
     goal.type,
     goal.status,
+    goal.archived,
     goal.startEpochDay,
     goal.deadlineEpochDay,
     goal.reminderMinutes,
@@ -291,7 +292,7 @@ internal fun currentGoalReminderClaimIsValid(
 ): Boolean {
     val logicalDate = runCatching { LocalDate.ofEpochDay(claim.logicalEpochDay) }.getOrNull() ?: return false
     if (
-        goal.status != "Active" || goal.reminderMinutes !in 0..1_439 ||
+        goal.archived || goal.status != "Active" || goal.reminderMinutes !in 0..1_439 ||
         goal.uuid != claim.stableEntityId ||
         !goalReminderLogicalDateIsEligible(goal, claim.logicalEpochDay) ||
         goalReminderSemanticFingerprint(goal, zone, quietStartMinutes, quietEndMinutes) !=

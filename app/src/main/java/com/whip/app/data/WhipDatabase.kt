@@ -50,6 +50,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         GoalEntity::class,
         GoalMilestoneEntity::class,
         LegacyGoalCompletionSnapshotEntity::class,
+        GoalElapsedResetEventEntity::class,
         LinkRuleEntity::class,
         ContributionEntity::class,
         TriggerRuleEntity::class,
@@ -66,7 +67,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         TrackValueEntity::class,
         TrackEntrySearchEntity::class,
     ],
-    version = 37,
+    version = 38,
     exportSchema = true,
 )
 abstract class WhipDatabase : RoomDatabase() {
@@ -769,6 +770,53 @@ abstract class WhipDatabase : RoomDatabase() {
             }
         }
 
+        /** Separates archive visibility from lifecycle and preserves elapsed reset history. */
+        val migration37To38 = object : Migration(37, 38) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE goals ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE goal_completion_snapshots ADD COLUMN uuid TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE goal_completion_snapshots ADD COLUMN elapsedDurationMillis INTEGER")
+                db.execSQL("ALTER TABLE goal_completion_snapshots ADD COLUMN completedMilestoneCount INTEGER")
+                db.execSQL("ALTER TABLE goal_completion_snapshots ADD COLUMN totalMilestoneCount INTEGER")
+                db.execSQL(
+                    "UPDATE goal_completion_snapshots SET uuid = " +
+                        "'legacy-goal-closure:' || COALESCE((" +
+                        "SELECT uuid FROM goals WHERE goals.id = goal_completion_snapshots.goalId" +
+                        "), 'missing-' || goalId) || ':' || id WHERE uuid = ''",
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS index_goal_completion_snapshots_uuid " +
+                        "ON goal_completion_snapshots (uuid)",
+                )
+                db.execSQL(
+                    "UPDATE goals SET archived = 1, status = COALESCE((" +
+                        "SELECT s.status FROM goal_completion_snapshots s " +
+                        "WHERE s.goalId = goals.id AND s.status IN ('Completed', 'Abandoned') " +
+                        "ORDER BY s.completedAtMillis DESC, s.id DESC LIMIT 1" +
+                        "), 'Active') WHERE status = 'Archived'",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_goals_archived ON goals (archived)")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS goal_elapsed_reset_events (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        uuid TEXT NOT NULL,
+                        goalId INTEGER NOT NULL,
+                        goalUuid TEXT NOT NULL,
+                        previousStartMillis INTEGER NOT NULL,
+                        newStartMillis INTEGER NOT NULL,
+                        resetAtMillis INTEGER NOT NULL,
+                        elapsedDurationMillis INTEGER NOT NULL,
+                        FOREIGN KEY(goalId) REFERENCES goals(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_goal_elapsed_reset_events_uuid ON goal_elapsed_reset_events (uuid)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_goal_elapsed_reset_events_goalId ON goal_elapsed_reset_events (goalId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_goal_elapsed_reset_events_goalId_resetAtMillis ON goal_elapsed_reset_events (goalId, resetAtMillis)")
+            }
+        }
+
         /**
          * Repository checks provide friendly errors; these triggers are the final consistency
          * boundary for concurrent writers, restored data, and any future write path.
@@ -809,6 +857,7 @@ abstract class WhipDatabase : RoomDatabase() {
                     migration34To35,
                     migration35To36,
                     migration36To37,
+                    migration37To38,
                 )
                 .addCallback(integrityGuardCallback)
                 .build()

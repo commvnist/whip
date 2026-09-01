@@ -2312,8 +2312,8 @@ fun WhipScreen(
                     onEditGoal = { projection -> editGoalIdRequested = projection.goal.id },
                     onRecordGoal = { projection -> recordGoalIdRequested = projection.goal.id },
                     onResetElapsedGoal = { projection -> resetElapsedGoalIdRequested = projection.goal.id },
-                    onToggleMilestone = { milestoneId, completed ->
-                        goalViewModel?.toggleMilestone(milestoneId, completed)
+                    onToggleMilestone = { boundary, completed ->
+                        goalViewModel?.toggleMilestone(boundary, completed)
                     },
                     onOpenTracks = { appDestination = AppDestination.Tracks },
                     onOpenTrack = { projection -> openTrackIdRequested = projection.track.id; appDestination = AppDestination.Tracks },
@@ -2393,6 +2393,7 @@ fun WhipScreen(
                     onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
                     onAreaChanged = { keepSavedItemVisible(it.areaId, it.areaVerified) },
                     showWorkspace = false,
+                    mutationRequestNamespace = "home-goal-area",
                 )
             }
             AppDestination.Tasks -> {
@@ -2569,6 +2570,7 @@ fun WhipScreen(
                     destinationState = goalDestinationState,
                     onReorderModeChange = { reorderModeActive = it },
                     reorderDismissRequest = reorderDismissRequest,
+                    mutationRequestNamespace = "goal-workspace",
                 )
                 else RoadmapEmptyArea("Goals", "Goals are loading.", innerPadding)
             }
@@ -4608,7 +4610,7 @@ private fun HomeContent(
     onEditGoal: (com.whip.app.domain.GoalProjection) -> Unit,
     onRecordGoal: (com.whip.app.domain.GoalProjection) -> Unit,
     onResetElapsedGoal: (com.whip.app.domain.GoalProjection) -> Unit,
-    onToggleMilestone: (Long, Boolean) -> Unit,
+    onToggleMilestone: (com.whip.app.domain.GoalMilestoneBoundary, Boolean) -> Unit,
     onOpenTracks: () -> Unit,
     onOpenTrack: (com.whip.app.domain.TrackProjection) -> Unit,
     onEditTrack: (com.whip.app.domain.TrackProjection) -> Unit,

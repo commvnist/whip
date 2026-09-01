@@ -23,6 +23,17 @@ class TaskDeletionCoordinator internal constructor(
     private val onDeletionCommitted: (Set<Long>) -> Unit = {},
     private val onDeletionInterrupted: suspend () -> Unit = {},
 ) {
+    /**
+     * Transaction-owned deletion used by a larger atomic aggregate operation
+     * such as permanent Area deletion. The caller owns reminder preparation,
+     * commit notification, and any post-commit reconciliation.
+     */
+    internal suspend fun deleteWithinTransaction(taskId: Long): TaskDeletionSummary {
+        val impact = previewBatchWithinTransaction(setOf(taskId))
+        if (impact.taskIds.isEmpty()) return TaskDeletionSummary()
+        return deleteImpactWithinTransaction(impact).toSingleSummary()
+    }
+
     suspend fun preview(taskId: Long): TaskDeletionImpact = database.withTransaction {
         previewWithinTransaction(taskId)
     }

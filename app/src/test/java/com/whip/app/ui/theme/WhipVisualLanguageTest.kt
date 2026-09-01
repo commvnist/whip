@@ -132,7 +132,7 @@ class WhipVisualLanguageTest {
         assertTrue(goal.contains("destinations = GoalDestination.entries"))
         assertTrue(track.contains("Entries(\"Entries\"),\n    Options(\"Options\"),\n    Insights(\"Insights\")"))
         assertTrue(track.contains("destinations = TrackDetailDestination.entries"))
-        assertTrue(goal.contains("GoalDestination.Completed) \"Done\""))
+        assertTrue(goal.contains("GoalDestination.Completed -> \"History\""))
         assertTrue(track.contains("compactLabel = TrackDetailDestination::label"))
         assertTrue(taskPolicy.contains("TaskWorkspaceDestination.History"))
         assertTrue(taskPolicy.contains("allTaskWorkspaceDestinations = primaryTaskWorkspaceDestinations"))

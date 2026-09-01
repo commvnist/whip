@@ -1,5 +1,6 @@
 package com.whip.app.domain
 
+import java.io.Serializable
 import java.time.Instant
 import java.time.LocalDate
 
@@ -97,7 +98,7 @@ data class MetricEntry(
     val note: String,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
-)
+) : Serializable
 
 data class Area(
     val id: String,

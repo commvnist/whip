@@ -19,6 +19,12 @@ import com.whip.app.data.RoomTrackRepository
 import com.whip.app.data.RoomBackupRepository
 import com.whip.app.data.TaskDeletionCoordinator
 import com.whip.app.data.CommittedTaskDeletionCancellation
+import com.whip.app.data.CommittedGoalDeletionCancellation
+import com.whip.app.data.CommittedAreaDeletionCancellation
+import com.whip.app.data.ContributionEntity
+import com.whip.app.data.GoalElapsedResetEventEntity
+import com.whip.app.data.LegacyGoalCompletionSnapshotEntity
+import com.whip.app.data.LinkRuleConditionEntity
 import com.whip.app.data.TriggerFieldMappingEntity
 import com.whip.app.data.TriggerOccurrenceEntity
 import com.whip.app.data.TriggerRuleConditionEntity
@@ -28,6 +34,7 @@ import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.GymMachineDraft
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalDraft
+import com.whip.app.domain.GoalMilestoneDraft
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.LinkRuleDraft
@@ -453,6 +460,241 @@ class DomainDeletionCoordinatorTest {
         assertEquals(1, habits.habits.first().size)
     }
 
+    @Test fun goalDeletionRevisionOwnsDefinitionHistoryLinksAndContributions() = runBlocking {
+        val habitId = habits.create(HabitDraft(name = "Source", startDate = FixedClock.today()))
+        val goalId = goals.create(
+            accumulatingGoal("Reviewed Goal").copy(
+                type = GoalType.WeightedMilestones,
+                milestones = listOf(GoalMilestoneDraft("Checkpoint")),
+            ),
+        )
+        val goal = requireNotNull(goals.get(goalId))
+        val milestoneId = database.goalDao().getMilestones(goalId).single().id
+        val otherGoalId = goals.create(accumulatingGoal("Independent target"))
+
+        suspend fun stalePreviewIsRejected() {
+            val preview = coordinator.previewGoalDeletion(goalId)
+            goals.setPinned(goalId, !requireNotNull(goals.get(goalId)).pinned)
+            assertTrue(runCatching { coordinator.deleteGoal(goalId, preview.revisionToken) }.isFailure)
+            assertNotNull(goals.get(goalId))
+        }
+
+        stalePreviewIsRejected()
+
+        var preview = coordinator.previewGoalDeletion(goalId)
+        val metric = requireNotNull(database.measurementDao().getMetric(goal.metricId))
+        database.measurementDao().upsertMetric(metric.copy(name = "Changed metric definition"))
+        assertTrue(runCatching { coordinator.deleteGoal(goalId, preview.revisionToken) }.isFailure)
+
+        preview = coordinator.previewGoalDeletion(goalId)
+        goals.toggleMilestone(milestoneId, true)
+        assertTrue(runCatching { coordinator.deleteGoal(goalId, preview.revisionToken) }.isFailure)
+
+        preview = coordinator.previewGoalDeletion(goalId)
+        measurements.record(goal.metricId, 42.0, "count")
+        assertTrue(runCatching { coordinator.deleteGoal(goalId, preview.revisionToken) }.isFailure)
+
+        preview = coordinator.previewGoalDeletion(goalId)
+        database.goalDao().insertClosureSnapshot(
+            LegacyGoalCompletionSnapshotEntity(
+                uuid = "goal-closure-review",
+                goalId = goalId,
+                completedAtMillis = FixedClock.now().toEpochMilli(),
+                value = 42.0,
+                progress = 0.42,
+                status = "Completed",
+            ),
+        )
+        assertTrue(runCatching { coordinator.deleteGoal(goalId, preview.revisionToken) }.isFailure)
+
+        preview = coordinator.previewGoalDeletion(goalId)
+        database.goalDao().insertElapsedResetEvent(
+            GoalElapsedResetEventEntity(
+                uuid = "goal-reset-review",
+                goalId = goalId,
+                goalUuid = goal.uuid,
+                previousStartMillis = 1,
+                newStartMillis = 2,
+                resetAtMillis = 3,
+                elapsedDurationMillis = 1,
+            ),
+        )
+        assertTrue(runCatching { coordinator.deleteGoal(goalId, preview.revisionToken) }.isFailure)
+
+        preview = coordinator.previewGoalDeletion(goalId)
+        val targetLinkId = links.createRule(
+            LinkRuleDraft(
+                name = "Source to reviewed Goal",
+                sourceType = LinkSourceType.Habit,
+                sourceEntityId = habitId,
+                sourceMetric = LinkSourceMetric.NumericValue,
+                targetGoalId = goalId,
+            ),
+        )
+        assertTrue(runCatching { coordinator.deleteGoal(goalId, preview.revisionToken) }.isFailure)
+
+        preview = coordinator.previewGoalDeletion(goalId)
+        database.linkDao().insertRuleCondition(
+            LinkRuleConditionEntity(
+                linkRuleId = targetLinkId,
+                fieldId = null,
+                entryDate = true,
+                operator = "OnOrAfter",
+                position = 0,
+                textValue = null,
+                numberValue = null,
+                secondNumberValue = null,
+                dateEpochDay = FixedClock.today().toEpochDay(),
+                secondDateEpochDay = null,
+            ),
+        )
+        assertTrue(runCatching { coordinator.deleteGoal(goalId, preview.revisionToken) }.isFailure)
+
+        preview = coordinator.previewGoalDeletion(goalId)
+        database.linkDao().upsertContribution(
+            ContributionEntity(
+                uuid = "goal-delete-contribution",
+                linkRuleId = targetLinkId,
+                sourceEventId = "habit:$habitId:review",
+                sourceType = LinkSourceType.Habit.name,
+                sourceEntityId = habitId,
+                targetGoalId = goalId,
+                metricEntryId = null,
+                canonicalValue = 1.0,
+                localEpochDay = FixedClock.today().toEpochDay(),
+                timestampMillis = FixedClock.now().toEpochMilli(),
+                excluded = false,
+                overrideValue = null,
+                explanation = "Deletion review",
+                createdAtMillis = FixedClock.now().toEpochMilli(),
+                updatedAtMillis = FixedClock.now().toEpochMilli(),
+            ),
+        )
+        assertTrue(runCatching { coordinator.deleteGoal(goalId, preview.revisionToken) }.isFailure)
+
+        preview = coordinator.previewGoalDeletion(goalId)
+        val sourceMetricLinkId = links.createRule(
+            LinkRuleDraft(
+                name = "Reviewed Goal metric to another Goal",
+                sourceType = LinkSourceType.Metric,
+                sourceMetricId = goal.metricId,
+                sourceMetric = LinkSourceMetric.NumericValue,
+                targetGoalId = otherGoalId,
+            ),
+        )
+        assertTrue(runCatching { coordinator.deleteGoal(goalId, preview.revisionToken) }.isFailure)
+
+        val finalImpact = coordinator.previewGoalDeletion(goalId)
+        assertTrue(finalImpact.exists)
+        assertEquals(1, finalImpact.milestoneCount)
+        assertEquals(1, finalImpact.completedMilestoneCount)
+        assertEquals(1, finalImpact.progressEntryCount)
+        assertEquals(1, finalImpact.legacyClosureSnapshotCount)
+        assertEquals(1, finalImpact.elapsedResetEventCount)
+        assertEquals(2, finalImpact.linkRuleCount)
+        assertEquals(1, finalImpact.contributionCount)
+
+        val summary = coordinator.deleteGoal(goalId, finalImpact.revisionToken)
+
+        assertTrue(summary.goalDeleted)
+        assertEquals(1, summary.milestonesDeleted)
+        assertEquals(1, summary.progressEntriesDeleted)
+        assertEquals(1, summary.legacyClosureSnapshotsDeleted)
+        assertEquals(1, summary.elapsedResetEventsDeleted)
+        assertEquals(2, summary.linkRulesDeleted)
+        assertEquals(1, summary.contributionsDeleted)
+        assertNull(goals.get(goalId))
+        assertNull(database.measurementDao().getMetric(goal.metricId))
+        assertNotNull(goals.get(otherGoalId))
+        assertNull(database.linkDao().getRule(targetLinkId))
+        assertNull(database.linkDao().getRule(sourceMetricLinkId))
+    }
+
+    @Test fun reviewedGoalDisappearingBeforeDeleteFailsTruthfully() = runBlocking {
+        val goalId = goals.create(accumulatingGoal("Reviewed then removed"))
+        val preview = coordinator.previewGoalDeletion(goalId)
+        assertEquals(1, database.goalDao().deleteGoal(goalId))
+
+        val result = runCatching { coordinator.deleteGoal(goalId, preview.revisionToken) }
+
+        assertTrue(result.isFailure)
+        assertFalse(coordinator.previewGoalDeletion(goalId).exists)
+    }
+
+    @Test fun goalDeletionPreCommitFailurePreservesGoalAndReconcilesReminderState() = runBlocking {
+        val goalId = goals.create(accumulatingGoal("Prepared failure"))
+        val reconciliations = AtomicInteger()
+        val deletion = DomainDeletionCoordinator(
+            database,
+            links,
+            routines,
+            onDeletionPrepared = { _, _ -> error("prepare failed") },
+            onDeletionInterrupted = { reconciliations.incrementAndGet() },
+        )
+        val preview = deletion.previewGoalDeletion(goalId)
+
+        val result = runCatching { deletion.deleteGoal(goalId, preview.revisionToken) }
+
+        assertTrue(result.isFailure)
+        assertNotNull(goals.get(goalId))
+        assertEquals(1, reconciliations.get())
+    }
+
+    @Test fun goalDeletionReportsOrdinaryPostCommitFailuresAsWarnings() = runBlocking {
+        val goalId = goals.create(accumulatingGoal("Committed cleanup warnings"))
+        val reconciliations = AtomicInteger()
+        val deletion = DomainDeletionCoordinator(
+            database,
+            links,
+            routines,
+            onDeletionCommitted = { _, _ -> error("reminder cleanup failed") },
+            onDeletionInterrupted = { reconciliations.incrementAndGet() },
+            rebuildLinksAfterGoalDeletion = { error("link cleanup failed") },
+        )
+        val preview = deletion.previewGoalDeletion(goalId)
+
+        val summary = deletion.deleteGoal(goalId, preview.revisionToken)
+
+        assertTrue(summary.goalDeleted)
+        assertEquals(2, summary.warnings.size)
+        assertTrue(summary.warnings.all { it.contains("permanent deletion was committed") })
+        assertNull(goals.get(goalId))
+        assertEquals(1, reconciliations.get())
+    }
+
+    @Test fun goalDeletionCancellationAfterCommitCarriesCommittedSummary() = runBlocking {
+        val goalId = goals.create(accumulatingGoal("Committed cancellation"))
+        val deletion = DomainDeletionCoordinator(
+            database,
+            links,
+            routines,
+            onDeletionCommitted = { _, _ -> throw CancellationException("cancel cleanup") },
+        )
+        val preview = deletion.previewGoalDeletion(goalId)
+
+        val result = runCatching { deletion.deleteGoal(goalId, preview.revisionToken) }
+
+        val cancellation = result.exceptionOrNull() as CommittedGoalDeletionCancellation
+        assertTrue(cancellation.summary.goalDeleted)
+        assertNull(goals.get(goalId))
+    }
+
+    @Test fun goalDeletionDoesNotConvertFatalPostCommitFailureIntoWarning() = runBlocking {
+        val goalId = goals.create(accumulatingGoal("Fatal cleanup"))
+        val deletion = DomainDeletionCoordinator(
+            database,
+            links,
+            routines,
+            rebuildLinksAfterGoalDeletion = { throw AssertionError("fatal link corruption") },
+        )
+        val preview = deletion.previewGoalDeletion(goalId)
+
+        val result = runCatching { deletion.deleteGoal(goalId, preview.revisionToken) }
+
+        assertTrue(result.exceptionOrNull() is AssertionError)
+        assertNull(goals.get(goalId))
+    }
+
     @Test fun areaDeleteWithItemsRemovesEveryDomainAndItsDependentHistory() = runBlocking {
         val mainId = areas.ensureDefaultArea()
         val areaId = areas.create("Client Delta")
@@ -497,6 +739,68 @@ class DomainDeletionCoordinatorTest {
         assertTrue(links.rules.first().isEmpty())
         assertTrue(links.contributions.first().isEmpty())
         assertTrue(links.triggerRules.first().isEmpty())
+    }
+
+    @Test fun areaDeletionPreparationFailureRollsBackEveryOwnedEntity() = runBlocking {
+        areas.ensureDefaultArea()
+        val areaId = areas.create("Rollback area")
+        val taskId = tasks.create(TaskDraft(title = "Keep me", areaId = areaId, area = "Rollback area"))
+        val deletion = AreaDeletionCoordinator(
+            database = database,
+            areaRepository = areas,
+            taskDeletionCoordinator = TaskDeletionCoordinator(database, tasks, links),
+            domainDeletionCoordinator = coordinator,
+            onDeletionPrepared = { error("prepare failed") },
+        )
+
+        assertTrue(runCatching { deletion.deleteAreaAndItems(areaId) }.isFailure)
+        assertNotNull(database.measurementDao().getArea(areaId))
+        assertNotNull(database.taskDao().getTask(taskId))
+    }
+
+    @Test fun areaDeletionPostCommitFailuresReturnWarningsWithoutInvitingReplay() = runBlocking {
+        areas.ensureDefaultArea()
+        val areaId = areas.create("Committed area")
+        val taskId = tasks.create(TaskDraft(title = "Delete me", areaId = areaId, area = "Committed area"))
+        val deletion = AreaDeletionCoordinator(
+            database = database,
+            areaRepository = areas,
+            taskDeletionCoordinator = TaskDeletionCoordinator(database, tasks, links),
+            domainDeletionCoordinator = DomainDeletionCoordinator(
+                database,
+                links,
+                routines,
+                rebuildLinksAfterGoalDeletion = { error("link cleanup failed") },
+            ),
+            onDeletionCommitted = { error("reminder cleanup failed") },
+        )
+
+        val summary = deletion.deleteAreaAndItems(areaId)
+
+        assertEquals(listOf(taskId), summary.taskIds)
+        assertEquals(2, summary.warnings.size)
+        assertNull(database.measurementDao().getArea(areaId))
+        assertNull(database.taskDao().getTask(taskId))
+    }
+
+    @Test fun areaDeletionCancellationAfterCommitCarriesTheCommittedSummary() = runBlocking {
+        areas.ensureDefaultArea()
+        val areaId = areas.create("Cancelled cleanup area")
+        val taskId = tasks.create(TaskDraft(title = "Already deleted", areaId = areaId, area = "Cancelled cleanup area"))
+        val deletion = AreaDeletionCoordinator(
+            database = database,
+            areaRepository = areas,
+            taskDeletionCoordinator = TaskDeletionCoordinator(database, tasks, links),
+            domainDeletionCoordinator = coordinator,
+            onDeletionCommitted = { throw CancellationException("cleanup cancelled") },
+        )
+
+        val error = runCatching { deletion.deleteAreaAndItems(areaId) }.exceptionOrNull()
+
+        assertTrue(error is CommittedAreaDeletionCancellation)
+        assertEquals(listOf(taskId), (error as CommittedAreaDeletionCancellation).summary.taskIds)
+        assertNull(database.measurementDao().getArea(areaId))
+        assertNull(database.taskDao().getTask(taskId))
     }
 
     @Test fun exerciseDeleteCleansHistoryTemplatesRecordsAndGraphPresets() = runBlocking {

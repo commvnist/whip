@@ -342,23 +342,19 @@ class RoomBackupRepository(
         val tableNames = tables.keys().asSequence().toSet()
         val expected = when (dbVersion) {
             BACKUP_DATABASE_VERSION -> EXPORT_TABLES.toSet()
-            14 -> VERSION_FOURTEEN_EXPORT_TABLES.toSet()
+            15, 14 -> VERSION_FIFTEEN_EXPORT_TABLES.toSet()
             13 -> VERSION_THIRTEEN_EXPORT_TABLES.toSet()
             9 -> VERSION_THIRTEEN_EXPORT_TABLES.toSet()
             8 -> VERSION_EIGHT_EXPORT_TABLES.toSet()
             else -> LEGACY_EXPORT_TABLES.toSet()
         }
-        val acceptedTableSets = buildSet {
-            add(expected)
-            if (dbVersion < BACKUP_DATABASE_VERSION) {
-                // Some older-format fixtures/backups were emitted by a newer app after dropping
-                // only the table introduced by the simulated version. The append-only decision
-                // table is safe to accept or synthesize empty.
-                add(expected + "training_max_decisions")
-                add(EXPORT_TABLES.toSet())
-            }
-        }
-        require(tableNames in acceptedTableSets) {
+        val tableSetIsCompatible = tableNames == expected ||
+            (
+                dbVersion < BACKUP_DATABASE_VERSION &&
+                    tableNames.containsAll(expected) &&
+                    EXPORT_TABLES.toSet().containsAll(tableNames)
+            )
+        require(tableSetIsCompatible) {
             "Backup table set does not match this build"
         }
         require(tableNames.all { tables.optJSONArray(it) != null }) { "Backup contains invalid table data" }
@@ -438,6 +434,30 @@ class RoomBackupRepository(
         if (databaseVersion < 13) upgradeTypedGymProgramming(tables)
         if (databaseVersion < 14 && !tables.has("training_max_decisions")) {
             tables.put("training_max_decisions", JSONArray())
+        }
+        if (databaseVersion < 16) {
+            if (!tables.has("goal_completion_snapshots")) tables.put("goal_completion_snapshots", JSONArray())
+            if (!tables.has("goal_elapsed_reset_events")) tables.put("goal_elapsed_reset_events", JSONArray())
+            val goalUuids = mutableMapOf<Long, String>()
+            tables.optJSONArray("goals")?.forEachObject { goal ->
+                goal.optLongOrNull("id")?.let { id ->
+                    goal.optString("uuid").takeIf(String::isNotBlank)?.let { goalUuids[id] = it }
+                }
+            }
+            tables.optJSONArray("goal_completion_snapshots")?.forEachObject { row ->
+                if (!row.has("uuid") || row.optString("uuid").isBlank()) {
+                    val goalId = row.optLong("goalId")
+                    val goalIdentity = goalUuids[goalId] ?: "missing-$goalId"
+                    row.put("uuid", "legacy-goal-closure:$goalIdentity:${row.optLong("id")}")
+                }
+            }
+            tables.optJSONArray("goals")?.forEachObject { row ->
+                if (!row.has("archived")) {
+                    val legacyArchived = row.optString("status") == "Archived"
+                    row.put("archived", if (legacyArchived) 1 else 0)
+                    if (legacyArchived) row.put("status", "Active")
+                }
+            }
         }
         retireAutomationBackupRows(tables)
     }
@@ -629,6 +649,11 @@ class RoomBackupRepository(
 private fun ContentValues.applyBackupCompatibilityDefaults(table: String) {
     if (table == "track_fields" && !containsKey("scaleStep")) put("scaleStep", 1.0)
     if (table == "tasks" && !containsKey("icon")) put("icon", DEFAULT_TASK_EMOJI)
+    if (table == "goals" && !containsKey("archived")) {
+        val legacyArchived = getAsString("status") == "Archived"
+        put("archived", legacyArchived)
+        if (legacyArchived) put("status", "Active")
+    }
     if (table == "gym_machines" && !containsKey("levelDirection")) put("levelDirection", "HigherNumberMoreResistance")
     if (table == "gym_routines") {
         if (!containsKey("programKind")) put("programKind", "Static")
@@ -989,7 +1014,7 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 private const val BACKUP_FORMAT = "whip-backup"
 private const val ENVELOPE_VERSION = 2
 private const val OLDEST_COMPATIBLE_DATABASE_VERSION = 5
-private const val BACKUP_DATABASE_VERSION = 15
+private const val BACKUP_DATABASE_VERSION = 16
 
 private fun ContentValues.normalizeIdentityEmoji(table: String) {
     val defaultEmoji = when (table) {
@@ -1011,12 +1036,13 @@ private val EXPORT_TABLES = listOf(
     "workout_sessions", "workout_groups", "workout_exercises", "workout_sets",
     "personal_records", "graph_presets", "habits", "habit_checklist_items", "habit_logs",
     "habit_checklist_states", "habit_pauses", "habit_skips", "goals", "goal_milestones",
+    "goal_completion_snapshots", "goal_elapsed_reset_events",
     "tracks", "track_fields", "track_choice_options", "track_entries", "track_values",
     "link_rules", "link_rule_conditions", "link_condition_choices", "contributions", "trigger_rules", "trigger_rule_conditions", "trigger_condition_choices", "trigger_field_mappings", "trigger_occurrences",
 )
 
-private val VERSION_FOURTEEN_EXPORT_TABLES = EXPORT_TABLES
-private val VERSION_THIRTEEN_EXPORT_TABLES = EXPORT_TABLES - "training_max_decisions"
+private val VERSION_FIFTEEN_EXPORT_TABLES = EXPORT_TABLES - setOf("goal_completion_snapshots", "goal_elapsed_reset_events")
+private val VERSION_THIRTEEN_EXPORT_TABLES = VERSION_FIFTEEN_EXPORT_TABLES - "training_max_decisions"
 private val VERSION_EIGHT_EXPORT_TABLES = VERSION_THIRTEEN_EXPORT_TABLES - "gym_machine_exercise_joins"
 private val LEGACY_EXPORT_TABLES = VERSION_EIGHT_EXPORT_TABLES - "habit_skips"
 

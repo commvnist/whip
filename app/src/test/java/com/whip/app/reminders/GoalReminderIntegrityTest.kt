@@ -22,6 +22,7 @@ class GoalReminderIntegrityTest {
         val claim = claim(goal, trigger)
 
         assertTrue(valid(goal, claim, Instant.ofEpochMilli(trigger)))
+        assertFalse(valid(goal.copy(archived = true), claim, Instant.ofEpochMilli(trigger)))
         assertFalse(valid(goal.copy(status = "Paused"), claim, Instant.ofEpochMilli(trigger)))
         assertFalse(valid(goal.copy(reminderMinutes = null), claim, Instant.ofEpochMilli(trigger)))
         assertFalse(valid(goal.copy(reminderMinutes = 600), claim, Instant.ofEpochMilli(trigger)))
@@ -108,6 +109,14 @@ class GoalReminderIntegrityTest {
         val after = date.atTime(22, 0).atZone(zone).toInstant().toEpochMilli()
 
         assertNull(nextGoalReminder(goal, after, zone, 22 * 60, 7 * 60))
+    }
+
+    @Test
+    fun archivedGoalsNeverScheduleEvenWhenLifecycleRemainsActive() {
+        val goal = goal().copy(archived = true)
+        val after = date.atTime(8, 0).atZone(zone).toInstant().toEpochMilli()
+
+        assertNull(nextGoalReminder(goal, after, zone, null, null))
     }
 
     @Test

@@ -25,9 +25,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
@@ -50,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -57,7 +61,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -68,6 +74,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.whip.app.core.AppSettings
 import com.whip.app.core.EntitySaveReceipt
+import com.whip.app.core.OperationStatus
 import com.whip.app.core.resolveExactLocalTime
 import com.whip.app.core.resolveEditedExactInstant
 import com.whip.app.core.zoneId
@@ -78,7 +85,10 @@ import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalAggregationPeriod
 import com.whip.app.domain.GoalConsistencyPeriod
 import com.whip.app.domain.GoalDraft
+import com.whip.app.domain.GoalClosureSnapshot
+import com.whip.app.domain.GoalElapsedResetEvent
 import com.whip.app.domain.GoalMilestoneDraft
+import com.whip.app.domain.GoalMilestoneBoundary
 import com.whip.app.domain.GoalPaceType
 import com.whip.app.domain.GoalProjection
 import com.whip.app.domain.GoalStatus
@@ -100,15 +110,42 @@ import com.whip.app.domain.defaultDirection
 import com.whip.app.domain.editableNumericValue
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.domain.validationErrors
+import com.whip.app.domain.measurementBoundary
+import com.whip.app.domain.milestoneBoundary
+import com.whip.app.domain.mutationBoundary
+import com.whip.app.domain.progressBoundary
+import com.whip.app.data.GoalDeletionImpact
 import com.whip.app.ui.theme.whipColors
 import java.time.LocalDate
 import java.time.Instant
+import java.time.Duration
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
 
 enum class GoalDestination { Active, Completed, Archived, Insights }
+
+private fun GoalDestination.displayLabel(): String = when (this) {
+    GoalDestination.Active -> "Active"
+    GoalDestination.Completed -> "History"
+    GoalDestination.Archived -> "Archived"
+    GoalDestination.Insights -> "Insights"
+}
+
+private fun GoalDestination.pageTitle(): String = when (this) {
+    GoalDestination.Active -> "Active Goals"
+    GoalDestination.Completed -> "Goal History"
+    GoalDestination.Archived -> "Archived Goals"
+    GoalDestination.Insights -> "Goal Insights"
+}
+
+private fun GoalDestination.supportingText(): String = when (this) {
+    GoalDestination.Active -> "Long-term progress, consistency, ranges, totals, and project milestones."
+    GoalDestination.Completed -> "Completed and abandoned Goals, with each outcome preserved."
+    GoalDestination.Archived -> "Goals hidden from active planning without changing their lifecycle outcome."
+    GoalDestination.Insights -> "Progress patterns, pace, and data quality across active Goals."
+}
 
 @Composable
 fun GoalAreaContent(
@@ -143,6 +180,7 @@ fun GoalAreaContent(
     showWorkspace: Boolean = true,
     onReorderModeChange: (Boolean) -> Unit = {},
     reorderDismissRequest: Int = 0,
+    mutationRequestNamespace: String = "goal-workspace",
 ) {
     val localDestinationState = rememberSaveable { mutableStateOf(GoalDestination.Active) }
     val activeDestinationState = destinationState ?: localDestinationState
@@ -153,8 +191,8 @@ fun GoalAreaContent(
                 selected = destination,
                 destinations = GoalDestination.entries,
                 onSelect = { destination = it },
-                label = GoalDestination::name,
-                compactLabel = { if (it == GoalDestination.Completed) "Done" else it.name },
+                label = GoalDestination::displayLabel,
+                compactLabel = GoalDestination::displayLabel,
                 testTagPrefix = "goal-destination",
                 barTestTag = "goal-workspace-navigation",
             )
@@ -175,17 +213,68 @@ fun GoalAreaContent(
     var deleteCandidateGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var templatesOpen by rememberSaveable { mutableStateOf(false) }
     var templateDraft by rememberSaveable { mutableStateOf<GoalDraft?>(null) }
-    val projectionById = (state.active + state.completed + state.archived).associateBy { it.goal.id }
     val editorProjectionById = (editorState.active + editorState.completed + editorState.archived)
         .associateBy { it.goal.id }
-    val editing = editingGoalId?.let(editorProjectionById::get)
-    val recording = recordingGoalId?.let(projectionById::get)
-    val actions = actionsGoalId?.let(projectionById::get)
-    val editingMeasurement = editingMeasurementGoalId?.let(projectionById::get)?.let { projection ->
-        editingMeasurementId?.let { id -> projection.entries.firstOrNull { it.id == id } }?.let { projection to it }
+    val liveEditing = editingGoalId?.let(editorProjectionById::get)
+    var editingSnapshot by rememberSaveable(editingGoalId) { mutableStateOf(liveEditing) }
+    LaunchedEffect(editingGoalId, liveEditing) {
+        if (editingGoalId != null && editingSnapshot == null) editingSnapshot = liveEditing
     }
-    val resettingElapsed = resettingElapsedGoalId?.let(projectionById::get)
-    val deleteCandidate = deleteCandidateGoalId?.let(projectionById::get)
+    val editing = editingSnapshot
+    val liveRecording = recordingGoalId?.let(editorProjectionById::get)
+    var recordingSnapshot by rememberSaveable(recordingGoalId) { mutableStateOf(liveRecording) }
+    LaunchedEffect(recordingGoalId, liveRecording) {
+        if (recordingGoalId != null && recordingSnapshot == null) recordingSnapshot = liveRecording
+    }
+    val recording = recordingSnapshot
+    val liveActions = actionsGoalId?.let(editorProjectionById::get)
+    var actionsSnapshot by rememberSaveable(actionsGoalId) { mutableStateOf(liveActions) }
+    LaunchedEffect(actionsGoalId, liveActions) {
+        if (actionsGoalId != null && actionsSnapshot == null) actionsSnapshot = liveActions
+    }
+    val actions = actionsSnapshot
+    val liveEditingMeasurementProjection = editingMeasurementGoalId?.let(editorProjectionById::get)
+    val liveEditingMeasurementEntry = liveEditingMeasurementProjection?.let { projection ->
+        editingMeasurementId?.let { id -> projection.entries.firstOrNull { it.id == id } }
+    }
+    var editingMeasurementProjectionSnapshot by rememberSaveable(editingMeasurementGoalId, editingMeasurementId) {
+        mutableStateOf(liveEditingMeasurementProjection)
+    }
+    var editingMeasurementEntrySnapshot by rememberSaveable(editingMeasurementGoalId, editingMeasurementId) {
+        mutableStateOf(liveEditingMeasurementEntry)
+    }
+    LaunchedEffect(
+        editingMeasurementGoalId,
+        editingMeasurementId,
+        liveEditingMeasurementProjection,
+        liveEditingMeasurementEntry,
+    ) {
+        if (editingMeasurementGoalId != null && editingMeasurementProjectionSnapshot == null) {
+            editingMeasurementProjectionSnapshot = liveEditingMeasurementProjection
+        }
+        if (editingMeasurementId != null && editingMeasurementEntrySnapshot == null) {
+            editingMeasurementEntrySnapshot = liveEditingMeasurementEntry
+        }
+    }
+    val editingMeasurement = editingMeasurementProjectionSnapshot?.let { projection ->
+        editingMeasurementEntrySnapshot?.let { entry -> projection to entry }
+    }
+    val liveResettingElapsed = resettingElapsedGoalId?.let(editorProjectionById::get)
+    var resettingElapsedSnapshot by rememberSaveable(resettingElapsedGoalId) { mutableStateOf(liveResettingElapsed) }
+    LaunchedEffect(resettingElapsedGoalId, liveResettingElapsed) {
+        if (resettingElapsedGoalId != null && resettingElapsedSnapshot == null) {
+            resettingElapsedSnapshot = liveResettingElapsed
+        }
+    }
+    val resettingElapsed = resettingElapsedSnapshot
+    val liveDeleteCandidate = deleteCandidateGoalId?.let(editorProjectionById::get)
+    var deleteCandidateSnapshot by rememberSaveable(deleteCandidateGoalId) { mutableStateOf(liveDeleteCandidate) }
+    LaunchedEffect(deleteCandidateGoalId, liveDeleteCandidate) {
+        if (deleteCandidateGoalId != null && deleteCandidateSnapshot == null) {
+            deleteCandidateSnapshot = liveDeleteCandidate
+        }
+    }
+    val deleteCandidate = deleteCandidateSnapshot
     val editorSaveState by viewModel.editorSaveState.collectAsStateWithLifecycle()
     val editorSaveCoordinator = rememberEntitySaveCoordinator(
         state = editorSaveState,
@@ -198,42 +287,88 @@ fun GoalAreaContent(
             templateDraft = null
         },
     )
+    val authoredMutationSurfaceOpen = actionsGoalId != null ||
+        recordingGoalId != null ||
+        editingMeasurementGoalId != null ||
+        resettingElapsedGoalId != null ||
+        deleteCandidateGoalId != null
+    val authoredMutationState by viewModel.authoredMutationState.collectAsStateWithLifecycle()
+    val goalDeletionImpact by viewModel.goalDeletionImpact.collectAsStateWithLifecycle()
+    val operationStatus by viewModel.operationStatus.collectAsStateWithLifecycle()
+    val authoredMutationCoordinator = if (authoredMutationSurfaceOpen) {
+        rememberPersistenceRequestCoordinator(
+            state = authoredMutationState,
+            consume = viewModel::consumeAuthoredMutationResult,
+            key = mutationRequestNamespace,
+            requestNamespace = mutationRequestNamespace,
+            onPersisted = {
+                actionsGoalId = null
+                recordingGoalId = null
+                editingMeasurementGoalId = null
+                editingMeasurementId = null
+                resettingElapsedGoalId = null
+                deleteCandidateGoalId = null
+                viewModel.clearPermanentDeletionPreview()
+            },
+        )
+    } else null
     val elapsedNowMillis = state.nowMillis
-    LaunchedEffect(createRequested, recordGoalIdRequest, resetElapsedGoalIdRequest, state.active) {
+    LaunchedEffect(createRequested, recordGoalIdRequest, resetElapsedGoalIdRequest, editorState.active) {
         if (createRequested) creating = true
-        if (recordGoalIdRequest != null && state.active.any { it.goal.id == recordGoalIdRequest }) recordingGoalId = recordGoalIdRequest
-        if (resetElapsedGoalIdRequest != null && state.active.any {
-                it.goal.id == resetElapsedGoalIdRequest && it.goal.type == GoalType.ElapsedSince
+        recordGoalIdRequest?.let { requestedId ->
+            val requested = editorState.active.firstOrNull { it.goal.id == requestedId && !it.goal.archived }
+            if (requested == null) {
+                viewModel.reportUnavailable("That Goal is no longer active. Open Goals to choose an available Goal.")
+            } else if (requested.goal.type == GoalType.ElapsedSince || requested.goal.type == GoalType.WeightedMilestones) {
+                viewModel.reportUnavailable("That Goal does not use progress entries. Open it to use its available action.")
+            } else {
+                recordingGoalId = requestedId
             }
-        ) {
-            destination = GoalDestination.Active
-            resettingElapsedGoalId = resetElapsedGoalIdRequest
+        }
+        resetElapsedGoalIdRequest?.let { requestedId ->
+            val requested = editorState.active.firstOrNull {
+                it.goal.id == requestedId && !it.goal.archived && it.goal.type == GoalType.ElapsedSince
+            }
+            if (requested == null) {
+                viewModel.reportUnavailable("That elapsed-time Goal is no longer active. Open Goals to choose an available Goal.")
+            } else {
+                destination = GoalDestination.Active
+                resettingElapsedGoalId = requestedId
+            }
         }
         if (createRequested || recordGoalIdRequest != null || resetElapsedGoalIdRequest != null) {
             onExternalRequestConsumed()
         }
     }
-    LaunchedEffect(openGoalIdRequest, state.active, state.completed, state.archived) {
+    LaunchedEffect(openGoalIdRequest, editorState.active, editorState.completed, editorState.archived) {
         val requestedId = openGoalIdRequest ?: return@LaunchedEffect
-        val projection = (state.active + state.completed + state.archived)
+        val projection = (editorState.active + editorState.completed + editorState.archived)
             .firstOrNull { it.goal.id == requestedId }
-            ?: return@LaunchedEffect
+        if (projection == null) {
+            viewModel.reportUnavailable("That Goal is no longer available.")
+            onOpenGoalRequestConsumed()
+            return@LaunchedEffect
+        }
         destination = when {
-            projection in state.completed -> GoalDestination.Completed
-            projection in state.archived -> GoalDestination.Archived
+            projection in editorState.completed -> GoalDestination.Completed
+            projection in editorState.archived -> GoalDestination.Archived
             else -> GoalDestination.Active
         }
         actionsGoalId = projection.goal.id
         onOpenGoalRequestConsumed()
     }
-    LaunchedEffect(editGoalIdRequest, state.active, state.completed, state.archived) {
+    LaunchedEffect(editGoalIdRequest, editorState.active, editorState.completed, editorState.archived) {
         val requestedId = editGoalIdRequest ?: return@LaunchedEffect
-        val projection = (state.active + state.completed + state.archived)
+        val projection = (editorState.active + editorState.completed + editorState.archived)
             .firstOrNull { it.goal.id == requestedId }
-            ?: return@LaunchedEffect
+        if (projection == null) {
+            viewModel.reportUnavailable("That Goal is no longer available to edit.")
+            onEditGoalRequestConsumed()
+            return@LaunchedEffect
+        }
         destination = when {
-            projection in state.completed -> GoalDestination.Completed
-            projection in state.archived -> GoalDestination.Archived
+            projection in editorState.completed -> GoalDestination.Completed
+            projection in editorState.archived -> GoalDestination.Archived
             else -> GoalDestination.Active
         }
         editingGoalId = projection.goal.id
@@ -257,8 +392,8 @@ fun GoalAreaContent(
                 manageOrder = false
                 destination = it
             },
-            label = GoalDestination::name,
-            compactLabel = { if (it == GoalDestination.Completed) "Done" else it.name },
+            label = GoalDestination::displayLabel,
+            compactLabel = GoalDestination::displayLabel,
             testTagPrefix = "goal-destination",
             barTestTag = "goal-workspace-navigation",
         )
@@ -279,8 +414,8 @@ fun GoalAreaContent(
         ) {
             item {
                 WhipPageHeader(
-                    title = destination.name + " Goals",
-                    supportingText = "Long-term progress, consistency, ranges, totals, and project milestones.",
+                    title = destination.pageTitle(),
+                    supportingText = destination.supportingText(),
                 ) {
                     if (!manageOrder && destination == GoalDestination.Active && list.isNotEmpty()) {
                         val hasReorderAction = list.size > 1 || areaScopeLabel != null
@@ -321,12 +456,22 @@ fun GoalAreaContent(
             if (list.isEmpty()) item {
                 val firstUse = state.active.isEmpty() && state.completed.isEmpty() && state.archived.isEmpty()
                 WhipEmptyState(
-                    title = if (firstUse && destination == GoalDestination.Active) "Start Your First Goal" else "No Goals Here",
+                    title = when {
+                        firstUse && destination == GoalDestination.Active -> "Start Your First Goal"
+                        destination == GoalDestination.Completed -> "No Goal History Yet"
+                        destination == GoalDestination.Archived -> "No Archived Goals"
+                        else -> "No Active Goals"
+                    },
                     supportingText = if (destination == GoalDestination.Active) {
                         if (firstUse) {
                             "Choose a template for a fast start, or use + to define an outcome from scratch."
                         } else areaScopeLabel?.let { "No active goals in $it." } ?: "Create a goal or start from a template."
-                    } else areaScopeLabel?.let { "Nothing in $it yet." } ?: "Nothing here yet.",
+                    } else if (destination == GoalDestination.Completed) {
+                        areaScopeLabel?.let { "No completed or abandoned Goals in $it." }
+                            ?: "Completed and abandoned Goals appear here with their individual status."
+                    } else {
+                        areaScopeLabel?.let { "No archived Goals in $it." } ?: "Archived Goals remain available here."
+                    },
                     primaryActionLabel = "Browse Templates".takeIf { destination == GoalDestination.Active },
                     onPrimaryAction = { templatesOpen = true }.takeIf { destination == GoalDestination.Active },
                 )
@@ -424,7 +569,13 @@ fun GoalAreaContent(
             onSave = { draft ->
                 val requestId = editorSaveCoordinator.begin()
                 if (requestId != null) {
-                    if (!viewModel.saveGoal(editing?.goal?.id, draft, requestId = requestId)) {
+                    if (!viewModel.saveGoal(
+                            editing?.goal?.id,
+                            draft,
+                            expectedBoundary = editing?.goal?.mutationBoundary(),
+                            requestId = requestId,
+                        )
+                    ) {
                         editorSaveCoordinator.finishFailure("Another Goal save is already finishing.")
                     }
                 }
@@ -444,78 +595,190 @@ fun GoalAreaContent(
         )
     }
     resettingElapsed?.let { projection ->
+        val mutationCoordinator = authoredMutationCoordinator ?: return@let
+        val boundary = projection.goal.mutationBoundary()
         ElapsedGoalResetDialog(
             goal = projection.goal,
-            zoneId = state.activeZoneId,
-            nowMillis = state.nowMillis,
-            onDismiss = { resettingElapsedGoalId = null },
-            onReset = { instant ->
-                viewModel.resetElapsedStart(projection.goal.id, instant)
+            zoneId = editorState.activeZoneId,
+            nowMillis = editorState.nowMillis,
+            saving = mutationCoordinator.saving,
+            persistenceError = mutationCoordinator.errorMessage,
+            onDismiss = {
+                mutationCoordinator.clear()
                 resettingElapsedGoalId = null
             },
+            onReset = { instant ->
+                val requestId = mutationCoordinator.begin()
+                if (requestId != null && !viewModel.resetElapsedStart(boundary, instant, requestId)) {
+                    mutationCoordinator.finishFailure("Another Goal change is already finishing.")
+                }
+            },
             onResetNow = {
-                viewModel.resetElapsedStartToNow(projection.goal.id)
-                resettingElapsedGoalId = null
+                val requestId = mutationCoordinator.begin()
+                if (requestId != null && !viewModel.resetElapsedStartToNow(boundary, requestId)) {
+                    mutationCoordinator.finishFailure("Another Goal change is already finishing.")
+                }
             },
         )
     }
     recording?.let { projection ->
+        val mutationCoordinator = authoredMutationCoordinator ?: return@let
+        val boundary = projection.goal.progressBoundary()
         GoalMeasurementDialog(
             projection,
-            state.currentDate,
+            editorState.currentDate,
             entry = null,
-            onDismiss = { recordingGoalId = null },
-            onRecord = { value, date, note -> viewModel.record(projection.goal.id, value, date, note); recordingGoalId = null },
+            customUnits = editorState.customUnits,
+            saving = mutationCoordinator.saving,
+            persistenceError = mutationCoordinator.errorMessage,
+            onDismiss = {
+                mutationCoordinator.clear()
+                recordingGoalId = null
+            },
+            onRecord = { value, date, note ->
+                val requestId = mutationCoordinator.begin()
+                if (requestId != null && !viewModel.record(boundary, value, date, note, requestId)) {
+                    mutationCoordinator.finishFailure("Another Goal history change is already finishing.")
+                }
+            },
         )
     }
     editingMeasurement?.let { (projection, entry) ->
+        val mutationCoordinator = authoredMutationCoordinator ?: return@let
+        val boundary = projection.goal.measurementBoundary(entry)
         GoalMeasurementDialog(
             projection = projection,
-            today = state.currentDate,
+            today = editorState.currentDate,
             entry = entry,
-            onDismiss = { editingMeasurementGoalId = null; editingMeasurementId = null },
+            customUnits = editorState.customUnits,
+            saving = mutationCoordinator.saving,
+            persistenceError = mutationCoordinator.errorMessage,
+            onDismiss = {
+                mutationCoordinator.clear()
+                editingMeasurementGoalId = null
+                editingMeasurementId = null
+            },
             onRecord = { value, date, note ->
-                viewModel.updateMeasurement(projection.goal.id, entry.id, value, date, note)
-                editingMeasurementGoalId = null; editingMeasurementId = null
+                val requestId = mutationCoordinator.begin()
+                if (requestId != null && !viewModel.updateMeasurement(boundary, value, date, note, requestId)) {
+                    mutationCoordinator.finishFailure("Another Goal history change is already finishing.")
+                }
             },
             onDelete = {
-                viewModel.deleteMeasurement(projection.goal.id, entry.id)
-                editingMeasurementGoalId = null; editingMeasurementId = null
+                val requestId = mutationCoordinator.begin()
+                if (requestId != null && !viewModel.deleteMeasurement(boundary, requestId)) {
+                    mutationCoordinator.finishFailure("Another Goal history change is already finishing.")
+                }
             },
         )
     }
     actions?.let { projection ->
+        val mutationCoordinator = authoredMutationCoordinator ?: return@let
+        val boundary = projection.goal.mutationBoundary()
+        fun beginMutation(action: (String) -> Boolean) {
+            val requestId = mutationCoordinator.begin() ?: return
+            if (!action(requestId)) {
+                mutationCoordinator.finishFailure("Another Goal change is already finishing.")
+            }
+        }
         GoalActionsDialog(
             projection,
             modifier = modifier,
-            zoneId = state.activeZoneId,
-            nowMillis = state.nowMillis,
-            onDismiss = { actionsGoalId = null },
-            onEditMeasurement = { entry -> editingMeasurementGoalId = projection.goal.id; editingMeasurementId = entry.id; actionsGoalId = null },
-            onRecordProgress = { recordingGoalId = projection.goal.id; actionsGoalId = null },
-            onResetElapsed = { resettingElapsedGoalId = projection.goal.id; actionsGoalId = null },
-            onEdit = { editingGoalId = projection.goal.id; actionsGoalId = null },
-            onDuplicate = { viewModel.duplicate(projection.goal.id); actionsGoalId = null },
-            onPin = { viewModel.setPinned(projection.goal.id, !projection.goal.pinned); actionsGoalId = null },
-            onPause = { viewModel.setStatus(projection.goal.id, if (projection.goal.status == GoalStatus.Paused) GoalStatus.Active else GoalStatus.Paused); actionsGoalId = null },
-            onComplete = { viewModel.setStatus(projection.goal.id, GoalStatus.Completed); actionsGoalId = null },
-            onAbandon = { viewModel.setStatus(projection.goal.id, GoalStatus.Abandoned); actionsGoalId = null },
-            onReopen = { viewModel.setStatus(projection.goal.id, GoalStatus.Active); actionsGoalId = null },
-            onArchive = { viewModel.setStatus(projection.goal.id, if (projection.goal.status == GoalStatus.Archived) GoalStatus.Active else GoalStatus.Archived); actionsGoalId = null },
-            onDelete = { deleteCandidateGoalId = projection.goal.id; actionsGoalId = null },
+            zoneId = editorState.activeZoneId,
+            nowMillis = editorState.nowMillis,
+            customUnits = editorState.customUnits,
+            onDismiss = {
+                mutationCoordinator.clear()
+                actionsGoalId = null
+            },
+            onEditMeasurement = { entry ->
+                mutationCoordinator.leaveGoalActionSurface {
+                    editingMeasurementGoalId = projection.goal.id
+                    editingMeasurementId = entry.id
+                    actionsGoalId = null
+                }
+            },
+            onRecordProgress = {
+                mutationCoordinator.leaveGoalActionSurface {
+                    recordingGoalId = projection.goal.id
+                    actionsGoalId = null
+                }
+            },
+            onResetElapsed = {
+                mutationCoordinator.leaveGoalActionSurface {
+                    resettingElapsedGoalId = projection.goal.id
+                    actionsGoalId = null
+                }
+            },
+            onEdit = {
+                mutationCoordinator.leaveGoalActionSurface {
+                    editingGoalId = projection.goal.id
+                    actionsGoalId = null
+                }
+            },
+            onDuplicate = { beginMutation { viewModel.duplicate(boundary, it) } },
+            onPin = { beginMutation { viewModel.setPinned(boundary, !projection.goal.pinned, it) } },
+            onPause = {
+                beginMutation {
+                    viewModel.setStatus(
+                        boundary,
+                        if (projection.goal.status == GoalStatus.Paused) GoalStatus.Active else GoalStatus.Paused,
+                        it,
+                    )
+                }
+            },
+            onComplete = { beginMutation { viewModel.setStatus(boundary, GoalStatus.Completed, it) } },
+            onAbandon = { beginMutation { viewModel.setStatus(boundary, GoalStatus.Abandoned, it) } },
+            onReopen = { beginMutation { viewModel.setStatus(boundary, GoalStatus.Active, it) } },
+            onArchive = { beginMutation { viewModel.setArchived(boundary, !projection.goal.archived, it) } },
+            onDelete = {
+                mutationCoordinator.leaveGoalActionSurface {
+                    viewModel.preparePermanentDeletion(projection.goal.id)
+                    deleteCandidateGoalId = projection.goal.id
+                    actionsGoalId = null
+                }
+            },
+            mutationSaving = mutationCoordinator.saving,
+            mutationError = mutationCoordinator.errorMessage,
         )
     }
-    deleteCandidate?.let { projection ->
-        val goal = projection.goal
-        PermanentDeleteDialog(
-            title = "Delete ${goal.name} Permanently?",
-            impacts = listOf(
-                "${projection.entries.size} progress update${if (projection.entries.size == 1) "" else "s"} and all milestones will be removed",
-            ),
-            onDismiss = { deleteCandidateGoalId = null },
-            onConfirm = { viewModel.deletePermanently(goal.id); deleteCandidateGoalId = null },
+    deleteCandidateGoalId?.let { candidateId ->
+        val mutationCoordinator = authoredMutationCoordinator ?: return@let
+        val impact = goalDeletionImpact?.takeIf { it.goalId == candidateId }
+        val previewError = (operationStatus as? OperationStatus.Failed)?.message.takeIf { impact == null }
+        GoalPermanentDeleteDialog(
+            goalName = impact?.name ?: deleteCandidate?.goal?.name.orEmpty(),
+            impact = impact,
+            preparing = impact == null && previewError == null,
+            saving = mutationCoordinator.saving,
+            persistenceError = mutationCoordinator.errorMessage ?: previewError,
+            onDismiss = {
+                mutationCoordinator.clear()
+                viewModel.clearPermanentDeletionPreview()
+                deleteCandidateGoalId = null
+            },
+            onReviewUpdatedImpact = {
+                mutationCoordinator.clear()
+                viewModel.preparePermanentDeletion(candidateId)
+            },
+            onConfirm = { reviewedImpact ->
+                val requestId = mutationCoordinator.begin()
+                if (requestId != null && !viewModel.deletePermanently(
+                        candidateId,
+                        reviewedImpact.revisionToken,
+                        requestId,
+                    )
+                ) {
+                    mutationCoordinator.finishFailure("Another Goal change is already finishing.")
+                }
+            },
         )
     }
+}
+
+internal inline fun EntitySaveCoordinator.leaveGoalActionSurface(transition: () -> Unit) {
+    clear()
+    transition()
 }
 
 internal fun GoalProjection.collectionStatus(
@@ -524,6 +787,14 @@ internal fun GoalProjection.collectionStatus(
 ): String {
     val goal = this.goal
     return when {
+        terminalSnapshot != null && goal.type == GoalType.ElapsedSince ->
+            terminalSnapshot.elapsedDurationMillis
+                ?.let { elapsedCounter(0L, it, goal.elapsedDisplayUnit).label() }
+                ?: terminalSnapshot.status.inspectorLabel()
+        terminalSnapshot != null && goal.type == GoalType.WeightedMilestones ->
+            terminalSnapshot.milestoneOutcomeLabel()
+                ?: terminalSnapshot.progress?.let { "${(it * 100).toInt()}% complete" }
+                ?: terminalSnapshot.status.inspectorLabel()
         goal.type == GoalType.ElapsedSince && goal.elapsedStartMillis != null ->
             elapsedCounter(goal.elapsedStartMillis, nowMillis, goal.elapsedDisplayUnit).label()
         goal.type == GoalType.WeightedMilestones ->
@@ -533,7 +804,7 @@ internal fun GoalProjection.collectionStatus(
             "$successfulPeriods/$requiredPeriods ${period.name.lowercase()} periods"
         }
         currentValue != null ->
-            "Current ${formatGoalValue(goal.displayValue(currentValue, customUnits), goal.precision)} ${goal.unitId.goalUnitLabel()}".trim()
+            "Current ${formatGoalValue(goal.displayValue(currentValue, customUnits), goal.precision)} ${goal.unitId.goalUnitLabel(customUnits)}".trim()
         else -> goal.type.displayLabel()
     }
 }
@@ -546,7 +817,7 @@ fun GoalCard(
     onEdit: () -> Unit,
     onRecord: () -> Unit,
     onResetElapsed: () -> Unit,
-    onToggleMilestone: (Long, Boolean) -> Unit,
+    onToggleMilestone: (GoalMilestoneBoundary, Boolean) -> Unit,
     nowMillis: Long = System.currentTimeMillis(),
     reorderMode: Boolean = false,
 ) {
@@ -556,10 +827,11 @@ fun GoalCard(
     val compactStatus = projection.collectionStatus(customUnits, nowMillis)
     val primaryAction: (@Composable () -> Unit)? = when {
         reorderMode -> null
-        goal.status == GoalStatus.Active && goal.type !in setOf(GoalType.WeightedMilestones, GoalType.ElapsedSince) -> {{
+        !goal.archived && goal.status == GoalStatus.Active &&
+            goal.type !in setOf(GoalType.WeightedMilestones, GoalType.ElapsedSince) -> {{
             ItemPrimaryTextButton("Log", onRecord)
         }}
-        goal.status == GoalStatus.Active && goal.type == GoalType.ElapsedSince -> {{
+        !goal.archived && goal.status == GoalStatus.Active && goal.type == GoalType.ElapsedSince -> {{
             ItemPrimaryTextButton("Reset", onResetElapsed)
         }}
         else -> null
@@ -629,13 +901,26 @@ fun GoalCard(
             }
         }
         if (goal.type == GoalType.ElapsedSince) {
-            val started = goal.elapsedStartMillis
-            if (started != null) {
+            val frozenDuration = projection.terminalSnapshot?.elapsedDurationMillis
+            val started = goal.elapsedStartMillis.takeIf { projection.terminalSnapshot == null }
+            when {
+                frozenDuration != null -> Text(
+                    elapsedCounter(0L, frozenDuration, goal.elapsedDisplayUnit).label(),
+                    style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                projection.terminalSnapshot != null -> Text(
+                    "Exact elapsed duration was not stored for this older closure.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                started != null -> {
                 Text(
                     elapsedCounter(started, nowMillis, goal.elapsedDisplayUnit).label(),
                     style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
+                }
             }
         } else projection.consistency?.let { consistency ->
             Text(
@@ -644,22 +929,35 @@ fun GoalCard(
             )
         } ?: projection.currentValue?.let { canonical ->
             val current = goal.displayValue(canonical, customUnits)
-            Text("Current: ${formatGoalValue(current, goal.precision)} ${goal.unitId.goalUnitLabel()}")
+            Text("Current: ${formatGoalValue(current, goal.precision)} ${goal.unitId.goalUnitLabel(customUnits)}")
         }
         val pace = when (projection.onPace) { true -> "On pace"; false -> "Behind pace"; null -> null }
         if (pace != null) Text(pace + (projection.forecastDate?.let { " · forecast ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" } ?: ""), style = MaterialTheme.typography.labelMedium)
+        if (projection.terminalSnapshot != null && goal.type == GoalType.WeightedMilestones) {
+            Text(
+                "Closed outcome is frozen. Milestones below show the current saved definition.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         projection.milestones.forEach { milestone ->
+            val milestoneEditable = !goal.archived && goal.status == GoalStatus.Active
             val milestoneModifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
                 .testTag("goal-milestone-${milestone.id}")
                 .toggleable(
                     value = milestone.completed,
+                    enabled = milestoneEditable,
                     role = Role.Checkbox,
-                    onValueChange = { onToggleMilestone(milestone.id, !milestone.completed) },
+                    onValueChange = {
+                        onToggleMilestone(goal.milestoneBoundary(milestone), !milestone.completed)
+                    },
                 )
                 .semantics {
-                    contentDescription = if (milestone.completed) {
+                    contentDescription = if (!milestoneEditable) {
+                        "${milestone.name} is ${if (milestone.completed) "complete" else "not complete"}. Make the Goal active to change milestones"
+                    } else if (milestone.completed) {
                         "Mark milestone ${milestone.name} incomplete"
                     } else "Complete milestone ${milestone.name}"
                 }
@@ -726,6 +1024,8 @@ internal fun ElapsedGoalResetDialog(
     onDismiss: () -> Unit,
     onReset: (Instant) -> Unit,
     onResetNow: () -> Unit,
+    saving: Boolean = false,
+    persistenceError: String? = null,
 ) {
     val draftZoneId by rememberSaveable(goal.id) { mutableStateOf(zoneId.id) }
     val draftZone = remember(draftZoneId) { ZoneId.of(draftZoneId) }
@@ -735,6 +1035,7 @@ internal fun ElapsedGoalResetDialog(
     var wallTimeEdited by rememberSaveable(goal.id) { mutableStateOf(false) }
     var preferredOffsetSeconds by rememberSaveable(goal.id) { mutableStateOf<Int?>(original.offset.totalSeconds) }
     var datePicker by rememberSaveable(goal.id) { mutableStateOf(false) }
+    var confirmDiscard by rememberSaveable(goal.id) { mutableStateOf(false) }
     val resolution = resolveExactLocalTime(date, minutes, draftZone)
     val selectedInstant = resolveEditedExactInstant(
         initialInstant = original.toInstant(),
@@ -744,15 +1045,23 @@ internal fun ElapsedGoalResetDialog(
     )
     val now = Instant.ofEpochMilli(nowMillis)
     val inFuture = selectedInstant?.isAfter(now) == true
+    fun requestDismiss() {
+        if (saving) return
+        if (wallTimeEdited) confirmDiscard = true else onDismiss()
+    }
     PaneAwareAlertDialog(
         testTag = "elapsed-reset-dialog",
-        onDismissRequest = onDismiss,
+        onDismissRequest = ::requestDismiss,
         title = { Text("Reset ${goal.name}?") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                PersistenceFailureNotice(persistenceError, testTag = "elapsed-reset-save-problem")
                 Text("Choose the new event time. This replaces the previous counter origin; it does not delete the Goal.")
                 Text("Whip time · ${draftZone.id}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                WhipOutlinedButton(onClick = { datePicker = true }, modifier = Modifier.fillMaxWidth()) {
+                WhipOutlinedButton(enabled = !saving, onClick = { datePicker = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
                 }
                 ClockPickerButton("Start Time", minutes, { if (it != null) {
@@ -793,11 +1102,11 @@ internal fun ElapsedGoalResetDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
-                enabled = selectedInstant != null && !inFuture,
+                WhipTextButton(
+                enabled = !saving && selectedInstant != null && !inFuture,
                 onClick = { selectedInstant?.let(onReset) },
                 modifier = Modifier.testTag("elapsed-reset-confirm"),
-            ) { Text("Reset to Chosen Time") }
+            ) { Text(if (saving) "Resetting…" else "Reset to Chosen Time") }
         },
         dismissButton = {
             FlowRow(
@@ -805,17 +1114,27 @@ internal fun ElapsedGoalResetDialog(
                 horizontalArrangement = Arrangement.End,
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                WhipTextButton(onClick = onResetNow, modifier = Modifier.testTag("elapsed-reset-now")) { Text("Reset to Now") }
-                WhipTextButton(onClick = onDismiss, modifier = Modifier.testTag("elapsed-reset-cancel")) { Text("Cancel") }
+                WhipTextButton(enabled = !saving, onClick = onResetNow, modifier = Modifier.testTag("elapsed-reset-now")) { Text("Reset to Now") }
+                WhipTextButton(enabled = !saving, onClick = ::requestDismiss, modifier = Modifier.testTag("elapsed-reset-cancel")) { Text("Cancel") }
             }
         },
+        inputBlocked = saving,
+        inputBlockedLabel = "Resetting Goal Timer",
     )
-    if (datePicker) WhipDatePickerDialog(date, { datePicker = false }, {
+    if (datePicker && !saving) WhipDatePickerDialog(date, { datePicker = false }, {
         date = it
         wallTimeEdited = true
         preferredOffsetSeconds = null
         datePicker = false
     })
+    if (confirmDiscard && !saving) UnsavedChangesDialog(
+        subject = "timer reset",
+        onKeepEditing = { confirmDiscard = false },
+        onDiscard = {
+            confirmDiscard = false
+            onDismiss()
+        },
+    )
 }
 
 internal fun elapsedGoalStartLabel(startedMillis: Long, zoneId: ZoneId): String =
@@ -1651,26 +1970,48 @@ internal fun GoalMeasurementDialog(
     projection: GoalProjection,
     today: LocalDate,
     entry: MetricEntry?,
+    customUnits: List<UnitDefinition> = emptyList(),
     onDismiss: () -> Unit,
     onRecord: (Double, LocalDate, String) -> Unit,
     onDelete: (() -> Unit)? = null,
+    saving: Boolean = false,
+    persistenceError: String? = null,
 ) {
     val editorKey = "goal-measurement-${entry?.id ?: projection.goal.id}"
-    var value by rememberSaveable(editorKey) { mutableStateOf(entry?.enteredValue?.let(::editableNumericValue).orEmpty()) }
-    var note by rememberSaveable(editorKey) { mutableStateOf(entry?.note.orEmpty()) }
-    var date by rememberSaveable(editorKey) { mutableStateOf(entry?.localDate ?: today) }
+    val initialValue = entry?.enteredValue?.let(::editableNumericValue).orEmpty()
+    val initialNote = entry?.note.orEmpty()
+    val initialDate = entry?.localDate ?: today
+    var value by rememberSaveable(editorKey) { mutableStateOf(initialValue) }
+    var note by rememberSaveable(editorKey) { mutableStateOf(initialNote) }
+    var date by rememberSaveable(editorKey) { mutableStateOf(initialDate) }
     var showDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
     var confirmDelete by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var confirmDiscard by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var confirmOutsideWindow by rememberSaveable(editorKey) { mutableStateOf(false) }
     var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
     val parsedValue = value.toWhipDoubleOrNull()
+    val dateInFuture = date.isAfter(today)
+    val dateOutsideGoalWindow = date.isBefore(projection.goal.startDate) ||
+        projection.goal.deadline?.let(date::isAfter) == true
+    val dirty = value != initialValue || note != initialNote || date != initialDate
+    val focusManager = LocalFocusManager.current
+    fun requestDismiss() {
+        if (saving) return
+        if (dirty) confirmDiscard = true else onDismiss()
+    }
     PaneAwareAlertDialog(
-        onDismissRequest = onDismiss,
+        testTag = "goal-measurement-dialog",
+        onDismissRequest = ::requestDismiss,
         title = { Text(if (entry == null) "Log Progress" else "Edit Progress Update") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PersistenceFailureNotice(persistenceError, testTag = "goal-measurement-save-problem")
                 Text("${projection.goal.icon} ${projection.goal.name}", style = MaterialTheme.typography.titleMedium)
                 Text(projection.goal.measurementEntryInstruction())
-                val unitLabel = (entry?.enteredUnitId ?: projection.goal.unitId).goalUnitLabel()
+                val unitLabel = (entry?.enteredUnitId ?: projection.goal.unitId).goalUnitLabel(customUnits)
                 val fieldLabel = projection.goal.measurementEntryLabel().let { label ->
                     if (unitLabel.isBlank()) label else "$label ($unitLabel)"
                 }
@@ -1680,28 +2021,79 @@ internal fun GoalMeasurementDialog(
                     fieldLabel,
                     required = true,
                     error = "Enter a value".takeIf { validationRequested && parsedValue == null },
+                    enabled = !saving,
+                    imeAction = ImeAction.Next,
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) },
+                    ),
+                    modifier = Modifier.testTag("goal-measurement-value"),
                 )
-                OutlinedTextField(note, { note = it }, label = { Text("Note (optional)") }, modifier = Modifier.fillMaxWidth())
-                WhipOutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = note,
+                    onValueChange = { note = it },
+                    enabled = !saving,
+                    label = { Text("Note (optional)") },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                    modifier = Modifier.fillMaxWidth().testTag("goal-measurement-note"),
+                )
+                WhipOutlinedButton(
+                    enabled = !saving,
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier.fillMaxWidth().testTag("goal-measurement-date"),
+                ) {
                     Text("Date · ${date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
                 }
+                if (dateInFuture) Text(
+                    "Progress date cannot be in the future.",
+                    modifier = Modifier
+                        .testTag("goal-measurement-date-problem")
+                        .semantics { liveRegion = LiveRegionMode.Polite },
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                else if (dateOutsideGoalWindow) Text(
+                    "This date is outside the Goal's tracking window. It will remain in History but will not affect current progress.",
+                    modifier = Modifier
+                        .testTag("goal-measurement-window-warning")
+                        .semantics { liveRegion = LiveRegionMode.Polite },
+                    color = MaterialTheme.colorScheme.tertiary,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
         },
         confirmButton = {
-            WhipTextButton(onClick = {
-                validationRequested = true
-                parsedValue?.let { onRecord(it, date, note) }
-            }) { Text(if (entry == null) "Log Progress" else "Save Changes") }
+            WhipTextButton(
+                enabled = !saving && !dateInFuture,
+                onClick = {
+                    validationRequested = true
+                    parsedValue?.let { parsed ->
+                        if (dateOutsideGoalWindow) confirmOutsideWindow = true
+                        else onRecord(parsed, date, note)
+                    }
+                },
+                modifier = Modifier.testTag("goal-measurement-save"),
+            ) { Text(if (saving) "Saving…" else if (entry == null) "Log Progress" else "Save Changes") }
         },
         dismissButton = {
             Row {
-                if (onDelete != null) WhipTextButton(onClick = { confirmDelete = true }) { Text("Delete") }
-                WhipTextButton(onClick = onDismiss) { Text("Cancel") }
+                if (onDelete != null) WhipTextButton(
+                    enabled = !saving,
+                    onClick = { confirmDelete = true },
+                    modifier = Modifier.testTag("goal-measurement-delete"),
+                ) { Text("Delete") }
+                WhipTextButton(
+                    enabled = !saving,
+                    onClick = ::requestDismiss,
+                    modifier = Modifier.testTag("goal-measurement-cancel"),
+                ) { Text("Cancel") }
             }
         },
+        inputBlocked = saving,
+        inputBlockedLabel = if (entry == null) "Saving Goal Progress" else "Updating Goal Progress",
     )
-    if (showDatePicker) WhipDatePickerDialog(date, { showDatePicker = false }, { date = it; showDatePicker = false })
-    if (confirmDelete && onDelete != null) {
+    if (showDatePicker && !saving) WhipDatePickerDialog(date, { showDatePicker = false }, { date = it; showDatePicker = false })
+    if (confirmDelete && onDelete != null && !saving) {
         PaneAwareAlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text("Delete Progress Update?") },
@@ -1714,14 +2106,159 @@ internal fun GoalMeasurementDialog(
             dismissButton = { WhipTextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
         )
     }
+    if (confirmDiscard && !saving) {
+        UnsavedChangesDialog(
+            subject = "progress update",
+            onKeepEditing = { confirmDiscard = false },
+            onDiscard = {
+                confirmDiscard = false
+                onDismiss()
+            },
+        )
+    }
+    if (confirmOutsideWindow && parsedValue != null && !saving) {
+        PaneAwareAlertDialog(
+            testTag = "goal-measurement-window-confirmation",
+            onDismissRequest = { confirmOutsideWindow = false },
+            paneTitle = "Confirm Progress Date",
+            title = { Text("Save Outside Goal Window?") },
+            text = {
+                Text(
+                    "The update will stay in ${projection.goal.name}'s History, but the Goal's current progress ignores dates " +
+                        "before ${projection.goal.startDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" +
+                        projection.goal.deadline?.let {
+                            " or after ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}"
+                        }.orEmpty() + ".",
+                )
+            },
+            confirmButton = {
+                WhipTextButton(
+                    onClick = {
+                        confirmOutsideWindow = false
+                        onRecord(parsedValue, date, note)
+                    },
+                    modifier = Modifier.testTag("goal-measurement-window-confirm"),
+                ) { Text("Save to History") }
+            },
+            dismissButton = {
+                WhipTextButton(onClick = { confirmOutsideWindow = false }) { Text("Change Date") }
+            },
+        )
+    }
 }
 
 @Composable
-private fun GoalActionsDialog(
+internal fun GoalPermanentDeleteDialog(
+    goalName: String,
+    impact: GoalDeletionImpact?,
+    preparing: Boolean,
+    saving: Boolean,
+    persistenceError: String?,
+    onDismiss: () -> Unit,
+    onReviewUpdatedImpact: () -> Unit,
+    onConfirm: (GoalDeletionImpact) -> Unit,
+) {
+    val titleName = goalName.ifBlank { "Goal" }
+    PaneAwareAlertDialog(
+        testTag = "goal-permanent-delete-dialog",
+        onDismissRequest = { if (!saving) onDismiss() },
+        paneTitle = "Permanent Goal Deletion",
+        title = { Text("Delete $titleName Permanently?") },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PersistenceFailureNotice(persistenceError, testTag = "goal-delete-problem")
+                if (preparing) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().semantics {
+                            liveRegion = LiveRegionMode.Polite
+                            contentDescription = "Reviewing permanent deletion impact"
+                        },
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CircularProgressIndicator(Modifier.size(24.dp))
+                        Text("Reviewing everything this deletion will remove…")
+                    }
+                }
+                impact?.let { reviewed ->
+                    Text("This cannot be undone. The reviewed deletion includes:")
+                    Text(
+                        "• The ${if (reviewed.archived) "archived " else ""}${reviewed.status.lowercase()} Goal " +
+                            "and its measurement definition",
+                    )
+                    Text(
+                        "• ${reviewed.progressEntryCount} progress update" +
+                            if (reviewed.progressEntryCount == 1) "" else "s",
+                    )
+                    Text(
+                        "• ${reviewed.milestoneCount} milestone" +
+                            if (reviewed.milestoneCount == 1) " (${reviewed.completedMilestoneCount} completed)"
+                            else "s (${reviewed.completedMilestoneCount} completed)",
+                    )
+                    if (reviewed.legacyClosureSnapshotCount > 0) Text(
+                        "• ${reviewed.legacyClosureSnapshotCount} historical completion or abandonment snapshot" +
+                            if (reviewed.legacyClosureSnapshotCount == 1) "" else "s",
+                    )
+                    if (reviewed.elapsedResetEventCount > 0) Text(
+                        "• ${reviewed.elapsedResetEventCount} timer reset history event" +
+                            if (reviewed.elapsedResetEventCount == 1) "" else "s",
+                    )
+                    if (reviewed.linkRuleCount > 0) Text(
+                        "• ${reviewed.linkRuleCount} linked automation rule" +
+                            if (reviewed.linkRuleCount == 1) "" else "s",
+                    )
+                    if (reviewed.contributionCount > 0) Text(
+                        "• ${reviewed.contributionCount} linked contribution record" +
+                            if (reviewed.contributionCount == 1) "" else "s",
+                    )
+                    Text(
+                        "Export a backup first if you may need this history.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (!persistenceError.isNullOrBlank()) {
+                    WhipOutlinedButton(
+                        enabled = !saving,
+                        onClick = onReviewUpdatedImpact,
+                        modifier = Modifier.fillMaxWidth().testTag("goal-delete-review-impact"),
+                    ) {
+                        Text(if (impact == null) "Retry Impact Review" else "Review Updated Impact")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            WhipTextButton(
+                enabled = impact != null && persistenceError.isNullOrBlank() && !saving,
+                onClick = { impact?.let(onConfirm) },
+                modifier = Modifier.testTag("goal-delete-confirm"),
+            ) {
+                Text(if (saving) "Deleting…" else "Delete Permanently", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            WhipTextButton(
+                enabled = !saving,
+                onClick = onDismiss,
+                modifier = Modifier.testTag("goal-delete-cancel"),
+            ) { Text("Cancel") }
+        },
+        inputBlocked = saving,
+        inputBlockedLabel = "Permanently Deleting Goal",
+    )
+}
+
+@Composable
+internal fun GoalActionsDialog(
     projection: GoalProjection,
     modifier: Modifier = Modifier,
     zoneId: ZoneId,
     nowMillis: Long,
+    customUnits: List<UnitDefinition> = emptyList(),
     onDismiss: () -> Unit,
     onEditMeasurement: (MetricEntry) -> Unit,
     onRecordProgress: () -> Unit,
@@ -1735,29 +2272,35 @@ private fun GoalActionsDialog(
     onReopen: () -> Unit,
     onArchive: () -> Unit,
     onDelete: () -> Unit,
+    mutationSaving: Boolean = false,
+    mutationError: String? = null,
 ) {
     var visibleMeasurements by rememberSaveable(projection.goal.id) { mutableIntStateOf(25) }
     var showAccessibleTable by rememberSaveable(projection.goal.id) { mutableStateOf(false) }
     var section by rememberSaveable(projection.goal.id) { mutableStateOf(GoalDetailSection.Overview) }
     val insights = remember(projection) { buildGoalInsights(projection.goal, projection.entries, projection.milestones) }
-    val primaryAction = when (projection.goal.status) {
-        GoalStatus.Active -> when (projection.goal.type) {
-            GoalType.WeightedMilestones -> null
-            GoalType.ElapsedSince -> EntityInspectorPrimaryAction("reset-timer", "Reset Timer", onResetElapsed)
-            GoalType.OpenEndedTrend -> EntityInspectorPrimaryAction("add-update", "Log an Update", onRecordProgress)
-            else -> EntityInspectorPrimaryAction("log-progress", "Log Progress", onRecordProgress)
+    val primaryAction = if (projection.goal.archived) {
+        EntityInspectorPrimaryAction("restore", "Restore Goal", onArchive)
+    } else {
+        when (projection.goal.status) {
+            GoalStatus.Active -> when (projection.goal.type) {
+                GoalType.WeightedMilestones -> null
+                GoalType.ElapsedSince -> EntityInspectorPrimaryAction("reset-timer", "Reset Timer", onResetElapsed)
+                GoalType.OpenEndedTrend -> EntityInspectorPrimaryAction("add-update", "Log an Update", onRecordProgress)
+                else -> EntityInspectorPrimaryAction("log-progress", "Log Progress", onRecordProgress)
+            }
+            GoalStatus.Paused -> EntityInspectorPrimaryAction("resume", "Resume Goal", onPause)
+            GoalStatus.Archived -> EntityInspectorPrimaryAction("restore", "Restore Goal", onArchive)
+            GoalStatus.Completed, GoalStatus.Abandoned -> EntityInspectorPrimaryAction("reopen", "Reopen Goal", onReopen)
         }
-        GoalStatus.Paused -> EntityInspectorPrimaryAction("resume", "Resume Goal", onPause)
-        GoalStatus.Archived -> EntityInspectorPrimaryAction("restore", "Restore Goal", onArchive)
-        GoalStatus.Completed, GoalStatus.Abandoned -> EntityInspectorPrimaryAction("reopen", "Reopen Goal", onReopen)
     }
     EntityInspector(
         entityType = "Goal",
         title = projection.goal.name,
         emoji = projection.goal.icon,
         context = projection.goal.area.ifBlank { projection.goal.type.displayLabel() },
-        status = projection.goal.status.inspectorLabel(),
-        statusTone = projection.goal.status.inspectorStatusTone(),
+        status = if (projection.goal.archived) "Archived" else projection.goal.status.inspectorLabel(),
+        statusTone = if (projection.goal.archived) WhipStatusTone.Neutral else projection.goal.status.inspectorStatusTone(),
         sections = GoalDetailSection.entries.map { it.inspectorSection },
         selectedSectionId = section.id,
         onSelectSection = { id -> section = GoalDetailSection.entries.first { it.id == id } },
@@ -1768,13 +2311,19 @@ private fun GoalActionsDialog(
         legacySurfaceTag = "goal-detail-surface",
         legacySectionTagPrefix = "goal-detail-section",
         primaryAction = primaryAction,
+        inputBlocked = mutationSaving,
+        inputBlockedLabel = "Updating Goal",
         content = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (!mutationError.isNullOrBlank()) item {
+                    PersistenceFailureNotice(mutationError, testTag = "goal-action-save-problem")
+                }
                 if (section == GoalDetailSection.Overview) {
                 item {
                     EntityInspectorGroup("Outcome") {
                         Text(
-                            projection.inspectorOutcome(nowMillis),
+                            projection.inspectorOutcome(nowMillis, customUnits),
+                            modifier = Modifier.testTag("goal-inspector-outcome"),
                             style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
@@ -1791,11 +2340,25 @@ private fun GoalActionsDialog(
                     Text(if (projection.goal.type == GoalType.ElapsedSince) "Elapsed Time" else "Progress insight", fontWeight = FontWeight.Bold)
                     val chartValues = insights.points.mapNotNull { it.progress ?: it.canonicalValue }
                     if (projection.goal.type == GoalType.ElapsedSince) {
-                        projection.goal.elapsedStartMillis?.let { started ->
-                            Text(elapsedCounter(started, nowMillis, projection.goal.elapsedDisplayUnit).label(), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+                        val terminal = projection.terminalSnapshot
+                        val frozenDuration = terminal?.elapsedDurationMillis
+                        if (frozenDuration != null) {
                             Text(
-                                "Started ${elapsedGoalStartLabel(started, zoneId)}",
+                                elapsedCounter(0L, frozenDuration, projection.goal.elapsedDisplayUnit).label(),
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.primary,
                             )
+                            Text(
+                                "Recorded when this Goal was ${terminal.status.name.lowercase()}.",
+                            )
+                        } else if (terminal != null) {
+                            Text(
+                                "Exact elapsed duration was not stored for this older closure.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else projection.goal.elapsedStartMillis?.let { started ->
+                            Text(elapsedCounter(started, nowMillis, projection.goal.elapsedDisplayUnit).label(), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+                            Text("Started ${elapsedGoalStartLabel(started, zoneId)}")
                         }
                     } else if (chartValues.size >= 2) {
                         GoalLineChart(
@@ -1835,26 +2398,76 @@ private fun GoalActionsDialog(
                 }
                 }
                 if (section == GoalDetailSection.History) {
-                if (projection.goal.type == GoalType.ElapsedSince) item { Text("Elapsed-time Goals use one editable start time rather than a progress history.") }
-                item { Text("Progress History", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
-                if (projection.entries.isEmpty()) item {
-                    Text("No progress updates yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                items(projection.entries.take(visibleMeasurements), key = { it.id }) { entry ->
-                    EntityInspectorAction(
-                        id = "progress-update-${entry.id}",
-                        label = entry.historyTitle(),
-                        supportingText = entry.historySupportingText(),
-                        enabled = entry.isUserEditableGoalUpdate(),
-                        onClick = { if (entry.isUserEditableGoalUpdate()) onEditMeasurement(entry) },
-                    )
-                }
-                if (visibleMeasurements < projection.entries.size) item {
-                    WhipOutlinedButton(
-                        onClick = { visibleMeasurements = (visibleMeasurements + 25).coerceAtMost(projection.entries.size) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Show More History · ${projection.entries.size - visibleMeasurements} Remaining") }
-                }
+                    if (projection.closureSnapshots.isNotEmpty()) {
+                        item {
+                            Text("Lifecycle History", fontWeight = FontWeight.Bold)
+                            Text(
+                                "Completion and abandonment outcomes are permanent history. Reopening does not erase them.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        items(
+                            projection.closureSnapshots.sortedByDescending { it.completedAtMillis },
+                            key = { "goal-closure-${it.id}" },
+                        ) { snapshot ->
+                            Text(
+                                snapshot.accessibleHistoryDescription(projection.goal, zoneId, customUnits),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("goal-closure-history-${snapshot.id}"),
+                            )
+                        }
+                    }
+                    if (projection.elapsedResetEvents.isNotEmpty()) {
+                        item {
+                            Text("Timer Reset History", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+                            Text(
+                                "Each reset preserves the previous and new counter origin.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        items(
+                            projection.elapsedResetEvents.sortedByDescending { it.resetAtMillis },
+                            key = { "goal-reset-event-${it.id}" },
+                        ) { event ->
+                            Text(
+                                event.accessibleHistoryDescription(zoneId),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("goal-reset-history-${event.id}"),
+                            )
+                        }
+                    }
+                    if (projection.goal.type == GoalType.ElapsedSince) {
+                        if (projection.elapsedResetEvents.isEmpty()) item {
+                            Text(
+                                "No timer resets yet. The current start time remains editable from Reset Timer.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    } else {
+                        item { Text("Progress History", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
+                        if (projection.entries.isEmpty()) item {
+                            Text("No progress updates yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        items(projection.entries.take(visibleMeasurements), key = { it.id }) { entry ->
+                            EntityInspectorAction(
+                                id = "progress-update-${entry.id}",
+                                label = entry.historyTitle(customUnits),
+                                supportingText = entry.historySupportingText(),
+                                enabled = entry.isUserEditableGoalUpdate(),
+                                onClick = { if (entry.isUserEditableGoalUpdate()) onEditMeasurement(entry) },
+                            )
+                        }
+                        if (visibleMeasurements < projection.entries.size) item {
+                            WhipOutlinedButton(
+                                onClick = { visibleMeasurements = (visibleMeasurements + 25).coerceAtMost(projection.entries.size) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) { Text("Show More History · ${projection.entries.size - visibleMeasurements} Remaining") }
+                        }
+                    }
                 }
                 if (section == GoalDetailSection.More) {
                 item {
@@ -1863,22 +2476,28 @@ private fun GoalActionsDialog(
                             EntityInspectorAction("duplicate", "Duplicate Goal", onDuplicate)
                         }
                         EntityInspectorGroup("Availability") {
-                            EntityInspectorAction(
-                                "pin",
-                                if (projection.goal.pinned) "Unpin from Whip Home" else "Pin to Whip Home",
-                                onPin,
-                                supportingText = if (projection.goal.pinned) {
-                                    "The Goal remains available in Goals."
-                                } else {
-                                    "Keeps this active Goal in Whip Home's visible Goals summary."
-                                },
-                            )
-                            if (projection.goal.status == GoalStatus.Active) {
+                            if (
+                                (!projection.goal.archived &&
+                                    projection.goal.status in setOf(GoalStatus.Active, GoalStatus.Paused)) ||
+                                projection.goal.pinned
+                            ) {
+                                EntityInspectorAction(
+                                    "pin",
+                                    if (projection.goal.pinned) "Unpin from Whip Home" else "Pin to Whip Home",
+                                    onPin,
+                                    supportingText = if (projection.goal.pinned) {
+                                        "The Goal remains available in Goals."
+                                    } else {
+                                        "Keeps this active Goal in Whip Home's visible Goals summary."
+                                    },
+                                )
+                            }
+                            if (!projection.goal.archived && projection.goal.status == GoalStatus.Active) {
                                 EntityInspectorAction("pause", "Pause Goal", onPause)
                                 EntityInspectorAction("complete", "Complete Goal", onComplete)
                                 EntityInspectorAction("abandon", "Abandon Goal", onAbandon)
                             }
-                            if (projection.goal.status != GoalStatus.Archived) {
+                            if (!projection.goal.archived) {
                                 EntityInspectorAction("archive", "Archive Goal", onArchive)
                             }
                         }
@@ -1925,7 +2544,20 @@ internal fun GoalStatus.inspectorStatusTone(): WhipStatusTone = when (this) {
     GoalStatus.Archived -> WhipStatusTone.Neutral
 }
 
-private fun GoalProjection.inspectorOutcome(nowMillis: Long): String = when {
+private fun GoalProjection.inspectorOutcome(
+    nowMillis: Long,
+    customUnits: List<UnitDefinition>,
+): String = when {
+    terminalSnapshot != null && goal.type == GoalType.ElapsedSince ->
+        terminalSnapshot.elapsedDurationMillis
+            ?.let { elapsedCounter(0L, it, goal.elapsedDisplayUnit).label() }
+            ?: terminalSnapshot.status.inspectorLabel()
+    terminalSnapshot != null && goal.type == GoalType.WeightedMilestones ->
+        terminalSnapshot.milestoneOutcomeLabel()
+            ?.replace("/", " of ")
+            ?.replace(" milestones", " milestones complete")
+            ?: terminalSnapshot.progress?.let { "${(it * 100).toInt()}% complete" }
+            ?: terminalSnapshot.status.inspectorLabel()
     goal.type == GoalType.ElapsedSince && goal.elapsedStartMillis != null ->
         elapsedCounter(goal.elapsedStartMillis, nowMillis, goal.elapsedDisplayUnit).label()
     goal.type == GoalType.WeightedMilestones ->
@@ -1935,15 +2567,16 @@ private fun GoalProjection.inspectorOutcome(nowMillis: Long): String = when {
         "$successfulPeriods of $requiredPeriods ${period.name.lowercase()} periods complete"
     }
     currentValue != null -> {
-        val unit = BuiltInUnits.get(goal.unitId)?.symbol.orEmpty()
-        "Current ${formatGoalValue(currentValue, goal.precision)} $unit".trim()
+        val displayed = goal.displayValue(currentValue, customUnits)
+        val unit = goal.unitId.goalUnitLabel(customUnits)
+        "Current ${formatGoalValue(displayed, goal.precision)} $unit".trim()
     }
     else -> "Ready to begin"
 }
 
-internal fun MetricEntry.historyTitle(): String {
+internal fun MetricEntry.historyTitle(customUnits: List<UnitDefinition> = emptyList()): String {
     val valueLabel = enteredValue?.let(::editableNumericValue) ?: status.activityLabel()
-    val unit = enteredUnitId?.let(BuiltInUnits::get)?.symbol.orEmpty()
+    val unit = enteredUnitId?.goalUnitLabel(customUnits).orEmpty()
     return buildString {
         append(valueLabel)
         if (unit.isNotBlank()) append(" $unit")
@@ -1957,6 +2590,62 @@ internal fun MetricEntry.historySupportingText(): String = buildList {
         sourceType.activityAttribution()?.let(::add)
     }
 }.joinToString(" · ")
+
+internal fun GoalClosureSnapshot.accessibleHistoryDescription(
+    goal: Goal,
+    zoneId: ZoneId,
+    customUnits: List<UnitDefinition> = emptyList(),
+): String = buildList {
+    val outcome = when (status) {
+        GoalStatus.Completed -> "Completed"
+        GoalStatus.Abandoned -> "Abandoned"
+        else -> status.inspectorLabel()
+    }
+    add(
+        "$outcome on ${Instant.ofEpochMilli(completedAtMillis).atZone(zoneId).format(
+            DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM),
+        )}",
+    )
+    progress?.let { add("${(it * 100).toInt()}% progress") }
+    elapsedDurationMillis?.let { duration ->
+        add("elapsed ${formatGoalDuration(duration)}")
+    }
+    milestoneOutcomeLabel()?.let { add(it) }
+    value?.let { canonical ->
+        val displayed = goal.displayValue(canonical, customUnits)
+        add(
+            "recorded value ${formatGoalValue(displayed, goal.precision)} " +
+                goal.unitId.goalUnitLabel(customUnits),
+        )
+    }
+}.joinToString(" · ").trim()
+
+private fun GoalClosureSnapshot.milestoneOutcomeLabel(): String? {
+    val completed = completedMilestoneCount ?: return null
+    val total = totalMilestoneCount ?: return null
+    return "$completed/$total milestones"
+}
+
+internal fun GoalElapsedResetEvent.accessibleHistoryDescription(zoneId: ZoneId): String {
+    val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
+    val resetAt = Instant.ofEpochMilli(resetAtMillis).atZone(zoneId).format(formatter)
+    val previous = Instant.ofEpochMilli(previousStartMillis).atZone(zoneId).format(formatter)
+    val next = Instant.ofEpochMilli(newStartMillis).atZone(zoneId).format(formatter)
+    return "Reset on $resetAt. Counter origin changed from $previous to $next. " +
+        "Elapsed time before reset: ${formatGoalDuration(elapsedDurationMillis)}."
+}
+
+private fun formatGoalDuration(durationMillis: Long): String {
+    val duration = Duration.ofMillis(durationMillis.coerceAtLeast(0L))
+    val days = duration.toDays()
+    val hours = duration.minusDays(days).toHours()
+    val minutes = duration.minusDays(days).minusHours(hours).toMinutes()
+    return buildList {
+        if (days > 0) add("$days day${if (days == 1L) "" else "s"}")
+        if (hours > 0 || days > 0) add("$hours hour${if (hours == 1L) "" else "s"}")
+        add("$minutes minute${if (minutes == 1L) "" else "s"}")
+    }.joinToString(" ")
+}
 
 internal fun MetricEntry.isUserEditableGoalUpdate(): Boolean =
     sourceType in setOf(MetricSourceType.Manual, MetricSourceType.Goal)
@@ -2013,11 +2702,16 @@ private fun GoalNumberField(
     modifier: Modifier = Modifier,
     required: Boolean = false,
     error: String? = null,
+    enabled: Boolean = true,
+    imeAction: ImeAction = ImeAction.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
 ) = OutlinedTextField(
     value = value,
     onValueChange = onValueChange,
+    enabled = enabled,
     label = { Text(label + if (required) " *" else "") },
-    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = imeAction),
+    keyboardActions = keyboardActions,
     isError = error != null,
     supportingText = error?.let { message -> { Text(message) } },
     modifier = modifier.fillMaxWidth(),
@@ -2091,7 +2785,21 @@ private fun Goal.measurementEntryLabel(): String = when (aggregation) {
     GoalAggregation.CompletionCount -> "Completion Value"
     else -> "Observed Value"
 }
-private fun String.goalUnitLabel() = when (this) { "unitless", "count" -> ""; "kilogram" -> "kg"; "pound" -> "lb"; "kilometre" -> "km"; "distance_m" -> "m"; "second" -> "sec"; "litre" -> "L"; "millilitre" -> "mL"; "fluid_ounce" -> "fl oz"; "currency" -> "$"; else -> this }
+private fun String.goalUnitLabel(customUnits: List<UnitDefinition> = emptyList()): String =
+    customUnits.firstOrNull { it.id == this }?.let { it.symbol.ifBlank { it.name } }
+        ?: when (this) {
+            "unitless", "count" -> ""
+            "kilogram" -> "kg"
+            "pound" -> "lb"
+            "kilometre" -> "km"
+            "distance_m" -> "m"
+            "second" -> "sec"
+            "litre" -> "L"
+            "millilitre" -> "mL"
+            "fluid_ounce" -> "fl oz"
+            "currency" -> "$"
+            else -> this
+        }
 private fun formatGoalValue(value: Double?, precision: Int): String = value?.let { String.format(Locale.getDefault(), "%.${precision.coerceIn(0, 6)}f", it) } ?: "—"
 private fun parseGoalClock(value: String): Int? {
     if (value.isBlank()) return null

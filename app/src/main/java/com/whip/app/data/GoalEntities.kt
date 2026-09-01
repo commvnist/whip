@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.room.ColumnInfo
 
 @Entity(
     tableName = "goals",
@@ -15,7 +16,7 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.RESTRICT,
         ),
     ],
-    indices = [Index("uuid", unique = true), Index("metricId", unique = true), Index("status"), Index("pinned"), Index("areaId")],
+    indices = [Index("uuid", unique = true), Index("metricId", unique = true), Index("status"), Index("archived"), Index("pinned"), Index("areaId")],
 )
 data class GoalEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -47,6 +48,7 @@ data class GoalEntity(
     val elapsedDisplayUnit: String,
     val reminderMinutes: Int?,
     val status: String,
+    @ColumnInfo(defaultValue = "0") val archived: Boolean = false,
     val pinned: Boolean,
     val position: Int,
     val createdAtMillis: Long,
@@ -74,7 +76,7 @@ data class GoalMilestoneEntity(
     val updatedAtMillis: Long,
 )
 
-/** Completion history written by public schema-27 builds and retained during upgrades. */
+/** Immutable lifecycle outcomes. Reopening a Goal never deletes these records. */
 @Entity(
     tableName = "goal_completion_snapshots",
     foreignKeys = [
@@ -85,13 +87,41 @@ data class GoalMilestoneEntity(
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index("goalId")],
+    indices = [Index("uuid", unique = true), Index("goalId")],
 )
 data class LegacyGoalCompletionSnapshotEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(defaultValue = "''") val uuid: String,
     val goalId: Long,
     val completedAtMillis: Long,
     val value: Double?,
     val progress: Double?,
     val status: String,
+    val elapsedDurationMillis: Long? = null,
+    val completedMilestoneCount: Int? = null,
+    val totalMilestoneCount: Int? = null,
+)
+
+/** Immutable elapsed-origin reset history for recovery and sobriety Goals. */
+@Entity(
+    tableName = "goal_elapsed_reset_events",
+    foreignKeys = [
+        ForeignKey(
+            entity = GoalEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["goalId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("uuid", unique = true), Index("goalId"), Index(value = ["goalId", "resetAtMillis"])],
+)
+data class GoalElapsedResetEventEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val uuid: String,
+    val goalId: Long,
+    val goalUuid: String,
+    val previousStartMillis: Long,
+    val newStartMillis: Long,
+    val resetAtMillis: Long,
+    val elapsedDurationMillis: Long,
 )

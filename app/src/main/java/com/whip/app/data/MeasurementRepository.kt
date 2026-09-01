@@ -89,6 +89,7 @@ interface MeasurementRepository {
         sourceId: String? = null,
         note: String = "",
         existingEntryId: String? = null,
+        createIfMissingForHealthReconciliation: Boolean = false,
     ): String
 
     suspend fun deleteEntry(entryId: String)
@@ -176,7 +177,7 @@ class RoomMeasurementRepository(
         toCanonicalFactor: Double,
     ): String {
         require(name.isNotBlank()) { "Unit name is required" }
-        require(toCanonicalFactor > 0.0) { "Conversion factor must be positive" }
+        require(toCanonicalFactor.isFinite() && toCanonicalFactor > 0.0) { "Conversion factor must be a finite positive number" }
         val now = clock.now().toEpochMilli()
         val id = ids.nextId()
         dao.upsertUnit(
@@ -262,7 +263,7 @@ class RoomMeasurementRepository(
             require(existing.dimension == dimension) { "The unit already belongs to ${existing.dimension}" }
             return existing.id
         }
-        require(toCanonicalFactor > 0.0) { "Conversion factor must be positive" }
+        require(toCanonicalFactor.isFinite() && toCanonicalFactor > 0.0) { "Conversion factor must be a finite positive number" }
         val now = clock.now().toEpochMilli()
         dao.upsertUnit(
             UnitDefinitionEntity(
@@ -326,9 +327,14 @@ class RoomMeasurementRepository(
         sourceId: String?,
         note: String,
         existingEntryId: String?,
+        createIfMissingForHealthReconciliation: Boolean,
     ): String = database.withTransaction {
+        require(!createIfMissingForHealthReconciliation || existingEntryId != null) {
+            "Reconciliation requires a stable measurement ID"
+        }
         val metric = dao.getMetric(metricId)?.toDomain() ?: error("Metric no longer exists")
         val unit = unitId?.let { findUnit(it) }
+        require(value == null || value.isFinite()) { "Measurement value must be a finite number" }
         if (status == MetricEntryStatus.Recorded) {
             requireNotNull(value) { "A value is required" }
             requireNotNull(unit) { "A unit is required" }
@@ -341,13 +347,34 @@ class RoomMeasurementRepository(
             ?: clock.today(effectiveZone)
         val now = clock.now().toEpochMilli()
         val entryId = existingEntryId ?: ids.nextId()
-        val existing = existingEntryId?.let { dao.getEntry(it) }
-        val isFirstEntry = dao.entryCount(metricId) == 0
+        val existing = existingEntryId?.let { existingId ->
+            val stored = dao.getEntry(existingId)
+            if (stored == null) {
+                require(createIfMissingForHealthReconciliation) { "Measurement no longer exists" }
+                require(sourceType == MetricSourceType.HealthConnect && !sourceId.isNullOrBlank()) {
+                    "Only identified Health Connect records can be reconciled"
+                }
+                require(existingId == "entry-$sourceId") {
+                    "Health reconciliation requires the source's stable measurement ID"
+                }
+            } else {
+                require(stored.metricId == metricId) { "Measurement belongs to another metric" }
+                require(stored.sourceType == sourceType.name && stored.sourceId == sourceId) {
+                    "Measurement provenance cannot be changed"
+                }
+            }
+            stored
+        }
+        val canonicalValue = value?.let { requireNotNull(unit).toCanonical(it) }
+        require(canonicalValue == null || canonicalValue.isFinite()) {
+            "Converted measurement value must be finite"
+        }
+        val isFirstEntry = existing == null && dao.entryCount(metricId) == 0
         dao.upsertEntry(
             MetricEntryEntity(
                 id = entryId,
                 metricId = metricId,
-                canonicalValue = value?.let { requireNotNull(unit).toCanonical(it) },
+                canonicalValue = canonicalValue,
                 enteredValue = value,
                 enteredUnitId = unitId,
                 status = status.name,
@@ -425,7 +452,7 @@ private fun MetricDefinition.toEntity() = MetricDefinitionEntity(
     updatedAtMillis = updatedAtMillis,
 )
 
-private fun MetricEntryEntity.toDomain() = MetricEntry(
+internal fun MetricEntryEntity.toDomain() = MetricEntry(
     id = id,
     metricId = metricId,
     canonicalValue = canonicalValue,

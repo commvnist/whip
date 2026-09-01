@@ -760,7 +760,9 @@ class ProductivityCardDesignUiTest {
                             onEdit = {},
                             onRecord = {},
                             onResetElapsed = {},
-                            onToggleMilestone = { id, completed -> milestoneUpdate = id to completed },
+                            onToggleMilestone = { boundary, completed ->
+                                milestoneUpdate = boundary.milestoneId to completed
+                            },
                         )
                     }
                 }

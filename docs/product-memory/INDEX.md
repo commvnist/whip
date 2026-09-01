@@ -16,22 +16,23 @@ This is the canonical cross-session entry point for Whip product and engineering
 - Latest device-verified release: **0.3.34 (version code 40)**, installed 2026-08-31 with existing data preserved. See `VER-20260831-002`.
 - Signed release APK SHA-256: `7ddc4bfb209fef541530602420d8daa316f2e74c9b3d19f2c433f02624d7edfe`.
 - Released Gym/5/3/1 implementation and audit commit: `5fc98dd` on `origin/main`.
-- Declared test-source baseline: **1,096 product tests: 476 JVM and 620 Android**. The complete current baseline was freshly executed for `VER-20260831-012`.
+- Declared test-source baseline: **1,126 product tests: 481 JVM and 645 Android**. The complete current baseline was freshly executed for `VER-20260831-013`.
 - The latest Gym release includes arbitrary-lift 5/3/1 creation, explicit/derived Training Max controls inside and outside 5/3/1, performance-informed cycle review, workout-only exercise addition, contextual routine return, adaptive routine editing, timer-boundary correction, and additive Joker behavior.
 - Detailed Gym evidence lives in [the 5/3/1 product audit](../GYM_531_PRODUCT_AUDIT_2026-08-31.md) and [testing inventory](../testing.md).
 
 ## Active direction
 
 - `FB-20260831-012`: the maximum-quality whole-product goal is active. Iteration 1 inventory, disposable-emulator baseline, independent specialist review, cross-challenge, and Director synthesis are complete in `VER-20260831-005` and `../WHOLE_PRODUCT_MAXIMUM_QUALITY_AUDIT_2026-08-31.md`.
-- `FND-20260831-007` P0 restore recovery, `FND-20260831-008` reminder-delivery integrity, `FND-20260831-009` shared live calendar/time-zone consistency, `FND-20260831-010` Task/Habit/Goal authored-save integrity, and the Habit and Task subsets of `FND-20260831-019` secondary mutation integrity are resolved and verified. Remaining Goal/Track/Gym secondary outcomes, transactional Settings editing, bounded shares, progressive Habit UX, named large-text navigation, historical IA, returning Home, Track search ownership, and backup compatibility follow.
+- `FND-20260831-007` P0 restore recovery, `FND-20260831-008` reminder-delivery integrity, `FND-20260831-009` shared live calendar/time-zone consistency, `FND-20260831-010` Task/Habit/Goal authored-save integrity, `FND-20260831-015` Goal backup history, `FND-20260831-016` Goal historical IA, and the Habit, Task, and Goal subsets of `FND-20260831-019` secondary mutation integrity are resolved and verified. Remaining Track/Gym secondary outcomes, transactional Settings editing, bounded shares, progressive Habit UX, named large-text navigation, returning Home, Track search ownership, and `FND-20260831-020` batch-atomic Health reconciliation follow.
 - `FB-20260831-013`: keep durable project memory outside chat. The infrastructure and skill package are structurally validated; future task use will validate whether the protocol needs adjustment.
 - `FB-20260831-014`: commit and push each coherent verified chunk for easier tracking and reverts. The workflow rule is implemented and structurally validated in the skill, workspace instructions, memory schema, and whole-product goal.
 - Treat subjective fixes in release 0.3.34 as awaiting continued real-user validation even where automated and device checks pass.
 
 ## Highest-priority unresolved verification
 
-- Continue `FND-20260831-019` with Goal measurement/reset and remaining Track/Gym outcomes while preserving the verified Habit, Task, recovery, reminder, calendar, and definition-save boundaries.
-- The complete expanded Android inventory and focused outcome-aware Task journeys are recorded in `VER-20260831-012`. API/platform, viewport, accessibility, migration, and release matrices remain mandatory during adversarial QA.
+- Continue `FND-20260831-019` with remaining Track/Gym outcomes while preserving the verified Goal lifecycle/history, Habit, Task, recovery, reminder, calendar, and definition-save boundaries.
+- Schema 38 and portable-backup format 16 preserve orthogonal Goal archive state, immutable closure/reset history, and stable merge identity without rewriting completed workouts or previously recorded measurements. See `DEC-20260831-017`, `IMP-20260831-011`, and `VER-20260831-013`.
+- The complete expanded Android inventory and focused Goal outcome-aware journeys are recorded in `VER-20260831-013`. API/platform, viewport, accessibility, migration, and release matrices remain mandatory during adversarial QA.
 - Baseline visual coverage includes 100% and 150% text on one phone profile. 200%, 320dp, landscape, RTL, TalkBack, fold/tabletop, notification races, upgrade/restore histories, and API 26/34/37 remain required.
 - Behaviorally validate the personal memory skill in future real tasks and refine the schema if agents create duplicates, stale statuses, or excessive prose.
 

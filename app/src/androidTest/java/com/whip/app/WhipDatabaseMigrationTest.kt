@@ -1053,6 +1053,64 @@ class WhipDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrationThirtySevenToThirtyEightSeparatesArchiveLifecycleAndAddsResetHistory() {
+        helper.createDatabase(V37_DATABASE_NAME, 37).apply {
+            insertMainArea()
+            fun insertGoal(id: Long, uuid: String, status: String) {
+                execSQL(
+                    "INSERT INTO goals (id, uuid, metricId, name, description, areaId, area, tagsCsv, icon, " +
+                        "type, dimension, unitId, precision, baseline, targetMin, targetMax, direction, " +
+                        "startEpochDay, deadlineEpochDay, aggregation, aggregationPeriod, rollingDays, paceType, " +
+                        "consistencyPeriod, consistencyRequiredPeriods, elapsedStartMillis, elapsedDisplayUnit, " +
+                        "reminderMinutes, status, pinned, position, createdAtMillis, updatedAtMillis) VALUES " +
+                        "($id, '$uuid', 'metric-$id', 'Goal $id', '', 'main', 'Main', '', '🎯', " +
+                        "'ReachValue', 'Count', 'count', 1, 0, 10, NULL, 'Increase', 20690, NULL, " +
+                        "'Latest', 'All', NULL, 'None', 'Week', NULL, NULL, 'Auto', NULL, '$status', 0, $id, 100, 100)",
+                )
+            }
+            insertGoal(1, "archived-closed", "Archived")
+            insertGoal(2, "archived-open", "Archived")
+            insertGoal(3, "completed-visible", "Completed")
+            execSQL(
+                "INSERT INTO goal_completion_snapshots " +
+                    "(id, goalId, completedAtMillis, value, progress, status) " +
+                    "VALUES (1, 1, 500, 8, 0.8, 'Abandoned')",
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            V37_DATABASE_NAME,
+            38,
+            true,
+            WhipDatabase.migration37To38,
+        ).use { database ->
+            database.query("SELECT uuid, status, archived FROM goals ORDER BY id").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("archived-closed", cursor.getString(0))
+                assertEquals("Abandoned", cursor.getString(1))
+                assertEquals(1, cursor.getInt(2))
+                check(cursor.moveToNext())
+                assertEquals("archived-open", cursor.getString(0))
+                assertEquals("Active", cursor.getString(1))
+                assertEquals(1, cursor.getInt(2))
+                check(cursor.moveToNext())
+                assertEquals("completed-visible", cursor.getString(0))
+                assertEquals("Completed", cursor.getString(1))
+                assertEquals(0, cursor.getInt(2))
+            }
+            database.query("SELECT COUNT(*) FROM goal_elapsed_reset_events").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+            }
+            database.query("SELECT uuid FROM goal_completion_snapshots WHERE id = 1").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("legacy-goal-closure:archived-closed:1", cursor.getString(0))
+            }
+        }
+    }
+
     private fun androidx.sqlite.db.SupportSQLiteDatabase.insertMainArea() {
         execSQL(
             "INSERT INTO areas (id, name, nameKey, position, archived, createdAtMillis, updatedAtMillis) " +
@@ -1135,6 +1193,7 @@ class WhipDatabaseMigrationTest {
         const val V34_DATABASE_NAME = "program-provenance-v34-to-v35-migration"
         const val V35_DATABASE_NAME = "adaptive-training-max-v35-to-v36-migration"
         const val V36_DATABASE_NAME = "prescribed-classification-v36-to-v37-migration"
+        const val V37_DATABASE_NAME = "goal-lifecycle-v37-to-v38-migration"
 
         val allMigrations: Array<Migration> = arrayOf(
             WhipDatabase.migration1To2,
@@ -1155,6 +1214,7 @@ class WhipDatabaseMigrationTest {
             WhipDatabase.migration34To35,
             WhipDatabase.migration35To36,
             WhipDatabase.migration36To37,
+            WhipDatabase.migration37To38,
         )
     }
 }

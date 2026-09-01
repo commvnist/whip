@@ -314,7 +314,7 @@ internal fun UnifiedSearchDialog(
             (goalState.active + goalState.completed + goalState.archived).distinctBy { it.goal.id }.forEach { item ->
                 val measurementText = newestSearchValues(item.entries, MaxSearchHistoryValuesPerEntity) { it.timestamp }
                     .joinToString(" · ") { entry -> "${entry.historyTitle()} · ${entry.historySupportingText()}" }
-                add(WhipSearchResult(SearchDomain.Goal, item.goal.id, item.goal.name, listOf(item.goal.description, measurementText).filter(String::isNotBlank).joinToString(" · "), area = item.goal.area, areaId = item.goal.areaId, tags = item.goal.tags.toSet(), deadline = item.goal.deadline, status = item.goal.status.name.lowercase()))
+                add(WhipSearchResult(SearchDomain.Goal, item.goal.id, item.goal.name, listOf(item.goal.description, measurementText).filter(String::isNotBlank).joinToString(" · "), area = item.goal.area, areaId = item.goal.areaId, tags = item.goal.tags.toSet(), deadline = item.goal.deadline, status = if (item.goal.archived) "archived" else item.goal.status.name.lowercase()))
             }
             trackState.projections.forEach { projection ->
                 add(

@@ -14,6 +14,7 @@ import com.whip.app.core.SavedTaskFilter
 import com.whip.app.core.PlatePreset
 import com.whip.app.core.withoutAreaReferences
 import com.whip.app.data.BackupPreview
+import com.whip.app.data.CommittedAreaDeletionCancellation
 import com.whip.app.data.EncryptedBackupCodec
 import com.whip.app.data.PortableBackupOutcome
 import com.whip.app.data.PortableBackupState
@@ -36,6 +37,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -349,20 +352,35 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             repository.update { it.copy(activeAreaScope = AreaScope.One(targetId).storageKey) }
         }
     }
-    fun deleteAreaAndKeepItems(id: String, replacementAreaId: String) = runIo("Area deleted; assigned items moved") {
-        val area = requireNotNull(uiState.value.areas.firstOrNull { it.id == id }) { "Area no longer exists" }
-        app.areaRepository.deletePermanently(id, replacementAreaId)
-        clearAreaReferences(id, area.name)
-    }
-    fun deleteAreaAndItems(id: String) = runIo("Area and assigned items permanently deleted") {
-        val area = requireNotNull(uiState.value.areas.firstOrNull { it.id == id }) { "Area no longer exists" }
-        val summary = app.areaDeletionCoordinator.deleteAreaAndItems(id)
-        summary.taskIds.forEach { taskId ->
-            app.reminderScheduler.syncTask(taskId)
+    fun deleteAreaAndKeepItems(id: String, replacementAreaId: String) {
+        var committedWarnings: List<String> = emptyList()
+        runIo(
+            success = "Area deleted; assigned items moved",
+            successDetail = { committedWarnings.joinToString(" ").takeIf(String::isNotBlank) },
+        ) {
+            requireNotNull(uiState.value.areas.firstOrNull { it.id == id }) { "Area no longer exists" }
+            app.areaRepository.deletePermanently(id, replacementAreaId)
+            committedWarnings = reconcileAreaReferencesAfterCommittedDeletion(id)
         }
-        summary.habitIds.forEach { app.habitReminderScheduler.syncHabit(it) }
-        summary.goalIds.forEach { app.goalReminderScheduler.syncGoal(it) }
-        clearAreaReferences(id, area.name, summary.taskIds.toSet())
+    }
+    fun deleteAreaAndItems(id: String) {
+        var committedWarnings: List<String> = emptyList()
+        runIo(
+            success = "Area and assigned items permanently deleted",
+            successDetail = { committedWarnings.joinToString(" ").takeIf(String::isNotBlank) },
+        ) {
+            requireNotNull(uiState.value.areas.firstOrNull { it.id == id }) { "Area no longer exists" }
+            val summary = try {
+                app.areaDeletionCoordinator.deleteAreaAndItems(id)
+            } catch (cancelled: CommittedAreaDeletionCancellation) {
+                if (!currentCoroutineContext().isActive) throw cancelled
+                cancelled.summary
+            }
+            committedWarnings = summary.warnings + reconcileAreaReferencesAfterCommittedDeletion(
+                id,
+                summary.taskIds.toSet(),
+            )
+        }
     }
     fun setAreaColor(id: String, colorArgb: Long?) = runIo("Area color updated") { app.areaRepository.setColor(id, colorArgb) }
     fun renameTag(id: String, name: String) = runIo("Tag updated") { app.measurementRepository.renameTag(id, name) }
@@ -397,21 +415,28 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    private fun clearAreaReferences(id: String, name: String, deletedTaskIds: Set<Long> = emptySet()) {
-        repository.update { settings ->
-            settings.withoutAreaReferences(id).let { cleaned ->
-                if (cleaned.focusTimerTaskId in deletedTaskIds) {
-                    cleaned.copy(focusTimerDeadlineMillis = null, focusTimerTaskId = null)
-                } else {
-                    cleaned
+    private fun reconcileAreaReferencesAfterCommittedDeletion(
+        id: String,
+        deletedTaskIds: Set<Long> = emptySet(),
+    ): List<String> = reconcileCommittedAreaDeletion(
+        "Settings cleanup" to {
+            repository.update { settings ->
+                settings.withoutAreaReferences(id).let { cleaned ->
+                    if (cleaned.focusTimerTaskId in deletedTaskIds) {
+                        cleaned.copy(focusTimerDeadlineMillis = null, focusTimerTaskId = null)
+                    } else {
+                        cleaned
+                    }
                 }
             }
-        }
-        if (app.settingsRepository.current().focusTimerTaskId == null && deletedTaskIds.isNotEmpty()) {
-            app.focusTimerScheduler.cancel()
-        }
-        WhipWidgetProvider.clearAreaScope(app, id)
-    }
+        },
+        "Focus timer cleanup" to {
+            if (app.settingsRepository.current().focusTimerTaskId == null && deletedTaskIds.isNotEmpty()) {
+                app.focusTimerScheduler.cancel()
+            }
+        },
+        "Widget cleanup" to { WhipWidgetProvider.clearAreaScope(app, id) },
+    )
 
     fun setReviewSections(sections: Set<ReviewSection>) = update { current ->
         current.copy(reviewSections = sections)
@@ -661,6 +686,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private fun runIo(
         success: String,
+        successDetail: () -> String? = { null },
         onSuccess: () -> Unit = {},
         onFailure: (Throwable) -> Unit = {},
         showSuccess: Boolean = true,
@@ -680,12 +706,29 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                         block()
                     }
                 }
-                runtime.value = runtime.value.copy(busy = false, message = success.takeIf { showSuccess })
+                val successMessage = listOfNotNull(success, successDetail()).joinToString(" · ")
+                runtime.value = runtime.value.copy(busy = false, message = successMessage.takeIf { showSuccess })
                 onSuccess()
-            } catch (error: Throwable) {
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
                 runtime.value = runtime.value.copy(busy = false, message = error.message ?: "Operation failed")
                 onFailure(error)
             }
+        }
+    }
+}
+
+internal fun reconcileCommittedAreaDeletion(
+    vararg steps: Pair<String, () -> Unit>,
+): List<String> = buildList {
+    steps.forEach { (label, step) ->
+        try {
+            step()
+        } catch (fatal: Error) {
+            throw fatal
+        } catch (_: Exception) {
+            add("$label did not finish; the Area deletion was committed and cleanup will be reconciled later.")
         }
     }
 }

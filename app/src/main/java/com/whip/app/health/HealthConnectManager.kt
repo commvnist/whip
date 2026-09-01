@@ -73,6 +73,7 @@ internal suspend fun reconcileHealthRecords(
             sourceId = source,
             note = record.note,
             existingEntryId = entryId,
+            createIfMissingForHealthReconciliation = true,
         )
     }
     measurements.deleteSourceEntriesExcept(MetricSourceType.HealthConnect, sourcePrefix, retained)
@@ -218,6 +219,7 @@ class HealthConnectManager(
                 timestamp = bounds.second.minusMillis(1), localDate = date, zoneId = zone,
                 sourceType = MetricSourceType.HealthConnect, sourceId = source,
                 note = "Daily Health Connect aggregate", existingEntryId = entry,
+                createIfMissingForHealthReconciliation = true,
             )
         }
         measurements.deleteSourceEntriesExcept(MetricSourceType.HealthConnect, STEPS_PREFIX, retained)
@@ -245,6 +247,7 @@ class HealthConnectManager(
                 timestamp = bounds.second.minusMillis(1), localDate = date, zoneId = zone,
                 sourceType = MetricSourceType.HealthConnect, sourceId = source,
                 note = "Daily Health Connect aggregate", existingEntryId = entry,
+                createIfMissingForHealthReconciliation = true,
             )
         }
         measurements.deleteSourceEntriesExcept(MetricSourceType.HealthConnect, DISTANCE_PREFIX, retained)

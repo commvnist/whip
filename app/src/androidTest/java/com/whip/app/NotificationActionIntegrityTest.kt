@@ -373,7 +373,7 @@ class NotificationActionIntegrityTest {
             unitId = "count",
             localDate = today,
             sourceType = MetricSourceType.HealthConnect,
-            sourceId = "complete",
+            sourceId = "partial",
             existingEntryId = entryId,
         )
         assertFalse(

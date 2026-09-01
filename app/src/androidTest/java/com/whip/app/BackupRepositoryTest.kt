@@ -30,6 +30,7 @@ import com.whip.app.domain.GymMachineDraft
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalType
+import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitTrackingMode
@@ -68,6 +69,8 @@ import com.whip.app.domain.TriggerTargetType
 import com.whip.app.domain.WorkoutSetDraft
 import com.whip.app.domain.WorkoutSetClassification
 import com.whip.app.domain.outcomeForPeriod
+import com.whip.app.domain.mutationBoundary
+import com.whip.app.domain.progressBoundary
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -174,13 +177,14 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val preview = backups.previewBackup(json)
         assertEquals(2, preview.envelopeVersion)
-        assertEquals(15, preview.databaseVersion)
+        assertEquals(16, preview.databaseVersion)
         assertTrue(preview.checksumValid)
         assertTrue(preview.settingsIncluded)
         assertTrue(preview.totalRecords >= 3)
         val exportedTables = JSONObject(json).getJSONObject("tables")
         assertEquals(false, exportedTables.has("entity_tag_links"))
-        assertEquals(false, exportedTables.has("goal_completion_snapshots"))
+        assertEquals(true, exportedTables.has("goal_completion_snapshots"))
+        assertEquals(true, exportedTables.has("goal_elapsed_reset_events"))
 
         backups.deleteAllData()
         assertTrue(habits.habits.first().isEmpty())
@@ -210,6 +214,54 @@ class BackupRepositoryTest {
         assertEquals("tm-decision-backup", routines.trainingMaxDecisions.first().single().uuid)
         assertTrue(backups.exportHabitsCsv().contains("\"Hydrate, safely\""))
         assertTrue(backups.exportHabitsCsv().contains("\"Skipped\""))
+    }
+
+    @Test fun goalLifecycleSnapshotsArchiveStateAndElapsedResetHistoryRoundTrip() = runBlocking {
+        val progressId = goals.create(
+            GoalDraft(
+                name = "Read",
+                type = GoalType.AccumulateTotal,
+                targetMin = 10.0,
+                startDate = FixedClock.today(),
+            ),
+        )
+        var progressGoal = goals.get(progressId)!!
+        goals.recordMeasurement(progressGoal.progressBoundary(), 6.0)
+        goals.setStatus(progressGoal.mutationBoundary(), GoalStatus.Completed)
+        progressGoal = goals.get(progressId)!!
+        goals.setArchived(progressGoal.mutationBoundary(), true)
+
+        val initial = FixedClock.now().minusSeconds(5 * 86_400)
+        val elapsedId = goals.create(
+            GoalDraft(
+                name = "Recovery",
+                type = GoalType.ElapsedSince,
+                startDate = initial.atZone(ZoneId.of("UTC")).toLocalDate(),
+                elapsedStartMillis = initial.toEpochMilli(),
+            ),
+        )
+        val elapsedGoal = goals.get(elapsedId)!!
+        goals.resetElapsedStart(elapsedGoal.mutationBoundary(), FixedClock.now().minusSeconds(3_600))
+
+        val backup = backups.exportBackup()
+        val preview = backups.previewBackup(backup)
+        assertEquals(1, preview.tableCounts.getValue("goal_completion_snapshots"))
+        assertEquals(1, preview.tableCounts.getValue("goal_elapsed_reset_events"))
+
+        backups.deleteAllData()
+        backups.restoreBackup(backup)
+
+        val restoredClosed = goals.goals.first().single { it.name == "Read" }
+        assertEquals(GoalStatus.Completed, restoredClosed.status)
+        assertTrue(restoredClosed.archived)
+        assertEquals(6.0, goals.closureSnapshots.first().single().value ?: -1.0, 0.0)
+        val reset = goals.elapsedResetEvents.first().single()
+        assertEquals(initial.toEpochMilli(), reset.previousStartMillis)
+        assertEquals(elapsedGoal.uuid, reset.goalUuid)
+
+        backups.mergeBackup(backup)
+        assertEquals(1, goals.closureSnapshots.first().size)
+        assertEquals(1, goals.elapsedResetEvents.first().size)
     }
 
     @Test fun versionElevenGymProgrammingBackfillsTypedSemanticsDuringRestore() = runBlocking {
@@ -435,7 +487,7 @@ class BackupRepositoryTest {
         )
 
         val exported = JSONObject(backups.exportBackup())
-        assertEquals(15, exported.getInt("databaseVersion"))
+        assertEquals(16, exported.getInt("databaseVersion"))
         assertEquals(0, exported.getJSONObject("tables").getJSONArray("link_rules").getJSONObject(0).getInt("enabled"))
         assertEquals(0, exported.getJSONObject("tables").getJSONArray("trigger_rules").getJSONObject(0).getInt("enabled"))
 
@@ -843,7 +895,7 @@ class BackupRepositoryTest {
     @Test fun nonCurrentBackupVersionsOrTableSetsCannotBePreviewedOrRestored() = runBlocking {
         habits.create(HabitDraft(name = "Keep local", startDate = FixedClock.today()))
         val current = backups.exportBackup()
-        val wrongDatabase = JSONObject(current).put("databaseVersion", 16).toString()
+        val wrongDatabase = JSONObject(current).put("databaseVersion", 17).toString()
         val wrongEnvelope = JSONObject(current).put("envelopeVersion", 1).toString()
         val incompleteTables = JSONObject(current).also {
             it.getJSONObject("tables").remove("tags")

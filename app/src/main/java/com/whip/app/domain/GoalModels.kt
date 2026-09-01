@@ -1,6 +1,7 @@
 package com.whip.app.domain
 
 import java.io.Serializable
+import java.security.MessageDigest
 import java.time.LocalDate
 import java.time.DayOfWeek
 import java.time.temporal.ChronoUnit
@@ -145,6 +146,8 @@ data class Goal(
     val paceType: GoalPaceType,
     val reminderMinutes: Int?,
     val status: GoalStatus,
+    /** Archive visibility is orthogonal to the Goal's lifecycle. */
+    val archived: Boolean = false,
     val pinned: Boolean,
     val position: Int,
     val createdAtMillis: Long,
@@ -155,7 +158,173 @@ data class Goal(
     val consistencyRequiredPeriods: Int? = null,
     val elapsedStartMillis: Long? = null,
     val elapsedDisplayUnit: ElapsedDisplayUnit = ElapsedDisplayUnit.Auto,
+) : Serializable
+
+/**
+ * Saveable optimistic-concurrency boundary for any authored Goal mutation.
+ * The token covers the complete persisted Goal definition and lifecycle, so a
+ * screen opened before another writer changed the Goal must reload instead of
+ * overwriting newer state.
+ */
+data class GoalMutationBoundary(
+    val goalId: Long,
+    val goalUuid: String,
+    val revisionToken: String,
+) : Serializable
+
+/** Boundary scoped to progress interpretation and eligibility, not display metadata. */
+data class GoalProgressBoundary(
+    val goalId: Long,
+    val goalUuid: String,
+    val metricId: String,
+    val type: GoalType,
+    val dimension: UnitDimension,
+    val unitId: String,
+    val aggregation: GoalAggregation,
+    val aggregationPeriod: GoalAggregationPeriod,
+    val rollingDays: Int?,
+    val startDate: LocalDate,
+    val deadline: LocalDate?,
+    val status: GoalStatus,
+    val archived: Boolean,
+    val semanticToken: String,
+) : Serializable
+
+data class GoalEligibilityBoundary(
+    val goalId: Long,
+    val goalUuid: String,
+    val status: GoalStatus,
+    val archived: Boolean,
+    val eligibilityToken: String,
+) : Serializable
+
+data class GoalMeasurementBoundary(
+    val goal: GoalProgressBoundary,
+    val entryId: String,
+    val entryRevisionToken: String,
+) : Serializable
+
+data class GoalMilestoneBoundary(
+    val goal: GoalEligibilityBoundary,
+    val milestoneId: Long,
+    val milestoneUuid: String,
+    val milestoneRevisionToken: String,
+) : Serializable
+
+data class GoalClosureSnapshot(
+    val id: Long,
+    val uuid: String,
+    val goalId: Long,
+    val completedAtMillis: Long,
+    val value: Double?,
+    val progress: Double?,
+    val status: GoalStatus,
+    val elapsedDurationMillis: Long? = null,
+    val completedMilestoneCount: Int? = null,
+    val totalMilestoneCount: Int? = null,
+) : Serializable
+
+data class GoalElapsedResetEvent(
+    val id: Long,
+    val uuid: String,
+    val goalId: Long,
+    val goalUuid: String,
+    val previousStartMillis: Long,
+    val newStartMillis: Long,
+    val resetAtMillis: Long,
+    val elapsedDurationMillis: Long,
+) : Serializable
+
+fun Goal.mutationBoundary(): GoalMutationBoundary = GoalMutationBoundary(
+    goalId = id,
+    goalUuid = uuid,
+    revisionToken = revisionToken(
+        id, uuid, metricId, name, description, areaId, area, tags, icon, type,
+        dimension, unitId, precision, baseline, targetMin, targetMax, direction,
+        startDate, deadline, aggregation, paceType, reminderMinutes, status,
+        archived, pinned, position, createdAtMillis, updatedAtMillis,
+        aggregationPeriod, rollingDays, consistencyPeriod,
+        consistencyRequiredPeriods, elapsedStartMillis, elapsedDisplayUnit,
+    ),
 )
+
+fun Goal.progressBoundary(): GoalProgressBoundary = GoalProgressBoundary(
+    goalId = id,
+    goalUuid = uuid,
+    metricId = metricId,
+    type = type,
+    dimension = dimension,
+    unitId = unitId,
+    aggregation = aggregation,
+    aggregationPeriod = aggregationPeriod,
+    rollingDays = rollingDays,
+    startDate = startDate,
+    deadline = deadline,
+    status = status,
+    archived = archived,
+    semanticToken = revisionToken(
+        id, uuid, metricId, type, dimension, unitId, aggregation,
+        aggregationPeriod, rollingDays, startDate, deadline, status, archived,
+    ),
+)
+
+fun Goal.eligibilityBoundary(): GoalEligibilityBoundary = GoalEligibilityBoundary(
+    goalId = id,
+    goalUuid = uuid,
+    status = status,
+    archived = archived,
+    eligibilityToken = revisionToken(id, uuid, status, archived),
+)
+
+fun Goal.measurementBoundary(entry: MetricEntry): GoalMeasurementBoundary {
+    require(entry.metricId == metricId) { "Measurement does not belong to this goal" }
+    return GoalMeasurementBoundary(
+        goal = progressBoundary(),
+        entryId = entry.id,
+        entryRevisionToken = revisionToken(
+            entry.id, entry.metricId, entry.canonicalValue, entry.enteredValue,
+            entry.enteredUnitId, entry.status, entry.timestamp, entry.localDate,
+            entry.zoneId, entry.offsetSeconds, entry.sourceType, entry.sourceId,
+            entry.note, entry.createdAtMillis, entry.updatedAtMillis,
+        ),
+    )
+}
+
+fun Goal.milestoneBoundary(milestone: GoalMilestone): GoalMilestoneBoundary {
+    require(milestone.goalId == id) { "Milestone does not belong to this goal" }
+    return GoalMilestoneBoundary(
+        goal = eligibilityBoundary(),
+        milestoneId = milestone.id,
+        milestoneUuid = milestone.uuid,
+        milestoneRevisionToken = revisionToken(
+            milestone.id, milestone.uuid, milestone.goalId, milestone.name,
+            milestone.position, milestone.weight, milestone.completed,
+            milestone.completedAtMillis, milestone.reward,
+            milestone.createdAtMillis, milestone.updatedAtMillis,
+        ),
+    )
+}
+
+private fun revisionToken(vararg values: Any?): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+    values.forEach { value ->
+        val encoded = when (value) {
+            null -> "null"
+            is Double -> "double:${java.lang.Double.doubleToLongBits(value)}"
+            is Float -> "float:${java.lang.Float.floatToIntBits(value)}"
+            is Iterable<*> -> value.joinToString(prefix = "[", postfix = "]") { item ->
+                val text = item?.toString().orEmpty()
+                "${text.length}:$text"
+            }
+            else -> "${value::class.java.name}:${value}"
+        }.toByteArray(Charsets.UTF_8)
+        digest.update(encoded.size.toString().toByteArray(Charsets.UTF_8))
+        digest.update(':'.code.toByte())
+        digest.update(encoded)
+        digest.update(0.toByte())
+    }
+    return digest.digest().joinToString("") { byte -> "%02x".format(byte) }
+}
 
 data class ElapsedCounter(val value: Long, val unit: ElapsedDisplayUnit) {
     fun label(): String {
@@ -209,7 +378,7 @@ data class GoalMilestone(
     val reward: String,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
-)
+) : Serializable
 
 data class GoalProjection(
     val goal: Goal,
@@ -223,7 +392,10 @@ data class GoalProjection(
     val milestones: List<GoalMilestone>,
     val entries: List<MetricEntry>,
     val consistency: GoalConsistencyProgress? = null,
-)
+    val closureSnapshots: List<GoalClosureSnapshot> = emptyList(),
+    val elapsedResetEvents: List<GoalElapsedResetEvent> = emptyList(),
+    val terminalSnapshot: GoalClosureSnapshot? = null,
+) : Serializable
 
 data class GoalConsistencyProgress(
     val targetPerPeriod: Double,
@@ -233,7 +405,7 @@ data class GoalConsistencyProgress(
     val observedPeriods: Int,
     val currentPeriodValue: Double,
     val currentPeriodSuccessful: Boolean,
-)
+) : Serializable
 
 data class GoalHistoryPoint(
     val date: LocalDate,

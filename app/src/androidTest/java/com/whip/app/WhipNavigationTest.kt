@@ -235,7 +235,7 @@ class WhipNavigationTest {
             compose.onNodeWithText("Archived Habits").assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Goals tab").performClick()
-            listOf("Active", "Completed", "Insights", "Archived").forEach { destination ->
+            listOf("Active", "History", "Insights", "Archived").forEach { destination ->
                 selectDestination("goal-destination-$destination")
             }
             compose.onNodeWithText("Archived Goals").assertIsDisplayed()

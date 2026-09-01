@@ -20,6 +20,10 @@ import com.whip.app.domain.GoalType
 import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.displayValue
+import com.whip.app.domain.measurementBoundary
+import com.whip.app.domain.milestoneBoundary
+import com.whip.app.domain.mutationBoundary
+import com.whip.app.domain.progressBoundary
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -278,6 +282,200 @@ class GoalRepositoryTest {
         assertEquals("kilogram", entry.enteredUnitId)
         assertEquals(100.0, entry.canonicalValue ?: -1.0, 0.0)
         assertEquals(220.0, repository.goals.first().single().displayValue(repository.goals.first().single().targetMin) ?: -1.0, 0.000001)
+    }
+
+    @Test fun exactBoundariesRejectStaleDefinitionButProgressIgnoresUnrelatedPinChange() = runBlocking {
+        val draft = GoalDraft(
+            name = "Read",
+            type = GoalType.AccumulateTotal,
+            targetMin = 10.0,
+            startDate = FixedClock.today(),
+        )
+        val id = repository.create(draft)
+        val opened = repository.get(id)!!
+        val mutation = opened.mutationBoundary()
+        val progress = opened.progressBoundary()
+
+        repository.setPinned(mutation, true)
+
+        assertTrue(runCatching { repository.duplicate(mutation) }.isFailure)
+        repository.recordMeasurement(progress, 1.0)
+        assertEquals(1, repository.metricEntries.first().size)
+
+        repository.update(
+            repository.get(id)!!.mutationBoundary(),
+            draft.copy(deadline = FixedClock.today().plusDays(7)),
+        )
+        assertTrue(runCatching { repository.recordMeasurement(progress, 1.0) }.isFailure)
+    }
+
+    @Test fun closedOrArchivedGoalsCannotBeNewlyPinnedButLegacyPinsCanBeRemoved() = runBlocking {
+        val id = repository.create(
+            GoalDraft(
+                name = "Read",
+                type = GoalType.AccumulateTotal,
+                targetMin = 10.0,
+                startDate = FixedClock.today(),
+            ),
+        )
+        var goal = repository.get(id)!!
+        repository.setPinned(goal.mutationBoundary(), true)
+        goal = repository.get(id)!!
+        repository.setStatus(goal.mutationBoundary(), GoalStatus.Completed)
+        goal = repository.get(id)!!
+        repository.setPinned(goal.mutationBoundary(), false)
+        goal = repository.get(id)!!
+        assertTrue(runCatching { repository.setPinned(goal.mutationBoundary(), true) }.isFailure)
+
+        repository.setArchived(goal.mutationBoundary(), true)
+        goal = repository.get(id)!!
+        assertTrue(runCatching { repository.setPinned(goal.mutationBoundary(), true) }.isFailure)
+    }
+
+    @Test fun progressRejectsNonFiniteFutureAndStaleEntryWrites() = runBlocking {
+        val id = repository.create(
+            GoalDraft(
+                name = "Read",
+                type = GoalType.AccumulateTotal,
+                targetMin = 10.0,
+                startDate = FixedClock.today(),
+            ),
+        )
+        val goal = repository.get(id)!!
+        assertTrue(runCatching { repository.recordMeasurement(goal.progressBoundary(), Double.NaN) }.isFailure)
+        assertTrue(
+            runCatching {
+                repository.recordMeasurement(goal.progressBoundary(), 1.0, date = FixedClock.today().plusDays(1))
+            }.isFailure,
+        )
+        val entryId = repository.recordMeasurement(goal.progressBoundary(), 1.0)
+        val entry = repository.metricEntries.first().single { it.id == entryId }
+        val opened = goal.measurementBoundary(entry)
+        repository.updateMeasurement(opened, 2.0, FixedClock.today(), "first save")
+
+        assertTrue(
+            runCatching { repository.updateMeasurement(opened, 3.0, FixedClock.today(), "stale save") }.isFailure,
+        )
+    }
+
+    @Test fun closureSnapshotsFreezeOutcomeSurviveReopenAndArchiveIsOrthogonal() = runBlocking {
+        val id = repository.create(
+            GoalDraft(
+                name = "Read",
+                type = GoalType.AccumulateTotal,
+                targetMin = 10.0,
+                startDate = FixedClock.today(),
+            ),
+        )
+        var goal = repository.get(id)!!
+        repository.recordMeasurement(goal.progressBoundary(), 4.0)
+        repository.setStatus(goal.mutationBoundary(), GoalStatus.Completed)
+        val closed = repository.closureSnapshots.first().single()
+        assertEquals(4.0, closed.value ?: -1.0, 0.0)
+        assertEquals(0.4, closed.progress ?: -1.0, 0.0)
+
+        goal = repository.get(id)!!
+        repository.setStatus(goal.mutationBoundary(), GoalStatus.Active)
+        goal = repository.get(id)!!
+        repository.setArchived(goal.mutationBoundary(), true)
+        goal = repository.get(id)!!
+        assertEquals(GoalStatus.Active, goal.status)
+        assertTrue(goal.archived)
+        assertEquals(1, repository.closureSnapshots.first().size)
+
+        repository.setArchived(goal.mutationBoundary(), false)
+        goal = repository.get(id)!!
+        repository.setStatus(goal.mutationBoundary(), GoalStatus.Completed)
+        repository.setStatus(repository.get(id)!!.mutationBoundary(), GoalStatus.Completed)
+        assertEquals(2, repository.closureSnapshots.first().size)
+    }
+
+    @Test fun milestonesAreActiveOnlyAndSameStatePreservesTimestamp() = runBlocking {
+        val id = repository.create(
+            GoalDraft(
+                name = "Ship",
+                type = GoalType.WeightedMilestones,
+                startDate = FixedClock.today(),
+                milestones = listOf(GoalMilestoneDraft("Build")),
+            ),
+        )
+        var goal = repository.get(id)!!
+        var milestone = repository.milestones.first().single()
+        assertTrue(
+            runCatching { repository.recordMeasurement(goal.progressBoundary(), 1.0) }.isFailure,
+        )
+        repository.toggleMilestone(goal.milestoneBoundary(milestone), true)
+        val completed = repository.milestones.first().single()
+        repository.toggleMilestone(goal.milestoneBoundary(completed), true)
+        assertEquals(completed.completedAtMillis, repository.milestones.first().single().completedAtMillis)
+
+        goal = repository.get(id)!!
+        milestone = repository.milestones.first().single()
+        repository.setStatus(goal.mutationBoundary(), GoalStatus.Completed)
+        val closed = repository.closureSnapshots.first().single()
+        assertEquals(1, closed.completedMilestoneCount)
+        assertEquals(1, closed.totalMilestoneCount)
+        assertTrue(runCatching { repository.toggleMilestone(goal.milestoneBoundary(milestone), false) }.isFailure)
+    }
+
+    @Test fun closedAndArchivedHistoryCanBeCorrectedWithoutRewritingClosure() = runBlocking {
+        val id = repository.create(
+            GoalDraft(
+                name = "Read",
+                type = GoalType.AccumulateTotal,
+                targetMin = 10.0,
+                startDate = FixedClock.today(),
+            ),
+        )
+        var goal = repository.get(id)!!
+        val entryId = repository.recordMeasurement(goal.progressBoundary(), 4.0)
+        repository.setStatus(goal.mutationBoundary(), GoalStatus.Completed)
+        goal = repository.get(id)!!
+        repository.setArchived(goal.mutationBoundary(), true)
+
+        goal = repository.get(id)!!
+        var entry = repository.metricEntries.first().single { it.id == entryId }
+        repository.updateMeasurement(
+            goal.measurementBoundary(entry),
+            5.0,
+            FixedClock.today(),
+            "corrected history",
+        )
+        assertEquals(4.0, repository.closureSnapshots.first().single().value ?: -1.0, 0.0)
+
+        goal = repository.get(id)!!
+        entry = repository.metricEntries.first().single { it.id == entryId }
+        repository.deleteMeasurement(goal.measurementBoundary(entry))
+        assertTrue(repository.metricEntries.first().isEmpty())
+        assertEquals(4.0, repository.closureSnapshots.first().single().value ?: -1.0, 0.0)
+    }
+
+    @Test fun elapsedResetWritesImmutableHistoryAndNoOpDoesNotDuplicate() = runBlocking {
+        val initial = FixedClock.now().minusSeconds(10 * 86_400)
+        val id = repository.create(
+            GoalDraft(
+                name = "Recovery",
+                type = GoalType.ElapsedSince,
+                startDate = initial.atZone(ZoneId.of("UTC")).toLocalDate(),
+                elapsedStartMillis = initial.toEpochMilli(),
+            ),
+        )
+        var goal = repository.get(id)!!
+        val reset = FixedClock.now().minusSeconds(3_600)
+        repository.resetElapsedStart(goal.mutationBoundary(), reset)
+        val event = repository.elapsedResetEvents.first().single()
+        assertEquals(goal.uuid, event.goalUuid)
+        assertEquals(initial.toEpochMilli(), event.previousStartMillis)
+        assertEquals(reset.toEpochMilli(), event.newStartMillis)
+        assertEquals(10L * 86_400_000L, event.elapsedDurationMillis)
+
+        goal = repository.get(id)!!
+        repository.resetElapsedStart(goal.mutationBoundary(), reset)
+        assertEquals(1, repository.elapsedResetEvents.first().size)
+
+        goal = repository.get(id)!!
+        repository.setStatus(goal.mutationBoundary(), GoalStatus.Completed)
+        assertEquals(3_600_000L, repository.closureSnapshots.first().single().elapsedDurationMillis)
     }
 
     private object FixedClock : WhipClock {

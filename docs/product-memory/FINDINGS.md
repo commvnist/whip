@@ -142,7 +142,8 @@
 - Observed: `goal_completion_snapshots` survives database upgrades but is absent from backup; replace restore deletes it.
 - Expected: Meaningful completion history is preserved directly or migrated into the current historical model.
 - Evidence: `GoalEntities.kt`, `BackupRepository.kt`, backup tests.
-- Status: Confirmed; remediation pending.
+- Resolution: Portable-backup format 16 exports and merges closure snapshots with stable UUIDs and specialized elapsed/milestone outcomes. Pre-v16 imports synthesize deterministic UUIDs; repeated merge is idempotent, and replace restore preserves meaningful completion/abandonment history.
+- Status: Resolved and fully verified in `IMP-20260831-011` / `VER-20260831-013`.
 
 ### FND-20260831-016 — Abandoned Goals are labeled Completed
 
@@ -150,7 +151,8 @@
 - Observed: Completed and Abandoned Goals share the destination labeled Completed.
 - Expected: History/Closed organization with truthful Completed and Abandoned distinctions.
 - Evidence: `GoalViewModel.kt`, `GoalScreens.kt`.
-- Status: Confirmed; remediation pending.
+- Resolution: The shared destination is now labeled History, individual rows and lifecycle snapshots retain truthful Completed versus Abandoned outcomes, and archive remains a separate organization control rather than a false lifecycle state.
+- Status: Resolved and fully verified in `IMP-20260831-011` / `VER-20260831-013`.
 
 ### FND-20260831-017 — Returning users lack a context-recovery path on clear Home
 
@@ -181,4 +183,16 @@
 - Habit evidence: `HabitRepository.kt`, `HabitDao.kt`, `MeasurementRepository.kt`, `HabitViewModel.kt`, `HabitScreens.kt`, `EntityInspector.kt`, `ProductivityEditorComponents.kt`, `WhipApp.kt`, `HabitRepositoryTest.kt`, `ActivityHistoryUiTest.kt`, `EntitySaveCoordinatorUiTest.kt`, `EntitySaveViewModelIntegrationTest.kt`, and `HabitMutationCommitTest.kt`.
 - Task sub-resolution: Task create/edit, occurrence-aware series editing, reschedule/Plan My Day undo, bulk metadata/date/archive, pin, complete/reopen/reset, permanent deletion, reminder notification actions, and reminder reconciliation now use exact preconditions or request-owned terminal receipts proportionate to risk. A saveable semantic edit boundary survives activity/process recreation and rejects stale task, occurrence, or Subtask state. “Edit This and Future” preserves closed history, remaps retained Subtasks and integrations by stable ID, migrates compatible Open occurrence/step state, preserves finite-count remainder and Carry Unfinished baselines, and rejects conflicting closed future history. Explicit Open rows remain visible and remindable even after cadence or anchor changes. Completed/skipped/archived occurrences use “Edit Series,” avoiding duplicate split boundaries. Deletion revisions cover dependent integrations and Track history; committed deletion cancellation/warnings never invite a destructive retry. Notification action ledgers distinguish pre-authoritative failure from committed follow-up failure.
 - Task evidence: `TaskModels.kt`, `TaskDao.kt`, `TaskRepository.kt`, `TaskDeletionCoordinator.kt`, `TrackDao.kt`, `ReminderActionReceiver.kt`, `ReminderScheduler.kt`, `ReminderWorker.kt`, `CoordinatedReminderRepositories.kt`, `TaskViewModel.kt`, `TaskComponents.kt`, `TaskEditorDialog.kt`, `WhipApp.kt`, focused JVM tests, and the Task/reminder/UI Android regression suites.
-- Status: Partially resolved. The Habit family is verified in `IMP-20260831-009` / `VER-20260831-011`, and the Task family is independently accepted and fully verified in `IMP-20260831-010` / `VER-20260831-012`. Goal measurement/reset and remaining Track/Gym secondary flows remain open under this finding.
+- Goal sub-resolution: Goal progress create/edit/delete, elapsed reset, definition save/duplicate, lifecycle/archive, and permanent deletion now use exact semantic boundaries or request-owned outcomes proportionate to risk. Drafts and errors survive failure/recreation, modal input is blocked only while saving, Home/workspace result namespaces cannot steal one another, outside-window records require explicit History-only confirmation, and future progress is rejected. Closed or archived Goal-owned history remains correctable while immutable closure snapshots keep the actual terminal outcome. Pin/milestone quick actions remain lightweight but exact. Deletion revisions cover Goal-owned measurements, milestones, closures, resets, and Link dependents; post-commit ordinary failures are warnings rather than false retries.
+- Goal evidence: `GoalModels.kt`, `GoalEntities.kt`, `GoalDao.kt`, `GoalRepository.kt`, `DomainDeletionCoordinator.kt`, `AreaDeletionCoordinator.kt`, `GoalViewModel.kt`, `GoalScreens.kt`, `WhipApp.kt`, schema 38, backup format 16, and focused JVM/Android/migration/backup regressions.
+- Status: Partially resolved. Habit is verified in `IMP-20260831-009` / `VER-20260831-011`, Task in `IMP-20260831-010` / `VER-20260831-012`, and Goal in `IMP-20260831-011` / `VER-20260831-013`. Remaining Track/Gym secondary flows stay open under this finding.
+
+### FND-20260831-020 — Health reconciliation is not batch-atomic
+
+- Severity/category: P2 external-data consistency and recovery.
+- Observed: Health reconciliation upserts each provider row in a separate repository transaction and prunes absent rows afterward. An exception midway can leave an imported prefix partially refreshed and skip authoritative pruning.
+- Expected: One source-window reconciliation either commits its validated upserts and prefix-scoped pruning together or retains the prior local mirror with a retryable failure.
+- Why it matters: A provider/API/unit/collision failure during a multi-record sync can temporarily mix old and new mirror state even though deterministic row identity prevents duplication.
+- Evidence: `HealthConnectManager.reconcileHealthRecords`, `RoomMeasurementRepository.record`, `deleteSourceEntriesExcept`, and the three-agent Measurement regression audit summarized in `VER-20260831-013`.
+- Recommended solution: Introduce a narrow repository-level Health source-snapshot transaction after defining window/prefix ownership and collision behavior; do not generalize it into a cross-domain import DSL.
+- Status: Confirmed during `VER-20260831-013`; remediation pending in a separate coherent chunk.

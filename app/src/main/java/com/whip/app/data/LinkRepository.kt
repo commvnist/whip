@@ -7,6 +7,7 @@ import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.Contribution
 import com.whip.app.domain.EstimatedOneRepMaxFormula
 import com.whip.app.domain.HabitLogStatus
+import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.LinkBackfillPreview
 import com.whip.app.domain.LinkKind
 import com.whip.app.domain.LinkRule
@@ -336,6 +337,9 @@ class RoomLinkRepository(
             val excluded = old?.excluded ?: false
             val override = old?.overrideValue
             val effectiveCanonical = override ?: transformed
+            val currentMetricEntryId = old?.metricEntryId?.takeIf {
+                database.measurementDao().getEntry(it) != null
+            }
             val metricEntryId = if (
                 rule.kind == LinkKind.Contribution.name &&
                 rule.targetMilestoneId == null &&
@@ -353,7 +357,7 @@ class RoomLinkRepository(
                     sourceType = event.metricSourceType,
                     sourceId = uuid,
                     note = "Linked: ${event.explanation}",
-                    existingEntryId = old?.metricEntryId ?: ids.nextId(),
+                    existingEntryId = currentMetricEntryId,
                 )
             } else {
                 old?.metricEntryId?.let { measurementRepository.deleteEntry(it) }
@@ -392,7 +396,10 @@ class RoomLinkRepository(
     private suspend fun updateLinkedMilestone(rule: LinkRuleEntity) {
         val milestoneId = rule.targetMilestoneId ?: return
         val milestone = database.goalDao().getMilestone(milestoneId) ?: return
+        val goal = database.goalDao().getGoal(milestone.goalId) ?: return
+        if (goal.archived || goal.status != GoalStatus.Active.name) return
         val completed = dao.getContributions(rule.id).any { !it.excluded }
+        if (milestone.completed == completed) return
         val now = clock.now().toEpochMilli()
         database.goalDao().updateMilestone(
             milestone.copy(

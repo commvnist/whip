@@ -6,6 +6,10 @@ import com.whip.app.data.MeasurementRepository
 import com.whip.app.data.TaskBulkEdit
 import com.whip.app.data.TaskRepository
 import com.whip.app.domain.GoalDraft
+import com.whip.app.domain.GoalMeasurementBoundary
+import com.whip.app.domain.GoalMilestoneBoundary
+import com.whip.app.domain.GoalMutationBoundary
+import com.whip.app.domain.GoalProgressBoundary
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitLogStatus
@@ -147,12 +151,28 @@ internal class CoordinatedGoalRepository(
 ) : GoalRepository by delegate {
     override suspend fun create(draft: GoalDraft) = mutate { delegate.create(draft) }
     override suspend fun update(id: Long, draft: GoalDraft) = mutate { delegate.update(id, draft) }
+    override suspend fun update(boundary: GoalMutationBoundary, draft: GoalDraft) =
+        mutate { delegate.update(boundary, draft) }
     override suspend fun duplicate(id: Long) = mutate { delegate.duplicate(id) }
+    override suspend fun duplicate(boundary: GoalMutationBoundary) = mutate { delegate.duplicate(boundary) }
     override suspend fun setStatus(id: Long, status: GoalStatus) = mutate { delegate.setStatus(id, status) }
+    override suspend fun setStatus(boundary: GoalMutationBoundary, status: GoalStatus) =
+        mutate { delegate.setStatus(boundary, status) }
+    override suspend fun setArchived(boundary: GoalMutationBoundary, archived: Boolean) =
+        mutate { delegate.setArchived(boundary, archived) }
     override suspend fun setPinned(id: Long, pinned: Boolean) = mutate { delegate.setPinned(id, pinned) }
+    override suspend fun setPinned(boundary: GoalMutationBoundary, pinned: Boolean) =
+        mutate { delegate.setPinned(boundary, pinned) }
     override suspend fun reorder(ids: List<Long>) = mutate { delegate.reorder(ids) }
     override suspend fun recordMeasurement(id: Long, value: Double, date: LocalDate?, timestamp: Instant?, note: String) =
         mutate { delegate.recordMeasurement(id, value, date, timestamp, note) }
+    override suspend fun recordMeasurement(
+        boundary: GoalProgressBoundary,
+        value: Double,
+        date: LocalDate?,
+        timestamp: Instant?,
+        note: String,
+    ) = mutate { delegate.recordMeasurement(boundary, value, date, timestamp, note) }
     override suspend fun updateMeasurement(
         id: Long,
         entryId: String,
@@ -161,12 +181,25 @@ internal class CoordinatedGoalRepository(
         note: String,
         enteredUnitId: String?,
     ) = mutate { delegate.updateMeasurement(id, entryId, value, date, note, enteredUnitId) }
+    override suspend fun updateMeasurement(
+        boundary: GoalMeasurementBoundary,
+        value: Double,
+        date: LocalDate,
+        note: String,
+        enteredUnitId: String?,
+    ) = mutate { delegate.updateMeasurement(boundary, value, date, note, enteredUnitId) }
     override suspend fun deleteMeasurement(id: Long, entryId: String) =
         mutate { delegate.deleteMeasurement(id, entryId) }
+    override suspend fun deleteMeasurement(boundary: GoalMeasurementBoundary) =
+        mutate { delegate.deleteMeasurement(boundary) }
     override suspend fun toggleMilestone(id: Long, completed: Boolean) =
         mutate { delegate.toggleMilestone(id, completed) }
+    override suspend fun toggleMilestone(boundary: GoalMilestoneBoundary, completed: Boolean) =
+        mutate { delegate.toggleMilestone(boundary, completed) }
     override suspend fun resetElapsedStart(id: Long, start: Instant) =
         mutate { delegate.resetElapsedStart(id, start) }
+    override suspend fun resetElapsedStart(boundary: GoalMutationBoundary, start: Instant) =
+        mutate { delegate.resetElapsedStart(boundary, start) }
 
     private suspend fun <T> mutate(block: suspend () -> T): T = coordinator.withStateBoundary(block)
 }
@@ -210,10 +243,11 @@ internal class CoordinatedMeasurementRepository(
         sourceId: String?,
         note: String,
         existingEntryId: String?,
+        createIfMissingForHealthReconciliation: Boolean,
     ) = mutate {
         delegate.record(
             metricId, value, unitId, status, timestamp, localDate, zoneId,
-            sourceType, sourceId, note, existingEntryId,
+            sourceType, sourceId, note, existingEntryId, createIfMissingForHealthReconciliation,
         )
     }
     override suspend fun deleteEntry(entryId: String) = mutate { delegate.deleteEntry(entryId) }

@@ -65,6 +65,29 @@ class HealthReconciliationTest {
 
         reconcileHealthRecords(measurements, "health.weight", "health:weight:", emptyList(), ZoneId.of("UTC"))
         assertTrue(measurements.entries.first().isEmpty())
+
+        assertEquals(
+            1,
+            reconcileHealthRecords(
+                measurements,
+                "health.weight",
+                "health:weight:",
+                listOf(edited),
+                ZoneId.of("UTC"),
+            ),
+        )
+        assertEquals("entry-health:weight:a", measurements.entries.first().single().id)
+        assertEquals(
+            1,
+            reconcileHealthRecords(
+                measurements,
+                "health.weight",
+                "health:weight:",
+                listOf(edited),
+                ZoneId.of("UTC"),
+            ),
+        )
+        assertEquals(1, measurements.entries.first().size)
     }
 
     private object FixedClock : WhipClock {
