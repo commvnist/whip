@@ -16,22 +16,22 @@ This is the canonical cross-session entry point for Whip product and engineering
 - Latest device-verified release: **0.3.34 (version code 40)**, installed 2026-08-31 with existing data preserved. See `VER-20260831-002`.
 - Signed release APK SHA-256: `7ddc4bfb209fef541530602420d8daa316f2e74c9b3d19f2c433f02624d7edfe`.
 - Released Gym/5/3/1 implementation and audit commit: `5fc98dd` on `origin/main`.
-- Declared test-source baseline: **967 product tests: 451 JVM and 516 Android**. All 967 were freshly executed for `VER-20260831-007` on the disposable API 34 emulator path.
+- Declared test-source baseline: **983 product tests: 460 JVM and 523 Android**. All 983 were freshly executed for `VER-20260831-009` on the disposable API 34 emulator path.
 - The latest Gym release includes arbitrary-lift 5/3/1 creation, explicit/derived Training Max controls inside and outside 5/3/1, performance-informed cycle review, workout-only exercise addition, contextual routine return, adaptive routine editing, timer-boundary correction, and additive Joker behavior.
 - Detailed Gym evidence lives in [the 5/3/1 product audit](../GYM_531_PRODUCT_AUDIT_2026-08-31.md) and [testing inventory](../testing.md).
 
 ## Active direction
 
 - `FB-20260831-012`: the maximum-quality whole-product goal is active. Iteration 1 inventory, disposable-emulator baseline, independent specialist review, cross-challenge, and Director synthesis are complete in `VER-20260831-005` and `../WHOLE_PRODUCT_MAXIMUM_QUALITY_AUDIT_2026-08-31.md`.
-- `FND-20260831-007` P0 restore recovery and `FND-20260831-008` P1 reminder-delivery integrity are resolved and verified. The shared-calendar, Search/Track/Gym, and new-record-provenance portion of `FND-20260831-009` is implemented and focused-verification complete; exact elapsed-Goal time UX is the next independently revertible subchunk. Success-only save navigation, transactional Settings editing, bounded shares, progressive Habit UX, named large-text navigation, historical IA, returning Home, Track search ownership, and backup compatibility follow.
+- `FND-20260831-007` P0 restore recovery, `FND-20260831-008` reminder-delivery integrity, and `FND-20260831-009` shared live calendar/time-zone consistency are resolved and fully verified. Success-only save navigation, transactional Settings editing, bounded shares, progressive Habit UX, named large-text navigation, historical IA, returning Home, Track search ownership, and backup compatibility follow.
 - `FB-20260831-013`: keep durable project memory outside chat. The infrastructure and skill package are structurally validated; future task use will validate whether the protocol needs adjustment.
 - `FB-20260831-014`: commit and push each coherent verified chunk for easier tracking and reverts. The workflow rule is implemented and structurally validated in the skill, workspace instructions, memory schema, and whole-product goal.
 - Treat subjective fixes in release 0.3.34 as awaiting continued real-user validation even where automated and device checks pass.
 
 ## Highest-priority unresolved verification
 
-- Complete exact elapsed-Goal DST/editing behavior and the full integrated verification for `FND-20260831-009` before advancing to unrelated product implementation; its system reminder, calendar, Search, Track, and Gym prerequisites are complete.
-- The complete 516-test Android inventory passed with zero skips for the reminder chunk. API/platform, viewport, accessibility, migration, and release matrices remain mandatory during adversarial QA.
+- Advance to `FND-20260831-010` success-only save navigation while preserving the verified recovery, reminder, and live-calendar boundaries.
+- The complete 523-test Android inventory passed with zero failures or skips for the live-calendar/elapsed-Goal chunk. API/platform, viewport, accessibility, migration, and release matrices remain mandatory during adversarial QA.
 - Baseline visual coverage includes 100% and 150% text on one phone profile. 200%, 320dp, landscape, RTL, TalkBack, fold/tabletop, notification races, upgrade/restore histories, and API 26/34/37 remain required.
 - Behaviorally validate the personal memory skill in future real tasks and refine the schema if agents create duplicates, stale statuses, or excessive prose.
 

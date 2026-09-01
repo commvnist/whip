@@ -56,6 +56,18 @@
 - Behavior changed: One eager application-scoped calendar context now carries the active Whip zone, physical date, cutoff-adjusted logical date, cutoff, and follow-device policy. Settings changes, aligned minute ticks, and Android date/time/zone invalidations recompute it. Task, Habit, Goal, Track, Search, Gym, widgets, and root CompositionLocals consume the same source; cross-domain UI retains its prior snapshot until every date-derived projection catches up. Track rolls without a repository write, Search completion filters use the Whip zone and reindex without clearing the query, Gym Today ranges honor the cutoff without resetting a browsed month, and new/default/copied workout and measurement records snapshot Whip date/zone provenance. Explicit historical workout starts derive their physical local date from the supplied instant.
 - Important files: `WhipApplication.kt`, `core/AppSettings.kt`, `GymRepository.kt`, `MeasurementRepository.kt`, `TaskViewModel.kt`, `HabitViewModel.kt`, `GoalViewModel.kt`, `TrackViewModel.kt`, `WhipApp.kt`, `UnifiedSearchDialog.kt`, `GymScreens.kt`, `TrackScreens.kt`, and focused JVM/Android tests.
 - Persistence/history impact: No Room or backup migration. Existing Task occurrences, Habit/Measurement history, Goal entries, Track entries/import drafts, workout sessions, completed sets, saved zone IDs, and elapsed origins are not recomputed or rewritten.
+- Commit/push: `8b27374` on `origin/main`.
 - Related: `FND-20260831-009`, `DEC-20260831-010`.
 - Verification: `VER-20260831-008`.
-- Status: Implemented with focused emulator verification; exact elapsed-Goal UI is the next subchunk and integrated release remains deferred.
+- Status: Implemented, focused-verification complete, committed, and pushed; followed by the exact elapsed-Goal subchunk in `IMP-20260831-007`.
+
+### IMP-20260831-007 — Exact elapsed-Goal time and DST behavior
+
+- Behavior changed: Elapsed Goal cards, adaptive summaries, Insights, inspectors, editors, and reset dialogs now share the ViewModel's injected live instant and active Whip zone. An unchanged editor/reset draft preserves the canonical stored instant byte-for-byte, including seconds and milliseconds, even across recomposition, recreation, or a later zone change. Editing wall time uses an exact resolver: spring-forward gaps are rejected with the next valid time explained, and fall-back overlaps expose both offsets and require a deliberate occurrence choice. Start labels use the Whip zone rather than raw UTC/device time. The 30-second ticker runs while Goal UI is subscribed, so future validation also advances while creating or converting the first elapsed Goal.
+- Accessibility/UX: The overlap choices are full-width 48dp-class actions with explicit first/second offset labels and selected text. Gap, overlap, and future-state explanations are polite live regions. Reset actions wrap at constrained widths; a 320dp, 200%-font emulator regression constrains the actual dialog surface and proves Reset Now, Cancel, and the chosen-time action remain within it with at least 48dp targets while exact-instant preservation holds.
+- Important files: `core/AppRuntime.kt`, `GoalViewModel.kt`, `GoalScreens.kt`, `ProductivityEditorComponents.kt`, `AppRuntimeTest.kt`, `ElapsedGoalPresentationTest.kt`, and `ElapsedGoalTimeUiTest.kt`.
+- Persistence/history impact: No schema or backup-format change. `elapsedStartMillis` remains the authoritative immutable instant until a user explicitly saves a changed time; no prior Goal history is rewritten.
+- Commit/push: Focused elapsed-Goal commit containing this entry on `origin/main`.
+- Related: `FND-20260831-009`, `DEC-20260831-010`.
+- Verification: `VER-20260831-009`.
+- Status: Implemented and fully verified; integrated physical-device release remains deferred until the maximum-quality goal is complete.

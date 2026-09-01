@@ -274,6 +274,7 @@ internal fun ProductivityEditorDialog(
 @Composable
 internal fun PaneAwareAlertDialog(
     modifier: Modifier = Modifier,
+    testTag: String? = null,
     onDismissRequest: () -> Unit,
     title: @Composable () -> Unit,
     text: @Composable () -> Unit,
@@ -288,7 +289,7 @@ internal fun PaneAwareAlertDialog(
     } else modifier
     ProductivityEditorDialog(
         modifier = resolvedModifier.widthIn(min = 280.dp, max = WhipContentWidth.compactDialog),
-        testTag = null,
+        testTag = testTag,
         onDismissRequest = onDismissRequest,
         title = title,
         text = text,

@@ -41,7 +41,6 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -51,8 +50,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -64,6 +65,8 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import com.whip.app.core.AppSettings
+import com.whip.app.core.resolveExactLocalTime
+import com.whip.app.core.resolveEditedExactInstant
 import com.whip.app.core.zoneId
 import com.whip.app.domain.Goal
 import com.whip.app.domain.Area
@@ -97,11 +100,9 @@ import com.whip.app.domain.validationErrors
 import com.whip.app.ui.theme.whipColors
 import java.time.LocalDate
 import java.time.Instant
-import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import kotlinx.coroutines.delay
 import java.util.Locale
 
 enum class GoalDestination { Active, Completed, Archived, Insights }
@@ -180,13 +181,7 @@ fun GoalAreaContent(
     }
     val resettingElapsed = resettingElapsedGoalId?.let(projectionById::get)
     val deleteCandidate = deleteCandidateGoalId?.let(projectionById::get)
-    var elapsedNowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(state.active.any { it.goal.type == GoalType.ElapsedSince }) {
-        while (state.active.any { it.goal.type == GoalType.ElapsedSince }) {
-            elapsedNowMillis = System.currentTimeMillis()
-            delay(30_000)
-        }
-    }
+    val elapsedNowMillis = state.nowMillis
     LaunchedEffect(createRequested, recordGoalIdRequest, resetElapsedGoalIdRequest, state.active) {
         if (createRequested) creating = true
         if (recordGoalIdRequest != null && state.active.any { it.goal.id == recordGoalIdRequest }) recordingGoalId = recordGoalIdRequest
@@ -254,6 +249,8 @@ fun GoalAreaContent(
             GoalInsightsContent(
                 projections = state.active,
                 innerPadding = WhipPageContentPadding,
+                nowMillis = state.nowMillis,
+                zoneId = state.activeZoneId,
                 onOpen = { actionsGoalId = it.goal.id },
             )
         } else WhipReorderLazyColumn(
@@ -387,6 +384,8 @@ fun GoalAreaContent(
             projection = editing,
             initialDraft = templateDraft.takeIf { editing == null },
             today = state.currentDate,
+            activeZoneId = state.activeZoneId,
+            nowMillis = state.nowMillis,
             customUnits = state.customUnits,
             defaults = viewModel.defaultSettings(),
             areas = areas,
@@ -433,10 +432,15 @@ fun GoalAreaContent(
     resettingElapsed?.let { projection ->
         ElapsedGoalResetDialog(
             goal = projection.goal,
-            zoneId = viewModel.defaultSettings().zoneId(),
+            zoneId = state.activeZoneId,
+            nowMillis = state.nowMillis,
             onDismiss = { resettingElapsedGoalId = null },
             onReset = { instant ->
                 viewModel.resetElapsedStart(projection.goal.id, instant)
+                resettingElapsedGoalId = null
+            },
+            onResetNow = {
+                viewModel.resetElapsedStartToNow(projection.goal.id)
                 resettingElapsedGoalId = null
             },
         )
@@ -470,6 +474,8 @@ fun GoalAreaContent(
         GoalActionsDialog(
             projection,
             modifier = modifier,
+            zoneId = state.activeZoneId,
+            nowMillis = state.nowMillis,
             onDismiss = { actionsGoalId = null },
             onEditMeasurement = { entry -> editingMeasurementGoalId = projection.goal.id; editingMeasurementId = entry.id; actionsGoalId = null },
             onRecordProgress = { recordingGoalId = projection.goal.id; actionsGoalId = null },
@@ -699,47 +705,114 @@ fun GoalCard(
 }
 
 @Composable
-private fun ElapsedGoalResetDialog(
+internal fun ElapsedGoalResetDialog(
     goal: Goal,
     zoneId: ZoneId,
+    nowMillis: Long,
     onDismiss: () -> Unit,
     onReset: (Instant) -> Unit,
+    onResetNow: () -> Unit,
 ) {
-    val original = Instant.ofEpochMilli(goal.elapsedStartMillis ?: System.currentTimeMillis()).atZone(zoneId)
+    val draftZoneId by rememberSaveable(goal.id) { mutableStateOf(zoneId.id) }
+    val draftZone = remember(draftZoneId) { ZoneId.of(draftZoneId) }
+    val original = Instant.ofEpochMilli(goal.elapsedStartMillis ?: nowMillis).atZone(draftZone)
     var date by rememberSaveable(goal.id) { mutableStateOf(original.toLocalDate()) }
     var minutes by rememberSaveable(goal.id) { mutableIntStateOf(original.hour * 60 + original.minute) }
+    var wallTimeEdited by rememberSaveable(goal.id) { mutableStateOf(false) }
+    var preferredOffsetSeconds by rememberSaveable(goal.id) { mutableStateOf<Int?>(original.offset.totalSeconds) }
     var datePicker by rememberSaveable(goal.id) { mutableStateOf(false) }
-    val selected = date.atTime(LocalTime.of(minutes / 60, minutes % 60)).atZone(zoneId).toInstant()
+    val resolution = resolveExactLocalTime(date, minutes, draftZone)
+    val selectedInstant = resolveEditedExactInstant(
+        initialInstant = original.toInstant(),
+        wallTimeEdited = wallTimeEdited,
+        resolution = resolution,
+        preferredOffsetSeconds = preferredOffsetSeconds,
+    )
+    val now = Instant.ofEpochMilli(nowMillis)
+    val inFuture = selectedInstant?.isAfter(now) == true
     PaneAwareAlertDialog(
+        testTag = "elapsed-reset-dialog",
         onDismissRequest = onDismiss,
         title = { Text("Reset ${goal.name}?") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Choose the new event time. This replaces the previous counter origin; it does not delete the Goal.")
+                Text("Whip time · ${draftZone.id}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 WhipOutlinedButton(onClick = { datePicker = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
                 }
-                ClockPickerButton("Start Time", minutes, { if (it != null) minutes = it })
-                if (selected.isAfter(Instant.now())) Text("Start time cannot be in the future.", color = MaterialTheme.colorScheme.error)
+                ClockPickerButton("Start Time", minutes, { if (it != null) {
+                    minutes = it
+                    wallTimeEdited = true
+                    preferredOffsetSeconds = null
+                } })
+                if (resolution.isGap) {
+                    val next = resolution.firstValidDateTimeAfterGap?.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT))
+                    Text(
+                        "That local time does not exist because the clock moves forward.${next?.let { " The next valid time is $it." }.orEmpty()}",
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                if (wallTimeEdited && resolution.isOverlap) {
+                    Text(
+                        "That time occurs twice because the clock moves back. Choose which occurrence you mean.",
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    resolution.options.forEach { option ->
+                        val selected = preferredOffsetSeconds == option.offset.totalSeconds
+                        WhipOutlinedButton(
+                            onClick = { preferredOffsetSeconds = option.offset.totalSeconds },
+                            modifier = Modifier.fillMaxWidth().testTag("elapsed-reset-overlap-${option.offset.id}"),
+                        ) {
+                            val index = resolution.options.indexOf(option)
+                            Text("${if (index == 0) "First" else "Second"} occurrence · ${option.offset.id}${if (selected) " · Selected" else ""}")
+                        }
+                    }
+                }
+                if (inFuture) Text(
+                    "Start time cannot be in the future.",
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
         },
         confirmButton = {
-            WhipTextButton(enabled = !selected.isAfter(Instant.now()), onClick = { onReset(selected) }) { Text("Reset to Chosen Time") }
+            WhipTextButton(
+                enabled = selectedInstant != null && !inFuture,
+                onClick = { selectedInstant?.let(onReset) },
+                modifier = Modifier.testTag("elapsed-reset-confirm"),
+            ) { Text("Reset to Chosen Time") }
         },
         dismissButton = {
-            Row {
-                WhipTextButton(onClick = { onReset(Instant.now()) }) { Text("Reset to Now") }
-                WhipTextButton(onClick = onDismiss) { Text("Cancel") }
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                WhipTextButton(onClick = onResetNow, modifier = Modifier.testTag("elapsed-reset-now")) { Text("Reset to Now") }
+                WhipTextButton(onClick = onDismiss, modifier = Modifier.testTag("elapsed-reset-cancel")) { Text("Cancel") }
             }
         },
     )
-    if (datePicker) WhipDatePickerDialog(date, { datePicker = false }, { date = it; datePicker = false })
+    if (datePicker) WhipDatePickerDialog(date, { datePicker = false }, {
+        date = it
+        wallTimeEdited = true
+        preferredOffsetSeconds = null
+        datePicker = false
+    })
 }
+
+internal fun elapsedGoalStartLabel(startedMillis: Long, zoneId: ZoneId): String =
+    "${Instant.ofEpochMilli(startedMillis).atZone(zoneId).format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM))} · ${zoneId.id}"
 
 @Composable
 private fun GoalInsightsContent(
     projections: List<GoalProjection>,
     innerPadding: PaddingValues,
+    nowMillis: Long,
+    zoneId: ZoneId,
     onOpen: (GoalProjection) -> Unit,
 ) {
     LazyColumn(
@@ -786,11 +859,13 @@ private fun GoalInsightsContent(
                     if (projection.goal.type == GoalType.ElapsedSince) {
                         projection.goal.elapsedStartMillis?.let { started ->
                             Text(
-                                elapsedCounter(started, System.currentTimeMillis(), projection.goal.elapsedDisplayUnit).label(),
+                                elapsedCounter(started, nowMillis, projection.goal.elapsedDisplayUnit).label(),
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = MaterialTheme.colorScheme.primary,
                             )
-                            Text("Counting continuously since ${Instant.ofEpochMilli(started)}")
+                            Text(
+                                "Counting continuously since ${elapsedGoalStartLabel(started, zoneId)}",
+                            )
                         }
                     } else if (chartValues.size >= 2) {
                         GoalLineChart(
@@ -917,6 +992,8 @@ private fun GoalEditorDialog(
     modifier: Modifier = Modifier,
     initialDraft: GoalDraft? = null,
     today: LocalDate,
+    activeZoneId: ZoneId,
+    nowMillis: Long,
     customUnits: List<UnitDefinition>,
     defaults: AppSettings = AppSettings(),
     onDismiss: () -> Unit,
@@ -998,23 +1075,35 @@ private fun GoalEditorDialog(
     var rollingDays by rememberSaveable(editorKey) { mutableStateOf((goal?.rollingDays ?: initialDraft?.rollingDays ?: 7).toString()) }
     var consistencyPeriod by rememberSaveable(editorKey) { mutableStateOf(goal?.consistencyPeriod ?: initialDraft?.consistencyPeriod ?: GoalConsistencyPeriod.Week) }
     var consistencyRequiredPeriods by rememberSaveable(editorKey) { mutableStateOf((goal?.consistencyRequiredPeriods ?: initialDraft?.consistencyRequiredPeriods ?: 12).toString()) }
-    val editorZone = defaults.zoneId()
-    val initialElapsedMoment = remember(editorKey) {
-        Instant.ofEpochMilli(goal?.elapsedStartMillis ?: initialDraft?.elapsedStartMillis ?: System.currentTimeMillis()).atZone(editorZone)
+    val editorZoneId by rememberSaveable(editorKey) { mutableStateOf(activeZoneId.id) }
+    val editorZone = remember(editorZoneId) { ZoneId.of(editorZoneId) }
+    val initialElapsedInstantMillis by rememberSaveable(editorKey) {
+        mutableStateOf(goal?.elapsedStartMillis ?: initialDraft?.elapsedStartMillis ?: nowMillis)
+    }
+    val initialElapsedMoment = remember(editorKey, editorZoneId, initialElapsedInstantMillis) {
+        Instant.ofEpochMilli(initialElapsedInstantMillis).atZone(editorZone)
     }
     var elapsedDate by rememberSaveable(editorKey) { mutableStateOf(initialElapsedMoment.toLocalDate()) }
     var elapsedMinutes by rememberSaveable(editorKey) { mutableIntStateOf(initialElapsedMoment.hour * 60 + initialElapsedMoment.minute) }
+    var elapsedMomentEdited by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var elapsedOffsetSeconds by rememberSaveable(editorKey) { mutableStateOf<Int?>(initialElapsedMoment.offset.totalSeconds) }
     var elapsedDisplayUnit by rememberSaveable(editorKey) { mutableStateOf(goal?.elapsedDisplayUnit ?: initialDraft?.elapsedDisplayUnit ?: ElapsedDisplayUnit.Auto) }
     var showElapsedDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
     var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
-    val elapsedStartInstant = elapsedDate.atTime(LocalTime.of(elapsedMinutes / 60, elapsedMinutes % 60)).atZone(editorZone).toInstant()
+    val elapsedResolution = resolveExactLocalTime(elapsedDate, elapsedMinutes, editorZone)
+    val elapsedStartInstant = resolveEditedExactInstant(
+        initialInstant = Instant.ofEpochMilli(initialElapsedInstantMillis),
+        wallTimeEdited = elapsedMomentEdited,
+        resolution = elapsedResolution,
+        preferredOffsetSeconds = elapsedOffsetSeconds,
+    )
     val compatibleAggregations = type.compatibleAggregations()
     val direction = type.defaultDirection()
     val editorFingerprint = listOf(
         name, description, areaId, area, tags, icon, type, unitId, dimension, precision,
         baseline, targetMin, targetMax, aggregation, pace, deadline,
         reminder, aggregationPeriod, rollingDays, consistencyPeriod, consistencyRequiredPeriods,
-        elapsedDate, elapsedMinutes, elapsedDisplayUnit,
+        elapsedDate, elapsedMinutes, elapsedMomentEdited, elapsedOffsetSeconds, elapsedDisplayUnit,
         milestoneDrafts.map { "${it.id}:${it.uuid}:${it.name}:${it.weight}:${it.reward}" },
     ).joinToString("\u001f")
     val initialFingerprint by rememberSaveable(editorKey) { mutableStateOf(editorFingerprint) }
@@ -1048,7 +1137,7 @@ private fun GoalEditorDialog(
         rollingDays = rollingDays.toIntOrNull(),
         consistencyPeriod = consistencyPeriod,
         consistencyRequiredPeriods = consistencyRequiredPeriods.toIntOrNull(),
-        elapsedStartMillis = elapsedStartInstant.toEpochMilli().takeIf { type == GoalType.ElapsedSince },
+        elapsedStartMillis = elapsedStartInstant?.toEpochMilli().takeIf { type == GoalType.ElapsedSince },
         elapsedDisplayUnit = elapsedDisplayUnit,
     )
     val rawFieldProblems = buildList {
@@ -1066,8 +1155,11 @@ private fun GoalEditorDialog(
         if (type == GoalType.MaintainRange && targetMax.isNotBlank() && targetMax.toWhipDoubleOrNull() == null) {
             add("Range maximum must be a number")
         }
+        if (type == GoalType.ElapsedSince && elapsedStartInstant == null) {
+            add("Choose a start time that exists in ${editorZone.id}")
+        }
     }
-    val draftValidationMessages = currentDraft.validationErrors(System.currentTimeMillis())
+    val draftValidationMessages = currentDraft.validationErrors(nowMillis)
     val validationMessages = (rawFieldProblems + draftValidationMessages).distinct()
     val validationRequester = remember { BringIntoViewRequester() }
     LaunchedEffect(validationRequested, validationMessages) {
@@ -1229,6 +1321,7 @@ private fun GoalEditorDialog(
                     item {
                         Text("Counter Start", fontWeight = FontWeight.Bold)
                         Text("Choose the exact event time. Resetting later replaces this start time without adding a progress update.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Whip time · ${editorZone.id}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     item {
                         ResponsiveFieldPair(
@@ -1237,12 +1330,48 @@ private fun GoalEditorDialog(
                                     Text(elapsedDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
                                 }
                             },
-                            second = { field -> ClockPickerButton("Start Time", elapsedMinutes, { if (it != null) elapsedMinutes = it }, field) },
+                            second = { field -> ClockPickerButton("Start Time", elapsedMinutes, {
+                                if (it != null) {
+                                    elapsedMinutes = it
+                                    elapsedMomentEdited = true
+                                    elapsedOffsetSeconds = null
+                                }
+                            }, field) },
                         )
                     }
+                    if (elapsedResolution.isGap) item {
+                        val next = elapsedResolution.firstValidDateTimeAfterGap
+                            ?.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT))
+                        Text(
+                            "That local time does not exist because the clock moves forward.${next?.let { " The next valid time is $it." }.orEmpty()}",
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    if (elapsedMomentEdited && elapsedResolution.isOverlap) item {
+                        Text(
+                            "That time occurs twice because the clock moves back. Choose which occurrence you mean.",
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        elapsedResolution.options.forEach { option ->
+                            val selected = elapsedOffsetSeconds == option.offset.totalSeconds
+                            WhipOutlinedButton(
+                                onClick = { elapsedOffsetSeconds = option.offset.totalSeconds },
+                                modifier = Modifier.fillMaxWidth().testTag("elapsed-editor-overlap-${option.offset.id}"),
+                            ) {
+                                val index = elapsedResolution.options.indexOf(option)
+                                Text("${if (index == 0) "First" else "Second"} occurrence · ${option.offset.id}${if (selected) " · Selected" else ""}")
+                            }
+                        }
+                    }
                     item { GoalEnumDropdown("Counter Display", ElapsedDisplayUnit.entries, elapsedDisplayUnit, ElapsedDisplayUnit::displayLabel) { elapsedDisplayUnit = it } }
-                    if (elapsedStartInstant.isAfter(Instant.now())) item {
-                        Text("Start time cannot be in the future.", color = MaterialTheme.colorScheme.error)
+                    if (elapsedStartInstant?.isAfter(Instant.ofEpochMilli(nowMillis)) == true) item {
+                        Text(
+                            "Start time cannot be in the future.",
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                            color = MaterialTheme.colorScheme.error,
+                        )
                     }
                 }
                 if (type !in setOf(GoalType.WeightedMilestones, GoalType.Consistency, GoalType.ElapsedSince)) {
@@ -1477,7 +1606,12 @@ private fun GoalEditorDialog(
             ) { Icon(Icons.Outlined.Close, contentDescription = null) }
         },
     )
-    if (showElapsedDatePicker) WhipDatePickerDialog(elapsedDate, { showElapsedDatePicker = false }, { elapsedDate = it; showElapsedDatePicker = false })
+    if (showElapsedDatePicker) WhipDatePickerDialog(elapsedDate, { showElapsedDatePicker = false }, {
+        elapsedDate = it
+        elapsedMomentEdited = true
+        elapsedOffsetSeconds = null
+        showElapsedDatePicker = false
+    })
     if (showDatePicker) WhipDatePickerDialog(deadline ?: today, { showDatePicker = false }, { deadline = it; showDatePicker = false })
     if (showDiscardConfirmation) {
         UnsavedChangesDialog("goal", { showDiscardConfirmation = false }, onDismiss)
@@ -1558,6 +1692,8 @@ internal fun GoalMeasurementDialog(
 private fun GoalActionsDialog(
     projection: GoalProjection,
     modifier: Modifier = Modifier,
+    zoneId: ZoneId,
+    nowMillis: Long,
     onDismiss: () -> Unit,
     onEditMeasurement: (MetricEntry) -> Unit,
     onRecordProgress: () -> Unit,
@@ -1610,7 +1746,7 @@ private fun GoalActionsDialog(
                 item {
                     EntityInspectorGroup("Outcome") {
                         Text(
-                            projection.inspectorOutcome(),
+                            projection.inspectorOutcome(nowMillis),
                             style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
@@ -1628,8 +1764,10 @@ private fun GoalActionsDialog(
                     val chartValues = insights.points.mapNotNull { it.progress ?: it.canonicalValue }
                     if (projection.goal.type == GoalType.ElapsedSince) {
                         projection.goal.elapsedStartMillis?.let { started ->
-                            Text(elapsedCounter(started, System.currentTimeMillis(), projection.goal.elapsedDisplayUnit).label(), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
-                            Text("Started ${Instant.ofEpochMilli(started).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM))}")
+                            Text(elapsedCounter(started, nowMillis, projection.goal.elapsedDisplayUnit).label(), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+                            Text(
+                                "Started ${elapsedGoalStartLabel(started, zoneId)}",
+                            )
                         }
                     } else if (chartValues.size >= 2) {
                         GoalLineChart(
@@ -1759,9 +1897,9 @@ internal fun GoalStatus.inspectorStatusTone(): WhipStatusTone = when (this) {
     GoalStatus.Archived -> WhipStatusTone.Neutral
 }
 
-private fun GoalProjection.inspectorOutcome(): String = when {
+private fun GoalProjection.inspectorOutcome(nowMillis: Long): String = when {
     goal.type == GoalType.ElapsedSince && goal.elapsedStartMillis != null ->
-        elapsedCounter(goal.elapsedStartMillis, System.currentTimeMillis(), goal.elapsedDisplayUnit).label()
+        elapsedCounter(goal.elapsedStartMillis, nowMillis, goal.elapsedDisplayUnit).label()
     goal.type == GoalType.WeightedMilestones ->
         "${milestones.count { it.completed }} of ${milestones.size} milestones complete"
     progress != null -> "${(progress * 100).toInt()}% complete"

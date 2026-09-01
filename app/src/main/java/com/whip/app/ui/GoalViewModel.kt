@@ -14,7 +14,6 @@ import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalMilestone
 import com.whip.app.domain.GoalProjection
 import com.whip.app.domain.GoalStatus
-import com.whip.app.domain.GoalType
 import com.whip.app.domain.MetricEntry
 import com.whip.app.domain.MetricDefinition
 import com.whip.app.domain.UnitDefinition
@@ -37,8 +36,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -49,7 +46,7 @@ data class GoalUiState(
     val archived: List<GoalProjection> = emptyList(),
     val currentDate: LocalDate = LocalDate.now(),
     val activeZoneId: ZoneId = ZoneId.systemDefault(),
-    val nowMillis: Long = 0L,
+    val nowMillis: Long = System.currentTimeMillis(),
     val loading: Boolean = true,
     val errorMessage: String? = null,
     val customUnits: List<UnitDefinition> = emptyList(),
@@ -85,13 +82,7 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
     ) { units, metrics -> units to metrics }
 
     val uiState = reloadKey.flatMapLatest {
-        val timedGoalCore = goalCore.flatMapLatest { core ->
-            val hasElapsedGoal = (core.active + core.completed + core.archived)
-                .any { it.goal.type == GoalType.ElapsedSince }
-            (if (hasElapsedGoal) elapsedClockFlow() else flowOf(clock.now().toEpochMilli()))
-                .map { nowMillis -> core to nowMillis }
-        }
-        combine(timedGoalCore, measurementMetadata) { (core, nowMillis), metadata ->
+        combine(goalCore, measurementMetadata, elapsedClockFlow()) { core, metadata, nowMillis ->
             val (units, metrics) = metadata
             core.copy(
                 customUnits = units,

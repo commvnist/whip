@@ -89,7 +89,7 @@
 - Failure modes: Local patches recur and retain mixed Home state. A universal clock conflates calendar days, historical instants, and elapsed countdowns and destabilizes unrelated systems. A centralized date without zone/follow policy still misses same-date travel changes.
 - Synthesis/decision: Route live calendar behavior through one application-scoped `WhipCalendarContext`, invalidate it on settings and Android time/date/zone changes and aligned minute boundaries, and retain the previous rendered snapshot until all date-derived domain states match. Keep specialized absolute timers separate. New records use explicit Whip provenance; explicit historical starts derive from their supplied instant; persisted history is never re-dated.
 - Why this is superior for Whip: Every visible domain shares one falsifiable meaning of Today without imposing cutoff semantics on exports, Health windows, timers, reminders, or historical records.
-- Status: Accepted; shared context and non-Goal consumers implemented in `IMP-20260831-006`; exact elapsed-Goal UI remains the second subchunk.
+- Status: Accepted, implemented in `IMP-20260831-006` / `IMP-20260831-007`, and fully verified in `VER-20260831-009`.
 
 ### DEC-20260831-011 — Save-dependent navigation occurs only after confirmed persistence
 

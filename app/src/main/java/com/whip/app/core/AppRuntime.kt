@@ -2,7 +2,10 @@ package com.whip.app.core
 
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.util.UUID
 
 interface WhipClock {
@@ -17,6 +20,51 @@ interface WhipClock {
 object SystemWhipClock : WhipClock {
     override fun now(): Instant = Instant.now()
 }
+
+data class ExactLocalTimeOption(
+    val instant: Instant,
+    val offset: ZoneOffset,
+)
+
+data class ExactLocalTimeResolution(
+    val localDateTime: LocalDateTime,
+    val options: List<ExactLocalTimeOption>,
+    val firstValidDateTimeAfterGap: LocalDateTime? = null,
+) {
+    val isGap: Boolean get() = options.isEmpty()
+    val isOverlap: Boolean get() = options.size > 1
+
+    fun selected(preferredOffsetSeconds: Int?): ExactLocalTimeOption? =
+        when {
+            options.size <= 1 -> options.firstOrNull()
+            preferredOffsetSeconds == null -> null
+            else -> options.firstOrNull { it.offset.totalSeconds == preferredOffsetSeconds }
+        }
+}
+
+/** Exact wall-time resolution for user-entered instants; gaps never normalize silently. */
+fun resolveExactLocalTime(
+    date: LocalDate,
+    minutes: Int,
+    zoneId: ZoneId,
+): ExactLocalTimeResolution {
+    require(minutes in 0..1_439)
+    val local = LocalDateTime.of(date, LocalTime.of(minutes / 60, minutes % 60))
+    val offsets = zoneId.rules.getValidOffsets(local)
+    return ExactLocalTimeResolution(
+        localDateTime = local,
+        options = offsets.map { offset -> ExactLocalTimeOption(local.toInstant(offset), offset) },
+        firstValidDateTimeAfterGap = if (offsets.isEmpty()) zoneId.rules.getTransition(local)?.dateTimeAfter else null,
+    )
+}
+
+/** Keeps persisted instants byte-for-byte stable until the user edits their wall time. */
+fun resolveEditedExactInstant(
+    initialInstant: Instant,
+    wallTimeEdited: Boolean,
+    resolution: ExactLocalTimeResolution,
+    preferredOffsetSeconds: Int?,
+): Instant? = if (wallTimeEdited) resolution.selected(preferredOffsetSeconds)?.instant else initialInstant
 
 fun interface WhipIdGenerator {
     fun nextId(): String
