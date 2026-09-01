@@ -192,6 +192,37 @@ class TrackCsvReliabilityPolicyTest {
     }
 
     @Test
+    fun compactImportSessionSurvivesProcessRecreationOnlyWithinItsDataGeneration() {
+        val handle = SavedStateHandle()
+        val beforeProcessRecreation = TrackCsvImportSessionStore(handle, currentDataGeneration = 7L)
+        beforeProcessRecreation.begin(42, "content://documents/runs.csv", LocalDate.of(2026, 8, 29))
+
+        assertEquals(
+            42L,
+            TrackCsvImportSessionStore(handle, currentDataGeneration = 7L).descriptor?.trackId,
+        )
+
+        assertNull(TrackCsvImportSessionStore(handle, currentDataGeneration = 8L).descriptor)
+        assertNull(handle.get<TrackCsvImportSessionDescriptor>("track-csv-import-session"))
+    }
+
+    @Test
+    fun survivingStoreStampsNewImportsWithTheLivePostRestoreGeneration() {
+        val handle = SavedStateHandle()
+        var currentGeneration = 3L
+        val survivingStore = TrackCsvImportSessionStore(handle) { currentGeneration }
+        survivingStore.begin(11, "content://documents/before.csv", LocalDate.of(2026, 8, 30))
+
+        currentGeneration = 4L
+        assertNull(survivingStore.descriptor)
+        survivingStore.begin(11, "content://documents/after.csv", LocalDate.of(2026, 8, 31))
+
+        val afterProcessRecreation = TrackCsvImportSessionStore(handle) { currentGeneration }
+        assertEquals(4L, afterProcessRecreation.descriptor?.dataGeneration)
+        assertEquals("content://documents/after.csv", afterProcessRecreation.descriptor?.uri)
+    }
+
+    @Test
     fun previewFailureBecomesRecoverableErrorInsteadOfReadyWithoutPreview() {
         val initial = TrackCsvImportUiState(trackId = 7, phase = TrackCsvImportPhase.Previewing)
 

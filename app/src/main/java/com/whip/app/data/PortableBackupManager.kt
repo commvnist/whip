@@ -7,11 +7,15 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
+import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.whip.app.WhipApplication
+import com.whip.app.reminders.ALL_WHIP_WORK_TAG
+import com.whip.app.startup.MISSING_USER_DATA_GENERATION
+import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -359,17 +363,37 @@ class PortableBackupManager(
     }
 }
 
-class PortableBackupScheduler(context: Context) {
+class PortableBackupScheduler(private val context: Context) {
     private val workManager = WorkManager.getInstance(context)
 
-    fun sync(state: PortableBackupState) {
+    fun sync(state: PortableBackupState, allowDuringRecovery: Boolean = false) {
+        val app = context.applicationContext as WhipApplication
+        if (allowDuringRecovery) {
+            syncInternal(state, app.currentUserDataGeneration())
+        } else {
+            app.tryWithUserDataAccessNow {
+                syncInternal(state, app.currentUserDataGeneration())
+            }
+        }
+    }
+
+    private fun syncInternal(state: PortableBackupState, generation: Long) {
         if (!state.configured || !state.automaticEnabled) {
             workManager.cancelUniqueWork(PORTABLE_BACKUP_WORK_NAME)
             return
         }
         val request = PeriodicWorkRequestBuilder<PortableBackupWorker>(1, TimeUnit.DAYS)
             .setConstraints(Constraints.Builder().setRequiresBatteryNotLow(true).build())
+            .setInputData(
+                Data.Builder()
+                    .putLong(
+                        USER_DATA_GENERATION_KEY,
+                        generation,
+                    )
+                    .build(),
+            )
             .addTag(PORTABLE_BACKUP_WORK_TAG)
+            .addTag(ALL_WHIP_WORK_TAG)
             .build()
         workManager.enqueueUniquePeriodicWork(
             PORTABLE_BACKUP_WORK_NAME,
@@ -385,11 +409,17 @@ class PortableBackupWorker(
 ) : CoroutineWorker(appContext, workerParameters) {
     override suspend fun doWork(): Result {
         val app = applicationContext as WhipApplication
-        return runCatching { app.portableBackupManager.backupNow(allowEmpty = false) }
-            .fold(
-                onSuccess = { Result.success() },
-                onFailure = { if (runAttemptCount < 2) Result.retry() else Result.failure() },
-            )
+        return app.withUserDataAccess {
+            if (!app.isCurrentUserDataGeneration(
+                    inputData.getLong(USER_DATA_GENERATION_KEY, MISSING_USER_DATA_GENERATION),
+                )
+            ) return@withUserDataAccess Result.success()
+            runCatching { app.portableBackupManager.backupNow(allowEmpty = false) }
+                .fold(
+                    onSuccess = { Result.success() },
+                    onFailure = { if (runAttemptCount < 2) Result.retry() else Result.failure() },
+                )
+        } ?: Result.retry()
     }
 }
 

@@ -32,6 +32,7 @@ internal data class CachedWidgetRow(
 internal data class CachedWidgetSnapshot(
     val rows: List<CachedWidgetRow>,
     val savedAtMillis: Long,
+    val dataGeneration: Long = 0L,
 )
 
 internal object WidgetSnapshotCache {
@@ -44,9 +45,10 @@ internal object WidgetSnapshotCache {
         appWidgetId: Int,
         rows: List<CachedWidgetRow>,
         savedAtMillis: Long = System.currentTimeMillis(),
+        dataGeneration: Long = context.currentWidgetDataGeneration(),
     ) {
         if (appWidgetId < 0) return
-        val snapshot = CachedWidgetSnapshot(rows.take(MAX_CACHED_ROWS), savedAtMillis)
+        val snapshot = CachedWidgetSnapshot(rows.take(MAX_CACHED_ROWS), savedAtMillis, dataGeneration)
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit {
             putString(key(kind, appWidgetId), WidgetSnapshotCodec.encode(snapshot))
         }
@@ -56,12 +58,18 @@ internal object WidgetSnapshotCache {
         context: Context,
         kind: WidgetSnapshotKind,
         appWidgetId: Int,
+        dataGeneration: Long = context.currentWidgetDataGeneration(),
     ): CachedWidgetSnapshot? {
         if (appWidgetId < 0) return null
         val encoded = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(key(kind, appWidgetId), null)
             ?: return null
-        return WidgetSnapshotCodec.decode(encoded)
+        val snapshot = WidgetSnapshotCodec.decode(encoded)
+        if (snapshot?.dataGeneration == dataGeneration) return snapshot
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit {
+            remove(key(kind, appWidgetId))
+        }
+        return null
     }
 
     fun remove(context: Context, appWidgetIds: IntArray) {
@@ -78,7 +86,7 @@ internal object WidgetSnapshotCache {
 
 /** A small dependency-free codec so corruption never prevents a widget refresh. */
 internal object WidgetSnapshotCodec {
-    private const val VERSION = "1"
+    private const val VERSION = "2"
     private const val FIELD_SEPARATOR = '|'
     private const val ROW_SEPARATOR = '\n'
 
@@ -86,6 +94,8 @@ internal object WidgetSnapshotCodec {
         append(VERSION)
         append(FIELD_SEPARATOR)
         append(snapshot.savedAtMillis)
+        append(FIELD_SEPARATOR)
+        append(snapshot.dataGeneration)
         snapshot.rows.forEach { row ->
             append(ROW_SEPARATOR)
             append(if (row.isChild) '1' else '0')
@@ -101,8 +111,13 @@ internal object WidgetSnapshotCodec {
     fun decode(encoded: String): CachedWidgetSnapshot? = runCatching {
         val lines = encoded.lineSequence().toList()
         val header = lines.firstOrNull()?.split(FIELD_SEPARATOR) ?: return null
-        if (header.size != 2 || header[0] != VERSION) return null
+        if (header.size !in 2..3) return null
         val savedAtMillis = header[1].toLongOrNull() ?: return null
+        val dataGeneration = when (header[0]) {
+            "1" -> if (header.size == 2) 0L else return null
+            VERSION -> if (header.size == 3) header[2].toLongOrNull() ?: return null else return null
+            else -> return null
+        }
         val rows = lines.drop(1).map { line ->
             val fields = line.split(FIELD_SEPARATOR)
             require(fields.size == 4)
@@ -113,7 +128,7 @@ internal object WidgetSnapshotCodec {
                 meta = decodeText(fields[3]),
             )
         }
-        CachedWidgetSnapshot(rows, savedAtMillis)
+        CachedWidgetSnapshot(rows, savedAtMillis, dataGeneration)
     }.getOrNull()
 
     private fun encodeText(value: String): String = Base64.getUrlEncoder().withoutPadding()

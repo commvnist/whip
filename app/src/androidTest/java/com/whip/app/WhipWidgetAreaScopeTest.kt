@@ -26,6 +26,7 @@ import com.whip.app.widget.WidgetSnapshotCache
 import com.whip.app.widget.WidgetSnapshotKind
 import com.whip.app.widget.WidgetPreferences
 import com.whip.app.widget.refreshErrorRow
+import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -273,6 +274,66 @@ class WhipWidgetAreaScopeTest {
     }
 
     @Test
+    fun replaceGenerationCannotAliasWidgetReferencesOrDisplaySnapshotsWithReusedIds() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val widgetId = 73_044
+        val reusedHabitId = 7L
+        val oldRows = listOf(
+            CachedWidgetRow("Old identity", "Today", isChild = false, completed = false),
+        )
+        WhipWidgetPreferences.remove(context, intArrayOf(widgetId))
+        WidgetSnapshotCache.remove(context, intArrayOf(widgetId))
+        WhipWidgetPreferences.save(
+            context = context,
+            appWidgetId = widgetId,
+            value = WidgetPreferences(
+                areaScope = AreaScope.One("reused-area-id"),
+                transparencyPercent = 60,
+                agendaRange = com.whip.app.widget.AgendaRange.ThirtyDays,
+                showCompletedHabits = false,
+                selectedHabitIds = setOf(reusedHabitId),
+                expandedHabitIds = setOf(reusedHabitId),
+                expandedTaskKeys = setOf("$reusedHabitId:20000"),
+            ),
+            dataGeneration = 41L,
+        )
+        WidgetSnapshotCache.save(
+            context = context,
+            kind = WidgetSnapshotKind.HabitTracking,
+            appWidgetId = widgetId,
+            rows = oldRows,
+            savedAtMillis = 42L,
+            dataGeneration = 41L,
+        )
+
+        val restoredGeneration = WhipWidgetPreferences.load(
+            context,
+            widgetId,
+            dataGeneration = 42L,
+        )
+
+        assertEquals(AreaScope.All, restoredGeneration.areaScope)
+        assertEquals(60, restoredGeneration.transparencyPercent)
+        assertEquals(com.whip.app.widget.AgendaRange.ThirtyDays, restoredGeneration.agendaRange)
+        assertEquals(false, restoredGeneration.showCompletedHabits)
+        assertEquals(emptySet<Long>(), restoredGeneration.selectedHabitIds)
+        assertTrue(restoredGeneration.expandedHabitIds.isEmpty())
+        assertTrue(restoredGeneration.expandedTaskKeys.isEmpty())
+        assertEquals(
+            null,
+            WidgetSnapshotCache.load(
+                context,
+                WidgetSnapshotKind.HabitTracking,
+                widgetId,
+                dataGeneration = 42L,
+            ),
+        )
+
+        WhipWidgetPreferences.remove(context, intArrayOf(widgetId))
+        WidgetSnapshotCache.remove(context, intArrayOf(widgetId))
+    }
+
+    @Test
     fun taskCollectionReturnsEveryAgendaTaskAndExpandsSubtaskRows() = runBlocking {
         val app = ApplicationProvider.getApplicationContext<WhipApplication>()
         app.backupRepository.deleteAllData()
@@ -311,6 +372,7 @@ class WhipWidgetAreaScopeTest {
         WhipWidgetProvider().onReceive(
             app,
             Intent(app, WhipWidgetProvider::class.java)
+                .putExtra(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
                 .setAction(WhipWidgetProvider.ACTION_TASK_COLLECTION_CLICK)
                 .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
                 .putExtra(
@@ -378,6 +440,7 @@ class WhipWidgetAreaScopeTest {
         HabitTrackingWidgetProvider().onReceive(
             app,
             Intent(app, HabitTrackingWidgetProvider::class.java)
+                .putExtra(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
                 .setAction(HabitTrackingWidgetProvider.ACTION_COLLECTION_CLICK)
                 .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
                 .putExtra(
@@ -432,6 +495,7 @@ class WhipWidgetAreaScopeTest {
         WhipWidgetProvider().onReceive(
             app,
             Intent(app, WhipWidgetProvider::class.java)
+                .putExtra(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
                 .setAction(WhipWidgetProvider.ACTION_COMPLETE_TASK)
                 .putExtra(WhipWidgetProvider.EXTRA_TASK_ID, taskId)
                 .putExtra(WhipWidgetProvider.EXTRA_OCCURRENCE_EPOCH_DAY, today.toEpochDay()),
@@ -467,6 +531,7 @@ class WhipWidgetAreaScopeTest {
         WhipWidgetProvider().onReceive(
             app,
             Intent(app, WhipWidgetProvider::class.java)
+                .putExtra(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
                 .setAction(WhipWidgetProvider.ACTION_TASK_COLLECTION_CLICK)
                 .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
                 .putExtra(
@@ -511,6 +576,7 @@ class WhipWidgetAreaScopeTest {
         WhipWidgetProvider().onReceive(
             app,
             Intent(app, WhipWidgetProvider::class.java)
+                .putExtra(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
                 .setAction(WhipWidgetProvider.ACTION_TASK_COLLECTION_CLICK)
                 .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
                 .putExtra(
@@ -556,6 +622,7 @@ class WhipWidgetAreaScopeTest {
         HabitTrackingWidgetProvider().onReceive(
             app,
             Intent(app, HabitTrackingWidgetProvider::class.java)
+                .putExtra(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
                 .setAction(HabitTrackingWidgetProvider.ACTION_COLLECTION_CLICK)
                 .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
                 .putExtra(
@@ -610,6 +677,7 @@ class WhipWidgetAreaScopeTest {
         fun toggle(habitId: Long) = HabitTrackingWidgetProvider().onReceive(
             app,
             Intent(app, HabitTrackingWidgetProvider::class.java)
+                .putExtra(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
                 .setAction(HabitTrackingWidgetProvider.ACTION_COLLECTION_CLICK)
                 .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
                 .putExtra(
@@ -654,6 +722,7 @@ class WhipWidgetAreaScopeTest {
         HabitTrackingWidgetProvider().onReceive(
             app,
             Intent(app, HabitTrackingWidgetProvider::class.java)
+                .putExtra(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
                 .setAction(HabitTrackingWidgetProvider.ACTION_COLLECTION_CLICK)
                 .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
                 .putExtra(

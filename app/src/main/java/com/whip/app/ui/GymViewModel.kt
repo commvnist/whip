@@ -56,6 +56,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
@@ -225,8 +226,22 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
                 .map { sessions -> sessions.firstOrNull { it.state == WorkoutSessionState.Active }?.id }
                 .distinctUntilChanged()
                 .collectLatest { sessionId ->
-                    if (sessionId != null) repository.normalizeWorkoutGroups(sessionId)
+                    if (sessionId != null) {
+                        app.withUserDataAccess {
+                            repository.normalizeWorkoutGroups(sessionId)
+                            Unit
+                        }
+                    }
                 }
+        }
+        viewModelScope.launch {
+            app.userDataGeneration.drop(1).collect {
+                pendingMachineArchiveId = null
+                _pendingMachineArchiveUndo.value = null
+                _machineDeletionImpact.value = null
+                _machineDeletionInProgress.value = false
+                _operationStatus.value = OperationStatus.Idle
+            }
         }
     }
 
@@ -236,7 +251,7 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
     fun retryLoading() { reloadKey.value++ }
 
     fun savePlatePreset(preset: PlatePreset) {
-        app.settingsRepository.update { current ->
+        updateSettings { current ->
             current.copy(
                 platePresets = (current.platePresets.filterNot { it.name.equals(preset.name, true) } + preset)
                     .sortedBy { it.name.lowercase() },
@@ -246,7 +261,7 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveRepPrescriptionScheme(scheme: RepPrescriptionScheme) {
         require(scheme.isValid()) { "Invalid rep prescription scheme" }
-        app.settingsRepository.update { current ->
+        updateSettings { current ->
             val existingIndex = current.repPrescriptionSchemes.indexOfFirst { it.id == scheme.id }
             current.copy(
                 repPrescriptionSchemes = if (existingIndex >= 0) {
@@ -259,17 +274,17 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun reorderRepPrescriptionSchemes(schemes: List<RepPrescriptionScheme>) {
-        app.settingsRepository.update { current ->
+        updateSettings { current ->
             current.copy(repPrescriptionSchemes = schemes)
         }
     }
 
     fun updateTrackedGymRecords(records: List<TrackedGymRecord>) {
-        app.settingsRepository.update { current -> current.copy(trackedGymRecords = records) }
+        updateSettings { current -> current.copy(trackedGymRecords = records) }
     }
 
     fun deleteRepPrescriptionScheme(id: String) {
-        app.settingsRepository.update { current ->
+        updateSettings { current ->
             current.copy(repPrescriptionSchemes = current.repPrescriptionSchemes.filterNot { it.id == id })
         }
     }
@@ -286,7 +301,9 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _operationStatus.value = OperationStatus.Running("Creating machine…")
             try {
-                val id = repository.createMachine(draft)
+                val id = checkNotNull(app.withUserDataAccess { repository.createMachine(draft) }) {
+                    "Whip data is unavailable while recovery is in progress"
+                }
                 onCreated(id)
                 _operationStatus.value = OperationStatus.Succeeded("Machine created and selected")
             } catch (cancelled: CancellationException) {
@@ -360,7 +377,11 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _operationStatus.value = OperationStatus.Running("Checking machine usage…")
             try {
-                _machineDeletionImpact.value = app.domainDeletionCoordinator.previewMachineDeletion(id)
+                _machineDeletionImpact.value = checkNotNull(app.withUserDataAccess {
+                    checkNotNull(app.domainDeletionCoordinator.previewMachineDeletion(id)) {
+                        "Machine no longer exists"
+                    }
+                }) { "Whip data is unavailable while recovery is in progress" }
                 _operationStatus.value = OperationStatus.Idle
             } catch (error: Throwable) {
                 if (error is CancellationException) throw error
@@ -390,7 +411,7 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deletePlatePreset(name: String) {
-        app.settingsRepository.update { current ->
+        updateSettings { current ->
             current.copy(platePresets = current.platePresets.filterNot { it.name == name })
         }
     }
@@ -407,7 +428,9 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _operationStatus.value = OperationStatus.Running("Creating exercise…")
             try {
-                val id = repository.createExercise(draft)
+                val id = checkNotNull(app.withUserDataAccess { repository.createExercise(draft) }) {
+                    "Whip data is unavailable while recovery is in progress"
+                }
                 onCreated(id)
                 _operationStatus.value = OperationStatus.Succeeded("Exercise created and added")
             } catch (cancelled: CancellationException) {
@@ -423,7 +446,9 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _operationStatus.value = OperationStatus.Running("Creating exercise…")
             try {
-                val id = repository.createExercise(draft)
+                val id = checkNotNull(app.withUserDataAccess { repository.createExercise(draft) }) {
+                    "Whip data is unavailable while recovery is in progress"
+                }
                 onCreated(id)
                 _operationStatus.value = OperationStatus.Succeeded("Exercise created and linked")
             } catch (cancelled: CancellationException) {
@@ -753,7 +778,7 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateRestTimerPresets(seconds: List<Int>) {
-        app.settingsRepository.update { settings ->
+        updateSettings { settings ->
             settings.copy(restTimerPresetSeconds = normalizeRestTimerPresets(seconds))
         }
     }
@@ -770,7 +795,10 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _operationStatus.value = OperationStatus.Running(if (id == null) "Creating routine…" else "Saving routine…")
             try {
-                if (id == null) routineRepository.createRoutine(draft) else routineRepository.updateRoutine(id, draft)
+                checkNotNull(app.withUserDataAccess {
+                    if (id == null) routineRepository.createRoutine(draft) else routineRepository.updateRoutine(id, draft)
+                    Unit
+                }) { "Whip data is unavailable while recovery is in progress" }
                 _operationStatus.value = OperationStatus.Succeeded(if (id == null) "Routine created" else "Routine saved")
                 onComplete(true)
             } catch (cancelled: CancellationException) {
@@ -891,11 +919,21 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
 
     private val reorderMutex = Mutex()
 
+    private fun updateSettings(transform: (AppSettings) -> AppSettings) {
+        app.tryWithUserDataAccessNow {
+            app.settingsRepository.update(transform)
+            Unit
+        }
+    }
+
     private fun runSilentReorder(block: suspend () -> Unit) {
         viewModelScope.launch {
             reorderMutex.withLock {
                 try {
-                    block()
+                    checkNotNull(app.withUserDataAccess {
+                        block()
+                        Unit
+                    }) { "Whip data is unavailable while recovery is in progress" }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (error: Throwable) {
@@ -916,7 +954,10 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         _operationStatus.value = OperationStatus.Running(running)
         viewModelScope.launch {
             try {
-                block()
+                checkNotNull(app.withUserDataAccess {
+                    block()
+                    Unit
+                }) { "Whip data is unavailable while recovery is in progress" }
                 _operationStatus.value = OperationStatus.Succeeded(
                     success,
                     successFeedbackPresentation,

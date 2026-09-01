@@ -65,9 +65,9 @@
 - Expected: An unresolved recovery marker blocks every normal write-capable path until Retry succeeds.
 - Why it matters: New work can compound mixed state or later disappear when rollback succeeds.
 - Evidence: `WhipApplication.kt`, `RestoreRecoveryManager.kt`, and `../WHOLE_PRODUCT_MAXIMUM_QUALITY_AUDIT_2026-08-31.md`.
-- Root cause: Atomic restore recovery was treated as best-effort startup housekeeping.
-- Resolution: Fail-closed recovery gate is the active P0 remediation chunk.
-- Status: In remediation.
+- Root cause: Atomic restore recovery was treated as best-effort startup housekeeping, and write-capable workers, receivers, widgets, schedulers, Activity-scoped drafts, and live restore were not governed by one application-wide maintenance boundary.
+- Resolution: A counted application data-access barrier now denies late work and drains admitted work before replace restore. Pending recovery, live restore, rollback, runtime rebuilding, WorkManager startup, workers, receivers, widgets, schedulers, ViewModels, SavedState drafts/imports, notification actions, and widget entity references share fail-closed generation-aware rules. Recovery failure presents an accessible blocking screen with Retry and preserves the recovery marker; historical databases and completed records are not recomputed.
+- Status: Resolved and verified on the disposable emulator; see `IMP-20260831-004` and `VER-20260831-006`.
 
 ### FND-20260831-008 — Reminder delivery trusts stale queued work
 

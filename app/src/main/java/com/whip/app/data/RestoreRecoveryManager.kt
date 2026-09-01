@@ -16,11 +16,19 @@ class RestoreRecoveryManager(
 ) {
     private val recoveryFile = AtomicFile(File(context.noBackupFilesDir, fileName))
 
-    suspend fun restore(targetJson: String, rebuildBackgroundState: suspend () -> Unit) {
+    suspend fun restore(
+        targetJson: String,
+        onRecoveryPrepared: suspend () -> Unit = {},
+        rebuildBackgroundState: suspend () -> Unit,
+    ) {
         require(!recoveryFile.baseFile.exists()) { "A previous restore still needs recovery" }
         val rollbackJson = backups.exportBackup()
         writeRecovery(rollbackJson)
         try {
+            // Anything that invalidates old external actions must happen only
+            // after the rollback snapshot is durable, but before target data
+            // can replace live data.
+            onRecoveryPrepared()
             backups.restoreBackup(targetJson)
             rebuildBackgroundState()
             recoveryFile.delete()

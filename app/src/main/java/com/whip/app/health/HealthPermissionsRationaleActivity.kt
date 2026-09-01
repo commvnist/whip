@@ -41,7 +41,9 @@ import com.whip.app.ui.WhipNoticeTone
 import com.whip.app.ui.WhipPageContentPadding
 import com.whip.app.ui.WhipPageHeader
 import com.whip.app.ui.WhipSpacing
+import com.whip.app.ui.StartupRecoveryScreen
 import com.whip.app.ui.theme.WhipTheme
+import com.whip.app.startup.StartupRecoveryState
 
 class HealthPermissionsRationaleActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,6 +51,16 @@ class HealthPermissionsRationaleActivity : ComponentActivity() {
         enableEdgeToEdge()
         val app = application as WhipApplication
         setContent {
+            val startupState by app.startupRecoveryState.collectAsStateWithLifecycle()
+            if (startupState != StartupRecoveryState.Ready) {
+                WhipTheme(darkTheme = isSystemInDarkTheme(), dynamicColor = false) {
+                    StartupRecoveryScreen(
+                        state = startupState,
+                        onRetry = app::retryStartupRecovery,
+                    )
+                }
+                return@setContent
+            }
             val settings by app.settingsRepository.settings.collectAsStateWithLifecycle(
                 initialValue = app.settingsRepository.current(),
             )

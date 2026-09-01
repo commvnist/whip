@@ -17,6 +17,8 @@ import com.whip.app.MainActivity
 import com.whip.app.R
 import com.whip.app.WhipApplication
 import com.whip.app.core.WhipLaunchActions
+import com.whip.app.startup.MISSING_USER_DATA_GENERATION
+import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.util.concurrent.TimeUnit
 
 object RestTimerNotifications {
@@ -49,10 +51,30 @@ object RestTimerNotifications {
 class RestTimerScheduler(private val context: Context) {
     private val workManager = WorkManager.getInstance(context)
 
-    fun schedule(sessionId: Long, seconds: Int, nextLabel: String?) {
+    fun schedule(
+        sessionId: Long,
+        seconds: Int,
+        nextLabel: String?,
+        allowDuringRecovery: Boolean = false,
+    ) {
+        val app = context.applicationContext as WhipApplication
+        if (allowDuringRecovery) {
+            scheduleInternal(sessionId, seconds, nextLabel, app.currentUserDataGeneration())
+        } else {
+            app.tryWithUserDataAccessNow {
+                scheduleInternal(sessionId, seconds, nextLabel, app.currentUserDataGeneration())
+            }
+        }
+    }
+
+    private fun scheduleInternal(sessionId: Long, seconds: Int, nextLabel: String?, generation: Long) {
         val data = Data.Builder()
             .putLong(RestTimerWorker.sessionIdKey, sessionId)
             .putString(RestTimerWorker.nextLabelKey, nextLabel)
+            .putLong(
+                USER_DATA_GENERATION_KEY,
+                generation,
+            )
             .build()
         val work = OneTimeWorkRequestBuilder<RestTimerWorker>()
             .setInitialDelay(seconds.coerceAtLeast(1).toLong(), TimeUnit.SECONDS)
@@ -68,8 +90,11 @@ class RestTimerScheduler(private val context: Context) {
     }
 
     fun cancel(sessionId: Long) {
-        workManager.cancelUniqueWork(uniqueName(sessionId))
-        NotificationManagerCompat.from(context).cancel(RestTimerNotifications.notificationId(sessionId))
+        val app = context.applicationContext as WhipApplication
+        app.tryWithUserDataAccessNow {
+            workManager.cancelUniqueWork(uniqueName(sessionId))
+            NotificationManagerCompat.from(context).cancel(RestTimerNotifications.notificationId(sessionId))
+        }
     }
 
     private fun uniqueName(sessionId: Long) = "whip-rest-$sessionId"
@@ -81,48 +106,56 @@ class RestTimerWorker(
     parameters: WorkerParameters,
 ) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
-        val sessionId = inputData.getLong(sessionIdKey, -1)
-        if (sessionId < 0) return Result.failure()
         val app = applicationContext as WhipApplication
-        val session = com.whip.app.data.WhipDatabase.get(applicationContext).gymDao().getSession(sessionId)
-            ?: return Result.success()
-        val deadline = session.restTimerDeadlineMillis ?: return Result.success()
-        if (!restTimerShouldNotify(session.state, deadline, System.currentTimeMillis())) return Result.success()
-        // A replaced/adjusted timer may race a previously scheduled worker.
-        // Only the worker at or beyond the currently persisted deadline wins.
-        app.gymRepository.stopRestTimer(sessionId)
-        val next = inputData.getString(nextLabelKey)
-        val settings = app.settingsRepository.current()
-        val launchIntent = Intent(applicationContext, MainActivity::class.java)
-            .setAction(WhipLaunchActions.ACTION_OPEN_GYM)
-            .putExtra(WhipLaunchActions.EXTRA_ENTITY_ID, sessionId)
-            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        val pendingIntent = PendingIntent.getActivity(
-            applicationContext,
-            sessionId.toInt(),
-            launchIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        val notification = NotificationCompat.Builder(
-            applicationContext,
-            RestTimerNotifications.channelId(settings.timerSound, settings.timerVibration),
-        )
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Rest complete")
-            .setContentText(next?.takeIf(String::isNotBlank) ?: "Ready for your next set")
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setSilent(!settings.timerSound)
-            .setVibrate(if (settings.timerVibration) longArrayOf(0, 250, 150, 250) else longArrayOf(0))
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-            .build()
-        try {
-            NotificationManagerCompat.from(applicationContext)
-                .notify(RestTimerNotifications.notificationId(sessionId), notification)
-        } catch (_: SecurityException) {
-            // The timer remains valid when notification permission is declined.
-        }
-        return Result.success()
+        return app.withUserDataAccess {
+            if (!app.isCurrentUserDataGeneration(
+                    inputData.getLong(USER_DATA_GENERATION_KEY, MISSING_USER_DATA_GENERATION),
+                )
+            ) return@withUserDataAccess Result.success()
+            val sessionId = inputData.getLong(sessionIdKey, -1)
+            if (sessionId < 0) return@withUserDataAccess Result.failure()
+            val session = com.whip.app.data.WhipDatabase.get(applicationContext).gymDao().getSession(sessionId)
+                ?: return@withUserDataAccess Result.success()
+            val deadline = session.restTimerDeadlineMillis ?: return@withUserDataAccess Result.success()
+            if (!restTimerShouldNotify(session.state, deadline, System.currentTimeMillis())) {
+                return@withUserDataAccess Result.success()
+            }
+            // A replaced/adjusted timer may race a previously scheduled worker.
+            // Only the worker at or beyond the currently persisted deadline wins.
+            app.gymRepository.stopRestTimer(sessionId)
+            val next = inputData.getString(nextLabelKey)
+            val settings = app.settingsRepository.current()
+            val launchIntent = Intent(applicationContext, MainActivity::class.java)
+                .setAction(WhipLaunchActions.ACTION_OPEN_GYM)
+                .putExtra(WhipLaunchActions.EXTRA_ENTITY_ID, sessionId)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            val pendingIntent = PendingIntent.getActivity(
+                applicationContext,
+                sessionId.toInt(),
+                launchIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            val notification = NotificationCompat.Builder(
+                applicationContext,
+                RestTimerNotifications.channelId(settings.timerSound, settings.timerVibration),
+            )
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle("Rest complete")
+                .setContentText(next?.takeIf(String::isNotBlank) ?: "Ready for your next set")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setSilent(!settings.timerSound)
+                .setVibrate(if (settings.timerVibration) longArrayOf(0, 250, 150, 250) else longArrayOf(0))
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .build()
+            try {
+                NotificationManagerCompat.from(applicationContext)
+                    .notify(RestTimerNotifications.notificationId(sessionId), notification)
+            } catch (_: SecurityException) {
+                // The timer remains valid when notification permission is declined.
+            }
+            Result.success()
+        } ?: Result.retry()
     }
 
     companion object {

@@ -47,6 +47,8 @@ import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.toWeekdays
+import com.whip.app.startup.MISSING_USER_DATA_GENERATION
+import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -65,14 +67,45 @@ class HabitReminderScheduler(context: Context, private val settingsRepository: S
     private val workManager = WorkManager.getInstance(appContext)
     private val dao = WhipDatabase.get(appContext).habitDao()
 
-    suspend fun syncAll() = dao.getReminderHabitIds().forEach { syncHabit(it) }
-
-    suspend fun syncHabit(habitId: Long) {
-        workManager.cancelAllWorkByTag(tag(habitId))
-        scheduleNext(habitId, System.currentTimeMillis())
+    suspend fun syncAll(allowDuringRecovery: Boolean = false) {
+        if (!allowDuringRecovery) {
+            val app = appContext as? WhipApplication ?: return
+            app.withUserDataAccess { syncAllInternal() }
+            return
+        }
+        syncAllInternal()
     }
 
-    suspend fun scheduleNext(habitId: Long, afterMillis: Long) {
+    private suspend fun syncAllInternal() = dao.getReminderHabitIds().forEach { syncHabitInternal(it) }
+
+    suspend fun syncHabit(habitId: Long, allowDuringRecovery: Boolean = false) {
+        if (!allowDuringRecovery) {
+            val app = appContext as? WhipApplication ?: return
+            app.withUserDataAccess { syncHabitInternal(habitId) }
+            return
+        }
+        syncHabitInternal(habitId)
+    }
+
+    private suspend fun syncHabitInternal(habitId: Long) {
+        workManager.cancelAllWorkByTag(tag(habitId))
+        scheduleNextInternal(habitId, System.currentTimeMillis())
+    }
+
+    suspend fun scheduleNext(
+        habitId: Long,
+        afterMillis: Long,
+        allowDuringRecovery: Boolean = false,
+    ) {
+        if (!allowDuringRecovery) {
+            val app = appContext as? WhipApplication ?: return
+            app.withUserDataAccess { scheduleNextInternal(habitId, afterMillis) }
+            return
+        }
+        scheduleNextInternal(habitId, afterMillis)
+    }
+
+    private suspend fun scheduleNextInternal(habitId: Long, afterMillis: Long) {
         val habit = dao.getHabit(habitId) ?: return
         if (habit.archived || habit.paused) return
         val reminderMinutes = habit.reminderMinutesCsv.split(',').mapNotNull(String::toIntOrNull).distinct()
@@ -112,8 +145,12 @@ class HabitReminderScheduler(context: Context, private val settingsRepository: S
             .setInitialDelay(delay, TimeUnit.MILLISECONDS)
             .setInputData(
                 Data.Builder()
-                    .putLong(HabitReminderWorker.HABIT_ID, habitId)
-                    .putLong(HabitReminderWorker.LOGICAL_EPOCH_DAY, reminder.logicalDate.toEpochDay())
+                        .putLong(HabitReminderWorker.HABIT_ID, habitId)
+                        .putLong(HabitReminderWorker.LOGICAL_EPOCH_DAY, reminder.logicalDate.toEpochDay())
+                        .putLong(
+                            USER_DATA_GENERATION_KEY,
+                            (appContext as WhipApplication).currentUserDataGeneration(),
+                        )
                     .build(),
             )
             .addTag(tag(habitId))
@@ -122,7 +159,23 @@ class HabitReminderScheduler(context: Context, private val settingsRepository: S
         workManager.enqueueUniqueWork("${tag(habitId)}-$trigger", ExistingWorkPolicy.REPLACE, request)
     }
 
-    fun snooze(habitId: Long, logicalEpochDay: Long? = null, minutes: Int = 10) {
+    fun snooze(
+        habitId: Long,
+        logicalEpochDay: Long? = null,
+        minutes: Int = 10,
+        allowDuringRecovery: Boolean = false,
+    ) {
+        val app = appContext as WhipApplication
+        if (allowDuringRecovery) {
+            snoozeInternal(habitId, logicalEpochDay, minutes, app.currentUserDataGeneration())
+        } else {
+            app.tryWithUserDataAccessNow {
+                snoozeInternal(habitId, logicalEpochDay, minutes, app.currentUserDataGeneration())
+            }
+        }
+    }
+
+    private fun snoozeInternal(habitId: Long, logicalEpochDay: Long?, minutes: Int, generation: Long) {
         val trigger = System.currentTimeMillis() + minutes.coerceIn(1, 1_440) * 60_000L
         val request = OneTimeWorkRequestBuilder<HabitReminderWorker>()
             .setInitialDelay((trigger - System.currentTimeMillis()).coerceAtLeast(0), TimeUnit.MILLISECONDS)
@@ -130,6 +183,10 @@ class HabitReminderScheduler(context: Context, private val settingsRepository: S
                 Data.Builder()
                     .putLong(HabitReminderWorker.HABIT_ID, habitId)
                     .putLong(HabitReminderWorker.LOGICAL_EPOCH_DAY, logicalEpochDay ?: Long.MIN_VALUE)
+                    .putLong(
+                        USER_DATA_GENERATION_KEY,
+                        generation,
+                    )
                     .build(),
             )
             .addTag(tag(habitId))
@@ -152,23 +209,34 @@ private fun String.parseWeekdayReminderMinutes(): Map<DayOfWeek, List<Int>> = sp
 
 class HabitReminderWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        val id = inputData.getLong(HABIT_ID, -1)
-        if (id < 0) return Result.failure()
         val app = applicationContext as WhipApplication
-        val habit = WhipDatabase.get(applicationContext).habitDao().getHabit(id) ?: return Result.success()
-        val domainHabit = app.habitRepository.habits.first().firstOrNull { it.id == id }
-        val logs = app.habitRepository.logs.first().filter { it.habitId == id }
-        val skips = app.habitRepository.skips.first().filter { it.habitId == id }
-        val customUnits = app.measurementRepository.customUnits.first()
-        val logicalDate = logicalHabitReminderDate(
-            inputData.getLong(LOGICAL_EPOCH_DAY, Long.MIN_VALUE),
-            app.clock.today(),
-        )
-        if (!habit.archived && !habit.paused && domainHabit?.reminderNeededOn(logs, logicalDate, customUnits, skips) != false) {
-            HabitReminderNotifications.show(applicationContext, habit, logicalDate)
-        }
-        HabitReminderScheduler(applicationContext, app.settingsRepository).scheduleNext(id, System.currentTimeMillis() + 60_000)
-        return Result.success()
+        return app.withUserDataAccess {
+            if (!app.isCurrentUserDataGeneration(
+                    inputData.getLong(USER_DATA_GENERATION_KEY, MISSING_USER_DATA_GENERATION),
+                )
+            ) return@withUserDataAccess Result.success()
+            val id = inputData.getLong(HABIT_ID, -1)
+            if (id < 0) return@withUserDataAccess Result.failure()
+            val habit = WhipDatabase.get(applicationContext).habitDao().getHabit(id)
+                ?: return@withUserDataAccess Result.success()
+            val domainHabit = app.habitRepository.habits.first().firstOrNull { it.id == id }
+            val logs = app.habitRepository.logs.first().filter { it.habitId == id }
+            val skips = app.habitRepository.skips.first().filter { it.habitId == id }
+            val customUnits = app.measurementRepository.customUnits.first()
+            val logicalDate = logicalHabitReminderDate(
+                inputData.getLong(LOGICAL_EPOCH_DAY, Long.MIN_VALUE),
+                app.clock.today(),
+            )
+            if (!habit.archived && !habit.paused && domainHabit?.reminderNeededOn(logs, logicalDate, customUnits, skips) != false) {
+                HabitReminderNotifications.show(applicationContext, habit, logicalDate)
+            }
+            HabitReminderScheduler(applicationContext, app.settingsRepository).scheduleNext(
+                id,
+                System.currentTimeMillis() + 60_000,
+                allowDuringRecovery = true,
+            )
+            Result.success()
+        } ?: Result.retry()
     }
 
     companion object {
@@ -201,6 +269,7 @@ object HabitReminderNotifications {
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
+        val dataGeneration = (context.applicationContext as WhipApplication).currentUserDataGeneration()
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification).setContentTitle(habit.name)
             .setContentText("Time for your habit check-in").setContentIntent(intent)
@@ -218,7 +287,8 @@ object HabitReminderNotifications {
                                 .setAction(HabitReminderActionReceiver.ACTION_COMPLETE)
                                 .putExtra(HabitReminderActionReceiver.EXTRA_HABIT_ID, habit.id)
                                 .putExtra(HabitReminderActionReceiver.EXTRA_LOGICAL_EPOCH_DAY, logicalDate.toEpochDay())
-                                .putExtra(HabitReminderActionReceiver.EXTRA_ACTION_TOKEN, actionToken),
+                                .putExtra(HabitReminderActionReceiver.EXTRA_ACTION_TOKEN, actionToken)
+                                .putExtra(USER_DATA_GENERATION_KEY, dataGeneration),
                             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                         ),
                     )
@@ -234,7 +304,8 @@ object HabitReminderNotifications {
                                 .putExtra(HabitReminderActionReceiver.EXTRA_HABIT_ID, habit.id)
                                 .putExtra(HabitReminderActionReceiver.EXTRA_LOGICAL_EPOCH_DAY, logicalDate.toEpochDay())
                                 .putExtra(HabitReminderActionReceiver.EXTRA_INCREMENT, habit.quickIncrement)
-                                .putExtra(HabitReminderActionReceiver.EXTRA_ACTION_TOKEN, actionToken),
+                                .putExtra(HabitReminderActionReceiver.EXTRA_ACTION_TOKEN, actionToken)
+                                .putExtra(USER_DATA_GENERATION_KEY, dataGeneration),
                             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                         ),
                     )
@@ -249,7 +320,8 @@ object HabitReminderNotifications {
                             .setAction(HabitReminderActionReceiver.ACTION_SNOOZE)
                             .putExtra(HabitReminderActionReceiver.EXTRA_HABIT_ID, habit.id)
                             .putExtra(HabitReminderActionReceiver.EXTRA_LOGICAL_EPOCH_DAY, logicalDate.toEpochDay())
-                            .putExtra(HabitReminderActionReceiver.EXTRA_ACTION_TOKEN, actionToken),
+                            .putExtra(HabitReminderActionReceiver.EXTRA_ACTION_TOKEN, actionToken)
+                            .putExtra(USER_DATA_GENERATION_KEY, dataGeneration),
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                     ),
                 )
@@ -269,60 +341,20 @@ class HabitReminderActionReceiver : BroadcastReceiver() {
         val pending = goAsync()
         val app = context.applicationContext as WhipApplication
         val logicalEpochDay = intent.getLongExtra(EXTRA_LOGICAL_EPOCH_DAY, Long.MIN_VALUE)
-        val logicalDate = logicalEpochDay.takeUnless { it == Long.MIN_VALUE }
-            ?.let(LocalDate::ofEpochDay)
-            ?: app.clock.today()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            val action = HabitNotificationAction.fromIntentAction(intent.action)
-            val increment = intent.getDoubleExtra(EXTRA_INCREMENT, 1.0)
-            val actionId = "habit:$habitId:${intent.action}:$logicalEpochDay:${intent.getLongExtra(EXTRA_ACTION_TOKEN, 0L)}"
-            val ledger = NotificationActionLedger(context)
             try {
-                if (action == null || !app.isCurrentHabitNotificationAction(habitId, logicalDate, action, increment)) {
-                    app.refreshStaleHabitNotification(context, habitId)
-                    return@launch
+                val accessed = app.withUserDataAccess {
+                    app.handleHabitNotificationAction(
+                        context = context,
+                        intent = intent,
+                        habitId = habitId,
+                        logicalEpochDay = logicalEpochDay,
+                    )
                 }
-                if (!ledger.begin(actionId)) return@launch
-
-                val applied = if (action == HabitNotificationAction.Snooze) {
-                    // A second validation closes the edit/tap race before new work is enqueued.
-                    if (!app.isCurrentHabitNotificationAction(habitId, logicalDate, action, increment)) false
-                    else {
-                        app.habitReminderScheduler.snooze(habitId, logicalDate.toEpochDay())
-                        true
-                    }
-                } else {
-                    app.database.withTransaction {
-                        if (!app.isCurrentHabitNotificationAction(habitId, logicalDate, action, increment)) {
-                            return@withTransaction false
-                        }
-                        when (action) {
-                            HabitNotificationAction.Complete -> app.habitRepository.setCheckOff(habitId, logicalDate, true)
-                            HabitNotificationAction.Increment -> app.habitRepository.log(
-                                habitId,
-                                increment,
-                                date = logicalDate,
-                                sourceType = MetricSourceType.Habit,
-                                sourceId = actionId,
-                            )
-                            HabitNotificationAction.Snooze -> error("Snooze is handled without a database mutation")
-                        }
-                        true
-                    }
+                if (accessed == null) {
+                    NotificationManagerCompat.from(context)
+                        .cancel(HabitReminderNotifications.notificationId(habitId))
                 }
-                if (!applied) {
-                    ledger.release(actionId)
-                    app.refreshStaleHabitNotification(context, habitId)
-                    return@launch
-                }
-
-                if (action != HabitNotificationAction.Snooze) {
-                    app.habitReminderScheduler.syncHabit(habitId)
-                }
-                NotificationManagerCompat.from(context).cancel(HabitReminderNotifications.notificationId(habitId))
-                ledger.complete(actionId)
-            } catch (_: Throwable) {
-                ledger.release(actionId)
             } finally {
                 pending.finish()
             }
@@ -337,6 +369,75 @@ class HabitReminderActionReceiver : BroadcastReceiver() {
         const val EXTRA_INCREMENT = "habit_increment"
         const val EXTRA_ACTION_TOKEN = "action_token"
         const val EXTRA_LOGICAL_EPOCH_DAY = "logical_epoch_day"
+    }
+}
+
+private suspend fun WhipApplication.handleHabitNotificationAction(
+    context: Context,
+    intent: Intent,
+    habitId: Long,
+    logicalEpochDay: Long,
+) {
+    if (!isCurrentUserDataGeneration(intent.getLongExtra(USER_DATA_GENERATION_KEY, MISSING_USER_DATA_GENERATION))) {
+        NotificationManagerCompat.from(context).cancel(HabitReminderNotifications.notificationId(habitId))
+        return
+    }
+    val logicalDate = logicalEpochDay.takeUnless { it == Long.MIN_VALUE }
+        ?.let(LocalDate::ofEpochDay)
+        ?: clock.today()
+    val action = HabitNotificationAction.fromIntentAction(intent.action)
+    val increment = intent.getDoubleExtra(HabitReminderActionReceiver.EXTRA_INCREMENT, 1.0)
+    val actionId = "habit:$habitId:${intent.action}:$logicalEpochDay:${intent.getLongExtra(HabitReminderActionReceiver.EXTRA_ACTION_TOKEN, 0L)}"
+    val ledger = NotificationActionLedger(context)
+    try {
+        if (action == null || !isCurrentHabitNotificationAction(habitId, logicalDate, action, increment)) {
+            refreshStaleHabitNotification(context, habitId)
+            return
+        }
+        if (!ledger.begin(actionId)) return
+
+        val applied = if (action == HabitNotificationAction.Snooze) {
+            if (!isCurrentHabitNotificationAction(habitId, logicalDate, action, increment)) false
+            else {
+                habitReminderScheduler.snooze(
+                    habitId,
+                    logicalDate.toEpochDay(),
+                    allowDuringRecovery = true,
+                )
+                true
+            }
+        } else {
+            database.withTransaction {
+                if (!isCurrentHabitNotificationAction(habitId, logicalDate, action, increment)) {
+                    return@withTransaction false
+                }
+                when (action) {
+                    HabitNotificationAction.Complete -> habitRepository.setCheckOff(habitId, logicalDate, true)
+                    HabitNotificationAction.Increment -> habitRepository.log(
+                        habitId,
+                        increment,
+                        date = logicalDate,
+                        sourceType = MetricSourceType.Habit,
+                        sourceId = actionId,
+                    )
+                    HabitNotificationAction.Snooze -> error("Snooze is handled without a database mutation")
+                }
+                true
+            }
+        }
+        if (!applied) {
+            ledger.release(actionId)
+            refreshStaleHabitNotification(context, habitId)
+            return
+        }
+
+        if (action != HabitNotificationAction.Snooze) {
+            habitReminderScheduler.syncHabit(habitId, allowDuringRecovery = true)
+        }
+        NotificationManagerCompat.from(context).cancel(HabitReminderNotifications.notificationId(habitId))
+        ledger.complete(actionId)
+    } catch (_: Throwable) {
+        ledger.release(actionId)
     }
 }
 
@@ -399,7 +500,7 @@ internal suspend fun WhipApplication.isCurrentHabitNotificationAction(
 
 private suspend fun WhipApplication.refreshStaleHabitNotification(context: Context, habitId: Long) {
     NotificationManagerCompat.from(context).cancel(HabitReminderNotifications.notificationId(habitId))
-    habitReminderScheduler.syncHabit(habitId)
+    habitReminderScheduler.syncHabit(habitId, allowDuringRecovery = true)
 }
 
 internal fun formatNotificationNumber(value: Double, locale: Locale = Locale.getDefault()): String =

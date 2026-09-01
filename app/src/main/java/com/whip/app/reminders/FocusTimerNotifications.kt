@@ -17,6 +17,8 @@ import com.whip.app.MainActivity
 import com.whip.app.R
 import com.whip.app.WhipApplication
 import com.whip.app.core.WhipLaunchActions
+import com.whip.app.startup.MISSING_USER_DATA_GENERATION
+import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.util.concurrent.TimeUnit
 
 object FocusTimerNotifications {
@@ -35,18 +37,41 @@ object FocusTimerNotifications {
 class FocusTimerScheduler(private val context: Context) {
     private val workManager = WorkManager.getInstance(context)
 
-    fun schedule(taskId: Long, deadlineMillis: Long) {
+    fun schedule(taskId: Long, deadlineMillis: Long, allowDuringRecovery: Boolean = false) {
+        val app = context.applicationContext as WhipApplication
+        if (allowDuringRecovery) {
+            scheduleInternal(taskId, deadlineMillis, app.currentUserDataGeneration())
+        } else {
+            app.tryWithUserDataAccessNow {
+                scheduleInternal(taskId, deadlineMillis, app.currentUserDataGeneration())
+            }
+        }
+    }
+
+    private fun scheduleInternal(taskId: Long, deadlineMillis: Long, generation: Long) {
         val work = OneTimeWorkRequestBuilder<FocusTimerWorker>()
             .setInitialDelay((deadlineMillis - System.currentTimeMillis()).coerceAtLeast(1L), TimeUnit.MILLISECONDS)
-            .setInputData(Data.Builder().putLong(FocusTimerWorker.taskIdKey, taskId).putLong(FocusTimerWorker.deadlineKey, deadlineMillis).build())
+            .setInputData(
+                Data.Builder()
+                    .putLong(FocusTimerWorker.taskIdKey, taskId)
+                    .putLong(FocusTimerWorker.deadlineKey, deadlineMillis)
+                    .putLong(
+                        USER_DATA_GENERATION_KEY,
+                        generation,
+                    )
+                    .build(),
+            )
             .addTag(ALL_WHIP_WORK_TAG)
             .build()
         workManager.enqueueUniqueWork(uniqueName, ExistingWorkPolicy.REPLACE, work)
     }
 
     fun cancel() {
-        workManager.cancelUniqueWork(uniqueName)
-        NotificationManagerCompat.from(context).cancel(FocusTimerNotifications.notificationId)
+        val app = context.applicationContext as WhipApplication
+        app.tryWithUserDataAccessNow {
+            workManager.cancelUniqueWork(uniqueName)
+            NotificationManagerCompat.from(context).cancel(FocusTimerNotifications.notificationId)
+        }
     }
 
     companion object { const val uniqueName = "whip-focus-timer" }
@@ -54,37 +79,43 @@ class FocusTimerScheduler(private val context: Context) {
 
 class FocusTimerWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
-        val taskId = inputData.getLong(taskIdKey, -1L)
-        val expectedDeadline = inputData.getLong(deadlineKey, -1L)
-        if (taskId < 0L || expectedDeadline < 0L) return Result.failure()
         val app = applicationContext as WhipApplication
-        val settings = app.settingsRepository.current()
-        if (!focusTimerShouldNotify(settings.focusTimerTaskId, settings.focusTimerDeadlineMillis, taskId, expectedDeadline, System.currentTimeMillis())) {
-            return Result.success()
-        }
-        val task = app.taskRepository.getTask(taskId)
-        app.settingsRepository.update { it.copy(focusTimerTaskId = null, focusTimerDeadlineMillis = null) }
-        val launchIntent = Intent(applicationContext, MainActivity::class.java)
-            .setAction(WhipLaunchActions.ACTION_OPEN_TASK)
-            .putExtra(WhipLaunchActions.EXTRA_ENTITY_ID, taskId)
-            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        val pendingIntent = PendingIntent.getActivity(
-            applicationContext, FocusTimerNotifications.notificationId, launchIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        val notification = NotificationCompat.Builder(applicationContext, FocusTimerNotifications.channelId)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Focus session complete")
-            .setContentText(task?.title ?: "Take a moment to review what you finished")
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-            .build()
-        try {
-            NotificationManagerCompat.from(applicationContext).notify(FocusTimerNotifications.notificationId, notification)
-        } catch (_: SecurityException) {
-            // The session still finishes when notification permission is unavailable.
-        }
-        return Result.success()
+        return app.withUserDataAccess {
+            if (!app.isCurrentUserDataGeneration(
+                    inputData.getLong(USER_DATA_GENERATION_KEY, MISSING_USER_DATA_GENERATION),
+                )
+            ) return@withUserDataAccess Result.success()
+            val taskId = inputData.getLong(taskIdKey, -1L)
+            val expectedDeadline = inputData.getLong(deadlineKey, -1L)
+            if (taskId < 0L || expectedDeadline < 0L) return@withUserDataAccess Result.failure()
+            val settings = app.settingsRepository.current()
+            if (!focusTimerShouldNotify(settings.focusTimerTaskId, settings.focusTimerDeadlineMillis, taskId, expectedDeadline, System.currentTimeMillis())) {
+                return@withUserDataAccess Result.success()
+            }
+            val task = app.taskRepository.getTask(taskId)
+            app.settingsRepository.update { it.copy(focusTimerTaskId = null, focusTimerDeadlineMillis = null) }
+            val launchIntent = Intent(applicationContext, MainActivity::class.java)
+                .setAction(WhipLaunchActions.ACTION_OPEN_TASK)
+                .putExtra(WhipLaunchActions.EXTRA_ENTITY_ID, taskId)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            val pendingIntent = PendingIntent.getActivity(
+                applicationContext, FocusTimerNotifications.notificationId, launchIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            val notification = NotificationCompat.Builder(applicationContext, FocusTimerNotifications.channelId)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle("Focus session complete")
+                .setContentText(task?.title ?: "Take a moment to review what you finished")
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .build()
+            try {
+                NotificationManagerCompat.from(applicationContext).notify(FocusTimerNotifications.notificationId, notification)
+            } catch (_: SecurityException) {
+                // The session still finishes when notification permission is unavailable.
+            }
+            Result.success()
+        } ?: Result.retry()
     }
 
     companion object {

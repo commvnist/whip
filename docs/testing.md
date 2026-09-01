@@ -107,7 +107,7 @@ Every product area has fast domain coverage and at least one persisted or UI
 path. New behavior must add its regression to the narrowest applicable suite
 and update this matrix if it introduces a new feature area.
 
-Current baseline: 884 product tests—402 fast JVM tests and 482 Android
+Current baseline: 915 product tests—419 fast JVM tests and 496 Android
 instrumentation tests—plus 9 Macrobenchmark/Baseline Profile scenarios, lint,
 debug/release/benchmark builds, and the disposable API 34 emulator suite. API
 26 and API 37 compatibility runs cover the minimum and target/latest platform;

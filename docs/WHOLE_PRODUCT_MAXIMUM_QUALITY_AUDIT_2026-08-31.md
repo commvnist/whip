@@ -72,6 +72,7 @@ These values are source- and emulator-informed heuristic estimates, not observed
 - Root cause: recovery was treated as best-effort startup housekeeping despite being the atomicity boundary for replace restore.
 - Decision: fail closed with a blocking accessible recovery state, Retry, preserved marker, and non-mutating guidance.
 - Regression gate: corrupt snapshot, rollback failure, rebuild failure, process restart, and proof that default initialization/background scheduling do not run.
+- Remediation status: implemented and verified. A counted application-wide boundary blocks late operations, drains admitted work, serializes startup/live restore, rebuilds authoritative background state, and generation-scopes surviving actions, widgets, drafts, and imports. It preserves failed recovery markers and passed the complete 419-JVM/496-Android suite plus disposable-emulator corrupt-marker cold-launch testing.
 - Durable record: `FND-20260831-007`, `DEC-20260831-008`.
 
 ### P1 — Workers can deliver obsolete Task, Habit, and Goal reminders
@@ -175,12 +176,12 @@ These values are source- and emulator-informed heuristic estimates, not observed
 
 ### Recovery severity
 
-1. Position A: P1 because the marker survives and Retry may recover.
-2. Position B: P0 because normal writes proceed and can later be removed by rollback.
-3. Evidence: recovery failure is discarded before write-capable initialization.
-4. Failure modes: fail-open risks irreversible post-failure work; fail-closed temporarily blocks availability.
-5. Decision: P0 and fail closed.
-6. Why superior: Whip preserves the last trustworthy atomicity boundary instead of trading availability for possible data loss.
+1. Position A: gate the ordinary Activity and cancel UI scopes; the durable marker and generation checks can protect later retries.
+2. Position B: use one counted application-wide admission/drain barrier plus generation-scoped surviving state/actions.
+3. Evidence and constraints: workers, receivers, schedulers, widgets, Health sync, configuration Activities, Activity-scoped ViewModels, SavedState drafts/imports, and cached entity references can all outlive visible composition. In-flight multi-step work should not be cancelled after partial progress.
+4. Failure modes: Activity-only gating permits background writes and same-ID aliasing; broad cancellation loses drafts or strands partial work; one universal mutex adds latency/deadlock risk; a barrier without persistent generation tokens still admits stale aliases after reopening.
+5. Synthesis/decision: P0; atomically deny late admission, drain admitted work, perform serialized recovery/restore and full rebuild, and invalidate generation-bound state before reopening access.
+6. Why superior: Whip preserves both the last trustworthy database boundary and safely completed admitted operations without accepting mixed-generation mutations or a speculative whole-app rewrite.
 
 ### Large-text navigation
 
@@ -230,8 +231,8 @@ These values are source- and emulator-informed heuristic estimates, not observed
 
 ## Implementation order
 
-1. P0 recovery gate.
-2. Reminder live-delivery integrity.
+1. P0 recovery gate. Completed and verified in `VER-20260831-006`.
+2. Reminder live-delivery integrity. Active.
 3. Success-only productivity scope/navigation.
 4. Unified time semantics.
 5. Transactional Settings and bounded external share input.

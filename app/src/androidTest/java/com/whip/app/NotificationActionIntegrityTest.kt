@@ -19,6 +19,7 @@ import com.whip.app.reminders.ReminderActionReceiver
 import com.whip.app.reminders.TaskNotificationAction
 import com.whip.app.reminders.currentTaskNotificationTarget
 import com.whip.app.reminders.isCurrentHabitNotificationAction
+import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.time.DayOfWeek
 import java.time.LocalDate
 import kotlinx.coroutines.delay
@@ -246,6 +247,7 @@ class NotificationActionIntegrityTest {
 
     private fun taskIntent(action: String, taskId: Long, date: LocalDate) =
         Intent(app, ReminderActionReceiver::class.java)
+            .putExtra(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
             .setAction(action)
             .putExtra(ReminderActionReceiver.EXTRA_TASK_ID, taskId)
             .putExtra(ReminderActionReceiver.EXTRA_ORIGINAL_EPOCH_DAY, date.toEpochDay())
@@ -253,6 +255,7 @@ class NotificationActionIntegrityTest {
 
     private fun habitIntent(action: String, habitId: Long, date: LocalDate) =
         Intent(app, HabitReminderActionReceiver::class.java)
+            .putExtra(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
             .setAction(action)
             .putExtra(HabitReminderActionReceiver.EXTRA_HABIT_ID, habitId)
             .putExtra(HabitReminderActionReceiver.EXTRA_LOGICAL_EPOCH_DAY, date.toEpochDay())

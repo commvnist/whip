@@ -79,6 +79,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -96,6 +97,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.whip.app.R
+import com.whip.app.WhipApplication
 import com.whip.app.core.OperationStatus
 import com.whip.app.domain.Area
 import com.whip.app.domain.BuiltInUnits
@@ -2137,27 +2139,32 @@ internal fun TrackEditor(
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
     onSave: (TrackDraft, Set<Long>, Set<Long>, Map<Long, Long>) -> Unit,
 ) {
-    val token = "track-${initial?.track?.id ?: "new"}-$sessionId"
+    val app = LocalContext.current.applicationContext as WhipApplication
+    val dataGeneration by app.userDataGeneration.collectAsStateWithLifecycle()
+    val token = "track-${initial?.track?.id ?: "new"}-$sessionId-g$dataGeneration"
     val stateHolder: TrackEditorViewModel = viewModel(key = "track-editor-$token")
     val savedState by stateHolder.state.collectAsStateWithLifecycle()
-    val initialDraft = remember(initial?.track?.id) {
+    val initialDraft = remember(initial?.track?.id, dataGeneration) {
         initial?.track?.toDraft(initial.fields, initial.options) ?: TrackDraft(
             name = "",
             areaId = defaultAreaId,
             fields = listOf(TrackFieldDraft("Name", TrackFieldType.ShortText, required = true, primary = true)),
         )
     }
-    LaunchedEffect(token) { stateHolder.initialize(token, initialDraft) }
-    val editorState = savedState.takeIf { it.token == token && it.draft != null }
-        ?: TrackEditorState(token = token, draft = initialDraft)
+    LaunchedEffect(token, dataGeneration) {
+        stateHolder.initialize(token, initialDraft, dataGeneration)
+    }
+    val editorState = savedState.takeIf {
+        it.token == token && it.dataGeneration == dataGeneration && it.draft != null
+    } ?: TrackEditorState(token = token, dataGeneration = dataGeneration, draft = initialDraft)
     val draft = requireNotNull(editorState.draft)
     val fields = draft.fields
-    var editingFieldIndex by rememberSaveable(initial?.track?.id) { mutableStateOf<Int?>(null) }
-    var addingField by rememberSaveable(initial?.track?.id) { mutableStateOf(false) }
-    var confirmFieldDeleteIndex by rememberSaveable(initial?.track?.id) { mutableStateOf<Int?>(null) }
-    var confirmOptionDeletion by rememberSaveable(initial?.track?.id) { mutableStateOf(false) }
-    var unsavedConfirm by rememberSaveable { mutableStateOf(false) }
-    var validationError by rememberSaveable(initial?.track?.id) { mutableStateOf<String?>(null) }
+    var editingFieldIndex by rememberSaveable(token) { mutableStateOf<Int?>(null) }
+    var addingField by rememberSaveable(token) { mutableStateOf(false) }
+    var confirmFieldDeleteIndex by rememberSaveable(token) { mutableStateOf<Int?>(null) }
+    var confirmOptionDeletion by rememberSaveable(token) { mutableStateOf(false) }
+    var unsavedConfirm by rememberSaveable(token) { mutableStateOf(false) }
+    var validationError by rememberSaveable(token) { mutableStateOf<String?>(null) }
     val dirty = draft != initialDraft
     fun dismissAndClear() { stateHolder.clear(); onDismiss() }
     fun requestDismiss() { if (dirty) unsavedConfirm = true else dismissAndClear() }
@@ -2528,10 +2535,12 @@ internal fun TrackEntryEditor(
     onDelete: (() -> Unit)? = null,
     onOpenExisting: (Long) -> Unit = {},
 ) {
-    val token = "entry-${projection.track.id}-${initial?.entry?.id ?: "new"}-$sessionId"
+    val app = LocalContext.current.applicationContext as WhipApplication
+    val dataGeneration by app.userDataGeneration.collectAsStateWithLifecycle()
+    val token = "entry-${projection.track.id}-${initial?.entry?.id ?: "new"}-$sessionId-g$dataGeneration"
     val stateHolder: TrackEntryEditorViewModel = viewModel(key = "track-$token")
     val savedState by stateHolder.state.collectAsStateWithLifecycle()
-    val initialValues = remember(initial?.entry?.id) {
+    val initialValues = remember(initial?.entry?.id, dataGeneration) {
         projection.fields.associate { field ->
             val value = initial?.value(field.id)
             field.uuid to TrackValueDraft(
@@ -2552,14 +2561,18 @@ internal fun TrackEntryEditor(
             values = initialValues,
         )
     }
-    LaunchedEffect(token) { stateHolder.initialize(token, initialDraft) }
-    val draft = savedState.takeIf { it.token == token }?.draft ?: initialDraft
+    LaunchedEffect(token, dataGeneration) {
+        stateHolder.initialize(token, initialDraft, dataGeneration)
+    }
+    val draft = savedState.takeIf {
+        it.token == token && it.dataGeneration == dataGeneration
+    }?.draft ?: initialDraft
     val values = draft.values
     val entryDate = draft.entryDate
-    var datePickerOpen by rememberSaveable { mutableStateOf(false) }
-    var attempted by rememberSaveable { mutableStateOf(false) }
-    var unsavedConfirm by rememberSaveable { mutableStateOf(false) }
-    var possibleMatchId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var datePickerOpen by rememberSaveable(token) { mutableStateOf(false) }
+    var attempted by rememberSaveable(token) { mutableStateOf(false) }
+    var unsavedConfirm by rememberSaveable(token) { mutableStateOf(false) }
+    var possibleMatchId by rememberSaveable(token) { mutableStateOf<Long?>(null) }
     val dirty = draft != initialDraft
     fun dismissAndClear() { stateHolder.clear(); onDismiss() }
     fun requestDismiss() { if (dirty) unsavedConfirm = true else dismissAndClear() }

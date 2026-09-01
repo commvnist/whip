@@ -56,6 +56,29 @@ class RoutineBuilderStateTest {
     }
 
     @Test
+    fun restoredRoutineWithSameIdCannotInheritDraftFromEarlierDataGeneration() {
+        val handle = SavedStateHandle()
+        val beforeRestore = RoutineBuilderViewModel(handle)
+        beforeRestore.initialize(
+            token = "routine-7",
+            initial = RoutineBuilderState(name = "Original routine"),
+            dataGeneration = 4L,
+        )
+        beforeRestore.update { it.copy(name = "Unsaved old draft", notes = "Must not cross restore") }
+
+        val afterProcessRecreation = RoutineBuilderViewModel(handle)
+        afterProcessRecreation.initialize(
+            token = "routine-7",
+            initial = RoutineBuilderState(name = "Restored routine", notes = "From restored database"),
+            dataGeneration = 5L,
+        )
+
+        assertEquals(5L, afterProcessRecreation.state.value.dataGeneration)
+        assertEquals("Restored routine", afterProcessRecreation.state.value.name)
+        assertEquals("From restored database", afterProcessRecreation.state.value.notes)
+    }
+
+    @Test
     fun groupingAndUngroupingNeverLeaveSingletonGroups() {
         val day = RoutineBuilderDayState(
             key = 1,

@@ -13,8 +13,10 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.whip.app.MainActivity
 import com.whip.app.R
+import com.whip.app.WhipApplication
 import com.whip.app.domain.WhipTask
 import com.whip.app.core.WhipLaunchActions
+import com.whip.app.startup.USER_DATA_GENERATION_KEY
 
 object ReminderNotifications {
     const val CHANNEL_ID = "task_reminders"
@@ -69,6 +71,8 @@ object ReminderNotifications {
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .apply {
                 val actionToken = System.currentTimeMillis()
+                val dataGeneration = (context.applicationContext as WhipApplication)
+                    .currentUserDataGeneration()
                 if (allowDirectCompletion) {
                     addAction(
                         R.drawable.ic_notification,
@@ -83,7 +87,8 @@ object ReminderNotifications {
                                     ReminderActionReceiver.EXTRA_ORIGINAL_EPOCH_DAY,
                                     originalEpochDay ?: Long.MIN_VALUE,
                                 )
-                                .putExtra(ReminderActionReceiver.EXTRA_ACTION_TOKEN, actionToken),
+                                .putExtra(ReminderActionReceiver.EXTRA_ACTION_TOKEN, actionToken)
+                                .putExtra(USER_DATA_GENERATION_KEY, dataGeneration),
                             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                         ),
                     )
@@ -100,7 +105,8 @@ object ReminderNotifications {
                             .setAction(ReminderActionReceiver.ACTION_SNOOZE)
                             .putExtra(ReminderActionReceiver.EXTRA_TASK_ID, task.id)
                             .putExtra(ReminderActionReceiver.EXTRA_ORIGINAL_EPOCH_DAY, originalEpochDay ?: Long.MIN_VALUE)
-                            .putExtra(ReminderActionReceiver.EXTRA_ACTION_TOKEN, actionToken),
+                            .putExtra(ReminderActionReceiver.EXTRA_ACTION_TOKEN, actionToken)
+                            .putExtra(USER_DATA_GENERATION_KEY, dataGeneration),
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                     ),
                 )
@@ -115,6 +121,7 @@ object ReminderNotifications {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) return
+        val dataGeneration = (context.applicationContext as WhipApplication).currentUserDataGeneration()
         val undo = PendingIntent.getBroadcast(
             context,
             (task.id * 53L + (originalEpochDay ?: 0L)).hashCode(),
@@ -122,7 +129,8 @@ object ReminderNotifications {
                 .setAction(ReminderActionReceiver.ACTION_UNDO)
                 .putExtra(ReminderActionReceiver.EXTRA_TASK_ID, task.id)
                 .putExtra(ReminderActionReceiver.EXTRA_ORIGINAL_EPOCH_DAY, originalEpochDay ?: Long.MIN_VALUE)
-                .putExtra(ReminderActionReceiver.EXTRA_ACTION_TOKEN, System.currentTimeMillis()),
+                .putExtra(ReminderActionReceiver.EXTRA_ACTION_TOKEN, System.currentTimeMillis())
+                .putExtra(USER_DATA_GENERATION_KEY, dataGeneration),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)

@@ -102,6 +102,23 @@ class ReleasePrivacyPolicyTest {
     }
 
     @Test
+    fun workManagerStartupInitializerIsRemovedUntilRecoveryGateIsReady() {
+        val providers = manifest().getElementsByTagName("provider")
+        val startupProvider = (0 until providers.length)
+            .map { providers.item(it) as Element }
+            .single { it.androidAttribute("name") == "androidx.startup.InitializationProvider" }
+        val metadata = startupProvider.getElementsByTagName("meta-data")
+        val workInitializer = (0 until metadata.length)
+            .map { metadata.item(it) as Element }
+            .single { it.androidAttribute("name") == "androidx.work.WorkManagerInitializer" }
+
+        assertEquals("merge", startupProvider.toolsAttribute("node"))
+        assertEquals("remove", workInitializer.toolsAttribute("node"))
+        val applicationSource = rootFile("app/src/main/java/com/whip/app/WhipApplication.kt").readText()
+        assertTrue(applicationSource.contains("Application(), Configuration.Provider"))
+    }
+
+    @Test
     fun backupAndDeviceTransferRulesExcludeEveryPrivateStorageDomain() {
         assertEquals(
             setOf("root", "file", "database", "sharedpref", "external"),
@@ -142,4 +159,7 @@ class ReleasePrivacyPolicyTest {
 
     private fun Element.androidAttribute(name: String): String =
         getAttributeNS("http://schemas.android.com/apk/res/android", name)
+
+    private fun Element.toolsAttribute(name: String): String =
+        getAttributeNS("http://schemas.android.com/tools", name)
 }

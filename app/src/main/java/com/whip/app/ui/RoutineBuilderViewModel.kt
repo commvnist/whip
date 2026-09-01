@@ -79,6 +79,7 @@ internal data class RoutineBuilderDayState(
 
 internal data class RoutineBuilderState(
     val token: String = "",
+    val dataGeneration: Long = 0L,
     val name: String = "",
     val notes: String = "",
     val days: List<RoutineBuilderDayState> = emptyList(),
@@ -112,9 +113,12 @@ internal class RoutineBuilderViewModel(
     )
     val state = mutableState.asStateFlow()
 
-    fun initialize(token: String, initial: RoutineBuilderState) {
-        if (mutableState.value.token == token) return
-        set(initial.copy(token = token))
+    fun initialize(token: String, initial: RoutineBuilderState, dataGeneration: Long = 0L) {
+        if (
+            mutableState.value.token == token &&
+            mutableState.value.dataGeneration == dataGeneration
+        ) return
+        set(initial.copy(token = token, dataGeneration = dataGeneration))
     }
 
     fun update(transform: (RoutineBuilderState) -> RoutineBuilderState) {

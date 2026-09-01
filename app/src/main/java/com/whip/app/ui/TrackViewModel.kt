@@ -47,6 +47,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -87,6 +88,7 @@ internal data class TrackCsvImportSessionDescriptor(
     val trackId: Long,
     val uri: String,
     val todayEpochDay: Long,
+    val dataGeneration: Long = 0L,
     val entryDateColumn: String? = null,
     val fieldColumns: Map<String, String> = emptyMap(),
     val numberUnitColumns: Map<String, String> = emptyMap(),
@@ -103,12 +105,30 @@ internal data class TrackCsvImportSessionDescriptor(
     )
 }
 
-internal class TrackCsvImportSessionStore(private val savedStateHandle: SavedStateHandle) {
+internal class TrackCsvImportSessionStore(
+    private val savedStateHandle: SavedStateHandle,
+    private val currentDataGeneration: () -> Long = { 0L },
+) {
+    constructor(
+        savedStateHandle: SavedStateHandle,
+        currentDataGeneration: Long,
+    ) : this(savedStateHandle, { currentDataGeneration })
+
     val descriptor: TrackCsvImportSessionDescriptor?
-        get() = savedStateHandle[STATE_KEY]
+        get() {
+            val restored = savedStateHandle.get<TrackCsvImportSessionDescriptor>(STATE_KEY) ?: return null
+            if (restored.dataGeneration == currentDataGeneration()) return restored
+            clear()
+            return null
+        }
 
     fun begin(trackId: Long, uri: String, today: LocalDate): TrackCsvImportSessionDescriptor {
-        val value = TrackCsvImportSessionDescriptor(trackId, uri, today.toEpochDay())
+        val value = TrackCsvImportSessionDescriptor(
+            trackId = trackId,
+            uri = uri,
+            todayEpochDay = today.toEpochDay(),
+            dataGeneration = currentDataGeneration(),
+        )
         savedStateHandle[STATE_KEY] = value
         return value
     }
@@ -254,7 +274,10 @@ class TrackViewModel(
     private val app = application as WhipApplication
     private val repository: TrackRepository = app.trackRepository
     private val clock = app.clock
-    private val csvImportSessionStore = TrackCsvImportSessionStore(savedStateHandle)
+    private val csvImportSessionStore = TrackCsvImportSessionStore(
+        savedStateHandle,
+        currentDataGeneration = app::currentUserDataGeneration,
+    )
     private val restoredCsvImportSession = csvImportSessionStore.descriptor
     private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
     val operationStatus: StateFlow<OperationStatus> = _operationStatus.asStateFlow()
@@ -294,6 +317,16 @@ class TrackViewModel(
 
     init {
         restoredCsvImportSession?.let(::restoreCsvImportSession)
+        viewModelScope.launch {
+            app.userDataGeneration.drop(1).collect {
+                _lastDeletedEntry.value = null
+                recoveryAcknowledgement?.complete(Unit)
+                recoveryAcknowledgement = null
+                _operationStatus.value = OperationStatus.Idle
+                cancelCsvImport()
+                cancelCsvExport()
+            }
+        }
     }
 
     fun consumeOperationStatus() {
@@ -495,9 +528,14 @@ class TrackViewModel(
         if (_csvExportState.value.phase == TrackCsvExportPhase.Complete) cancelCsvExport()
     }
 
-    suspend fun searchEntryIds(trackId: Long, query: String): Set<Long> = repository.searchEntryIds(trackId, query)
+    suspend fun searchEntryIds(trackId: Long, query: String): Set<Long> =
+        checkNotNull(app.withUserDataAccess { repository.searchEntryIds(trackId, query) }) {
+            "Whip data is unavailable while recovery is in progress"
+        }
     suspend fun entryPage(trackId: Long, offset: Int, limit: Int = 100): TrackEntryPage =
-        repository.entryPage(trackId, offset, limit)
+        checkNotNull(app.withUserDataAccess { repository.entryPage(trackId, offset, limit) }) {
+            "Whip data is unavailable while recovery is in progress"
+        }
 
     private fun restoreCsvImportSession(descriptor: TrackCsvImportSessionDescriptor) {
         csvImportRestoreJob?.cancel()
@@ -583,7 +621,9 @@ class TrackViewModel(
         csvExportJob = viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    val csv = repository.exportCsv(trackId)
+                    val csv = checkNotNull(app.withUserDataAccess { repository.exportCsv(trackId) }) {
+                        "Whip data is unavailable while recovery is in progress"
+                    }
                     writeCsvText(uri, csv)
                 }
                 _csvExportState.value = TrackCsvExportUiState(trackId, TrackCsvExportPhase.Complete)
@@ -631,7 +671,10 @@ class TrackViewModel(
         viewModelScope.launch {
             operationMutex.withLock {
                 try {
-                    block()
+                    checkNotNull(app.withUserDataAccess {
+                        block()
+                        Unit
+                    }) { "Whip data is unavailable while recovery is in progress" }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (error: Throwable) {
@@ -652,7 +695,10 @@ class TrackViewModel(
             operationMutex.withLock {
                 _operationStatus.value = OperationStatus.Running(running)
                 try {
-                    block()
+                    checkNotNull(app.withUserDataAccess {
+                        block()
+                        Unit
+                    }) { "Whip data is unavailable while recovery is in progress" }
                     val acknowledgement = recoveryToken?.let { CompletableDeferred<Unit>() }
                     recoveryAcknowledgement = acknowledgement
                     _operationStatus.value = OperationStatus.Succeeded(

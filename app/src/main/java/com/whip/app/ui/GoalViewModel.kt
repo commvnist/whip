@@ -147,7 +147,10 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             reorderMutex.withLock {
                 try {
-                    block()
+                    checkNotNull(app.withUserDataAccess {
+                        block()
+                        Unit
+                    }) { "Whip data is unavailable while recovery is in progress" }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (error: Throwable) {
@@ -167,7 +170,10 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         _operationStatus.value = OperationStatus.Running(running)
         viewModelScope.launch {
             try {
-                block()
+                checkNotNull(app.withUserDataAccess {
+                    block()
+                    Unit
+                }) { "Whip data is unavailable while recovery is in progress" }
                 _operationStatus.value = OperationStatus.Succeeded(success, successFeedbackPresentation)
                 runCatching { onFinished(true) }
             } catch (cancelled: CancellationException) {

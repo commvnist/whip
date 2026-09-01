@@ -13,6 +13,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
@@ -27,7 +28,9 @@ import com.whip.app.ui.SettingsViewModel
 import com.whip.app.ui.WhipApp
 import com.whip.app.ui.WhipFoldInfo
 import com.whip.app.ui.WhipFoldOrientation
+import com.whip.app.ui.StartupRecoveryScreen
 import com.whip.app.ui.theme.WhipTheme
+import com.whip.app.startup.StartupRecoveryState
 import kotlinx.coroutines.flow.map
 
 class MainActivity : ComponentActivity() {
@@ -58,60 +61,81 @@ class MainActivity : ComponentActivity() {
         }
         enableEdgeToEdge()
         setContent {
-            val settingsViewModel: SettingsViewModel = viewModel()
-            val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()
-            val windowLayoutFlow = remember {
-                WindowInfoTracker.getOrCreate(this)
-                    .windowLayoutInfo(this)
-                    .map<WindowLayoutInfo, WindowLayoutInfo?> { it }
-            }
-            val windowLayoutInfo by windowLayoutFlow.collectAsStateWithLifecycle(initialValue = null)
-            val foldInfo = remember(windowLayoutInfo) {
-                windowLayoutInfo?.displayFeatures?.filterIsInstance<FoldingFeature>()?.firstOrNull()?.let { fold ->
-                    WhipFoldInfo(
-                        orientation = if (fold.orientation == FoldingFeature.Orientation.VERTICAL) WhipFoldOrientation.Vertical else WhipFoldOrientation.Horizontal,
-                        leftPx = fold.bounds.left,
-                        topPx = fold.bounds.top,
-                        rightPx = fold.bounds.right,
-                        bottomPx = fold.bounds.bottom,
-                        separating = fold.isSeparating,
-                        halfOpened = fold.state == FoldingFeature.State.HALF_OPENED,
-                    )
-                }
-            }
-            val notificationPermission = rememberLauncherForActivityResult(
-                ActivityResultContracts.RequestPermission(),
-            ) { }
-            val darkTheme = when (settingsState.settings.themeMode) {
-                AppThemeMode.System -> isSystemInDarkTheme()
-                AppThemeMode.Light -> false
-                AppThemeMode.Dark -> true
-            }
-            WhipTheme(darkTheme = darkTheme, dynamicColor = settingsState.settings.dynamicColor) {
-                val request = launchRequest.value
-                WhipApp(
-                    initialAction = request.action,
-                    initialEntityId = request.entityId,
-                    initialOccurrenceEpochDay = request.occurrenceEpochDay,
-                    initialSharedText = request.sharedText,
-                    initialAreaScopeStorageKey = request.areaScopeStorageKey,
-                    initialDeliveryId = request.deliveryId,
-                    foldInfo = foldInfo,
-                    settingsViewModel = settingsViewModel,
-                    onRequestNotificationPermission = {
-                        if (
-                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                            ContextCompat.checkSelfPermission(
-                                this,
-                                Manifest.permission.POST_NOTIFICATIONS,
-                            ) != PackageManager.PERMISSION_GRANTED
-                        ) {
-                            settingsViewModel.markNotificationPermissionRequested()
-                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        }
-                    },
+            WhipActivityContent()
+        }
+    }
+
+    @Composable
+    private fun WhipActivityContent() {
+        val app = application as WhipApplication
+        val startupState by app.startupRecoveryState.collectAsStateWithLifecycle()
+        when (startupState) {
+            StartupRecoveryState.Ready -> NormalWhipContent()
+            StartupRecoveryState.Checking,
+            is StartupRecoveryState.Blocked -> WhipTheme(darkTheme = isSystemInDarkTheme(), dynamicColor = false) {
+                StartupRecoveryScreen(
+                    state = startupState,
+                    onRetry = app::retryStartupRecovery,
                 )
             }
+        }
+    }
+
+    @Composable
+    private fun NormalWhipContent() {
+        val settingsViewModel: SettingsViewModel = viewModel()
+        val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+        val windowLayoutFlow = remember {
+            WindowInfoTracker.getOrCreate(this)
+                .windowLayoutInfo(this)
+                .map<WindowLayoutInfo, WindowLayoutInfo?> { it }
+        }
+        val windowLayoutInfo by windowLayoutFlow.collectAsStateWithLifecycle(initialValue = null)
+        val foldInfo = remember(windowLayoutInfo) {
+            windowLayoutInfo?.displayFeatures?.filterIsInstance<FoldingFeature>()?.firstOrNull()?.let { fold ->
+                WhipFoldInfo(
+                    orientation = if (fold.orientation == FoldingFeature.Orientation.VERTICAL) WhipFoldOrientation.Vertical else WhipFoldOrientation.Horizontal,
+                    leftPx = fold.bounds.left,
+                    topPx = fold.bounds.top,
+                    rightPx = fold.bounds.right,
+                    bottomPx = fold.bounds.bottom,
+                    separating = fold.isSeparating,
+                    halfOpened = fold.state == FoldingFeature.State.HALF_OPENED,
+                )
+            }
+        }
+        val notificationPermission = rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) { }
+        val darkTheme = when (settingsState.settings.themeMode) {
+            AppThemeMode.System -> isSystemInDarkTheme()
+            AppThemeMode.Light -> false
+            AppThemeMode.Dark -> true
+        }
+        WhipTheme(darkTheme = darkTheme, dynamicColor = settingsState.settings.dynamicColor) {
+            val request = launchRequest.value
+            WhipApp(
+                initialAction = request.action,
+                initialEntityId = request.entityId,
+                initialOccurrenceEpochDay = request.occurrenceEpochDay,
+                initialSharedText = request.sharedText,
+                initialAreaScopeStorageKey = request.areaScopeStorageKey,
+                initialDeliveryId = request.deliveryId,
+                foldInfo = foldInfo,
+                settingsViewModel = settingsViewModel,
+                onRequestNotificationPermission = {
+                    if (
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        ContextCompat.checkSelfPermission(
+                            this,
+                            Manifest.permission.POST_NOTIFICATIONS,
+                        ) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        settingsViewModel.markNotificationPermissionRequested()
+                        notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                },
+            )
         }
     }
 

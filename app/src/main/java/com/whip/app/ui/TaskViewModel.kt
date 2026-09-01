@@ -46,6 +46,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -136,6 +137,14 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     init {
         viewModelScope.launch {
             app.settingsRepository.currentDateFlow(clock).collect { reminders.syncAll() }
+        }
+        viewModelScope.launch {
+            app.userDataGeneration.drop(1).collect {
+                clearPendingUndo()
+                _taskDeletionImpact.value = null
+                _taskDeletionBatchImpact.value = null
+                _operationFeedback.value = TaskOperationFeedback()
+            }
         }
     }
 
@@ -305,7 +314,11 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     fun previewPermanentDeletion(taskId: Long) {
         _taskDeletionImpact.value = null
         viewModelScope.launch {
-            runCatching { app.taskDeletionCoordinator.preview(taskId) }
+            runCatching {
+                checkNotNull(app.withUserDataAccess { app.taskDeletionCoordinator.preview(taskId) }) {
+                    "Whip data is unavailable while recovery is in progress"
+                }
+            }
                 .onSuccess { _taskDeletionImpact.value = it }
                 .onFailure { error ->
                     _operationFeedback.value = TaskOperationFeedback(
@@ -346,7 +359,11 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         _taskDeletionBatchImpact.value = null
         if (uniqueIds.isEmpty()) return
         viewModelScope.launch {
-            runCatching { app.taskDeletionCoordinator.preview(uniqueIds) }
+            runCatching {
+                checkNotNull(app.withUserDataAccess { app.taskDeletionCoordinator.preview(uniqueIds) }) {
+                    "Whip data is unavailable while recovery is in progress"
+                }
+            }
                 .onSuccess { _taskDeletionBatchImpact.value = it }
                 .onFailure { error ->
                     _operationFeedback.value = TaskOperationFeedback(
@@ -514,7 +531,10 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             reorderMutex.withLock {
                 try {
-                    repository.reorderAll(tasks.map { it.task.id })
+                    checkNotNull(app.withUserDataAccess {
+                        repository.reorderAll(tasks.map { it.task.id })
+                        Unit
+                    }) { "Whip data is unavailable while recovery is in progress" }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (error: Throwable) {
@@ -607,7 +627,10 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         )
         viewModelScope.launch {
             try {
-                block()
+                checkNotNull(app.withUserDataAccess {
+                    block()
+                    Unit
+                }) { "Whip data is unavailable while recovery is in progress" }
                 _operationFeedback.value = TaskOperationFeedback(
                     status = OperationStatus.Succeeded(successMessage, successFeedbackPresentation),
                     undoMessage = pendingUndoMessage,

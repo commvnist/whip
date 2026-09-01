@@ -60,11 +60,13 @@
 ### DEC-20260831-008 — Unresolved restore recovery fails closed
 
 - Context: Normal startup currently continues after recovery failure, allowing new writes into unresolved state.
-- Position A: Continue read/write startup and rely on the persistent marker for later Retry.
-- Position B: Block normal initialization until recovery succeeds.
-- Decision: Fail closed with a blocking accessible recovery state, Retry, preserved marker, and non-mutating guidance.
-- Why this is superior for Whip: Temporary unavailability is recoverable; post-failure writes that are later rolled back may not be.
-- Status: Accepted; implementation in progress.
+- Position A: Gate only the visible Activity, cancel its scopes during restore, and rely on the persistent marker/generation checks for later Retry.
+- Position B: Use one application-wide counted admission/drain boundary, then generation-scope state and actions that can survive the database replacement.
+- Evidence and constraints: Activity-scoped ViewModels, workers, receivers, widgets, schedulers, Health sync, configuration Activities, and process-restorable drafts can outlive ordinary composition. Cancelling every scope risks partial transactions and lost drafts; one global serial mutex would unnecessarily block safe concurrent reads.
+- Failure modes: Activity-only gating permits background writes and same-numeric-ID aliasing. Broad cancellation can strand partial multi-step work. An undifferentiated global mutex increases latency and can deadlock the Settings restore initiator. A counted barrier must still version SavedState, widget references, caches, and external action intents that survive replacement.
+- Synthesis/decision: Fail closed with an application-level reader admission/drain barrier, a serialized exclusive restore attempt, privileged full background rebuild, preserved marker, non-restored data generation, accessible Retry, and generation-aware persistent/transient surfaces. Existing admitted operations finish; late work is denied; normal access reopens only after authoritative rebuilding succeeds.
+- Why this is superior for Whip: It preserves the last trustworthy atomicity boundary and completed admitted work without accepting mixed-generation mutations, stale action aliasing, or a speculative whole-app transaction rewrite.
+- Status: Accepted, implemented, and verified.
 
 ### DEC-20260831-009 — Reminder workers re-resolve live delivery eligibility
 

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 internal data class TrackEditorState(
     val token: String = "",
+    val dataGeneration: Long = 0L,
     val draft: TrackDraft? = null,
     val confirmedFieldDeletes: Set<Long> = emptySet(),
     val confirmedOptionDeletes: Set<Long> = emptySet(),
@@ -29,9 +30,12 @@ internal class TrackEditorViewModel(
     )
     val state = mutableState.asStateFlow()
 
-    fun initialize(token: String, initialDraft: TrackDraft) {
-        if (mutableState.value.token == token) return
-        set(TrackEditorState(token = token, draft = initialDraft))
+    fun initialize(token: String, initialDraft: TrackDraft, dataGeneration: Long = 0L) {
+        if (
+            mutableState.value.token == token &&
+            mutableState.value.dataGeneration == dataGeneration
+        ) return
+        set(TrackEditorState(token = token, dataGeneration = dataGeneration, draft = initialDraft))
     }
 
     fun updateDraft(transform: (TrackDraft) -> TrackDraft) = update { current ->
@@ -60,6 +64,7 @@ internal class TrackEditorViewModel(
 /** A complete Entry edit, including typed values and its effective date. */
 internal data class TrackEntryEditorState(
     val token: String = "",
+    val dataGeneration: Long = 0L,
     val draft: TrackEntryDraft? = null,
 ) : Serializable
 
@@ -71,9 +76,12 @@ internal class TrackEntryEditorViewModel(
     )
     val state = mutableState.asStateFlow()
 
-    fun initialize(token: String, initialDraft: TrackEntryDraft) {
-        if (mutableState.value.token == token) return
-        set(TrackEntryEditorState(token = token, draft = initialDraft))
+    fun initialize(token: String, initialDraft: TrackEntryDraft, dataGeneration: Long = 0L) {
+        if (
+            mutableState.value.token == token &&
+            mutableState.value.dataGeneration == dataGeneration
+        ) return
+        set(TrackEntryEditorState(token = token, dataGeneration = dataGeneration, draft = initialDraft))
     }
 
     fun updateDraft(transform: (TrackEntryDraft) -> TrackEntryDraft) {

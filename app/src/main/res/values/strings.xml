@@ -4,6 +4,15 @@
     <string name="action_cancel">Cancel</string>
     <string name="action_replace_everything">Replace Everything</string>
     <string name="action_try_again">Try Again</string>
+    <string name="startup_recovery_checking_title">Checking Your Data</string>
+    <string name="startup_recovery_checking_message">Whip is safely resolving an interrupted restore before opening your workspace.</string>
+    <string name="startup_recovery_blocked_title">Whip Couldn\'t Safely Open Your Data</string>
+    <string name="startup_recovery_blocked_message">An interrupted restore still needs recovery. Whip has stopped before opening or changing your workspace, and the private recovery copy remains in place.</string>
+    <string name="startup_recovery_safe_guidance">Keep Whip installed and do not clear its storage. Try again when the device has enough free space. If recovery still fails, leave the app data intact before seeking support.</string>
+    <string name="startup_initialization_blocked_title">Whip Couldn\'t Finish Starting</string>
+    <string name="startup_initialization_blocked_message">Whip stopped before opening your workspace because a required startup step did not finish.</string>
+    <string name="startup_initialization_safe_guidance">Keep Whip installed and do not clear its storage. Try again when the device has enough free space. Your saved records remain on this device.</string>
+    <string name="startup_recovery_retry">Retry Recovery</string>
     <string name="action_filter">Filter</string>
     <string name="filter_count">Filter · %1$d</string>
     <string name="action_remove_filter">Remove %1$s</string>

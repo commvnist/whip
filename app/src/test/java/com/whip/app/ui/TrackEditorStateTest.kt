@@ -54,6 +54,28 @@ class TrackEditorStateTest {
     }
 
     @Test
+    fun restoredTrackWithSameIdCannotInheritDefinitionDraftFromEarlierGeneration() {
+        val handle = SavedStateHandle()
+        val beforeRestore = TrackEditorViewModel(handle)
+        beforeRestore.initialize(
+            "track-8",
+            TrackDraft(name = "Original", fields = emptyList()),
+            dataGeneration = 2L,
+        )
+        beforeRestore.updateDraft { it.copy(name = "Unsaved old definition") }
+
+        val afterProcessRecreation = TrackEditorViewModel(handle)
+        afterProcessRecreation.initialize(
+            "track-8",
+            TrackDraft(name = "Restored definition", fields = emptyList()),
+            dataGeneration = 3L,
+        )
+
+        assertEquals(3L, afterProcessRecreation.state.value.dataGeneration)
+        assertEquals("Restored definition", afterProcessRecreation.state.value.draft?.name)
+    }
+
+    @Test
     fun entryRestoresEveryTypedValueAndDateTogether() {
         val handle = SavedStateHandle()
         val original = TrackEntryEditorViewModel(handle)
@@ -80,5 +102,35 @@ class TrackEditorStateTest {
 
         original.clear()
         assertNull(handle.get<TrackEntryEditorState>("track-entry-editor-state"))
+    }
+
+    @Test
+    fun restoredEntryWithSameIdCannotInheritTypedValuesFromEarlierGeneration() {
+        val handle = SavedStateHandle()
+        val beforeRestore = TrackEntryEditorViewModel(handle)
+        beforeRestore.initialize(
+            "entry-4-9",
+            TrackEntryDraft(
+                entryDate = LocalDate.of(2026, 8, 31),
+                values = mapOf("name" to TrackValueDraft(textValue = "Original")),
+            ),
+            dataGeneration = 11L,
+        )
+        beforeRestore.updateDraft {
+            it.copy(values = mapOf("name" to TrackValueDraft(textValue = "Unsaved old value")))
+        }
+
+        val afterProcessRecreation = TrackEntryEditorViewModel(handle)
+        afterProcessRecreation.initialize(
+            "entry-4-9",
+            TrackEntryDraft(
+                entryDate = LocalDate.of(2026, 8, 31),
+                values = mapOf("name" to TrackValueDraft(textValue = "Restored value")),
+            ),
+            dataGeneration = 12L,
+        )
+
+        assertEquals(12L, afterProcessRecreation.state.value.dataGeneration)
+        assertEquals("Restored value", afterProcessRecreation.state.value.draft?.values?.get("name")?.textValue)
     }
 }

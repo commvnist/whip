@@ -15,6 +15,8 @@ import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.TaskOccurrence
 import com.whip.app.domain.TaskStep
+import com.whip.app.startup.MISSING_USER_DATA_GENERATION
+import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
@@ -32,62 +34,11 @@ class ReminderActionReceiver : BroadcastReceiver() {
         val pending = goAsync()
         val app = context.applicationContext as WhipApplication
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            val action = TaskNotificationAction.fromIntentAction(intent.action)
-            val original = epochDay.takeUnless { it == Long.MIN_VALUE }?.let(LocalDate::ofEpochDay)
-            val actionId = "task:$taskId:${intent.action}:$epochDay:${intent.getLongExtra(EXTRA_ACTION_TOKEN, 0L)}"
-            val ledger = NotificationActionLedger(context)
             try {
-                if (action == null || app.currentTaskNotificationTarget(taskId, original, action) == null) {
-                    app.refreshStaleTaskNotification(context, taskId)
-                    return@launch
+                val accessed = app.withUserDataAccess {
+                    app.handleTaskNotificationAction(context, intent, taskId, epochDay)
                 }
-                if (!ledger.begin(actionId)) return@launch
-
-                val applied = if (action == TaskNotificationAction.Snooze) {
-                    // Revalidate immediately before enqueueing the replacement work. A stale
-                    // notification must never recreate a reminder that was removed or closed.
-                    if (app.currentTaskNotificationTarget(taskId, original, action) == null) false
-                    else {
-                        app.reminderScheduler.snooze(taskId, original?.toEpochDay())
-                        true
-                    }
-                } else {
-                    app.database.withTransaction {
-                        val target = app.currentTaskNotificationTarget(taskId, original, action)
-                            ?: return@withTransaction false
-                        when (action) {
-                            TaskNotificationAction.Complete -> app.taskRepository.completeOccurrence(taskId, original)
-                            TaskNotificationAction.Undo -> if (target.task.scheduleKind == ScheduleKind.Recurring) {
-                                app.taskRepository.reopenOccurrence(target)
-                            } else {
-                                app.taskRepository.reopen(taskId)
-                            }
-                            TaskNotificationAction.Snooze -> error("Snooze is handled without a database mutation")
-                        }
-                        true
-                    }
-                }
-                if (!applied) {
-                    ledger.release(actionId)
-                    app.refreshStaleTaskNotification(context, taskId)
-                    return@launch
-                }
-
-                if (action != TaskNotificationAction.Snooze) {
-                    app.reminderScheduler.syncTask(taskId)
-                }
-                NotificationManagerCompat.from(context).cancel(taskId.hashCode())
-                if (action == TaskNotificationAction.Complete) {
-                    app.taskRepository.getTask(taskId)?.let {
-                        ReminderNotifications.showCompletionUndo(context, it, original?.toEpochDay())
-                    }
-                } else if (action == TaskNotificationAction.Undo) {
-                    NotificationManagerCompat.from(context)
-                        .cancel(ReminderNotifications.completionUndoNotificationId(taskId))
-                }
-                ledger.complete(actionId)
-            } catch (_: Throwable) {
-                ledger.release(actionId)
+                if (accessed == null) cancelTaskNotification(context, taskId)
             } finally {
                 pending.finish()
             }
@@ -101,6 +52,84 @@ class ReminderActionReceiver : BroadcastReceiver() {
         const val EXTRA_TASK_ID = "task_id"
         const val EXTRA_ORIGINAL_EPOCH_DAY = "original_epoch_day"
         const val EXTRA_ACTION_TOKEN = "action_token"
+    }
+}
+
+private suspend fun WhipApplication.handleTaskNotificationAction(
+    context: Context,
+    intent: Intent,
+    taskId: Long,
+    epochDay: Long,
+) {
+    if (!isCurrentUserDataGeneration(intent.getLongExtra(USER_DATA_GENERATION_KEY, MISSING_USER_DATA_GENERATION))) {
+        cancelTaskNotification(context, taskId)
+        return
+    }
+    val action = TaskNotificationAction.fromIntentAction(intent.action)
+    val original = epochDay.takeUnless { it == Long.MIN_VALUE }?.let(LocalDate::ofEpochDay)
+    val actionId = "task:$taskId:${intent.action}:$epochDay:${intent.getLongExtra(ReminderActionReceiver.EXTRA_ACTION_TOKEN, 0L)}"
+    val ledger = NotificationActionLedger(context)
+    try {
+        if (action == null || currentTaskNotificationTarget(taskId, original, action) == null) {
+            refreshStaleTaskNotification(context, taskId)
+            return
+        }
+        if (!ledger.begin(actionId)) return
+
+        val applied = if (action == TaskNotificationAction.Snooze) {
+            if (currentTaskNotificationTarget(taskId, original, action) == null) false
+            else {
+                reminderScheduler.snooze(
+                    taskId,
+                    original?.toEpochDay(),
+                    allowDuringRecovery = true,
+                )
+                true
+            }
+        } else {
+            database.withTransaction {
+                val target = currentTaskNotificationTarget(taskId, original, action)
+                    ?: return@withTransaction false
+                when (action) {
+                    TaskNotificationAction.Complete -> taskRepository.completeOccurrence(taskId, original)
+                    TaskNotificationAction.Undo -> if (target.task.scheduleKind == ScheduleKind.Recurring) {
+                        taskRepository.reopenOccurrence(target)
+                    } else {
+                        taskRepository.reopen(taskId)
+                    }
+                    TaskNotificationAction.Snooze -> error("Snooze is handled without a database mutation")
+                }
+                true
+            }
+        }
+        if (!applied) {
+            ledger.release(actionId)
+            refreshStaleTaskNotification(context, taskId)
+            return
+        }
+
+        if (action != TaskNotificationAction.Snooze) {
+            reminderScheduler.syncTask(taskId, allowDuringRecovery = true)
+        }
+        NotificationManagerCompat.from(context).cancel(taskId.hashCode())
+        if (action == TaskNotificationAction.Complete) {
+            taskRepository.getTask(taskId)?.let {
+                ReminderNotifications.showCompletionUndo(context, it, original?.toEpochDay())
+            }
+        } else if (action == TaskNotificationAction.Undo) {
+            NotificationManagerCompat.from(context)
+                .cancel(ReminderNotifications.completionUndoNotificationId(taskId))
+        }
+        ledger.complete(actionId)
+    } catch (_: Throwable) {
+        ledger.release(actionId)
+    }
+}
+
+private fun cancelTaskNotification(context: Context, taskId: Long) {
+    NotificationManagerCompat.from(context).apply {
+        cancel(taskId.hashCode())
+        cancel(ReminderNotifications.completionUndoNotificationId(taskId))
     }
 }
 
@@ -201,9 +230,6 @@ private fun com.whip.app.domain.WhipTask.hasCurrentOccurrence(
 }
 
 private suspend fun WhipApplication.refreshStaleTaskNotification(context: Context, taskId: Long) {
-    NotificationManagerCompat.from(context).apply {
-        cancel(taskId.hashCode())
-        cancel(ReminderNotifications.completionUndoNotificationId(taskId))
-    }
-    reminderScheduler.syncTask(taskId)
+    cancelTaskNotification(context, taskId)
+    reminderScheduler.syncTask(taskId, allowDuringRecovery = true)
 }

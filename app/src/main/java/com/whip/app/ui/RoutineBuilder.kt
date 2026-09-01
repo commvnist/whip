@@ -54,6 +54,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -63,6 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.whip.app.WhipApplication
 import com.whip.app.domain.EstimatedOneRepMaxFormula
 import com.whip.app.domain.Exercise
 import com.whip.app.domain.ExerciseDraft
@@ -151,15 +153,29 @@ internal fun RoutineBuilderScreen(
     onReorderPrescriptionSchemes: (List<RepPrescriptionScheme>) -> Unit = {},
     onDeletePrescriptionScheme: (String) -> Unit = {},
 ) {
-    val token = "routine-${routineId ?: "new"}"
-    val stateHolder: RoutineBuilderViewModel = viewModel(key = "routine-builder-${routineId ?: "new"}")
-    val builder by stateHolder.state.collectAsStateWithLifecycle()
+    val app = LocalContext.current.applicationContext as WhipApplication
+    val dataGeneration by app.userDataGeneration.collectAsStateWithLifecycle()
+    val token = "routine-${routineId ?: "new"}-g$dataGeneration"
+    val stateHolder: RoutineBuilderViewModel = viewModel(
+        key = "routine-builder-${routineId ?: "new"}-g$dataGeneration",
+    )
+    val storedBuilder by stateHolder.state.collectAsStateWithLifecycle()
     var savedBaseline by rememberSaveable(token) {
         mutableStateOf(
-            buildInitialRoutineState(token, initial, gymState.exercises + gymState.archivedExercises, gymState.machines + gymState.archivedMachines),
+            buildInitialRoutineState(
+                token,
+                initial,
+                gymState.exercises + gymState.archivedExercises,
+                gymState.machines + gymState.archivedMachines,
+            ).copy(dataGeneration = dataGeneration),
         )
     }
-    LaunchedEffect(token) { stateHolder.initialize(token, savedBaseline) }
+    val builder = storedBuilder.takeIf {
+        it.token == token && it.dataGeneration == dataGeneration
+    } ?: savedBaseline
+    LaunchedEffect(token, dataGeneration) {
+        stateHolder.initialize(token, savedBaseline, dataGeneration)
+    }
 
     var page by rememberSaveable(token) { mutableStateOf(RoutineBuilderPage.Outline) }
     var pickerSelection by rememberSaveable(token) { mutableStateOf<List<Long>>(emptyList()) }

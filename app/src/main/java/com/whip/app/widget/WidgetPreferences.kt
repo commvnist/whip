@@ -2,6 +2,7 @@ package com.whip.app.widget
 
 import android.content.Context
 import androidx.core.content.edit
+import com.whip.app.WhipApplication
 import com.whip.app.domain.AreaScope
 
 internal enum class WidgetKind {
@@ -35,9 +36,13 @@ internal const val MAX_WIDGET_TRANSPARENCY = 80
 internal object WhipWidgetPreferences {
     private const val PREFS = "whip_widget_areas"
 
-    fun load(context: Context, appWidgetId: Int): WidgetPreferences {
+    fun load(
+        context: Context,
+        appWidgetId: Int,
+        dataGeneration: Long = context.currentWidgetDataGeneration(),
+    ): WidgetPreferences {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        return WidgetPreferences(
+        val value = WidgetPreferences(
             areaScope = AreaScope.fromStorageKey(
                 prefs.getString(scopeKey(appWidgetId), AreaScope.All.storageKey),
             ),
@@ -63,9 +68,48 @@ internal object WhipWidgetPreferences {
                 .toSet(),
             expandedTaskKeys = prefs.getStringSet(expandedTasksKey(appWidgetId), emptySet()).orEmpty(),
         )
+        if (!hasConfiguration(prefs, appWidgetId)) return value
+
+        val storedGeneration = prefs.getLong(dataGenerationKey(appWidgetId), 0L)
+        if (storedGeneration == dataGeneration) return value
+
+        // Widget settings live outside the replaceable user-data snapshot.
+        // Keep display-only choices, but never let identifiers from the old
+        // database generation alias unrelated records restored with the same IDs.
+        val reconciled = value.copy(
+            areaScope = when (value.areaScope) {
+                AreaScope.Unassigned -> AreaScope.Unassigned
+                AreaScope.All,
+                is AreaScope.One,
+                -> AreaScope.All
+            },
+            selectedHabitIds = if (prefs.contains(selectedHabitsKey(appWidgetId))) emptySet() else null,
+            expandedHabitIds = emptySet(),
+            expandedTaskKeys = emptySet(),
+        )
+        write(context, appWidgetId, reconciled, dataGeneration)
+        WidgetSnapshotCache.remove(context, intArrayOf(appWidgetId))
+        return reconciled
     }
 
-    fun save(context: Context, appWidgetId: Int, value: WidgetPreferences) {
+    fun save(
+        context: Context,
+        appWidgetId: Int,
+        value: WidgetPreferences,
+        dataGeneration: Long = context.currentWidgetDataGeneration(),
+    ) {
+        write(context, appWidgetId, value, dataGeneration)
+        // A display snapshot describes the previous scope/range/selection and
+        // must never be relabeled under newly saved configuration.
+        WidgetSnapshotCache.remove(context, intArrayOf(appWidgetId))
+    }
+
+    private fun write(
+        context: Context,
+        appWidgetId: Int,
+        value: WidgetPreferences,
+        dataGeneration: Long,
+    ) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit {
             putString(scopeKey(appWidgetId), value.areaScope.storageKey)
             putInt(
@@ -81,10 +125,8 @@ internal object WhipWidgetPreferences {
             }
             putStringSet(expandedHabitsKey(appWidgetId), value.expandedHabitIds.map(Long::toString).toSet())
             putStringSet(expandedTasksKey(appWidgetId), value.expandedTaskKeys)
+            putLong(dataGenerationKey(appWidgetId), dataGeneration)
         }
-        // A display snapshot describes the previous scope/range/selection and
-        // must never be relabeled under newly saved configuration.
-        WidgetSnapshotCache.remove(context, intArrayOf(appWidgetId))
     }
 
     fun saveScope(context: Context, appWidgetId: Int, scope: AreaScope) {
@@ -154,9 +196,24 @@ internal object WhipWidgetPreferences {
                 remove(selectedHabitsKey(id))
                 remove(expandedHabitsKey(id))
                 remove(expandedTasksKey(id))
+                remove(dataGenerationKey(id))
             }
         }
     }
+
+    private fun hasConfiguration(
+        prefs: android.content.SharedPreferences,
+        appWidgetId: Int,
+    ): Boolean = listOf(
+        scopeKey(appWidgetId),
+        transparencyKey(appWidgetId),
+        rangeKey(appWidgetId),
+        showCompletedKey(appWidgetId),
+        selectedHabitsKey(appWidgetId),
+        expandedHabitsKey(appWidgetId),
+        expandedTasksKey(appWidgetId),
+        dataGenerationKey(appWidgetId),
+    ).any(prefs::contains)
 
     private fun scopeKey(appWidgetId: Int) = "scope_$appWidgetId"
     private fun transparencyKey(appWidgetId: Int) = "transparency_$appWidgetId"
@@ -165,7 +222,11 @@ internal object WhipWidgetPreferences {
     private fun selectedHabitsKey(appWidgetId: Int) = "selected_habits_$appWidgetId"
     private fun expandedHabitsKey(appWidgetId: Int) = "expanded_habits_$appWidgetId"
     private fun expandedTasksKey(appWidgetId: Int) = "expanded_tasks_$appWidgetId"
+    private fun dataGenerationKey(appWidgetId: Int) = "data_generation_$appWidgetId"
 }
+
+internal fun Context.currentWidgetDataGeneration(): Long =
+    (applicationContext as? WhipApplication)?.currentUserDataGeneration() ?: 0L
 
 internal fun widgetBackgroundAlpha(transparencyPercent: Int): Int =
     (((100 - transparencyPercent.coerceIn(0, MAX_WIDGET_TRANSPARENCY)) / 100f) * 255f)

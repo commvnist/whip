@@ -38,6 +38,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,8 +76,11 @@ import com.whip.app.ui.WhipSettingsRow
 import com.whip.app.ui.WhipSpacing
 import com.whip.app.ui.WhipTextButton
 import com.whip.app.ui.WhipTrailingCloseAction
+import com.whip.app.ui.StartupRecoveryScreen
 import com.whip.app.ui.theme.WhipTheme
+import com.whip.app.startup.StartupRecoveryState
 import kotlin.math.abs
+import kotlinx.coroutines.launch
 
 private enum class HabitSelectionMode { AllMatching, ChooseHabits }
 
@@ -106,10 +111,23 @@ class WhipWidgetConfigureActivity : ComponentActivity() {
         } else {
             WidgetKind.TaskAgenda
         }
-        val existing = WhipWidgetPreferences.load(this, widgetId)
         val app = application as WhipApplication
 
         setContent {
+            val startupState by app.startupRecoveryState.collectAsStateWithLifecycle()
+            if (startupState != StartupRecoveryState.Ready) {
+                WhipTheme(darkTheme = isSystemInDarkTheme(), dynamicColor = false) {
+                    StartupRecoveryScreen(
+                        state = startupState,
+                        onRetry = app::retryStartupRecovery,
+                    )
+                }
+                return@setContent
+            }
+            val dataGeneration by app.userDataGeneration.collectAsStateWithLifecycle()
+            val existing = remember(widgetId, dataGeneration) {
+                WhipWidgetPreferences.load(this, widgetId, dataGeneration)
+            }
             val areas by app.areaRepository.areas.collectAsStateWithLifecycle(initialValue = emptyList())
             val habits by app.habitRepository.habits.collectAsStateWithLifecycle(initialValue = emptyList())
             val appSettings by app.settingsRepository.settings.collectAsStateWithLifecycle(
@@ -128,21 +146,27 @@ class WhipWidgetConfigureActivity : ComponentActivity() {
                 }
             }
 
-            var selectedAreaScopeKey by rememberSaveable(widgetId) {
+            var selectedAreaScopeKey by rememberSaveable(widgetId, dataGeneration) {
                 mutableStateOf(existing.areaScope.storageKey)
             }
-            var transparencyPercent by rememberSaveable(widgetId) {
+            var transparencyPercent by rememberSaveable(widgetId, dataGeneration) {
                 mutableStateOf(
                     TransparencyOptions.minBy { option ->
                         abs(option - existing.transparencyPercent)
                     },
                 )
             }
-            var agendaRange by rememberSaveable(widgetId) { mutableStateOf(existing.agendaRange) }
-            var showCompletedHabits by rememberSaveable(widgetId) {
+            var agendaRange by rememberSaveable(widgetId, dataGeneration) {
+                mutableStateOf(existing.agendaRange)
+            }
+            var showCompletedHabits by rememberSaveable(widgetId, dataGeneration) {
                 mutableStateOf(existing.showCompletedHabits)
             }
-            var habitSelectionMode by rememberSaveable(widgetId, "habit_selection_mode") {
+            var habitSelectionMode by rememberSaveable(
+                widgetId,
+                dataGeneration,
+                "habit_selection_mode",
+            ) {
                 mutableStateOf(
                     if (existing.selectedHabitIds == null) {
                         HabitSelectionMode.AllMatching
@@ -151,9 +175,11 @@ class WhipWidgetConfigureActivity : ComponentActivity() {
                     },
                 )
             }
-            var selectedHabitIds by rememberSaveable(widgetId, "selected_habits") {
+            var selectedHabitIds by rememberSaveable(widgetId, dataGeneration, "selected_habits") {
                 mutableStateOf(existing.selectedHabitIds.orEmpty().toList())
             }
+            var saving by remember(widgetId, dataGeneration) { mutableStateOf(false) }
+            val saveScope = rememberCoroutineScope()
 
             val selectedScope = AreaScope.fromStorageKey(selectedAreaScopeKey)
             val unassignedLabel = stringResource(R.string.widget_scope_unassigned)
@@ -450,39 +476,51 @@ class WhipWidgetConfigureActivity : ComponentActivity() {
                         ) {
                             WhipButton(
                                 onClick = {
-                                    WhipWidgetPreferences.save(
-                                        this@WhipWidgetConfigureActivity,
-                                        widgetId,
-                                        WidgetPreferences(
-                                            areaScope = selectedScope,
-                                            transparencyPercent = transparencyPercent,
-                                            agendaRange = agendaRange,
-                                            showCompletedHabits = showCompletedHabits,
-                                            selectedHabitIds = if (
-                                                habitSelectionMode == HabitSelectionMode.AllMatching
-                                            ) {
-                                                null
-                                            } else {
-                                                selectedHabitIds.toSet()
-                                            },
-                                            expandedHabitIds = if (
-                                                habitSelectionMode == HabitSelectionMode.AllMatching
-                                            ) {
-                                                existing.expandedHabitIds
-                                            } else {
-                                                existing.expandedHabitIds.intersect(selectedHabitIds.toSet())
-                                            },
-                                            expandedTaskKeys = existing.expandedTaskKeys,
-                                        ),
+                                    saving = true
+                                    val preferences = WidgetPreferences(
+                                        areaScope = selectedScope,
+                                        transparencyPercent = transparencyPercent,
+                                        agendaRange = agendaRange,
+                                        showCompletedHabits = showCompletedHabits,
+                                        selectedHabitIds = if (
+                                            habitSelectionMode == HabitSelectionMode.AllMatching
+                                        ) {
+                                            null
+                                        } else {
+                                            selectedHabitIds.toSet()
+                                        },
+                                        expandedHabitIds = if (
+                                            habitSelectionMode == HabitSelectionMode.AllMatching
+                                        ) {
+                                            existing.expandedHabitIds
+                                        } else {
+                                            existing.expandedHabitIds.intersect(selectedHabitIds.toSet())
+                                        },
+                                        expandedTaskKeys = existing.expandedTaskKeys,
                                     )
-                                    WhipWidgetProvider.update(this@WhipWidgetConfigureActivity, widgetId)
-                                    setResult(
-                                        Activity.RESULT_OK,
-                                        Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId),
-                                    )
-                                    finish()
+                                    saveScope.launch {
+                                        if (
+                                            persistWidgetConfiguration(
+                                                app = app,
+                                                appWidgetId = widgetId,
+                                                preferences = preferences,
+                                                expectedDataGeneration = dataGeneration,
+                                            )
+                                        ) {
+                                            setResult(
+                                                Activity.RESULT_OK,
+                                                Intent().putExtra(
+                                                    AppWidgetManager.EXTRA_APPWIDGET_ID,
+                                                    widgetId,
+                                                ),
+                                            )
+                                            finish()
+                                        } else {
+                                            saving = false
+                                        }
+                                    }
                                 },
-                                enabled = canSave,
+                                enabled = canSave && !saving,
                                 modifier = Modifier
                                     .align(Alignment.CenterHorizontally)
                                     .widthIn(max = WhipContentWidth.compactDialog)
@@ -502,6 +540,24 @@ class WhipWidgetConfigureActivity : ComponentActivity() {
         }
     }
 }
+
+internal suspend fun persistWidgetConfiguration(
+    app: WhipApplication,
+    appWidgetId: Int,
+    preferences: WidgetPreferences,
+    expectedDataGeneration: Long = app.currentUserDataGeneration(),
+    updateWidget: (android.content.Context, Int) -> Unit = WhipWidgetProvider::update,
+): Boolean = app.withUserDataAccess {
+    if (!app.isCurrentUserDataGeneration(expectedDataGeneration)) return@withUserDataAccess false
+    WhipWidgetPreferences.save(
+        context = app,
+        appWidgetId = appWidgetId,
+        value = preferences,
+        dataGeneration = expectedDataGeneration,
+    )
+    updateWidget(app, appWidgetId)
+    true
+} == true
 
 @Composable
 private fun HabitSelectionList(

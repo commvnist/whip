@@ -12,6 +12,7 @@ import android.widget.RemoteViewsService
 import com.whip.app.R
 import com.whip.app.WhipApplication
 import com.whip.app.core.zoneId
+import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -39,6 +40,7 @@ internal class TaskWidgetRemoteViewsFactory(
 ) : RemoteViewsService.RemoteViewsFactory {
     private var rows: List<TaskCollectionEntry> = emptyList()
     private var renderedDate: LocalDate = LocalDate.MIN
+    private var renderedDataGeneration: Long = 0L
 
     override fun onCreate() = Unit
 
@@ -46,41 +48,46 @@ internal class TaskWidgetRemoteViewsFactory(
         val app = context.applicationContext as WhipApplication
         val result = runCatching {
             snapshotLoaderOverride?.invoke() ?: runBlocking(Dispatchers.IO) {
-                val preferences = WhipWidgetPreferences.load(context, appWidgetId)
-                val today = app.clock.today()
-                val content = calculateTaskAgendaContent(
-                    tasks = app.taskRepository.tasks.first(),
-                    taskOccurrences = app.taskRepository.occurrences.first(),
-                    taskSteps = app.taskRepository.steps.first(),
-                    taskStepStates = app.taskRepository.stepStates.first(),
-                    taskStepSnapshots = app.taskRepository.stepSnapshots.first(),
-                    today = today,
-                    areaScope = preferences.areaScope,
-                    range = preferences.agendaRange,
-                    zoneId = app.settingsRepository.current().zoneId(),
-                )
-                val preferencesWithValidExpansions = WhipWidgetPreferences.pruneTaskExpansions(
-                    context = context,
-                    appWidgetId = appWidgetId,
-                    eligibleTaskKeys = content.items
-                        .filter { it.subtasks.isNotEmpty() }
-                        .mapTo(mutableSetOf()) { it.stableKey },
-                )
-                TaskWidgetSnapshot(
-                    rows = taskWidgetRows(content.items, preferencesWithValidExpansions.expandedTaskKeys),
-                    date = today,
-                )
+                app.withUserDataAccess {
+                    val preferences = WhipWidgetPreferences.load(context, appWidgetId)
+                    val today = app.clock.today()
+                    val content = calculateTaskAgendaContent(
+                        tasks = app.taskRepository.tasks.first(),
+                        taskOccurrences = app.taskRepository.occurrences.first(),
+                        taskSteps = app.taskRepository.steps.first(),
+                        taskStepStates = app.taskRepository.stepStates.first(),
+                        taskStepSnapshots = app.taskRepository.stepSnapshots.first(),
+                        today = today,
+                        areaScope = preferences.areaScope,
+                        range = preferences.agendaRange,
+                        zoneId = app.settingsRepository.current().zoneId(),
+                    )
+                    val preferencesWithValidExpansions = WhipWidgetPreferences.pruneTaskExpansions(
+                        context = context,
+                        appWidgetId = appWidgetId,
+                        eligibleTaskKeys = content.items
+                            .filter { it.subtasks.isNotEmpty() }
+                            .mapTo(mutableSetOf()) { it.stableKey },
+                    )
+                    TaskWidgetSnapshot(
+                        rows = taskWidgetRows(content.items, preferencesWithValidExpansions.expandedTaskKeys),
+                        date = today,
+                        dataGeneration = app.currentUserDataGeneration(),
+                    )
+                } ?: error("Whip data is unavailable while recovery is in progress")
             }
         }
         val snapshot = result.getOrNull()
         if (snapshot != null) {
             rows = snapshot.rows.map(TaskCollectionEntry::Current)
             renderedDate = snapshot.date
+            renderedDataGeneration = snapshot.dataGeneration
             WidgetSnapshotCache.save(
                 context = context,
                 kind = WidgetSnapshotKind.TaskAgenda,
                 appWidgetId = appWidgetId,
                 rows = snapshot.rows.map { it.toCachedRow(context, snapshot.date) },
+                dataGeneration = snapshot.dataGeneration,
             )
         } else {
             val cached = WidgetSnapshotCache.load(context, WidgetSnapshotKind.TaskAgenda, appWidgetId)
@@ -88,19 +95,26 @@ internal class TaskWidgetRemoteViewsFactory(
                 add(TaskCollectionEntry.RefreshError(hasCachedRows = cached?.rows?.isNotEmpty() == true))
                 cached?.rows?.mapTo(this, TaskCollectionEntry::Cached)
             }
-            renderedDate = app.clock.today()
+            renderedDate = LocalDate.MIN
+            renderedDataGeneration = 0L
         }
     }
 
     override fun onDestroy() {
         rows = emptyList()
+        renderedDataGeneration = 0L
     }
 
     override fun getCount(): Int = rows.size
 
     override fun getViewAt(position: Int): RemoteViews? = rows.getOrNull(position)?.let { entry ->
         when (entry) {
-            is TaskCollectionEntry.Current -> taskCollectionRow(context, entry.row, renderedDate)
+            is TaskCollectionEntry.Current -> taskCollectionRow(
+                context,
+                entry.row,
+                renderedDate,
+                renderedDataGeneration,
+            )
             is TaskCollectionEntry.Cached -> cachedCollectionRow(context, entry.row)
             is TaskCollectionEntry.RefreshError -> refreshErrorRow(
                 context = context,
@@ -135,6 +149,7 @@ private sealed interface TaskCollectionEntry {
 internal data class TaskWidgetSnapshot(
     val rows: List<TaskWidgetRow>,
     val date: LocalDate,
+    val dataGeneration: Long,
 )
 
 private fun TaskWidgetRow.toCachedRow(context: Context, today: LocalDate): CachedWidgetRow =
@@ -149,6 +164,7 @@ private fun taskCollectionRow(
     context: Context,
     row: TaskWidgetRow,
     today: LocalDate,
+    dataGeneration: Long,
 ): RemoteViews {
     val layout = when {
         row.isSubtask -> R.layout.widget_child_row
@@ -182,11 +198,17 @@ private fun taskCollectionRow(
                 if (subtask.completed) R.color.widget_secondary_text else R.color.widget_primary_text,
             ),
         )
-        views.setOnClickFillInIntent(R.id.widget_row, subtaskToggleIntent(row, today))
+        views.setOnClickFillInIntent(
+            R.id.widget_row,
+            subtaskToggleIntent(row, today, dataGeneration),
+        )
         views.setContentDescription(R.id.widget_row, subtaskActionDescription(context, row))
     } else {
         val requiresSubtaskReview = row.requiresSubtaskReview
-        views.setOnClickFillInIntent(R.id.widget_row_body, openTaskFillInIntent(row, today))
+        views.setOnClickFillInIntent(
+            R.id.widget_row_body,
+            openTaskFillInIntent(row, today, dataGeneration),
+        )
         views.setContentDescription(
             R.id.widget_row_body,
             context.getString(R.string.widget_open_task, row.item.task.title),
@@ -211,13 +233,18 @@ private fun taskCollectionRow(
         views.setOnClickFillInIntent(
             R.id.widget_row_action,
             if (requiresSubtaskReview && !row.expanded) {
-                taskActionIntent(WhipWidgetProvider.COLLECTION_SET_TASK_EXPANDED, row, today)
+                taskActionIntent(
+                    WhipWidgetProvider.COLLECTION_SET_TASK_EXPANDED,
+                    row,
+                    today,
+                    dataGeneration,
+                )
                     .putExtra(WhipWidgetProvider.EXTRA_TASK_KEY, row.item.stableKey)
                     .putExtra(WhipWidgetProvider.EXTRA_EXPANDED, true)
             } else if (requiresSubtaskReview) {
-                openTaskFillInIntent(row, today)
+                openTaskFillInIntent(row, today, dataGeneration)
             } else {
-                taskActionIntent(WhipWidgetProvider.ACTION_COMPLETE_TASK, row, today)
+                taskActionIntent(WhipWidgetProvider.ACTION_COMPLETE_TASK, row, today, dataGeneration)
             },
         )
         views.setInt(
@@ -240,7 +267,12 @@ private fun taskCollectionRow(
             )
             views.setOnClickFillInIntent(
                 R.id.widget_row_expand,
-                taskActionIntent(WhipWidgetProvider.COLLECTION_SET_TASK_EXPANDED, row, today)
+                taskActionIntent(
+                    WhipWidgetProvider.COLLECTION_SET_TASK_EXPANDED,
+                    row,
+                    today,
+                    dataGeneration,
+                )
                     .putExtra(WhipWidgetProvider.EXTRA_TASK_KEY, row.item.stableKey)
                     .putExtra(WhipWidgetProvider.EXTRA_EXPANDED, !row.expanded),
             )
@@ -250,15 +282,26 @@ private fun taskCollectionRow(
     return views
 }
 
-private fun openTaskFillInIntent(row: TaskWidgetRow, today: LocalDate): Intent =
-    taskActionIntent(WhipWidgetProvider.COLLECTION_OPEN_TASK, row, today)
+private fun openTaskFillInIntent(
+    row: TaskWidgetRow,
+    today: LocalDate,
+    dataGeneration: Long,
+): Intent = taskActionIntent(WhipWidgetProvider.COLLECTION_OPEN_TASK, row, today, dataGeneration)
 
-private fun subtaskToggleIntent(row: TaskWidgetRow, today: LocalDate): Intent =
-    taskActionIntent(WhipWidgetProvider.ACTION_TOGGLE_SUBTASK, row, today)
+private fun subtaskToggleIntent(
+    row: TaskWidgetRow,
+    today: LocalDate,
+    dataGeneration: Long,
+): Intent = taskActionIntent(WhipWidgetProvider.ACTION_TOGGLE_SUBTASK, row, today, dataGeneration)
         .putExtra(WhipWidgetProvider.EXTRA_STEP_ID, requireNotNull(row.subtask).step.id)
         .putExtra(WhipWidgetProvider.EXTRA_COMPLETED, !row.subtask.completed)
 
-private fun taskActionIntent(action: String, row: TaskWidgetRow, today: LocalDate): Intent = Intent()
+private fun taskActionIntent(
+    action: String,
+    row: TaskWidgetRow,
+    today: LocalDate,
+    dataGeneration: Long,
+): Intent = Intent()
     .putExtra(WhipWidgetProvider.EXTRA_TASK_COLLECTION_ACTION, action)
     .putExtra(WhipWidgetProvider.EXTRA_TASK_ID, row.item.task.id)
     .putExtra(
@@ -266,6 +309,10 @@ private fun taskActionIntent(action: String, row: TaskWidgetRow, today: LocalDat
         row.item.originalDate?.toEpochDay() ?: WhipWidgetProvider.NO_DATE,
     )
     .putExtra(WhipWidgetProvider.EXTRA_RENDERED_DATE_EPOCH_DAY, today.toEpochDay())
+    .putExtra(
+        USER_DATA_GENERATION_KEY,
+        dataGeneration,
+    )
 
 private fun subtaskActionDescription(context: Context, row: TaskWidgetRow): String {
     val subtask = requireNotNull(row.subtask)

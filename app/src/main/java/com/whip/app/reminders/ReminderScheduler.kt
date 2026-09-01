@@ -5,6 +5,7 @@ import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.whip.app.WhipApplication
 import com.whip.app.data.WhipDatabase
 import com.whip.app.core.SettingsRepository
 import com.whip.app.core.adjustForQuietHours
@@ -17,6 +18,7 @@ import com.whip.app.domain.TaskOccurrence
 import com.whip.app.domain.WhipTask
 import com.whip.app.domain.RecurrenceAnchor
 import com.whip.app.domain.taskReminderInstant
+import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -29,20 +31,51 @@ class ReminderScheduler(context: Context, private val settingsRepository: Settin
     private val workManager = WorkManager.getInstance(appContext)
     private val dao = WhipDatabase.get(appContext).taskDao()
 
-    suspend fun syncAll() {
+    suspend fun syncAll(allowDuringRecovery: Boolean = false) {
+        if (!allowDuringRecovery) {
+            val app = appContext as? WhipApplication ?: return
+            app.withUserDataAccess { syncAllInternal() }
+            return
+        }
+        syncAllInternal()
+    }
+
+    private suspend fun syncAllInternal() {
         // Calling WorkManager cancellation once per ordinary task can create
         // thousands of Binder proxies on large databases. Only tasks capable
         // of producing a reminder need daily/startup rescheduling; normal edit,
         // archive, and delete paths already call syncTask to clear stale work.
-        dao.getReminderTaskIds().forEach { taskId -> syncTask(taskId) }
+        dao.getReminderTaskIds().forEach { taskId -> syncTaskInternal(taskId) }
     }
 
-    suspend fun syncTask(taskId: Long) {
+    suspend fun syncTask(taskId: Long, allowDuringRecovery: Boolean = false) {
+        if (!allowDuringRecovery) {
+            val app = appContext as? WhipApplication ?: return
+            app.withUserDataAccess { syncTaskInternal(taskId) }
+            return
+        }
+        syncTaskInternal(taskId)
+    }
+
+    private suspend fun syncTaskInternal(taskId: Long) {
         workManager.cancelAllWorkByTag(tag(taskId))
-        scheduleNext(taskId = taskId, afterMillis = System.currentTimeMillis())
+        scheduleNextInternal(taskId = taskId, afterMillis = System.currentTimeMillis())
     }
 
-    suspend fun scheduleNext(taskId: Long, afterMillis: Long) {
+    suspend fun scheduleNext(
+        taskId: Long,
+        afterMillis: Long,
+        allowDuringRecovery: Boolean = false,
+    ) {
+        if (!allowDuringRecovery) {
+            val app = appContext as? WhipApplication ?: return
+            app.withUserDataAccess { scheduleNextInternal(taskId, afterMillis) }
+            return
+        }
+        scheduleNextInternal(taskId, afterMillis)
+    }
+
+    private suspend fun scheduleNextInternal(taskId: Long, afterMillis: Long) {
         val task = dao.getTask(taskId)?.toDomain() ?: return
         if (task.archived || !task.reminderEnabled || task.timeMinutes == null) return
 
@@ -58,6 +91,10 @@ class ReminderScheduler(context: Context, private val settingsRepository: Settin
                         .putLong(ReminderWorker.TASK_ID, taskId)
                         .putLong(ReminderWorker.ORIGINAL_EPOCH_DAY, reminder.originalDate.toEpochDay())
                         .putInt(ReminderWorker.OFFSET_MINUTES, offsetMinutes)
+                        .putLong(
+                            USER_DATA_GENERATION_KEY,
+                            (appContext as WhipApplication).currentUserDataGeneration(),
+                        )
                         .build(),
                 )
                 .addTag(tag(taskId))
@@ -67,7 +104,23 @@ class ReminderScheduler(context: Context, private val settingsRepository: Settin
         }
     }
 
-    fun snooze(taskId: Long, originalEpochDay: Long?, minutes: Int = 10) {
+    fun snooze(
+        taskId: Long,
+        originalEpochDay: Long?,
+        minutes: Int = 10,
+        allowDuringRecovery: Boolean = false,
+    ) {
+        val app = appContext as WhipApplication
+        if (allowDuringRecovery) {
+            snoozeInternal(taskId, originalEpochDay, minutes, app.currentUserDataGeneration())
+        } else {
+            app.tryWithUserDataAccessNow {
+                snoozeInternal(taskId, originalEpochDay, minutes, app.currentUserDataGeneration())
+            }
+        }
+    }
+
+    private fun snoozeInternal(taskId: Long, originalEpochDay: Long?, minutes: Int, generation: Long) {
         val request = OneTimeWorkRequestBuilder<ReminderWorker>()
             .setInitialDelay(minutes.coerceIn(1, 1_440).toLong(), TimeUnit.MINUTES)
             .setInputData(
@@ -75,6 +128,10 @@ class ReminderScheduler(context: Context, private val settingsRepository: Settin
                     .putLong(ReminderWorker.TASK_ID, taskId)
                     .putLong(ReminderWorker.ORIGINAL_EPOCH_DAY, originalEpochDay ?: Long.MIN_VALUE)
                     .putInt(ReminderWorker.OFFSET_MINUTES, 0)
+                    .putLong(
+                        USER_DATA_GENERATION_KEY,
+                        generation,
+                    )
                     .build(),
             )
             .addTag(tag(taskId))

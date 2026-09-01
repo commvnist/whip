@@ -152,24 +152,30 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         refreshHealthConnect()
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
-                val tasks = app.taskRepository.tasks.first()
-                val habits = app.habitRepository.habits.first()
-                val goals = app.goalRepository.goals.first()
-                val tracks = app.trackRepository.tracks.first()
-                (tasks.map { it.area } + habits.map { it.area } + goals.map { it.area } + tracks.map { it.area })
-                    .filter(String::isNotBlank).distinctBy(String::lowercase)
-                    .forEach { app.measurementRepository.ensureArea(it) }
-                (tasks.flatMap { it.tags } + habits.flatMap { it.tags } + goals.flatMap { it.tags } + tracks.flatMap { it.tags })
-                    .filter(String::isNotBlank).distinctBy(String::lowercase)
-                    .forEach { app.measurementRepository.ensureTag(it) }
+                app.withUserDataAccess {
+                    val tasks = app.taskRepository.tasks.first()
+                    val habits = app.habitRepository.habits.first()
+                    val goals = app.goalRepository.goals.first()
+                    val tracks = app.trackRepository.tracks.first()
+                    (tasks.map { it.area } + habits.map { it.area } + goals.map { it.area } + tracks.map { it.area })
+                        .filter(String::isNotBlank).distinctBy(String::lowercase)
+                        .forEach { app.measurementRepository.ensureArea(it) }
+                    (tasks.flatMap { it.tags } + habits.flatMap { it.tags } + goals.flatMap { it.tags } + tracks.flatMap { it.tags })
+                        .filter(String::isNotBlank).distinctBy(String::lowercase)
+                        .forEach { app.measurementRepository.ensureTag(it) }
+                    Unit
+                }
             }
         }
     }
 
     fun update(transform: (AppSettings) -> AppSettings) {
-        val before = repository.current()
-        repository.update(transform)
-        val after = repository.current()
+        val change = app.tryWithUserDataAccessNow {
+            val before = repository.current()
+            repository.update(transform)
+            before to repository.current()
+        } ?: return
+        val (before, after) = change
         if (
             before.quietStartMinutes != after.quietStartMinutes ||
             before.quietEndMinutes != after.quietEndMinutes ||
@@ -271,7 +277,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             runtime.value = runtime.value.copy(busy = true, message = null)
             val existing = uiState.value.areas.firstOrNull { it.name.equals(name.trim(), true) }
-            runCatching { withContext(Dispatchers.IO) { app.areaRepository.create(name, colorArgb) } }
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    checkNotNull(app.withUserDataAccess { app.areaRepository.create(name, colorArgb) }) {
+                        "Whip data is unavailable while recovery is in progress"
+                    }
+                }
+            }
                 .onSuccess { id ->
                     runtime.value = runtime.value.copy(
                         busy = false,
@@ -289,7 +301,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun renameArea(id: String, name: String, onResult: (Result<Unit>) -> Unit = {}) {
         viewModelScope.launch {
             runtime.value = runtime.value.copy(busy = true, message = null)
-            runCatching { withContext(Dispatchers.IO) { app.areaRepository.rename(id, name) } }
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    checkNotNull(app.withUserDataAccess {
+                        app.areaRepository.rename(id, name)
+                        Unit
+                    }) { "Whip data is unavailable while recovery is in progress" }
+                }
+            }
                 .onSuccess {
                     runtime.value = runtime.value.copy(busy = false, message = "Area renamed")
                     onResult(Result.success(Unit))
@@ -351,7 +370,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             areaReorderMutex.withLock {
                 try {
-                    withContext(Dispatchers.IO) { app.areaRepository.move(id, direction) }
+                    withContext(Dispatchers.IO) {
+                        checkNotNull(app.withUserDataAccess {
+                            app.areaRepository.move(id, direction)
+                            Unit
+                        }) { "Whip data is unavailable while recovery is in progress" }
+                    }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (error: Throwable) {
@@ -395,20 +419,22 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun export(uri: Uri, kind: ExportKind, passphrase: String? = null) = runIo(
         if (kind in setOf(ExportKind.Backup, ExportKind.EncryptedBackup)) "Backup saved" else "CSV saved",
     ) {
-        val content = when (kind) {
-            ExportKind.Backup -> backups.exportBackup()
-            ExportKind.EncryptedBackup -> EncryptedBackupCodec.encrypt(
-                backups.exportBackup(),
-                requireNotNull(passphrase) { "Enter an encryption passphrase" }.toCharArray(),
-            )
-            ExportKind.TasksCsv -> backups.exportTasksCsv()
-            ExportKind.HabitsCsv -> backups.exportHabitsCsv()
-            ExportKind.GoalsCsv -> backups.exportGoalsCsv()
-            ExportKind.GymCsv -> backups.exportGymCsv()
-            ExportKind.TracksCsv -> backups.exportTracksCsv()
-        }
-        app.contentResolver.openOutputStream(uri, "w")?.bufferedWriter()?.use { it.write(content) }
-            ?: error("Could not open the selected file")
+        app.withUserDataAccess {
+            val content = when (kind) {
+                ExportKind.Backup -> backups.exportBackup()
+                ExportKind.EncryptedBackup -> EncryptedBackupCodec.encrypt(
+                    backups.exportBackup(),
+                    requireNotNull(passphrase) { "Enter an encryption passphrase" }.toCharArray(),
+                )
+                ExportKind.TasksCsv -> backups.exportTasksCsv()
+                ExportKind.HabitsCsv -> backups.exportHabitsCsv()
+                ExportKind.GoalsCsv -> backups.exportGoalsCsv()
+                ExportKind.GymCsv -> backups.exportGymCsv()
+                ExportKind.TracksCsv -> backups.exportTracksCsv()
+            }
+            app.contentResolver.openOutputStream(uri, "w")?.bufferedWriter()?.use { it.write(content) }
+                ?: error("Could not open the selected file")
+        } ?: error("Whip data is unavailable while recovery is in progress")
     }
 
     fun previewRestore(uri: Uri) = runIo("Backup validated") {
@@ -443,11 +469,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         runtime.value = runtime.value.copy(preview = preview)
     }
 
-    fun confirmRestore() = runIo("Backup restored") {
-        app.restoreRecoveryManager.restore(
-            pendingRestoreJson ?: error("Choose a backup first"),
-            app::rebuildBackgroundState,
-        )
+    fun confirmRestore() = runIo("Backup restored", requiresDataAccess = false) {
+        app.restoreBackup(pendingRestoreJson ?: error("Choose a backup first"))
         pendingRestoreJson = null
         runtime.value = runtime.value.copy(preview = null)
     }
@@ -457,9 +480,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             runtime.value = runtime.value.copy(busy = true, message = null)
             runCatching {
                 withContext(Dispatchers.IO) {
-                    backups.mergeBackup(pendingRestoreJson ?: error("Choose a backup first")).also {
-                        app.rebuildBackgroundState()
-                    }
+                    app.withUserDataAccess {
+                        backups.mergeBackup(pendingRestoreJson ?: error("Choose a backup first")).also {
+                            app.rebuildBackgroundState()
+                        }
+                    } ?: error("Whip data is unavailable while recovery is in progress")
                 }
             }.onSuccess { summary ->
                 pendingRestoreJson = null
@@ -485,7 +510,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun createPortableBackup() = runIo("Portable backup saved and verified") {
-        check(app.portableBackupManager.backupNow() is PortableBackupOutcome.Saved)
+        app.withUserDataAccess {
+            check(app.portableBackupManager.backupNow() is PortableBackupOutcome.Saved)
+        } ?: error("Whip data is unavailable while recovery is in progress")
     }
 
     fun setPortableBackupAutomatic(enabled: Boolean) {
@@ -514,9 +541,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         onSuccess = onSuccess,
         onFailure = onFailure,
     ) {
-        app.portableBackupManager.clearFolder()
-        backups.deleteAllData()
-        WorkManager.getInstance(app).cancelAllWorkByTag(ALL_WHIP_WORK_TAG).result.get()
+        app.withUserDataAccess {
+            app.portableBackupManager.clearFolder()
+            backups.deleteAllData()
+            WorkManager.getInstance(app).cancelAllWorkByTag(ALL_WHIP_WORK_TAG).result.get()
+        } ?: error("Whip data is unavailable while recovery is in progress")
     }
     fun createCustomUnit(
         name: String,
@@ -529,7 +558,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             runtime.value = runtime.value.copy(busy = true, message = null)
             runCatching {
                 withContext(Dispatchers.IO) {
-                    app.measurementRepository.createCustomUnit(name, symbol, dimension, factor)
+                    checkNotNull(app.withUserDataAccess {
+                        app.measurementRepository.createCustomUnit(name, symbol, dimension, factor)
+                    }) { "Whip data is unavailable while recovery is in progress" }
                 }
             }.onSuccess { id ->
                 runtime.value = runtime.value.copy(busy = false, message = "Custom unit created")
@@ -584,9 +615,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             val settings = repository.current()
             val result = runCatching {
                 withContext(Dispatchers.IO) {
-                    healthConnect.sync(settings.healthDataTypes, settings.healthSyncDays).also {
-                        app.linkRepository.rebuildAll()
-                    }
+                    app.withUserDataAccess {
+                        healthConnect.sync(settings.healthDataTypes, settings.healthSyncDays).also {
+                            app.linkRepository.rebuildAll()
+                        }
+                    } ?: error("Whip data is unavailable while recovery is in progress")
                 }
             }
             result.onSuccess { status ->
@@ -610,12 +643,22 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         onSuccess: () -> Unit = {},
         onFailure: (Throwable) -> Unit = {},
         showSuccess: Boolean = true,
+        requiresDataAccess: Boolean = true,
         block: suspend () -> Unit,
     ) {
         viewModelScope.launch {
             runtime.value = runtime.value.copy(busy = true, message = null)
             try {
-                withContext(Dispatchers.IO) { block() }
+                withContext(Dispatchers.IO) {
+                    if (requiresDataAccess) {
+                        checkNotNull(app.withUserDataAccess {
+                            block()
+                            Unit
+                        }) { "Whip data is unavailable while recovery is in progress" }
+                    } else {
+                        block()
+                    }
+                }
                 runtime.value = runtime.value.copy(busy = false, message = success.takeIf { showSuccess })
                 onSuccess()
             } catch (error: Throwable) {
