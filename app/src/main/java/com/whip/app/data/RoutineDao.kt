@@ -30,6 +30,9 @@ interface RoutineDao {
     @Query("SELECT * FROM training_max_decisions ORDER BY createdAtMillis DESC, id DESC")
     fun observeTrainingMaxDecisions(): Flow<List<TrainingMaxDecisionEntity>>
 
+    @Query("SELECT * FROM training_max_decisions ORDER BY createdAtMillis DESC, id DESC")
+    suspend fun getAllTrainingMaxDecisions(): List<TrainingMaxDecisionEntity>
+
     @Query("SELECT * FROM graph_presets")
     suspend fun getGraphPresets(): List<GraphPresetEntity>
 
@@ -50,6 +53,9 @@ interface RoutineDao {
 
     @Query("SELECT * FROM routine_exercises WHERE routineDayId = :dayId ORDER BY position, id")
     suspend fun getExercises(dayId: Long): List<RoutineExerciseEntity>
+
+    @Query("SELECT * FROM routine_exercises WHERE id = :id")
+    suspend fun getExercise(id: Long): RoutineExerciseEntity?
 
     @Query("SELECT * FROM routine_exercises")
     suspend fun getAllExercises(): List<RoutineExerciseEntity>

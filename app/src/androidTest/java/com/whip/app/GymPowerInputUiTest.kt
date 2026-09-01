@@ -9,6 +9,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -19,13 +20,19 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.BodyweightLoadPolicy
 import com.whip.app.domain.EstimatedOneRepMaxFormula
@@ -57,6 +64,10 @@ import com.whip.app.core.DEFAULT_REST_TIMER_PRESET_SECONDS
 import com.whip.app.ui.ExerciseEditorDialog
 import com.whip.app.ui.MachineEditorDialog
 import com.whip.app.ui.MachinePermanentDeleteDialog
+import com.whip.app.ui.ExercisePermanentDeleteDialog
+import com.whip.app.ui.RoutinePermanentDeleteDialog
+import com.whip.app.ui.LocalWhipDialogPlacement
+import com.whip.app.ui.WhipDialogPlacement
 import com.whip.app.ui.QuickSetEntry
 import com.whip.app.ui.RestTimerCard
 import com.whip.app.ui.WorkoutExerciseCard
@@ -73,6 +84,8 @@ import com.whip.app.ui.routineDraftForEditing
 import com.whip.app.ui.routineProgramStatusLabel
 import com.whip.app.ui.workoutProgramSnapshotLabel
 import com.whip.app.data.MachineDeletionImpact
+import com.whip.app.data.ExerciseDeletionImpact
+import com.whip.app.data.RoutineDeletionImpact
 import com.whip.app.ui.theme.WhipTheme
 import org.junit.Rule
 import org.junit.Test
@@ -456,6 +469,198 @@ class GymPowerInputUiTest {
         compose.onNodeWithText("Needs Attention").assertIsDisplayed()
         compose.onNodeWithText("Active Workout").assertIsDisplayed()
         compose.onNodeWithTag("machine-delete-confirm").assertIsNotEnabled()
+    }
+
+    @Test
+    fun exerciseDeleteDialogBlocksActiveUseAndPreservesTrainingMaxAuditHistory() {
+        var openedWorkout = false
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalDensity provides Density(compose.density.density, fontScale = 2f),
+                LocalWhipDialogPlacement provides WhipDialogPlacement(maxWidth = 320.dp),
+            ) {
+                WhipTheme(darkTheme = true, dynamicColor = false) {
+                    ExercisePermanentDeleteDialog(
+                        modifier = Modifier.width(320.dp),
+                        exerciseName = "Zercher squat",
+                        impact = exerciseDeletionImpact(activePlacements = 1, trainingMaxDecisionCount = 3),
+                        targetMissing = false,
+                        preparing = false,
+                        deleting = false,
+                        errorMessage = null,
+                        onDismiss = {},
+                        onReviewUpdatedImpact = {},
+                        onOpenActiveWorkout = { openedWorkout = true },
+                        onConfirm = {},
+                    )
+                }
+            }
+        }
+
+        val dialog = compose.onNodeWithTag("exercise-delete-dialog").getUnclippedBoundsInRoot()
+        assertTrue(dialog.right - dialog.left <= 321.dp)
+        compose.onNodeWithText("Active Workout").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("exercise-delete-impact-list").performScrollToNode(hasText("Preserved"))
+        compose.onNodeWithText("Preserved").assertIsDisplayed()
+        compose.onNodeWithTag("exercise-delete-impact-list").performScrollToNode(hasText("References changed"))
+        compose.onNodeWithText("References changed").assertIsDisplayed()
+        compose.onNodeWithTag("exercise-delete-impact-list").performScrollToNode(hasText("Track history kept"))
+        compose.onNodeWithText("Track history kept").assertIsDisplayed()
+        compose.onNodeWithTag("exercise-delete-impact-list").performScrollToNode(hasText("Open Active Workout"))
+        compose.onNodeWithText("Open Active Workout").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("exercise-delete-confirm").assertIsDisplayed().assertIsNotEnabled()
+        compose.onNodeWithText("Cancel").assertIsDisplayed()
+        compose.runOnIdle { assertTrue(openedWorkout) }
+    }
+
+    @Test
+    fun routineDeleteDialogBlocksActiveSourceAndKeepsWorkoutAndTrainingMaxHistory() {
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                RoutinePermanentDeleteDialog(
+                    routineName = "Custom 5/3/1",
+                    impact = RoutineDeletionImpact(
+                        routineId = 8,
+                        displayName = "Custom 5/3/1",
+                        activeSession = true,
+                        dayCount = 3,
+                        routinePlacementCount = 3,
+                        routineSetCount = 36,
+                        preservedWorkoutHistoryCount = 11,
+                        trainingMaxDecisionCount = 6,
+                        revisionToken = "routine-revision",
+                    ),
+                    targetMissing = false,
+                    preparing = false,
+                    deleting = false,
+                    errorMessage = null,
+                    onDismiss = {},
+                    onReviewUpdatedImpact = {},
+                    onOpenActiveWorkout = {},
+                    onConfirm = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Active Workout").assertIsDisplayed()
+        compose.onNodeWithText("Kept").assertIsDisplayed()
+        compose.onNodeWithTag("routine-delete-confirm").assertIsNotEnabled()
+    }
+
+    @Test
+    fun exerciseDeleteDialogKeepsStaleImpactFailureInlineAndRetryable() {
+        var reviews = 0
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+                WhipTheme(darkTheme = true, dynamicColor = false) {
+                    ExercisePermanentDeleteDialog(
+                        exerciseName = "Bench press",
+                        impact = exerciseDeletionImpact(),
+                        targetMissing = false,
+                        preparing = false,
+                        deleting = false,
+                        errorMessage = "The Exercise or its deletion impact changed while the confirmation was open.",
+                        onDismiss = {},
+                        onReviewUpdatedImpact = { reviews++ },
+                        onOpenActiveWorkout = {},
+                        onConfirm = {},
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("exercise-delete-error").assertIsDisplayed()
+        compose.onNodeWithText("Review Updated Impact").performClick()
+        compose.onNodeWithTag("exercise-delete-confirm").assertIsNotEnabled()
+        compose.runOnIdle { assertEquals(1, reviews) }
+    }
+
+    @Test
+    fun missingExerciseDeletionTargetOffersCloseInsteadOfDestructiveRetry() {
+        var closes = 0
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                ExercisePermanentDeleteDialog(
+                    exerciseName = "Bench press",
+                    impact = null,
+                    targetMissing = true,
+                    preparing = false,
+                    deleting = false,
+                    errorMessage = "Exercise no longer exists. It may already have been deleted.",
+                    onDismiss = { closes++ },
+                    onReviewUpdatedImpact = {},
+                    onOpenActiveWorkout = {},
+                    onConfirm = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Exercise unavailable").assertIsDisplayed()
+        val liveRegion = compose.onNodeWithTag("exercise-delete-error")
+            .fetchSemanticsNode().config[SemanticsProperties.LiveRegion]
+        assertEquals(LiveRegionMode.Polite, liveRegion)
+        compose.onNodeWithText("Close").performClick()
+        compose.onNodeWithTag("exercise-delete-confirm").assertIsNotEnabled()
+        compose.runOnIdle { assertEquals(1, closes) }
+    }
+
+    @Test
+    fun missingRoutineDeletionTargetIsAnnouncedAndCannotBeDeleted() {
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                RoutinePermanentDeleteDialog(
+                    routineName = "Custom 5/3/1",
+                    impact = null,
+                    targetMissing = true,
+                    preparing = false,
+                    deleting = false,
+                    errorMessage = "Routine no longer exists. It may already have been deleted.",
+                    onDismiss = {},
+                    onReviewUpdatedImpact = {},
+                    onOpenActiveWorkout = {},
+                    onConfirm = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Routine unavailable").assertIsDisplayed()
+        val liveRegion = compose.onNodeWithTag("routine-delete-error")
+            .fetchSemanticsNode().config[SemanticsProperties.LiveRegion]
+        assertEquals(LiveRegionMode.Polite, liveRegion)
+        compose.onNodeWithTag("routine-delete-confirm").assertIsNotEnabled()
+    }
+
+    @Test
+    fun restoredUnverifiedMissingExerciseKeepsRetryVerificationInsteadOfAbandoningRecovery() {
+        val restoration = StateRestorationTester(compose)
+        var reviews = 0
+        restoration.setContent {
+            val verificationPending = androidx.compose.runtime.saveable.rememberSaveable {
+                mutableStateOf(true)
+            }
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                ExercisePermanentDeleteDialog(
+                    exerciseName = "Bench press",
+                    impact = null,
+                    targetMissing = true,
+                    preparing = false,
+                    deleting = false,
+                    errorMessage = "Exercise no longer exists. It may already have been deleted.",
+                    onDismiss = {},
+                    onReviewUpdatedImpact = { reviews++ },
+                    onOpenActiveWorkout = {},
+                    onConfirm = {},
+                    outcomeVerificationPending = verificationPending.value,
+                )
+            }
+        }
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        compose.onNodeWithText("Outcome not verified").assertIsDisplayed()
+        compose.onNodeWithText("Retry Verification").performClick()
+        compose.onAllNodesWithText("Close").assertCountEquals(0)
+        compose.runOnIdle { assertEquals(1, reviews) }
     }
 
     @Test
@@ -1179,5 +1384,36 @@ class GymPowerInputUiTest {
         archived = false,
         createdAtMillis = 1,
         updatedAtMillis = 1,
+    )
+
+    private fun exerciseDeletionImpact(
+        activePlacements: Int = 0,
+        trainingMaxDecisionCount: Int = 0,
+    ) = ExerciseDeletionImpact(
+        exerciseId = 7,
+        displayName = "Zercher squat",
+        activePlacements = activePlacements,
+        routinePlacementCount = 2,
+        routineSetCount = 16,
+        routineAlternativeReferenceCount = 1,
+        workoutPlacementCount = 9,
+        workoutSetCount = 43,
+        linkRuleCount = 1,
+        linkConditionCount = 1,
+        linkConditionChoiceCount = 0,
+        contributionCount = 2,
+        automationRuleCount = 1,
+        automationConditionCount = 1,
+        automationConditionChoiceCount = 0,
+        automationMappingCount = 1,
+        automationOccurrenceCount = 4,
+        linkedTrackEntryCount = 3,
+        graphPresetUpdateCount = 1,
+        graphPresetDeleteCount = 0,
+        personalRecordCount = 2,
+        trainingMaxDecisionCount = trainingMaxDecisionCount,
+        machineReferenceCount = 1,
+        categoryReferenceCount = 2,
+        revisionToken = "exercise-revision",
     )
 }

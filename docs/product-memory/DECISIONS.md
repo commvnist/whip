@@ -163,3 +163,26 @@
   8. Globally relaxed upsert versus typed reconciliation intent: authored edits remain strict; only Health Connect may recreate an absent row whose deterministic ID exactly matches its source.
 - Why this is superior for Whip: It protects lifecycle truth, authored drafts, restore/merge identity, reminder correctness, and destructive-action integrity without turning fast gym/productivity interactions into a generic modal framework.
 - Status: Accepted after independent Director, data-integrity, and adversarial-QA challenge; implemented in `IMP-20260831-011` and fully verified in `VER-20260831-013`. Track/Gym subsets of `FND-20260831-019` remain open.
+
+### DEC-20260901-018 — Protect active Gym programming before Track schema remediation
+
+- Context: The secondary-mutation audit found two P0 paths: Gym deletion could erase active 5/3/1 main work and corrupt Training Max progression, while a stale Track schema confirmation could erase newly added unreviewed values.
+- Position A: Fix Track first because its stale confirmation can destroy historical values.
+- Position B: Fix Gym first because an in-gym destructive action can erase the live prescription and change the next cycle's Training Max decision.
+- Evidence and constraints: Both need exact transactional boundaries. The Gym path is reachable during the highest-distraction, lowest-attention workflow and crosses active set truth, required-main-work eligibility, Routine provenance, and 5/3/1 progression. Track requires a larger definition/editor contract that should remain a separate reviewable chunk. Visual polish, search, and unrelated Settings work provide no comparable correctness reduction.
+- Failure modes: Track-first leaves an active strength-program corruption path shipping longer. Gym-first leaves known Track stale-schema loss pending. Combining them makes regression ownership, rollback, and historical compatibility harder to audit.
+- Synthesis/decision: Remediate Gym permanent Exercise/Routine deletion first as one coherent exact-mutation tranche, commit/push it after complete gates, then begin Track definition/schema integrity immediately.
+- Why this is superior for Whip: It removes the live programming-corruption path without diluting either domain's invariants, and preserves a clean commit boundary for the next P0.
+- Status: Accepted and executed for `IMP-20260901-012`; Track remains `FND-20260901-022`.
+
+### DEC-20260901-019 — Gym deletion uses exact impact, active guards, and durable outcome ownership
+
+- Context: Permanent deletion crosses Room cascades, active workouts, Routine templates, performed history, PRs, Training Max audits, graph presets, machines/categories, Goal Links, Triggers, automation-created Track entries, settings shortcuts, and fallible post-commit reconciliation.
+- Position A: Keep the existing immediate confirmation and generic global operation status.
+- Position B: Never permit permanent Exercise/Routine deletion; archive only.
+- Position C: Freeze a complete dependency impact, block only active programming hazards, validate the exact revision transactionally, and return a request-owned committed receipt with durable unknown-outcome verification.
+- Evidence and constraints: Users explicitly need archive and permanent cleanup, but historical and program consequences must be intelligible. Completed workout placements/sets are deleted only when the user reviews that exact count; Routine deletion instead preserves completed/discarded workout snapshots by clearing the mutable source reference. Training Max decisions already contain immutable Routine/Exercise identity snapshots and must remain as audit history. Process death may occur before the UI learns whether Room committed.
+- Failure modes: Position A permits stale confirmation, false retries, wrong-surface delivery, and active progression corruption. Position B prevents deliberate cleanup and leaves no exact impact contract. Position C can misclassify an unknown process-death outcome unless ownership survives SavedState and missing-target UI continues to offer verification.
+- Synthesis/decision: Use Position C. SHA-256 revisions include the root and every affected dependency; active Exercise placements/alternatives and active Routine-sourced sessions block deletion; exact counts must match inside one transaction; immutable Training Max decisions and explicitly preserved workout snapshots remain; ordinary post-commit PR/Link/settings failures become warnings; fatal errors still escape. The request/recovery token lives in `SavedStateHandle`, candidates/generation live in saveable UI state, and Retry Verification transfers ownership to a fresh read-only verification request.
+- Why this is superior for Whip: The user can make an informed permanent-cleanup choice while Whip protects live programming, preserves audit truth, rejects stale impact, and never encourages a second destructive write merely because delivery was interrupted.
+- Status: Accepted after repeated UX/engineering/QA challenge and fully verified in `VER-20260901-014`.

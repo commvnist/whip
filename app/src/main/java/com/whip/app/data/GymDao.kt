@@ -63,6 +63,9 @@ interface GymDao {
     @Query("SELECT * FROM gym_machine_exercise_joins WHERE machineId = :machineId")
     suspend fun getMachineExerciseJoins(machineId: Long): List<GymMachineExerciseJoinEntity>
 
+    @Query("SELECT * FROM gym_machine_exercise_joins WHERE exerciseId = :exerciseId")
+    suspend fun getMachineExerciseJoinsForExercise(exerciseId: Long): List<GymMachineExerciseJoinEntity>
+
     @Query("SELECT EXISTS(SELECT 1 FROM gym_machine_exercise_joins WHERE machineId = :machineId AND exerciseId = :exerciseId)")
     suspend fun machineSupportsExercise(machineId: Long, exerciseId: Long): Boolean
 

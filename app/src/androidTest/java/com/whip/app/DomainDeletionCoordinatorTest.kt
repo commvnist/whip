@@ -803,25 +803,144 @@ class DomainDeletionCoordinatorTest {
         assertNull(database.taskDao().getTask(taskId))
     }
 
-    @Test fun exerciseDeleteCleansHistoryTemplatesRecordsAndGraphPresets() = runBlocking {
-        val exerciseId = gym.createExercise(ExerciseDraft("Bench"))
+    @Test fun exerciseDeletionBlocksAnActiveWorkoutPlacement() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Active bench"))
+        val sessionId = gym.startWorkout("In progress")
+        gym.addExerciseToWorkout(sessionId, exerciseId)
+
+        val impact = requireNotNull(coordinator.previewExerciseDeletion(exerciseId))
+        val error = runCatching {
+            coordinator.deleteExercise(exerciseId, impact.revisionToken)
+        }.exceptionOrNull()
+
+        assertEquals(1, impact.activePlacements)
+        assertTrue(error is IllegalArgumentException)
+        assertNotNull(database.gymDao().getExercise(exerciseId))
+        assertEquals(1, database.gymDao().getWorkoutExercises(sessionId).size)
+    }
+
+    @Test fun routineDeletionBlocksItsActiveWorkout() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Active squat"))
+        val routineId = routines.createRoutine(
+            RoutineDraft("Active plan", days = listOf(RoutineDayDraft("A", listOf(RoutineExerciseDraft(exerciseId))))),
+        )
+        val sessionId = routines.startRoutine(routineId)
+
+        val impact = requireNotNull(coordinator.previewRoutineDeletion(routineId))
+        val error = runCatching {
+            coordinator.deleteRoutine(routineId, impact.revisionToken)
+        }.exceptionOrNull()
+
+        assertTrue(impact.activeSession)
+        assertTrue(error is IllegalArgumentException)
+        assertNotNull(database.routineDao().getRoutine(routineId))
+        assertEquals(routineId, database.gymDao().getSession(sessionId)?.sourceRoutineId)
+    }
+
+    @Test fun exerciseDeletionRejectsAStaleDependencyPreview() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Reviewed bench"))
+        val preview = requireNotNull(coordinator.previewExerciseDeletion(exerciseId))
+        routines.createRoutine(
+            RoutineDraft("Added later", days = listOf(RoutineDayDraft("A", listOf(RoutineExerciseDraft(exerciseId))))),
+        )
+
+        val error = runCatching {
+            coordinator.deleteExercise(exerciseId, preview.revisionToken)
+        }.exceptionOrNull()
+
+        assertTrue(error is IllegalArgumentException)
+        assertNotNull(database.gymDao().getExercise(exerciseId))
+        assertEquals(1, database.routineDao().getAllExercises().count { it.exerciseId == exerciseId })
+    }
+
+    @Test fun routineDeletionRejectsWorkoutHistoryAddedAfterPreview() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Reviewed squat"))
+        val routineId = routines.createRoutine(
+            RoutineDraft("Reviewed plan", days = listOf(RoutineDayDraft("A", listOf(RoutineExerciseDraft(exerciseId))))),
+        )
+        val preview = requireNotNull(coordinator.previewRoutineDeletion(routineId))
+        val sessionId = routines.startRoutine(routineId)
+        gym.finishWorkout(sessionId)
+
+        val error = runCatching {
+            coordinator.deleteRoutine(routineId, preview.revisionToken)
+        }.exceptionOrNull()
+
+        assertTrue(error is IllegalArgumentException)
+        assertNotNull(database.routineDao().getRoutine(routineId))
+        assertEquals(routineId, database.gymDao().getSession(sessionId)?.sourceRoutineId)
+    }
+
+    @Test fun exerciseDeleteReportsExactImpactAndLeavesUnrelatedHistoryUntouched() = runBlocking {
+        val categoryId = gym.createCategory("Press")
+        val exerciseId = gym.createExercise(ExerciseDraft("Bench", categoryIds = setOf(categoryId)))
+        val unaffectedExerciseId = gym.createExercise(ExerciseDraft("Row"))
+        gym.createMachine(GymMachineDraft(exerciseId, "Bench station"))
         val sessionId = gym.startWorkout("Push")
         val workoutExerciseId = gym.addExerciseToWorkout(sessionId, exerciseId)
         gym.addSet(workoutExerciseId, WorkoutSetDraft(weight = 80.0, reps = 5, completed = true))
         gym.finishWorkout(sessionId)
+        val unaffectedSessionId = gym.startWorkout("Pull")
+        val unaffectedPlacementId = gym.addExerciseToWorkout(unaffectedSessionId, unaffectedExerciseId)
+        gym.addSet(unaffectedPlacementId, WorkoutSetDraft(weight = 60.0, reps = 8, completed = true))
+        gym.finishWorkout(unaffectedSessionId)
         routines.rebuildPersonalRecords(exerciseId)
-        routines.createRoutine(RoutineDraft("Push plan", days = listOf(RoutineDayDraft("A", listOf(RoutineExerciseDraft(exerciseId))))))
+        routines.createRoutine(
+            RoutineDraft(
+                "Push plan",
+                days = listOf(
+                    RoutineDayDraft(
+                        "A",
+                        listOf(
+                            RoutineExerciseDraft(
+                                exerciseId,
+                                plannedSets = listOf(
+                                    WorkoutSetDraft(weight = 75.0, reps = 5),
+                                    WorkoutSetDraft(weight = 80.0, reps = 3),
+                                ),
+                            ),
+                            RoutineExerciseDraft(
+                                unaffectedExerciseId,
+                                alternativeExerciseIds = listOf(exerciseId),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        routines.saveGraphPreset("Shared graph", listOf(exerciseId, unaffectedExerciseId), "MaxWeight", "All", "Workout")
         routines.saveGraphPreset("Bench graph", listOf(exerciseId), "MaxWeight", "All", "Workout")
 
-        coordinator.deleteExercise(exerciseId)
+        val impact = requireNotNull(coordinator.previewExerciseDeletion(exerciseId))
+        assertEquals(0, impact.activePlacements)
+        assertEquals(1, impact.workoutPlacementCount)
+        assertEquals(1, impact.workoutSetCount)
+        assertEquals(1, impact.routinePlacementCount)
+        assertEquals(2, impact.routineSetCount)
+        assertEquals(1, impact.routineAlternativeReferenceCount)
+        assertEquals(1, impact.graphPresetUpdateCount)
+        assertEquals(1, impact.graphPresetDeleteCount)
+        assertEquals(2, impact.machineReferenceCount)
+        assertEquals(1, impact.categoryReferenceCount)
+        assertEquals(routines.personalRecords.first().count { it.exerciseId == exerciseId }, impact.personalRecordCount)
 
-        assertTrue(gym.exercises.first().isEmpty())
-        assertTrue(gym.workoutExercises.first().isEmpty())
-        assertTrue(gym.sets.first().isEmpty())
-        assertEquals(1, gym.sessions.first().size)
-        assertTrue(routines.exercises.first().isEmpty())
-        assertTrue(routines.personalRecords.first().isEmpty())
-        assertTrue(routines.graphPresets.first().isEmpty())
+        val summary = coordinator.deleteExercise(exerciseId, impact.revisionToken)
+
+        assertTrue(summary.exerciseDeleted)
+        assertEquals(impact.workoutPlacementCount, summary.workoutPlacementsDeleted)
+        assertEquals(impact.workoutSetCount, summary.workoutSetsDeleted)
+        assertEquals(impact.routinePlacementCount, summary.routinePlacementsDeleted)
+        assertEquals(impact.routineSetCount, summary.routineSetsDeleted)
+        assertEquals(impact.personalRecordCount, summary.personalRecordsDeleted)
+        assertEquals(impact.machineReferenceCount, summary.machineReferencesCleared)
+        assertNull(database.gymDao().getExercise(exerciseId))
+        assertNotNull(database.gymDao().getExercise(unaffectedExerciseId))
+        assertNotNull(database.gymDao().getWorkoutExercise(unaffectedPlacementId))
+        assertEquals(1, database.gymDao().getWorkoutSets(unaffectedPlacementId).size)
+        assertEquals(listOf(unaffectedExerciseId), routines.graphPresets.first().single().exerciseIds)
+        val remainingRoutinePlacement = routines.exercises.first().single()
+        assertEquals(unaffectedExerciseId, remainingRoutinePlacement.exerciseId)
+        assertTrue(remainingRoutinePlacement.alternativeExerciseIds.isEmpty())
     }
 
     @Test fun exerciseDeleteDetachesOnlyThatExerciseFromSharedMachine() = runBlocking {
@@ -853,7 +972,18 @@ class DomainDeletionCoordinatorTest {
         gym.finishWorkout(sessionId)
         routines.rebuildPersonalRecords(exerciseId)
 
-        val routineSummary = coordinator.deleteRoutine(routineId)
+        val routineImpact = requireNotNull(coordinator.previewRoutineDeletion(routineId))
+        assertFalse(routineImpact.activeSession)
+        assertEquals(1, routineImpact.dayCount)
+        assertEquals(1, routineImpact.routinePlacementCount)
+        assertEquals(0, routineImpact.routineSetCount)
+        assertEquals(1, routineImpact.preservedWorkoutHistoryCount)
+
+        val routineSummary = coordinator.deleteRoutine(routineId, routineImpact.revisionToken)
+        assertTrue(routineSummary.routineDeleted)
+        assertEquals(routineImpact.dayCount, routineSummary.daysDeleted)
+        assertEquals(routineImpact.routinePlacementCount, routineSummary.routinePlacementsDeleted)
+        assertEquals(routineImpact.routineSetCount, routineSummary.routineSetsDeleted)
         assertEquals(1, routineSummary.preservedHistoryReferences)
         assertTrue(routines.routines.first().isEmpty())
         assertNull(gym.sessions.first().single().sourceRoutineId)

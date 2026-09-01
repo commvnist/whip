@@ -65,8 +65,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.stateDescription
@@ -159,6 +161,7 @@ import com.whip.app.domain.steppedNumericValue
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.core.PlatePreset
 import com.whip.app.core.OperationStatus
+import com.whip.app.core.PersistenceRequestState
 import com.whip.app.core.WhipResult
 import com.whip.app.core.DEFAULT_REST_TIMER_PRESET_SECONDS
 import com.whip.app.core.normalizeRestTimerPresets
@@ -166,6 +169,8 @@ import com.whip.app.core.TrackedGymRecord
 import com.whip.app.core.recommendedTrackedRecordTypes
 import com.whip.app.core.resolveForExercise
 import com.whip.app.core.supportedTrackedRecordTypes
+import com.whip.app.data.ExerciseDeletionImpact
+import com.whip.app.data.RoutineDeletionImpact
 import java.text.NumberFormat
 import java.io.Serializable
 import java.time.Duration
@@ -489,6 +494,14 @@ fun GymAreaContent(
     val context = LocalContext.current
     val machineDeletionImpact by viewModel.machineDeletionImpact.collectAsStateWithLifecycle()
     val machineDeletionInProgress by viewModel.machineDeletionInProgress.collectAsStateWithLifecycle()
+    val exerciseDeletionImpact by viewModel.exerciseDeletionImpact.collectAsStateWithLifecycle()
+    val exerciseDeletionPreviewError by viewModel.exerciseDeletionPreviewError.collectAsStateWithLifecycle()
+    val exerciseDeletionTargetMissing by viewModel.exerciseDeletionTargetMissing.collectAsStateWithLifecycle()
+    val routineDeletionImpact by viewModel.routineDeletionImpact.collectAsStateWithLifecycle()
+    val routineDeletionPreviewError by viewModel.routineDeletionPreviewError.collectAsStateWithLifecycle()
+    val routineDeletionTargetMissing by viewModel.routineDeletionTargetMissing.collectAsStateWithLifecycle()
+    val gymDeletionState by viewModel.gymDeletionState.collectAsStateWithLifecycle()
+    val orphanedGymDeletionRequestId by viewModel.orphanedGymDeletionRequestId.collectAsStateWithLifecycle()
     var exerciseEditorId by rememberSaveable { mutableStateOf<Long?>(null) }
     var creatingExercise by rememberSaveable { mutableStateOf(false) }
     var addCreatedExerciseToSession by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -506,8 +519,11 @@ fun GymAreaContent(
     var historyWorkoutEditorId by rememberSaveable { mutableStateOf<Long?>(null) }
     var focusedRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
     var exerciseDeleteCandidateId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var exerciseDeleteCandidateUuid by rememberSaveable { mutableStateOf<String?>(null) }
+    var exerciseDeleteCandidateGeneration by rememberSaveable { mutableStateOf<Long?>(null) }
     var workoutDeleteCandidateId by rememberSaveable { mutableStateOf<Long?>(null) }
     var routineDeleteCandidateId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var routineDeleteCandidateGeneration by rememberSaveable { mutableStateOf<Long?>(null) }
     var creatingMachine by rememberSaveable { mutableStateOf(false) }
     var creatingExerciseForMachine by rememberSaveable { mutableStateOf(false) }
     var createdExerciseForMachineId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -542,6 +558,129 @@ fun GymAreaContent(
     val workoutDeleteCandidate = workoutDeleteCandidateId?.let { id -> state.allSessions.firstOrNull { it.id == id } }
     val historyWorkoutEditor = historyWorkoutEditorId?.let { id -> state.history.firstOrNull { it.id == id } }
     val routineDeleteCandidate = routineDeleteCandidateId?.let { id -> (state.routines + state.archivedRoutines).firstOrNull { it.id == id } }
+    val deletionTargetKey = when {
+        exerciseDeleteCandidateId != null -> "exercise-${exerciseDeleteCandidateId}"
+        routineDeleteCandidateId != null -> "routine-${routineDeleteCandidateId}"
+        else -> null
+    }
+    val gymDeletionCoordinator = deletionTargetKey?.let { targetKey ->
+        rememberPersistenceRequestCoordinator(
+            state = gymDeletionState,
+            consume = viewModel::consumeGymDeletionResult,
+            key = targetKey,
+            requestNamespace = "gym-delete-$targetKey",
+            onPersisted = { receipt ->
+                when (receipt.kind) {
+                    GymDeletionKind.Exercise -> {
+                        exerciseDeleteCandidateId = null
+                        exerciseDeleteCandidateUuid = null
+                        exerciseDeleteCandidateGeneration = null
+                        viewModel.dismissExerciseDeletion()
+                    }
+                    GymDeletionKind.Routine -> {
+                        routineDeleteCandidateId = null
+                        routineDeleteCandidateGeneration = null
+                        viewModel.dismissRoutineDeletion()
+                    }
+                }
+            },
+        )
+    }
+    LaunchedEffect(exerciseDeleteCandidateId) {
+        val id = exerciseDeleteCandidateId ?: return@LaunchedEffect
+        if (exerciseDeletionImpact?.exerciseId != id && exerciseDeletionPreviewError == null) {
+            viewModel.previewExerciseDeletion(id)
+        }
+    }
+    LaunchedEffect(routineDeleteCandidateId) {
+        val id = routineDeleteCandidateId ?: return@LaunchedEffect
+        if (routineDeletionImpact?.routineId != id && routineDeletionPreviewError == null) {
+            viewModel.previewRoutineDeletion(id)
+        }
+    }
+    LaunchedEffect(
+        gymDeletionCoordinator?.requestId,
+        gymDeletionState,
+        orphanedGymDeletionRequestId,
+        deletionTargetKey,
+    ) {
+        val coordinator = gymDeletionCoordinator ?: return@LaunchedEffect
+        val requestId = coordinator.requestId ?: return@LaunchedEffect
+        if (
+            gymDeletionState is PersistenceRequestState.Idle &&
+            orphanedGymDeletionRequestId != requestId
+        ) {
+            // A normal submit enters the ViewModel's Running state synchronously
+            // before this effect can recompose. Remaining Idle ownership came
+            // from SavedState after process replacement, so claim it before the
+            // generic coordinator's orphan timeout can misclassify the outcome.
+            viewModel.adoptOrphanedGymDeletionRequest(requestId)
+        }
+    }
+    LaunchedEffect(
+        orphanedGymDeletionRequestId,
+        exerciseDeletionTargetMissing,
+        routineDeletionTargetMissing,
+        exerciseDeletionImpact,
+        routineDeletionImpact,
+        exerciseDeletionPreviewError,
+        routineDeletionPreviewError,
+    ) {
+        val coordinator = gymDeletionCoordinator ?: return@LaunchedEffect
+        val requestId = coordinator.requestId ?: return@LaunchedEffect
+        if (orphanedGymDeletionRequestId != requestId) return@LaunchedEffect
+        when {
+            exerciseDeleteCandidateId != null && exerciseDeletionTargetMissing -> {
+                val expectedGeneration = exerciseDeleteCandidateGeneration ?: return@LaunchedEffect
+                viewModel.finishOrphanedExerciseDeletionAsAchieved(
+                    requestId = requestId,
+                    exerciseId = requireNotNull(exerciseDeleteCandidateId),
+                    exerciseUuid = exerciseDeleteCandidateUuid,
+                    expectedDataGeneration = expectedGeneration,
+                )
+            }
+            routineDeleteCandidateId != null && routineDeletionTargetMissing -> {
+                val expectedGeneration = routineDeleteCandidateGeneration ?: return@LaunchedEffect
+                viewModel.finishOrphanedRoutineDeletionAsAchieved(
+                    requestId = requestId,
+                    routineId = requireNotNull(routineDeleteCandidateId),
+                    expectedDataGeneration = expectedGeneration,
+                )
+            }
+            exerciseDeleteCandidateId != null &&
+                exerciseDeletionImpact?.exerciseId == exerciseDeleteCandidateId -> {
+                viewModel.finishOrphanedGymDeletionAsInterrupted(requestId)
+            }
+            routineDeleteCandidateId != null &&
+                routineDeletionImpact?.routineId == routineDeleteCandidateId -> {
+                viewModel.finishOrphanedGymDeletionAsInterrupted(requestId)
+            }
+            exerciseDeleteCandidateId != null && exerciseDeletionPreviewError != null -> {
+                viewModel.finishOrphanedGymDeletionAsUnverified(requestId)
+            }
+            routineDeleteCandidateId != null && routineDeletionPreviewError != null -> {
+                viewModel.finishOrphanedGymDeletionAsUnverified(requestId)
+            }
+        }
+    }
+    LaunchedEffect(viewModel.currentDataGeneration()) {
+        val currentGeneration = viewModel.currentDataGeneration()
+        if (exerciseDeleteCandidateGeneration?.let { it != currentGeneration } == true) {
+            gymDeletionCoordinator?.clear()
+            viewModel.abandonOrphanedGymDeletionVerification()
+            viewModel.dismissExerciseDeletion()
+            exerciseDeleteCandidateId = null
+            exerciseDeleteCandidateUuid = null
+            exerciseDeleteCandidateGeneration = null
+        }
+        if (routineDeleteCandidateGeneration?.let { it != currentGeneration } == true) {
+            gymDeletionCoordinator?.clear()
+            viewModel.abandonOrphanedGymDeletionVerification()
+            viewModel.dismissRoutineDeletion()
+            routineDeleteCandidateId = null
+            routineDeleteCandidateGeneration = null
+        }
+    }
     fun closeCatalogEditors() {
         creatingMachine = false
         creatingExerciseForMachine = false
@@ -761,7 +900,10 @@ fun GymAreaContent(
                 state = state,
                 viewModel = viewModel,
                 focusedRoutineId = focusedRoutineId,
-                onDeleteRequest = { routineDeleteCandidateId = it.id },
+                onDeleteRequest = {
+                    routineDeleteCandidateId = it.id
+                    routineDeleteCandidateGeneration = viewModel.currentDataGeneration()
+                },
                 onOpenActiveWorkout = { destination = GymDestination.Workout },
                 modifier = dialogModifier,
                 onEditorStateChange = { open ->
@@ -932,6 +1074,8 @@ fun GymAreaContent(
             },
             onDelete = {
                 exerciseDeleteCandidateId = exercise.id
+                exerciseDeleteCandidateUuid = exercise.uuid
+                exerciseDeleteCandidateGeneration = viewModel.currentDataGeneration()
                 exerciseActionsId = null
             },
         )
@@ -954,21 +1098,66 @@ fun GymAreaContent(
         )
     }
 
-    exerciseDeleteCandidate?.let { exercise ->
-        val placements = state.allWorkoutExercises.filter { it.exerciseId == exercise.id }
-        val placementIds = placements.mapTo(mutableSetOf()) { it.id }
-        val setCount = state.allSets.count { it.workoutExerciseId in placementIds }
-        val routineCount = state.routineExercises.count { it.exerciseId == exercise.id }
-        PermanentDeleteDialog(
+    exerciseDeleteCandidateId?.let { exerciseId ->
+        val coordinator = gymDeletionCoordinator ?: return@let
+        val exactImpact = exerciseDeletionImpact?.takeIf { it.exerciseId == exerciseId }
+        val previewError = exerciseDeletionPreviewError.takeIf { exactImpact == null }
+        ExercisePermanentDeleteDialog(
             modifier = dialogModifier,
-            title = "Delete ${exercise.name} Permanently?",
-            impacts = listOf(
-                "${placements.size} workout entr${if (placements.size == 1) "y" else "ies"} and $setCount set${if (setCount == 1) "" else "s"} will be removed from history",
-                "$routineCount routine placement${if (routineCount == 1) "" else "s"} and affected graph presets will be updated",
-                "Personal records affected by this exercise will be recalculated",
-            ),
-            onDismiss = { exerciseDeleteCandidateId = null },
-            onConfirm = { viewModel.deleteExercisePermanently(exercise.id); exerciseDeleteCandidateId = null },
+            exerciseName = exactImpact?.displayName ?: exerciseDeleteCandidate?.name.orEmpty(),
+            impact = exactImpact,
+            targetMissing = exerciseDeletionTargetMissing,
+            outcomeVerificationPending = orphanedGymDeletionRequestId != null,
+            preparing = exactImpact == null && previewError == null,
+            deleting = coordinator.saving,
+            errorMessage = coordinator.errorMessage ?: previewError,
+            onDismiss = {
+                coordinator.clear()
+                viewModel.abandonOrphanedGymDeletionVerification()
+                viewModel.dismissExerciseDeletion()
+                exerciseDeleteCandidateId = null
+                exerciseDeleteCandidateUuid = null
+                exerciseDeleteCandidateGeneration = null
+            },
+            onReviewUpdatedImpact = {
+                coordinator.clear()
+                val previousRequestId = orphanedGymDeletionRequestId
+                val verificationStarted = if (previousRequestId != null) {
+                    val verificationRequestId = coordinator.begin()
+                    verificationRequestId != null &&
+                        viewModel.restartOrphanedGymDeletionVerification(
+                            previousRequestId,
+                            verificationRequestId,
+                        )
+                } else {
+                    true
+                }
+                if (verificationStarted) {
+                    viewModel.previewExerciseDeletion(exerciseId)
+                } else {
+                        coordinator.finishFailure("Deletion verification is already running.")
+                }
+            },
+            onOpenActiveWorkout = {
+                coordinator.clear()
+                viewModel.abandonOrphanedGymDeletionVerification()
+                viewModel.dismissExerciseDeletion()
+                exerciseDeleteCandidateId = null
+                exerciseDeleteCandidateUuid = null
+                exerciseDeleteCandidateGeneration = null
+                destination = GymDestination.Workout
+            },
+            onConfirm = { reviewedImpact ->
+                val requestId = coordinator.begin() ?: return@ExercisePermanentDeleteDialog
+                if (!viewModel.deleteExercisePermanently(
+                        exerciseId,
+                        reviewedImpact.revisionToken,
+                        requestId,
+                    )
+                ) {
+                    coordinator.finishFailure("Another Gym deletion is already finishing.")
+                }
+            },
         )
     }
 
@@ -989,20 +1178,64 @@ fun GymAreaContent(
         )
     }
 
-    routineDeleteCandidate?.let { routine ->
-        val days = state.routineDays.filter { it.routineId == routine.id }
-        val dayIds = days.mapTo(mutableSetOf()) { it.id }
-        val exerciseCount = state.routineExercises.count { it.routineDayId in dayIds }
-        val historyCount = state.allSessions.count { it.sourceRoutineId == routine.id }
-        PermanentDeleteDialog(
+    routineDeleteCandidateId?.let { routineId ->
+        val coordinator = gymDeletionCoordinator ?: return@let
+        val exactImpact = routineDeletionImpact?.takeIf { it.routineId == routineId }
+        val previewError = routineDeletionPreviewError.takeIf { exactImpact == null }
+        RoutinePermanentDeleteDialog(
             modifier = dialogModifier,
-            title = "Delete ${routine.name} Permanently?",
-            impacts = listOf(
-                "${days.size} template day${if (days.size == 1) "" else "s"} and $exerciseCount planned exercise entr${if (exerciseCount == 1) "y" else "ies"} will be removed",
-                "$historyCount completed workout${if (historyCount == 1) "" else "s"} created from it will be preserved as ordinary history",
-            ),
-            onDismiss = { routineDeleteCandidateId = null },
-            onConfirm = { viewModel.deleteRoutinePermanently(routine.id); routineDeleteCandidateId = null },
+            routineName = exactImpact?.displayName ?: routineDeleteCandidate?.name.orEmpty(),
+            impact = exactImpact,
+            targetMissing = routineDeletionTargetMissing,
+            outcomeVerificationPending = orphanedGymDeletionRequestId != null,
+            preparing = exactImpact == null && previewError == null,
+            deleting = coordinator.saving,
+            errorMessage = coordinator.errorMessage ?: previewError,
+            onDismiss = {
+                coordinator.clear()
+                viewModel.abandonOrphanedGymDeletionVerification()
+                viewModel.dismissRoutineDeletion()
+                routineDeleteCandidateId = null
+                routineDeleteCandidateGeneration = null
+            },
+            onReviewUpdatedImpact = {
+                coordinator.clear()
+                val previousRequestId = orphanedGymDeletionRequestId
+                val verificationStarted = if (previousRequestId != null) {
+                    val verificationRequestId = coordinator.begin()
+                    verificationRequestId != null &&
+                        viewModel.restartOrphanedGymDeletionVerification(
+                            previousRequestId,
+                            verificationRequestId,
+                        )
+                } else {
+                    true
+                }
+                if (verificationStarted) {
+                    viewModel.previewRoutineDeletion(routineId)
+                } else {
+                        coordinator.finishFailure("Deletion verification is already running.")
+                }
+            },
+            onOpenActiveWorkout = {
+                coordinator.clear()
+                viewModel.abandonOrphanedGymDeletionVerification()
+                viewModel.dismissRoutineDeletion()
+                routineDeleteCandidateId = null
+                routineDeleteCandidateGeneration = null
+                destination = GymDestination.Workout
+            },
+            onConfirm = { reviewedImpact ->
+                val requestId = coordinator.begin() ?: return@RoutinePermanentDeleteDialog
+                if (!viewModel.deleteRoutinePermanently(
+                        routineId,
+                        reviewedImpact.revisionToken,
+                        requestId,
+                    )
+                ) {
+                    coordinator.finishFailure("Another Gym deletion is already finishing.")
+                }
+            },
         )
     }
 
@@ -3233,6 +3466,285 @@ private fun MachineLibraryContent(
             }
         }
     }
+}
+
+@Composable
+internal fun ExercisePermanentDeleteDialog(
+    modifier: Modifier = Modifier,
+    exerciseName: String,
+    impact: ExerciseDeletionImpact?,
+    targetMissing: Boolean,
+    preparing: Boolean,
+    deleting: Boolean,
+    errorMessage: String?,
+    onDismiss: () -> Unit,
+    onReviewUpdatedImpact: () -> Unit,
+    onOpenActiveWorkout: () -> Unit,
+    onConfirm: (ExerciseDeletionImpact) -> Unit,
+    outcomeVerificationPending: Boolean = false,
+) {
+    val blocked = impact?.activePlacements?.let { it > 0 } == true
+    val outcomeUnverified = outcomeVerificationPending ||
+        errorMessage?.contains("could not be verified", ignoreCase = true) == true
+    PaneAwareAlertDialog(
+        modifier = modifier.testTag("exercise-delete-dialog"),
+        onDismissRequest = { if (!deleting) onDismiss() },
+        title = { Text("Delete “${exerciseName.ifBlank { "Exercise" }}” Permanently?") },
+        text = {
+            LazyColumn(
+                modifier = Modifier.testTag("exercise-delete-impact-list"),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (preparing && !targetMissing) item {
+                    WhipNoticeCard(
+                        title = "Reviewing impact",
+                        message = "Checking the exact workout, routine, record, and automation impact…",
+                        tone = WhipNoticeTone.Informative,
+                        showProgress = true,
+                        semanticStateLabel = "Reviewing exercise deletion impact",
+                    )
+                }
+                errorMessage?.let { message -> item {
+                    WhipNoticeCard(
+                        title = when {
+                            outcomeUnverified -> "Outcome not verified"
+                            targetMissing -> "Exercise unavailable"
+                            else -> "Deletion not completed"
+                        },
+                        message = message,
+                        tone = if (targetMissing && !outcomeUnverified) WhipNoticeTone.Neutral else WhipNoticeTone.Error,
+                        actionLabel = when {
+                            outcomeUnverified -> "Retry Verification"
+                            targetMissing -> "Close"
+                            else -> "Review Updated Impact"
+                        },
+                        onAction = if (targetMissing && !outcomeUnverified) onDismiss else onReviewUpdatedImpact,
+                        semanticStateLabel = when {
+                            outcomeUnverified -> "Exercise deletion outcome not verified"
+                            targetMissing -> "Exercise no longer available"
+                            else -> null
+                        },
+                        modifier = Modifier.testTag("exercise-delete-error"),
+                    )
+                } }
+                impact?.let { exact ->
+                    if (errorMessage == null) item {
+                        Text(
+                            "Deletion impact ready — review it before confirming.",
+                            modifier = Modifier.semantics {
+                                liveRegion = LiveRegionMode.Polite
+                                stateDescription = "Exercise deletion impact ready"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (blocked) item {
+                        WhipNoticeCard(
+                            title = "Active Workout",
+                            message = "This exercise is used by ${exact.activePlacements} active workout " +
+                                "placement${if (exact.activePlacements == 1) "" else "s"}. Finish the workout, " +
+                                "remove or substitute it there, or archive the exercise instead.",
+                            tone = WhipNoticeTone.Warning,
+                            actionLabel = "Open Active Workout",
+                            onAction = onOpenActiveWorkout,
+                            semanticStateLabel = "Deletion blocked by active workout",
+                        )
+                    }
+                    item {
+                        Text("Removed", fontWeight = FontWeight.Bold)
+                        Text(
+                            "${exact.workoutPlacementCount} workout placement${if (exact.workoutPlacementCount == 1) "" else "s"} " +
+                                "and ${exact.workoutSetCount} recorded set${if (exact.workoutSetCount == 1) "" else "s"}; " +
+                                "${exact.routinePlacementCount} routine placement${if (exact.routinePlacementCount == 1) "" else "s"} " +
+                                "and ${exact.routineSetCount} prescribed set${if (exact.routineSetCount == 1) "" else "s"}.",
+                        )
+                    }
+                    item {
+                        Text("Definitions and records removed", fontWeight = FontWeight.Bold)
+                        Text(
+                            "${exact.personalRecordCount} personal record${if (exact.personalRecordCount == 1) "" else "s"}, " +
+                                "${exact.graphPresetUpdateCount + exact.graphPresetDeleteCount} graph preset${if (exact.graphPresetUpdateCount + exact.graphPresetDeleteCount == 1) "" else "s"}, " +
+                                "${exact.linkRuleCount} Goal link rule${if (exact.linkRuleCount == 1) "" else "s"}, and " +
+                                "${exact.automationRuleCount} trigger rule${if (exact.automationRuleCount == 1) "" else "s"}.",
+                        )
+                    }
+                    item {
+                        Text("References changed", fontWeight = FontWeight.Bold)
+                        Text(
+                            "${exact.routineAlternativeReferenceCount} routine alternative reference${if (exact.routineAlternativeReferenceCount == 1) "" else "s"}, " +
+                                "${exact.machineReferenceCount} machine assignment or compatibility link${if (exact.machineReferenceCount == 1) "" else "s"}, " +
+                                "and ${exact.categoryReferenceCount} category membership${if (exact.categoryReferenceCount == 1) "" else "s"} are removed. " +
+                                "Machine profiles themselves remain.",
+                        )
+                    }
+                    if (exact.linkedTrackEntryCount > 0) item {
+                        Text("Track history kept", fontWeight = FontWeight.Bold)
+                        Text(
+                            "${exact.linkedTrackEntryCount} automation-created Track entr${if (exact.linkedTrackEntryCount == 1) "y remains" else "ies remain"} " +
+                                "as recorded history, but no longer point to the deleted trigger occurrence.",
+                        )
+                    }
+                    if (exact.trainingMaxDecisionCount > 0) item {
+                        Text("Preserved", fontWeight = FontWeight.Bold)
+                        Text(
+                            "${exact.trainingMaxDecisionCount} historical Training Max decision${if (exact.trainingMaxDecisionCount == 1) "" else "s"} " +
+                                "remain as immutable audit history with the recorded exercise name and UUID.",
+                        )
+                    }
+                    item {
+                        Text(
+                            "Tracked-record shortcuts for this exercise are removed. " +
+                                "Export a backup first if you may need this history.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            WhipTextButton(
+                enabled = impact != null && !blocked && !deleting && errorMessage == null,
+                onClick = { impact?.let(onConfirm) },
+                modifier = Modifier.testTag("exercise-delete-confirm"),
+            ) {
+                Text(if (deleting) "Deleting…" else "Delete permanently", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            WhipTextButton(enabled = !deleting, onClick = onDismiss) { Text("Cancel") }
+        },
+        inputBlocked = deleting,
+        inputBlockedLabel = "Permanently Deleting Exercise",
+        paneTitle = "Exercise deletion review",
+    )
+}
+
+@Composable
+internal fun RoutinePermanentDeleteDialog(
+    modifier: Modifier = Modifier,
+    routineName: String,
+    impact: RoutineDeletionImpact?,
+    targetMissing: Boolean,
+    preparing: Boolean,
+    deleting: Boolean,
+    errorMessage: String?,
+    onDismiss: () -> Unit,
+    onReviewUpdatedImpact: () -> Unit,
+    onOpenActiveWorkout: () -> Unit,
+    onConfirm: (RoutineDeletionImpact) -> Unit,
+    outcomeVerificationPending: Boolean = false,
+) {
+    val blocked = impact?.activeSession == true
+    val outcomeUnverified = outcomeVerificationPending ||
+        errorMessage?.contains("could not be verified", ignoreCase = true) == true
+    PaneAwareAlertDialog(
+        modifier = modifier.testTag("routine-delete-dialog"),
+        onDismissRequest = { if (!deleting) onDismiss() },
+        title = { Text("Delete “${routineName.ifBlank { "Routine" }}” Permanently?") },
+        text = {
+            LazyColumn(
+                modifier = Modifier.testTag("routine-delete-impact-list"),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (preparing && !targetMissing) item {
+                    WhipNoticeCard(
+                        title = "Reviewing impact",
+                        message = "Checking the exact program and workout-history impact…",
+                        tone = WhipNoticeTone.Informative,
+                        showProgress = true,
+                        semanticStateLabel = "Reviewing routine deletion impact",
+                    )
+                }
+                errorMessage?.let { message -> item {
+                    WhipNoticeCard(
+                        title = when {
+                            outcomeUnverified -> "Outcome not verified"
+                            targetMissing -> "Routine unavailable"
+                            else -> "Deletion not completed"
+                        },
+                        message = message,
+                        tone = if (targetMissing && !outcomeUnverified) WhipNoticeTone.Neutral else WhipNoticeTone.Error,
+                        actionLabel = when {
+                            outcomeUnverified -> "Retry Verification"
+                            targetMissing -> "Close"
+                            else -> "Review Updated Impact"
+                        },
+                        onAction = if (targetMissing && !outcomeUnverified) onDismiss else onReviewUpdatedImpact,
+                        semanticStateLabel = when {
+                            outcomeUnverified -> "Routine deletion outcome not verified"
+                            targetMissing -> "Routine no longer available"
+                            else -> null
+                        },
+                        modifier = Modifier.testTag("routine-delete-error"),
+                    )
+                } }
+                impact?.let { exact ->
+                    if (errorMessage == null) item {
+                        Text(
+                            "Deletion impact ready — review it before confirming.",
+                            modifier = Modifier.semantics {
+                                liveRegion = LiveRegionMode.Polite
+                                stateDescription = "Routine deletion impact ready"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (blocked) item {
+                        WhipNoticeCard(
+                            title = "Active Workout",
+                            message = "A workout created from this routine is active. Finish or discard it before deleting the routine so its progression and Training Max decisions stay linked.",
+                            tone = WhipNoticeTone.Warning,
+                            actionLabel = "Open Active Workout",
+                            onAction = onOpenActiveWorkout,
+                            semanticStateLabel = "Deletion blocked by active workout",
+                        )
+                    }
+                    item {
+                        Text("Removed", fontWeight = FontWeight.Bold)
+                        Text(
+                            "${exact.dayCount} template day${if (exact.dayCount == 1) "" else "s"}, " +
+                                "${exact.routinePlacementCount} planned exercise placement${if (exact.routinePlacementCount == 1) "" else "s"}, " +
+                                "and ${exact.routineSetCount} prescribed set${if (exact.routineSetCount == 1) "" else "s"}.",
+                        )
+                    }
+                    item {
+                        Text("Kept", fontWeight = FontWeight.Bold)
+                        Text(
+                            "${exact.preservedWorkoutHistoryCount} completed or discarded workout${if (exact.preservedWorkoutHistoryCount == 1) "" else "s"} " +
+                                "remain as ordinary History with their recorded prescriptions and performed sets. " +
+                                "${exact.trainingMaxDecisionCount} Training Max decision${if (exact.trainingMaxDecisionCount == 1) "" else "s"} " +
+                                "remain as immutable audit history.",
+                        )
+                    }
+                    item {
+                        Text(
+                            "Program position and future Training Max progression for this routine are permanently removed. Export a backup first if you may need the template.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            WhipTextButton(
+                enabled = impact != null && !blocked && !deleting && errorMessage == null,
+                onClick = { impact?.let(onConfirm) },
+                modifier = Modifier.testTag("routine-delete-confirm"),
+            ) {
+                Text(if (deleting) "Deleting…" else "Delete permanently", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            WhipTextButton(enabled = !deleting, onClick = onDismiss) { Text("Cancel") }
+        },
+        inputBlocked = deleting,
+        inputBlockedLabel = "Permanently Deleting Routine",
+        paneTitle = "Routine deletion review",
+    )
 }
 
 @Composable
