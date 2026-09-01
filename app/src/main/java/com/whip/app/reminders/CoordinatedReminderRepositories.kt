@@ -13,6 +13,7 @@ import com.whip.app.domain.MetricEntryStatus
 import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.TaskEditBoundary
 import com.whip.app.domain.UnitDimension
 import java.time.Instant
 import java.time.LocalDate
@@ -30,6 +31,11 @@ internal class CoordinatedTaskRepository(
     override suspend fun create(draft: TaskDraft) = mutate { delegate.create(draft) }
     override suspend fun update(taskId: Long, draft: TaskDraft, fromOccurrence: LocalDate?) =
         mutate { delegate.update(taskId, draft, fromOccurrence) }
+    override suspend fun updateIfCurrent(
+        expected: TaskEditBoundary,
+        draft: TaskDraft,
+        fromOccurrence: LocalDate?,
+    ) = mutate { delegate.updateIfCurrent(expected, draft, fromOccurrence) }
     override suspend fun complete(item: ScheduledTask) = mutate { delegate.complete(item) }
     override suspend fun completeOccurrence(taskId: Long, originalDate: LocalDate?) =
         mutate { delegate.completeOccurrence(taskId, originalDate) }
@@ -44,9 +50,14 @@ internal class CoordinatedTaskRepository(
     override suspend fun restore(taskId: Long) = mutate { delegate.restore(taskId) }
     override suspend fun deletePermanently(taskId: Long) = mutate { delegate.deletePermanently(taskId) }
     override suspend fun reopen(taskId: Long) = mutate { delegate.reopen(taskId) }
+    override suspend fun reopenIfCurrent(item: ScheduledTask) = mutate { delegate.reopenIfCurrent(item) }
     override suspend fun reopenOccurrence(item: ScheduledTask) = mutate { delegate.reopenOccurrence(item) }
+    override suspend fun reopenAllIfCurrent(items: List<ScheduledTask>) =
+        mutate { delegate.reopenAllIfCurrent(items) }
     override suspend fun resetOccurrence(taskId: Long, originalDate: LocalDate) =
         mutate { delegate.resetOccurrence(taskId, originalDate) }
+    override suspend fun resetOccurrenceIfCurrent(item: ScheduledTask) =
+        mutate { delegate.resetOccurrenceIfCurrent(item) }
     override suspend fun setPinned(taskId: Long, pinned: Boolean) = mutate { delegate.setPinned(taskId, pinned) }
     override suspend fun duplicate(taskId: Long) = mutate { delegate.duplicate(taskId) }
     override suspend fun completeAll(items: List<ScheduledTask>) = mutate { delegate.completeAll(items) }
@@ -54,14 +65,18 @@ internal class CoordinatedTaskRepository(
         mutate { delegate.rescheduleAll(items, newDate) }
     override suspend fun planAll(items: List<ScheduledTask>, newDate: LocalDate) =
         mutate { delegate.planAll(items, newDate) }
-    override suspend fun restoreSchedules(items: List<ScheduledTask>) = mutate { delegate.restoreSchedules(items) }
-    override suspend fun restorePlan(items: List<ScheduledTask>) = mutate { delegate.restorePlan(items) }
+    override suspend fun restoreSchedulesIfCurrent(items: List<ScheduledTask>, expectedDate: LocalDate) =
+        mutate { delegate.restoreSchedulesIfCurrent(items, expectedDate) }
     override suspend fun archiveAll(taskIds: List<Long>) = mutate { delegate.archiveAll(taskIds) }
+    override suspend fun archiveAllIfCurrent(items: List<ScheduledTask>) =
+        mutate { delegate.archiveAllIfCurrent(items) }
     override suspend fun restoreAll(taskIds: List<Long>) = mutate { delegate.restoreAll(taskIds) }
     override suspend fun setPinnedAll(taskIds: List<Long>, pinned: Boolean) =
         mutate { delegate.setPinnedAll(taskIds, pinned) }
     override suspend fun updateMetadataAll(taskIds: List<Long>, edit: TaskBulkEdit) =
         mutate { delegate.updateMetadataAll(taskIds, edit) }
+    override suspend fun updateMetadataAllIfCurrent(items: List<ScheduledTask>, edit: TaskBulkEdit) =
+        mutate { delegate.updateMetadataAllIfCurrent(items, edit) }
     override suspend fun reorderAll(taskIdsInOrder: List<Long>) = mutate { delegate.reorderAll(taskIdsInOrder) }
     override suspend fun undoPromoteStep(promotedTaskId: Long, sourceTaskId: Long, sourceStepId: Long) =
         mutate { delegate.undoPromoteStep(promotedTaskId, sourceTaskId, sourceStepId) }

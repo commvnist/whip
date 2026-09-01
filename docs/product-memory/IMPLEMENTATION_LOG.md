@@ -96,3 +96,15 @@
 - Related: `FND-20260831-019`, `DEC-20260831-015`.
 - Verification: `VER-20260831-011`.
 - Status: Implemented, independently accepted, and fully verified; integrated physical-device release remains deferred while the maximum-quality goal continues.
+
+### IMP-20260831-010 — Exact Task secondary-mutation and recurring-series integrity
+
+- Behavior changed: Task editors retain drafts and exact edit identity across recreation; stale same-millisecond definition, occurrence, or Subtask changes fail closed. Completed/skipped/archived recurring records edit the series definition, while an open occurrence may safely edit this-and-future. Reschedule, Plan My Day undo, bulk edit/archive, pin, completion/reopen/reset, delete, and notification actions now surface the exact request outcome rather than assuming dispatch means success. Saving and bulk operations shield duplicate input and retain retry context. Date controls, destructive actions, and large-text layouts remain reachable.
+- Recurring correctness: Future splits preserve closed history and the old definition, remaining finite occurrence counts, Carry Unfinished state, reschedules, compatible future Open state, Track mappings, Link/Trigger child rules, and stable Subtask identity through reorder/insertion. Inbound automations retarget without duplicate firing. State-only future progress materializes an Open occurrence when necessary; schedule- and completion-anchored projections plus reminders treat explicit Open rows as authored overrides. Copied Goal Links preserve the later of split boundary and configured activation date.
+- Commit boundaries: Permanent deletion fingerprints all dependent state, including occurrence/step history, Link/Trigger conditions/choices/mappings, inbound/outbound automation, and linked Track entries. Post-commit ordinary failures become warnings; committed cancellation carries a typed receipt; fatal reconciliation escapes. Notification action claims release only before the authoritative mutation and remain committed through fallible follow-up, preventing replay after success.
+- Compatibility/history impact: No Room schema, migration, or portable-backup change. Existing Task UUIDs, definitions, custom Areas/tags, completed/skipped occurrences, completed-set-like Subtask snapshots, Links, automations, Track history, and reminders are preserved. Previously closed history is never recomputed from current recurrence settings. No physical-device mutation or signed release occurred.
+- Important files: `TaskModels.kt`, `TaskDao.kt`, `TaskRepository.kt`, `TaskDeletionCoordinator.kt`, `TrackDao.kt`, `ReminderActionReceiver.kt`, `ReminderScheduler.kt`, `ReminderWorker.kt`, `CoordinatedReminderRepositories.kt`, `TaskViewModel.kt`, `TaskComponents.kt`, `TaskEditorDialog.kt`, `WhipApp.kt`, and focused JVM/Android regressions.
+- Commit/push: Focused Task-integrity commit containing this entry on `origin/main`.
+- Related: `FND-20260831-019`, `DEC-20260831-016`.
+- Verification: `VER-20260831-012`.
+- Status: Implemented, independently accepted, and fully verified; integrated physical-device release remains deferred while the maximum-quality goal continues.

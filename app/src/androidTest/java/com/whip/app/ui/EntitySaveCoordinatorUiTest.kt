@@ -386,7 +386,7 @@ class EntitySaveCoordinatorUiTest {
                         }
                     },
                     onSaveTask = { _, _, _ -> error("Production request path expected") },
-                    onSaveTaskRequest = { _, draft, _, requestId ->
+                    onSaveTaskRequest = { _, _, draft, _, requestId ->
                         saveRequests++
                         submittedDraft = draft
                         saveState = PersistenceRequestState.Running(requestId)
@@ -506,7 +506,7 @@ class EntitySaveCoordinatorUiTest {
                     taskEditorSaveState = saveState,
                     onTaskEditorSaveResultConsumed = { saveState = PersistenceRequestState.Idle },
                     onSaveTask = { _, _, _ -> error("Production request path expected") },
-                    onSaveTaskRequest = { _, _, _, requestId ->
+                    onSaveTaskRequest = { _, _, _, _, requestId ->
                         saveState = PersistenceRequestState.Running(requestId)
                         true
                     },
@@ -551,7 +551,7 @@ class EntitySaveCoordinatorUiTest {
                     taskEditorSaveState = saveState,
                     onTaskEditorSaveResultConsumed = { saveState = PersistenceRequestState.Idle },
                     onSaveTask = { _, _, _ -> error("Production request path expected") },
-                    onSaveTaskRequest = { _, _, _, requestId ->
+                    onSaveTaskRequest = { _, _, _, _, requestId ->
                         saveRequests++
                         if (saveRequests == 1) {
                             false

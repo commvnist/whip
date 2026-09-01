@@ -58,6 +58,9 @@ interface TrackDao {
     @Query("SELECT * FROM track_entries WHERE uuid = :uuid")
     suspend fun getEntryByUuid(uuid: String): TrackEntryEntity?
 
+    @Query("SELECT * FROM track_entries WHERE sourceOccurrenceId IN (:occurrenceIds)")
+    suspend fun getEntriesForSourceOccurrences(occurrenceIds: List<Long>): List<TrackEntryEntity>
+
     @Query("SELECT * FROM track_entries WHERE trackId = :trackId ORDER BY entryEpochDay DESC, createdAtMillis DESC, id DESC")
     suspend fun getEntries(trackId: Long): List<TrackEntryEntity>
 

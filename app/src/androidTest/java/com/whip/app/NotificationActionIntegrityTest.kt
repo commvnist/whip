@@ -13,10 +13,12 @@ import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.MetricValueKind
+import com.whip.app.domain.OccurrenceState
 import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.RecurrenceRule
 import com.whip.app.domain.RecurrenceUnit
+import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledSubtask
 import com.whip.app.domain.ScheduledTask
@@ -117,10 +119,23 @@ class NotificationActionIntegrityTest {
         val completedId = app.taskRepository.create(reminderTask("Already complete"))
         app.taskRepository.completeOccurrence(completedId, today)
         assertNull(app.currentTaskNotificationTarget(completedId, today, TaskNotificationAction.Complete))
-        assertNotNull(app.currentTaskNotificationTarget(completedId, today, TaskNotificationAction.Undo))
+        val undoTarget = requireNotNull(
+            app.currentTaskNotificationTarget(completedId, today, TaskNotificationAction.Undo),
+        )
+        app.taskRepository.reopenIfCurrent(undoTarget.scheduledTask)
+        assertNull(requireNotNull(app.taskRepository.getTask(completedId)).completedAtMillis)
+
+        app.taskRepository.completeOccurrence(recurringId, today)
+        val recurringUndo = requireNotNull(
+            app.currentTaskNotificationTarget(recurringId, today, TaskNotificationAction.Undo),
+        )
+        app.taskRepository.reopenOccurrence(recurringUndo.scheduledTask)
+        assertEquals(OccurrenceState.Open, app.taskRepository.getOccurrences(recurringId).single().state)
 
         val skippedTask = requireNotNull(app.taskRepository.getTask(recurringId))
-        app.taskRepository.skip(ScheduledTask(skippedTask, today, today))
+        app.taskRepository.skip(
+            ScheduledTask(skippedTask, today, today, occurrenceState = OccurrenceState.Open),
+        )
         assertNull(app.currentTaskNotificationTarget(recurringId, today, TaskNotificationAction.Complete))
         assertNull(app.currentTaskNotificationTarget(recurringId, today, TaskNotificationAction.Undo))
     }
@@ -142,6 +157,44 @@ class NotificationActionIntegrityTest {
         app.taskRepository.setStepCompleted(item, task.steps.single().id, true)
 
         assertNotNull(app.currentTaskNotificationTarget(id, today, TaskNotificationAction.Complete))
+    }
+
+    @Test
+    fun carryUnfinishedReminderCompletionIgnoresStepsHiddenByPriorHistory() = runBlocking {
+        val id = app.taskRepository.create(
+            reminderTask("Carry reminder").copy(
+                scheduleKind = ScheduleKind.Recurring,
+                recurrence = RecurrenceRule(RecurrenceUnit.Days, startDate = today),
+                repeatStepPolicy = RepeatStepPolicy.CarryUnfinished,
+                autoCompleteFromSteps = false,
+                steps = listOf(
+                    TaskStepDraft(title = "Already carried out", position = 0),
+                    TaskStepDraft(title = "Carry forward", position = 1),
+                ),
+            ),
+        )
+        val task = requireNotNull(app.taskRepository.getTask(id))
+        val first = ScheduledTask(
+            task,
+            today,
+            today,
+            subtasks = task.steps.map { step -> ScheduledSubtask(step, false, null, step.title) },
+        )
+        app.taskRepository.setStepCompleted(first, task.steps.first().id, true)
+        app.taskRepository.complete(first)
+        val nextDate = today.plusDays(1)
+        val carried = task.steps[1]
+        val next = ScheduledTask(
+            task,
+            nextDate,
+            nextDate,
+            subtasks = listOf(ScheduledSubtask(carried, false, null, carried.title)),
+        )
+        app.taskRepository.setStepCompleted(next, carried.id, true)
+
+        assertNotNull(
+            app.currentTaskNotificationTarget(id, nextDate, TaskNotificationAction.Complete),
+        )
     }
 
     @Test

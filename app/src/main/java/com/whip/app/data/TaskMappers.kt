@@ -75,6 +75,7 @@ fun TaskEntity.toDomain(): WhipTask {
         effort = runCatching { TaskEffort.valueOf(effort) }.getOrDefault(TaskEffort.Unspecified),
         manualPosition = manualPosition,
         icon = icon.normalizedIdentityEmoji(DEFAULT_TASK_EMOJI),
+        uuid = uuid,
     )
 }
 

@@ -571,7 +571,7 @@ class ReminderWorkerDeliveryIntegrityTest {
                 .build(),
         )
 
-        assertTrue(runCatching { app.taskDeletionCoordinator.delete(taskId, Long.MIN_VALUE) }.isFailure)
+        assertTrue(runCatching { app.taskDeletionCoordinator.delete(taskId, "unreviewed-revision") }.isFailure)
 
         assertTrue(app.database.taskDao().getTask(taskId) != null)
         assertTrue(notifications.activeNotifications.any { it.id == taskId.hashCode() })

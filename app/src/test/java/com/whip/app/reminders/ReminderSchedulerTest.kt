@@ -2,6 +2,7 @@ package com.whip.app.reminders
 
 import com.whip.app.core.AppSettings
 import com.whip.app.domain.OccurrenceState
+import com.whip.app.domain.RecurrenceAnchor
 import com.whip.app.domain.RecurrenceRule
 import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.ScheduleKind
@@ -45,6 +46,39 @@ class ReminderSchedulerTest {
             movedTo.atTime(9, 0).atZone(zone).toInstant().toEpochMilli(),
             reminder?.triggerAtMillis,
         )
+    }
+
+    @Test
+    fun explicitOpenOccurrenceOutsideChangedCadenceStillProducesReminder() {
+        val zone = ZoneId.of("UTC")
+        val start = LocalDate.of(2026, 8, 20)
+        val preservedDate = start.plusDays(2)
+        val task = WhipTask(
+            id = 8,
+            title = "Preserved progress",
+            notes = "",
+            scheduleKind = ScheduleKind.Recurring,
+            date = start,
+            recurrence = RecurrenceRule(
+                unit = RecurrenceUnit.Days,
+                interval = 3,
+                startDate = start,
+                anchor = RecurrenceAnchor.Completion,
+            ),
+            timeMinutes = 9 * 60,
+            reminderEnabled = true,
+            archived = false,
+            completedAtMillis = null,
+            createdAtMillis = 1,
+            updatedAtMillis = 1,
+        )
+        val occurrence = TaskOccurrence(8, preservedDate, preservedDate, OccurrenceState.Open, null)
+        val afterMillis = preservedDate.minusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+
+        val reminder = nextTaskReminder(task, listOf(occurrence), afterMillis, 0, zone)
+
+        assertEquals(preservedDate, reminder?.originalDate)
+        assertEquals(preservedDate, reminder?.scheduledDate)
     }
 
     @Test

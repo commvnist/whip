@@ -151,10 +151,14 @@ import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 import com.whip.app.core.EntitySaveReceipt
 import com.whip.app.core.PersistenceRequestState
+import com.whip.app.domain.OccurrenceState
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
+import com.whip.app.domain.WhipTask
 import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.TaskEditBoundary
 import com.whip.app.domain.TaskQuickCaptureParser
+import com.whip.app.domain.toEditBoundary
 import com.whip.app.domain.Area
 import com.whip.app.domain.AreaScope
 import com.whip.app.domain.matches
@@ -187,6 +191,7 @@ import com.whip.app.core.WhipLaunchActions
 import com.whip.app.core.WhipCalendarContext
 import com.whip.app.data.TaskBulkEdit
 import com.whip.app.data.TaskDeletionBatchImpact
+import com.whip.app.data.TaskDeletionImpact
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -619,6 +624,7 @@ fun WhipApp(
     val trackState = coherentCalendarState.tracks
     val taskOperationFeedback by taskViewModel.operationFeedback.collectAsStateWithLifecycle()
     val taskEditorSaveState by taskViewModel.editorSaveState.collectAsStateWithLifecycle()
+    val taskAuthoredMutationState by taskViewModel.authoredMutationState.collectAsStateWithLifecycle()
     val operationStatus = taskOperationFeedback.status
     val taskDeletionImpact by taskViewModel.taskDeletionImpact.collectAsStateWithLifecycle()
     val taskDeletionBatchImpact by taskViewModel.taskDeletionBatchImpact.collectAsStateWithLifecycle()
@@ -815,6 +821,8 @@ fun WhipApp(
                     operationStatus = operationStatus,
                     taskEditorSaveState = taskEditorSaveState,
                     onTaskEditorSaveResultConsumed = taskViewModel::consumeEditorSaveResult,
+                    taskAuthoredMutationState = taskAuthoredMutationState,
+                    onTaskAuthoredMutationResultConsumed = taskViewModel::consumeAuthoredMutationResult,
                     onOperationStatusConsumed = taskViewModel::consumeOperationStatus,
                     taskUndoMessage = pendingTaskUndoMessage,
                     taskUndoToken = pendingTaskUndoToken,
@@ -843,8 +851,14 @@ fun WhipApp(
                         gym = gymViewModel::retryLoading,
                     ),
                     onSaveTask = { id, draft, from -> taskViewModel.saveTask(id, draft, from) },
-                    onSaveTaskRequest = { id, draft, from, requestId ->
-                        taskViewModel.saveTask(id, draft, from, requestId = requestId)
+                    onSaveTaskRequest = { taskId, expected, draft, from, requestId ->
+                        taskViewModel.saveTask(
+                            taskId,
+                            draft,
+                            from,
+                            requestId = requestId,
+                            expectedBoundary = expected,
+                        )
                     },
                     onQuickAddTask = { capture, date, areaId ->
                         taskViewModel.quickAddTask(capture, date, areaId)
@@ -852,14 +866,17 @@ fun WhipApp(
                     onQuickAddTaskWithResult = { capture, date, areaId, onFinished ->
                         taskViewModel.quickAddTask(capture, date, areaId, onFinished)
                     },
+                    onQuickAddTaskRequest = taskViewModel::quickAddTaskRequest,
                     onComplete = taskViewModel::complete,
                     onSkip = taskViewModel::skip,
                     onReschedule = taskViewModel::reschedule,
+                    onRescheduleRequest = taskViewModel::rescheduleRequest,
                     onSetStepCompleted = taskViewModel::setStepCompleted,
                     onPromoteStep = taskViewModel::promoteStep,
                     onArchive = taskViewModel::archive,
                     onRestore = taskViewModel::restore,
                     onDeleteTaskPermanently = taskViewModel::deletePermanently,
+                    onDeleteTaskPermanentlyRequest = taskViewModel::deletePermanentlyRequest,
                     taskDeletionImpact = taskDeletionImpact,
                     onPreviewTaskDeletion = taskViewModel::previewPermanentDeletion,
                     onClearTaskDeletionPreview = taskViewModel::clearPermanentDeletionPreview,
@@ -868,13 +885,16 @@ fun WhipApp(
                     onResetOccurrence = taskViewModel::resetOccurrence,
                     onSetTaskPinned = taskViewModel::setPinned,
                     onBulkCompleteTasks = taskViewModel::completeAll,
-                    onBulkArchiveTasks = taskViewModel::archiveAll,
+                    onBulkArchiveTasks = taskViewModel::archiveAllRequest,
                     onBulkRestoreTasks = taskViewModel::restoreAll,
                     onBulkReopenTasks = taskViewModel::reopenAll,
                     onBulkPinTasks = taskViewModel::pinAll,
                     onBulkPostponeTasks = taskViewModel::postponeAll,
+                    onBulkPostponeTasksRequest = taskViewModel::postponeAllRequest,
                     onBulkEditTasks = taskViewModel::editAll,
+                    onBulkEditTasksRequest = taskViewModel::editAllRequest,
                     onBulkDeleteTasksPermanently = taskViewModel::deleteAllPermanently,
+                    onBulkDeleteTasksPermanentlyRequest = taskViewModel::deleteAllPermanentlyRequest,
                     taskDeletionBatchImpact = taskDeletionBatchImpact,
                     onPreviewBulkTaskDeletion = taskViewModel::previewPermanentDeletions,
                     onClearBulkTaskDeletionPreview = taskViewModel::clearPermanentDeletionBatchPreview,
@@ -924,6 +944,8 @@ fun WhipScreen(
     operationStatus: OperationStatus = OperationStatus.Idle,
     taskEditorSaveState: PersistenceRequestState<EntitySaveReceipt> = PersistenceRequestState.Idle,
     onTaskEditorSaveResultConsumed: (String) -> Unit = {},
+    taskAuthoredMutationState: PersistenceRequestState<TaskMutationReceipt> = PersistenceRequestState.Idle,
+    onTaskAuthoredMutationResultConsumed: (String) -> Unit = {},
     onOperationStatusConsumed: () -> Unit = {},
     taskUndoMessage: String? = null,
     taskUndoToken: Long? = null,
@@ -946,35 +968,56 @@ fun WhipScreen(
     onTrackEntryUndoDismissed: (Long) -> Unit = {},
     domainRetryActions: DomainRetryActions = DomainRetryActions(),
     onSaveTask: (Long?, TaskDraft, LocalDate?) -> Unit,
-    onSaveTaskRequest: (Long?, TaskDraft, LocalDate?, String) -> Boolean = { _, _, _, _ -> false },
+    onSaveTaskRequest: (Long?, TaskEditBoundary?, TaskDraft, LocalDate?, String) -> Boolean = { _, _, _, _, _ -> false },
     onQuickAddTask: (String, LocalDate?, String?) -> Unit = { _, _, _ -> },
     onQuickAddTaskWithResult: (String, LocalDate?, String?, (Boolean) -> Unit) -> Unit = { capture, date, areaId, onFinished ->
         onQuickAddTask(capture, date, areaId)
         onFinished(true)
     },
+    onQuickAddTaskRequest: ((String, LocalDate?, String?, String) -> Boolean)? = null,
     onComplete: (ScheduledTask) -> Unit,
     onSkip: (ScheduledTask) -> Unit,
     onReschedule: (ScheduledTask, LocalDate) -> Unit,
+    onRescheduleRequest: (ScheduledTask, LocalDate, String) -> Boolean = { item, date, _ ->
+        onReschedule(item, date)
+        true
+    },
     onSetStepCompleted: (ScheduledTask, Long, Boolean) -> Unit = { _, _, _ -> },
     onPromoteStep: (ScheduledTask, Long) -> Unit = { _, _ -> },
     onArchive: (Long) -> Unit,
     onRestore: (Long) -> Unit = {},
     onDeleteTaskPermanently: (Long) -> Unit = {},
+    onDeleteTaskPermanentlyRequest: (Long, String, String) -> Boolean = { taskId, _, _ ->
+        onDeleteTaskPermanently(taskId)
+        true
+    },
     taskDeletionImpact: com.whip.app.data.TaskDeletionImpact? = null,
     onPreviewTaskDeletion: (Long) -> Unit = {},
     onClearTaskDeletionPreview: () -> Unit = {},
-    onReopen: (Long) -> Unit,
+    onReopen: (ScheduledTask) -> Unit,
     onReopenOccurrence: (ScheduledTask) -> Unit = {},
-    onResetOccurrence: (Long, LocalDate) -> Unit = { _, _ -> },
+    onResetOccurrence: (ScheduledTask) -> Unit = {},
     onSetTaskPinned: (Long, Boolean) -> Unit = { _, _ -> },
     onBulkCompleteTasks: (List<ScheduledTask>) -> Unit = {},
-    onBulkArchiveTasks: (List<ScheduledTask>) -> Unit = {},
+    onBulkArchiveTasks: (List<ScheduledTask>, String) -> Boolean = { _, _ -> false },
     onBulkRestoreTasks: (List<ScheduledTask>) -> Unit = {},
     onBulkReopenTasks: (List<ScheduledTask>) -> Unit = {},
     onBulkPinTasks: (List<ScheduledTask>, Boolean) -> Unit = { _, _ -> },
     onBulkPostponeTasks: (List<ScheduledTask>, LocalDate) -> Unit = { _, _ -> },
+    onBulkPostponeTasksRequest: (List<ScheduledTask>, LocalDate, String) -> Boolean = { items, date, _ ->
+        onBulkPostponeTasks(items, date)
+        true
+    },
     onBulkEditTasks: (List<ScheduledTask>, TaskBulkEdit) -> Unit = { _, _ -> },
+    onBulkEditTasksRequest: (List<ScheduledTask>, TaskBulkEdit, String) -> Boolean = { items, edit, _ ->
+        onBulkEditTasks(items, edit)
+        true
+    },
     onBulkDeleteTasksPermanently: (Set<Long>) -> Unit = {},
+    onBulkDeleteTasksPermanentlyRequest: (Set<Long>, Map<Long, String>, String) -> Boolean = { ids, _, _ ->
+        onBulkDeleteTasksPermanently(ids)
+        true
+    },
     taskDeletionBatchImpact: TaskDeletionBatchImpact? = null,
     onPreviewBulkTaskDeletion: (Set<Long>) -> Unit = {},
     onClearBulkTaskDeletionPreview: () -> Unit = {},
@@ -1005,6 +1048,7 @@ fun WhipScreen(
     var taskEditorOpen by rememberSaveable { mutableStateOf(false) }
     var taskEditorTaskId by rememberSaveable { mutableStateOf<Long?>(null) }
     var taskEditorSnapshot by remember { mutableStateOf<com.whip.app.domain.WhipTask?>(null) }
+    var taskEditorBoundary by rememberSaveable { mutableStateOf<TaskEditBoundary?>(null) }
     var taskEditorFromEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
     var taskEditorSaveAndNew by rememberSaveable { mutableStateOf(false) }
     var taskEditorCapture by rememberSaveable { mutableStateOf("") }
@@ -1165,13 +1209,42 @@ fun WhipScreen(
         snackbarHostState.currentSnackbarData?.dismiss()
         pendingTransientFeedback.removeFirstOrNull()?.let(::startTransientFeedback)
     }
-    val allScheduledTasks = state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived
+    val allScheduledTasks = unscopedTaskState.inbox + unscopedTaskState.today +
+        unscopedTaskState.upcoming + unscopedTaskState.planning +
+        unscopedTaskState.completed + unscopedTaskState.archived
     val scheduledTaskByKey = allScheduledTasks.associateBy(ScheduledTask::stableKey)
     val actionItem = actionItemKey?.let(scheduledTaskByKey::get)
     val completedItem = completedItemKey?.let(scheduledTaskByKey::get)
-    val rescheduleItem = rescheduleItemKey?.let(scheduledTaskByKey::get)
+    LaunchedEffect(
+        completedItemKey,
+        completedItem?.completedAtMillis,
+        completedItem?.occurrenceState,
+        unscopedTaskState.loading,
+    ) {
+        if (
+            completedItemKey != null &&
+            !unscopedTaskState.loading &&
+            (completedItem == null || completedItem.completedAtMillis == null)
+        ) {
+            completedItemKey = null
+        }
+    }
+    var rescheduleItemSnapshot by remember { mutableStateOf<ScheduledTask?>(null) }
+    var rescheduleSnapshotTitle by rememberSaveable { mutableStateOf("") }
+    var rescheduleSnapshotEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
+    var deleteItemSnapshot by remember { mutableStateOf<ScheduledTask?>(null) }
+    var deleteSnapshotTaskId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var deleteSnapshotTitle by rememberSaveable { mutableStateOf("") }
+    var deleteSnapshotRecurring by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(rescheduleItemKey) {
+        rescheduleItemSnapshot = rescheduleItemKey?.let(scheduledTaskByKey::get)
+    }
+    LaunchedEffect(deleteItemKey) {
+        deleteItemSnapshot = deleteItemKey?.let(scheduledTaskByKey::get)
+    }
+    val rescheduleItem = rescheduleItemSnapshot ?: rescheduleItemKey?.let(scheduledTaskByKey::get)
     val pendingCompleteItem = pendingCompleteItemKey?.let(scheduledTaskByKey::get)
-    val deleteItem = deleteItemKey?.let(scheduledTaskByKey::get)
+    val deleteItem = deleteItemSnapshot ?: deleteItemKey?.let(scheduledTaskByKey::get)
     val openGymSearchRequested = openGymSearchDomain?.let { domain ->
         openGymSearchId?.let { id -> WhipSearchResult(domain, id, "", "") }
     }
@@ -1215,8 +1288,9 @@ fun WhipScreen(
     }
     val editorRequest = if (taskEditorOpen && (taskEditorTaskId == null || editorTask != null)) {
         TaskEditorRequest(
-            editorTask,
-            taskEditorFromEpochDay?.let(LocalDate::ofEpochDay),
+            task = editorTask,
+            expectedBoundary = taskEditorBoundary,
+            fromOccurrence = taskEditorFromEpochDay?.let(LocalDate::ofEpochDay),
             initialCapture = taskEditorCapture,
             initialScheduleDate = taskEditorInitialScheduleEpochDay?.let(LocalDate::ofEpochDay),
             initialPlacement = taskEditorInitialPlacement,
@@ -1234,8 +1308,14 @@ fun WhipScreen(
         taskEditorOpen = true
         taskEditorTaskId = item?.task?.id
         taskEditorSnapshot = item?.task
+        taskEditorBoundary = item?.toEditBoundary()
         taskEditorFromEpochDay = item?.originalDate
-            ?.takeIf { item.task.scheduleKind == ScheduleKind.Recurring }
+            ?.takeIf {
+                    item.task.scheduleKind == ScheduleKind.Recurring &&
+                    !item.task.archived &&
+                    item.completedAtMillis == null &&
+                    (item.occurrenceState == null || item.occurrenceState == OccurrenceState.Open)
+            }
             ?.toEpochDay()
         taskEditorCapture = capture
         taskEditorInitialScheduleEpochDay = scheduleDate?.toEpochDay()
@@ -1246,6 +1326,7 @@ fun WhipScreen(
         taskEditorOpen = false
         taskEditorTaskId = null
         taskEditorSnapshot = null
+        taskEditorBoundary = null
         taskEditorFromEpochDay = null
         taskEditorSaveAndNew = false
         taskEditorCapture = ""
@@ -1378,6 +1459,8 @@ fun WhipScreen(
                             if (item != null) openTaskEditor(item) else {
                                 taskEditorOpen = true
                                 taskEditorTaskId = quickAddedId
+                                taskEditorSnapshot = null
+                                taskEditorBoundary = null
                                 taskEditorFromEpochDay = null
                                 taskEditorCapture = ""
                                 taskEditorInitialScheduleEpochDay = null
@@ -1685,8 +1768,15 @@ fun WhipScreen(
         actionItemKey = null
         completedItemKey = null
         rescheduleItemKey = null
+        rescheduleItemSnapshot = null
+        rescheduleSnapshotTitle = ""
+        rescheduleSnapshotEpochDay = null
         pendingCompleteItemKey = null
         deleteItemKey = null
+        deleteItemSnapshot = null
+        deleteSnapshotTaskId = null
+        deleteSnapshotTitle = ""
+        deleteSnapshotRecurring = false
         globalAddExpanded = false
         gymAddExpanded = false
         createHabitRequested = false
@@ -2320,13 +2410,18 @@ fun WhipScreen(
                     onSaveFilter = { settingsViewModel?.saveTaskFilter(it) },
                     onDeleteFilter = { settingsViewModel?.deleteTaskFilter(it) },
                     onBulkComplete = onBulkCompleteTasks,
-                    onBulkArchive = onBulkArchiveTasks,
+                    onBulkArchiveRequest = onBulkArchiveTasks,
                     onBulkRestore = onBulkRestoreTasks,
                     onBulkReopen = onBulkReopenTasks,
                     onBulkPin = onBulkPinTasks,
                     onBulkPostpone = onBulkPostponeTasks,
+                    onBulkPostponeRequest = onBulkPostponeTasksRequest,
                     onBulkEdit = onBulkEditTasks,
+                    onBulkEditRequest = onBulkEditTasksRequest,
                     onBulkDeletePermanently = onBulkDeleteTasksPermanently,
+                    onBulkDeletePermanentlyRequest = onBulkDeleteTasksPermanentlyRequest,
+                    authoredMutationState = taskAuthoredMutationState,
+                    onAuthoredMutationResultConsumed = onTaskAuthoredMutationResultConsumed,
                     deletionBatchImpact = taskDeletionBatchImpact,
                     onPreviewBulkDeletion = onPreviewBulkTaskDeletion,
                     onClearBulkDeletionPreview = onClearBulkTaskDeletionPreview,
@@ -2339,6 +2434,7 @@ fun WhipScreen(
                     onPlanMyDay = onPlanMyDay,
                     onStopFocus = { settingsViewModel?.stopFocusTimer() },
                     onQuickCapture = onQuickAddTaskWithResult,
+                    onQuickCaptureRequest = onQuickAddTaskRequest,
                     onAddDetails = { capture ->
                         openTaskEditor(
                             capture = capture,
@@ -2683,14 +2779,14 @@ fun WhipScreen(
             onSave = { taskId, draft, fromOccurrence ->
                 val requestId = taskEditorSaveCoordinator.begin() ?: return@TaskEditorDialog
                 taskEditorSaveAndNew = false
-                if (!onSaveTaskRequest(taskId, draft, fromOccurrence, requestId)) {
+                if (!onSaveTaskRequest(taskId, request.expectedBoundary, draft, fromOccurrence, requestId)) {
                     taskEditorSaveCoordinator.finishFailure("Another Task save is already finishing.")
                 }
             },
             onSaveAndNew = { taskId, draft, fromOccurrence ->
                 val requestId = taskEditorSaveCoordinator.begin() ?: return@TaskEditorDialog
                 taskEditorSaveAndNew = true
-                if (!onSaveTaskRequest(taskId, draft, fromOccurrence, requestId)) {
+                if (!onSaveTaskRequest(taskId, request.expectedBoundary, draft, fromOccurrence, requestId)) {
                     taskEditorSaveAndNew = false
                     taskEditorSaveCoordinator.finishFailure("Another Task save is already finishing.")
                 }
@@ -2730,6 +2826,9 @@ fun WhipScreen(
                 actionItemKey = null
             },
             onReschedule = {
+                rescheduleItemSnapshot = item
+                rescheduleSnapshotTitle = item.task.title
+                rescheduleSnapshotEpochDay = (item.scheduledDate ?: state.currentDate).toEpochDay()
                 rescheduleItemKey = item.stableKey
             },
             onSkip = {
@@ -2741,8 +2840,12 @@ fun WhipScreen(
                 actionItemKey = null
             },
             onDeletePermanently = {
+                deleteItemSnapshot = item
+                deleteSnapshotTaskId = item.task.id
+                deleteSnapshotTitle = item.task.title
+                deleteSnapshotRecurring = item.task.scheduleKind == ScheduleKind.Recurring
+                onClearTaskDeletionPreview()
                 deleteItemKey = item.stableKey
-                onPreviewTaskDeletion(item.task.id)
                 actionItemKey = null
             },
             onPin = {
@@ -2772,13 +2875,20 @@ fun WhipScreen(
                         originalDate = occurrence.originalDate,
                         scheduledDate = occurrence.scheduledDate,
                         completedAtMillis = occurrence.completedAtMillis,
+                        occurrenceState = occurrence.state,
                     ),
                 )
-                actionItemKey = null
             },
             onResetOccurrence = { occurrence ->
-                onResetOccurrence(item.task.id, occurrence.originalDate)
-                actionItemKey = null
+                onResetOccurrence(
+                    ScheduledTask(
+                        task = item.task,
+                        originalDate = occurrence.originalDate,
+                        scheduledDate = occurrence.scheduledDate,
+                        completedAtMillis = occurrence.completedAtMillis,
+                        occurrenceState = occurrence.state,
+                    ),
+                )
             },
             modifier = paneDialogModifier,
         )
@@ -2823,13 +2933,16 @@ fun WhipScreen(
                 if (item.task.scheduleKind == ScheduleKind.Recurring) {
                     onReopenOccurrence(item)
                 } else {
-                    onReopen(item.task.id)
+                    onReopen(item)
                 }
-                completedItemKey = null
             },
             onDeletePermanently = {
+                deleteItemSnapshot = item
+                deleteSnapshotTaskId = item.task.id
+                deleteSnapshotTitle = item.task.title
+                deleteSnapshotRecurring = item.task.scheduleKind == ScheduleKind.Recurring
+                onClearTaskDeletionPreview()
                 deleteItemKey = item.stableKey
-                onPreviewTaskDeletion(item.task.id)
                 completedItemKey = null
             },
             occurrenceHistory = state.occurrences.filter { it.taskId == item.task.id },
@@ -2840,39 +2953,66 @@ fun WhipScreen(
                         originalDate = occurrence.originalDate,
                         scheduledDate = occurrence.scheduledDate,
                         completedAtMillis = occurrence.completedAtMillis,
+                        occurrenceState = occurrence.state,
                     ),
                 )
-                completedItemKey = null
             },
             onResetOccurrence = { occurrence ->
-                onResetOccurrence(item.task.id, occurrence.originalDate)
-                completedItemKey = null
+                onResetOccurrence(
+                    ScheduledTask(
+                        task = item.task,
+                        originalDate = occurrence.originalDate,
+                        scheduledDate = occurrence.scheduledDate,
+                        completedAtMillis = occurrence.completedAtMillis,
+                        occurrenceState = occurrence.state,
+                    ),
+                )
             },
             modifier = paneDialogModifier,
         )
     }
 
-    deleteItem?.let { item ->
-        PermanentTaskDeleteDialog(
-            item = item,
+    deleteItemKey?.let { routeKey ->
+        val targetTaskId = deleteItem?.task?.id ?: deleteSnapshotTaskId ?: return@let
+        TaskPermanentDeleteRoute(
+            routeKey = routeKey,
+            item = deleteItem,
+            taskId = targetTaskId,
+            taskTitle = deleteItem?.task?.title ?: deleteSnapshotTitle,
+            recurringSeries = deleteItem?.task?.scheduleKind == ScheduleKind.Recurring || deleteSnapshotRecurring,
             impact = taskDeletionImpact,
+            state = taskAuthoredMutationState,
+            consume = onTaskAuthoredMutationResultConsumed,
+            onPreview = onPreviewTaskDeletion,
+            onClearPreview = onClearTaskDeletionPreview,
+            onDeleteRequest = onDeleteTaskPermanentlyRequest,
             modifier = paneDialogModifier,
-            onDismiss = { deleteItemKey = null; onClearTaskDeletionPreview() },
-            onConfirm = {
-                onDeleteTaskPermanently(item.task.id)
+            onClose = {
                 deleteItemKey = null
+                deleteItemSnapshot = null
+                deleteSnapshotTaskId = null
+                deleteSnapshotTitle = ""
+                deleteSnapshotRecurring = false
             },
         )
     }
 
-    rescheduleItem?.let { item ->
-        WhipDatePickerDialog(
-            initialDate = item.scheduledDate ?: state.currentDate,
+    rescheduleItemKey?.let { routeKey ->
+        TaskRescheduleRoute(
+            routeKey = routeKey,
+            item = rescheduleItem,
+            snapshotTitle = rescheduleSnapshotTitle,
+            snapshotEpochDay = rescheduleSnapshotEpochDay,
+            currentDate = state.currentDate,
+            state = taskAuthoredMutationState,
+            consume = onTaskAuthoredMutationResultConsumed,
+            onRescheduleRequest = onRescheduleRequest,
             modifier = paneDialogModifier,
-            onDismiss = { rescheduleItemKey = null },
-            onDateSelected = { newDate ->
-                onReschedule(item, newDate)
+            onClose = {
                 rescheduleItemKey = null
+                rescheduleItemSnapshot = null
+                rescheduleSnapshotTitle = ""
+                rescheduleSnapshotEpochDay = null
             },
         )
     }
@@ -2954,6 +3094,128 @@ fun WhipScreen(
                     usePounds = false,
                     lowPressureMode = false,
                 )
+            },
+        )
+    }
+}
+
+@Composable
+private fun TaskPermanentDeleteRoute(
+    routeKey: String,
+    item: ScheduledTask?,
+    taskId: Long,
+    taskTitle: String,
+    recurringSeries: Boolean,
+    impact: TaskDeletionImpact?,
+    state: PersistenceRequestState<TaskMutationReceipt>,
+    consume: (String) -> Unit,
+    onPreview: (Long) -> Unit,
+    onClearPreview: () -> Unit,
+    onDeleteRequest: (Long, String, String) -> Boolean,
+    onClose: () -> Unit,
+    modifier: Modifier,
+) {
+    LaunchedEffect(routeKey, taskId, impact?.taskId) {
+        if (impact?.taskId != taskId) onPreview(taskId)
+    }
+    val coordinator = rememberPersistenceRequestCoordinator(
+        state = state,
+        consume = consume,
+        key = "delete-$routeKey",
+        requestNamespace = "task-single-delete",
+        onPersisted = { onClose() },
+    )
+    PermanentTaskDeleteDialog(
+        item = item,
+        taskId = taskId,
+        taskTitle = taskTitle,
+        recurringSeries = recurringSeries,
+        impact = impact,
+        modifier = modifier,
+        saving = coordinator.saving,
+        persistenceError = coordinator.errorMessage,
+        onDismiss = {
+            coordinator.clear()
+            onClose()
+            onClearPreview()
+        },
+        onConfirm = {
+            val exactImpact = impact?.takeIf { it.taskId == taskId && it.exists }
+                ?: return@PermanentTaskDeleteDialog
+            val requestId = coordinator.begin() ?: return@PermanentTaskDeleteDialog
+            if (!onDeleteRequest(taskId, exactImpact.revisionToken, requestId)) {
+                coordinator.finishFailure("Another Task change is already finishing.")
+            }
+        },
+    )
+}
+
+@Composable
+private fun TaskRescheduleRoute(
+    routeKey: String,
+    item: ScheduledTask?,
+    snapshotTitle: String,
+    snapshotEpochDay: Long?,
+    currentDate: LocalDate,
+    state: PersistenceRequestState<TaskMutationReceipt>,
+    consume: (String) -> Unit,
+    onRescheduleRequest: (ScheduledTask, LocalDate, String) -> Boolean,
+    onClose: () -> Unit,
+    modifier: Modifier,
+) {
+    val coordinator = rememberPersistenceRequestCoordinator(
+        state = state,
+        consume = consume,
+        key = "reschedule-$routeKey",
+        requestNamespace = "task-single-reschedule",
+        onPersisted = { onClose() },
+    )
+    if (item != null) {
+        WhipDatePickerDialog(
+            initialDate = snapshotEpochDay?.let(LocalDate::ofEpochDay) ?: item.scheduledDate ?: currentDate,
+            modifier = modifier,
+            saving = coordinator.saving,
+            persistenceError = coordinator.errorMessage,
+            savingLabel = "Saving Task Schedule",
+            onDismiss = {
+                coordinator.clear()
+                onClose()
+            },
+            onDateSelected = { newDate ->
+                val requestId = coordinator.begin() ?: return@WhipDatePickerDialog
+                if (!onRescheduleRequest(item, newDate, requestId)) {
+                    coordinator.finishFailure("Another Task change is already finishing.")
+                }
+            },
+        )
+    } else {
+        PaneAwareAlertDialog(
+            modifier = modifier,
+            onDismissRequest = {
+                if (!coordinator.saving) {
+                    coordinator.clear()
+                    onClose()
+                }
+            },
+            inputBlocked = coordinator.saving,
+            inputBlockedLabel = "Saving Task Schedule",
+            title = { Text("Move ${snapshotTitle.ifBlank { "Task" }}") },
+            text = {
+                PersistenceFailureNotice(
+                    coordinator.errorMessage
+                        ?: "This Task changed or left the visible schedule. Close this message and open it again.",
+                    testTag = "task-reschedule-target-problem",
+                )
+            },
+            confirmButton = {},
+            dismissButton = {
+                WhipTextButton(
+                    enabled = !coordinator.saving,
+                    onClick = {
+                        coordinator.clear()
+                        onClose()
+                    },
+                ) { Text("Close") }
             },
         )
     }
@@ -4969,13 +5231,18 @@ private fun TaskAreaContent(
     onSaveFilter: (SavedTaskFilter) -> Unit,
     onDeleteFilter: (String) -> Unit,
     onBulkComplete: (List<ScheduledTask>) -> Unit,
-    onBulkArchive: (List<ScheduledTask>) -> Unit,
+    onBulkArchiveRequest: (List<ScheduledTask>, String) -> Boolean,
     onBulkRestore: (List<ScheduledTask>) -> Unit,
     onBulkReopen: (List<ScheduledTask>) -> Unit,
     onBulkPin: (List<ScheduledTask>, Boolean) -> Unit,
     onBulkPostpone: (List<ScheduledTask>, LocalDate) -> Unit,
+    onBulkPostponeRequest: (List<ScheduledTask>, LocalDate, String) -> Boolean,
     onBulkEdit: (List<ScheduledTask>, TaskBulkEdit) -> Unit,
+    onBulkEditRequest: (List<ScheduledTask>, TaskBulkEdit, String) -> Boolean,
     onBulkDeletePermanently: (Set<Long>) -> Unit,
+    onBulkDeletePermanentlyRequest: (Set<Long>, Map<Long, String>, String) -> Boolean,
+    authoredMutationState: PersistenceRequestState<TaskMutationReceipt>,
+    onAuthoredMutationResultConsumed: (String) -> Unit,
     deletionBatchImpact: TaskDeletionBatchImpact?,
     onPreviewBulkDeletion: (Set<Long>) -> Unit,
     onClearBulkDeletionPreview: () -> Unit,
@@ -4986,6 +5253,7 @@ private fun TaskAreaContent(
     onPlanMyDay: (List<ScheduledTask>, Int) -> Unit,
     onStopFocus: () -> Unit,
     onQuickCapture: (String, LocalDate?, String?, (Boolean) -> Unit) -> Unit,
+    onQuickCaptureRequest: ((String, LocalDate?, String?, String) -> Boolean)?,
     onAddDetails: (String) -> Unit,
     modifier: Modifier = Modifier,
     areas: List<Area> = emptyList(),
@@ -5053,9 +5321,19 @@ private fun TaskAreaContent(
     var selectedKeys by rememberSaveable { mutableStateOf(emptySet<String>()) }
     var pendingBulkCompleteKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
     var archivePreviewKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
+    var archiveTargetRevisions by rememberSaveable { mutableStateOf(emptySet<String>()) }
     var deletePreviewTaskIds by rememberSaveable { mutableStateOf<Set<Long>?>(null) }
     var bulkEditOpen by rememberSaveable { mutableStateOf(false) }
     var bulkDatePickerOpen by rememberSaveable { mutableStateOf(false) }
+    var bulkEditTargetKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
+    var bulkDateTargetKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
+    var bulkEditTargetRevisions by rememberSaveable { mutableStateOf(emptySet<String>()) }
+    var bulkDateTargetRevisions by rememberSaveable { mutableStateOf(emptySet<String>()) }
+    var quickMoveTargetKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
+    var quickMoveTargetRevisions by rememberSaveable { mutableStateOf(emptySet<String>()) }
+    var quickMoveEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
+    var bulkEditTargetSnapshot by remember { mutableStateOf<List<ScheduledTask>>(emptyList()) }
+    var bulkDateTargetSnapshot by remember { mutableStateOf<List<ScheduledTask>>(emptyList()) }
     var calendarMonth by rememberSaveable(state.currentDate) { mutableStateOf(YearMonth.from(state.currentDate)) }
     var selectedDate by rememberSaveable(state.currentDate) { mutableStateOf(state.currentDate) }
     var dayCapacityText by rememberSaveable { mutableStateOf("240") }
@@ -5063,8 +5341,23 @@ private fun TaskAreaContent(
     var dayPlanCandidateKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
     var taskToolsExpanded by rememberSaveable { mutableStateOf(false) }
     var quickCapture by rememberSaveable { mutableStateOf("") }
-    var quickCaptureSubmitting by rememberSaveable { mutableStateOf(false) }
+    var legacyQuickCaptureSubmitting by remember { mutableStateOf(false) }
     var submittedQuickCapture by rememberSaveable { mutableStateOf("") }
+    val quickCaptureCoordinator = rememberPersistenceRequestCoordinator(
+        state = authoredMutationState,
+        consume = onAuthoredMutationResultConsumed,
+        key = "task-quick-capture",
+        requestNamespace = "task-quick-capture",
+        onPersisted = { receipt ->
+            if (receipt.kind == TaskMutationKind.Created &&
+                quickCapture.trim() == submittedQuickCapture
+            ) {
+                quickCapture = ""
+            }
+            submittedQuickCapture = ""
+        },
+    )
+    val quickCaptureSubmitting = quickCaptureCoordinator.saving || legacyQuickCaptureSubmitting
     val quickCaptureAssumptions = remember(
         quickCapture,
         state.currentDate,
@@ -5084,16 +5377,33 @@ private fun TaskAreaContent(
         onSelectionModeChange(selectionMode)
         onReorderModeChange(reordering || enterReorderWhenReady)
     }
+    var previousDestination by rememberSaveable { mutableStateOf(destination) }
     LaunchedEffect(destination) {
         destination.toWorkspaceRoute().takeIf { it.destination == TaskWorkspaceDestination.History }
             ?.let { historySection = it.historySection }
         planningView = workspaceDestination.normalizePlanningView(planningView)
-        selectionMode = false
-        reordering = false
-        enterReorderWhenReady = false
-        selectionActionsOpen = false
-        selectedKeys = emptySet()
-        pendingBulkCompleteKeys = null
+        if (previousDestination != destination) {
+            selectionMode = false
+            reordering = false
+            enterReorderWhenReady = false
+            selectionActionsOpen = false
+            selectedKeys = emptySet()
+            pendingBulkCompleteKeys = null
+            archivePreviewKeys = null
+            archiveTargetRevisions = emptySet()
+            bulkEditOpen = false
+            bulkDatePickerOpen = false
+            bulkEditTargetKeys = null
+            bulkDateTargetKeys = null
+            bulkEditTargetRevisions = emptySet()
+            bulkDateTargetRevisions = emptySet()
+            quickMoveTargetKeys = null
+            quickMoveTargetRevisions = emptySet()
+            quickMoveEpochDay = null
+            bulkEditTargetSnapshot = emptyList()
+            bulkDateTargetSnapshot = emptyList()
+        }
+        previousDestination = destination
         dateMode = when (destination) {
             TaskDestination.Completed -> dateMode.takeIf { it in setOf("Any", "Today", "Last7Days") } ?: "Any"
             TaskDestination.Archived -> "Any"
@@ -5122,11 +5432,6 @@ private fun TaskAreaContent(
             onPlanningViewRequestConsumed()
         }
     }
-    BackHandler(enabled = selectionMode) {
-        selectionMode = false
-        selectedKeys = emptySet()
-        selectionActionsOpen = false
-    }
     BackHandler(enabled = reordering || enterReorderWhenReady) {
         reordering = false
         enterReorderWhenReady = false
@@ -5148,6 +5453,32 @@ private fun TaskAreaContent(
         focusClockMillis = System.currentTimeMillis()
     }
     val allTasks = state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived
+    LaunchedEffect(bulkEditOpen, bulkEditTargetKeys, allTasks) {
+        if (bulkEditOpen && bulkEditTargetSnapshot.isEmpty()) {
+            val keys = bulkEditTargetKeys.orEmpty()
+            bulkEditTargetSnapshot = allTasks.filter { it.stableKey in keys }
+        }
+    }
+    LaunchedEffect(bulkDatePickerOpen, bulkDateTargetKeys, allTasks) {
+        if (bulkDatePickerOpen && bulkDateTargetSnapshot.isEmpty()) {
+            val keys = bulkDateTargetKeys.orEmpty()
+            bulkDateTargetSnapshot = allTasks.filter { it.stableKey in keys }
+        }
+    }
+    val quickMoveCoordinator = rememberPersistenceRequestCoordinator(
+        state = authoredMutationState,
+        consume = onAuthoredMutationResultConsumed,
+        key = "task-bulk-quick-date",
+        requestNamespace = "task-bulk-quick-date",
+        onPersisted = {
+            quickMoveTargetKeys = null
+            quickMoveTargetRevisions = emptySet()
+            quickMoveEpochDay = null
+            selectionMode = false
+            selectionActionsOpen = false
+            selectedKeys = emptySet()
+        },
+    )
     val availableAreas = areas.filterNot(Area::archived)
     val availableTags = allTasks.flatMap { it.task.tags }.distinct().sorted()
     val currentFilter = SavedTaskFilter(
@@ -5268,23 +5599,43 @@ private fun TaskAreaContent(
             submittedQuickCapture = ""
             return
         }
-        quickCaptureSubmitting = true
-        onQuickCapture(
-            submittedQuickCapture,
-            state.currentDate.takeIf { destination == TaskDestination.Today },
-            areaScope.creationDefaultAreaId(availableAreas),
-        ) { succeeded ->
-            if (succeeded && quickCapture == submittedQuickCapture) quickCapture = ""
-            quickCaptureSubmitting = false
-            submittedQuickCapture = ""
+        val targetDate = state.currentDate.takeIf { destination == TaskDestination.Today }
+        val targetAreaId = areaScope.creationDefaultAreaId(availableAreas)
+        val request = onQuickCaptureRequest
+        if (request != null) {
+            val requestId = quickCaptureCoordinator.begin() ?: return
+            if (!request(submittedQuickCapture, targetDate, targetAreaId, requestId)) {
+                quickCaptureCoordinator.finishFailure("Another Task change is already finishing.")
+            }
+        } else {
+            legacyQuickCaptureSubmitting = true
+            onQuickCapture(submittedQuickCapture, targetDate, targetAreaId) { succeeded ->
+                if (succeeded && quickCapture.trim() == submittedQuickCapture) quickCapture = ""
+                legacyQuickCaptureSubmitting = false
+                submittedQuickCapture = ""
+            }
         }
     }
 
     fun finishSelection() {
         pendingBulkCompleteKeys = null
+        archivePreviewKeys = null
+        archiveTargetRevisions = emptySet()
         selectionMode = false
         selectionActionsOpen = false
         selectedKeys = emptySet()
+        bulkEditTargetKeys = null
+        bulkDateTargetKeys = null
+        bulkEditTargetRevisions = emptySet()
+        bulkDateTargetRevisions = emptySet()
+        quickMoveTargetKeys = null
+        quickMoveTargetRevisions = emptySet()
+        quickMoveEpochDay = null
+        bulkEditTargetSnapshot = emptyList()
+        bulkDateTargetSnapshot = emptyList()
+    }
+    BackHandler(enabled = selectionMode) {
+        if (!quickMoveCoordinator.saving) finishSelection()
     }
     val canReorderTaskList =
         reorderDestinationEligible && maxOf(sourceTasks.distinctBy { it.task.id }.size, allAreaTaskCount) > 1
@@ -5317,10 +5668,15 @@ private fun TaskAreaContent(
         taskToolsExpanded = false
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(innerPadding),
+    ) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .then(if (quickMoveCoordinator.saving) Modifier.clearAndSetSemantics { } else Modifier),
     ) {
         DestinationTabBar(
             selected = workspaceDestination,
@@ -5421,6 +5777,17 @@ private fun TaskAreaContent(
                                 WhipTextButton(onClick = { showFilters = true }) { Text("Filters · $activeFilterCount") }
                             }
                         }
+                        PersistenceFailureNotice(
+                            quickMoveCoordinator.errorMessage,
+                            testTag = "task-bulk-quick-date-problem",
+                        )
+                        if (quickMoveCoordinator.saving) {
+                            Text(
+                                "Saving selected Task schedules…",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                         FlowRow(
                             modifier = Modifier.fillMaxWidth().testTag("task-selection-actions"),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -5454,7 +5821,14 @@ private fun TaskAreaContent(
                             }
                             WhipOutlinedButton(
                                 enabled = selectedItems.isNotEmpty(),
-                                onClick = { bulkEditOpen = true },
+                                onClick = {
+                                    bulkEditTargetSnapshot = selectedItems.distinctBy(ScheduledTask::stableKey)
+                                    bulkEditTargetKeys = bulkEditTargetSnapshot
+                                        .mapTo(linkedSetOf(), ScheduledTask::stableKey)
+                                    bulkEditTargetRevisions = bulkEditTargetSnapshot
+                                        .mapTo(linkedSetOf(), ScheduledTask::taskMutationRevision)
+                                    bulkEditOpen = true
+                                },
                                 modifier = actionModifier.testTag("task-selection-edit"),
                             ) { Text("Edit", maxLines = 1) }
                             WhipOverflowMenu(
@@ -5472,13 +5846,35 @@ private fun TaskAreaContent(
                                         onBulkPin(selectedItems, false); finishSelection()
                                     })
                                     WhipMenuItem(label = "Move to Tomorrow", onClick = {
-                                        onBulkPostpone(selectedItems, state.currentDate.plusDays(1)); finishSelection()
+                                        val targets = selectedItems.distinctBy(ScheduledTask::stableKey)
+                                        quickMoveTargetKeys = targets.mapTo(linkedSetOf(), ScheduledTask::stableKey)
+                                        quickMoveTargetRevisions = targets.mapTo(linkedSetOf(), ScheduledTask::taskMutationRevision)
+                                        quickMoveEpochDay = state.currentDate.plusDays(1).toEpochDay()
+                                        selectionActionsOpen = false
+                                        val requestId = quickMoveCoordinator.begin() ?: return@WhipMenuItem
+                                        if (!onBulkPostponeRequest(targets, state.currentDate.plusDays(1), requestId)) {
+                                            quickMoveCoordinator.finishFailure("Another Task change is already finishing.")
+                                        }
                                     })
                                     WhipMenuItem(label = "Move to Next Week", onClick = {
-                                        onBulkPostpone(selectedItems, state.currentDate.plusWeeks(1)); finishSelection()
+                                        val targets = selectedItems.distinctBy(ScheduledTask::stableKey)
+                                        quickMoveTargetKeys = targets.mapTo(linkedSetOf(), ScheduledTask::stableKey)
+                                        quickMoveTargetRevisions = targets.mapTo(linkedSetOf(), ScheduledTask::taskMutationRevision)
+                                        quickMoveEpochDay = state.currentDate.plusWeeks(1).toEpochDay()
+                                        selectionActionsOpen = false
+                                        val requestId = quickMoveCoordinator.begin() ?: return@WhipMenuItem
+                                        if (!onBulkPostponeRequest(targets, state.currentDate.plusWeeks(1), requestId)) {
+                                            quickMoveCoordinator.finishFailure("Another Task change is already finishing.")
+                                        }
                                     })
                                     WhipMenuItem(label = "Choose Date", onClick = {
-                                        bulkDatePickerOpen = true; selectionActionsOpen = false
+                                        bulkDateTargetSnapshot = selectedItems.distinctBy(ScheduledTask::stableKey)
+                                        bulkDateTargetKeys = bulkDateTargetSnapshot
+                                            .mapTo(linkedSetOf(), ScheduledTask::stableKey)
+                                        bulkDateTargetRevisions = bulkDateTargetSnapshot
+                                            .mapTo(linkedSetOf(), ScheduledTask::taskMutationRevision)
+                                        bulkDatePickerOpen = true
+                                        selectionActionsOpen = false
                                     })
                                 }
                                 if (destination != TaskDestination.Archived) {
@@ -5486,6 +5882,8 @@ private fun TaskAreaContent(
                                         label = "Archive",
                                         onClick = {
                                             archivePreviewKeys = selectedItems.mapTo(linkedSetOf(), ScheduledTask::stableKey)
+                                            archiveTargetRevisions = selectedItems
+                                                .mapTo(linkedSetOf(), ScheduledTask::taskMutationRevision)
                                             selectionActionsOpen = false
                                         },
                                         modifier = Modifier.testTag("task-selection-archive"),
@@ -5495,8 +5893,8 @@ private fun TaskAreaContent(
                                     label = "Delete Permanently",
                                     onClick = {
                                         val ids = selectedItems.mapTo(linkedSetOf()) { it.task.id }
+                                        onClearBulkDeletionPreview()
                                         deletePreviewTaskIds = ids
-                                        onPreviewBulkDeletion(ids)
                                         selectionActionsOpen = false
                                     },
                                     role = WhipMenuItemRole.Destructive,
@@ -5603,6 +6001,7 @@ private fun TaskAreaContent(
                     OutlinedTextField(
                         value = quickCapture,
                         onValueChange = { quickCapture = it },
+                        enabled = !quickCaptureSubmitting,
                         label = { Text("Quick Capture to ${destination.label}") },
                         placeholder = {
                             Text(
@@ -5635,6 +6034,10 @@ private fun TaskAreaContent(
                                 quickCaptureStateDescription?.let { stateDescription = it }
                             }
                             .testTag("task-quick-capture"),
+                    )
+                    PersistenceFailureNotice(
+                        quickCaptureCoordinator.errorMessage,
+                        testTag = "task-quick-capture-save-problem",
                     )
                     SmartTaskCapturePreview(
                         assumptions = quickCaptureAssumptions,
@@ -5938,6 +6341,11 @@ private fun TaskAreaContent(
         }
         }
     }
+    PersistenceSavingOverlay(
+        active = quickMoveCoordinator.saving,
+        label = "Saving selected Task schedules",
+    )
+    }
 
     if (showFilters) {
         PaneAwareAlertDialog(
@@ -6171,14 +6579,40 @@ private fun TaskAreaContent(
     }
     archivePreviewKeys?.let { keys ->
         val affected = allTasks.filter { it.stableKey in keys }.distinctBy(ScheduledTask::stableKey)
+        val targetChanged = affected.mapTo(linkedSetOf(), ScheduledTask::stableKey) != keys ||
+            affected.mapTo(linkedSetOf(), ScheduledTask::taskMutationRevision) != archiveTargetRevisions
         val series = affected.distinctBy { it.task.id }
         val recurringSeries = series.count { it.task.scheduleKind == ScheduleKind.Recurring }
+        val mutationCoordinator = rememberPersistenceRequestCoordinator(
+            state = authoredMutationState,
+            consume = onAuthoredMutationResultConsumed,
+            key = keys.sorted().joinToString(prefix = "archive-"),
+            requestNamespace = "task-bulk-archive",
+            onPersisted = {
+                archivePreviewKeys = null
+                archiveTargetRevisions = emptySet()
+                finishSelection()
+            },
+        )
         PaneAwareAlertDialog(
             modifier = dialogModifier,
-            onDismissRequest = { archivePreviewKeys = null },
+            onDismissRequest = {
+                if (!mutationCoordinator.saving) {
+                    mutationCoordinator.clear()
+                    archivePreviewKeys = null
+                    archiveTargetRevisions = emptySet()
+                }
+            },
             title = { Text("Archive ${series.size} ${if (series.size == 1) "Task" else "Tasks"}?") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState())
+                        .testTag("task-bulk-archive-impact"),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Text(
                         "This hides ${series.size} ${if (series.size == 1) "task" else "tasks"} from active views. " +
                             if (recurringSeries > 0) "$recurringSeries repeating ${if (recurringSeries == 1) "series is" else "series are"} archived in full, not just the selected occurrence." else "No repeating series are included.",
@@ -6186,63 +6620,196 @@ private fun TaskAreaContent(
                     series.take(8).forEach { Text("• ${it.task.title}") }
                     if (series.size > 8) Text("…and ${series.size - 8} more")
                     Text("Completed history is kept. You can restore these from Archived.", style = MaterialTheme.typography.bodySmall)
+                    PersistenceFailureNotice(
+                        mutationCoordinator.errorMessage ?: if (targetChanged) {
+                            "One or more selected Tasks changed. Cancel and select them again."
+                        } else null,
+                        testTag = "task-bulk-archive-problem",
+                    )
                 }
             },
             confirmButton = {
                 WhipButton(
-                    enabled = affected.isNotEmpty(),
+                    enabled = affected.isNotEmpty() && !targetChanged && !mutationCoordinator.saving,
                     onClick = {
-                        onBulkArchive(affected)
-                        archivePreviewKeys = null
-                        finishSelection()
+                        val requestId = mutationCoordinator.begin() ?: return@WhipButton
+                        if (!onBulkArchiveRequest(affected, requestId)) {
+                            mutationCoordinator.finishFailure("Another Task change is already finishing.")
+                        }
                     },
-                ) { Text("Archive ${series.size}") }
+                ) { Text(if (mutationCoordinator.saving) "Archiving…" else "Archive ${series.size}") }
             },
-            dismissButton = { WhipTextButton(onClick = { archivePreviewKeys = null }) { Text("Cancel") } },
+            dismissButton = {
+                WhipTextButton(
+                    enabled = !mutationCoordinator.saving,
+                    onClick = {
+                        mutationCoordinator.clear()
+                        archivePreviewKeys = null
+                        archiveTargetRevisions = emptySet()
+                    },
+                ) { Text("Cancel") }
+            },
         )
     }
     deletePreviewTaskIds?.let { taskIds ->
+        LaunchedEffect(taskIds, deletionBatchImpact?.requestedTaskIds) {
+            if (deletionBatchImpact?.requestedTaskIds != taskIds) onPreviewBulkDeletion(taskIds)
+        }
+        val mutationCoordinator = rememberPersistenceRequestCoordinator(
+            state = authoredMutationState,
+            consume = onAuthoredMutationResultConsumed,
+            key = taskIds.sorted().joinToString(prefix = "delete-"),
+            requestNamespace = "task-bulk-delete",
+            onPersisted = {
+                deletePreviewTaskIds = null
+                finishSelection()
+            },
+        )
         PermanentTaskBatchDeleteDialog(
             taskIds = taskIds,
             impact = deletionBatchImpact,
             modifier = dialogModifier,
+            saving = mutationCoordinator.saving,
+            persistenceError = mutationCoordinator.errorMessage,
             onDismiss = {
+                mutationCoordinator.clear()
                 deletePreviewTaskIds = null
                 onClearBulkDeletionPreview()
             },
             onConfirm = {
-                onBulkDeletePermanently(taskIds)
-                deletePreviewTaskIds = null
-                finishSelection()
+                val exactImpact = deletionBatchImpact?.takeIf {
+                    it.requestedTaskIds == taskIds && it.taskIds == taskIds
+                } ?: return@PermanentTaskBatchDeleteDialog
+                val requestId = mutationCoordinator.begin() ?: return@PermanentTaskBatchDeleteDialog
+                if (!onBulkDeletePermanentlyRequest(taskIds, exactImpact.revisionTokens, requestId)) {
+                    mutationCoordinator.finishFailure("Another Task change is already finishing.")
+                }
             },
         )
     }
     if (bulkDatePickerOpen) {
-        WhipDatePickerDialog(
-            initialDate = state.currentDate,
-            modifier = dialogModifier,
-            onDismiss = { bulkDatePickerOpen = false },
-            onDateSelected = { date ->
-                onBulkPostpone(selectedItems, date)
+        val targetKeys = bulkDateTargetKeys.orEmpty()
+        val targets = bulkDateTargetSnapshot
+            .ifEmpty { allTasks.filter { it.stableKey in targetKeys } }
+        val currentTargets = allTasks.filter { it.stableKey in targetKeys }
+        val targetChanged = currentTargets.mapTo(linkedSetOf(), ScheduledTask::stableKey) != targetKeys ||
+            currentTargets.mapTo(linkedSetOf(), ScheduledTask::taskMutationRevision) != bulkDateTargetRevisions
+        val mutationCoordinator = rememberPersistenceRequestCoordinator(
+            state = authoredMutationState,
+            consume = onAuthoredMutationResultConsumed,
+            key = targetKeys.sorted().joinToString(prefix = "date-"),
+            requestNamespace = "task-bulk-date",
+            onPersisted = {
                 bulkDatePickerOpen = false
                 finishSelection()
             },
         )
+        WhipDatePickerDialog(
+            initialDate = state.currentDate,
+            modifier = dialogModifier,
+            saving = mutationCoordinator.saving,
+            persistenceError = mutationCoordinator.errorMessage ?: if (targetChanged) {
+                "One or more selected Tasks changed. Cancel and select them again."
+            } else null,
+            savingLabel = "Saving Task Schedules",
+            onDismiss = {
+                mutationCoordinator.clear()
+                bulkDatePickerOpen = false
+                bulkDateTargetKeys = null
+                bulkDateTargetRevisions = emptySet()
+                bulkDateTargetSnapshot = emptyList()
+            },
+            onDateSelected = { date ->
+                if (targetChanged || targets.isEmpty()) {
+                    mutationCoordinator.finishFailure(
+                        "One or more selected Tasks changed. Cancel and select them again.",
+                    )
+                    return@WhipDatePickerDialog
+                }
+                val requestId = mutationCoordinator.begin() ?: return@WhipDatePickerDialog
+                if (!onBulkPostponeRequest(targets, date, requestId)) {
+                    mutationCoordinator.finishFailure("Another Task change is already finishing.")
+                }
+            },
+        )
     }
     if (bulkEditOpen) {
-        TaskBulkEditDialog(
-            count = selectedItems.map { it.task.id }.distinct().size,
-            modifier = dialogModifier,
-            knownAreas = availableAreas,
-            knownTags = availableTags,
-            onDismiss = { bulkEditOpen = false },
-            onApply = { edit ->
-                onBulkEdit(selectedItems, edit)
+        val targetKeys = bulkEditTargetKeys.orEmpty()
+        val targets = bulkEditTargetSnapshot
+            .ifEmpty { allTasks.filter { it.stableKey in targetKeys } }
+        val currentTargets = allTasks.filter { it.stableKey in targetKeys }
+        val targetChanged = currentTargets.mapTo(linkedSetOf(), ScheduledTask::stableKey) != targetKeys ||
+            currentTargets.mapTo(linkedSetOf(), ScheduledTask::taskMutationRevision) != bulkEditTargetRevisions
+        val mutationCoordinator = rememberPersistenceRequestCoordinator(
+            state = authoredMutationState,
+            consume = onAuthoredMutationResultConsumed,
+            key = targetKeys.sorted().joinToString(prefix = "edit-"),
+            requestNamespace = "task-bulk-edit",
+            onPersisted = {
                 bulkEditOpen = false
                 finishSelection()
             },
         )
+        TaskBulkEditDialog(
+            count = targets.map { it.task.id }.distinct().size,
+            modifier = dialogModifier,
+            knownAreas = availableAreas,
+            knownTags = availableTags,
+            saving = mutationCoordinator.saving,
+            persistenceError = mutationCoordinator.errorMessage ?: if (targetChanged) {
+                "One or more selected Tasks changed. Cancel and select them again."
+            } else null,
+            onDismiss = {
+                mutationCoordinator.clear()
+                bulkEditOpen = false
+                bulkEditTargetKeys = null
+                bulkEditTargetRevisions = emptySet()
+                bulkEditTargetSnapshot = emptyList()
+            },
+            onApply = { edit ->
+                if (targetChanged || targets.isEmpty()) {
+                    mutationCoordinator.finishFailure(
+                        "One or more selected Tasks changed. Cancel and select them again.",
+                    )
+                    return@TaskBulkEditDialog
+                }
+                val requestId = mutationCoordinator.begin() ?: return@TaskBulkEditDialog
+                if (!onBulkEditRequest(targets, edit, requestId)) {
+                    mutationCoordinator.finishFailure("Another Task change is already finishing.")
+                }
+            },
+        )
     }
+}
+
+private fun ScheduledTask.taskMutationRevision(): String {
+    val values = buildList {
+        add(stableKey)
+        add(task.id.toString())
+        add(task.uuid)
+        add(task.createdAtMillis.toString())
+        add(task.updatedAtMillis.toString())
+        add(task.title)
+        add(task.notes)
+        add(task.scheduleKind.name)
+        add(task.date?.toEpochDay()?.toString().orEmpty())
+        add(task.recurrence?.toString().orEmpty())
+        add(task.completedAtMillis?.toString().orEmpty())
+        add(task.archived.toString())
+        add(task.inbox.toString())
+        add(task.areaId.orEmpty())
+        add(task.area)
+        add(task.tags.sorted().joinToString("\u001f"))
+        add(task.priority.name)
+        add(task.effort.name)
+        add(originalDate?.toEpochDay()?.toString().orEmpty())
+        add(scheduledDate?.toEpochDay()?.toString().orEmpty())
+        add(completedAtMillis?.toString().orEmpty())
+        subtasks.sortedBy { it.step.id }.forEach { subtask ->
+            add("${subtask.step.id}:${subtask.step.updatedAtMillis}:${subtask.completed}")
+        }
+    }
+    return values.joinToString(separator = "") { value -> "${value.length}:$value" }
 }
 
 @Composable
@@ -6252,6 +6819,8 @@ private fun PermanentTaskBatchDeleteDialog(
     modifier: Modifier,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
+    saving: Boolean = false,
+    persistenceError: String? = null,
 ) {
     val exactImpact = impact?.takeIf {
         it.requestedTaskIds == taskIds && it.taskIds == taskIds
@@ -6259,10 +6828,19 @@ private fun PermanentTaskBatchDeleteDialog(
     val count = taskIds.size
     PaneAwareAlertDialog(
         modifier = modifier,
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
+        inputBlocked = saving,
+        inputBlockedLabel = "Deleting Tasks Permanently",
         title = { Text("Delete $count ${if (count == 1) "Task" else "Tasks"} Permanently?") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PersistenceFailureNotice(
+                    persistenceError,
+                    testTag = "task-bulk-delete-save-problem",
+                )
                 when {
                     impact == null || impact.requestedTaskIds != taskIds -> {
                         Text("Calculating the exact deletion impact…")
@@ -6287,6 +6865,8 @@ private fun PermanentTaskBatchDeleteDialog(
                                 "(${exactImpact.completedOccurrenceCount} completed, ${exactImpact.skippedOccurrenceCount} skipped, ${exactImpact.openOccurrenceCount} open)",
                         )
                         Text("${exactImpact.stepCount} subtask${if (exactImpact.stepCount == 1) "" else "s"}")
+                        Text("${exactImpact.linkRuleIds.size} Goal link${if (exactImpact.linkRuleIds.size == 1) "" else "s"}")
+                        Text("${exactImpact.automationRuleIds.size} Automation${if (exactImpact.automationRuleIds.size == 1) "" else "s"}")
                         Text(
                             "This cannot be undone. Export a backup first if you may need this history.",
                             color = MaterialTheme.colorScheme.error,
@@ -6297,12 +6877,12 @@ private fun PermanentTaskBatchDeleteDialog(
         },
         confirmButton = {
             WhipTextButton(
-                enabled = exactImpact != null,
+                enabled = !saving && exactImpact != null,
                 onClick = onConfirm,
                 modifier = Modifier.testTag("confirm-task-selection-delete"),
             ) { Text("Delete Permanently", color = MaterialTheme.colorScheme.error) }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -6314,6 +6894,8 @@ private fun TaskBulkEditDialog(
     knownTags: List<String>,
     onDismiss: () -> Unit,
     onApply: (TaskBulkEdit) -> Unit,
+    saving: Boolean = false,
+    persistenceError: String? = null,
 ) {
     var applyArea by rememberSaveable { mutableStateOf(false) }
     var areaId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -6322,17 +6904,30 @@ private fun TaskBulkEditDialog(
     var tags by rememberSaveable { mutableStateOf("") }
     var priority by rememberSaveable { mutableStateOf("") }
     var effort by rememberSaveable { mutableStateOf("") }
-    val canApply = applyArea || applyTags || priority.isNotBlank() || effort.isNotBlank()
+    val areaSelectionMissing = applyArea && areaId.isNullOrBlank()
+    val canApply = !areaSelectionMissing &&
+        (applyArea || applyTags || priority.isNotBlank() || effort.isNotBlank())
     PaneAwareAlertDialog(
         modifier = modifier,
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
+        inputBlocked = saving,
+        inputBlockedLabel = "Saving Task Changes",
         title = { Text("Edit $count ${if (count == 1) "Task" else "Tasks"}") },
         text = {
             Column(
                 Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
             ) {
+                PersistenceFailureNotice(
+                    persistenceError,
+                    testTag = "task-bulk-edit-save-problem",
+                )
                 Text("Only enabled fields change. Tags replace the selected tasks’ complete tag set.", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "Area, tags, priority, and effort update each selected Task’s full definition, including an entire repeating series. Date moves affect only the selected occurrences.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 WhipSettingsRow(
                     title = "Change Area",
                     supportingText = "Move every selected Task to one Area.",
@@ -6347,6 +6942,13 @@ private fun TaskBulkEditDialog(
                         selectedAreaName = areaName,
                         onSelect = { id, name -> areaId = id; areaName = name },
                     )
+                    if (areaSelectionMissing) {
+                        Text(
+                            "Choose an Area before applying this change.",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                 }
                 WhipSettingsRow(
                     title = "Replace Tags",
@@ -6361,7 +6963,7 @@ private fun TaskBulkEditDialog(
                         onValueChange = { tags = it },
                         label = { Text("Replacement Tags") },
                         supportingText = { Text("Comma-separated. Leave blank to remove all tags.") },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().testTag("task-bulk-edit-tags"),
                     )
                 }
                 if (applyTags && knownTags.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling)) {
@@ -6390,7 +6992,7 @@ private fun TaskBulkEditDialog(
         },
         confirmButton = {
             WhipButton(
-                enabled = canApply,
+                enabled = !saving && canApply,
                 onClick = {
                     onApply(
                         TaskBulkEdit(
@@ -6405,7 +7007,7 @@ private fun TaskBulkEditDialog(
                 },
             ) { Text("Apply Changes") }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )
 }
 

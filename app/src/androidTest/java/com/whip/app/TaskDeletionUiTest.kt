@@ -249,7 +249,7 @@ class TaskDeletionUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Edit This and Future").assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription("Edit Series").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, edits.get()) }
         compose.onNodeWithText("Reopen Occurrence").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, reopens.get()) }
@@ -299,11 +299,11 @@ class TaskDeletionUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Edit This and Future").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Edit Series").assertIsDisplayed()
         compose.onNodeWithText("Activity").performClick()
-        compose.onNodeWithContentDescription("Edit This and Future").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Edit Series").assertIsDisplayed()
         compose.onNodeWithTag("task-detail-section-Options").performClick()
-        compose.onNodeWithContentDescription("Edit This and Future").assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription("Edit Series").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, edits.get()) }
     }
 

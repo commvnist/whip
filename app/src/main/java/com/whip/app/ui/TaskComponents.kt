@@ -408,7 +408,12 @@ fun TaskActionsDialog(
         onSelectSection = { id -> section = TaskDetailSection.entries.first { it.id == id } },
         onDismiss = onDismiss,
         onEdit = onEdit,
-        editLabel = if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit This and Future" else "Edit Task",
+        editLabel = if (
+            item.task.scheduleKind == ScheduleKind.Recurring &&
+            !item.task.archived &&
+            item.completedAtMillis == null &&
+            (item.occurrenceState == null || item.occurrenceState == OccurrenceState.Open)
+        ) "Edit This and Future" else if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit Series" else "Edit Task",
         modifier = modifier,
         legacySurfaceTag = "task-actions-surface",
         legacySectionTagPrefix = "task-detail-section",
@@ -604,7 +609,7 @@ fun CompletedTaskDialog(
         onSelectSection = { id -> section = TaskDetailSection.entries.first { it.id == id } },
         onDismiss = onDismiss,
         onEdit = onEdit,
-        editLabel = if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit This and Future" else "Edit Task",
+        editLabel = if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit Series" else "Edit Task",
         modifier = modifier,
         legacySurfaceTag = "completed-task-surface",
         legacySectionTagPrefix = "completed-task-detail-section",
@@ -776,25 +781,41 @@ private fun ScheduledTask.inspectorContext(): String = task.area.ifBlank {
 
 @Composable
 fun PermanentTaskDeleteDialog(
-    item: ScheduledTask,
+    item: ScheduledTask? = null,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
     impact: TaskDeletionImpact? = null,
+    saving: Boolean = false,
+    persistenceError: String? = null,
+    taskId: Long? = null,
+    taskTitle: String = "",
+    recurringSeries: Boolean = false,
 ) {
-    val recurring = item.task.scheduleKind == ScheduleKind.Recurring
+    val targetTaskId = requireNotNull(item?.task?.id ?: taskId)
+    val targetTitle = item?.task?.title ?: taskTitle
+    val recurring = item?.task?.scheduleKind == ScheduleKind.Recurring || recurringSeries
     PaneAwareAlertDialog(
         modifier = modifier,
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
+        inputBlocked = saving,
+        inputBlockedLabel = "Deleting Task Permanently",
         title = {
             Text(
-                if (recurring) "Delete “${item.task.title}” Series Permanently?"
-                else "Delete “${item.task.title}” Permanently?",
+                if (recurring) "Delete “$targetTitle” Series Permanently?"
+                else "Delete “$targetTitle” Permanently?",
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (impact == null || impact.taskId != item.task.id) {
+            Column(
+                modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PersistenceFailureNotice(
+                    persistenceError,
+                    testTag = "task-delete-save-problem",
+                )
+                if (impact == null || impact.taskId != targetTaskId) {
                     Text("Calculating the exact deletion impact…")
                 } else {
                     Text("Removed", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -803,6 +824,8 @@ fun PermanentTaskDeleteDialog(
                             "(${impact.completedOccurrenceCount} completed, ${impact.skippedOccurrenceCount} skipped, ${impact.openOccurrenceCount} open)",
                     )
                     Text("${impact.stepCount} subtask${if (impact.stepCount == 1) "" else "s"}")
+                    Text("${impact.linkRuleCount} Goal link${if (impact.linkRuleCount == 1) "" else "s"}")
+                    Text("${impact.automationRuleCount} Automation${if (impact.automationRuleCount == 1) "" else "s"}")
                     Text(
                         "This cannot be undone. Export a backup first if you may need this history.",
                         color = MaterialTheme.colorScheme.error,
@@ -812,14 +835,14 @@ fun PermanentTaskDeleteDialog(
         },
         confirmButton = {
             WhipTextButton(
-                enabled = impact?.taskId == item.task.id && impact.exists,
+                enabled = !saving && impact?.taskId == targetTaskId && impact.exists,
                 onClick = onConfirm,
             ) {
                 Text("Delete Permanently", color = MaterialTheme.colorScheme.error)
             }
         },
         dismissButton = {
-            WhipTextButton(onClick = onDismiss) { Text("Cancel") }
+            WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") }
         },
     )
 }

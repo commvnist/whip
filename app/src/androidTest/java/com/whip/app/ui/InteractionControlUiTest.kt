@@ -779,6 +779,7 @@ class InteractionControlUiTest {
                         initialDate = LocalDate.of(2020, 6, 15),
                         onDismiss = {},
                         onDateSelected = { selectedDate = it },
+                        preferWheelSelector = false,
                     )
                 }
             }

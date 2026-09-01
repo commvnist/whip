@@ -1,10 +1,15 @@
 package com.whip.app.ui
 
 import com.whip.app.domain.RecurrenceRule
+import com.whip.app.domain.RecurrenceAnchor
 import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.MissedOccurrencePolicy
+import com.whip.app.domain.OccurrenceState
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
+import com.whip.app.domain.TaskOccurrence
+import com.whip.app.domain.TaskStep
+import com.whip.app.domain.TaskStepState
 import com.whip.app.domain.WhipTask
 import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.TaskPriority
@@ -81,6 +86,53 @@ class TaskUpcomingVisibilityTest {
         assertEquals(today.plusDays(1), state.upcoming.first().scheduledDate)
         assertEquals(today.plusDays(30), state.upcoming.last().scheduledDate)
         assertEquals(today.plusDays(30), state.tasksFor(TaskDestination.Upcoming).maxOf { it.scheduledDate!! })
+    }
+
+    @Test
+    fun completionAnchoredProjectionKeepsExplicitOpenProgressOutsideNewCadence() {
+        val today = LocalDate.of(2026, 8, 18)
+        val preservedDate = today.plusDays(2)
+        val task = task(1, ScheduleKind.Recurring).copy(
+            recurrence = RecurrenceRule(
+                unit = RecurrenceUnit.Days,
+                interval = 3,
+                startDate = today,
+                anchor = RecurrenceAnchor.Completion,
+            ),
+        )
+        val step = TaskStep(
+            id = 11,
+            taskId = task.id,
+            title = "Preserved Subtask",
+            position = 0,
+            createdAtMillis = 1,
+            updatedAtMillis = 1,
+        )
+
+        val state = buildUiState(
+            tasks = listOf(task),
+            occurrences = listOf(
+                TaskOccurrence(task.id, preservedDate, preservedDate, OccurrenceState.Open, null),
+            ),
+            steps = listOf(step),
+            stepStates = listOf(
+                TaskStepState(
+                    stepId = step.id,
+                    taskId = task.id,
+                    occurrenceKey = preservedDate.toEpochDay(),
+                    completed = true,
+                    completedAtMillis = 1,
+                    titleSnapshot = step.title,
+                ),
+            ),
+            stepSnapshots = emptyList(),
+            today = today,
+            showAllUpcomingRecurringOccurrences = false,
+        )
+
+        val preserved = state.upcoming.single { it.originalDate == preservedDate }
+        assertEquals(OccurrenceState.Open, preserved.occurrenceState)
+        assertEquals(true, preserved.subtasks.single().completed)
     }
 
     @Test

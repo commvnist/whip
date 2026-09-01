@@ -11,10 +11,11 @@ import com.whip.app.domain.ANYTIME_TASK_OCCURRENCE_KEY
 import com.whip.app.domain.OccurrenceState
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
-import com.whip.app.domain.TaskStep
+import com.whip.app.domain.visibleTaskStepsForOccurrence
 import com.whip.app.startup.MISSING_USER_DATA_GENERATION
 import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.time.LocalDate
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -109,72 +110,111 @@ private suspend fun WhipApplication.handleTaskNotificationAction(
         val validatedAction = requireNotNull(action)
         if (!ledger.begin(actionId)) return
 
-        val applied = if (validatedAction == TaskNotificationAction.Snooze) {
-            if (currentTaskNotificationTarget(
-                    taskId,
-                    original,
-                    validatedAction,
-                    offsetMinutes,
-                    stableEntityId,
-                    definitionFingerprint,
-                ) == null
-            ) false else scheduler.snoozeFromCoordinator(
-                taskId = taskId,
-                originalEpochDay = epochDay,
-                offsetMinutes = offsetMinutes,
-            )
-        } else {
-            database.withTransaction {
-                val target = currentTaskNotificationTarget(
-                    taskId,
-                    original,
-                    validatedAction,
-                    offsetMinutes,
-                    stableEntityId,
-                    definitionFingerprint,
-                ) ?: return@withTransaction false
-                when (validatedAction) {
-                    TaskNotificationAction.Complete -> rawTaskRepository.completeOccurrence(taskId, original)
-                    TaskNotificationAction.Undo -> if (target.task.scheduleKind == ScheduleKind.Recurring) {
-                        rawTaskRepository.reopenOccurrence(target.scheduledTask)
-                    } else {
-                        rawTaskRepository.reopen(taskId)
+        val applied = executeClaimedNotificationAction(
+            applyAction = {
+                if (validatedAction == TaskNotificationAction.Snooze) {
+                    if (currentTaskNotificationTarget(
+                            taskId,
+                            original,
+                            validatedAction,
+                            offsetMinutes,
+                            stableEntityId,
+                            definitionFingerprint,
+                        ) == null
+                    ) false else scheduler.snoozeFromCoordinator(
+                        taskId = taskId,
+                        originalEpochDay = epochDay,
+                        offsetMinutes = offsetMinutes,
+                    )
+                } else {
+                    database.withTransaction {
+                        val target = currentTaskNotificationTarget(
+                            taskId,
+                            original,
+                            validatedAction,
+                            offsetMinutes,
+                            stableEntityId,
+                            definitionFingerprint,
+                        ) ?: return@withTransaction false
+                        when (validatedAction) {
+                            TaskNotificationAction.Complete -> rawTaskRepository.completeOccurrence(taskId, original)
+                            TaskNotificationAction.Undo -> if (target.task.scheduleKind == ScheduleKind.Recurring) {
+                                rawTaskRepository.reopenOccurrence(target.scheduledTask)
+                            } else {
+                                rawTaskRepository.reopen(taskId)
+                            }
+                            TaskNotificationAction.Snooze -> error("Snooze is handled without a database mutation")
+                        }
+                        true
                     }
-                    TaskNotificationAction.Snooze -> error("Snooze is handled without a database mutation")
                 }
-                true
-            }
-        }
-        if (!applied) {
-            ledger.release(actionId)
-            refreshStaleTaskNotification(context, taskId, scheduler)
-            return
-        }
+            },
+            markCommitted = { ledger.complete(actionId) },
+            releaseClaim = { ledger.release(actionId) },
+            followUp = {
+                if (validatedAction != TaskNotificationAction.Snooze) scheduler.syncTaskFromCoordinator(taskId)
+                if (validatedAction == TaskNotificationAction.Complete) {
+                    currentTaskNotificationTarget(
+                        taskId = taskId,
+                        originalDate = original,
+                        action = TaskNotificationAction.Undo,
+                        offsetMinutes = offsetMinutes,
+                    )?.let { undoTarget ->
+                        ReminderNotifications.showCompletionUndo(
+                            context = context,
+                            task = undoTarget.task,
+                            originalEpochDay = epochDay,
+                            offsetMinutes = offsetMinutes,
+                            stableEntityId = undoTarget.stableEntityId,
+                            definitionFingerprint = undoTarget.definitionFingerprint,
+                        )
+                    }
+                } else if (validatedAction == TaskNotificationAction.Undo) {
+                    NotificationManagerCompat.from(context)
+                        .cancel(ReminderNotifications.completionUndoNotificationId(taskId))
+                }
+            },
+        )
+        if (!applied) refreshStaleTaskNotification(context, taskId, scheduler)
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Exception) {
+        // Invalid or transient pre-claim failures leave the current notification available.
+    }
+}
 
-        if (validatedAction != TaskNotificationAction.Snooze) scheduler.syncTaskFromCoordinator(taskId)
-        if (validatedAction == TaskNotificationAction.Complete) {
-            currentTaskNotificationTarget(
-                taskId = taskId,
-                originalDate = original,
-                action = TaskNotificationAction.Undo,
-                offsetMinutes = offsetMinutes,
-            )?.let { undoTarget ->
-                ReminderNotifications.showCompletionUndo(
-                    context = context,
-                    task = undoTarget.task,
-                    originalEpochDay = epochDay,
-                    offsetMinutes = offsetMinutes,
-                    stableEntityId = undoTarget.stableEntityId,
-                    definitionFingerprint = undoTarget.definitionFingerprint,
-                )
+internal suspend fun executeClaimedNotificationAction(
+    applyAction: suspend () -> Boolean,
+    markCommitted: () -> Boolean,
+    releaseClaim: () -> Unit,
+    followUp: suspend () -> Unit,
+): Boolean {
+    var authoritativeApplied = false
+    return try {
+        if (!applyAction()) {
+            releaseClaim()
+            false
+        } else {
+            authoritativeApplied = true
+            markCommitted()
+            try {
+                followUp()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // The authoritative action is committed. A later sync will reconcile presentation.
             }
-        } else if (validatedAction == TaskNotificationAction.Undo) {
-            NotificationManagerCompat.from(context)
-                .cancel(ReminderNotifications.completionUndoNotificationId(taskId))
+            true
         }
-        ledger.complete(actionId)
-    } catch (_: Throwable) {
-        ledger.release(actionId)
+    } catch (cancelled: CancellationException) {
+        if (!authoritativeApplied) releaseClaim()
+        throw cancelled
+    } catch (failure: Exception) {
+        if (!authoritativeApplied) releaseClaim()
+        authoritativeApplied
+    } catch (fatal: Error) {
+        if (!authoritativeApplied) releaseClaim()
+        throw fatal
     }
 }
 
@@ -242,9 +282,15 @@ internal suspend fun WhipApplication.currentTaskNotificationTarget(
         ?: snapshot.task.date?.toEpochDay()
         ?: ANYTIME_TASK_OCCURRENCE_KEY
     val states = dao.getStepStates(taskId, occurrenceKey).associateBy { it.stepId }
+    val visibleSteps = visibleTaskStepsForOccurrence(
+        steps = steps,
+        snapshots = dao.getStepSnapshotsForTask(taskId).map { it.toDomain() },
+        occurrenceKey = occurrenceKey,
+        policy = snapshot.task.repeatStepPolicy,
+    )
     if (
         action == TaskNotificationAction.Complete &&
-        steps.filterNot(TaskStep::archived).any { step -> states[step.id]?.completed != true }
+        visibleSteps.any { step -> states[step.id]?.completed != true }
     ) return null
 
     return CurrentTaskNotificationTarget(
@@ -252,6 +298,9 @@ internal suspend fun WhipApplication.currentTaskNotificationTarget(
             task = snapshot.task.copy(steps = steps),
             originalDate = original,
             scheduledDate = snapshot.scheduledDate,
+            completedAtMillis = occurrences.firstOrNull { it.originalDate == original }?.completedAtMillis
+                ?: snapshot.task.completedAtMillis,
+            occurrenceState = snapshot.occurrenceState,
         ),
         stableEntityId = snapshot.stableEntityId,
         definitionFingerprint = snapshot.definitionFingerprint,

@@ -15,8 +15,14 @@ import com.whip.app.data.RoomLinkRepository
 import com.whip.app.data.RoomMeasurementRepository
 import com.whip.app.data.RoomRoutineRepository
 import com.whip.app.data.RoomTaskRepository
+import com.whip.app.data.RoomTrackRepository
 import com.whip.app.data.RoomBackupRepository
 import com.whip.app.data.TaskDeletionCoordinator
+import com.whip.app.data.CommittedTaskDeletionCancellation
+import com.whip.app.data.TriggerFieldMappingEntity
+import com.whip.app.data.TriggerOccurrenceEntity
+import com.whip.app.data.TriggerRuleConditionEntity
+import com.whip.app.data.TriggerRuleEntity
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.GymMachineDraft
@@ -31,9 +37,14 @@ import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
 import com.whip.app.domain.RoutineEquipmentBindingState
+import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.TaskStepDraft
 import com.whip.app.domain.TriggerRuleDraft
 import com.whip.app.domain.TriggerTargetType
+import com.whip.app.domain.TrackDraft
+import com.whip.app.domain.TrackFieldDraft
+import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WorkoutSetDraft
 import java.time.Instant
@@ -41,6 +52,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -62,6 +74,7 @@ class DomainDeletionCoordinatorTest {
     private lateinit var routines: RoomRoutineRepository
     private lateinit var links: RoomLinkRepository
     private lateinit var tasks: RoomTaskRepository
+    private lateinit var tracks: RoomTrackRepository
     private lateinit var areas: RoomAreaRepository
     private lateinit var coordinator: DomainDeletionCoordinator
     private lateinit var areaDeletionCoordinator: AreaDeletionCoordinator
@@ -76,6 +89,7 @@ class DomainDeletionCoordinatorTest {
         routines = RoomRoutineRepository(database, FixedClock, ids)
         links = RoomLinkRepository(database, measurements, FixedClock, ids)
         tasks = RoomTaskRepository(database, FixedClock)
+        tracks = RoomTrackRepository(database, FixedClock, ids)
         areas = RoomAreaRepository(database, FixedClock, ids)
         coordinator = DomainDeletionCoordinator(database, links, routines)
         areaDeletionCoordinator = AreaDeletionCoordinator(
@@ -87,6 +101,316 @@ class DomainDeletionCoordinatorTest {
     }
 
     @After fun tearDown() = database.close()
+
+    @Test fun taskDeletionRevisionRejectsAnAutomationAddedAfterPreview() = runBlocking {
+        val targetId = tasks.create(TaskDraft(title = "Reviewed deletion"))
+        val sourceId = tasks.create(TaskDraft(title = "New automation source"))
+        val deletion = TaskDeletionCoordinator(database, tasks, links)
+        val preview = deletion.preview(targetId)
+        links.createTrigger(
+            TriggerRuleDraft(
+                name = "Added after review",
+                sourceType = LinkSourceType.Task,
+                sourceEntityId = sourceId,
+                targetType = TriggerTargetType.Task,
+                targetEntityId = targetId,
+            ),
+        )
+
+        val result = runCatching { deletion.delete(targetId, preview.revisionToken) }
+
+        assertTrue(result.isFailure)
+        assertNotNull(tasks.getTask(targetId))
+        assertEquals(1, links.triggerRules.first().count { it.targetEntityId == targetId })
+    }
+
+    @Test fun taskDeletionRevisionRejectsAutomationConditionAndMappingAddedAfterPreview() = runBlocking {
+        val taskId = tasks.create(TaskDraft(title = "Automation source under review"))
+        val trackId = tracks.create(
+            TrackDraft(
+                name = "Deletion revision target",
+                fields = listOf(
+                    TrackFieldDraft(
+                        name = "Task",
+                        type = TrackFieldType.ShortText,
+                        primary = true,
+                        required = true,
+                    ),
+                ),
+            ),
+        )
+        val targetFieldId = requireNotNull(tracks.projection(trackId)).fields.single().id
+        val triggerId = database.linkDao().insertTriggerRule(
+            TriggerRuleEntity(
+                uuid = "deletion-child-trigger",
+                name = "Record source Task",
+                sourceType = "Task",
+                sourceEntityId = taskId,
+                outcome = "Completed",
+                targetType = "Track",
+                targetEntityId = trackId,
+                delayMinutes = 0,
+                quietStartMinutes = null,
+                quietEndMinutes = null,
+                action = "PromptTrackEntry",
+                notificationEnabled = false,
+                conditionMode = "MatchAll",
+                enabled = true,
+                createdAtMillis = 1,
+                updatedAtMillis = 1,
+            ),
+        )
+        val deletion = TaskDeletionCoordinator(database, tasks, links)
+        val beforeCondition = deletion.preview(taskId)
+        database.linkDao().insertTriggerCondition(
+            TriggerRuleConditionEntity(
+                triggerRuleId = triggerId,
+                fieldId = null,
+                entryDate = true,
+                operator = "OnOrAfter",
+                position = 0,
+                textValue = null,
+                numberValue = null,
+                secondNumberValue = null,
+                dateEpochDay = FixedClock.today().toEpochDay(),
+                secondDateEpochDay = null,
+            ),
+        )
+
+        assertTrue(runCatching { deletion.delete(taskId, beforeCondition.revisionToken) }.isFailure)
+        assertNotNull(tasks.getTask(taskId))
+
+        val beforeMapping = deletion.preview(taskId)
+        database.linkDao().insertTriggerMapping(
+            TriggerFieldMappingEntity(
+                triggerRuleId = triggerId,
+                targetFieldId = targetFieldId,
+                sourceProperty = "Title",
+                constantText = null,
+                constantNumber = null,
+                constantUnitId = null,
+                constantDateEpochDay = null,
+                constantBoolean = null,
+                constantChoiceOptionId = null,
+                constantScale = null,
+            ),
+        )
+
+        assertTrue(runCatching { deletion.delete(taskId, beforeMapping.revisionToken) }.isFailure)
+        assertNotNull(tasks.getTask(taskId))
+    }
+
+    @Test fun taskDeletionOwnsSubtaskLinksAndAutomationsByParentAndStepIdentity() = runBlocking {
+        val taskId = tasks.create(
+            TaskDraft(
+                title = "Parent",
+                steps = listOf(TaskStepDraft(title = "Child", position = 0)),
+            ),
+        )
+        val stepId = requireNotNull(tasks.getTask(taskId)).steps.single().id
+        val goalId = goals.create(accumulatingGoal("Child progress"))
+        val targetId = tasks.create(TaskDraft(title = "Follow-up"))
+        links.createRule(
+            LinkRuleDraft(
+                name = "Child to goal",
+                sourceType = LinkSourceType.Subtask,
+                sourceEntityId = taskId,
+                sourceItemId = stepId,
+                sourceMetric = LinkSourceMetric.Completion,
+                targetGoalId = goalId,
+            ),
+        )
+        links.createTrigger(
+            TriggerRuleDraft(
+                name = "Child follow-up",
+                sourceType = LinkSourceType.Subtask,
+                sourceEntityId = taskId,
+                sourceItemId = stepId,
+                targetType = TriggerTargetType.Task,
+                targetEntityId = targetId,
+            ),
+        )
+        val deletion = TaskDeletionCoordinator(database, tasks, links)
+        val preview = deletion.preview(taskId)
+
+        assertEquals(1, preview.linkRuleCount)
+        assertEquals(1, preview.automationRuleCount)
+        val summary = deletion.delete(taskId, preview.revisionToken)
+
+        assertTrue(summary.taskDeleted)
+        assertEquals(1, summary.linkRulesDeleted)
+        assertEquals(1, summary.automationRulesDeleted)
+        assertTrue(links.rules.first().isEmpty())
+        assertTrue(links.triggerRules.first().isEmpty())
+        assertNotNull(tasks.getTask(targetId))
+    }
+
+    @Test fun reviewedTaskDisappearingBeforeDeleteIsAnOwnedFailure() = runBlocking {
+        val taskId = tasks.create(TaskDraft(title = "Reviewed then removed"))
+        val deletion = TaskDeletionCoordinator(database, tasks, links)
+        val preview = deletion.preview(taskId)
+        assertTrue(tasks.deletePermanently(taskId))
+
+        val result = runCatching { deletion.delete(taskId, preview.revisionToken) }
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test fun taskDeletionReportsPostCommitCleanupFailureWithoutClaimingTheDeleteFailed() = runBlocking {
+        val taskId = tasks.create(TaskDraft(title = "Committed deletion"))
+        val reconciliations = AtomicInteger()
+        val deletion = TaskDeletionCoordinator(
+            database,
+            tasks,
+            links,
+            onDeletionCommitted = { error("Simulated reminder cleanup failure") },
+            onDeletionInterrupted = { reconciliations.incrementAndGet() },
+        )
+        val preview = deletion.preview(taskId)
+
+        val summary = deletion.delete(taskId, preview.revisionToken)
+
+        assertTrue(summary.taskDeleted)
+        assertTrue(summary.warnings.single().contains("permanent deletion was committed"))
+        assertNull(tasks.getTask(taskId))
+        assertEquals(1, reconciliations.get())
+    }
+
+    @Test fun taskDeletionDoesNotConvertFatalPostCommitErrorsIntoOrdinaryWarnings() = runBlocking {
+        val taskId = tasks.create(TaskDraft(title = "Fatal cleanup"))
+        val deletion = TaskDeletionCoordinator(
+            database,
+            tasks,
+            links,
+            onDeletionCommitted = { throw AssertionError("fatal cleanup corruption") },
+        )
+        val preview = deletion.preview(taskId)
+
+        val result = runCatching { deletion.delete(taskId, preview.revisionToken) }
+
+        assertTrue(result.exceptionOrNull() is AssertionError)
+        assertNull(tasks.getTask(taskId))
+    }
+
+    @Test fun taskDeletionDoesNotSwallowFatalReconciliationFailureAfterCommittedDelete() = runBlocking {
+        val taskId = tasks.create(TaskDraft(title = "Fatal reconciliation"))
+        val deletion = TaskDeletionCoordinator(
+            database,
+            tasks,
+            links,
+            onDeletionCommitted = { error("ordinary cleanup failure") },
+            onDeletionInterrupted = { throw AssertionError("fatal reconciliation corruption") },
+        )
+        val preview = deletion.preview(taskId)
+
+        val result = runCatching { deletion.delete(taskId, preview.revisionToken) }
+
+        assertTrue(result.exceptionOrNull() is AssertionError)
+        assertNull(tasks.getTask(taskId))
+    }
+
+    @Test fun taskDeletionCancellationAfterCommitEscapesAndNeverRollsBackCommittedDelete() = runBlocking {
+        val taskId = tasks.create(TaskDraft(title = "Cancelled cleanup"))
+        val deletion = TaskDeletionCoordinator(
+            database,
+            tasks,
+            links,
+            onDeletionCommitted = { throw CancellationException("cancel after delete") },
+        )
+        val preview = deletion.preview(taskId)
+
+        val result = runCatching { deletion.delete(taskId, preview.revisionToken) }
+
+        assertTrue(result.exceptionOrNull() is CancellationException)
+        assertNull(tasks.getTask(taskId))
+    }
+
+    @Test fun taskDeletionReconciliationCancellationCarriesCommittedSummary() = runBlocking {
+        val taskId = tasks.create(TaskDraft(title = "Cancelled reconciliation"))
+        val deletion = TaskDeletionCoordinator(
+            database,
+            tasks,
+            links,
+            onDeletionCommitted = { error("ordinary cleanup failure") },
+            onDeletionInterrupted = { throw CancellationException("cancel reconciliation") },
+        )
+        val preview = deletion.preview(taskId)
+
+        val result = runCatching { deletion.delete(taskId, preview.revisionToken) }
+
+        val cancellation = result.exceptionOrNull() as CommittedTaskDeletionCancellation
+        assertTrue(cancellation.summary.taskDeleted)
+        assertNull(tasks.getTask(taskId))
+    }
+
+    @Test fun promotionUndoReportsPostCommitCleanupFailureAndKeepsItsCommittedResult() = runBlocking {
+        val parentId = tasks.create(
+            TaskDraft(
+                title = "Parent",
+                steps = listOf(TaskStepDraft(title = "Promote me", position = 0)),
+            ),
+        )
+        val parent = requireNotNull(tasks.getTask(parentId))
+        val sourceStepId = parent.steps.single().id
+        val promotedId = tasks.promoteStep(
+            ScheduledTask(parent, originalDate = null, scheduledDate = null),
+            sourceStepId,
+        )
+        val archivedSource = requireNotNull(tasks.getTask(parentId)).steps.single()
+        val deletion = TaskDeletionCoordinator(
+            database,
+            tasks,
+            links,
+            onDeletionCommitted = { error("Simulated reminder cleanup failure") },
+        )
+        val promotedPreview = deletion.preview(promotedId)
+
+        val summary = deletion.undoPromotion(
+            promotedTaskId = promotedId,
+            expectedRevisionToken = promotedPreview.revisionToken,
+            sourceTaskId = parentId,
+            sourceStepId = sourceStepId,
+            expectedSourceStepUpdatedAtMillis = archivedSource.updatedAtMillis,
+        )
+
+        assertTrue(summary.taskDeleted)
+        assertTrue(summary.warnings.single().contains("promotion undo was committed"))
+        assertNull(tasks.getTask(promotedId))
+        assertFalse(requireNotNull(tasks.getTask(parentId)).steps.single().archived)
+    }
+
+    @Test fun pendingAutomationOccurrenceAddedAfterPreviewInvalidatesDeletion() = runBlocking {
+        val sourceId = tasks.create(TaskDraft(title = "Automation source"))
+        val targetId = tasks.create(TaskDraft(title = "Reviewed target"))
+        val triggerId = links.createTrigger(
+            TriggerRuleDraft(
+                name = "Targeting reviewed Task",
+                sourceType = LinkSourceType.Task,
+                sourceEntityId = sourceId,
+                targetType = TriggerTargetType.Task,
+                targetEntityId = targetId,
+            ),
+        )
+        val deletion = TaskDeletionCoordinator(database, tasks, links)
+        val preview = deletion.preview(targetId)
+        database.linkDao().upsertTriggerOccurrence(
+            TriggerOccurrenceEntity(
+                triggerRuleId = triggerId,
+                sourceEventId = "new-after-preview",
+                availableAtMillis = FixedClock.now().toEpochMilli(),
+                deliveredAtMillis = null,
+                dismissedAtMillis = null,
+                remindAtMillis = null,
+                fulfilledEntryId = null,
+                sourceSnapshot = "{}",
+            ),
+        )
+
+        val result = runCatching { deletion.delete(targetId, preview.revisionToken) }
+
+        assertTrue(result.isFailure)
+        assertNotNull(tasks.getTask(targetId))
+    }
 
     @Test fun habitDeleteRemovesOwnedMetricLinksAndTargetingAutomations() = runBlocking {
         val habitId = habits.create(HabitDraft(name = "Read", startDate = FixedClock.today()))

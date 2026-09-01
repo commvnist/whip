@@ -1,5 +1,7 @@
 package com.whip.app.domain
 
+import java.io.Serializable
+import java.security.MessageDigest
 import java.time.DayOfWeek
 import java.time.LocalDate
 
@@ -119,6 +121,8 @@ data class WhipTask(
     val effort: TaskEffort = TaskEffort.Unspecified,
     val manualPosition: Int = 0,
     val icon: String = DEFAULT_TASK_EMOJI,
+    /** Stable persistence identity used to reject stale numeric-id aliases after restore/import. */
+    val uuid: String = "",
 )
 
 data class TaskStep(
@@ -173,11 +177,9 @@ fun visibleTaskStepsForOccurrence(
     val prior = snapshots
         .asSequence()
         .filter { it.occurrenceKey < occurrenceKey }
-        .groupBy(TaskStepSnapshot::occurrenceKey)
-        .maxByOrNull { it.key }
-        ?.value
-        ?.associateBy(TaskStepSnapshot::stepId)
-        ?: return activeSteps
+        .groupBy(TaskStepSnapshot::stepId)
+        .mapValues { (_, stepSnapshots) -> stepSnapshots.maxBy(TaskStepSnapshot::occurrenceKey) }
+    if (prior.isEmpty()) return activeSteps
     return activeSteps.filter { prior[it.id]?.completed != true }
 }
 
@@ -228,6 +230,9 @@ data class ScheduledTask(
     val originalDate: LocalDate?,
     val scheduledDate: LocalDate?,
     val completedAtMillis: Long? = null,
+    /** Persisted state for a materialized recurring occurrence. Null means the
+     * occurrence is virtual (derived from the current recurrence rule). */
+    val occurrenceState: OccurrenceState? = null,
     val isPastScheduledDate: Boolean = false,
     val isDeadlineOverdue: Boolean = false,
     val subtasks: List<ScheduledSubtask> = emptyList(),
@@ -245,6 +250,49 @@ data class ScheduledTask(
         ?: task.date?.toEpochDay()
         ?: ANYTIME_TASK_OCCURRENCE_KEY
 }
+
+data class TaskEditSubtaskBoundary(
+    val stepId: Long,
+    val completed: Boolean,
+    val completedAtMillis: Long?,
+    val title: String,
+) : Serializable
+
+/** Saveable optimistic-concurrency boundary for an editor opened from a concrete projection. */
+data class TaskEditBoundary(
+    val taskId: Long,
+    val taskUuid: String,
+    val taskCreatedAtMillis: Long,
+    val taskRevision: String,
+    val originalEpochDay: Long?,
+    val scheduledEpochDay: Long?,
+    val completedAtMillis: Long?,
+    val occurrenceState: OccurrenceState?,
+    val subtasks: List<TaskEditSubtaskBoundary>,
+) : Serializable
+
+fun ScheduledTask.toEditBoundary(): TaskEditBoundary = TaskEditBoundary(
+    taskId = task.id,
+    taskUuid = task.uuid,
+    taskCreatedAtMillis = task.createdAtMillis,
+    taskRevision = task.semanticRevisionToken(),
+    originalEpochDay = originalDate?.toEpochDay(),
+    scheduledEpochDay = scheduledDate?.toEpochDay(),
+    completedAtMillis = completedAtMillis,
+    occurrenceState = occurrenceState,
+    subtasks = subtasks.map { subtask ->
+        TaskEditSubtaskBoundary(
+            stepId = subtask.step.id,
+            completed = subtask.completed,
+            completedAtMillis = subtask.completedAtMillis,
+            title = subtask.title,
+        )
+    },
+)
+
+fun WhipTask.semanticRevisionToken(): String = MessageDigest.getInstance("SHA-256")
+    .digest(toString().toByteArray(Charsets.UTF_8))
+    .joinToString("") { byte -> "%02x".format(byte) }
 
 fun WhipTask.toDraft(): TaskDraft = TaskDraft(
     title = title,

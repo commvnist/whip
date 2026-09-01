@@ -6,6 +6,8 @@ import androidx.work.WorkerParameters
 import com.whip.app.WhipApplication
 import com.whip.app.core.zoneId
 import com.whip.app.data.WhipDatabase
+import com.whip.app.data.toDomain
+import com.whip.app.domain.visibleTaskStepsForOccurrence
 import com.whip.app.startup.MISSING_USER_DATA_GENERATION
 import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.time.LocalDate
@@ -71,9 +73,15 @@ class ReminderWorker(
                 val currentClaim = requireNotNull(claim)
                 val currentSnapshot = requireNotNull(snapshot)
                 val occurrenceKey = requireNotNull(originalDate).toEpochDay()
-                val activeSteps = dao.getSteps(taskId).filterNot { it.archived }
+                val steps = dao.getSteps(taskId).map { it.toDomain() }
+                val visibleSteps = visibleTaskStepsForOccurrence(
+                    steps = steps,
+                    snapshots = dao.getStepSnapshotsForTask(taskId).map { it.toDomain() },
+                    occurrenceKey = occurrenceKey,
+                    policy = currentSnapshot.task.repeatStepPolicy,
+                )
                 val stepStates = dao.getStepStates(taskId, occurrenceKey).associateBy { it.stepId }
-                val hasUnfinishedCurrentSubtask = activeSteps.any { step ->
+                val hasUnfinishedCurrentSubtask = visibleSteps.any { step ->
                     stepStates[step.id]?.completed != true
                 }
                 ReminderNotifications.show(

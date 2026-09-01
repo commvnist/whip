@@ -87,7 +87,7 @@ class ProductivityDefaultsUiTest {
                     taskEditorSaveState = saveState,
                     onTaskEditorSaveResultConsumed = { saveState = PersistenceRequestState.Idle },
                     onSaveTask = { _, _, _ -> },
-                    onSaveTaskRequest = { _, draft, _, requestId ->
+                    onSaveTaskRequest = { _, _, draft, _, requestId ->
                         saved.set(draft)
                         saveState = PersistenceRequestState.Finished(
                             requestId,
@@ -131,7 +131,7 @@ class ProductivityDefaultsUiTest {
                     taskEditorSaveState = saveState,
                     onTaskEditorSaveResultConsumed = { saveState = PersistenceRequestState.Idle },
                     onSaveTask = { _, _, _ -> },
-                    onSaveTaskRequest = { _, draft, _, requestId ->
+                    onSaveTaskRequest = { _, _, draft, _, requestId ->
                         detailedDraft.set(draft)
                         saveState = PersistenceRequestState.Finished(
                             requestId,

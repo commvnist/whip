@@ -43,6 +43,12 @@ interface TaskDao {
     @Query("SELECT * FROM task_step_states")
     suspend fun getAllStepStates(): List<TaskStepStateEntity>
 
+    @Query("SELECT * FROM task_step_snapshots")
+    suspend fun getAllStepSnapshots(): List<TaskStepSnapshotEntity>
+
+    @Query("SELECT * FROM task_step_snapshots WHERE taskId = :taskId ORDER BY occurrenceKey, position")
+    suspend fun getStepSnapshotsForTask(taskId: Long): List<TaskStepSnapshotEntity>
+
     @Query("SELECT * FROM tasks WHERE id = :taskId")
     suspend fun getTask(taskId: Long): TaskEntity?
 

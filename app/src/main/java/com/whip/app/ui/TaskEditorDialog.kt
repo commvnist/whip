@@ -60,6 +60,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.focus.FocusRequester
@@ -91,6 +92,7 @@ import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.TaskEditBoundary
 import com.whip.app.domain.TaskProgressDisplay
 import com.whip.app.domain.TaskStepDraft
 import com.whip.app.domain.TaskPriority
@@ -123,6 +125,7 @@ internal val LocalWhipZone = staticCompositionLocalOf { ZoneId.systemDefault() }
 
 data class TaskEditorRequest(
     val task: WhipTask? = null,
+    val expectedBoundary: TaskEditBoundary? = null,
     val fromOccurrence: LocalDate? = null,
     val initialCapture: String = "",
     val initialScheduleDate: LocalDate? = null,
@@ -1595,14 +1598,23 @@ fun WhipDatePickerDialog(
     onDateSelected: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     firstDayOfWeek: DayOfWeek? = null,
+    saving: Boolean = false,
+    persistenceError: String? = null,
+    savingLabel: String = "Saving Date",
+    preferWheelSelector: Boolean? = null,
 ) {
     val resolvedFirstDayOfWeek = firstDayOfWeek ?: LocalWhipFirstDayOfWeek.current
     val today = LocalWhipToday.current
+    val density = LocalDensity.current
+    val preferAccessibleWheels = preferWheelSelector
+        ?: (LocalConfiguration.current.screenWidthDp < 384 || density.fontScale >= 1.5f)
     var selectedEpochDay by rememberSaveable(initialDate) { mutableLongStateOf(initialDate.toEpochDay()) }
     var monthStartEpochDay by rememberSaveable(initialDate) {
         mutableLongStateOf(initialDate.withDayOfMonth(1).toEpochDay())
     }
-    var choosingDateWithWheels by rememberSaveable(initialDate) { mutableStateOf(false) }
+    var choosingDateWithWheels by rememberSaveable(initialDate, preferAccessibleWheels) {
+        mutableStateOf(preferAccessibleWheels)
+    }
     var jumpYear by rememberSaveable(initialDate) { mutableIntStateOf(initialDate.year) }
     var jumpMonth by rememberSaveable(initialDate) { mutableIntStateOf(initialDate.monthValue) }
     var jumpDay by rememberSaveable(initialDate) { mutableIntStateOf(initialDate.dayOfMonth) }
@@ -1622,10 +1634,16 @@ fun WhipDatePickerDialog(
         modifier = Modifier.widthIn(min = 280.dp, max = 560.dp).then(modifier),
         testTag = "date-picker-dialog",
         paneTitle = "Choose Date",
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
+        inputBlocked = saving,
+        inputBlockedLabel = savingLabel,
         title = { Text("Choose Date") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                PersistenceFailureNotice(
+                    persistenceError,
+                    testTag = "date-picker-save-problem",
+                )
                 Text(
                     displayedDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)),
                     modifier = Modifier.testTag("date-picker-selected-date"),
@@ -1804,10 +1822,11 @@ fun WhipDatePickerDialog(
         },
         confirmButton = {
             WhipTextButton(
+                enabled = !saving,
                 onClick = { onDateSelected(if (choosingDateWithWheels) jumpDate else selectedDate) },
             ) { Text("Set") }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )
 }
 

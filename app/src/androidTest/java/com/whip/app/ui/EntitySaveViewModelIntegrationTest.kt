@@ -13,6 +13,10 @@ import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.ScheduleKind
+import com.whip.app.domain.ScheduledTask
+import com.whip.app.domain.toEditBoundary
+import com.whip.app.domain.toDraft
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -72,6 +76,147 @@ class EntitySaveViewModelIntegrationTest {
         } as PersistenceRequestState.Finished<EntitySaveReceipt>
         assertTrue(finished.result is WhipResult.Failure)
         assertTrue(app.taskRepository.tasks.first().none { it.title == "Must not appear" })
+        assertEquals(OperationStatus.Idle, viewModel.operationFeedback.value.status)
+    }
+
+    @Test
+    fun restoredExistingTaskEditWithoutExactSnapshotFailsClosedWithoutCreatingDuplicate() = runBlocking {
+        val taskId = app.taskRepository.create(TaskDraft(title = "Original task"))
+        val viewModel = TaskViewModel(app)
+        assertTrue(
+            viewModel.saveTask(
+                taskId = taskId,
+                draft = TaskDraft(title = "Restored stale draft"),
+                requestId = "restored-editor",
+                expectedBoundary = null,
+            ),
+        )
+
+        @Suppress("UNCHECKED_CAST")
+        val finished = withTimeout(5_000) {
+            viewModel.editorSaveState.first { it is PersistenceRequestState.Finished }
+        } as PersistenceRequestState.Finished<EntitySaveReceipt>
+
+        assertTrue(finished.result is WhipResult.Failure)
+        val tasks = app.taskRepository.tasks.first()
+        assertEquals(listOf(taskId), tasks.map { it.id })
+        assertEquals("Original task", tasks.single().title)
+    }
+
+    @Test
+    fun restoredExistingTaskEditWithExactBoundaryUpdatesOnceWithoutCreatingDuplicate() = runBlocking {
+        val taskId = app.taskRepository.create(TaskDraft(title = "Original task"))
+        val task = requireNotNull(app.taskRepository.getTask(taskId))
+        val boundary = ScheduledTask(task, originalDate = null, scheduledDate = null).toEditBoundary()
+        val viewModel = TaskViewModel(app)
+        assertTrue(
+            viewModel.saveTask(
+                taskId = taskId,
+                draft = task.toDraft().copy(title = "Restored valid draft"),
+                requestId = "restored-exact-editor",
+                expectedBoundary = boundary,
+            ),
+        )
+
+        @Suppress("UNCHECKED_CAST")
+        val finished = withTimeout(5_000) {
+            viewModel.editorSaveState.first { it is PersistenceRequestState.Finished }
+        } as PersistenceRequestState.Finished<EntitySaveReceipt>
+
+        assertTrue(finished.result is WhipResult.Success)
+        val tasks = app.taskRepository.tasks.first()
+        assertEquals(listOf(taskId), tasks.map { it.id })
+        assertEquals("Restored valid draft", tasks.single().title)
+    }
+
+    @Test
+    fun restoredEditorBoundaryRejectsExternalMutationWithoutOverwriteOrDuplicate() = runBlocking {
+        val taskId = app.taskRepository.create(TaskDraft(title = "Opened version"))
+        val opened = requireNotNull(app.taskRepository.getTask(taskId))
+        val boundary = ScheduledTask(opened, originalDate = null, scheduledDate = null).toEditBoundary()
+        app.taskRepository.update(taskId, opened.toDraft().copy(title = "External version"))
+        val viewModel = TaskViewModel(app)
+        assertTrue(
+            viewModel.saveTask(
+                taskId = taskId,
+                draft = opened.toDraft().copy(title = "Restored stale version"),
+                requestId = "restored-stale-editor",
+                expectedBoundary = boundary,
+            ),
+        )
+
+        @Suppress("UNCHECKED_CAST")
+        val finished = withTimeout(5_000) {
+            viewModel.editorSaveState.first { it is PersistenceRequestState.Finished }
+        } as PersistenceRequestState.Finished<EntitySaveReceipt>
+
+        assertTrue(finished.result is WhipResult.Failure)
+        val tasks = app.taskRepository.tasks.first()
+        assertEquals(listOf(taskId), tasks.map { it.id })
+        assertEquals("External version", tasks.single().title)
+    }
+
+    @Test
+    fun taskScheduleRequestAdmitsExactlyOneMutationAndReturnsItsExactReceipt() = runBlocking {
+        val initialDate = LocalDate.of(2026, 8, 31)
+        val movedDate = initialDate.plusDays(3)
+        val taskId = app.taskRepository.create(
+            TaskDraft(title = "Owned move", scheduleKind = ScheduleKind.Once, date = initialDate),
+        )
+        val task = requireNotNull(app.taskRepository.getTask(taskId))
+        val item = ScheduledTask(task, originalDate = null, scheduledDate = initialDate)
+        val viewModel = TaskViewModel(app)
+
+        assertTrue(viewModel.rescheduleRequest(item, movedDate, "move-one"))
+        assertEquals(false, viewModel.rescheduleRequest(item, movedDate.plusDays(1), "move-two"))
+        @Suppress("UNCHECKED_CAST")
+        val finished = withTimeout(5_000) {
+            viewModel.authoredMutationState.first { it is PersistenceRequestState.Finished }
+        } as PersistenceRequestState.Finished<TaskMutationReceipt>
+        val success = finished.result as WhipResult.Success
+
+        assertEquals("move-one", finished.requestId)
+        assertEquals(TaskMutationKind.Rescheduled, success.value.kind)
+        assertEquals(setOf(taskId), success.value.taskIds)
+        assertEquals(movedDate, success.value.effectiveDate)
+        assertEquals(movedDate, requireNotNull(app.taskRepository.getTask(taskId)).date)
+    }
+
+    @Test
+    fun staleTaskScheduleReturnsOwnedFailureAndPreservesCurrentDefinition() = runBlocking {
+        val initialDate = LocalDate.of(2026, 8, 31)
+        val taskId = app.taskRepository.create(
+            TaskDraft(title = "Stale move", scheduleKind = ScheduleKind.Once, date = initialDate),
+        )
+        val staleTask = requireNotNull(app.taskRepository.getTask(taskId))
+        val stale = ScheduledTask(staleTask, originalDate = null, scheduledDate = initialDate)
+        app.taskRepository.update(taskId, TaskDraft(title = "Now Inbox"))
+        val viewModel = TaskViewModel(app)
+
+        assertTrue(viewModel.rescheduleRequest(stale, initialDate.plusDays(1), "stale-move"))
+        @Suppress("UNCHECKED_CAST")
+        val finished = withTimeout(5_000) {
+            viewModel.authoredMutationState.first { it is PersistenceRequestState.Finished }
+        } as PersistenceRequestState.Finished<TaskMutationReceipt>
+
+        assertTrue(finished.result is WhipResult.Failure)
+        assertEquals(ScheduleKind.Anytime, requireNotNull(app.taskRepository.getTask(taskId)).scheduleKind)
+        assertEquals(OperationStatus.Idle, viewModel.operationFeedback.value.status)
+    }
+
+    @Test
+    fun permanentDeleteRejectsAnUnreviewedRevisionAndKeepsTheTask() = runBlocking {
+        val taskId = app.taskRepository.create(TaskDraft(title = "Keep until reviewed"))
+        val viewModel = TaskViewModel(app)
+
+        assertTrue(viewModel.deletePermanentlyRequest(taskId, "unreviewed-revision", "bad-delete"))
+        @Suppress("UNCHECKED_CAST")
+        val finished = withTimeout(5_000) {
+            viewModel.authoredMutationState.first { it is PersistenceRequestState.Finished }
+        } as PersistenceRequestState.Finished<TaskMutationReceipt>
+
+        assertTrue(finished.result is WhipResult.Failure)
+        assertEquals("Keep until reviewed", requireNotNull(app.taskRepository.getTask(taskId)).title)
         assertEquals(OperationStatus.Idle, viewModel.operationFeedback.value.status)
     }
 

@@ -1,13 +1,20 @@
 package com.whip.app.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertContentDescriptionContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -313,6 +320,7 @@ class EditorDependencyUxTest {
                     onDismiss = {},
                     onDateSelected = {},
                     firstDayOfWeek = DayOfWeek.MONDAY,
+                    preferWheelSelector = false,
                 )
             }
         }
@@ -335,6 +343,7 @@ class EditorDependencyUxTest {
                     onDismiss = {},
                     onDateSelected =(selected::set),
                     firstDayOfWeek = DayOfWeek.SUNDAY,
+                    preferWheelSelector = false,
                 )
             }
         }
@@ -348,6 +357,70 @@ class EditorDependencyUxTest {
     }
 
     @Test
+    fun datePickerShieldsPendingPersistenceAndKeepsAnInlineFailureRetryable() {
+        val saving = mutableStateOf(true)
+        val error = mutableStateOf<String?>(null)
+        var dismissals = 0
+        var submissions = 0
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipDatePickerDialog(
+                    initialDate = LocalDate.of(2026, 8, 23),
+                    onDismiss = { dismissals += 1 },
+                    onDateSelected = { submissions += 1 },
+                    saving = saving.value,
+                    persistenceError = error.value,
+                    savingLabel = "Saving Task Schedule",
+                )
+            }
+        }
+
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        compose.onNodeWithContentDescription(
+            "Saving Task Schedule. Editing is temporarily unavailable.",
+        ).assertIsDisplayed()
+        compose.runOnIdle {
+            assertEquals(0, dismissals)
+            assertEquals(0, submissions)
+            saving.value = false
+            error.value = "Storage unavailable"
+        }
+
+        compose.onNodeWithTag("date-picker-save-problem").assertIsDisplayed()
+        compose.onNodeWithTag("date-picker-save-problem")
+            .assertContentDescriptionContains("Storage unavailable", substring = true)
+        compose.onNodeWithText("Set").assertIsEnabled().performClick()
+        compose.runOnIdle { assertEquals(1, submissions) }
+    }
+
+    @Test
+    fun largeTextDatePickerUsesReachableWheelsAndFullHeightActions() {
+        val largeText = Density(compose.density.density, fontScale = 2f)
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides largeText) {
+                WhipTheme(dynamicColor = false) {
+                    WhipDatePickerDialog(
+                        initialDate = LocalDate.of(2026, 8, 23),
+                        onDismiss = {},
+                        onDateSelected = {},
+                        modifier = Modifier.width(320.dp),
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("date-picker-wheel-selector").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Year picker").assertIsDisplayed()
+        compose.onNodeWithText("Cancel").assertIsDisplayed()
+        compose.onNodeWithText("Set").assertIsDisplayed()
+        val minimum = with(compose.density) { 48.dp.toPx() }
+        listOf("Cancel", "Set").forEach { label ->
+            val bounds = compose.onNodeWithText(label).fetchSemanticsNode().boundsInRoot
+            assertTrue("$label must retain a 48dp touch height: $bounds", bounds.height >= minimum - 0.5f)
+        }
+    }
+
+    @Test
     fun datePickerJumpUsesYearMonthDayWheelsAndClampsInvalidDays() {
         val selected = AtomicReference<LocalDate?>()
         compose.setContent {
@@ -356,6 +429,7 @@ class EditorDependencyUxTest {
                     initialDate = LocalDate.of(2024, 1, 31),
                     onDismiss = {},
                     onDateSelected = selected::set,
+                    preferWheelSelector = false,
                 )
             }
         }

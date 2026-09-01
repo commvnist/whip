@@ -28,6 +28,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CancellationException
 
 const val ALL_WHIP_WORK_TAG = "whip-background-work"
 
@@ -42,10 +43,13 @@ class ReminderScheduler(context: Context, private val settingsRepository: Settin
             // Calling WorkManager cancellation once per ordinary task can create
             // thousands of Binder proxies on large databases. Only reminder-capable
             // Tasks need startup reconciliation; normal mutations call syncTask.
-            dao.getReminderTaskIds().forEach { taskId ->
+            val failures = attemptEveryTaskReminderSync(dao.getReminderTaskIds()) { taskId ->
                 app.reminderDeliveryCoordinator.withEntity(ReminderDomain.Task, taskId) {
                     syncTaskLocked(taskId)
                 }
+            }
+            if (failures.isNotEmpty()) {
+                throw ReminderBatchSyncException(failures)
             }
         }
     }
@@ -223,6 +227,27 @@ class ReminderScheduler(context: Context, private val settingsRepository: Settin
     private fun tag(taskId: Long): String = "whip-reminder-$taskId"
 }
 
+internal class ReminderBatchSyncException(
+    val failedTaskIds: List<Long>,
+) : IllegalStateException("Reminder refresh failed for Task ${failedTaskIds.joinToString()}")
+
+internal suspend fun attemptEveryTaskReminderSync(
+    taskIds: Iterable<Long>,
+    sync: suspend (Long) -> Unit,
+): List<Long> {
+    val failures = mutableListOf<Long>()
+    taskIds.distinct().sorted().forEach { taskId ->
+        try {
+            sync(taskId)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            failures += taskId
+        }
+    }
+    return failures
+}
+
 internal data class CurrentTaskReminder(
     val task: WhipTask,
     val stableEntityId: String,
@@ -384,16 +409,15 @@ internal fun nextTaskReminder(
             }
         }
     }
-    // Explicit rows are authoritative overrides. Include a still-open moved
-    // occurrence even when its original recurrence date is outside this window.
-    val movedCandidates = if (task.scheduleKind == ScheduleKind.Recurring) {
+    // Explicit Open rows are authoritative authored work. Include them even when
+    // the current recurrence rule no longer generates their original date.
+    val explicitOpenCandidates = if (task.scheduleKind == ScheduleKind.Recurring) {
         occurrences.asSequence()
             .filter { it.state == OccurrenceState.Open }
-            .filter { it.scheduledDate != it.originalDate }
             .map(TaskOccurrence::originalDate)
             .toList()
     } else emptyList()
-    return (generatedCandidates + movedCandidates).distinct().asSequence()
+    return (generatedCandidates + explicitOpenCandidates).distinct().asSequence()
         .map { original ->
             val scheduled = records[original]?.scheduledDate ?: original
             val raw = taskReminderInstant(scheduled, timeMinutes, offsetMinutes, zone)
