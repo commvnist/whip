@@ -19,7 +19,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.isActive
 
 enum class AppThemeMode { System, Light, Dark }
@@ -119,16 +122,51 @@ fun SettingsRepository.revealHomeSection(section: HomeSection) {
     update { settings -> settings.withHomeSectionRevealed(section) }
 }
 
-/** Re-evaluates Today immediately after a time-zone/cutoff change and at minute boundaries. */
-fun SettingsRepository.currentDateFlow(clock: WhipClock): Flow<LocalDate> = combine(
-    flow {
-        while (currentCoroutineContext().isActive) {
-            emit(Unit)
-            delay(60_000)
-        }
-    },
+data class WhipCalendarContext(
+    val zoneId: ZoneId,
+    val physicalDate: LocalDate,
+    val logicalDate: LocalDate,
+    val cutoffMinutes: Int,
+    val followsDeviceTimeZone: Boolean,
+)
+
+fun AppSettings.calendarContextAt(instant: Instant): WhipCalendarContext {
+    val zone = zoneId()
+    val local = instant.atZone(zone)
+    val cutoff = dayCutoffMinutes.coerceIn(0, 1_439)
+    val minute = local.hour * 60 + local.minute
+    return WhipCalendarContext(
+        zoneId = zone,
+        physicalDate = local.toLocalDate(),
+        logicalDate = if (cutoff > 0 && minute < cutoff) local.toLocalDate().minusDays(1) else local.toLocalDate(),
+        cutoffMinutes = cutoff,
+        followsDeviceTimeZone = timeZoneId == null,
+    )
+}
+
+private fun calendarBoundaryTicks(clock: WhipClock): Flow<Unit> = flow {
+    while (currentCoroutineContext().isActive) {
+        emit(Unit)
+        val millisIntoMinute = Math.floorMod(clock.now().toEpochMilli(), 60_000L)
+        delay((60_000L - millisIntoMinute).coerceIn(1L, 60_000L))
+    }
+}
+
+/**
+ * One semantic calendar stream for live UI and background projections. Unlike a
+ * LocalDate-only stream, this emits when the active zone changes on the same day.
+ */
+fun SettingsRepository.calendarContextFlow(
+    clock: WhipClock,
+    invalidations: Flow<Unit> = emptyFlow(),
+): Flow<WhipCalendarContext> = combine(
+    merge(calendarBoundaryTicks(clock), invalidations),
     settings,
-) { _, _ -> clock.today() }.distinctUntilChanged()
+) { _, current -> current.calendarContextAt(clock.now()) }.distinctUntilChanged()
+
+/** Re-evaluates Today after time-zone/cutoff changes and at aligned minute boundaries. */
+fun SettingsRepository.currentDateFlow(clock: WhipClock): Flow<LocalDate> =
+    calendarContextFlow(clock).map { it.logicalDate }.distinctUntilChanged()
 
 class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository {
     private val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
@@ -381,11 +419,11 @@ class SettingsWhipClock(
 ) : WhipClock {
     override fun now(): Instant = nowProvider()
     override fun zoneId(): ZoneId = settingsRepository.current().zoneId()
-    override fun today(zoneId: ZoneId): LocalDate {
+    override fun today(zoneId: ZoneId): LocalDate = settingsRepository.current().let { settings ->
         val local = now().atZone(zoneId)
-        val cutoff = settingsRepository.current().dayCutoffMinutes
+        val cutoff = settings.dayCutoffMinutes.coerceIn(0, 1_439)
         val minute = local.hour * 60 + local.minute
-        return if (cutoff > 0 && minute < cutoff) local.toLocalDate().minusDays(1) else local.toLocalDate()
+        if (cutoff > 0 && minute < cutoff) local.toLocalDate().minusDays(1) else local.toLocalDate()
     }
 }
 

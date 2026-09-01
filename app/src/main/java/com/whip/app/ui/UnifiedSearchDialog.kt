@@ -257,6 +257,7 @@ internal fun UnifiedSearchDialog(
     val queryFocusRequester = remember { FocusRequester() }
     val resources = LocalContext.current.resources
     val resourceConfiguration = LocalConfiguration.current
+    val activeZoneId = LocalWhipZone.current
     val yesLabel = stringResource(R.string.search_yes)
     val noLabel = stringResource(R.string.search_no)
     val searchIndex by produceState<BoundedSearchIndex?>(
@@ -267,6 +268,7 @@ internal fun UnifiedSearchDialog(
         gymState,
         trackState,
         resourceConfiguration,
+        activeZoneId,
         yesLabel,
         noLabel,
     ) {
@@ -288,7 +290,7 @@ internal fun UnifiedSearchDialog(
                             area = item.task.area,
                             areaId = item.task.areaId,
                             tags = item.task.tags,
-                            date = item.completedAtMillis?.let { millis -> java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
+                            date = item.completedAtMillis?.let { millis -> completedTaskSearchDate(millis, activeZoneId) }
                                 ?: item.scheduledDate,
                             deadline = item.task.deadline,
                             status = when {
@@ -562,6 +564,9 @@ internal fun UnifiedSearchDialog(
         }
     }
 }
+
+internal fun completedTaskSearchDate(completedAtMillis: Long, activeZoneId: java.time.ZoneId): java.time.LocalDate =
+    java.time.Instant.ofEpochMilli(completedAtMillis).atZone(activeZoneId).toLocalDate()
 
 @Composable
 internal fun UnifiedSearchWorkspace(

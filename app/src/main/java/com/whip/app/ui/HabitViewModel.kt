@@ -7,7 +7,6 @@ import com.whip.app.WhipApplication
 import com.whip.app.core.HomeSection
 import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
-import com.whip.app.core.currentDateFlow
 import com.whip.app.core.revealHomeSection
 import com.whip.app.core.WhipClock
 import com.whip.app.data.HabitRepository
@@ -96,13 +95,13 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
 
     private val habitUiState = combine(
         habitData,
-        app.settingsRepository.currentDateFlow(clock),
+        app.calendarContext,
         app.measurementRepository.metrics,
         app.measurementRepository.entries,
         app.measurementRepository.customUnits,
-    ) { data, today, metrics, metricEntries, customUnits ->
+    ) { data, calendar, metrics, metricEntries, customUnits ->
         val mirrored = mirrorMetricEntriesAsHabitLogs(data.habits, metricEntries, customUnits)
-        buildHabitUiState(data.copy(logs = data.logs + mirrored), today, customUnits).copy(
+        buildHabitUiState(data.copy(logs = data.logs + mirrored), calendar.logicalDate, customUnits).copy(
             sourceMetrics = metrics.filter { it.id.startsWith("health-connect-") && !it.archived },
             customUnits = customUnits,
         )

@@ -37,6 +37,7 @@ import com.whip.app.reminders.CoordinatedMeasurementRepository
 import com.whip.app.reminders.CoordinatedHabitRepository
 import com.whip.app.reminders.CoordinatedGoalRepository
 import com.whip.app.reminders.ReminderRuntimeMaintenance
+import com.whip.app.reminders.ReminderTimeInvalidationPlan
 import com.whip.app.reminders.ReminderScheduler
 import com.whip.app.reminders.SharedPreferencesReminderClaimVersionStore
 import com.whip.app.reminders.cancelVisibleReminderNotifications
@@ -71,6 +72,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.Configuration
 import androidx.work.WorkManager
@@ -79,7 +83,8 @@ import com.whip.app.domain.MetricEntry
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.core.zoneId
-import com.whip.app.core.currentDateFlow
+import com.whip.app.core.calendarContextAt
+import com.whip.app.core.calendarContextFlow
 
 @OptIn(FlowPreview::class)
 class WhipApplication : Application(), Configuration.Provider {
@@ -94,6 +99,14 @@ class WhipApplication : Application(), Configuration.Provider {
     }
     val settingsRepository by lazy { SharedPreferencesSettingsRepository(this) }
     val clock by lazy { SettingsWhipClock(settingsRepository) }
+    private val calendarInvalidations = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val calendarContext by lazy {
+        settingsRepository.calendarContextFlow(clock, calendarInvalidations).stateIn(
+            applicationScope,
+            SharingStarted.Eagerly,
+            settingsRepository.current().calendarContextAt(clock.now()),
+        )
+    }
     val idGenerator = UuidWhipIdGenerator
     val database by lazy { WhipDatabase.get(this) }
     internal val rawTaskRepository by lazy { RoomTaskRepository(database, clock) }
@@ -287,13 +300,15 @@ class WhipApplication : Application(), Configuration.Provider {
         )
     }
 
-    internal suspend fun reconcileReminderTimeInvalidation(action: String) =
-        withUserDataAccess {
+    internal suspend fun reconcileReminderTimeInvalidation(action: String): ReminderTimeInvalidationPlan? {
+        calendarInvalidations.tryEmit(Unit)
+        return withUserDataAccess {
             reminderRuntimeMaintenance.handleSystemTimeInvalidation(
                 action = action,
                 followsDeviceTimeZone = settingsRepository.current().timeZoneId == null,
             )
         }
+    }
 
     private suspend fun initializeNormalRuntime(backgroundAlreadyRebuilt: Boolean) {
         if (normalRuntimeJob?.isActive == true) return
@@ -335,7 +350,7 @@ class WhipApplication : Application(), Configuration.Provider {
                 habitRepository.checklistItems.map { Unit }, habitRepository.checklistStates.map { Unit },
                 habitRepository.pauses.map { Unit }, habitRepository.skips.map { Unit },
                 measurementRepository.entries.map { Unit }, measurementRepository.customUnits.map { Unit },
-                areaRepository.areas.map { Unit }, settingsRepository.currentDateFlow(clock).map { Unit },
+                areaRepository.areas.map { Unit }, calendarContext.map { Unit },
             ).debounce(250).collectLatest {
                 withUserDataAccess { WhipWidgetProvider.updateAll(this@WhipApplication) }
             }

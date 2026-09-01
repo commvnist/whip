@@ -67,6 +67,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -116,6 +117,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
@@ -143,6 +145,7 @@ import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.whip.app.R
+import com.whip.app.WhipApplication
 import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 import com.whip.app.domain.ScheduleKind
@@ -177,6 +180,7 @@ import com.whip.app.domain.HabitDayProgress
 import com.whip.app.core.zoneId
 import com.whip.app.core.supportedTrackedRecordTypes
 import com.whip.app.core.WhipLaunchActions
+import com.whip.app.core.WhipCalendarContext
 import com.whip.app.data.TaskBulkEdit
 import com.whip.app.data.TaskDeletionBatchImpact
 import java.time.LocalDate
@@ -529,6 +533,18 @@ private val primaryAppDestinations = listOf(
     AppDestination.Gym,
 )
 
+/** Prevents Home and cross-domain surfaces from rendering mixed logical-day projections. */
+private data class CalendarCoherentUiState(
+    val calendar: WhipCalendarContext,
+    val tasks: TaskUiState,
+    val habits: HabitUiState,
+    val goals: GoalUiState,
+    val tracks: TrackUiState,
+)
+
+internal fun calendarProjectionsAreCoherent(logicalDate: LocalDate, projectionDates: List<LocalDate>): Boolean =
+    projectionDates.all { it == logicalDate }
+
 @Composable
 fun WhipApp(
     modifier: Modifier = Modifier,
@@ -547,12 +563,47 @@ fun WhipApp(
     settingsViewModel: SettingsViewModel = viewModel(),
     trackViewModel: TrackViewModel = viewModel(),
 ) {
-    val state by taskViewModel.uiState.collectAsStateWithLifecycle()
+    val observedCalendarContext by (LocalContext.current.applicationContext as WhipApplication)
+        .calendarContext.collectAsStateWithLifecycle()
+    val observedTaskState by taskViewModel.uiState.collectAsStateWithLifecycle()
     val gymState by gymViewModel.uiState.collectAsStateWithLifecycle()
-    val habitState by habitViewModel.uiState.collectAsStateWithLifecycle()
-    val goalState by goalViewModel.uiState.collectAsStateWithLifecycle()
+    val observedHabitState by habitViewModel.uiState.collectAsStateWithLifecycle()
+    val observedGoalState by goalViewModel.uiState.collectAsStateWithLifecycle()
     val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()
-    val trackState by trackViewModel.uiState.collectAsStateWithLifecycle()
+    val observedTrackState by trackViewModel.uiState.collectAsStateWithLifecycle()
+    var coherentCalendarState by remember {
+        mutableStateOf(
+            CalendarCoherentUiState(
+                observedCalendarContext,
+                observedTaskState,
+                observedHabitState,
+                observedGoalState,
+                observedTrackState,
+            ),
+        )
+    }
+    val observedDates = listOf(
+        observedTaskState.currentDate,
+        observedHabitState.currentDate,
+        observedGoalState.currentDate,
+        observedTrackState.currentDate,
+    )
+    if (calendarProjectionsAreCoherent(observedCalendarContext.logicalDate, observedDates)) {
+        SideEffect {
+            coherentCalendarState = CalendarCoherentUiState(
+                observedCalendarContext,
+                observedTaskState,
+                observedHabitState,
+                observedGoalState,
+                observedTrackState,
+            )
+        }
+    }
+    val calendarContext = coherentCalendarState.calendar
+    val state = coherentCalendarState.tasks
+    val habitState = coherentCalendarState.habits
+    val goalState = coherentCalendarState.goals
+    val trackState = coherentCalendarState.tracks
     val taskOperationFeedback by taskViewModel.operationFeedback.collectAsStateWithLifecycle()
     val operationStatus = taskOperationFeedback.status
     val taskDeletionImpact by taskViewModel.taskDeletionImpact.collectAsStateWithLifecycle()
@@ -702,7 +753,8 @@ fun WhipApp(
                 onSelectScope = { pendingAreaBadgeId = it },
             ),
             LocalWhipFirstDayOfWeek provides settingsState.settings.firstDayOfWeek,
-            LocalWhipToday provides state.currentDate,
+            LocalWhipToday provides calendarContext.logicalDate,
+            LocalWhipZone provides calendarContext.zoneId,
             LocalWhipDialogPlacement provides dialogPlacement,
             LocalCompactItemLayout provides settingsState.settings.compactItemLayout,
             LocalCompactItemExpansionState provides compactItemExpansionState,
@@ -1501,7 +1553,7 @@ fun WhipScreen(
         appDestination = destination
     }
 
-    val collectionStatusNowMillis = System.currentTimeMillis()
+    val collectionStatusNowMillis = goalState.nowMillis
     val adaptiveSummary = buildAdaptiveSummary(
         taskState = state,
         habitState = habitState,
@@ -4520,6 +4572,7 @@ private fun HomeContent(
                             GoalCard(
                                 projection = projection,
                                 customUnits = goalState.customUnits,
+                                nowMillis = goalState.nowMillis,
                                 onOpen = { onOpenGoal(projection) },
                                 onEdit = { onEditGoal(projection) },
                                 onRecord = { onRecordGoal(projection) },
@@ -4534,6 +4587,7 @@ private fun HomeContent(
                             GoalCard(
                                 projection = projection,
                                 customUnits = goalState.customUnits,
+                                nowMillis = goalState.nowMillis,
                                 onOpen = { onOpenGoal(projection) },
                                 onEdit = { onEditGoal(projection) },
                                 onRecord = { onRecordGoal(projection) },

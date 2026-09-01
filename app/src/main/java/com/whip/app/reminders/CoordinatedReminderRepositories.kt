@@ -177,7 +177,7 @@ internal class CoordinatedMeasurementRepository(
         status: MetricEntryStatus,
         timestamp: Instant?,
         localDate: LocalDate?,
-        zoneId: ZoneId,
+        zoneId: ZoneId?,
         sourceType: MetricSourceType,
         sourceId: String?,
         note: String,

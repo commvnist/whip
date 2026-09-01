@@ -87,9 +87,9 @@
 - Severity/category: P1 date/time correctness.
 - Observed: Follow-device zone changes do not reschedule work; Tracks can retain yesterday without a repository emission; Search and elapsed Goal detail use the system zone directly.
 - Expected: One explicit active zone/current-date flow controls live behavior while saved historical dates remain immutable.
-- Evidence: `SettingsViewModel.kt`, `AppSettings.kt`, `TrackViewModel.kt`, `UnifiedSearchDialog.kt`, `GoalScreens.kt`, `AndroidManifest.xml`.
-- Partial resolution: `DATE_CHANGED`, `TIME_SET`, and `TIMEZONE_CHANGED` now enter one serialized receiver path; follow-device reminders rebuild on zone changes while fixed-zone schedules remain fixed, and wall-clock changes always reconcile. Track, Search, and elapsed-Goal live-date consumers remain unresolved.
-- Status: Partially remediated; keep open for the remaining explicit-zone/current-date consumers.
+- Evidence: `WhipApplication.kt`, `AppSettings.kt`, `TrackViewModel.kt`, `UnifiedSearchDialog.kt`, `GymRepository.kt`, `GymScreens.kt`, `GoalViewModel.kt`, `GoalScreens.kt`, `ReminderTimeChangeReceiver.kt`, and focused JVM/Android regressions.
+- Partial resolution: `DATE_CHANGED`, `TIME_SET`, and `TIMEZONE_CHANGED` enter one serialized receiver path; one application-scoped calendar context now carries active zone, physical date, cutoff-adjusted logical date, cutoff, and follow-device policy. Task, Habit, Goal, Track, Search, Gym, and widgets consume it; the root holds the last coherent cross-domain snapshot until every projection catches up. Search completion dates use the Whip zone; Track rolls without repository writes; new/default/copied Gym and Measurement records snapshot explicit current provenance while historical instants/dates remain unchanged. Elapsed-Goal exact-time UI remains the second independently revertible subchunk.
+- Status: Partially remediated; shared calendar/provenance subchunk implemented and focused-verification complete in `IMP-20260831-006` / `VER-20260831-008`; elapsed-Goal UI pending.
 
 ### FND-20260831-010 — Productivity saves can change Area scope before persistence succeeds
 

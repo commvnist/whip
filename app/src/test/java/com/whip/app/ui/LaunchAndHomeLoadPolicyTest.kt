@@ -150,4 +150,13 @@ class LaunchAndHomeLoadPolicyTest {
             ),
         )
     }
+
+    @Test
+    fun calendarGateRejectsMixedDomainProjectionsUntilEveryDomainCatchesUp() {
+        val prior = LocalDate.of(2026, 8, 31)
+        val current = LocalDate.of(2026, 9, 1)
+
+        assertFalse(calendarProjectionsAreCoherent(current, listOf(current, prior, current, prior)))
+        assertTrue(calendarProjectionsAreCoherent(current, List(4) { current }))
+    }
 }

@@ -50,3 +50,12 @@
 - Related: `FND-20260831-008`, partial prerequisite work for `FND-20260831-009`, and `DEC-20260831-009`.
 - Verification: `VER-20260831-007`.
 - Status: Implemented and verified; physical-device release remains deferred until the integrated maximum-quality goal release.
+
+### IMP-20260831-006 — Coherent Whip calendar context and new-record provenance
+
+- Behavior changed: One eager application-scoped calendar context now carries the active Whip zone, physical date, cutoff-adjusted logical date, cutoff, and follow-device policy. Settings changes, aligned minute ticks, and Android date/time/zone invalidations recompute it. Task, Habit, Goal, Track, Search, Gym, widgets, and root CompositionLocals consume the same source; cross-domain UI retains its prior snapshot until every date-derived projection catches up. Track rolls without a repository write, Search completion filters use the Whip zone and reindex without clearing the query, Gym Today ranges honor the cutoff without resetting a browsed month, and new/default/copied workout and measurement records snapshot Whip date/zone provenance. Explicit historical workout starts derive their physical local date from the supplied instant.
+- Important files: `WhipApplication.kt`, `core/AppSettings.kt`, `GymRepository.kt`, `MeasurementRepository.kt`, `TaskViewModel.kt`, `HabitViewModel.kt`, `GoalViewModel.kt`, `TrackViewModel.kt`, `WhipApp.kt`, `UnifiedSearchDialog.kt`, `GymScreens.kt`, `TrackScreens.kt`, and focused JVM/Android tests.
+- Persistence/history impact: No Room or backup migration. Existing Task occurrences, Habit/Measurement history, Goal entries, Track entries/import drafts, workout sessions, completed sets, saved zone IDs, and elapsed origins are not recomputed or rewritten.
+- Related: `FND-20260831-009`, `DEC-20260831-010`.
+- Verification: `VER-20260831-008`.
+- Status: Implemented with focused emulator verification; exact elapsed-Goal UI is the next subchunk and integrated release remains deferred.

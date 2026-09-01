@@ -14,7 +14,9 @@ import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.HabitDraft
+import com.whip.app.domain.MetricValueKind
 import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.UnitDimension
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -187,6 +189,34 @@ class MeasurementTaxonomyRepositoryTest {
         assertTrue(archiveFailure?.message?.contains("Create another Area") == true)
         assertTrue(deleteFailure?.message?.contains("Create another Area") == true)
         assertEquals(listOf("Main"), areas.areas.first().filterNot { it.archived }.map { it.name })
+    }
+
+    @Test
+    fun measurementRecordsUseTheRepositoryClockZoneUnlessAnExplicitProvenanceZoneIsSupplied() = runBlocking {
+        val metricId = measurements.createMetric(
+            name = "Timezone provenance",
+            valueKind = MetricValueKind.Decimal,
+            dimension = UnitDimension.Count,
+            defaultUnitId = "count",
+        )
+        val timestamp = Instant.parse("2026-09-01T02:00:00Z")
+
+        val defaultId = measurements.record(metricId, 1.0, "count", timestamp = timestamp)
+        val explicitId = measurements.record(
+            metricId,
+            2.0,
+            "count",
+            timestamp = timestamp,
+            localDate = LocalDate.of(2026, 8, 31),
+            zoneId = ZoneId.of("America/Toronto"),
+        )
+        val entries = measurements.entries.first().associateBy { it.id }
+
+        assertEquals("UTC", entries.getValue(defaultId).zoneId)
+        assertEquals(LocalDate.of(2026, 9, 1), entries.getValue(defaultId).localDate)
+        assertEquals("America/Toronto", entries.getValue(explicitId).zoneId)
+        assertEquals(LocalDate.of(2026, 8, 31), entries.getValue(explicitId).localDate)
+        assertEquals(-4 * 60 * 60, entries.getValue(explicitId).offsetSeconds)
     }
 
     private object FixedClock : WhipClock {

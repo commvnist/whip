@@ -91,7 +91,7 @@ interface GymRepository {
         notes: String = "",
         startedAt: Instant? = null,
         localDate: LocalDate? = null,
-        zoneId: ZoneId = ZoneId.systemDefault(),
+        zoneId: ZoneId? = null,
         keepScreenAwake: Boolean? = null,
     ): Long
     suspend fun updateWorkout(id: Long, name: String, notes: String, keepScreenAwake: Boolean)
@@ -363,11 +363,12 @@ class RoomGymRepository(
         notes: String,
         startedAt: Instant?,
         localDate: LocalDate?,
-        zoneId: ZoneId,
+        zoneId: ZoneId?,
         keepScreenAwake: Boolean?,
     ): Long = database.withTransaction {
         require(dao.getActiveSession() == null) { "Finish or discard the active workout first" }
         val start = startedAt ?: clock.now()
+        val effectiveZone = zoneId ?: clock.zoneId()
         val now = clock.now().toEpochMilli()
         dao.insertSession(
             WorkoutSessionEntity(
@@ -376,8 +377,12 @@ class RoomGymRepository(
                 notes = notes.trim(),
                 startedAtMillis = start.toEpochMilli(),
                 endedAtMillis = null,
-                localEpochDay = (localDate ?: start.atZone(zoneId).toLocalDate()).toEpochDay(),
-                zoneId = zoneId.id,
+                localEpochDay = (
+                    localDate
+                        ?: startedAt?.atZone(effectiveZone)?.toLocalDate()
+                        ?: clock.today(effectiveZone)
+                ).toEpochDay(),
+                zoneId = effectiveZone.id,
                 state = WorkoutSessionState.Active.name,
                 keepScreenAwake = keepScreenAwake ?: settingsRepository?.current()?.keepScreenAwake ?: false,
                 restTimerDeadlineMillis = null,
@@ -860,6 +865,7 @@ class RoomGymRepository(
                     startedAtMillis = now,
                     endedAtMillis = null,
                     localEpochDay = clock.today().toEpochDay(),
+                    zoneId = clock.zoneId().id,
                     state = if (asActive) WorkoutSessionState.Active.name else WorkoutSessionState.Finished.name,
                     restTimerDeadlineMillis = null,
                     archived = false,

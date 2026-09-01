@@ -82,8 +82,14 @@
 ### DEC-20260831-010 — Live time behavior uses one explicit Whip zone and date flow
 
 - Context: System-zone shortcuts and repository-triggered date snapshots can make screens and reminders disagree.
-- Decision: Route live date/time behavior through the active Whip zone and current-date flow; reschedule follow-device work on system time/zone changes; do not reinterpret saved historical local dates.
-- Status: Accepted; system reminder-rescheduling prerequisite implemented, broader live-date consumers pending.
+- Position A: Add one application-scoped calendar context over `WhipClock`, including active zone, physical date, cutoff-adjusted logical date, cutoff, and follow-device policy; gate cross-domain rendering until projections share it.
+- Position B: Patch Track, Search, Goal, and Gym separately with local tickers and zone arguments.
+- Position C: Replace all wall clocks, deadlines, countdowns, dates, and instants with a universal time framework.
+- Evidence and constraints: Independent minute loops can advance visible domains in different frames; `LocalDate` alone suppresses same-date zone changes; Track previously sampled only after repository emissions; Search used the device zone; Gym mixed physical and cutoff-adjusted Today. Historical dates and exact instants are provenance, while focus/rest timers and reminder deadlines are separate absolute-time concerns.
+- Failure modes: Local patches recur and retain mixed Home state. A universal clock conflates calendar days, historical instants, and elapsed countdowns and destabilizes unrelated systems. A centralized date without zone/follow policy still misses same-date travel changes.
+- Synthesis/decision: Route live calendar behavior through one application-scoped `WhipCalendarContext`, invalidate it on settings and Android time/date/zone changes and aligned minute boundaries, and retain the previous rendered snapshot until all date-derived domain states match. Keep specialized absolute timers separate. New records use explicit Whip provenance; explicit historical starts derive from their supplied instant; persisted history is never re-dated.
+- Why this is superior for Whip: Every visible domain shares one falsifiable meaning of Today without imposing cutoff semantics on exports, Health windows, timers, reminders, or historical records.
+- Status: Accepted; shared context and non-Goal consumers implemented in `IMP-20260831-006`; exact elapsed-Goal UI remains the second subchunk.
 
 ### DEC-20260831-011 — Save-dependent navigation occurs only after confirmed persistence
 

@@ -1,6 +1,8 @@
 package com.whip.app.ui
 
 import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneId
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -122,5 +124,17 @@ class UnifiedSearchRulesTest {
         assertEquals(listOf(1L, 2L, 99L), index.results.map(WhipSearchResult::id))
         assertEquals(setOf(SearchDomain.Task), index.limitedDomains)
         assertTrue(UnifiedSearchDataStatus(limitedSources = listOf("Tasks")).complete.not())
+    }
+
+    @Test
+    fun completedTaskDatesUseTheActiveWhipZoneNearMidnight() {
+        val completedAt = Instant.parse("2026-09-01T02:00:00Z").toEpochMilli()
+        val torontoDate = completedTaskSearchDate(completedAt, ZoneId.of("America/Toronto"))
+        val tokyoDate = completedTaskSearchDate(completedAt, ZoneId.of("Asia/Tokyo"))
+
+        assertEquals(LocalDate.of(2026, 8, 31), torontoDate)
+        assertEquals(LocalDate.of(2026, 9, 1), tokyoDate)
+        assertTrue(task.copy(date = torontoDate).matchesQuery("before:2026-09-01"))
+        assertTrue(task.copy(date = tokyoDate).matchesQuery("after:2026-08-31"))
     }
 }

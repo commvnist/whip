@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.drop
@@ -273,7 +274,6 @@ class TrackViewModel(
 ) : AndroidViewModel(application) {
     private val app = application as WhipApplication
     private val repository: TrackRepository = app.trackRepository
-    private val clock = app.clock
     private val csvImportSessionStore = TrackCsvImportSessionStore(
         savedStateHandle,
         currentDataGeneration = app::currentUserDataGeneration,
@@ -304,16 +304,26 @@ class TrackViewModel(
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<TrackUiState> = reloadKey.flatMapLatest {
-        repository.projections.map { projections ->
+        combine(repository.projections, app.calendarContext) { projections, calendar ->
             TrackUiState(
                 projections = projections,
-                currentDate = clock.today(),
+                currentDate = calendar.logicalDate,
                 loading = false,
             )
         }.catch { error ->
-            emit(TrackUiState(currentDate = clock.today(), loading = false, errorMessage = error.message ?: "Could not load Tracks"))
+            emit(
+                TrackUiState(
+                    currentDate = app.calendarContext.value.logicalDate,
+                    loading = false,
+                    errorMessage = error.message ?: "Could not load Tracks",
+                ),
+            )
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TrackUiState())
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        TrackUiState(currentDate = app.calendarContext.value.logicalDate),
+    )
 
     init {
         restoredCsvImportSession?.let(::restoreCsvImportSession)

@@ -661,8 +661,76 @@ class GymRepositoryTest {
         assertEquals(-20.0, set.canonicalWeightKg!!, 0.0)
     }
 
+    @Test
+    fun defaultAndDuplicatedWorkoutsSnapshotTheClockDateAndZoneWithoutRewritingHistory() = runBlocking {
+        val defaultId = repository.startWorkout(name = "Default")
+        val defaultSession = repository.sessions.first().single { it.id == defaultId }
+        assertEquals(FixedClock.today(), defaultSession.localDate)
+        assertEquals(FixedClock.zoneId().id, defaultSession.zoneId)
+        repository.discardWorkout(defaultId)
+
+        val historicalDate = LocalDate.of(2025, 1, 2)
+        val historicalZone = ZoneId.of("UTC")
+        val sourceId = repository.startWorkout(
+            name = "Historical",
+            localDate = historicalDate,
+            zoneId = historicalZone,
+        )
+        repository.finishWorkout(sourceId)
+
+        val duplicateId = repository.duplicateWorkout(sourceId)
+        val sessions = repository.sessions.first()
+        val source = sessions.single { it.id == sourceId }
+        val duplicate = sessions.single { it.id == duplicateId }
+
+        assertEquals(historicalDate, source.localDate)
+        assertEquals("UTC", source.zoneId)
+        assertEquals(FixedClock.today(), duplicate.localDate)
+        assertEquals(FixedClock.zoneId().id, duplicate.zoneId)
+    }
+
+    @Test
+    fun explicitHistoricalStartDerivesItsPhysicalDateInTheChosenZone() = runBlocking {
+        val startedAt = Instant.parse("2020-01-02T02:30:00Z")
+
+        val sessionId = repository.startWorkout(
+            name = "Backdated",
+            startedAt = startedAt,
+            zoneId = ZoneId.of("America/Toronto"),
+        )
+        val session = repository.sessions.first().single { it.id == sessionId }
+
+        assertEquals(startedAt, session.startedAt)
+        assertEquals(LocalDate.of(2020, 1, 1), session.localDate)
+        assertEquals("America/Toronto", session.zoneId)
+    }
+
+    @Test
+    fun copyingAnExerciseWithoutAnActiveWorkoutUsesTheClockDateAndZone() = runBlocking {
+        val exerciseId = repository.createExercise(ExerciseDraft(name = "Zercher squat"))
+        val sourceSessionId = repository.startWorkout(
+            name = "Old session",
+            localDate = LocalDate.of(2025, 4, 3),
+            zoneId = ZoneId.of("UTC"),
+        )
+        val sourcePlacementId = repository.addExerciseToWorkout(sourceSessionId, exerciseId)
+        repository.addSet(sourcePlacementId, WorkoutSetDraft(weight = 100.0, reps = 5, completed = true))
+        repository.finishWorkout(sourceSessionId)
+
+        repository.copyWorkoutExerciseToActive(sourcePlacementId)
+        val copiedSession = repository.sessions.first().single { it.state == WorkoutSessionState.Active }
+
+        assertEquals(FixedClock.today(), copiedSession.localDate)
+        assertEquals(FixedClock.zoneId().id, copiedSession.zoneId)
+        val preservedSource = repository.sessions.first().single { it.id == sourceSessionId }
+        assertEquals(WorkoutSessionState.Finished, preservedSource.state)
+        assertEquals(LocalDate.of(2025, 4, 3), preservedSource.localDate)
+        assertEquals("UTC", preservedSource.zoneId)
+    }
+
     private object FixedClock : WhipClock {
         override fun now(): Instant = Instant.parse("2026-08-17T16:00:00Z")
+        override fun zoneId(): ZoneId = ZoneId.of("America/Toronto")
         override fun today(zoneId: ZoneId): LocalDate = LocalDate.of(2026, 8, 17)
     }
 

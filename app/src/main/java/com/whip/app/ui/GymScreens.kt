@@ -1097,7 +1097,7 @@ fun GymAreaContent(
         WorkoutEditorDialog(
             modifier = dialogModifier,
             session = null,
-            initialDate = LocalDate.now(state.appSettings.zoneId()),
+            initialDate = LocalWhipToday.current,
             initialKeepAwake = state.appSettings.keepScreenAwake,
             onDismiss = { showStartWorkout = false },
             onStart = { name, notes, date, keepAwake, onFinished ->
@@ -4007,8 +4007,9 @@ private fun WorkoutHistoryContent(
     val categoryIdsByExercise = remember(state.categoryLinks) {
         state.categoryLinks.groupBy({ it.exerciseId }, { it.categoryId })
     }
-    val through = LocalDate.now(state.appSettings.zoneId())
-    var calendarMonth by rememberSaveable(through) { mutableStateOf(YearMonth.from(through)) }
+    val through = LocalWhipToday.current
+    // A day rollover advances live ranges without ejecting someone browsing an older month.
+    var calendarMonth by rememberSaveable { mutableStateOf(YearMonth.from(through)) }
     var selectedCalendarDate by rememberSaveable { mutableStateOf<LocalDate?>(null) }
     val from = when (historyRange) {
         WorkoutHistoryRange.Month -> through.minusMonths(1)
@@ -5342,7 +5343,7 @@ internal fun GymProgressContent(
         }
         if (machineScoped) comparisonIds = emptySet()
     }
-    val through = LocalDate.now(state.appSettings.zoneId())
+    val through = LocalWhipToday.current
     val validatedRange = validateGymGraphRange(range, customFrom, customTo, through)
     val effectiveFrom = validatedRange.from
     val effectiveTo = validatedRange.to

@@ -104,6 +104,7 @@ import com.whip.app.domain.toDraft
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.Month
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -117,6 +118,7 @@ import kotlinx.coroutines.launch
 
 internal val LocalWhipFirstDayOfWeek = staticCompositionLocalOf { DayOfWeek.MONDAY }
 internal val LocalWhipToday = staticCompositionLocalOf { LocalDate.now() }
+internal val LocalWhipZone = staticCompositionLocalOf { ZoneId.systemDefault() }
 
 data class TaskEditorRequest(
     val task: WhipTask? = null,

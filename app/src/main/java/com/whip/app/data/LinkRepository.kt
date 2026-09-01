@@ -895,6 +895,7 @@ class RoomLinkRepository(
                 val logUuid = ids.nextId()
                 val entryId = measurementRepository.record(
                     habit.metricId, 1.0, habit.unitId, timestamp = event.timestamp, localDate = event.date,
+                    zoneId = clock.zoneId(),
                     sourceType = event.metricSourceType, sourceId = sourceId, note = "Automatically logged by ${rule.name}",
                 )
                 val now = clock.now().toEpochMilli()

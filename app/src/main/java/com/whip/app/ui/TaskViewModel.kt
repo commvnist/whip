@@ -10,7 +10,6 @@ import com.whip.app.core.OperationStatus
 import com.whip.app.core.WhipClock
 import com.whip.app.core.revealHomeSection
 import com.whip.app.core.zoneId
-import com.whip.app.core.currentDateFlow
 import com.whip.app.data.TaskRepository
 import com.whip.app.data.TaskDeletionBatchImpact
 import com.whip.app.data.TaskDeletionImpact
@@ -45,8 +44,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -112,18 +113,18 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     val uiState = reloadKey.flatMapLatest {
         combine(
             taskData,
-            app.settingsRepository.currentDateFlow(clock),
+            app.calendarContext,
             app.settingsRepository.settings,
-        ) { data, today, settings ->
+        ) { data, calendar, settings ->
             buildUiState(
                 tasks = data.tasks,
                 occurrences = data.occurrences,
                 steps = data.steps,
                 stepStates = data.stepStates,
                 stepSnapshots = data.stepSnapshots,
-                today = today,
+                today = calendar.logicalDate,
                 showAllUpcomingRecurringOccurrences = settings.showAllUpcomingTaskOccurrences,
-                zoneId = settings.zoneId(),
+                zoneId = calendar.zoneId,
             )
         }.catch { error ->
             emit(TaskUiState(currentDate = clock.today(), loading = false, errorMessage = error.message ?: "Could not load tasks"))
@@ -136,7 +137,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            app.settingsRepository.currentDateFlow(clock).collect { reminders.syncAll() }
+            app.calendarContext.map { it.logicalDate }.distinctUntilChanged().collect { reminders.syncAll() }
         }
         viewModelScope.launch {
             app.userDataGeneration.drop(1).collect {

@@ -84,7 +84,7 @@ interface MeasurementRepository {
         status: MetricEntryStatus = MetricEntryStatus.Recorded,
         timestamp: Instant? = null,
         localDate: LocalDate? = null,
-        zoneId: ZoneId = ZoneId.systemDefault(),
+        zoneId: ZoneId? = null,
         sourceType: MetricSourceType = MetricSourceType.Manual,
         sourceId: String? = null,
         note: String = "",
@@ -321,7 +321,7 @@ class RoomMeasurementRepository(
         status: MetricEntryStatus,
         timestamp: Instant?,
         localDate: LocalDate?,
-        zoneId: ZoneId,
+        zoneId: ZoneId?,
         sourceType: MetricSourceType,
         sourceId: String?,
         note: String,
@@ -335,9 +335,10 @@ class RoomMeasurementRepository(
             require(unit.dimension == metric.dimension) { "Incompatible unit" }
         }
         val effectiveTimestamp = timestamp ?: clock.now()
+        val effectiveZone = zoneId ?: clock.zoneId()
         val effectiveDate = localDate
-            ?: timestamp?.atZone(zoneId)?.toLocalDate()
-            ?: clock.today(zoneId)
+            ?: timestamp?.atZone(effectiveZone)?.toLocalDate()
+            ?: clock.today(effectiveZone)
         val now = clock.now().toEpochMilli()
         val entryId = existingEntryId ?: ids.nextId()
         val existing = existingEntryId?.let { dao.getEntry(it) }
@@ -352,8 +353,8 @@ class RoomMeasurementRepository(
                 status = status.name,
                 timestampMillis = effectiveTimestamp.toEpochMilli(),
                 localEpochDay = effectiveDate.toEpochDay(),
-                zoneId = zoneId.id,
-                offsetSeconds = zoneId.rules.getOffset(effectiveTimestamp).totalSeconds,
+                zoneId = effectiveZone.id,
+                offsetSeconds = effectiveZone.rules.getOffset(effectiveTimestamp).totalSeconds,
                 sourceType = sourceType.name,
                 sourceId = sourceId,
                 note = note.trim(),

@@ -539,7 +539,7 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         repository.startWorkout(
             name,
             notes,
-            localDate = date,
+            localDate = date ?: clock.today(),
             zoneId = clock.zoneId(),
             keepScreenAwake = keepScreenAwake,
         )

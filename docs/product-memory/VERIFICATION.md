@@ -65,3 +65,13 @@
 - Counts and exclusions: Current source baseline is 967 product tests—451 JVM and 516 Android—plus 9 Macrobenchmark/Baseline Profile scenarios. No Room migration, backup-format change, signed release, or physical-phone mutation was required for this chunk. API 26/37, release build, and physical-device smoke remain integrated-goal gates rather than claims of this record.
 - Related: `FND-20260831-008`, `DEC-20260831-009`, `IMP-20260831-005`.
 - Status: P1 reminder-delivery defect resolved and verified; integrated release remains pending.
+
+### VER-20260831-008 — Shared calendar and provenance focused campaign
+
+- Scope/environment: Shared calendar context; same-date zone changes; fixed-zone invalidation; cutoff rollover; cross-domain coherence gate; Track rollover without repository mutation; explicit-zone Search indexing and reactive reindex; Gym default, backdated, copy, and duplicate provenance; Measurement default/explicit zone provenance; disposable API 34 emulator `emulator-5554`.
+- Commands: Three Kotlin compilation targets; focused `AppSettingsTest`, `UnifiedSearchRulesTest`, and `LaunchAndHomeLoadPolicyTest`; targeted Android execution of `GymRepositoryTest`, `MeasurementTaxonomyRepositoryTest`, `TrackCalendarContextTest`, and `InteractionControlUiTest`.
+- Result: Compilation succeeded. Focused JVM suites passed. All 66 selected Android tests ran with zero failures and zero skips; this includes the new rendered Search zone-change regression and no-write Track rollover regression.
+- Compatibility evidence: Repository tests preserve source workout local date/zone while new copies use current Whip provenance. Explicit historical `startedAt` resolves in its chosen zone rather than today. No migration or historical rewrite was introduced.
+- Counts and exclusions: Focused verification, not yet the full shared suite. Exact elapsed-Goal DST/editing behavior belongs to the next subchunk; complete JVM/Android gates and Director/QA rereview remain required before resolving `FND-20260831-009`.
+- Related: `FND-20260831-009`, `DEC-20260831-010`, `IMP-20260831-006`.
+- Status: Focused shared-calendar/provenance behavior verified; integrated release remains pending.

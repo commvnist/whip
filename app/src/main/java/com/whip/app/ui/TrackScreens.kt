@@ -2683,7 +2683,7 @@ internal fun TrackEntryField(
     value: TrackValueDraft,
     options: List<TrackChoiceOption>,
     units: List<UnitDefinition>,
-    today: LocalDate = LocalDate.now(),
+    today: LocalDate = LocalWhipToday.current,
     showError: Boolean,
     onValue: (TrackValueDraft) -> Unit,
 ) {
@@ -2821,7 +2821,7 @@ internal fun TrackFilterDialog(
     projection: TrackProjection,
     initial: List<TrackCondition>,
     initialMode: TrackConditionMode,
-    today: LocalDate = LocalDate.now(),
+    today: LocalDate = LocalWhipToday.current,
     units: List<UnitDefinition> = BuiltInUnits.all,
     onDismiss: () -> Unit,
     onApply: (TrackConditionMode, List<TrackCondition>) -> Unit,
@@ -2857,7 +2857,7 @@ internal fun TrackFilterDialog(
 internal fun TrackConditionEditor(
     projection: TrackProjection,
     onDismiss: () -> Unit,
-    today: LocalDate = LocalDate.now(),
+    today: LocalDate = LocalWhipToday.current,
     units: List<UnitDefinition> = BuiltInUnits.all,
     modifier: Modifier = Modifier,
     onSave: (TrackCondition) -> Unit,

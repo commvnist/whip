@@ -60,8 +60,13 @@ import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackValueDraft
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
+import com.whip.app.domain.ScheduleKind
+import com.whip.app.domain.ScheduledTask
+import com.whip.app.domain.WhipTask
 import com.whip.app.ui.theme.WhipTheme
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import org.junit.Assert.assertEquals
@@ -920,6 +925,59 @@ class InteractionControlUiTest {
             assertTrue("$domain is too narrow", bounds.width >= minimumWidth)
         }
         assertTrue(compose.onNodeWithTag("search-active-match-any").fetchSemanticsNode().boundsInRoot.width >= minimumWidth)
+    }
+
+    @Test
+    fun searchReindexesCompletedTaskDatesWhenTheActiveWhipZoneChangesWithoutClearingTheQuery() {
+        var activeZone by mutableStateOf(ZoneId.of("UTC"))
+        val completedAt = Instant.parse("2026-09-01T02:00:00Z").toEpochMilli()
+        val task = WhipTask(
+            id = 42,
+            title = "Boundary task",
+            notes = "",
+            scheduleKind = ScheduleKind.Once,
+            date = LocalDate.of(2026, 8, 31),
+            recurrence = null,
+            timeMinutes = null,
+            reminderEnabled = false,
+            archived = false,
+            completedAtMillis = completedAt,
+            createdAtMillis = 1,
+            updatedAtMillis = 1,
+        )
+        val item = ScheduledTask(
+            task = task,
+            originalDate = task.date,
+            scheduledDate = task.date,
+            completedAtMillis = completedAt,
+        )
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                CompositionLocalProvider(LocalWhipZone provides activeZone) {
+                    UnifiedSearchDialog(
+                        taskState = TaskUiState(completed = listOf(item), loading = false),
+                        habitState = HabitUiState(loading = false),
+                        goalState = GoalUiState(loading = false),
+                        gymState = GymUiState(loading = false),
+                        trackState = TrackUiState(loading = false),
+                        initialScope = WhipSearchEntryContext.Tasks.defaultSearchScope(),
+                        onDismiss = {},
+                        onSelect = {},
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("unified-search-query").performTextReplacement("Boundary after:2026-08-31")
+        compose.waitUntil {
+            compose.onAllNodesWithTag("unified-search-result-Task-42").fetchSemanticsNodes().size == 1
+        }
+
+        compose.runOnIdle { activeZone = ZoneId.of("America/Toronto") }
+        compose.waitUntil {
+            compose.onAllNodesWithTag("unified-search-result-Task-42").fetchSemanticsNodes().isEmpty()
+        }
+        compose.onNodeWithTag("unified-search-query").assertTextContains("Boundary after:2026-08-31")
     }
 
     @Test

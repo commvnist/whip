@@ -4,6 +4,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.CompletableDeferred
@@ -133,6 +134,66 @@ class AppSettingsTest {
         withTimeout(5_000) { collection.join() }
 
         assertEquals(listOf(LocalDate.of(2026, 8, 23), LocalDate.of(2026, 8, 22)), dates)
+    }
+
+    @Test
+    fun calendarContextRetainsZoneChangesEvenWhenTheDateDoesNotChange() = runBlocking {
+        val settings = FakeSettingsRepository(AppSettings(timeZoneId = "UTC"))
+        val clock = SettingsWhipClock(settings) { Instant.parse("2026-08-23T12:00:00Z") }
+        val contexts = mutableListOf<WhipCalendarContext>()
+        val firstEmission = CompletableDeferred<Unit>()
+        val collection = launch {
+            settings.calendarContextFlow(clock).take(2).collect { context ->
+                contexts += context
+                firstEmission.complete(Unit)
+            }
+        }
+        withTimeout(5_000) { firstEmission.await() }
+
+        settings.update { it.copy(timeZoneId = "Europe/London") }
+        withTimeout(5_000) { collection.join() }
+
+        assertEquals(listOf("UTC", "Europe/London"), contexts.map { it.zoneId.id })
+        assertEquals(listOf(LocalDate.of(2026, 8, 23), LocalDate.of(2026, 8, 23)), contexts.map { it.logicalDate })
+    }
+
+    @Test
+    fun calendarContextDistinguishesPhysicalAndCutoffAdjustedDates() {
+        val instant = Instant.parse("2026-09-01T05:30:00Z") // 01:30 in Toronto.
+        val context = AppSettings(
+            timeZoneId = "America/Toronto",
+            dayCutoffMinutes = 4 * 60,
+        ).calendarContextAt(instant)
+
+        assertEquals(LocalDate.of(2026, 9, 1), context.physicalDate)
+        assertEquals(LocalDate.of(2026, 8, 31), context.logicalDate)
+        assertEquals(240, context.cutoffMinutes)
+        assertFalse(context.followsDeviceTimeZone)
+    }
+
+    @Test
+    fun explicitInvalidationRecomputesAFixedZoneAcrossTheLogicalBoundary() = runBlocking {
+        val settings = FakeSettingsRepository(AppSettings(timeZoneId = "America/Toronto"))
+        var now = Instant.parse("2026-09-01T07:59:59Z")
+        settings.update { it.copy(dayCutoffMinutes = 4 * 60) }
+        val clock = SettingsWhipClock(settings) { now }
+        val invalidations = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        val contexts = mutableListOf<WhipCalendarContext>()
+        val firstEmission = CompletableDeferred<Unit>()
+        val collection = launch {
+            settings.calendarContextFlow(clock, invalidations).take(2).collect { context ->
+                contexts += context
+                firstEmission.complete(Unit)
+            }
+        }
+        withTimeout(5_000) { firstEmission.await() }
+
+        now = Instant.parse("2026-09-01T08:00:00Z")
+        invalidations.emit(Unit)
+        withTimeout(5_000) { collection.join() }
+
+        assertEquals(listOf(LocalDate.of(2026, 8, 31), LocalDate.of(2026, 9, 1)), contexts.map { it.logicalDate })
+        assertTrue(contexts.all { it.zoneId.id == "America/Toronto" })
     }
 
     private class FakeSettingsRepository(initial: AppSettings) : SettingsRepository {

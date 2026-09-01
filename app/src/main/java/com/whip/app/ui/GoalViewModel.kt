@@ -7,7 +7,6 @@ import com.whip.app.WhipApplication
 import com.whip.app.core.HomeSection
 import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
-import com.whip.app.core.currentDateFlow
 import com.whip.app.core.revealHomeSection
 import com.whip.app.data.GoalRepository
 import com.whip.app.domain.Goal
@@ -15,6 +14,7 @@ import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalMilestone
 import com.whip.app.domain.GoalProjection
 import com.whip.app.domain.GoalStatus
+import com.whip.app.domain.GoalType
 import com.whip.app.domain.MetricEntry
 import com.whip.app.domain.MetricDefinition
 import com.whip.app.domain.UnitDefinition
@@ -22,7 +22,10 @@ import com.whip.app.domain.projectGoal
 import com.whip.app.reminders.reminderDefinitionChanged
 import java.time.LocalDate
 import java.time.Instant
+import java.time.ZoneId
 import java.util.concurrent.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -33,7 +36,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 data class GoalUiState(
@@ -41,6 +48,8 @@ data class GoalUiState(
     val completed: List<GoalProjection> = emptyList(),
     val archived: List<GoalProjection> = emptyList(),
     val currentDate: LocalDate = LocalDate.now(),
+    val activeZoneId: ZoneId = ZoneId.systemDefault(),
+    val nowMillis: Long = 0L,
     val loading: Boolean = true,
     val errorMessage: String? = null,
     val customUnits: List<UnitDefinition> = emptyList(),
@@ -65,8 +74,10 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         repository.goals,
         repository.milestones,
         repository.metricEntries,
-        app.settingsRepository.currentDateFlow(clock),
-    ) { goals, milestones, entries, today -> buildState(goals, milestones, entries, today) }
+        app.calendarContext,
+    ) { goals, milestones, entries, calendar ->
+        buildState(goals, milestones, entries, calendar.logicalDate).copy(activeZoneId = calendar.zoneId)
+    }
 
     private val measurementMetadata = combine(
         app.measurementRepository.customUnits,
@@ -74,20 +85,40 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
     ) { units, metrics -> units to metrics }
 
     val uiState = reloadKey.flatMapLatest {
-        combine(goalCore, measurementMetadata) { core, metadata ->
+        val timedGoalCore = goalCore.flatMapLatest { core ->
+            val hasElapsedGoal = (core.active + core.completed + core.archived)
+                .any { it.goal.type == GoalType.ElapsedSince }
+            (if (hasElapsedGoal) elapsedClockFlow() else flowOf(clock.now().toEpochMilli()))
+                .map { nowMillis -> core to nowMillis }
+        }
+        combine(timedGoalCore, measurementMetadata) { (core, nowMillis), metadata ->
             val (units, metrics) = metadata
             core.copy(
                 customUnits = units,
                 sourceMetrics = metrics.filterNot { it.archived },
+                nowMillis = nowMillis,
             )
         }.catch { error ->
-            emit(GoalUiState(currentDate = clock.today(), loading = false, errorMessage = error.message ?: "Could not load goals"))
+            val calendar = app.calendarContext.value
+            emit(
+                GoalUiState(
+                    currentDate = calendar.logicalDate,
+                    activeZoneId = calendar.zoneId,
+                    nowMillis = clock.now().toEpochMilli(),
+                    loading = false,
+                    errorMessage = error.message ?: "Could not load goals",
+                ),
+            )
         }
     }
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
-            GoalUiState(currentDate = clock.today()),
+            GoalUiState(
+                currentDate = app.calendarContext.value.logicalDate,
+                activeZoneId = app.calendarContext.value.zoneId,
+                nowMillis = clock.now().toEpochMilli(),
+            ),
         )
 
     fun consumeOperationStatus() { _operationStatus.value = OperationStatus.Idle }
@@ -143,6 +174,14 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
     fun resetElapsedStart(id: Long, start: Instant) = runOperation("Resetting timer…", "Timer reset") {
         repository.resetElapsedStart(id, start)
         reminders.syncGoal(id)
+    }
+    fun resetElapsedStartToNow(id: Long) = resetElapsedStart(id, clock.now())
+
+    private fun elapsedClockFlow(): Flow<Long> = flow {
+        while (currentCoroutineContext().isActive) {
+            emit(clock.now().toEpochMilli())
+            delay(30_000L)
+        }
     }
     private val reorderMutex = Mutex()
 
