@@ -27,6 +27,9 @@ interface RoutineDao {
     @Query("SELECT * FROM graph_presets ORDER BY createdAtMillis")
     fun observeGraphPresets(): Flow<List<GraphPresetEntity>>
 
+    @Query("SELECT * FROM training_max_decisions ORDER BY createdAtMillis DESC, id DESC")
+    fun observeTrainingMaxDecisions(): Flow<List<TrainingMaxDecisionEntity>>
+
     @Query("SELECT * FROM graph_presets")
     suspend fun getGraphPresets(): List<GraphPresetEntity>
 
@@ -70,6 +73,7 @@ interface RoutineDao {
     @Insert suspend fun insertExercise(entity: RoutineExerciseEntity): Long
     @Insert suspend fun insertSet(entity: RoutineSetEntity): Long
     @Insert suspend fun insertGraphPreset(entity: GraphPresetEntity): Long
+    @Insert suspend fun insertTrainingMaxDecision(entity: TrainingMaxDecisionEntity): Long
 
     @Update suspend fun updateRoutine(entity: GymRoutineEntity)
 

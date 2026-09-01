@@ -102,6 +102,7 @@ internal fun WorkoutSetClassification.uiLabel(): String = when (this) {
     WorkoutSetClassification.BackOff -> "Back-off"
     WorkoutSetClassification.Drop -> "Drop"
     WorkoutSetClassification.Amrap -> "AMRAP"
+    WorkoutSetClassification.TrainingMaxTest -> "Training Max test"
     WorkoutSetClassification.Failure -> "Failure"
 }
 

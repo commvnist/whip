@@ -21,6 +21,7 @@ import com.whip.app.data.RoomTaskRepository
 import com.whip.app.data.RoomTrackRepository
 import com.whip.app.data.ContributionEntity
 import com.whip.app.data.TriggerOccurrenceEntity
+import com.whip.app.data.TrainingMaxDecisionEntity
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.CustomIdentityEmoji
@@ -43,6 +44,13 @@ import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
+import com.whip.app.domain.RoutineLoadPrescriptionType
+import com.whip.app.domain.RoutineMainWorkScheme
+import com.whip.app.domain.RoutineProgramDraft
+import com.whip.app.domain.RoutineProgramKind
+import com.whip.app.domain.RoutineSupplementalScheme
+import com.whip.app.domain.RoutineTrainingMaxSource
+import com.whip.app.domain.RoutineWorkSection
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TaskDraft
 import com.whip.app.domain.TaskStepDraft
@@ -58,6 +66,7 @@ import com.whip.app.domain.TriggerRuleDraft
 import com.whip.app.domain.TriggerSourceProperty
 import com.whip.app.domain.TriggerTargetType
 import com.whip.app.domain.WorkoutSetDraft
+import com.whip.app.domain.WorkoutSetClassification
 import com.whip.app.domain.outcomeForPeriod
 import java.time.Instant
 import java.time.LocalDate
@@ -140,10 +149,32 @@ class BackupRepositoryTest {
         habits.log(id, 2.0, note = "morning \"large\" glass")
         habits.skipDay(id, FixedClock.today().plusDays(1))
         tasks.create(TaskDraft(title = "Ship release", icon = "🚀"))
+        database.routineDao().insertTrainingMaxDecision(
+            TrainingMaxDecisionEntity(
+                uuid = "tm-decision-backup",
+                routineUuid = "routine-backup",
+                sessionUuid = "session-backup",
+                exerciseUuid = "exercise-backup",
+                exerciseName = "Bench Press",
+                cycle = 3,
+                previousTrainingMax = 200.0,
+                appliedDelta = 5.0,
+                resultingTrainingMax = 205.0,
+                unitId = "pound",
+                standardDelta = 5.0,
+                recommendationCategory = "StandardIncrease",
+                recommendationDelta = 5.0,
+                confidence = 0.85,
+                reasonsText = "All required work passed",
+                engineVersion = "five-three-one-progression/1",
+                action = "UseStandard",
+                createdAtMillis = 1234,
+            ),
+        )
         val json = backups.exportBackup()
         val preview = backups.previewBackup(json)
         assertEquals(2, preview.envelopeVersion)
-        assertEquals(11, preview.databaseVersion)
+        assertEquals(15, preview.databaseVersion)
         assertTrue(preview.checksumValid)
         assertTrue(preview.settingsIncluded)
         assertTrue(preview.totalRecords >= 3)
@@ -176,8 +207,161 @@ class BackupRepositoryTest {
         assertEquals(90, settings.current().repPrescriptionSchemes.single().restSeconds)
         assertEquals(2, settings.current().trackedGymRecords.size)
         assertEquals(PersonalRecordType.MaxWeight, settings.current().trackedGymRecords.last().type)
+        assertEquals("tm-decision-backup", routines.trainingMaxDecisions.first().single().uuid)
         assertTrue(backups.exportHabitsCsv().contains("\"Hydrate, safely\""))
         assertTrue(backups.exportHabitsCsv().contains("\"Skipped\""))
+    }
+
+    @Test fun versionElevenGymProgrammingBackfillsTypedSemanticsDuringRestore() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Legacy press", weightUnitId = "pound"))
+        routines.createRoutine(
+            RoutineDraft(
+                name = "Legacy BBB",
+                program = RoutineProgramDraft(
+                    kind = RoutineProgramKind.BoringButBig,
+                    phaseCount = 4,
+                    phaseLabels = listOf("5s Week", "3s Week", "5/3/1 Week", "Deload"),
+                ),
+                days = listOf(
+                    RoutineDayDraft(
+                        "Press",
+                        listOf(
+                            RoutineExerciseDraft(
+                                exerciseId = exerciseId,
+                                trainingMaxValue = 200.0,
+                                trainingMaxUnitId = "pound",
+                                cycleIncrementValue = 5.0,
+                                trainingMaxSource = RoutineTrainingMaxSource.Explicit,
+                                plannedSets = listOf(
+                                    WorkoutSetDraft(
+                                        reps = 5,
+                                        classification = WorkoutSetClassification.Amrap,
+                                        note = "Main Work · 5s Week · 85% TM",
+                                        loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                                        loadPercentage = 85.0,
+                                    ),
+                                    WorkoutSetDraft(
+                                        reps = 10,
+                                        note = "Supplemental · 50% TM",
+                                        loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                                        loadPercentage = 50.0,
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val root = JSONObject(backups.exportBackup()).put("databaseVersion", 11)
+        val tables = root.getJSONObject("tables")
+        tables.getJSONArray("gym_routines").getJSONObject(0).apply {
+            remove("trainingMaxIncreaseEligible")
+            remove("programPhaseRolesCsv")
+            remove("trainingMaxAdvanceAfterPhaseIndicesCsv")
+            remove("programTemplateKey")
+            remove("programTemplateRevision")
+        }
+        tables.getJSONArray("routine_exercises").getJSONObject(0).apply {
+            remove("mainWorkScheme")
+            remove("supplementalScheme")
+            remove("assistanceRole")
+            remove("placementKind")
+            remove("assistanceCategory")
+            remove("jokerSetsEnabled")
+        }
+        val legacySets = tables.getJSONArray("routine_sets")
+        for (index in 0 until legacySets.length()) legacySets.getJSONObject(index).apply {
+            remove("workSection")
+            remove("optionalWorkKind")
+            remove("mainWorkScheme")
+            remove("supplementalScheme")
+        }
+        val payload = tables.toString() + "\n" + root.optJSONObject("settings")?.toString().orEmpty()
+        root.put(
+            "checksumSha256",
+            MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) },
+        )
+
+        backups.deleteAllData()
+        backups.restoreBackup(root.toString())
+
+        assertEquals(RoutineMainWorkScheme.ClassicPrSet, routines.exercises.first().single().mainWorkScheme)
+        assertEquals(RoutineSupplementalScheme.BoringButBig, routines.exercises.first().single().supplementalScheme)
+        assertEquals(com.whip.app.domain.RoutinePlacementKind.MainLift, routines.exercises.first().single().placementKind)
+        assertEquals(
+            com.whip.app.domain.RoutineProgramTemplateKey.LegacyFiveThreeOne,
+            routines.routines.first().single().programTemplateKey,
+        )
+        assertEquals(
+            listOf(RoutineWorkSection.Main, RoutineWorkSection.Supplemental),
+            routines.sets.first().sortedBy { it.position }.map { it.draft.workSection },
+        )
+        assertTrue(routines.sets.first().all { it.draft.mainWorkScheme == null && it.draft.supplementalScheme == null })
+        assertEquals("Deload", routines.routines.first().single().programPhaseRoles.last().name)
+        assertEquals(setOf(3), routines.routines.first().single().trainingMaxAdvanceAfterPhaseIndices)
+    }
+
+    @Test fun versionTwelveBackupBackfillsPlacementCategoryAndTemplateProvenance() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Legacy row", weightUnitId = "pound"))
+        routines.createRoutine(
+            RoutineDraft(
+                name = "Legacy assistance",
+                program = RoutineProgramDraft(RoutineProgramKind.FiveThreeOne, phaseCount = 1),
+                days = listOf(
+                    RoutineDayDraft(
+                        "Pull",
+                        listOf(
+                            RoutineExerciseDraft(
+                                exerciseId = exerciseId,
+                                assistanceRole = com.whip.app.domain.RoutineAssistanceRole.Pull,
+                                plannedSets = listOf(
+                                    WorkoutSetDraft(
+                                        weight = 80.0,
+                                        weightUnitId = "pound",
+                                        reps = 10,
+                                        workSection = RoutineWorkSection.Assistance,
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val root = JSONObject(backups.exportBackup()).put("databaseVersion", 12)
+        val tables = root.getJSONObject("tables")
+        tables.getJSONArray("gym_routines").getJSONObject(0).apply {
+            remove("programTemplateKey")
+            remove("programTemplateRevision")
+        }
+        tables.getJSONArray("routine_exercises").getJSONObject(0).apply {
+            remove("placementKind")
+            remove("assistanceCategory")
+        }
+        val payload = tables.toString() + "\n" + root.optJSONObject("settings")?.toString().orEmpty()
+        root.put(
+            "checksumSha256",
+            MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) },
+        )
+
+        backups.deleteAllData()
+        backups.restoreBackup(root.toString())
+
+        assertEquals(
+            com.whip.app.domain.RoutinePlacementKind.Assistance,
+            routines.exercises.first().single().placementKind,
+        )
+        assertEquals(
+            com.whip.app.domain.RoutineAssistanceCategory.Pull,
+            routines.exercises.first().single().assistanceCategory,
+        )
+        assertEquals(
+            com.whip.app.domain.RoutineProgramTemplateKey.LegacyFiveThreeOne,
+            routines.routines.first().single().programTemplateKey,
+        )
     }
 
     @Test fun machineExerciseLinksAndLevelDirectionRoundTrip() = runBlocking {
@@ -251,7 +435,7 @@ class BackupRepositoryTest {
         )
 
         val exported = JSONObject(backups.exportBackup())
-        assertEquals(11, exported.getInt("databaseVersion"))
+        assertEquals(15, exported.getInt("databaseVersion"))
         assertEquals(0, exported.getJSONObject("tables").getJSONArray("link_rules").getJSONObject(0).getInt("enabled"))
         assertEquals(0, exported.getJSONObject("tables").getJSONArray("trigger_rules").getJSONObject(0).getInt("enabled"))
 
@@ -659,7 +843,7 @@ class BackupRepositoryTest {
     @Test fun nonCurrentBackupVersionsOrTableSetsCannotBePreviewedOrRestored() = runBlocking {
         habits.create(HabitDraft(name = "Keep local", startDate = FixedClock.today()))
         val current = backups.exportBackup()
-        val wrongDatabase = JSONObject(current).put("databaseVersion", 12).toString()
+        val wrongDatabase = JSONObject(current).put("databaseVersion", 16).toString()
         val wrongEnvelope = JSONObject(current).put("envelopeVersion", 1).toString()
         val incompleteTables = JSONObject(current).also {
             it.getJSONObject("tables").remove("tags")

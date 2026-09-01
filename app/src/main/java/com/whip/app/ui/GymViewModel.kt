@@ -30,6 +30,8 @@ import com.whip.app.domain.RoutineDay
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExercise
 import com.whip.app.domain.RoutineSet
+import com.whip.app.domain.TrainingMaxDecision
+import com.whip.app.domain.TrainingMaxCycleDecision
 import com.whip.app.domain.calculateWorkoutSummary
 import com.whip.app.domain.equipmentScopeKey
 import com.whip.app.data.MachineDeletionImpact
@@ -122,6 +124,7 @@ data class GymUiState(
     val routineExercises: List<RoutineExercise> = emptyList(),
     val routineSets: List<RoutineSet> = emptyList(),
     val personalRecords: List<PersonalRecord> = emptyList(),
+    val trainingMaxDecisions: List<TrainingMaxDecision> = emptyList(),
     val categories: List<ExerciseCategory> = emptyList(),
     val archivedCategories: List<ExerciseCategory> = emptyList(),
     val categoryLinks: List<ExerciseCategoryLink> = emptyList(),
@@ -193,9 +196,13 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         routineRepository.personalRecords,
         ::RoutineBaseData,
     )
+    private val routineData = combine(
+        routineBaseData,
+        routineRepository.trainingMaxDecisions,
+    ) { base, decisions -> base.copy(trainingMaxDecisions = decisions) }
 
     private val calculatedUiState = reloadKey.flatMapLatest {
-        val dataState = combine(gymData, routineBaseData, app.settingsRepository.settings) { data, routines, settings ->
+        val dataState = combine(gymData, routineData, app.settingsRepository.settings) { data, routines, settings ->
             buildGymUiState(data, routines, clock.now().toEpochMilli(), settings)
         }.flowOn(Dispatchers.Default)
         combine(dataState, currentTimeFlow()) { state, now -> state.withClockTick(now) }
@@ -525,13 +532,17 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         onFinished,
     ) { repository.updateWorkout(id, name, notes, keepAwake) }
 
-    fun finishWorkout(id: Long, onFinished: (Boolean) -> Unit = {}) = runOperation(
+    fun finishWorkout(
+        id: Long,
+        trainingMaxDecisions: List<TrainingMaxCycleDecision>? = null,
+        onFinished: (Boolean) -> Unit = {},
+    ) = runOperation(
         "Finishing workout…",
         "Workout saved to history",
         onFinished = onFinished,
     ) {
         val exerciseIds = uiState.value.activeWorkoutExercises.map { it.exercise.id }.distinct()
-        repository.finishWorkout(id)
+        repository.finishWorkout(id, trainingMaxDecisions)
         restTimerScheduler.cancel(id)
         exerciseIds.forEach { routineRepository.rebuildPersonalRecords(it) }
         app.linkRepository.rebuildAll()
@@ -589,6 +600,11 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         "Saving exercise notes…",
         "Exercise updated",
     ) { repository.updateWorkoutExercise(id, notes, groupId) }
+
+    fun updateWorkoutExerciseDetails(id: Long, notes: String, groupId: Long?, machineId: Long?) = runOperation(
+        "Saving exercise details…",
+        "Exercise updated",
+    ) { repository.updateWorkoutExerciseDetails(id, notes, groupId, machineId) }
 
     fun setWorkoutExerciseMachine(id: Long, machineId: Long?) = runOperation(
         "Updating machine…",
@@ -784,6 +800,13 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         routineRepository.resetRoutineProgramProgress(routineId)
     }
 
+    fun restoreRoutineTrainingMaxEligibility(routineId: Long) = runOperation(
+        "Restoring Training Max eligibility…",
+        "Training Max progression restored",
+    ) {
+        routineRepository.setRoutineTrainingMaxIncreaseEligible(routineId, true)
+    }
+
     fun duplicateRoutine(id: Long) = runOperation("Duplicating routine…", "Routine duplicated") {
         routineRepository.duplicateRoutine(id)
     }
@@ -937,6 +960,7 @@ private data class RoutineBaseData(
     val exercises: List<RoutineExercise>,
     val sets: List<RoutineSet>,
     val personalRecords: List<PersonalRecord>,
+    val trainingMaxDecisions: List<TrainingMaxDecision> = emptyList(),
 )
 
 private fun buildGymUiState(data: GymData, routineData: RoutineBaseData, nowMillis: Long, appSettings: AppSettings): GymUiState {
@@ -989,9 +1013,11 @@ private fun buildGymUiState(data: GymData, routineData: RoutineBaseData, nowMill
             includeWarmups = appSettings.includeWarmupsInGymStats,
         )
     }
-    val remaining = active?.restTimerDeadlineMillis?.let { deadline ->
-        ((deadline - nowMillis + 999L) / 1_000L).coerceAtLeast(0).toInt()
-    }?.takeIf { it > 0 }
+    val remaining = restTimerRemainingSeconds(
+        deadlineMillis = active?.restTimerDeadlineMillis,
+        nowMillis = nowMillis,
+        configuredDurationSeconds = active?.restTimerDurationSeconds,
+    )
     return GymUiState(
         machines = data.machines.filterNot(GymMachine::archived),
         archivedMachines = data.machines.filter(GymMachine::archived),
@@ -1017,6 +1043,7 @@ private fun buildGymUiState(data: GymData, routineData: RoutineBaseData, nowMill
         routineExercises = routineData.exercises,
         routineSets = routineData.sets,
         personalRecords = routineData.personalRecords,
+        trainingMaxDecisions = routineData.trainingMaxDecisions,
         categories = data.categories.filterNot(ExerciseCategory::archived),
         archivedCategories = data.categories.filter(ExerciseCategory::archived),
         categoryLinks = data.categoryLinks,
@@ -1036,8 +1063,32 @@ private fun GymUiState.withClockTick(now: Long): GymUiState {
             includeWarmups = appSettings.includeWarmupsInGymStats,
         )
     }
-    val remaining = active?.restTimerDeadlineMillis?.let { deadline ->
-        ((deadline - now + 999L) / 1_000L).coerceAtLeast(0).toInt()
-    }?.takeIf { it > 0 }
+    val remaining = restTimerRemainingSeconds(
+        deadlineMillis = active?.restTimerDeadlineMillis,
+        nowMillis = now,
+        configuredDurationSeconds = active?.restTimerDurationSeconds,
+    )
     return copy(nowMillis = now, summary = updatedSummary, restSecondsRemaining = remaining)
+}
+
+/**
+ * Room can publish a newly started timer between one-second clock emissions. In that brief
+ * window [nowMillis] predates the stored deadline's creation and an unclamped ceiling would
+ * render a selected 5:00 timer as 5:01. The persisted duration is the authoritative upper
+ * bound until the next tick; normal deadline arithmetic continues to handle background time.
+ */
+internal fun restTimerRemainingSeconds(
+    deadlineMillis: Long?,
+    nowMillis: Long,
+    configuredDurationSeconds: Int?,
+): Int? {
+    val deadline = deadlineMillis ?: return null
+    val rawSeconds = ((deadline - nowMillis + 999L) / 1_000L).coerceAtLeast(0L)
+        .coerceAtMost(Int.MAX_VALUE.toLong())
+        .toInt()
+    val boundedSeconds = configuredDurationSeconds
+        ?.takeIf { it > 0 }
+        ?.let { duration -> minOf(rawSeconds, duration) }
+        ?: rawSeconds
+    return boundedSeconds.takeIf { it > 0 }
 }

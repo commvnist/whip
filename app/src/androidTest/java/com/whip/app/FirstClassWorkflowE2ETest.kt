@@ -19,6 +19,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.AppSettings
+import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.WorkoutSessionState
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -118,6 +119,9 @@ class FirstClassWorkflowE2ETest {
                 }
             }
             checkNotNull(exerciseCreated) { "Exercise creation did not reach the repository" }
+            val workoutOnlyExerciseId = runBlocking {
+                app.gymRepository.createExercise(ExerciseDraft(name = "Band Pull-Apart"))
+            }
             compose.waitUntil(5_000) {
                 compose.onAllNodesWithText("Start Workout").fetchSemanticsNodes().isNotEmpty()
             }
@@ -135,7 +139,7 @@ class FirstClassWorkflowE2ETest {
                 }
             }
             checkNotNull(session) { "Workout start did not reach the repository" }
-            compose.onAllNodesWithText("Add Exercise")[0].performScrollTo().performClick()
+            compose.onAllNodesWithText("Add Exercise to This Workout")[0].performScrollTo().performClick()
             compose.onNodeWithTag("workout-exercise-picker-list").performScrollToNode(hasText("Goblet Squat"))
             compose.onNodeWithText("Goblet Squat").performClick()
             val exerciseAdded = runBlocking {
@@ -161,6 +165,20 @@ class FirstClassWorkflowE2ETest {
             }
             checkNotNull(setCompleted) { "Set completion did not reach the repository" }
 
+            compose.onNodeWithTag("add-exercise-to-active-workout").performScrollTo().performClick()
+            compose.onNodeWithTag("workout-exercise-picker-scope").assertIsDisplayed()
+            compose.onNodeWithTag("workout-exercise-picker-list").performScrollToNode(hasText("Band Pull-Apart"))
+            compose.onNodeWithText("Band Pull-Apart").performClick()
+            val workoutOnlyExerciseAdded = runBlocking {
+                withTimeoutOrNull(5_000) {
+                    app.gymRepository.workoutExercises.first { rows ->
+                        rows.any { it.sessionId == session.id && it.exerciseId == workoutOnlyExerciseId }
+                    }
+                }
+            }
+            checkNotNull(workoutOnlyExerciseAdded) { "Workout-only exercise selection did not reach the active session" }
+
+            compose.onNodeWithTag("active-workout-list").performScrollToNode(hasText("Finish"))
             compose.onNodeWithText("Finish").performClick()
             val workoutFinished = runBlocking {
                 withTimeoutOrNull(5_000) {
@@ -175,6 +193,12 @@ class FirstClassWorkflowE2ETest {
             // the same time. Either visible instance proves the saved workout
             // reached History; a singular text lookup is invalid in that layout.
             compose.onAllNodesWithText("Coverage Workout")[0].assertIsDisplayed()
+            check(
+                runBlocking {
+                    app.gymRepository.workoutExercises.first()
+                        .any { it.sessionId == session.id && it.exerciseId == workoutOnlyExerciseId }
+                },
+            ) { "Workout-only exercise was not preserved with the finished workout" }
         }
     }
 

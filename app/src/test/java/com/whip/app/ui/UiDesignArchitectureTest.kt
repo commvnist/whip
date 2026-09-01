@@ -243,7 +243,7 @@ class UiDesignArchitectureTest {
             .substringBefore("supportsPaneExpansion")
         assertTrue(
             gymLibraryAddMenu.contains(
-                "label = if (gymState.activeSession == null) \"Start Workout\" else \"Add to Workout\"",
+                "label = if (gymState.activeSession == null) \"Start Workout\" else \"Add Exercise to This Workout\"",
             ),
         )
         listOf("Routine", "Exercise", "Machine", "Category").forEach { item ->

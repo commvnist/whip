@@ -131,6 +131,8 @@ enum class WorkoutSetClassification {
     BackOff,
     Drop,
     Amrap,
+    /** Explicit 100%-of-TM, 3–5-rep test set inside a Training Max Test phase. */
+    TrainingMaxTest,
     Failure,
 }
 
@@ -152,6 +154,7 @@ enum class RoutineLoadPrescriptionType(val label: String) {
 enum class RoutineProgramKind {
     Static,
     Custom,
+    FiveThreeOne,
     FiveThreeOneClassic,
     FiveSPro,
     BoringButBig,
@@ -163,10 +166,192 @@ enum class RoutineTrainingMaxSource {
     Explicit,
 }
 
+/** The user-visible value from which an explicit, stable Training Max was derived. */
+enum class TrainingMaxBasisKind {
+    Unspecified,
+    ActualOneRepMax,
+    EstimatedOneRepMax,
+    ManualSourceMax,
+    ExplicitTrainingMax,
+}
+
+enum class RoutineProgressionMode {
+    Standard,
+    PerformanceInformed,
+}
+
+enum class TrainingMaxDecisionAction {
+    UseSuggestion,
+    UseStandard,
+    Hold,
+    /** Decline Whip's advisory recommendation and intentionally leave this cycle's TM unchanged. */
+    IgnoreRecommendation,
+    Custom,
+}
+
+/** Explicit user choice submitted while finishing a configured program boundary. */
+data class TrainingMaxCycleDecision(
+    val exerciseId: Long,
+    /** Optimistic-lock snapshot from the review; repository rejects a stale Training Max. */
+    val expectedCurrentTrainingMax: Double? = null,
+    val requestedDelta: Double,
+    val standardDelta: Double,
+    val recommendationCategory: String,
+    val recommendationDelta: Double,
+    val confidence: Double,
+    val reasons: List<String>,
+    val engineVersion: String,
+    val action: TrainingMaxDecisionAction,
+)
+
+/** Immutable, user-auditable record of a Training Max boundary decision. */
+data class TrainingMaxDecision(
+    val uuid: String,
+    val routineUuid: String,
+    val sessionUuid: String,
+    val exerciseUuid: String,
+    val exerciseName: String,
+    val cycle: Int,
+    val previousTrainingMax: Double,
+    val appliedDelta: Double,
+    val resultingTrainingMax: Double,
+    val unitId: String,
+    val standardDelta: Double,
+    val recommendationCategory: String,
+    val recommendationDelta: Double,
+    val confidence: Double,
+    val reasons: List<String>,
+    val engineVersion: String,
+    val action: TrainingMaxDecisionAction,
+    val createdAtMillis: Long,
+)
+
+enum class RoutineMainWorkScheme {
+    Unspecified,
+    ClassicPrSet,
+    ClassicMinimumReps,
+    FivesPro,
+}
+
+enum class RoutineSupplementalScheme {
+    None,
+    FirstSetLast,
+    SecondSetLast,
+    BoringButBig,
+    BoringButStrong,
+    Custom,
+}
+
+/** The structural job of an exercise placement inside one routine day. */
+enum class RoutinePlacementKind {
+    General,
+    MainLift,
+    Assistance,
+}
+
+/**
+ * A routine-local assistance classification. This deliberately does not live on [Exercise]:
+ * the same movement can be Pull work in one program and unclassified general work in another.
+ */
+enum class RoutineAssistanceCategory {
+    Unspecified,
+    Push,
+    Pull,
+    SingleLegCore,
+    Other,
+}
+
+/** Stable provenance for a generated program; notes remain editable user content. */
+enum class RoutineProgramTemplateKey {
+    None,
+    LegacyFiveThreeOne,
+    FiveThreeOneFourDay,
+    FiveThreeOneBeginners,
+    FiveThreeOneCustom,
+}
+
+/**
+ * Legacy combined field kept for deterministic backup/database compatibility. New authoring
+ * code writes [RoutinePlacementKind] and [RoutineAssistanceCategory] explicitly.
+ */
+enum class RoutineAssistanceRole {
+    Unspecified,
+    MainLift,
+    Push,
+    Pull,
+    SingleLegCore,
+    Other,
+}
+
+fun RoutineAssistanceRole.toPlacementKind(): RoutinePlacementKind = when (this) {
+    RoutineAssistanceRole.MainLift -> RoutinePlacementKind.MainLift
+    RoutineAssistanceRole.Push,
+    RoutineAssistanceRole.Pull,
+    RoutineAssistanceRole.SingleLegCore,
+    RoutineAssistanceRole.Other,
+    -> RoutinePlacementKind.Assistance
+    RoutineAssistanceRole.Unspecified -> RoutinePlacementKind.General
+}
+
+fun RoutineAssistanceRole.toAssistanceCategory(): RoutineAssistanceCategory = when (this) {
+    RoutineAssistanceRole.Push -> RoutineAssistanceCategory.Push
+    RoutineAssistanceRole.Pull -> RoutineAssistanceCategory.Pull
+    RoutineAssistanceRole.SingleLegCore -> RoutineAssistanceCategory.SingleLegCore
+    RoutineAssistanceRole.Other -> RoutineAssistanceCategory.Other
+    RoutineAssistanceRole.Unspecified,
+    RoutineAssistanceRole.MainLift,
+    -> RoutineAssistanceCategory.Unspecified
+}
+
+fun legacyRoutineAssistanceRole(
+    placementKind: RoutinePlacementKind,
+    assistanceCategory: RoutineAssistanceCategory,
+): RoutineAssistanceRole = when (placementKind) {
+    RoutinePlacementKind.MainLift -> RoutineAssistanceRole.MainLift
+    RoutinePlacementKind.General -> RoutineAssistanceRole.Unspecified
+    RoutinePlacementKind.Assistance -> when (assistanceCategory) {
+        RoutineAssistanceCategory.Push -> RoutineAssistanceRole.Push
+        RoutineAssistanceCategory.Pull -> RoutineAssistanceRole.Pull
+        RoutineAssistanceCategory.SingleLegCore -> RoutineAssistanceRole.SingleLegCore
+        RoutineAssistanceCategory.Other -> RoutineAssistanceRole.Other
+        RoutineAssistanceCategory.Unspecified -> RoutineAssistanceRole.Other
+    }
+}
+
+enum class RoutineWorkSection {
+    Unspecified,
+    Main,
+    Supplemental,
+    Assistance,
+    Optional,
+}
+
+enum class RoutineOptionalWorkKind {
+    None,
+    Joker,
+}
+
+enum class RoutineProgramPhaseRole {
+    Standard,
+    Leader,
+    Anchor,
+    Deload,
+    TrainingMaxTest,
+    PersonalRecordTest,
+}
+
 data class RoutineProgramDraft(
     val kind: RoutineProgramKind,
     val phaseCount: Int,
     val phaseLabels: List<String> = emptyList(),
+    val phaseRoles: List<RoutineProgramPhaseRole> = emptyList(),
+    val trainingMaxAdvanceAfterPhaseIndices: Set<Int> = emptySet(),
+    /** Edit-only hint used to preserve the same semantic phase through reorder/rename operations. */
+    val currentPhaseIndexHint: Int? = null,
+    val templateKey: RoutineProgramTemplateKey = RoutineProgramTemplateKey.None,
+    val templateRevision: Int = 0,
+    val progressionMode: RoutineProgressionMode = RoutineProgressionMode.Standard,
+    val allowNonStandardHigherSuggestions: Boolean = false,
 )
 
 data class ExerciseDraft(
@@ -264,6 +449,10 @@ data class WorkoutSession(
     val sourceRoutineDayPosition: Int? = null,
     val sourceRoutineDayProgressionIndex: Int? = null,
     val programProgressAdvanced: Boolean = false,
+    val requiredMainWorkInvalidated: Boolean = false,
+    val invalidatedMainExerciseIds: Set<Long> = emptySet(),
+    val sourceRoutinePhaseLabel: String = "",
+    val sourceRoutinePhaseRole: RoutineProgramPhaseRole = RoutineProgramPhaseRole.Standard,
 )
 
 data class WorkoutGroup(
@@ -316,6 +505,12 @@ data class WorkoutExercise(
     val trainingMaxUnitIdSnapshot: String = "",
     val cycleIncrementValueSnapshot: Double? = null,
     val trainingMaxSourceSnapshot: RoutineTrainingMaxSource = RoutineTrainingMaxSource.EstimatedOneRepMaxPercent,
+    val mainWorkSchemeSnapshot: RoutineMainWorkScheme = RoutineMainWorkScheme.Unspecified,
+    val supplementalSchemeSnapshot: RoutineSupplementalScheme = RoutineSupplementalScheme.None,
+    val assistanceRoleSnapshot: RoutineAssistanceRole = RoutineAssistanceRole.Unspecified,
+    val placementKindSnapshot: RoutinePlacementKind = RoutinePlacementKind.General,
+    val assistanceCategorySnapshot: RoutineAssistanceCategory = RoutineAssistanceCategory.Unspecified,
+    val jokerSetsEnabledSnapshot: Boolean = false,
 )
 
 /** Stable equipment partition captured when the workout placement is created. */
@@ -357,6 +552,12 @@ data class WorkoutSetDraft(
     val loadPercentage: Double? = null,
     /** Null applies in every program phase; otherwise this set is active only in that zero-based phase. */
     val routinePhaseIndex: Int? = null,
+    val workSection: RoutineWorkSection = RoutineWorkSection.Unspecified,
+    val optionalWorkKind: RoutineOptionalWorkKind = RoutineOptionalWorkKind.None,
+    /** Set-authoritative program policy. Only Main sets may carry this value. */
+    val mainWorkScheme: RoutineMainWorkScheme? = null,
+    /** Set-authoritative program policy. Only Supplemental sets may carry this value. */
+    val supplementalScheme: RoutineSupplementalScheme? = null,
 )
 
 fun validateWorkoutSetDraft(
@@ -469,6 +670,10 @@ data class WorkoutSet(
     val prescribedMachineLoadValue: Double? = null,
     val prescribedRepetitionsMax: Int? = null,
     val prescriptionSourceLabel: String = "",
+    val workSectionSnapshot: RoutineWorkSection = RoutineWorkSection.Unspecified,
+    val optionalWorkKindSnapshot: RoutineOptionalWorkKind = RoutineOptionalWorkKind.None,
+    /** Immutable authored set type, even when [classification] is changed to Failure. */
+    val prescribedClassificationSnapshot: WorkoutSetClassification = classification,
 )
 
 data class WorkoutSummary(
@@ -488,6 +693,8 @@ data class RoutineDraft(
     val days: List<RoutineDayDraft>,
     /** Null keeps legacy/static behavior on create and preserves the stored program on update. */
     val program: RoutineProgramDraft? = null,
+    /** Edit-only hint used to preserve the same next day when the routine days are reordered. */
+    val nextProgramDayPositionHint: Int? = null,
 )
 
 data class RoutineDayDraft(
@@ -526,6 +733,17 @@ data class RoutineExerciseDraft(
     val trainingMaxUnitId: String = "kilogram",
     val cycleIncrementValue: Double? = null,
     val trainingMaxSource: RoutineTrainingMaxSource = RoutineTrainingMaxSource.EstimatedOneRepMaxPercent,
+    val trainingMaxBasisKind: TrainingMaxBasisKind = TrainingMaxBasisKind.Unspecified,
+    val trainingMaxBasisValue: Double? = null,
+    val trainingMaxBasisUnitId: String = "",
+    /** Eligibility is per exercise identity; repeated program placements are synchronized. */
+    val trainingMaxIncreaseEligible: Boolean = true,
+    val mainWorkScheme: RoutineMainWorkScheme = RoutineMainWorkScheme.Unspecified,
+    val supplementalScheme: RoutineSupplementalScheme = RoutineSupplementalScheme.None,
+    val assistanceRole: RoutineAssistanceRole = RoutineAssistanceRole.Unspecified,
+    val placementKind: RoutinePlacementKind = RoutinePlacementKind.General,
+    val assistanceCategory: RoutineAssistanceCategory = RoutineAssistanceCategory.Unspecified,
+    val jokerSetsEnabled: Boolean = false,
 )
 
 enum class RoutineEquipmentBindingState {
@@ -550,6 +768,13 @@ data class GymRoutine(
     val currentProgramPhaseIndex: Int = 0,
     val currentProgramCycle: Int = 1,
     val nextProgramDayPosition: Int = 0,
+    val trainingMaxIncreaseEligible: Boolean = true,
+    val programPhaseRoles: List<RoutineProgramPhaseRole> = emptyList(),
+    val trainingMaxAdvanceAfterPhaseIndices: Set<Int> = emptySet(),
+    val programTemplateKey: RoutineProgramTemplateKey = RoutineProgramTemplateKey.None,
+    val programTemplateRevision: Int = 0,
+    val progressionMode: RoutineProgressionMode = RoutineProgressionMode.Standard,
+    val allowNonStandardHigherSuggestions: Boolean = false,
 )
 
 data class RoutineDay(
@@ -597,6 +822,16 @@ data class RoutineExercise(
     val trainingMaxUnitId: String = "kilogram",
     val cycleIncrementValue: Double? = null,
     val trainingMaxSource: RoutineTrainingMaxSource = RoutineTrainingMaxSource.EstimatedOneRepMaxPercent,
+    val trainingMaxBasisKind: TrainingMaxBasisKind = TrainingMaxBasisKind.Unspecified,
+    val trainingMaxBasisValue: Double? = null,
+    val trainingMaxBasisUnitId: String = "",
+    val trainingMaxIncreaseEligible: Boolean = true,
+    val mainWorkScheme: RoutineMainWorkScheme = RoutineMainWorkScheme.Unspecified,
+    val supplementalScheme: RoutineSupplementalScheme = RoutineSupplementalScheme.None,
+    val assistanceRole: RoutineAssistanceRole = RoutineAssistanceRole.Unspecified,
+    val placementKind: RoutinePlacementKind = RoutinePlacementKind.General,
+    val assistanceCategory: RoutineAssistanceCategory = RoutineAssistanceCategory.Unspecified,
+    val jokerSetsEnabled: Boolean = false,
 )
 
 data class RoutineSet(
@@ -661,7 +896,10 @@ fun estimatedOneRepMax(
     formula: EstimatedOneRepMaxFormula,
     repCutoff: Int = 10,
 ): Double? {
-    if (weightKg < 0.0 || repetitions !in 1..repCutoff) return null
+    if (!weightKg.isFinite() || weightKg < 0.0 || repetitions !in 1..repCutoff) return null
+    // A performed single is an observed one-repetition maximum, not an estimate that should be
+    // inflated by a multi-repetition formula.
+    if (repetitions == 1) return weightKg
     return when (formula) {
         EstimatedOneRepMaxFormula.Epley -> weightKg * (1.0 + repetitions / 30.0)
         EstimatedOneRepMaxFormula.Brzycki -> {
@@ -693,6 +931,14 @@ fun loadInterpretationMultiplier(
     }
     return sideMultiplier * pulleyRatio.takeIf { it.isFinite() && it > 0.0 }.orEmptyOne()
 }
+
+/** Percentage targets cannot yet invert load modes whose effective resistance depends on bodyweight. */
+fun LoadInterpretation.supportsRoutinePercentagePrescription(): Boolean = this !in setOf(
+    LoadInterpretation.BodyweightPlusExternal,
+    LoadInterpretation.BodyweightPercentage,
+    LoadInterpretation.AssistedSubtraction,
+    LoadInterpretation.OrdinalSetting,
+)
 
 private fun Double?.orEmptyOne(): Double = this ?: 1.0
 
@@ -767,13 +1013,17 @@ fun WorkoutSet.estimatedOneRepMaxKg(
     adjustForEffort: Boolean = false,
 ): Double? {
     if (!completed || deletedAtMillis != null || !exercise.includeInPersonalRecords) return null
-    if (!includeWarmups && classification == WorkoutSetClassification.WarmUp) return null
+    if (classification == WorkoutSetClassification.Failure ||
+        (!includeWarmups && classification == WorkoutSetClassification.WarmUp)
+    ) return null
     val repetitions = repetitions ?: return null
     val effortRepetitions = if (adjustForEffort) {
         repetitions + (rir ?: rpe?.let { (10.0 - it).coerceAtLeast(0.0) } ?: 0.0)
     } else repetitions.toDouble()
     if (effortRepetitions !in 1.0..repCutoff.toDouble()) return null
     val load = effectiveLoadKg(exercise) ?: return null
+    if (!load.isFinite() || load < 0.0) return null
+    if (effortRepetitions == 1.0) return load
     return when (exercise.oneRepMaxFormula) {
         EstimatedOneRepMaxFormula.Epley -> load * (1.0 + effortRepetitions / 30.0)
         EstimatedOneRepMaxFormula.Brzycki -> if (effortRepetitions >= 37.0) null else load * 36.0 / (37.0 - effortRepetitions)

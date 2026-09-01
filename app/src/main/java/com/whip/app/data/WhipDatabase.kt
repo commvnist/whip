@@ -38,6 +38,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         RoutineDayEntity::class,
         RoutineExerciseEntity::class,
         RoutineSetEntity::class,
+        TrainingMaxDecisionEntity::class,
         PersonalRecordEntity::class,
         GraphPresetEntity::class,
         HabitEntity::class,
@@ -65,7 +66,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         TrackValueEntity::class,
         TrackEntrySearchEntity::class,
     ],
-    version = 32,
+    version = 37,
     exportSchema = true,
 )
 abstract class WhipDatabase : RoomDatabase() {
@@ -471,6 +472,303 @@ abstract class WhipDatabase : RoomDatabase() {
             }
         }
 
+        /** Adds compositional program semantics and safe training-max progression. */
+        val migration32To33 = object : Migration(32, 33) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE gym_routines ADD COLUMN trainingMaxIncreaseEligible INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE gym_routines ADD COLUMN programPhaseRolesCsv TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE gym_routines ADD COLUMN trainingMaxAdvanceAfterPhaseIndicesCsv TEXT NOT NULL DEFAULT ''")
+                db.execSQL(
+                    "UPDATE gym_routines SET trainingMaxAdvanceAfterPhaseIndicesCsv = " +
+                        "CAST(programPhaseCount - 1 AS TEXT) WHERE programKind != 'Static' AND programPhaseCount > 0",
+                )
+                db.execSQL(
+                    "UPDATE gym_routines SET programPhaseRolesCsv = 'Standard,Standard,Standard,Deload' " +
+                        "WHERE programPhaseCount = 4 AND programPhaseLabelsCsv = '5s Week,3s Week,5/3/1 Week,Deload'",
+                )
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN mainWorkScheme TEXT NOT NULL DEFAULT 'Unspecified'")
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN supplementalScheme TEXT NOT NULL DEFAULT 'None'")
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN assistanceRole TEXT NOT NULL DEFAULT 'Unspecified'")
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN jokerSetsEnabled INTEGER NOT NULL DEFAULT 0")
+
+                db.execSQL("ALTER TABLE routine_sets ADD COLUMN workSection TEXT NOT NULL DEFAULT 'Unspecified'")
+                db.execSQL("ALTER TABLE routine_sets ADD COLUMN optionalWorkKind TEXT NOT NULL DEFAULT 'None'")
+                db.execSQL("ALTER TABLE routine_sets ADD COLUMN mainWorkScheme TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE routine_sets ADD COLUMN supplementalScheme TEXT NOT NULL DEFAULT ''")
+                db.execSQL(
+                    "UPDATE routine_sets SET workSection = CASE " +
+                        "WHEN note LIKE 'Main Work ·%' THEN 'Main' " +
+                        "WHEN note LIKE 'Supplemental ·%' THEN 'Supplemental' " +
+                        "ELSE workSection END",
+                )
+                db.execSQL(
+                    """
+                    UPDATE routine_exercises
+                    SET mainWorkScheme = CASE
+                            WHEN EXISTS (
+                                SELECT 1 FROM routine_sets
+                                WHERE routineExerciseId = routine_exercises.id
+                                    AND workSection = 'Main' AND classification = 'Amrap'
+                            ) THEN 'ClassicPrSet'
+                            WHEN EXISTS (
+                                SELECT 1 FROM routine_sets
+                                WHERE routineExerciseId = routine_exercises.id AND workSection = 'Main'
+                            ) AND NOT EXISTS (
+                                SELECT 1 FROM routine_sets
+                                WHERE routineExerciseId = routine_exercises.id
+                                    AND workSection = 'Main' AND repetitions != 5
+                            ) THEN 'FivesPro'
+                            WHEN EXISTS (
+                                SELECT 1 FROM routine_sets
+                                WHERE routineExerciseId = routine_exercises.id AND workSection = 'Main'
+                            ) THEN 'ClassicMinimumReps'
+                            ELSE mainWorkScheme
+                        END,
+                        supplementalScheme = CASE
+                            WHEN EXISTS (
+                                SELECT 1 FROM routine_sets
+                                WHERE routineExerciseId = routine_exercises.id
+                                    AND workSection = 'Supplemental'
+                                    AND routinePhaseIndex IS NULL AND repetitions = 10
+                            ) THEN 'BoringButBig'
+                            WHEN EXISTS (
+                                SELECT 1 FROM routine_sets
+                                WHERE routineExerciseId = routine_exercises.id
+                                    AND workSection = 'Supplemental' AND routinePhaseIndex IS NOT NULL
+                            ) THEN 'FirstSetLast'
+                            ELSE supplementalScheme
+                        END,
+                        assistanceRole = CASE
+                            WHEN EXISTS (
+                                SELECT 1 FROM routine_sets
+                                WHERE routineExerciseId = routine_exercises.id AND workSection = 'Main'
+                            ) THEN 'MainLift'
+                            ELSE assistanceRole
+                        END
+                    """.trimIndent(),
+                )
+
+                db.execSQL("ALTER TABLE workout_sessions ADD COLUMN sourceRoutinePhaseLabel TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE workout_sessions ADD COLUMN sourceRoutinePhaseRole TEXT NOT NULL DEFAULT 'Standard'")
+
+                db.execSQL("ALTER TABLE workout_exercises ADD COLUMN mainWorkSchemeSnapshot TEXT NOT NULL DEFAULT 'Unspecified'")
+                db.execSQL("ALTER TABLE workout_exercises ADD COLUMN supplementalSchemeSnapshot TEXT NOT NULL DEFAULT 'None'")
+                db.execSQL("ALTER TABLE workout_exercises ADD COLUMN assistanceRoleSnapshot TEXT NOT NULL DEFAULT 'Unspecified'")
+                db.execSQL("ALTER TABLE workout_exercises ADD COLUMN jokerSetsEnabledSnapshot INTEGER NOT NULL DEFAULT 0")
+
+                db.execSQL("ALTER TABLE workout_sets ADD COLUMN workSectionSnapshot TEXT NOT NULL DEFAULT 'Unspecified'")
+                db.execSQL("ALTER TABLE workout_sets ADD COLUMN optionalWorkKindSnapshot TEXT NOT NULL DEFAULT 'None'")
+                db.execSQL(
+                    "UPDATE workout_sets SET workSectionSnapshot = CASE " +
+                        "WHEN note LIKE 'Main Work ·%' THEN 'Main' " +
+                        "WHEN note LIKE 'Supplemental ·%' THEN 'Supplemental' " +
+                        "ELSE workSectionSnapshot END",
+                )
+                db.execSQL(
+                    """
+                    UPDATE workout_exercises
+                    SET mainWorkSchemeSnapshot = CASE
+                            WHEN EXISTS (
+                                SELECT 1 FROM workout_sets
+                                WHERE workoutExerciseId = workout_exercises.id
+                                    AND workSectionSnapshot = 'Main' AND classification = 'Amrap'
+                            ) THEN 'ClassicPrSet'
+                            WHEN EXISTS (
+                                SELECT 1 FROM workout_sets
+                                WHERE workoutExerciseId = workout_exercises.id AND workSectionSnapshot = 'Main'
+                            ) AND NOT EXISTS (
+                                SELECT 1 FROM workout_sets
+                                WHERE workoutExerciseId = workout_exercises.id
+                                    AND workSectionSnapshot = 'Main' AND repetitions != 5
+                            ) THEN 'FivesPro'
+                            WHEN EXISTS (
+                                SELECT 1 FROM workout_sets
+                                WHERE workoutExerciseId = workout_exercises.id AND workSectionSnapshot = 'Main'
+                            ) THEN 'ClassicMinimumReps'
+                            ELSE mainWorkSchemeSnapshot
+                        END,
+                        supplementalSchemeSnapshot = CASE
+                            WHEN EXISTS (
+                                SELECT 1 FROM workout_sets
+                                WHERE workoutExerciseId = workout_exercises.id
+                                    AND workSectionSnapshot = 'Supplemental' AND repetitions = 10
+                            ) THEN 'BoringButBig'
+                            WHEN EXISTS (
+                                SELECT 1 FROM workout_sets
+                                WHERE workoutExerciseId = workout_exercises.id
+                                    AND workSectionSnapshot = 'Supplemental'
+                            ) THEN 'FirstSetLast'
+                            ELSE supplementalSchemeSnapshot
+                        END,
+                        assistanceRoleSnapshot = CASE
+                            WHEN EXISTS (
+                                SELECT 1 FROM workout_sets
+                                WHERE workoutExerciseId = workout_exercises.id AND workSectionSnapshot = 'Main'
+                            ) THEN 'MainLift'
+                            ELSE assistanceRoleSnapshot
+                        END
+                    """.trimIndent(),
+                )
+            }
+        }
+
+        /** Preserves required Main-work eligibility when a live placement is removed. */
+        val migration33To34 = object : Migration(33, 34) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE workout_sessions ADD COLUMN " +
+                        "requiredMainWorkInvalidated INTEGER NOT NULL DEFAULT 0",
+                )
+            }
+        }
+
+        /**
+         * Separates an exercise placement's structural job from its routine-local assistance
+         * category and preserves generated-template provenance independently from editable notes.
+         * Historical workout rows are classified from their immutable set snapshots only.
+         */
+        val migration34To35 = object : Migration(34, 35) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE gym_routines ADD COLUMN programTemplateKey TEXT NOT NULL DEFAULT 'None'")
+                db.execSQL("ALTER TABLE gym_routines ADD COLUMN programTemplateRevision INTEGER NOT NULL DEFAULT 0")
+                db.execSQL(
+                    "UPDATE gym_routines SET programTemplateKey = 'LegacyFiveThreeOne', " +
+                        "programTemplateRevision = 1 WHERE programKind IN " +
+                        "('FiveThreeOne','FiveThreeOneClassic','FiveSPro','BoringButBig','FirstSetLast')",
+                )
+
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN placementKind TEXT NOT NULL DEFAULT 'General'")
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN assistanceCategory TEXT NOT NULL DEFAULT 'Unspecified'")
+                db.execSQL(
+                    """
+                    UPDATE routine_exercises
+                    SET placementKind = CASE
+                            WHEN assistanceRole = 'MainLift' OR EXISTS (
+                                SELECT 1 FROM routine_sets
+                                WHERE routineExerciseId = routine_exercises.id AND workSection = 'Main'
+                            ) THEN 'MainLift'
+                            WHEN assistanceRole IN ('Push','Pull','SingleLegCore','Other') OR EXISTS (
+                                SELECT 1 FROM routine_sets
+                                WHERE routineExerciseId = routine_exercises.id AND workSection = 'Assistance'
+                            ) THEN 'Assistance'
+                            ELSE 'General'
+                        END,
+                        assistanceCategory = CASE assistanceRole
+                            WHEN 'Push' THEN 'Push'
+                            WHEN 'Pull' THEN 'Pull'
+                            WHEN 'SingleLegCore' THEN 'SingleLegCore'
+                            WHEN 'Other' THEN 'Other'
+                            ELSE CASE WHEN EXISTS (
+                                SELECT 1 FROM routine_sets
+                                WHERE routineExerciseId = routine_exercises.id AND workSection = 'Assistance'
+                            ) THEN 'Other' ELSE 'Unspecified' END
+                        END
+                    """.trimIndent(),
+                )
+
+                db.execSQL("ALTER TABLE workout_exercises ADD COLUMN placementKindSnapshot TEXT NOT NULL DEFAULT 'General'")
+                db.execSQL("ALTER TABLE workout_exercises ADD COLUMN assistanceCategorySnapshot TEXT NOT NULL DEFAULT 'Unspecified'")
+                db.execSQL(
+                    """
+                    UPDATE workout_exercises
+                    SET placementKindSnapshot = CASE
+                            WHEN assistanceRoleSnapshot = 'MainLift' OR EXISTS (
+                                SELECT 1 FROM workout_sets
+                                WHERE workoutExerciseId = workout_exercises.id AND workSectionSnapshot = 'Main'
+                            ) THEN 'MainLift'
+                            WHEN assistanceRoleSnapshot IN ('Push','Pull','SingleLegCore','Other') OR EXISTS (
+                                SELECT 1 FROM workout_sets
+                                WHERE workoutExerciseId = workout_exercises.id AND workSectionSnapshot = 'Assistance'
+                            ) THEN 'Assistance'
+                            ELSE 'General'
+                        END,
+                        assistanceCategorySnapshot = CASE assistanceRoleSnapshot
+                            WHEN 'Push' THEN 'Push'
+                            WHEN 'Pull' THEN 'Pull'
+                            WHEN 'SingleLegCore' THEN 'SingleLegCore'
+                            WHEN 'Other' THEN 'Other'
+                            ELSE CASE WHEN EXISTS (
+                                SELECT 1 FROM workout_sets
+                                WHERE workoutExerciseId = workout_exercises.id AND workSectionSnapshot = 'Assistance'
+                            ) THEN 'Other' ELSE 'Unspecified' END
+                        END
+                    """.trimIndent(),
+                )
+            }
+        }
+
+        /**
+         * Adds durable Training-Max provenance, opt-in performance review settings, and
+         * per-lift eligibility. Existing programs keep standard progression behavior and their
+         * exact explicit Training Maxes; no historical recommendation is synthesized.
+         */
+        val migration35To36 = object : Migration(35, 36) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE gym_routines ADD COLUMN progressionMode TEXT NOT NULL DEFAULT 'Standard'")
+                db.execSQL("ALTER TABLE gym_routines ADD COLUMN allowNonStandardHigherSuggestions INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN trainingMaxBasisKind TEXT NOT NULL DEFAULT 'Unspecified'")
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN trainingMaxBasisValue REAL")
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN trainingMaxBasisUnitId TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN trainingMaxIncreaseEligible INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE workout_sessions ADD COLUMN invalidatedMainExerciseIdsCsv TEXT NOT NULL DEFAULT ''")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS training_max_decisions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        uuid TEXT NOT NULL,
+                        routineUuid TEXT NOT NULL,
+                        sessionUuid TEXT NOT NULL,
+                        exerciseUuid TEXT NOT NULL,
+                        exerciseName TEXT NOT NULL,
+                        cycle INTEGER NOT NULL,
+                        previousTrainingMax REAL NOT NULL,
+                        appliedDelta REAL NOT NULL,
+                        resultingTrainingMax REAL NOT NULL,
+                        unitId TEXT NOT NULL,
+                        standardDelta REAL NOT NULL,
+                        recommendationCategory TEXT NOT NULL,
+                        recommendationDelta REAL NOT NULL,
+                        confidence REAL NOT NULL,
+                        reasonsText TEXT NOT NULL,
+                        engineVersion TEXT NOT NULL,
+                        action TEXT NOT NULL,
+                        createdAtMillis INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_training_max_decisions_uuid ON training_max_decisions (uuid)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_training_max_decisions_routineUuid_cycle ON training_max_decisions (routineUuid, cycle)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_training_max_decisions_sessionUuid_exerciseUuid ON training_max_decisions (sessionUuid, exerciseUuid)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_training_max_decisions_sessionUuid ON training_max_decisions (sessionUuid)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_training_max_decisions_exerciseUuid ON training_max_decisions (exerciseUuid)")
+                db.execSQL(
+                    "UPDATE routine_exercises SET trainingMaxBasisKind = 'ExplicitTrainingMax', " +
+                        "trainingMaxBasisValue = trainingMaxValue, trainingMaxBasisUnitId = trainingMaxUnitId " +
+                        "WHERE trainingMaxValue IS NOT NULL",
+                )
+                // A legacy routine-wide hold cannot be attributed safely. Preserve it by holding
+                // every current Main lift until the next configured boundary review.
+                db.execSQL(
+                    "UPDATE routine_exercises SET trainingMaxIncreaseEligible = 0 WHERE EXISTS (" +
+                        "SELECT 1 FROM routine_days d JOIN gym_routines r ON r.id = d.routineId " +
+                        "WHERE d.id = routine_exercises.routineDayId AND r.trainingMaxIncreaseEligible = 0)",
+                )
+            }
+        }
+
+        /** Keeps authored set intent immutable when the performed outcome is marked failed. */
+        val migration36To37 = object : Migration(36, 37) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE workout_sets ADD COLUMN " +
+                        "prescribedClassificationSnapshot TEXT NOT NULL DEFAULT 'Working'",
+                )
+                db.execSQL(
+                    "UPDATE workout_sets SET prescribedClassificationSnapshot = classification",
+                )
+            }
+        }
+
         /**
          * Repository checks provide friendly errors; these triggers are the final consistency
          * boundary for concurrent writers, restored data, and any future write path.
@@ -506,6 +804,11 @@ abstract class WhipDatabase : RoomDatabase() {
                     migration29To30,
                     migration30To31,
                     migration31To32,
+                    migration32To33,
+                    migration33To34,
+                    migration34To35,
+                    migration35To36,
+                    migration36To37,
                 )
                 .addCallback(integrityGuardCallback)
                 .build()

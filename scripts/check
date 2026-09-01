@@ -85,6 +85,15 @@ if grep -Eq 'android\.permission\.ACCESS_(BACKGROUND_LOCATION|COARSE_LOCATION|FI
 fi
 
 if [[ "$build_release" == true ]]; then
+    expected_release_version_code="$(
+        sed -nE 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*([0-9]+).*$/\1/p' \
+            app/build.gradle.kts | head -n 1
+    )"
+    readonly expected_release_version_code
+    if [[ -z "$expected_release_version_code" ]]; then
+        printf 'error: could not read the expected release version code from app/build.gradle.kts\n' >&2
+        exit 1
+    fi
     release_apk="$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' -print -quit)"
     release_bundle="app/build/outputs/bundle/release/app-release.aab"
     readonly release_apk release_bundle
@@ -99,8 +108,9 @@ if [[ "$build_release" == true ]]; then
         printf 'error: release artifact has the wrong application ID\n' >&2
         exit 1
     }
-    grep -Fq '"versionCode": 32' "$release_metadata" || {
-        printf 'error: release artifact has the wrong version code\n' >&2
+    grep -Fq "\"versionCode\": $expected_release_version_code" "$release_metadata" || {
+        printf 'error: release artifact has the wrong version code; expected %s\n' \
+            "$expected_release_version_code" >&2
         exit 1
     }
 fi

@@ -185,6 +185,17 @@ data class WorkoutSessionEntity(
     val sourceRoutineDayProgressionIndex: Int? = null,
     /** Makes finish/resume idempotent for program advancement. */
     val programProgressAdvanced: Boolean = false,
+    /**
+     * A programmed Main placement was removed or substituted after this workout was
+     * instantiated. Keep this session-level fact even though the removed sets are
+     * cascade-deleted, so finishing cannot mistake the remaining Main work for the
+     * complete prescription and advance Training Maxes.
+     */
+    val requiredMainWorkInvalidated: Boolean = false,
+    /** Exercise identities whose required Main prescription was removed or substituted. */
+    val invalidatedMainExerciseIdsCsv: String = "",
+    val sourceRoutinePhaseLabel: String = "",
+    val sourceRoutinePhaseRole: String = "Standard",
 )
 
 @Entity(
@@ -283,6 +294,12 @@ data class WorkoutExerciseEntity(
     val trainingMaxUnitIdSnapshot: String = "",
     val cycleIncrementValueSnapshot: Double? = null,
     val trainingMaxSourceSnapshot: String = "EstimatedOneRepMaxPercent",
+    val mainWorkSchemeSnapshot: String = "Unspecified",
+    val supplementalSchemeSnapshot: String = "None",
+    val assistanceRoleSnapshot: String = "Unspecified",
+    val placementKindSnapshot: String = "General",
+    val assistanceCategorySnapshot: String = "Unspecified",
+    val jokerSetsEnabledSnapshot: Boolean = false,
 )
 
 @Entity(
@@ -340,4 +357,8 @@ data class WorkoutSetEntity(
     val prescribedMachineLoadValue: Double? = null,
     val prescribedRepetitionsMax: Int? = null,
     val prescriptionSourceLabel: String = "",
+    val workSectionSnapshot: String = "Unspecified",
+    val optionalWorkKindSnapshot: String = "None",
+    /** Immutable authored set type. [classification] remains the performed outcome. */
+    val prescribedClassificationSnapshot: String = "Working",
 )

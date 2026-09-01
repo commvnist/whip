@@ -6,6 +6,7 @@ import com.whip.app.core.WhipIdGenerator
 import com.whip.app.core.SettingsRepository
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.Exercise
+import com.whip.app.domain.ExerciseTrackingType
 import com.whip.app.domain.GymRoutine
 import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.MachineLevelDirection
@@ -13,6 +14,7 @@ import com.whip.app.domain.LoadInterpretation
 import com.whip.app.domain.MachineStackMode
 import com.whip.app.domain.canonicalResistanceKg
 import com.whip.app.domain.loadInterpretationMultiplier
+import com.whip.app.domain.supportsRoutinePercentagePrescription
 import com.whip.app.domain.massFromKilograms
 import com.whip.app.domain.massToKilograms
 import com.whip.app.domain.GraphPreset
@@ -25,10 +27,23 @@ import com.whip.app.domain.RoutineExercise
 import com.whip.app.domain.RoutineExerciseDraft
 import com.whip.app.domain.RoutineEquipmentBindingState
 import com.whip.app.domain.RoutineLoadPrescriptionType
+import com.whip.app.domain.RoutineMainWorkScheme
+import com.whip.app.domain.RoutineOptionalWorkKind
 import com.whip.app.domain.RoutineProgramDraft
 import com.whip.app.domain.RoutineProgramKind
+import com.whip.app.domain.RoutineProgramPhaseRole
 import com.whip.app.domain.RoutineSet
+import com.whip.app.domain.RoutineSupplementalScheme
 import com.whip.app.domain.RoutineTrainingMaxSource
+import com.whip.app.domain.RoutineAssistanceRole
+import com.whip.app.domain.RoutineAssistanceCategory
+import com.whip.app.domain.RoutinePlacementKind
+import com.whip.app.domain.RoutineProgramTemplateKey
+import com.whip.app.domain.RoutineProgressionMode
+import com.whip.app.domain.TrainingMaxBasisKind
+import com.whip.app.domain.TrainingMaxDecision
+import com.whip.app.domain.TrainingMaxDecisionAction
+import com.whip.app.domain.RoutineWorkSection
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.WorkoutSet
@@ -39,6 +54,9 @@ import com.whip.app.domain.effectiveLoadKg
 import com.whip.app.domain.paceSecondsPerKilometre
 import com.whip.app.domain.speedMetresPerSecond
 import com.whip.app.domain.volumeKg
+import com.whip.app.domain.legacyRoutineAssistanceRole
+import com.whip.app.domain.toAssistanceCategory
+import com.whip.app.domain.toPlacementKind
 import java.time.ZoneId
 import kotlin.math.round
 import kotlinx.coroutines.flow.Flow
@@ -51,6 +69,7 @@ interface RoutineRepository {
     val sets: Flow<List<RoutineSet>>
     val personalRecords: Flow<List<PersonalRecord>>
     val graphPresets: Flow<List<GraphPreset>>
+    val trainingMaxDecisions: Flow<List<TrainingMaxDecision>>
 
     suspend fun createRoutine(draft: RoutineDraft): Long
     suspend fun updateRoutine(id: Long, draft: RoutineDraft)
@@ -59,6 +78,7 @@ interface RoutineRepository {
     suspend fun setRoutinePinned(id: Long, pinned: Boolean)
     suspend fun reorderRoutines(ids: List<Long>)
     suspend fun setRoutineProgramPosition(routineId: Long, phaseIndex: Int, dayPosition: Int, cycle: Int)
+    suspend fun setRoutineTrainingMaxIncreaseEligible(routineId: Long, eligible: Boolean)
     suspend fun resetRoutineProgramProgress(routineId: Long)
     suspend fun startRoutine(routineId: Long, dayId: Long? = null): Long
     suspend fun saveWorkoutAsRoutine(sessionId: Long, name: String): Long
@@ -96,6 +116,8 @@ class RoomRoutineRepository(
     override val sets = dao.observeSets().map { it.map(RoutineSetEntity::toDomain) }
     override val personalRecords = dao.observePersonalRecords().map { it.map(PersonalRecordEntity::toDomain) }
     override val graphPresets = dao.observeGraphPresets().map { it.map(GraphPresetEntity::toDomain) }
+    override val trainingMaxDecisions = dao.observeTrainingMaxDecisions()
+        .map { it.map(TrainingMaxDecisionEntity::toDomain) }
 
     override suspend fun createRoutine(draft: RoutineDraft): Long = database.withTransaction {
         validateRoutine(draft)
@@ -114,6 +136,12 @@ class RoomRoutineRepository(
                 programKind = program.kind.name,
                 programPhaseCount = program.phaseCount,
                 programPhaseLabelsCsv = program.phaseLabels.joinToString(","),
+                programPhaseRolesCsv = program.phaseRoles.joinToString(",", transform = RoutineProgramPhaseRole::name),
+                trainingMaxAdvanceAfterPhaseIndicesCsv = program.trainingMaxAdvanceAfterPhaseIndices.sorted().joinToString(","),
+                programTemplateKey = program.templateKey.name,
+                programTemplateRevision = program.templateRevision,
+                progressionMode = program.progressionMode.name,
+                allowNonStandardHigherSuggestions = program.allowNonStandardHigherSuggestions,
             ),
         )
         insertRoutineChildren(routineId, draft.days, now)
@@ -127,18 +155,32 @@ class RoomRoutineRepository(
         validateRoutine(draft)
         val existing = dao.getRoutine(id) ?: error("Routine no longer exists")
         val existingDays = dao.getDays(id)
-        val existingExercises = existingDays.mapIndexed { dayIndex, day ->
-            dao.getExercises(day.id).mapIndexed { exerciseIndex, exercise ->
-                (dayIndex to exerciseIndex) to exercise
+        val existingMainPlacements = mutableListOf<RoutineExerciseEntity>()
+        existingDays.forEach { day ->
+            dao.getExercises(day.id).forEach { placement ->
+                if (dao.getSets(placement.id).any { it.workSection == RoutineWorkSection.Main.name }) {
+                    existingMainPlacements += placement
+                }
             }
-        }.flatten().toMap()
+        }
         val now = clock.now().toEpochMilli()
         val requestedProgram = draft.program?.normalized()
-        val programChanged = requestedProgram != null && (
-            existing.programKind != requestedProgram.kind.name ||
-                existing.programPhaseCount != requestedProgram.phaseCount ||
-                existing.programPhaseLabelsCsv != requestedProgram.phaseLabels.joinToString(",")
-            )
+        val existingProgramEnabled = existing.programKind != RoutineProgramKind.Static.name && existing.programPhaseCount > 0
+        val requestedProgramEnabled = requestedProgram != null &&
+            requestedProgram.kind != RoutineProgramKind.Static && requestedProgram.phaseCount > 0
+        // Metadata edits are not a restart command. Only turning a static routine into a
+        // structured program initializes position; phase-count changes clamp the current phase.
+        val initializesProgram = !existingProgramEnabled && requestedProgramEnabled
+        val requestedPhaseCount = requestedProgram?.phaseCount ?: existing.programPhaseCount
+        val existingCurrentPhaseLabel = existing.programPhaseLabelsCsv.parseCsvStrings()
+            .getOrNull(existing.currentProgramPhaseIndex)
+        val reorderedCurrentPhaseIndex = requestedProgram?.currentPhaseIndexHint
+            ?.takeIf { it in 0 until requestedPhaseCount }
+            ?: existingCurrentPhaseLabel?.let { label ->
+                requestedProgram?.phaseLabels?.indexOf(label)?.takeIf { index ->
+                    index >= 0 && requestedProgram.phaseLabels.count { it == label } == 1
+                }
+            }
         dao.updateRoutine(
             existing.copy(
                 name = draft.name.trim(),
@@ -147,13 +189,72 @@ class RoomRoutineRepository(
                 programKind = requestedProgram?.kind?.name ?: existing.programKind,
                 programPhaseCount = requestedProgram?.phaseCount ?: existing.programPhaseCount,
                 programPhaseLabelsCsv = requestedProgram?.phaseLabels?.joinToString(",") ?: existing.programPhaseLabelsCsv,
-                currentProgramPhaseIndex = if (programChanged) 0 else existing.currentProgramPhaseIndex,
-                currentProgramCycle = if (programChanged) 1 else existing.currentProgramCycle,
-                nextProgramDayPosition = if (programChanged) 0 else existing.nextProgramDayPosition.coerceIn(0, draft.days.lastIndex),
+                programPhaseRolesCsv = requestedProgram?.phaseRoles?.joinToString(",", transform = RoutineProgramPhaseRole::name)
+                    ?: existing.programPhaseRolesCsv,
+                trainingMaxAdvanceAfterPhaseIndicesCsv = requestedProgram?.trainingMaxAdvanceAfterPhaseIndices
+                    ?.sorted()?.joinToString(",") ?: existing.trainingMaxAdvanceAfterPhaseIndicesCsv,
+                programTemplateKey = requestedProgram?.templateKey?.name ?: existing.programTemplateKey,
+                programTemplateRevision = requestedProgram?.templateRevision ?: existing.programTemplateRevision,
+                progressionMode = requestedProgram?.progressionMode?.name ?: existing.progressionMode,
+                allowNonStandardHigherSuggestions = requestedProgram?.allowNonStandardHigherSuggestions
+                    ?: existing.allowNonStandardHigherSuggestions,
+                currentProgramPhaseIndex = if (initializesProgram) {
+                    0
+                } else {
+                    (reorderedCurrentPhaseIndex ?: existing.currentProgramPhaseIndex)
+                        .coerceIn(0, (requestedPhaseCount - 1).coerceAtLeast(0))
+                },
+                currentProgramCycle = if (initializesProgram) 1 else existing.currentProgramCycle.coerceAtLeast(1),
+                nextProgramDayPosition = if (initializesProgram) {
+                    0
+                } else {
+                    (draft.nextProgramDayPositionHint ?: existing.nextProgramDayPosition)
+                        .coerceIn(0, draft.days.lastIndex)
+                },
+                trainingMaxIncreaseEligible = if (initializesProgram) true else existing.trainingMaxIncreaseEligible,
             ),
         )
         dao.deleteDays(id)
-        insertRoutineChildren(id, draft.days, now, existingDays, existingExercises)
+        insertRoutineChildren(id, draft.days, now, existingDays)
+        val previousByExercise = existingMainPlacements.groupBy(RoutineExerciseEntity::exerciseId)
+            .mapValues { (_, placements) -> placements.first() }
+        val updatedByExercise = draft.days.flatMap(RoutineDayDraft::exercises)
+            .filter { it.resolvedPlacementKind() == RoutinePlacementKind.MainLift }
+            .groupBy(RoutineExerciseDraft::exerciseId)
+            .mapValues { (_, placements) -> placements.first() }
+        updatedByExercise.forEach { (exerciseId, updated) ->
+            val previous = previousByExercise[exerciseId] ?: return@forEach
+            val previousValue = previous.trainingMaxValue ?: return@forEach
+            val updatedValue = updated.trainingMaxValue ?: return@forEach
+            val previousKg = massToKilograms(previousValue, previous.trainingMaxUnitId)
+            val updatedKg = massToKilograms(updatedValue, updated.trainingMaxUnitId)
+            if (kotlin.math.abs(previousKg - updatedKg) <= 1e-9) return@forEach
+            val exercise = gymDao.getExercise(exerciseId) ?: return@forEach
+            val previousInUpdatedUnit = massFromKilograms(previousKg, updated.trainingMaxUnitId)
+            val delta = updatedValue - previousInUpdatedUnit
+            dao.insertTrainingMaxDecision(
+                TrainingMaxDecisionEntity(
+                    uuid = ids.nextId(),
+                    routineUuid = existing.uuid,
+                    sessionUuid = "routine-edit:${ids.nextId()}",
+                    exerciseUuid = exercise.uuid,
+                    exerciseName = exercise.name,
+                    cycle = existing.currentProgramCycle,
+                    previousTrainingMax = previousInUpdatedUnit,
+                    appliedDelta = delta,
+                    resultingTrainingMax = updatedValue,
+                    unitId = updated.trainingMaxUnitId,
+                    standardDelta = updated.cycleIncrementValue ?: previous.cycleIncrementValue ?: 0.0,
+                    recommendationCategory = "ManualAdjustment",
+                    recommendationDelta = delta,
+                    confidence = 1.0,
+                    reasonsText = "Training Max changed in the program editor; completed workout prescriptions remain unchanged.",
+                    engineVersion = "manual-training-max/1",
+                    action = TrainingMaxDecisionAction.Custom.name,
+                    createdAtMillis = now,
+                ),
+            )
+        }
     }
 
     override suspend fun duplicateRoutine(id: Long): Long {
@@ -212,6 +313,30 @@ class RoomRoutineRepository(
         )
     }
 
+    override suspend fun setRoutineTrainingMaxIncreaseEligible(routineId: Long, eligible: Boolean) =
+        database.withTransaction {
+            val routine = dao.getRoutine(routineId) ?: error("Routine no longer exists")
+            require(routine.programKind != RoutineProgramKind.Static.name) {
+                "Static routines do not have Training Max eligibility"
+            }
+            dao.updateRoutine(
+                routine.copy(
+                    trainingMaxIncreaseEligible = eligible,
+                    updatedAtMillis = clock.now().toEpochMilli(),
+                ),
+            )
+            val now = clock.now().toEpochMilli()
+            dao.getDays(routineId).forEach { day ->
+                dao.getExercises(day.id).forEach { exercise ->
+                    if (dao.getSets(exercise.id).any { it.workSection == RoutineWorkSection.Main.name }) {
+                        dao.updateExercise(
+                            exercise.copy(trainingMaxIncreaseEligible = eligible, updatedAtMillis = now),
+                        )
+                    }
+                }
+            }
+        }
+
     override suspend fun resetRoutineProgramProgress(routineId: Long) = database.withTransaction {
         val routine = dao.getRoutine(routineId) ?: return@withTransaction
         val now = clock.now().toEpochMilli()
@@ -220,9 +345,21 @@ class RoomRoutineRepository(
                 currentProgramPhaseIndex = 0,
                 currentProgramCycle = 1,
                 nextProgramDayPosition = 0,
+                trainingMaxIncreaseEligible = true,
                 updatedAtMillis = now,
             ),
         )
+        dao.getDays(routineId).forEach { day ->
+            dao.getExercises(day.id).forEach { exercise ->
+                if (!exercise.trainingMaxIncreaseEligible &&
+                    dao.getSets(exercise.id).any { it.workSection == RoutineWorkSection.Main.name }
+                ) {
+                    dao.updateExercise(
+                        exercise.copy(trainingMaxIncreaseEligible = true, updatedAtMillis = now),
+                    )
+                }
+            }
+        }
         dao.getDays(routineId).forEach { day ->
             if (day.progressionIndex != 0) dao.updateDay(day.copy(progressionIndex = 0, updatedAtMillis = now))
         }
@@ -281,7 +418,15 @@ class RoomRoutineRepository(
                 sourceRoutinePhaseIndex = routine.currentProgramPhaseIndex.takeIf { programmed },
                 sourceRoutineCycle = routine.currentProgramCycle.takeIf { programmed },
                 sourceRoutineDayPosition = selectedDay.position,
-                sourceRoutineDayProgressionIndex = selectedDay.progressionIndex,
+                sourceRoutineDayProgressionIndex = selectedDay.progressionIndex.takeIf {
+                    routineExercises.any { exercise -> exercise.progressionPercentagesCsv.parseDoubleCsv().isNotEmpty() }
+                },
+                sourceRoutinePhaseLabel = routine.programPhaseLabelsCsv.parseCsvStrings()
+                    .getOrNull(routine.currentProgramPhaseIndex).orEmpty(),
+                sourceRoutinePhaseRole = routine.programPhaseRolesCsv.parseCsvStrings()
+                    .getOrNull(routine.currentProgramPhaseIndex)
+                    ?.let { runCatching { RoutineProgramPhaseRole.valueOf(it) }.getOrNull() }
+                    ?.name ?: RoutineProgramPhaseRole.Standard.name,
             ),
         )
         val validGroupKeys = routineExercises.mapNotNull { it.groupKey }
@@ -302,6 +447,25 @@ class RoomRoutineRepository(
                             createdAtMillis = now, updatedAtMillis = now,
                         ),
                     ).also { groupIds[key] = it }
+            }
+            val allPlanned = dao.getSets(routineExercise.id)
+            val planned = if (programmed) {
+                allPlanned.filter { it.routinePhaseIndex == null || it.routinePhaseIndex == routine.currentProgramPhaseIndex }
+            } else {
+                allPlanned.filter { it.routinePhaseIndex == null }
+            }
+            val activePolicy = if (programmed) {
+                resolveActiveProgramPolicy(
+                    baseMainWorkScheme = routineExercise.mainWorkScheme.toMainWorkScheme(),
+                    baseSupplementalScheme = routineExercise.supplementalScheme.toSupplementalScheme(),
+                    activeSets = planned.map { set -> set.toDomain().draft },
+                )
+            } else {
+                ResolvedActiveProgramPolicy(
+                    mainWorkScheme = routineExercise.mainWorkScheme.toMainWorkScheme(),
+                    supplementalScheme = routineExercise.supplementalScheme.toSupplementalScheme(),
+                    jokerSetsEnabled = routineExercise.jokerSetsEnabled,
+                )
             }
             // Archived profiles remain valid for existing routines. Archive hides a profile
             // from new assignments; permanent deletion is what makes a binding unresolved.
@@ -354,14 +518,14 @@ class RoomRoutineRepository(
                     trainingMaxUnitIdSnapshot = routineExercise.trainingMaxUnitId,
                     cycleIncrementValueSnapshot = routineExercise.cycleIncrementValue,
                     trainingMaxSourceSnapshot = routineExercise.trainingMaxSource,
+                    mainWorkSchemeSnapshot = activePolicy.mainWorkScheme.name,
+                    supplementalSchemeSnapshot = activePolicy.supplementalScheme.name,
+                    assistanceRoleSnapshot = routineExercise.assistanceRole,
+                    placementKindSnapshot = routineExercise.placementKind,
+                    assistanceCategorySnapshot = routineExercise.assistanceCategory,
+                    jokerSetsEnabledSnapshot = activePolicy.jokerSetsEnabled,
                 )
             val workoutExerciseId = gymDao.insertWorkoutExercise(workoutExerciseEntity)
-            val allPlanned = dao.getSets(routineExercise.id)
-            val planned = if (programmed) {
-                allPlanned.filter { it.routinePhaseIndex == null || it.routinePhaseIndex == routine.currentProgramPhaseIndex }
-            } else {
-                allPlanned.filter { it.routinePhaseIndex == null }
-            }
             if (planned.isNotEmpty()) {
                 val oneRepMaxKg = personalRecords.asSequence()
                     .filter { it.exerciseId == routineExercise.exerciseId && it.current && it.type == PersonalRecordType.EstimatedOneRepMax.name }
@@ -417,7 +581,22 @@ class RoomRoutineRepository(
                 groupKey = workoutExercise.groupId?.let { "Group $it" },
                 plannedSets = gymDao.getWorkoutSets(workoutExercise.id)
                     .filter { it.deletedAtMillis == null }
-                    .map(WorkoutSetEntity::toDraft),
+                    .map { set ->
+                        set.toDraft().let { draft ->
+                            when (draft.workSection) {
+                                RoutineWorkSection.Main -> draft.copy(
+                                    mainWorkScheme = workoutExercise.mainWorkSchemeSnapshot.toMainWorkScheme()
+                                        .takeUnless { it == RoutineMainWorkScheme.Unspecified },
+                                )
+                                RoutineWorkSection.Supplemental -> draft.copy(
+                                    supplementalScheme = workoutExercise.supplementalSchemeSnapshot
+                                        .toSupplementalScheme()
+                                        .takeUnless { it == RoutineSupplementalScheme.None },
+                                )
+                                else -> draft
+                            }
+                        }
+                    },
                 machineId = workoutExercise.machineId,
                 equipmentBindingState = if (workoutExercise.machineProfileUuidSnapshot == null) {
                     RoutineEquipmentBindingState.None
@@ -438,6 +617,18 @@ class RoomRoutineRepository(
                 machineConfigurationGroupSnapshot = workoutExercise.machineConfigurationGroupSnapshot,
                 machineConfigurationVersionSnapshot = workoutExercise.machineConfigurationVersionSnapshot,
                 machineConfigurationSnapshot = workoutExercise.machineConfigurationSnapshot,
+                mainWorkScheme = workoutExercise.mainWorkSchemeSnapshot.toMainWorkScheme(),
+                supplementalScheme = workoutExercise.supplementalSchemeSnapshot.toSupplementalScheme(),
+                assistanceRole = runCatching {
+                    RoutineAssistanceRole.valueOf(workoutExercise.assistanceRoleSnapshot)
+                }.getOrDefault(RoutineAssistanceRole.Unspecified),
+                placementKind = runCatching {
+                    RoutinePlacementKind.valueOf(workoutExercise.placementKindSnapshot)
+                }.getOrDefault(RoutinePlacementKind.General),
+                assistanceCategory = runCatching {
+                    RoutineAssistanceCategory.valueOf(workoutExercise.assistanceCategorySnapshot)
+                }.getOrDefault(RoutineAssistanceCategory.Unspecified),
+                jokerSetsEnabled = workoutExercise.jokerSetsEnabledSnapshot,
             )
         }
         return createRoutine(
@@ -645,7 +836,6 @@ class RoomRoutineRepository(
         days: List<RoutineDayDraft>,
         now: Long,
         preservedDays: List<RoutineDayEntity> = emptyList(),
-        preservedExercises: Map<Pair<Int, Int>, RoutineExerciseEntity> = emptyMap(),
     ) {
         days.forEachIndexed { dayIndex, day ->
             val preservedDay = preservedDays.getOrNull(dayIndex)
@@ -657,9 +847,7 @@ class RoomRoutineRepository(
                 ),
             )
             day.exercises.forEachIndexed { exerciseIndex, exercise ->
-                val preservedExercise = preservedExercises[dayIndex to exerciseIndex]
-                    ?.takeIf { it.exerciseId == exercise.exerciseId }
-                requireNotNull(gymDao.getExercise(exercise.exerciseId)) { "Exercise no longer exists" }
+                val sourceExercise = requireNotNull(gymDao.getExercise(exercise.exerciseId)) { "Exercise no longer exists" }
                 require(exercise.alternativeExerciseIds.none { it == exercise.exerciseId }) { "An exercise cannot replace itself" }
                 exercise.alternativeExerciseIds.distinct().forEach { alternativeId ->
                     requireNotNull(gymDao.getExercise(alternativeId)) { "A planned alternative no longer exists" }
@@ -675,28 +863,45 @@ class RoomRoutineRepository(
                             }
                         }
                 }
+                val percentageInterpretation = machine?.loadInterpretation
+                    ?.let { value -> runCatching { LoadInterpretation.valueOf(value) }.getOrNull() }
+                    ?: runCatching { LoadInterpretation.valueOf(sourceExercise.loadInterpretation) }
+                        .getOrDefault(LoadInterpretation.Total)
+                exercise.plannedSets.filter { set ->
+                    set.loadPrescriptionType != RoutineLoadPrescriptionType.Absolute
+                }.forEach { set ->
+                    require(machine?.loadType != MachineLoadType.Level.name &&
+                        percentageInterpretation.supportsRoutinePercentagePrescription()
+                    ) { "Percentage prescriptions require a mass-based exercise or machine" }
+                    if (set.loadPrescriptionType == RoutineLoadPrescriptionType.PercentOneRepMax) {
+                        require(sourceExercise.trackingType == ExerciseTrackingType.WeightReps.name) {
+                            "Estimated 1RM prescriptions require a Weight + Reps exercise"
+                        }
+                    } else {
+                        require(sourceExercise.trackingType in setOf(
+                            ExerciseTrackingType.WeightReps.name,
+                            ExerciseTrackingType.WeightOnly.name,
+                            ExerciseTrackingType.WeightDuration.name,
+                        )) { "Training Max prescriptions require a mass-tracked exercise" }
+                    }
+                }
                 val bindingState = when {
                     machine != null -> RoutineEquipmentBindingState.Resolved
                     exercise.equipmentBindingState == RoutineEquipmentBindingState.NeedsEquipment -> RoutineEquipmentBindingState.NeedsEquipment
                     else -> RoutineEquipmentBindingState.None
                 }
-                val explicitTrainingMaxValue = exercise.trainingMaxValue ?: preservedExercise?.trainingMaxValue
-                val explicitTrainingMaxUnit = when {
-                    exercise.trainingMaxValue != null -> exercise.trainingMaxUnitId
-                    preservedExercise?.trainingMaxValue != null -> preservedExercise.trainingMaxUnitId
-                    else -> exercise.trainingMaxUnitId
+                // RoutineExerciseDraft is a complete edit contract. Null clears an explicit TM;
+                // a non-null value is normalized to Explicit for compatibility with older callers
+                // that predate the source enum.
+                val explicitTrainingMaxValue = exercise.trainingMaxValue
+                val explicitTrainingMaxUnit = exercise.trainingMaxUnitId
+                val explicitTrainingMaxKg = explicitTrainingMaxValue?.let { value ->
+                    massToKilograms(value, explicitTrainingMaxUnit)
                 }
-                val explicitTrainingMaxKg = when {
-                    exercise.trainingMaxValue != null -> massToKilograms(exercise.trainingMaxValue, explicitTrainingMaxUnit)
-                    preservedExercise?.trainingMaxValue != null -> preservedExercise.trainingMaxKg
-                    else -> null
-                }
-                val cycleIncrementValue = exercise.cycleIncrementValue ?: preservedExercise?.cycleIncrementValue
-                val trainingMaxSource = when {
-                    exercise.trainingMaxValue != null -> exercise.trainingMaxSource.name
-                    preservedExercise?.trainingMaxValue != null -> preservedExercise.trainingMaxSource
-                    else -> exercise.trainingMaxSource.name
-                }
+                val cycleIncrementValue = exercise.cycleIncrementValue.takeIf { explicitTrainingMaxValue != null }
+                val trainingMaxSource = if (explicitTrainingMaxValue != null) {
+                    RoutineTrainingMaxSource.Explicit.name
+                } else exercise.trainingMaxSource.name
                 val routineExerciseId = dao.insertExercise(
                     RoutineExerciseEntity(
                         uuid = ids.nextId(), routineDayId = dayId, exerciseId = exercise.exerciseId,
@@ -726,6 +931,19 @@ class RoomRoutineRepository(
                         trainingMaxUnitId = explicitTrainingMaxUnit,
                         cycleIncrementValue = cycleIncrementValue,
                         trainingMaxSource = trainingMaxSource,
+                        trainingMaxBasisKind = exercise.trainingMaxBasisKind.name,
+                        trainingMaxBasisValue = exercise.trainingMaxBasisValue,
+                        trainingMaxBasisUnitId = exercise.trainingMaxBasisUnitId,
+                        trainingMaxIncreaseEligible = exercise.trainingMaxIncreaseEligible,
+                        mainWorkScheme = exercise.mainWorkScheme.name,
+                        supplementalScheme = exercise.supplementalScheme.name,
+                        assistanceRole = legacyRoutineAssistanceRole(
+                            exercise.resolvedPlacementKind(),
+                            exercise.resolvedAssistanceCategory(),
+                        ).name,
+                        placementKind = exercise.resolvedPlacementKind().name,
+                        assistanceCategory = exercise.resolvedAssistanceCategory().name,
+                        jokerSetsEnabled = exercise.jokerSetsEnabled,
                     ),
                 )
                 exercise.plannedSets.forEachIndexed { setIndex, set ->
@@ -770,6 +988,22 @@ class RoomRoutineRepository(
                         cycleIncrementValue = exercise.cycleIncrementValue,
                         trainingMaxSource = runCatching { RoutineTrainingMaxSource.valueOf(exercise.trainingMaxSource) }
                             .getOrDefault(RoutineTrainingMaxSource.EstimatedOneRepMaxPercent),
+                        trainingMaxBasisKind = runCatching { TrainingMaxBasisKind.valueOf(exercise.trainingMaxBasisKind) }
+                            .getOrDefault(TrainingMaxBasisKind.Unspecified),
+                        trainingMaxBasisValue = exercise.trainingMaxBasisValue,
+                        trainingMaxBasisUnitId = exercise.trainingMaxBasisUnitId,
+                        trainingMaxIncreaseEligible = exercise.trainingMaxIncreaseEligible,
+                        mainWorkScheme = runCatching { RoutineMainWorkScheme.valueOf(exercise.mainWorkScheme) }
+                            .getOrDefault(RoutineMainWorkScheme.Unspecified),
+                        supplementalScheme = runCatching { RoutineSupplementalScheme.valueOf(exercise.supplementalScheme) }
+                            .getOrDefault(RoutineSupplementalScheme.None),
+                        assistanceRole = runCatching { RoutineAssistanceRole.valueOf(exercise.assistanceRole) }
+                            .getOrDefault(RoutineAssistanceRole.Unspecified),
+                        placementKind = runCatching { RoutinePlacementKind.valueOf(exercise.placementKind) }
+                            .getOrDefault(RoutinePlacementKind.General),
+                        assistanceCategory = runCatching { RoutineAssistanceCategory.valueOf(exercise.assistanceCategory) }
+                            .getOrDefault(RoutineAssistanceCategory.Unspecified),
+                        jokerSetsEnabled = exercise.jokerSetsEnabled,
                     )
                 },
                 progressionIndex = day.progressionIndex,
@@ -784,9 +1018,39 @@ class RoomRoutineRepository(
                     .getOrDefault(RoutineProgramKind.Static),
                 phaseCount = routine.programPhaseCount,
                 phaseLabels = routine.programPhaseLabelsCsv.parseCsvStrings(),
+                phaseRoles = routine.programPhaseRolesCsv.parseCsvStrings().map {
+                    runCatching { RoutineProgramPhaseRole.valueOf(it) }.getOrDefault(RoutineProgramPhaseRole.Standard)
+                },
+                trainingMaxAdvanceAfterPhaseIndices = routine.trainingMaxAdvanceAfterPhaseIndicesCsv
+                    .parseIntCsv().toSet(),
+                templateKey = runCatching { RoutineProgramTemplateKey.valueOf(routine.programTemplateKey) }
+                    .getOrDefault(RoutineProgramTemplateKey.None),
+                templateRevision = routine.programTemplateRevision,
+                progressionMode = runCatching { RoutineProgressionMode.valueOf(routine.progressionMode) }
+                    .getOrDefault(RoutineProgressionMode.Standard),
+                allowNonStandardHigherSuggestions = routine.allowNonStandardHigherSuggestions,
             ),
         )
     }
+}
+
+private fun RoutineExerciseDraft.resolvedPlacementKind(): RoutinePlacementKind = when {
+    placementKind != RoutinePlacementKind.General || assistanceCategory != RoutineAssistanceCategory.Unspecified -> placementKind
+    assistanceRole != RoutineAssistanceRole.Unspecified -> assistanceRole.toPlacementKind()
+    plannedSets.isNotEmpty() && plannedSets.all { it.workSection == RoutineWorkSection.Assistance } -> RoutinePlacementKind.Assistance
+    plannedSets.any { it.workSection == RoutineWorkSection.Main } -> RoutinePlacementKind.MainLift
+    else -> RoutinePlacementKind.General
+}
+
+private fun RoutineExerciseDraft.resolvedAssistanceCategory(): RoutineAssistanceCategory = when {
+    assistanceCategory != RoutineAssistanceCategory.Unspecified -> assistanceCategory
+    assistanceRole != RoutineAssistanceRole.Unspecified -> assistanceRole.toAssistanceCategory().let {
+        if (it == RoutineAssistanceCategory.Unspecified && resolvedPlacementKind() == RoutinePlacementKind.Assistance) {
+            RoutineAssistanceCategory.Other
+        } else it
+    }
+    resolvedPlacementKind() == RoutinePlacementKind.Assistance -> RoutineAssistanceCategory.Other
+    else -> RoutineAssistanceCategory.Unspecified
 }
 
 private fun validateRoutine(draft: RoutineDraft) {
@@ -795,9 +1059,55 @@ private fun validateRoutine(draft: RoutineDraft) {
     require(draft.days.all { it.name.isNotBlank() }) { "Every routine day needs a name" }
     val program = draft.program.normalizedForCreate()
     require(program.phaseCount in 1..52) { "A routine program needs from 1 to 52 phases" }
+    require(program.templateRevision >= 0) { "Program template revision cannot be negative" }
+    require(
+        (program.templateKey == RoutineProgramTemplateKey.None && program.templateRevision == 0) ||
+            (program.templateKey != RoutineProgramTemplateKey.None && program.templateRevision > 0),
+    ) { "Program template provenance requires a positive revision" }
     require(program.phaseLabels.size <= program.phaseCount) { "Program phase labels cannot exceed the phase count" }
+    require(program.phaseRoles.size <= program.phaseCount) { "Program phase roles cannot exceed the phase count" }
+    require(program.trainingMaxAdvanceAfterPhaseIndices.all { it in 0 until program.phaseCount }) {
+        "Training-max advance boundaries must reference a program phase"
+    }
     require(program.phaseLabels.none { ',' in it }) { "Program phase labels cannot contain commas" }
+    val fiveThreeOneProgram = program.kind in setOf(
+        RoutineProgramKind.FiveThreeOne,
+        RoutineProgramKind.FiveThreeOneClassic,
+        RoutineProgramKind.FiveSPro,
+        RoutineProgramKind.BoringButBig,
+        RoutineProgramKind.FirstSetLast,
+    )
+    require(program.progressionMode != RoutineProgressionMode.PerformanceInformed || fiveThreeOneProgram) {
+        "Performance-informed Training Max review is only available for 5/3/1 programs"
+    }
+    require(!program.allowNonStandardHigherSuggestions ||
+        fiveThreeOneProgram && program.progressionMode == RoutineProgressionMode.PerformanceInformed
+    ) { "Higher Training Max alternatives require performance-informed 5/3/1 review" }
+    val phasesThatDisallowJokers = (0 until program.phaseCount).filterTo(mutableSetOf()) { phase ->
+        program.phaseRoles.getOrNull(phase) in setOf(
+            RoutineProgramPhaseRole.Deload,
+            RoutineProgramPhaseRole.TrainingMaxTest,
+            RoutineProgramPhaseRole.PersonalRecordTest,
+        )
+    }
     draft.days.flatMap(RoutineDayDraft::exercises).forEach { exercise ->
+        val placementKind = exercise.resolvedPlacementKind()
+        val assistanceCategory = exercise.resolvedAssistanceCategory()
+        require(
+            (placementKind == RoutinePlacementKind.Assistance) ==
+                (assistanceCategory != RoutineAssistanceCategory.Unspecified),
+        ) { "Assistance placements require an explicit Push, Pull, Single-leg/Core, or Other category" }
+        when (placementKind) {
+            RoutinePlacementKind.MainLift -> require(exercise.plannedSets.none {
+                it.workSection in setOf(RoutineWorkSection.Assistance, RoutineWorkSection.Unspecified)
+            }) { "Main-lift placements may only contain Main, Supplemental, or Optional work" }
+            RoutinePlacementKind.Assistance -> require(exercise.plannedSets.all {
+                it.workSection == RoutineWorkSection.Assistance
+            }) { "Assistance placements may only contain Assistance work" }
+            RoutinePlacementKind.General -> require(exercise.plannedSets.none {
+                it.workSection in setOf(RoutineWorkSection.Main, RoutineWorkSection.Supplemental, RoutineWorkSection.Assistance)
+            }) { "General placements cannot contain hidden program-work sections" }
+        }
         require(exercise.trainingMaxPercent in 1.0..100.0) { "Training max must be from 1 to 100%" }
         exercise.trainingMaxValue?.let { value ->
             require(value.isFinite() && value > 0.0) { "Training max must be a positive number" }
@@ -809,13 +1119,42 @@ private fun validateRoutine(draft: RoutineDraft) {
             require(increment.isFinite() && increment >= 0.0) { "Cycle increment cannot be negative" }
             require(exercise.trainingMaxValue != null) { "Cycle increment requires an explicit training max" }
         }
+        if (fiveThreeOneProgram && placementKind == RoutinePlacementKind.MainLift) {
+            require(exercise.trainingMaxValue != null) { "5/3/1 main lifts require an explicit training max" }
+            require(exercise.cycleIncrementValue?.let { it.isFinite() && it > 0.0 } == true) {
+                "5/3/1 main lifts require a cycle increase above zero"
+            }
+        }
         require(exercise.progressionPercentages.all { it.isFinite() && it in 1.0..200.0 }) {
             "Cycle multipliers must be from 1 to 200%"
         }
         exercise.plannedSets.forEach { set ->
+            require(set.mainWorkScheme == null || set.workSection == RoutineWorkSection.Main) {
+                "Main-work scheme tags may only be attached to Main sets"
+            }
+            require(set.supplementalScheme == null || set.workSection == RoutineWorkSection.Supplemental) {
+                "Supplemental scheme tags may only be attached to Supplemental sets"
+            }
+            require(
+                set.optionalWorkKind != RoutineOptionalWorkKind.Joker ||
+                    set.workSection == RoutineWorkSection.Optional,
+            ) { "Joker sets must be optional work" }
             set.routinePhaseIndex?.let { phase ->
                 require(program.kind != RoutineProgramKind.Static) { "Phase-specific sets require a programmed routine" }
                 require(phase in 0 until program.phaseCount) { "Routine set phase is out of range" }
+            }
+            if (set.classification == WorkoutSetClassification.TrainingMaxTest) {
+                val phase = requireNotNull(set.routinePhaseIndex) {
+                    "Training Max test sets must belong to one explicit program phase"
+                }
+                require(fiveThreeOneProgram && program.phaseRoles.getOrNull(phase) == RoutineProgramPhaseRole.TrainingMaxTest) {
+                    "Training Max test sets are only allowed in a 5/3/1 Training Max Test phase"
+                }
+                require(set.workSection == RoutineWorkSection.Main &&
+                    set.loadPrescriptionType == RoutineLoadPrescriptionType.PercentTrainingMax &&
+                    set.loadPercentage?.let { kotlin.math.abs(it - 100.0) <= 1e-9 } == true &&
+                    (set.reps ?: Int.MIN_VALUE) in 3..5
+                ) { "A Training Max test set must prescribe 100% of TM for 3–5 reps" }
             }
             if (set.loadPrescriptionType != RoutineLoadPrescriptionType.Absolute) {
                 val percent = set.loadPercentage
@@ -829,6 +1168,192 @@ private fun validateRoutine(draft: RoutineDraft) {
                 }
             }
         }
+        if (fiveThreeOneProgram) {
+            val testSetsByPhase = exercise.plannedSets
+                .filter { it.classification == WorkoutSetClassification.TrainingMaxTest }
+                .groupBy(WorkoutSetDraft::routinePhaseIndex)
+            require(testSetsByPhase.values.all { it.size == 1 }) {
+                "A main-lift placement may have only one explicit Training Max test set per phase"
+            }
+            require(exercise.plannedSets.none { set ->
+                set.optionalWorkKind == RoutineOptionalWorkKind.Joker &&
+                    phasesThatDisallowJokers.any { phase -> set.routinePhaseIndex == null || set.routinePhaseIndex == phase }
+            }) { "Joker sets are not allowed in deload or test phases" }
+            (0 until program.phaseCount).forEach { phaseIndex ->
+                val activeSets = exercise.plannedSets.filter { set ->
+                    set.routinePhaseIndex == null || set.routinePhaseIndex == phaseIndex
+                }
+                validateFiveThreeOnePhasePolicy(exercise, phaseIndex, activeSets)
+            }
+        }
+    }
+    if (fiveThreeOneProgram) {
+        val mainPlacementsByLift = draft.days.flatMap(RoutineDayDraft::exercises)
+            .filter { it.resolvedPlacementKind() == RoutinePlacementKind.MainLift }
+            .groupBy(RoutineExerciseDraft::exerciseId)
+        program.phaseRoles.forEachIndexed { phaseIndex, role ->
+            if (role == RoutineProgramPhaseRole.TrainingMaxTest) {
+                mainPlacementsByLift.forEach { (_, placements) ->
+                    require(placements.sumOf { placement ->
+                        placement.plannedSets.count { set ->
+                            set.routinePhaseIndex == phaseIndex &&
+                                set.classification == WorkoutSetClassification.TrainingMaxTest
+                        }
+                    } == 1) {
+                        "Each main lift requires exactly one explicit Training Max test set in phase ${phaseIndex + 1}"
+                    }
+                }
+            }
+        }
+        mainPlacementsByLift.filterValues { it.size > 1 }
+            .forEach { (_, placements) ->
+                val expected = placements.first()
+                require(placements.drop(1).all { candidate ->
+                    candidate.trainingMaxValue == expected.trainingMaxValue &&
+                        candidate.trainingMaxUnitId == expected.trainingMaxUnitId &&
+                        candidate.trainingMaxSource == expected.trainingMaxSource &&
+                        candidate.trainingMaxPercent == expected.trainingMaxPercent &&
+                        candidate.trainingMaxBasisKind == expected.trainingMaxBasisKind &&
+                        candidate.trainingMaxBasisValue == expected.trainingMaxBasisValue &&
+                        candidate.trainingMaxBasisUnitId == expected.trainingMaxBasisUnitId &&
+                        candidate.trainingMaxIncreaseEligible == expected.trainingMaxIncreaseEligible &&
+                        candidate.cycleIncrementValue == expected.cycleIncrementValue &&
+                        candidate.mainWorkScheme == expected.mainWorkScheme &&
+                        candidate.supplementalScheme == expected.supplementalScheme &&
+                        candidate.jokerSetsEnabled == expected.jokerSetsEnabled &&
+                        candidate.plannedSets.filterNot { it.classification == WorkoutSetClassification.TrainingMaxTest } ==
+                            expected.plannedSets.filterNot { it.classification == WorkoutSetClassification.TrainingMaxTest }
+                }) {
+                    "Repeated 5/3/1 main-lift placements must share the same training max, progression, and non-test prescriptions"
+                }
+            }
+    }
+}
+
+private data class ResolvedActiveProgramPolicy(
+    val mainWorkScheme: RoutineMainWorkScheme,
+    val supplementalScheme: RoutineSupplementalScheme,
+    val jokerSetsEnabled: Boolean,
+)
+
+private fun resolveActiveProgramPolicy(
+    baseMainWorkScheme: RoutineMainWorkScheme,
+    baseSupplementalScheme: RoutineSupplementalScheme,
+    activeSets: List<WorkoutSetDraft>,
+): ResolvedActiveProgramPolicy {
+    val mainSets = activeSets.filter { it.workSection == RoutineWorkSection.Main }
+    val supplementalSets = activeSets.filter { it.workSection == RoutineWorkSection.Supplemental }
+    val explicitMainSchemes = mainSets.mapNotNull(WorkoutSetDraft::mainWorkScheme).distinct()
+    require(explicitMainSchemes.size <= 1) { "Active Main sets disagree about their main-work scheme" }
+    val inferredMain = when {
+        mainSets.isEmpty() -> RoutineMainWorkScheme.Unspecified
+        mainSets.any { it.classification == WorkoutSetClassification.Amrap } -> RoutineMainWorkScheme.ClassicPrSet
+        else -> RoutineMainWorkScheme.ClassicMinimumReps
+    }
+    val resolvedMain = explicitMainSchemes.singleOrNull() ?: when (baseMainWorkScheme) {
+        RoutineMainWorkScheme.ClassicPrSet -> baseMainWorkScheme.takeIf {
+            mainSets.any { set -> set.classification == WorkoutSetClassification.Amrap }
+        } ?: inferredMain
+        RoutineMainWorkScheme.FivesPro -> baseMainWorkScheme.takeIf {
+            mainSets.isNotEmpty() && mainSets.all { set ->
+                set.reps == 5 && set.classification != WorkoutSetClassification.Amrap
+            }
+        } ?: inferredMain
+        RoutineMainWorkScheme.ClassicMinimumReps -> baseMainWorkScheme.takeIf {
+            mainSets.none { set -> set.classification == WorkoutSetClassification.Amrap }
+        } ?: inferredMain
+        RoutineMainWorkScheme.Unspecified -> inferredMain
+    }
+
+    val explicitSupplementalSchemes = supplementalSets.mapNotNull(WorkoutSetDraft::supplementalScheme).distinct()
+    require(explicitSupplementalSchemes.size <= 1) {
+        "Active Supplemental sets disagree about their supplemental scheme"
+    }
+    val mainPercentages = mainSets.map { it.loadPercentage }
+    val supplementalPercentages = supplementalSets.map { it.loadPercentage }
+    val fiveByFive = supplementalSets.size == 5 && supplementalSets.all { it.reps == 5 }
+    val inferredSupplemental = when {
+        supplementalSets.isEmpty() -> RoutineSupplementalScheme.None
+        supplementalSets.size == 5 && supplementalSets.all { it.reps == 10 } ->
+            RoutineSupplementalScheme.BoringButBig
+        supplementalSets.size == 10 && supplementalSets.all { it.reps == 5 } ->
+            RoutineSupplementalScheme.BoringButStrong
+        fiveByFive && mainPercentages.getOrNull(0) != null &&
+            supplementalPercentages.all { it == mainPercentages[0] } -> RoutineSupplementalScheme.FirstSetLast
+        fiveByFive && mainPercentages.getOrNull(1) != null &&
+            supplementalPercentages.all { it == mainPercentages[1] } -> RoutineSupplementalScheme.SecondSetLast
+        else -> RoutineSupplementalScheme.Custom
+    }
+    val resolvedSupplemental = explicitSupplementalSchemes.singleOrNull() ?: when {
+        inferredSupplemental != RoutineSupplementalScheme.Custom -> inferredSupplemental
+        baseSupplementalScheme in setOf(
+            RoutineSupplementalScheme.FirstSetLast,
+            RoutineSupplementalScheme.SecondSetLast,
+        ) && fiveByFive -> baseSupplementalScheme
+        else -> RoutineSupplementalScheme.Custom
+    }
+
+    return ResolvedActiveProgramPolicy(
+        mainWorkScheme = resolvedMain,
+        supplementalScheme = resolvedSupplemental,
+        jokerSetsEnabled = activeSets.any { set ->
+            set.workSection == RoutineWorkSection.Optional &&
+                set.optionalWorkKind == RoutineOptionalWorkKind.Joker
+        },
+    )
+}
+
+private fun validateFiveThreeOnePhasePolicy(
+    exercise: RoutineExerciseDraft,
+    phaseIndex: Int,
+    activeSets: List<WorkoutSetDraft>,
+) {
+    val policy = resolveActiveProgramPolicy(
+        baseMainWorkScheme = exercise.mainWorkScheme,
+        baseSupplementalScheme = exercise.supplementalScheme,
+        activeSets = activeSets,
+    )
+    val phaseLabel = "phase ${phaseIndex + 1}"
+    val mainSets = activeSets.filter { it.workSection == RoutineWorkSection.Main }
+    val supplementalSets = activeSets.filter { it.workSection == RoutineWorkSection.Supplemental }
+    when (policy.mainWorkScheme) {
+        RoutineMainWorkScheme.ClassicPrSet -> require(
+            mainSets.any { it.classification == WorkoutSetClassification.Amrap },
+        ) { "Classic PR-set policy requires an active Main AMRAP set in $phaseLabel" }
+        RoutineMainWorkScheme.FivesPro -> require(
+            mainSets.isNotEmpty() && mainSets.all {
+                it.reps == 5 && it.classification != WorkoutSetClassification.Amrap
+            },
+        ) { "5s PRO requires every active Main set to prescribe 5 reps without AMRAP in $phaseLabel" }
+        RoutineMainWorkScheme.ClassicMinimumReps -> require(
+            mainSets.none { it.classification == WorkoutSetClassification.Amrap },
+        ) { "Minimum-reps Main work cannot contain an AMRAP set in $phaseLabel" }
+        RoutineMainWorkScheme.Unspecified -> Unit
+    }
+    when (policy.supplementalScheme) {
+        RoutineSupplementalScheme.None -> require(supplementalSets.isEmpty()) {
+            "No-supplemental policy cannot contain Supplemental sets in $phaseLabel"
+        }
+        RoutineSupplementalScheme.BoringButBig -> require(
+            supplementalSets.size == 5 && supplementalSets.all { it.reps == 10 },
+        ) { "BBB requires exactly 5 Supplemental sets of 10 reps in $phaseLabel" }
+        RoutineSupplementalScheme.BoringButStrong -> require(
+            supplementalSets.size == 10 && supplementalSets.all { it.reps == 5 },
+        ) { "Boring But Strong requires exactly 10 Supplemental sets of 5 reps in $phaseLabel" }
+        RoutineSupplementalScheme.FirstSetLast,
+        RoutineSupplementalScheme.SecondSetLast,
+        -> {
+            require(supplementalSets.size == 5 && supplementalSets.all { it.reps == 5 }) {
+                "FSL and SSL require exactly 5 Supplemental sets of 5 reps in $phaseLabel"
+            }
+            val mainIndex = if (policy.supplementalScheme == RoutineSupplementalScheme.FirstSetLast) 0 else 1
+            mainSets.getOrNull(mainIndex)?.loadPercentage?.let { expectedPercentage ->
+                require(supplementalSets.all { it.loadPercentage == expectedPercentage }) {
+                    "${policy.supplementalScheme.name} Supplemental load must match active Main set ${mainIndex + 1} in $phaseLabel"
+                }
+            }
+        }
+        RoutineSupplementalScheme.Custom -> Unit
     }
 }
 
@@ -857,6 +1382,17 @@ private fun GymRoutineEntity.toDomain() = GymRoutine(
     currentProgramPhaseIndex = currentProgramPhaseIndex,
     currentProgramCycle = currentProgramCycle,
     nextProgramDayPosition = nextProgramDayPosition,
+    trainingMaxIncreaseEligible = trainingMaxIncreaseEligible,
+    programPhaseRoles = programPhaseRolesCsv.parseCsvStrings().map {
+        runCatching { RoutineProgramPhaseRole.valueOf(it) }.getOrDefault(RoutineProgramPhaseRole.Standard)
+    },
+    trainingMaxAdvanceAfterPhaseIndices = trainingMaxAdvanceAfterPhaseIndicesCsv.parseIntCsv().toSet(),
+    programTemplateKey = runCatching { RoutineProgramTemplateKey.valueOf(programTemplateKey) }
+        .getOrDefault(RoutineProgramTemplateKey.None),
+    programTemplateRevision = programTemplateRevision,
+    progressionMode = runCatching { RoutineProgressionMode.valueOf(progressionMode) }
+        .getOrDefault(RoutineProgressionMode.Standard),
+    allowNonStandardHigherSuggestions = allowNonStandardHigherSuggestions,
 )
 private fun RoutineDayEntity.toDomain() = RoutineDay(
     id, uuid, routineId, name, position, createdAtMillis, updatedAtMillis, progressionIndex,
@@ -887,6 +1423,22 @@ private fun RoutineExerciseEntity.toDomain() = RoutineExercise(
     cycleIncrementValue = cycleIncrementValue,
     trainingMaxSource = runCatching { RoutineTrainingMaxSource.valueOf(trainingMaxSource) }
         .getOrDefault(RoutineTrainingMaxSource.EstimatedOneRepMaxPercent),
+    trainingMaxBasisKind = runCatching { TrainingMaxBasisKind.valueOf(trainingMaxBasisKind) }
+        .getOrDefault(TrainingMaxBasisKind.Unspecified),
+    trainingMaxBasisValue = trainingMaxBasisValue,
+    trainingMaxBasisUnitId = trainingMaxBasisUnitId,
+    trainingMaxIncreaseEligible = trainingMaxIncreaseEligible,
+    mainWorkScheme = runCatching { RoutineMainWorkScheme.valueOf(mainWorkScheme) }
+        .getOrDefault(RoutineMainWorkScheme.Unspecified),
+    supplementalScheme = runCatching { RoutineSupplementalScheme.valueOf(supplementalScheme) }
+        .getOrDefault(RoutineSupplementalScheme.None),
+    assistanceRole = runCatching { RoutineAssistanceRole.valueOf(assistanceRole) }
+        .getOrDefault(RoutineAssistanceRole.Unspecified),
+    placementKind = runCatching { RoutinePlacementKind.valueOf(placementKind) }
+        .getOrDefault(RoutinePlacementKind.General),
+    assistanceCategory = runCatching { RoutineAssistanceCategory.valueOf(assistanceCategory) }
+        .getOrDefault(RoutineAssistanceCategory.Unspecified),
+    jokerSetsEnabled = jokerSetsEnabled,
 )
 private fun RoutineSetEntity.toDomain() = RoutineSet(
     id, uuid, routineExerciseId, position,
@@ -903,8 +1455,40 @@ private fun RoutineSetEntity.toDomain() = RoutineSet(
             .getOrDefault(RoutineLoadPrescriptionType.Absolute),
         loadPercentage = loadPercentage,
         routinePhaseIndex = routinePhaseIndex,
+        workSection = runCatching { RoutineWorkSection.valueOf(workSection) }
+            .getOrDefault(RoutineWorkSection.Unspecified),
+        optionalWorkKind = runCatching { RoutineOptionalWorkKind.valueOf(optionalWorkKind) }
+            .getOrDefault(RoutineOptionalWorkKind.None),
+        mainWorkScheme = mainWorkScheme.takeIf(String::isNotBlank)?.let { value ->
+            runCatching { RoutineMainWorkScheme.valueOf(value) }.getOrNull()
+        },
+        supplementalScheme = supplementalScheme.takeIf(String::isNotBlank)?.let { value ->
+            runCatching { RoutineSupplementalScheme.valueOf(value) }.getOrNull()
+        },
     ),
     createdAtMillis, updatedAtMillis,
+)
+
+private fun TrainingMaxDecisionEntity.toDomain() = TrainingMaxDecision(
+    uuid = uuid,
+    routineUuid = routineUuid,
+    sessionUuid = sessionUuid,
+    exerciseUuid = exerciseUuid,
+    exerciseName = exerciseName,
+    cycle = cycle,
+    previousTrainingMax = previousTrainingMax,
+    appliedDelta = appliedDelta,
+    resultingTrainingMax = resultingTrainingMax,
+    unitId = unitId,
+    standardDelta = standardDelta,
+    recommendationCategory = recommendationCategory,
+    recommendationDelta = recommendationDelta,
+    confidence = confidence,
+    reasons = reasonsText.lineSequence().filter(String::isNotBlank).toList(),
+    engineVersion = engineVersion,
+    action = runCatching { TrainingMaxDecisionAction.valueOf(action) }
+        .getOrDefault(TrainingMaxDecisionAction.Custom),
+    createdAtMillis = createdAtMillis,
 )
 private fun PersonalRecordEntity.toDomain() = PersonalRecord(
     uuid = uuid, exerciseId = exerciseId, type = PersonalRecordType.valueOf(type),
@@ -931,6 +1515,10 @@ private fun WorkoutSetDraft.toRoutineEntity(uuid: String, routineExerciseId: Lon
     loadPrescriptionType = loadPrescriptionType.name,
     loadPercentage = loadPercentage,
     routinePhaseIndex = routinePhaseIndex,
+    workSection = workSection.name,
+    optionalWorkKind = optionalWorkKind.name,
+    mainWorkScheme = mainWorkScheme?.name.orEmpty(),
+    supplementalScheme = supplementalScheme?.name.orEmpty(),
 )
 
 private fun RoutineSetEntity.toWorkoutSet(
@@ -951,9 +1539,32 @@ private fun RoutineSetEntity.toWorkoutSet(
         ) ?: sourceExercise.weightUnitId
     val prescription = runCatching { RoutineLoadPrescriptionType.valueOf(loadPrescriptionType) }
         .getOrDefault(RoutineLoadPrescriptionType.Absolute)
-    require(machineType != MachineLoadType.Level || prescription == RoutineLoadPrescriptionType.Absolute) {
+    val loadInterpretation = runCatching { LoadInterpretation.valueOf(workoutExercise.loadInterpretationSnapshot) }
+        .getOrDefault(LoadInterpretation.Total)
+    require(
+        prescription == RoutineLoadPrescriptionType.Absolute ||
+            machineType != MachineLoadType.Level && loadInterpretation.supportsRoutinePercentagePrescription(),
+    ) {
         "Percentage prescriptions require a mass-based exercise or machine"
     }
+    if (prescription == RoutineLoadPrescriptionType.PercentOneRepMax) {
+        require(sourceExercise.trackingType == ExerciseTrackingType.WeightReps.name) {
+            "Estimated 1RM prescriptions require a Weight + Reps exercise"
+        }
+    } else if (prescription == RoutineLoadPrescriptionType.PercentTrainingMax) {
+        require(sourceExercise.trackingType in setOf(
+            ExerciseTrackingType.WeightReps.name,
+            ExerciseTrackingType.WeightOnly.name,
+            ExerciseTrackingType.WeightDuration.name,
+        )) { "Training Max prescriptions require a mass-tracked exercise" }
+    }
+    val setLoadMultiplier = loadInterpretationMultiplier(
+        loadInterpretation,
+        runCatching { MachineStackMode.valueOf(workoutExercise.machineStackModeSnapshot) }
+            .getOrDefault(MachineStackMode.Single),
+        workoutExercise.machinePulleyRatioSnapshot,
+        unilateral,
+    )
     val resolvedLoad = resolveRoutinePrescribedLoad(
         type = prescription,
         enteredWeight = enteredWeight,
@@ -962,7 +1573,7 @@ private fun RoutineSetEntity.toWorkoutSet(
         oneRepMaxKg = oneRepMaxKg,
         trainingMaxPercent = trainingMaxPercent,
         progressionPercent = progressionPercent,
-        loadMultiplier = workoutExercise.loadMultiplierSnapshot,
+        loadMultiplier = setLoadMultiplier,
         baseLoadKg = workoutExercise.baseLoadKgSnapshot,
         addOnPlateKg = workoutExercise.machineAddOnPlateKgSnapshot,
         availableLoads = machine?.availableLoadsCsv?.parseDoubleCsv().orEmpty(),
@@ -1023,6 +1634,9 @@ private fun RoutineSetEntity.toWorkoutSet(
         prescribedDurationSeconds = durationSeconds,
         prescribedMachineLoadValue = if (machineType == MachineLoadType.Level) machineLoadValue else effectiveWeight.takeIf { workoutExercise.machineId != null },
         prescriptionSourceLabel = resolvedLoad?.label.orEmpty(),
+        workSectionSnapshot = workSection,
+        optionalWorkKindSnapshot = optionalWorkKind,
+        prescribedClassificationSnapshot = classification,
     )
 }
 
@@ -1070,10 +1684,12 @@ internal fun resolveRoutinePrescribedLoad(
         }
     }
     val choices = availableLoads.filter { it.isFinite() && it >= 0.0 }.distinct()
-    val snapped = if (type == RoutineLoadPrescriptionType.Absolute && progressionPercent == 100.0 && choices.isEmpty()) {
+    val snapped = if (type == RoutineLoadPrescriptionType.Absolute && progressionPercent == 100.0) {
         rawDisplay
     } else if (choices.isNotEmpty()) {
-        choices.minBy { kotlin.math.abs(it - rawDisplay) }
+        // Match 5/3/1 preview behavior exactly and break an exact tie conservatively downward,
+        // independent of the order in which machine settings were entered.
+        choices.minWith(compareBy<Double> { kotlin.math.abs(it - rawDisplay) }.thenBy { it })
     } else {
         val step = increment.takeIf { it.isFinite() && it > 0.0 } ?: 1.0
         round(rawDisplay / step) * step
@@ -1097,16 +1713,31 @@ private fun Double?.orEmptyOne(): Double = this ?: 1.0
 
 private fun String.parseDoubleCsv(): List<Double> = split(',').mapNotNull(String::toDoubleOrNull)
 private fun String.parseLongCsv(): List<Long> = split(',').mapNotNull(String::toLongOrNull)
+private fun String.parseIntCsv(): List<Int> = split(',').mapNotNull(String::toIntOrNull)
 private fun String.parseCsvStrings(): List<String> = split(',').map(String::trim).filter(String::isNotBlank)
+private fun String.toMainWorkScheme(): RoutineMainWorkScheme =
+    runCatching { RoutineMainWorkScheme.valueOf(this) }.getOrDefault(RoutineMainWorkScheme.Unspecified)
+private fun String.toSupplementalScheme(): RoutineSupplementalScheme =
+    runCatching { RoutineSupplementalScheme.valueOf(this) }.getOrDefault(RoutineSupplementalScheme.None)
 
 private fun RoutineProgramDraft?.normalizedForCreate(): RoutineProgramDraft =
     this?.normalized() ?: RoutineProgramDraft(RoutineProgramKind.Static, 1)
 
 private fun RoutineProgramDraft.normalized(): RoutineProgramDraft = when (kind) {
-    RoutineProgramKind.Static -> copy(phaseCount = 1, phaseLabels = emptyList())
+    RoutineProgramKind.Static -> copy(
+        phaseCount = 1,
+        phaseLabels = emptyList(),
+        phaseRoles = emptyList(),
+        trainingMaxAdvanceAfterPhaseIndices = emptySet(),
+        templateKey = RoutineProgramTemplateKey.None,
+        templateRevision = 0,
+    )
     else -> copy(
         phaseCount = phaseCount.coerceAtLeast(1),
         phaseLabels = phaseLabels.map(String::trim).filter(String::isNotBlank).take(phaseCount.coerceAtLeast(1)),
+        phaseRoles = phaseRoles.take(phaseCount.coerceAtLeast(1)),
+        trainingMaxAdvanceAfterPhaseIndices = trainingMaxAdvanceAfterPhaseIndices
+            .filterTo(sortedSetOf()) { it in 0 until phaseCount.coerceAtLeast(1) },
     )
 }
 
@@ -1120,6 +1751,10 @@ private fun WorkoutSetEntity.toDraft() = WorkoutSetDraft(
     rpe = rpe, rir = rir, tempo = tempo, restSeconds = restSeconds,
     machineLoadValue = machineLoadValue,
     unilateral = unilateral,
+    workSection = runCatching { RoutineWorkSection.valueOf(workSectionSnapshot) }
+        .getOrDefault(RoutineWorkSection.Unspecified),
+    optionalWorkKind = runCatching { RoutineOptionalWorkKind.valueOf(optionalWorkKindSnapshot) }
+        .getOrDefault(RoutineOptionalWorkKind.None),
 )
 
 private fun ExerciseEntity.toDomainForRecords() = Exercise(
@@ -1157,4 +1792,13 @@ private fun WorkoutSetEntity.toDomainForRecords() = WorkoutSet(
     unilateral, prescribedCanonicalWeightKg, prescribedEnteredWeight,
     prescribedWeightUnitId, prescribedRepetitions, prescribedRpe, prescribedRir,
     prescribedDurationSeconds, prescribedMachineLoadValue,
+    prescribedRepetitionsMax = prescribedRepetitionsMax,
+    prescriptionSourceLabel = prescriptionSourceLabel,
+    workSectionSnapshot = runCatching { RoutineWorkSection.valueOf(workSectionSnapshot) }
+        .getOrDefault(RoutineWorkSection.Unspecified),
+    optionalWorkKindSnapshot = runCatching { RoutineOptionalWorkKind.valueOf(optionalWorkKindSnapshot) }
+        .getOrDefault(RoutineOptionalWorkKind.None),
+    prescribedClassificationSnapshot = runCatching {
+        WorkoutSetClassification.valueOf(prescribedClassificationSnapshot)
+    }.getOrDefault(WorkoutSetClassification.Working),
 )

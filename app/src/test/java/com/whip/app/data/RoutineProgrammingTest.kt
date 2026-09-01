@@ -121,4 +121,26 @@ class RoutineProgrammingTest {
             )
         }
     }
+
+    @Test
+    fun equipmentTieRoundsDownRegardlessOfAvailableLoadOrder() {
+        fun resolve(choices: List<Double>) = resolveRoutinePrescribedLoad(
+            type = RoutineLoadPrescriptionType.PercentTrainingMax,
+            enteredWeight = null,
+            enteredUnitId = "kilogram",
+            percentage = 50.0,
+            oneRepMaxKg = null,
+            trainingMaxPercent = 85.0,
+            progressionPercent = 100.0,
+            loadMultiplier = 1.0,
+            baseLoadKg = null,
+            addOnPlateKg = null,
+            availableLoads = choices,
+            increment = 2.5,
+            explicitTrainingMaxKg = 205.0,
+        )
+
+        assertEquals(100.0, requireNotNull(resolve(listOf(105.0, 100.0))).displayValue, 0.0)
+        assertEquals(100.0, requireNotNull(resolve(listOf(100.0, 105.0))).displayValue, 0.0)
+    }
 }

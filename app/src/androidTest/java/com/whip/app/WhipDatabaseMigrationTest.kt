@@ -75,7 +75,7 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V1_DATABASE_NAME,
-            32,
+            34,
             true,
             *allMigrations,
         ).use { database ->
@@ -170,7 +170,7 @@ class WhipDatabaseMigrationTest {
 
         helper.runMigrationsAndValidate(
             V2_DATABASE_NAME,
-            32,
+            34,
             true,
             *allMigrations.drop(1).toTypedArray(),
         ).use { database ->
@@ -790,6 +790,269 @@ class WhipDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrationThirtyTwoToThirtyThreeAddsTypedProgramSemanticsAndInfersGeneratedSets() {
+        helper.createDatabase(V32_DATABASE_NAME, 32).apply {
+            execSQL("PRAGMA foreign_keys = OFF")
+            execSQL(
+                "INSERT INTO gym_routines (id, uuid, name, notes, position, archived, pinned, " +
+                    "createdAtMillis, updatedAtMillis, programKind, programPhaseCount, " +
+                    "programPhaseLabelsCsv, currentProgramPhaseIndex, currentProgramCycle, nextProgramDayPosition) " +
+                    "VALUES (1, 'routine', '5/3/1', '', 0, 0, 0, 1, 1, 'BoringButBig', 4, " +
+                    "'5s Week,3s Week,5/3/1 Week,Deload', 0, 1, 0)",
+            )
+            execSQL(
+                "INSERT INTO routine_exercises (id, uuid, routineDayId, exerciseId, position, notes, groupKey, " +
+                    "copyPreviousWorkout, createdAtMillis, updatedAtMillis, machineId, equipmentBindingState, " +
+                    "machineProfileUuidSnapshot, machineNameSnapshot, machineLoadTypeSnapshot, machineUnitIdSnapshot, " +
+                    "machineLevelLabelSnapshot, machineLoadInterpretationSnapshot, machineConfigurationGroupSnapshot, " +
+                    "machineConfigurationVersionSnapshot, machineConfigurationSnapshot, trainingMaxPercent, " +
+                    "progressionPercentagesCsv, alternativeExerciseIdsCsv, trainingMaxKg, trainingMaxValue, " +
+                    "trainingMaxUnitId, cycleIncrementValue, trainingMaxSource) VALUES " +
+                    "(2, 'placement', 999, 999, 0, '', NULL, 0, 1, 1, NULL, 'None', NULL, '', '', '', '', " +
+                    "'Total', '', 1, '', 90, '', '', 90, 200, 'pound', 5, 'Explicit')",
+            )
+            execSQL(
+                "INSERT INTO routine_sets (id, uuid, routineExerciseId, position, classification, enteredWeight, " +
+                    "enteredWeightUnitId, repetitions, enteredDistance, enteredDistanceUnitId, durationSeconds, " +
+                    "bodyweightKg, note, rpe, rir, tempo, restSeconds, createdAtMillis, updatedAtMillis, " +
+                    "machineLoadValue, unilateral, repetitionsMax, loadPrescriptionType, loadPercentage, routinePhaseIndex) " +
+                    "VALUES (3, 'main', 2, 0, 'Amrap', NULL, NULL, 5, NULL, NULL, NULL, NULL, " +
+                    "'Main Work · 5s Week · 85% TM', NULL, NULL, '', NULL, 1, 1, NULL, 0, NULL, " +
+                    "'PercentTrainingMax', 85, 0)",
+            )
+            execSQL(
+                "INSERT INTO routine_sets (id, uuid, routineExerciseId, position, classification, enteredWeight, " +
+                    "enteredWeightUnitId, repetitions, enteredDistance, enteredDistanceUnitId, durationSeconds, " +
+                    "bodyweightKg, note, rpe, rir, tempo, restSeconds, createdAtMillis, updatedAtMillis, " +
+                    "machineLoadValue, unilateral, repetitionsMax, loadPrescriptionType, loadPercentage, routinePhaseIndex) " +
+                    "VALUES (4, 'supplemental', 2, 1, 'BackOff', NULL, NULL, 10, NULL, NULL, NULL, NULL, " +
+                    "'Supplemental · 50% TM', NULL, NULL, '', NULL, 1, 1, NULL, 0, NULL, " +
+                    "'PercentTrainingMax', 50, NULL)",
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            V32_DATABASE_NAME,
+            33,
+            true,
+            WhipDatabase.migration32To33,
+        ).use { database ->
+            database.query(
+                "SELECT trainingMaxIncreaseEligible, programPhaseRolesCsv, " +
+                    "trainingMaxAdvanceAfterPhaseIndicesCsv FROM gym_routines WHERE id = 1",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(1, cursor.getInt(0))
+                assertEquals("Standard,Standard,Standard,Deload", cursor.getString(1))
+                assertEquals("3", cursor.getString(2))
+            }
+            database.query(
+                "SELECT mainWorkScheme, supplementalScheme, assistanceRole, jokerSetsEnabled " +
+                    "FROM routine_exercises WHERE id = 2",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("ClassicPrSet", cursor.getString(0))
+                assertEquals("BoringButBig", cursor.getString(1))
+                assertEquals("MainLift", cursor.getString(2))
+                assertEquals(0, cursor.getInt(3))
+            }
+            database.query(
+                "SELECT workSection, optionalWorkKind, mainWorkScheme, supplementalScheme " +
+                    "FROM routine_sets ORDER BY id",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("Main", cursor.getString(0))
+                assertEquals("None", cursor.getString(1))
+                assertEquals("", cursor.getString(2))
+                assertEquals("", cursor.getString(3))
+                check(cursor.moveToNext())
+                assertEquals("Supplemental", cursor.getString(0))
+                assertEquals("None", cursor.getString(1))
+                assertEquals("", cursor.getString(2))
+                assertEquals("", cursor.getString(3))
+            }
+        }
+    }
+
+    @Test
+    fun migrationThirtyThreeToThirtyFourPreservesSessionsAndDefaultsMainWorkInvalidation() {
+        helper.createDatabase(V33_DATABASE_NAME, 33).apply {
+            execSQL(
+                """
+                INSERT INTO workout_sessions (
+                    id, uuid, name, notes, startedAtMillis, endedAtMillis, localEpochDay,
+                    zoneId, state, keepScreenAwake, restTimerDeadlineMillis,
+                    restTimerDurationSeconds, archived, createdAtMillis, updatedAtMillis,
+                    sourceRoutineId, sourceRoutineDayId, sourceRoutineProgramKind,
+                    sourceRoutinePhaseIndex, sourceRoutineCycle, sourceRoutineDayPosition,
+                    sourceRoutineDayProgressionIndex, programProgressAdvanced,
+                    sourceRoutinePhaseLabel, sourceRoutinePhaseRole
+                ) VALUES (
+                    7, 'session-7', 'Preserved workout', '', 100, NULL, 1,
+                    'UTC', 'Active', 0, NULL, NULL, 0, 100, 100,
+                    NULL, NULL, 'Static', NULL, NULL, NULL, NULL, 0, '', 'Standard'
+                )
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            V33_DATABASE_NAME,
+            34,
+            true,
+            WhipDatabase.migration33To34,
+        ).use { database ->
+            database.query(
+                "SELECT name, requiredMainWorkInvalidated FROM workout_sessions WHERE id = 7",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("Preserved workout", cursor.getString(0))
+                assertEquals(0, cursor.getInt(1))
+            }
+        }
+    }
+
+    @Test
+    fun migrationThirtyFourToThirtyFivePreservesProgramAndMarksUnknownFiveThreeOneProvenance() {
+        helper.createDatabase(V34_DATABASE_NAME, 34).apply {
+            execSQL(
+                """
+                INSERT INTO gym_routines (
+                    id, uuid, name, notes, position, archived, pinned, createdAtMillis,
+                    updatedAtMillis, programKind, programPhaseCount, programPhaseLabelsCsv,
+                    currentProgramPhaseIndex, currentProgramCycle, nextProgramDayPosition,
+                    trainingMaxIncreaseEligible, programPhaseRolesCsv,
+                    trainingMaxAdvanceAfterPhaseIndicesCsv
+                ) VALUES (
+                    8, 'routine-8', 'Older custom program', 'User notes stay intact', 0, 0, 0,
+                    100, 200, 'FiveThreeOne', 4, '5s Week,3s Week,5/3/1 Week,Deload',
+                    1, 3, 2, 1, 'Standard,Standard,Standard,Deload', '3'
+                )
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            V34_DATABASE_NAME,
+            35,
+            true,
+            WhipDatabase.migration34To35,
+        ).use { database ->
+            database.query(
+                "SELECT name, notes, programTemplateKey, programTemplateRevision " +
+                    "FROM gym_routines WHERE id = 8",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("Older custom program", cursor.getString(0))
+                assertEquals("User notes stay intact", cursor.getString(1))
+                assertEquals("LegacyFiveThreeOne", cursor.getString(2))
+                assertEquals(1, cursor.getInt(3))
+            }
+        }
+    }
+
+    @Test
+    fun migrationThirtyFiveToThirtySixPreservesTrainingMaxAndAddsSafeReviewState() {
+        helper.createDatabase(V35_DATABASE_NAME, 35).apply {
+            execSQL("PRAGMA foreign_keys = OFF")
+            execSQL(
+                "INSERT INTO gym_routines (id, uuid, name, notes, position, archived, pinned, createdAtMillis, " +
+                    "updatedAtMillis, programKind, programPhaseCount, programPhaseLabelsCsv, currentProgramPhaseIndex, " +
+                    "currentProgramCycle, nextProgramDayPosition, trainingMaxIncreaseEligible, programPhaseRolesCsv, " +
+                    "trainingMaxAdvanceAfterPhaseIndicesCsv, programTemplateKey, programTemplateRevision) VALUES " +
+                    "(1, 'routine-36', 'Legacy 5/3/1', '', 0, 0, 0, 1, 1, 'FiveThreeOne', 4, " +
+                    "'5s,3s,5/3/1,Deload', 0, 2, 0, 0, 'Standard,Standard,Standard,Deload', '3', " +
+                    "'LegacyFiveThreeOne', 1)",
+            )
+            execSQL(
+                "INSERT INTO routine_days (id, uuid, routineId, name, position, createdAtMillis, updatedAtMillis, progressionIndex) " +
+                    "VALUES (999, 'day-36', 1, 'Press', 0, 1, 1, 0)",
+            )
+            execSQL(
+                "INSERT INTO routine_exercises (id, uuid, routineDayId, exerciseId, position, notes, groupKey, " +
+                    "copyPreviousWorkout, createdAtMillis, updatedAtMillis, machineId, equipmentBindingState, " +
+                    "machineProfileUuidSnapshot, machineNameSnapshot, machineLoadTypeSnapshot, machineUnitIdSnapshot, " +
+                    "machineLevelLabelSnapshot, machineLoadInterpretationSnapshot, machineConfigurationGroupSnapshot, " +
+                    "machineConfigurationVersionSnapshot, machineConfigurationSnapshot, trainingMaxPercent, " +
+                    "progressionPercentagesCsv, alternativeExerciseIdsCsv, trainingMaxKg, trainingMaxValue, " +
+                    "trainingMaxUnitId, cycleIncrementValue, trainingMaxSource, mainWorkScheme, supplementalScheme, " +
+                    "assistanceRole, placementKind, assistanceCategory, jokerSetsEnabled) VALUES " +
+                    "(2, 'placement-36', 999, 999, 0, '', NULL, 0, 1, 1, NULL, 'None', NULL, '', '', '', '', " +
+                    "'Total', '', 1, '', 85, '', '', 90.718474, 200, 'pound', 5, 'Explicit', " +
+                    "'ClassicPrSet', 'FirstSetLast', 'MainLift', 'MainLift', 'Unspecified', 1)",
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            V35_DATABASE_NAME,
+            36,
+            true,
+            WhipDatabase.migration35To36,
+        ).use { database ->
+            database.query(
+                "SELECT progressionMode, allowNonStandardHigherSuggestions FROM gym_routines WHERE id = 1",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("Standard", cursor.getString(0))
+                assertEquals(0, cursor.getInt(1))
+            }
+            database.query(
+                "SELECT trainingMaxValue, trainingMaxBasisKind, trainingMaxBasisValue, " +
+                    "trainingMaxBasisUnitId, trainingMaxIncreaseEligible FROM routine_exercises WHERE id = 2",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(200.0, cursor.getDouble(0), 0.0)
+                assertEquals("ExplicitTrainingMax", cursor.getString(1))
+                assertEquals(200.0, cursor.getDouble(2), 0.0)
+                assertEquals("pound", cursor.getString(3))
+                assertEquals(0, cursor.getInt(4))
+            }
+            database.query("SELECT COUNT(*) FROM training_max_decisions").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+            }
+        }
+    }
+
+    @Test
+    fun migrationThirtySixToThirtySevenSnapshotsExistingSetClassification() {
+        helper.createDatabase(V36_DATABASE_NAME, 36).apply {
+            execSQL("PRAGMA foreign_keys = OFF")
+            execSQL(
+                "INSERT INTO workout_sets (id, uuid, workoutExerciseId, position, classification, " +
+                    "planned, completed, note, tempo, createdAtMillis, updatedAtMillis, unilateral, " +
+                    "prescriptionSourceLabel, workSectionSnapshot, optionalWorkKindSnapshot) VALUES " +
+                    "(1, 'tm-test-set', 999, 0, 'TrainingMaxTest', 1, 0, '', '', 1, 1, 0, '', 'Main', 'None'), " +
+                    "(2, 'failed-set', 999, 1, 'Failure', 0, 1, '', '', 1, 1, 0, '', 'Main', 'None')",
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            V36_DATABASE_NAME,
+            37,
+            true,
+            WhipDatabase.migration36To37,
+        ).use { database ->
+            database.query(
+                "SELECT classification, prescribedClassificationSnapshot FROM workout_sets ORDER BY id",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("TrainingMaxTest", cursor.getString(0))
+                assertEquals("TrainingMaxTest", cursor.getString(1))
+                check(cursor.moveToNext())
+                assertEquals("Failure", cursor.getString(0))
+                assertEquals("Failure", cursor.getString(1))
+                assertFalse(cursor.moveToNext())
+            }
+        }
+    }
+
     private fun androidx.sqlite.db.SupportSQLiteDatabase.insertMainArea() {
         execSQL(
             "INSERT INTO areas (id, name, nameKey, position, archived, createdAtMillis, updatedAtMillis) " +
@@ -867,6 +1130,11 @@ class WhipDatabaseMigrationTest {
         const val V29_DATABASE_NAME = "machines-v29-to-v30-migration"
         const val V30_DATABASE_NAME = "automation-retirement-v30-to-v31-migration"
         const val V31_DATABASE_NAME = "routine-program-v31-to-v32-migration"
+        const val V32_DATABASE_NAME = "typed-program-v32-to-v33-migration"
+        const val V33_DATABASE_NAME = "main-work-safety-v33-to-v34-migration"
+        const val V34_DATABASE_NAME = "program-provenance-v34-to-v35-migration"
+        const val V35_DATABASE_NAME = "adaptive-training-max-v35-to-v36-migration"
+        const val V36_DATABASE_NAME = "prescribed-classification-v36-to-v37-migration"
 
         val allMigrations: Array<Migration> = arrayOf(
             WhipDatabase.migration1To2,
@@ -882,6 +1150,11 @@ class WhipDatabaseMigrationTest {
             WhipDatabase.migration29To30,
             WhipDatabase.migration30To31,
             WhipDatabase.migration31To32,
+            WhipDatabase.migration32To33,
+            WhipDatabase.migration33To34,
+            WhipDatabase.migration34To35,
+            WhipDatabase.migration35To36,
+            WhipDatabase.migration36To37,
         )
     }
 }

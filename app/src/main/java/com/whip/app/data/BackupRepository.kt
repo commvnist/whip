@@ -342,11 +342,23 @@ class RoomBackupRepository(
         val tableNames = tables.keys().asSequence().toSet()
         val expected = when (dbVersion) {
             BACKUP_DATABASE_VERSION -> EXPORT_TABLES.toSet()
-            9 -> EXPORT_TABLES.toSet()
+            14 -> VERSION_FOURTEEN_EXPORT_TABLES.toSet()
+            13 -> VERSION_THIRTEEN_EXPORT_TABLES.toSet()
+            9 -> VERSION_THIRTEEN_EXPORT_TABLES.toSet()
             8 -> VERSION_EIGHT_EXPORT_TABLES.toSet()
             else -> LEGACY_EXPORT_TABLES.toSet()
         }
-        require(tableNames == expected || (dbVersion < BACKUP_DATABASE_VERSION && tableNames == EXPORT_TABLES.toSet())) {
+        val acceptedTableSets = buildSet {
+            add(expected)
+            if (dbVersion < BACKUP_DATABASE_VERSION) {
+                // Some older-format fixtures/backups were emitted by a newer app after dropping
+                // only the table introduced by the simulated version. The append-only decision
+                // table is safe to accept or synthesize empty.
+                add(expected + "training_max_decisions")
+                add(EXPORT_TABLES.toSet())
+            }
+        }
+        require(tableNames in acceptedTableSets) {
             "Backup table set does not match this build"
         }
         require(tableNames.all { tables.optJSONArray(it) != null }) { "Backup contains invalid table data" }
@@ -423,7 +435,194 @@ class RoomBackupRepository(
             }
             tables.put("gym_machine_exercise_joins", joins)
         }
+        if (databaseVersion < 13) upgradeTypedGymProgramming(tables)
+        if (databaseVersion < 14 && !tables.has("training_max_decisions")) {
+            tables.put("training_max_decisions", JSONArray())
+        }
         retireAutomationBackupRows(tables)
+    }
+
+    /** Mirrors the Room 32 -> 33 semantic backfill for checksum-valid portable backups. */
+    private fun upgradeTypedGymProgramming(tables: JSONObject) {
+        fun inferredWorkSection(row: JSONObject): String = when {
+            row.optString("note").startsWith("Main Work ·") -> "Main"
+            row.optString("note").startsWith("Supplemental ·") -> "Supplemental"
+            else -> "Unspecified"
+        }
+
+        val routineSets = tables.optJSONArray("routine_sets") ?: JSONArray()
+        val routineSetsByExercise = mutableMapOf<Long, MutableList<JSONObject>>()
+        for (index in 0 until routineSets.length()) {
+            val row = routineSets.getJSONObject(index)
+            if (!row.has("workSection")) row.put("workSection", inferredWorkSection(row))
+            if (!row.has("optionalWorkKind")) row.put("optionalWorkKind", "None")
+            if (!row.has("mainWorkScheme")) row.put("mainWorkScheme", "")
+            if (!row.has("supplementalScheme")) row.put("supplementalScheme", "")
+            routineSetsByExercise.getOrPut(row.optLong("routineExerciseId"), ::mutableListOf) += row
+        }
+
+        val routineExercises = tables.optJSONArray("routine_exercises") ?: JSONArray()
+        for (index in 0 until routineExercises.length()) {
+            val row = routineExercises.getJSONObject(index)
+            val sets = routineSetsByExercise[row.optLong("id")].orEmpty()
+            val main = sets.filter { it.optString("workSection") == "Main" }
+            val supplemental = sets.filter { it.optString("workSection") == "Supplemental" }
+            if (!row.has("mainWorkScheme")) {
+                row.put(
+                    "mainWorkScheme",
+                    when {
+                        main.any { it.optString("classification") == "Amrap" } -> "ClassicPrSet"
+                        main.isNotEmpty() && main.all { it.optInt("repetitions") == 5 } -> "FivesPro"
+                        main.isNotEmpty() -> "ClassicMinimumReps"
+                        else -> "Unspecified"
+                    },
+                )
+            }
+            if (!row.has("supplementalScheme")) {
+                row.put(
+                    "supplementalScheme",
+                    when {
+                        supplemental.any { it.optInt("repetitions") == 10 } -> "BoringButBig"
+                        supplemental.isNotEmpty() -> "FirstSetLast"
+                        else -> "None"
+                    },
+                )
+            }
+            if (!row.has("assistanceRole")) {
+                row.put("assistanceRole", if (main.isEmpty()) "Unspecified" else "MainLift")
+            }
+            if (!row.has("placementKind")) {
+                row.put(
+                    "placementKind",
+                    when {
+                        main.isNotEmpty() || row.optString("assistanceRole") == "MainLift" -> "MainLift"
+                        sets.any { it.optString("workSection") == "Assistance" } ||
+                            row.optString("assistanceRole") in setOf("Push", "Pull", "SingleLegCore", "Other") -> "Assistance"
+                        else -> "General"
+                    },
+                )
+            }
+            if (!row.has("assistanceCategory")) {
+                row.put(
+                    "assistanceCategory",
+                    row.optString("assistanceRole").takeIf { it in setOf("Push", "Pull", "SingleLegCore", "Other") }
+                        ?: if (row.optString("placementKind") == "Assistance") "Other" else "Unspecified",
+                )
+            }
+            if (!row.has("jokerSetsEnabled")) row.put("jokerSetsEnabled", false)
+        }
+
+        val workoutSets = tables.optJSONArray("workout_sets") ?: JSONArray()
+        val workoutSetsByExercise = mutableMapOf<Long, MutableList<JSONObject>>()
+        for (index in 0 until workoutSets.length()) {
+            val row = workoutSets.getJSONObject(index)
+            if (!row.has("workSectionSnapshot")) row.put("workSectionSnapshot", inferredWorkSection(row))
+            if (!row.has("optionalWorkKindSnapshot")) row.put("optionalWorkKindSnapshot", "None")
+            workoutSetsByExercise.getOrPut(row.optLong("workoutExerciseId"), ::mutableListOf) += row
+        }
+
+        val workoutExercises = tables.optJSONArray("workout_exercises") ?: JSONArray()
+        for (index in 0 until workoutExercises.length()) {
+            val row = workoutExercises.getJSONObject(index)
+            val sets = workoutSetsByExercise[row.optLong("id")].orEmpty()
+            val main = sets.filter { it.optString("workSectionSnapshot") == "Main" }
+            val supplemental = sets.filter { it.optString("workSectionSnapshot") == "Supplemental" }
+            if (!row.has("mainWorkSchemeSnapshot")) {
+                row.put(
+                    "mainWorkSchemeSnapshot",
+                    when {
+                        main.any { it.optString("classification") == "Amrap" } -> "ClassicPrSet"
+                        main.isNotEmpty() && main.all { it.optInt("repetitions") == 5 } -> "FivesPro"
+                        main.isNotEmpty() -> "ClassicMinimumReps"
+                        else -> "Unspecified"
+                    },
+                )
+            }
+            if (!row.has("supplementalSchemeSnapshot")) {
+                row.put(
+                    "supplementalSchemeSnapshot",
+                    when {
+                        supplemental.any { it.optInt("repetitions") == 10 } -> "BoringButBig"
+                        supplemental.isNotEmpty() -> "FirstSetLast"
+                        else -> "None"
+                    },
+                )
+            }
+            if (!row.has("assistanceRoleSnapshot")) {
+                row.put("assistanceRoleSnapshot", if (main.isEmpty()) "Unspecified" else "MainLift")
+            }
+            if (!row.has("placementKindSnapshot")) {
+                row.put(
+                    "placementKindSnapshot",
+                    when {
+                        main.isNotEmpty() || row.optString("assistanceRoleSnapshot") == "MainLift" -> "MainLift"
+                        sets.any { it.optString("workSectionSnapshot") == "Assistance" } ||
+                            row.optString("assistanceRoleSnapshot") in setOf("Push", "Pull", "SingleLegCore", "Other") -> "Assistance"
+                        else -> "General"
+                    },
+                )
+            }
+            if (!row.has("assistanceCategorySnapshot")) {
+                row.put(
+                    "assistanceCategorySnapshot",
+                    row.optString("assistanceRoleSnapshot")
+                        .takeIf { it in setOf("Push", "Pull", "SingleLegCore", "Other") }
+                        ?: if (row.optString("placementKindSnapshot") == "Assistance") "Other" else "Unspecified",
+                )
+            }
+            if (!row.has("jokerSetsEnabledSnapshot")) row.put("jokerSetsEnabledSnapshot", false)
+        }
+
+        val routines = tables.optJSONArray("gym_routines") ?: JSONArray()
+        for (index in 0 until routines.length()) {
+            val row = routines.getJSONObject(index)
+            if (!row.has("trainingMaxIncreaseEligible")) row.put("trainingMaxIncreaseEligible", true)
+            if (!row.has("programPhaseRolesCsv")) {
+                val labels = row.optString("programPhaseLabelsCsv")
+                    .split(',').map(String::trim).filter(String::isNotBlank)
+                row.put(
+                    "programPhaseRolesCsv",
+                    labels.joinToString(",") { label ->
+                        when {
+                            label.contains("deload", ignoreCase = true) -> "Deload"
+                            label.contains("tm test", ignoreCase = true) -> "TrainingMaxTest"
+                            label.contains("pr test", ignoreCase = true) -> "PersonalRecordTest"
+                            label.contains("leader", ignoreCase = true) -> "Leader"
+                            label.contains("anchor", ignoreCase = true) -> "Anchor"
+                            else -> "Standard"
+                        }
+                    },
+                )
+            }
+            if (!row.has("trainingMaxAdvanceAfterPhaseIndicesCsv")) {
+                val finalPhase = row.optInt("programPhaseCount", 1) - 1
+                row.put(
+                    "trainingMaxAdvanceAfterPhaseIndicesCsv",
+                    finalPhase.toString().takeIf {
+                        row.optString("programKind", "Static") != "Static" && finalPhase >= 0
+                    }.orEmpty(),
+                )
+            }
+            if (!row.has("programTemplateKey")) {
+                row.put(
+                    "programTemplateKey",
+                    if (row.optString("programKind", "Static") in setOf(
+                            "FiveThreeOne", "FiveThreeOneClassic", "FiveSPro", "BoringButBig", "FirstSetLast",
+                        )
+                    ) "LegacyFiveThreeOne" else "None",
+                )
+            }
+            if (!row.has("programTemplateRevision")) {
+                row.put("programTemplateRevision", if (row.optString("programTemplateKey") == "None") 0 else 1)
+            }
+        }
+
+        val sessions = tables.optJSONArray("workout_sessions") ?: JSONArray()
+        for (index in 0 until sessions.length()) {
+            val row = sessions.getJSONObject(index)
+            if (!row.has("sourceRoutinePhaseLabel")) row.put("sourceRoutinePhaseLabel", "")
+            if (!row.has("sourceRoutinePhaseRole")) row.put("sourceRoutinePhaseRole", "Standard")
+        }
     }
 }
 
@@ -438,20 +637,122 @@ private fun ContentValues.applyBackupCompatibilityDefaults(table: String) {
         if (!containsKey("currentProgramPhaseIndex")) put("currentProgramPhaseIndex", 0)
         if (!containsKey("currentProgramCycle")) put("currentProgramCycle", 1)
         if (!containsKey("nextProgramDayPosition")) put("nextProgramDayPosition", 0)
+        if (!containsKey("trainingMaxIncreaseEligible")) put("trainingMaxIncreaseEligible", true)
+        if (!containsKey("programPhaseRolesCsv")) put("programPhaseRolesCsv", "")
+        if (!containsKey("trainingMaxAdvanceAfterPhaseIndicesCsv")) {
+            val finalPhase = (getAsInteger("programPhaseCount") ?: 1) - 1
+            put(
+                "trainingMaxAdvanceAfterPhaseIndicesCsv",
+                finalPhase.toString().takeIf {
+                    getAsString("programKind") != "Static" && finalPhase >= 0
+                }.orEmpty(),
+            )
+        }
+        if (!containsKey("programTemplateKey")) {
+            put(
+                "programTemplateKey",
+                if (getAsString("programKind") in setOf(
+                        "FiveThreeOne", "FiveThreeOneClassic", "FiveSPro", "BoringButBig", "FirstSetLast",
+                    )
+                ) "LegacyFiveThreeOne" else "None",
+            )
+        }
+        if (!containsKey("programTemplateRevision")) {
+            put("programTemplateRevision", if (getAsString("programTemplateKey") == "None") 0 else 1)
+        }
+        if (!containsKey("progressionMode")) put("progressionMode", "Standard")
+        if (!containsKey("allowNonStandardHigherSuggestions")) put("allowNonStandardHigherSuggestions", false)
     }
     if (table == "routine_days" && !containsKey("progressionIndex")) put("progressionIndex", 0)
     if (table == "routine_exercises") {
         if (!containsKey("trainingMaxUnitId")) put("trainingMaxUnitId", "kilogram")
         if (!containsKey("trainingMaxSource")) put("trainingMaxSource", "EstimatedOneRepMaxPercent")
+        if (!containsKey("mainWorkScheme")) put("mainWorkScheme", "Unspecified")
+        if (!containsKey("supplementalScheme")) put("supplementalScheme", "None")
+        if (!containsKey("assistanceRole")) put("assistanceRole", "Unspecified")
+        if (!containsKey("placementKind")) {
+            put(
+                "placementKind",
+                when (getAsString("assistanceRole")) {
+                    "MainLift" -> "MainLift"
+                    "Push", "Pull", "SingleLegCore", "Other" -> "Assistance"
+                    else -> "General"
+                },
+            )
+        }
+        if (!containsKey("assistanceCategory")) {
+            put(
+                "assistanceCategory",
+                getAsString("assistanceRole").takeIf { it in setOf("Push", "Pull", "SingleLegCore", "Other") }
+                    ?: if (getAsString("placementKind") == "Assistance") "Other" else "Unspecified",
+            )
+        }
+        if (!containsKey("jokerSetsEnabled")) put("jokerSetsEnabled", false)
+        if (!containsKey("trainingMaxBasisKind")) {
+            put(
+                "trainingMaxBasisKind",
+                if (containsKey("trainingMaxValue") && getAsDouble("trainingMaxValue") != null) {
+                    "ExplicitTrainingMax"
+                } else {
+                    "Unspecified"
+                },
+            )
+        }
+        if (!containsKey("trainingMaxBasisValue") && containsKey("trainingMaxValue")) {
+            put("trainingMaxBasisValue", getAsDouble("trainingMaxValue"))
+        }
+        if (!containsKey("trainingMaxBasisUnitId")) {
+            put("trainingMaxBasisUnitId", getAsString("trainingMaxUnitId").orEmpty())
+        }
+        if (!containsKey("trainingMaxIncreaseEligible")) put("trainingMaxIncreaseEligible", true)
+    }
+    if (table == "routine_sets") {
+        if (!containsKey("workSection")) put("workSection", "Unspecified")
+        if (!containsKey("optionalWorkKind")) put("optionalWorkKind", "None")
+        if (!containsKey("mainWorkScheme")) put("mainWorkScheme", "")
+        if (!containsKey("supplementalScheme")) put("supplementalScheme", "")
     }
     if (table == "workout_sessions") {
         if (!containsKey("sourceRoutineProgramKind")) put("sourceRoutineProgramKind", "Static")
         if (!containsKey("programProgressAdvanced")) put("programProgressAdvanced", false)
+        if (!containsKey("requiredMainWorkInvalidated")) put("requiredMainWorkInvalidated", false)
+        if (!containsKey("invalidatedMainExerciseIdsCsv")) put("invalidatedMainExerciseIdsCsv", "")
+        if (!containsKey("sourceRoutinePhaseLabel")) put("sourceRoutinePhaseLabel", "")
+        if (!containsKey("sourceRoutinePhaseRole")) put("sourceRoutinePhaseRole", "Standard")
     }
     if (table == "workout_exercises") {
         if (!containsKey("trainingMaxUnitIdSnapshot")) put("trainingMaxUnitIdSnapshot", "")
         if (!containsKey("trainingMaxSourceSnapshot")) {
             put("trainingMaxSourceSnapshot", "EstimatedOneRepMaxPercent")
+        }
+        if (!containsKey("mainWorkSchemeSnapshot")) put("mainWorkSchemeSnapshot", "Unspecified")
+        if (!containsKey("supplementalSchemeSnapshot")) put("supplementalSchemeSnapshot", "None")
+        if (!containsKey("assistanceRoleSnapshot")) put("assistanceRoleSnapshot", "Unspecified")
+        if (!containsKey("placementKindSnapshot")) {
+            put(
+                "placementKindSnapshot",
+                when (getAsString("assistanceRoleSnapshot")) {
+                    "MainLift" -> "MainLift"
+                    "Push", "Pull", "SingleLegCore", "Other" -> "Assistance"
+                    else -> "General"
+                },
+            )
+        }
+        if (!containsKey("assistanceCategorySnapshot")) {
+            put(
+                "assistanceCategorySnapshot",
+                getAsString("assistanceRoleSnapshot")
+                    .takeIf { it in setOf("Push", "Pull", "SingleLegCore", "Other") }
+                    ?: if (getAsString("placementKindSnapshot") == "Assistance") "Other" else "Unspecified",
+            )
+        }
+        if (!containsKey("jokerSetsEnabledSnapshot")) put("jokerSetsEnabledSnapshot", false)
+    }
+    if (table == "workout_sets") {
+        if (!containsKey("workSectionSnapshot")) put("workSectionSnapshot", "Unspecified")
+        if (!containsKey("optionalWorkKindSnapshot")) put("optionalWorkKindSnapshot", "None")
+        if (!containsKey("prescribedClassificationSnapshot")) {
+            put("prescribedClassificationSnapshot", getAsString("classification") ?: "Working")
         }
     }
 }
@@ -688,7 +989,7 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 private const val BACKUP_FORMAT = "whip-backup"
 private const val ENVELOPE_VERSION = 2
 private const val OLDEST_COMPATIBLE_DATABASE_VERSION = 5
-private const val BACKUP_DATABASE_VERSION = 11
+private const val BACKUP_DATABASE_VERSION = 15
 
 private fun ContentValues.normalizeIdentityEmoji(table: String) {
     val defaultEmoji = when (table) {
@@ -706,7 +1007,7 @@ private val EXPORT_TABLES = listOf(
     "tasks", "task_occurrences", "task_steps", "task_step_states", "task_step_snapshots",
     "unit_definitions", "metric_definitions", "metric_entries", "tags",
     "exercises", "exercise_categories", "exercise_category_joins", "gym_machines", "gym_machine_exercise_joins",
-    "gym_routines", "routine_days", "routine_exercises", "routine_sets",
+    "gym_routines", "routine_days", "routine_exercises", "routine_sets", "training_max_decisions",
     "workout_sessions", "workout_groups", "workout_exercises", "workout_sets",
     "personal_records", "graph_presets", "habits", "habit_checklist_items", "habit_logs",
     "habit_checklist_states", "habit_pauses", "habit_skips", "goals", "goal_milestones",
@@ -714,7 +1015,9 @@ private val EXPORT_TABLES = listOf(
     "link_rules", "link_rule_conditions", "link_condition_choices", "contributions", "trigger_rules", "trigger_rule_conditions", "trigger_condition_choices", "trigger_field_mappings", "trigger_occurrences",
 )
 
-private val VERSION_EIGHT_EXPORT_TABLES = EXPORT_TABLES - "gym_machine_exercise_joins"
+private val VERSION_FOURTEEN_EXPORT_TABLES = EXPORT_TABLES
+private val VERSION_THIRTEEN_EXPORT_TABLES = EXPORT_TABLES - "training_max_decisions"
+private val VERSION_EIGHT_EXPORT_TABLES = VERSION_THIRTEEN_EXPORT_TABLES - "gym_machine_exercise_joins"
 private val LEGACY_EXPORT_TABLES = VERSION_EIGHT_EXPORT_TABLES - "habit_skips"
 
 private fun checksumPayload(tables: JSONObject, settings: JSONObject?): String =

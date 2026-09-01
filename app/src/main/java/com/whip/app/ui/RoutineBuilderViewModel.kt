@@ -9,10 +9,13 @@ import kotlinx.coroutines.flow.asStateFlow
 internal data class RoutineBuilderSetState(
     val key: Long,
     val load: String = "",
+    val weightUnitId: String = "",
     val repetitionsMin: String = "",
     val repetitionsMax: String = "",
     val distance: String = "",
+    val distanceUnitId: String = "kilometre",
     val durationSeconds: String = "",
+    val bodyweightKg: String = "",
     val classification: String = "Working",
     val rpe: String = "",
     val rir: String = "",
@@ -23,6 +26,10 @@ internal data class RoutineBuilderSetState(
     val loadPrescriptionType: String = "Absolute",
     val loadPercentage: String = "",
     val routinePhaseIndex: Int? = null,
+    val workSection: String = "Unspecified",
+    val optionalWorkKind: String = "None",
+    val mainWorkScheme: String? = null,
+    val supplementalScheme: String? = null,
 ) : Serializable
 
 internal data class RoutineBuilderPlacementState(
@@ -51,12 +58,23 @@ internal data class RoutineBuilderPlacementState(
     val trainingMaxUnitId: String = "kilogram",
     val cycleIncrementValue: String = "",
     val trainingMaxSource: String = "EstimatedOneRepMaxPercent",
+    val trainingMaxBasisKind: String = "Unspecified",
+    val trainingMaxBasisValue: String = "",
+    val trainingMaxBasisUnitId: String = "",
+    val trainingMaxIncreaseEligible: Boolean = true,
+    val mainWorkScheme: String = "Unspecified",
+    val supplementalScheme: String = "None",
+    val assistanceRole: String = "Unspecified",
+    val placementKind: String = "General",
+    val assistanceCategory: String = "Unspecified",
+    val jokerSetsEnabled: Boolean = false,
 ) : Serializable
 
 internal data class RoutineBuilderDayState(
     val key: Long,
     val name: String,
     val placements: List<RoutineBuilderPlacementState> = emptyList(),
+    val progressionIndex: Int? = null,
 ) : Serializable
 
 internal data class RoutineBuilderState(
@@ -71,6 +89,14 @@ internal data class RoutineBuilderState(
     val programKind: String? = null,
     val programPhaseCount: Int = 1,
     val programPhaseLabels: List<String> = emptyList(),
+    val programPhaseRoles: List<String> = emptyList(),
+    val trainingMaxAdvanceAfterPhaseIndices: Set<Int> = emptySet(),
+    val currentProgramPhaseIndexHint: Int? = null,
+    val nextProgramDayKeyHint: Long? = null,
+    val programTemplateKey: String = "None",
+    val programTemplateRevision: Int = 0,
+    val progressionMode: String = "Standard",
+    val allowNonStandardHigherSuggestions: Boolean = false,
 ) : Serializable
 
 /**

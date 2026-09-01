@@ -8,6 +8,8 @@ import com.whip.app.domain.Exercise
 import com.whip.app.domain.GymGraphRange
 import com.whip.app.domain.ExerciseTrackingType
 import com.whip.app.domain.LoadInterpretation
+import com.whip.app.domain.RoutineOptionalWorkKind
+import com.whip.app.domain.RoutineWorkSection
 import com.whip.app.domain.WorkoutExercise
 import com.whip.app.domain.WorkoutGroup
 import com.whip.app.domain.WorkoutGroupType
@@ -22,6 +24,45 @@ import org.junit.Test
 
 class GymUxRulesTest {
     private val today = LocalDate.of(2026, 8, 22)
+
+    @Test
+    fun restTimerNeverRendersAboveTheSelectedDurationWhenTheUiClockIsStale() {
+        val selectedDuration = 5 * 60
+        val timerStartedAt = 1_000_500L
+        val deadline = timerStartedAt + selectedDuration * 1_000L
+
+        assertEquals(
+            selectedDuration,
+            restTimerRemainingSeconds(
+                deadlineMillis = deadline,
+                nowMillis = 1_000_000L,
+                configuredDurationSeconds = selectedDuration,
+            ),
+        )
+        assertEquals(
+            selectedDuration - 1,
+            restTimerRemainingSeconds(
+                deadlineMillis = deadline,
+                nowMillis = timerStartedAt + 1_000L,
+                configuredDurationSeconds = selectedDuration,
+            ),
+        )
+        assertEquals(
+            selectedDuration,
+            restTimerRemainingSeconds(deadline, timerStartedAt + 1L, selectedDuration),
+        )
+        assertEquals(
+            selectedDuration,
+            restTimerRemainingSeconds(deadline, timerStartedAt + 999L, selectedDuration),
+        )
+        assertNull(
+            restTimerRemainingSeconds(
+                deadlineMillis = deadline,
+                nowMillis = deadline,
+                configuredDurationSeconds = selectedDuration,
+            ),
+        )
+    }
 
     @Test
     fun relativeGraphRangeAlwaysEndsToday() {
@@ -181,6 +222,78 @@ class GymUxRulesTest {
             )?.first?.workoutExercise?.id,
         )
         assertEquals(second.workoutExercise.id, selectNextWorkoutSet(listOf(completedFirst, second))?.first?.workoutExercise?.id)
+    }
+
+    @Test
+    fun programmedLiftFinishesMainThenSupplementalBeforeChangingStationsAndOptionalRequiresAcceptance() {
+        fun item(id: Long, position: Int, section: RoutineWorkSection, completed: Boolean = false): WorkoutExerciseUi {
+            val exercise = testExercise(id, "Exercise $id", "Barbell", "Chest")
+            val placement = WorkoutExercise(
+                id = id,
+                uuid = "placement-$id",
+                sessionId = 1,
+                exerciseId = id,
+                position = position,
+                notes = "",
+                groupId = null,
+                createdAtMillis = 1,
+                updatedAtMillis = 1,
+                loadInterpretationSnapshot = LoadInterpretation.Total,
+            )
+            val set = WorkoutSet(
+                id = id * 10,
+                uuid = "set-$id",
+                workoutExerciseId = id,
+                position = 0,
+                classification = WorkoutSetClassification.Working,
+                planned = true,
+                completed = completed,
+                canonicalWeightKg = 50.0,
+                enteredWeight = 50.0,
+                enteredWeightUnitId = "kilogram",
+                repetitions = 5,
+                canonicalDistanceMetres = null,
+                enteredDistance = null,
+                enteredDistanceUnitId = null,
+                durationSeconds = null,
+                bodyweightKg = null,
+                note = "",
+                rpe = null,
+                rir = null,
+                tempo = "",
+                restSeconds = 120,
+                completedAtMillis = 2L.takeIf { completed },
+                deletedAtMillis = null,
+                createdAtMillis = 1,
+                updatedAtMillis = 1,
+                workSectionSnapshot = section,
+                optionalWorkKindSnapshot = if (section == RoutineWorkSection.Optional) RoutineOptionalWorkKind.Joker else RoutineOptionalWorkKind.None,
+            )
+            return WorkoutExerciseUi(placement, exercise, listOf(set), emptyList(), 0, null, null)
+        }
+
+        val supplemental = item(1, 0, RoutineWorkSection.Supplemental)
+        val main = item(2, 1, RoutineWorkSection.Main)
+        assertEquals(supplemental.workoutExercise.id, selectNextWorkoutSet(listOf(supplemental, main))?.first?.workoutExercise?.id)
+
+        val completedMain = main.sets.single().copy(completed = true, completedAtMillis = 2L)
+        val sameLiftSupplemental = supplemental.sets.single().copy(
+            id = 21L,
+            workoutExerciseId = main.workoutExercise.id,
+        )
+        val squatStation = main.copy(sets = listOf(completedMain, sameLiftSupplemental))
+        val benchMain = item(4, 2, RoutineWorkSection.Main)
+        assertEquals(
+            squatStation.workoutExercise.id,
+            selectNextWorkoutSet(listOf(squatStation, benchMain))?.first?.workoutExercise?.id,
+        )
+
+        val optional = item(3, 2, RoutineWorkSection.Optional)
+        assertEquals(supplemental.workoutExercise.id, selectNextWorkoutSet(listOf(supplemental, optional))?.first?.workoutExercise?.id)
+        assertEquals(optional.workoutExercise.id, selectPendingOptionalWorkoutSet(listOf(optional))?.first?.workoutExercise?.id)
+        assertNull(selectNextWorkoutSet(listOf(optional)))
+        assertEquals(optional.workoutExercise.id, selectNextWorkoutSet(listOf(optional), acceptedOptionalSetIds = setOf(30L))?.first?.workoutExercise?.id)
+        assertTrue(!optional.sets.single().isIncompleteRequiredWork())
     }
 
     private fun testExercise(

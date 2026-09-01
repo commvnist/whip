@@ -741,7 +741,14 @@ internal fun SettingsContent(
                 settings.categoryAllocationMode,
                 ::categoryAllocationModeLabel,
             ) { selected -> viewModel.update { it.copy(categoryAllocationMode = selected) } }
-            Text("Controls how one hard set contributes when an exercise belongs to multiple categories.", style = MaterialTheme.typography.bodySmall)
+            Text(
+                if (settings.categoryAllocationMode == "PrimaryOnly") {
+                    "Counts the set only in the first linked category in your Gym Categories order. Reorder categories to control which one wins; this is unrelated to 5/3/1 Push/Pull assistance roles."
+                } else {
+                    "Controls how one hard set contributes when an exercise belongs to multiple Exercise Library categories. These categories do not assign 5/3/1 assistance roles."
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
         item { SettingsToggle("Adjust estimated 1RM using RPE/RIR", settings.adjustE1rmForEffort) { selected -> viewModel.update { it.copy(adjustE1rmForEffort = selected) } } }
         item { SettingsToggle("Allow assisted lifts in personal records", settings.includeAssistedInPersonalRecords) { selected -> viewModel.update { it.copy(includeAssistedInPersonalRecords = selected) } } }
@@ -1954,7 +1961,7 @@ private fun customUnitExample(dimension: UnitDimension): String = when (dimensio
 private fun categoryAllocationModeLabel(value: String): String = when (value) {
     "Full" -> "Full contribution"
     "Fractional" -> "Split contribution"
-    "PrimaryOnly" -> "Primary category only"
+    "PrimaryOnly" -> "First linked category only"
     else -> value
 }
 

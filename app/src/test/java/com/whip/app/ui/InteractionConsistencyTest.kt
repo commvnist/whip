@@ -54,7 +54,7 @@ class InteractionConsistencyTest {
             RepeatStepPolicy.entries.map(RepeatStepPolicy::uiLabel),
         )
         assertEquals(
-            listOf("Warm-up", "Working", "Back-off", "Drop", "AMRAP", "Failure"),
+            listOf("Warm-up", "Working", "Back-off", "Drop", "AMRAP", "Training Max test", "Failure"),
             WorkoutSetClassification.entries.map(WorkoutSetClassification::uiLabel),
         )
         assertEquals(

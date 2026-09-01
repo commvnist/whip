@@ -33,7 +33,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import com.whip.app.domain.editableNumericValue
+import com.whip.app.domain.RoutineMainWorkScheme
 import com.whip.app.domain.RoutineProgramKind
+import com.whip.app.domain.RoutineSupplementalScheme
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.domain.unitSymbol
 
@@ -45,6 +47,7 @@ internal fun RoutineLabeledSwitchRow(
     modifier: Modifier = Modifier,
     supportingText: String? = null,
     testTag: String? = null,
+    enabled: Boolean = true,
 ) {
     Row(
         modifier = modifier
@@ -53,6 +56,7 @@ internal fun RoutineLabeledSwitchRow(
             .then(if (testTag == null) Modifier else Modifier.testTag(testTag))
             .toggleable(
                 value = checked,
+                enabled = enabled,
                 role = Role.Switch,
                 onValueChange = onCheckedChange,
             )
@@ -76,6 +80,7 @@ internal fun RoutineLabeledSwitchRow(
         }
         Switch(
             checked = checked,
+            enabled = enabled,
             onCheckedChange = null,
             modifier = Modifier.clearAndSetSemantics {},
         )
@@ -94,12 +99,18 @@ internal fun FiveThreeOneBuilder(
     initialTrainingMax: Double? = null,
     initialCycleIncrement: Double? = null,
     initialProgramKind: RoutineProgramKind? = null,
+    initialMainWorkScheme: RoutineMainWorkScheme = RoutineMainWorkScheme.Unspecified,
+    initialSupplementalScheme: RoutineSupplementalScheme = RoutineSupplementalScheme.None,
+    initialJokerSetsEnabled: Boolean = false,
     modifier: Modifier = Modifier,
     onApply: (FiveThreeOneBuilderResult) -> Unit,
 ) {
-    val initialTrainingMaxText = (initialTrainingMax ?: suggestedTrainingMax)?.let(::editableNumericValue).orEmpty()
+    // A recent-max suggestion is never accepted implicitly; it must be copied explicitly.
+    val initialTrainingMaxText = initialTrainingMax?.let(::editableNumericValue).orEmpty()
     var trainingMaxText by rememberSaveable(placementKey) { mutableStateOf(initialTrainingMaxText) }
     val inferredMainScheme = when {
+        initialMainWorkScheme == RoutineMainWorkScheme.FivesPro -> FiveThreeOneMainScheme.FivesPro
+        initialMainWorkScheme != RoutineMainWorkScheme.Unspecified -> FiveThreeOneMainScheme.Classic
         initialProgramKind == RoutineProgramKind.FiveSPro -> FiveThreeOneMainScheme.FivesPro
         currentSets.any { it.classification == com.whip.app.domain.WorkoutSetClassification.Amrap.name } -> FiveThreeOneMainScheme.Classic
         currentSets.filter { it.routinePhaseIndex != null && it.classification != com.whip.app.domain.WorkoutSetClassification.BackOff.name }
@@ -108,6 +119,10 @@ internal fun FiveThreeOneBuilder(
         else -> FiveThreeOneMainScheme.Classic
     }
     val inferredSupplement = when {
+        initialSupplementalScheme == RoutineSupplementalScheme.BoringButBig -> FiveThreeOneSupplement.BoringButBig
+        initialSupplementalScheme == RoutineSupplementalScheme.FirstSetLast -> FiveThreeOneSupplement.FirstSetLast
+        initialSupplementalScheme == RoutineSupplementalScheme.SecondSetLast -> FiveThreeOneSupplement.SecondSetLast
+        initialSupplementalScheme == RoutineSupplementalScheme.BoringButStrong -> FiveThreeOneSupplement.BoringButStrong
         initialProgramKind == RoutineProgramKind.BoringButBig || currentSets.any {
             it.routinePhaseIndex == null && it.classification == com.whip.app.domain.WorkoutSetClassification.BackOff.name && it.repetitionsMin == "10"
         } -> FiveThreeOneSupplement.BoringButBig
@@ -129,8 +144,13 @@ internal fun FiveThreeOneBuilder(
     }
     var boringButBigPercentText by rememberSaveable(placementKey) { mutableStateOf(inferredBbbPercent) }
     var cycleIncrementText by rememberSaveable(placementKey) {
-        mutableStateOf(editableNumericValue(initialCycleIncrement ?: increment))
+        mutableStateOf(
+            editableNumericValue(
+                initialCycleIncrement ?: defaultFiveThreeOneCycleIncrease(unitId, exerciseName),
+            ),
+        )
     }
+    var jokerSetsEnabled by rememberSaveable(placementKey) { mutableStateOf(initialJokerSetsEnabled) }
     var confirmReplace by rememberSaveable(placementKey) { mutableStateOf(false) }
 
     val mainScheme = runCatching { FiveThreeOneMainScheme.valueOf(mainSchemeName) }
@@ -158,6 +178,7 @@ internal fun FiveThreeOneBuilder(
             supplement = supplement,
             classicFinalSetAmrap = finalSetAmrap,
             boringButBigPercent = boringButBigPercent ?: 50.0,
+            jokerSetsEnabled = jokerSetsEnabled,
         )
     }
     val previews = config?.let { previewFiveThreeOneSets(it, increment, availableLoads) }.orEmpty()
@@ -181,11 +202,19 @@ internal fun FiveThreeOneBuilder(
         val validConfig = config ?: return
         onApply(
             FiveThreeOneBuilderResult(
-                sets = fiveThreeOneBuilderSets(currentSets, fullCyclePreviews),
+                sets = fiveThreeOneBuilderSets(
+                    currentSets,
+                    fullCyclePreviews,
+                    mainWorkScheme = fiveThreeOneMainWorkScheme(validConfig),
+                    supplementalScheme = fiveThreeOneSupplementalScheme(validConfig),
+                ),
                 trainingMax = validConfig.trainingMax,
                 trainingMaxUnitId = unitId,
                 cycleIncrementValue = cycleIncrementValue ?: return,
                 programKind = fiveThreeOneProgramKind(validConfig),
+                mainWorkScheme = fiveThreeOneMainWorkScheme(validConfig),
+                supplementalScheme = fiveThreeOneSupplementalScheme(validConfig),
+                jokerSetsEnabled = validConfig.jokerSetsEnabled,
             ),
         )
         confirmReplace = false
@@ -217,7 +246,7 @@ internal fun FiveThreeOneBuilder(
                 supportingText = {
                     Text(
                         suggestedTrainingMax?.let {
-                            "Suggested 90% e1RM: ${editableNumericValue(it)} ${unitSymbol(unitId)} · suggestion only"
+                            "Suggested 85% e1RM: ${editableNumericValue(it)} ${unitSymbol(unitId)} · suggestion only"
                         } ?: "Enter the training max you intend to use for this lift.",
                     )
                 },
@@ -276,10 +305,10 @@ internal fun FiveThreeOneBuilder(
 
             if (mainScheme == FiveThreeOneMainScheme.Classic && phase != FiveThreeOnePhase.Deload) {
                 RoutineLabeledSwitchRow(
-                    label = "Final main set is AMRAP",
+                    label = "Final main set is a PR set",
                     checked = finalSetAmrap,
                     onCheckedChange = { finalSetAmrap = it },
-                    supportingText = "The target stays explicit, such as 5+ · AMRAP, and is saved as an AMRAP set.",
+                    supportingText = "The listed reps are the minimum. Continue for a rep record only while reps stay strong and technically sound.",
                     testTag = "five-three-one-amrap",
                 )
             } else {
@@ -316,6 +345,17 @@ internal fun FiveThreeOneBuilder(
                     modifier = Modifier.fillMaxWidth().testTag("five-three-one-bbb-percent"),
                 )
             }
+            RoutineLabeledSwitchRow(
+                label = "Offer an optional Joker set",
+                checked = jokerSetsEnabled,
+                onCheckedChange = { jokerSetsEnabled = it },
+                supportingText = if (mainScheme == FiveThreeOneMainScheme.FivesPro) {
+                    "Added after Main work without replacing Supplemental work. Its reps follow the classic week's minimum (5/3/1), not 5s PRO, and it never blocks the workout."
+                } else {
+                    "Added after Main work at 5 percentage points above the top set without replacing BBB, FSL, SSL, BBS, or custom Supplemental work. It is optional and never blocks the workout."
+                },
+                testTag = "five-three-one-joker",
+            )
 
             HorizontalDivider()
             Text("${phase.label} Rounded Preview", style = MaterialTheme.typography.labelLarge)
@@ -329,7 +369,8 @@ internal fun FiveThreeOneBuilder(
                 Text(inputError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             } else {
                 previews.forEachIndexed { index, preview ->
-                    val label = "${preview.plan.section.label} ${index + 1}: " +
+                    val setName = if (preview.plan.optionalWorkKind == com.whip.app.domain.RoutineOptionalWorkKind.Joker) "Optional Joker" else preview.plan.section.label
+                    val label = "$setName ${index + 1}: " +
                         "${editableNumericValue(preview.plan.percentageOfTrainingMax)}% TM · " +
                         "${editableNumericValue(preview.roundedLoad)} ${unitSymbol(unitId)} × ${preview.plan.repetitionLabel}"
                     Row(

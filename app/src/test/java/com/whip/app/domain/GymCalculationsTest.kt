@@ -21,6 +21,20 @@ class GymCalculationsTest {
             0.00001,
         )
         assertNull(estimatedOneRepMax(80.0, 11, EstimatedOneRepMaxFormula.Epley))
+        assertEquals(100.0, estimatedOneRepMax(100.0, 1, EstimatedOneRepMaxFormula.Epley)!!, 0.0)
+        assertEquals(100.0, estimatedOneRepMax(100.0, 1, EstimatedOneRepMaxFormula.Brzycki)!!, 0.0)
+        assertNull(estimatedOneRepMax(Double.NaN, 1, EstimatedOneRepMaxFormula.Epley))
+    }
+
+    @Test
+    fun failedSetsNeverBecomePositiveEstimatedOneRepMaxEvidence() {
+        val exercise = exercise()
+        val failed = set(weight = 100.0, reps = 1).copy(
+            completed = true,
+            classification = WorkoutSetClassification.Failure,
+        )
+
+        assertNull(failed.estimatedOneRepMaxKg(exercise))
     }
 
     @Test

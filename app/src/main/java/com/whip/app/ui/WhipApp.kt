@@ -1958,7 +1958,7 @@ fun WhipScreen(
                                 WhipMenuItem(label = "New Goal", onClick = { appDestination = AppDestination.Goals; createGoalRequested = true; globalAddExpanded = false })
                                 WhipMenuItem(label = "New Track", onClick = { appDestination = AppDestination.Tracks; createTrackRequested = true; globalAddExpanded = false })
                                 WhipMenuItem(
-                                    label = if (gymState.activeSession == null) "Start Workout" else "Add to Workout",
+                                    label = if (gymState.activeSession == null) "Start Workout" else "Add Exercise to This Workout",
                                     onClick = {
                                         appDestination = AppDestination.Gym
                                         gymDestination = GymDestination.Workout
@@ -1973,7 +1973,7 @@ fun WhipScreen(
                             }
                             DropdownMenu(expanded = gymAddExpanded && appDestination == AppDestination.Gym, onDismissRequest = { gymAddExpanded = false }) {
                                 WhipMenuItem(
-                                    label = if (gymState.activeSession == null) "Start Workout" else "Add to Workout",
+                                    label = if (gymState.activeSession == null) "Start Workout" else "Add Exercise to This Workout",
                                     onClick = {
                                         gymDestination = GymDestination.Workout
                                         gymAddRequest = if (gymState.activeSession == null) {

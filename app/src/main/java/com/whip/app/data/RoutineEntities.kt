@@ -25,6 +25,13 @@ data class GymRoutineEntity(
     val currentProgramPhaseIndex: Int = 0,
     val currentProgramCycle: Int = 1,
     val nextProgramDayPosition: Int = 0,
+    val trainingMaxIncreaseEligible: Boolean = true,
+    val programPhaseRolesCsv: String = "",
+    val trainingMaxAdvanceAfterPhaseIndicesCsv: String = "",
+    val programTemplateKey: String = "None",
+    val programTemplateRevision: Int = 0,
+    val progressionMode: String = "Standard",
+    val allowNonStandardHigherSuggestions: Boolean = false,
 )
 
 @Entity(
@@ -105,6 +112,16 @@ data class RoutineExerciseEntity(
     val trainingMaxUnitId: String = "kilogram",
     val cycleIncrementValue: Double? = null,
     val trainingMaxSource: String = "EstimatedOneRepMaxPercent",
+    val trainingMaxBasisKind: String = "Unspecified",
+    val trainingMaxBasisValue: Double? = null,
+    val trainingMaxBasisUnitId: String = "",
+    val trainingMaxIncreaseEligible: Boolean = true,
+    val mainWorkScheme: String = "Unspecified",
+    val supplementalScheme: String = "None",
+    val assistanceRole: String = "Unspecified",
+    val placementKind: String = "General",
+    val assistanceCategory: String = "Unspecified",
+    val jokerSetsEnabled: Boolean = false,
 )
 
 @Entity(
@@ -146,6 +163,42 @@ data class RoutineSetEntity(
     val loadPercentage: Double? = null,
     /** Null means the set applies in every phase. */
     val routinePhaseIndex: Int? = null,
+    val workSection: String = "Unspecified",
+    val optionalWorkKind: String = "None",
+    val mainWorkScheme: String = "",
+    val supplementalScheme: String = "",
+)
+
+@Entity(
+    tableName = "training_max_decisions",
+    indices = [
+        Index("uuid", unique = true),
+        Index(value = ["routineUuid", "cycle"]),
+        Index(value = ["sessionUuid", "exerciseUuid"], unique = true),
+        Index("sessionUuid"),
+        Index("exerciseUuid"),
+    ],
+)
+data class TrainingMaxDecisionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val uuid: String,
+    val routineUuid: String,
+    val sessionUuid: String,
+    val exerciseUuid: String,
+    val exerciseName: String,
+    val cycle: Int,
+    val previousTrainingMax: Double,
+    val appliedDelta: Double,
+    val resultingTrainingMax: Double,
+    val unitId: String,
+    val standardDelta: Double,
+    val recommendationCategory: String,
+    val recommendationDelta: Double,
+    val confidence: Double,
+    val reasonsText: String,
+    val engineVersion: String,
+    val action: String,
+    val createdAtMillis: Long,
 )
 
 @Entity(

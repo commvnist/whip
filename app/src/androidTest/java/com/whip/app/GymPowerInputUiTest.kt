@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -19,9 +20,12 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.BodyweightLoadPolicy
 import com.whip.app.domain.EstimatedOneRepMaxFormula
@@ -33,9 +37,13 @@ import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.GymRoutine
 import com.whip.app.domain.RoutineDay
 import com.whip.app.domain.RoutineExercise
+import com.whip.app.domain.RoutineAssistanceRole
 import com.whip.app.domain.RoutineLoadPrescriptionType
+import com.whip.app.domain.RoutineMainWorkScheme
 import com.whip.app.domain.RoutineProgramKind
+import com.whip.app.domain.RoutineProgramPhaseRole
 import com.whip.app.domain.RoutineSet
+import com.whip.app.domain.RoutineSupplementalScheme
 import com.whip.app.domain.RoutineTrainingMaxSource
 import com.whip.app.domain.WorkoutExercise
 import com.whip.app.domain.WorkoutGroup
@@ -56,6 +64,7 @@ import com.whip.app.ui.WorkoutExerciseGroupSurface
 import com.whip.app.ui.WorkoutExerciseUi
 import com.whip.app.ui.WorkoutHistoryCard
 import com.whip.app.ui.GymUiState
+import com.whip.app.ui.GymProgressContent
 import com.whip.app.ui.buildWorkoutExerciseBlocks
 import com.whip.app.ui.customDisplayName
 import com.whip.app.ui.reorderWorkoutBlock
@@ -96,6 +105,13 @@ class GymPowerInputUiTest {
             currentProgramPhaseIndex = 2,
             currentProgramCycle = 3,
             nextProgramDayPosition = 1,
+            programPhaseRoles = listOf(
+                RoutineProgramPhaseRole.Leader,
+                RoutineProgramPhaseRole.Leader,
+                RoutineProgramPhaseRole.Anchor,
+                RoutineProgramPhaseRole.Deload,
+            ),
+            trainingMaxAdvanceAfterPhaseIndices = setOf(3),
         )
         val day = RoutineDay(2, "day", routine.id, "Upper", 0, 1, 2, progressionIndex = 4)
         val placement = RoutineExercise(
@@ -116,6 +132,10 @@ class GymPowerInputUiTest {
             trainingMaxUnitId = "pound",
             cycleIncrementValue = 5.0,
             trainingMaxSource = RoutineTrainingMaxSource.Explicit,
+            mainWorkScheme = RoutineMainWorkScheme.ClassicPrSet,
+            supplementalScheme = RoutineSupplementalScheme.FirstSetLast,
+            assistanceRole = RoutineAssistanceRole.MainLift,
+            jokerSetsEnabled = true,
         )
         val plannedSet = RoutineSet(
             id = 5,
@@ -153,9 +173,23 @@ class GymPowerInputUiTest {
         assertEquals("pound", reconstructedPlacement.trainingMaxUnitId)
         assertEquals(5.0, reconstructedPlacement.cycleIncrementValue!!, 0.0)
         assertEquals(RoutineTrainingMaxSource.Explicit, reconstructedPlacement.trainingMaxSource)
+        assertEquals(RoutineMainWorkScheme.ClassicPrSet, reconstructedPlacement.mainWorkScheme)
+        assertEquals(RoutineSupplementalScheme.FirstSetLast, reconstructedPlacement.supplementalScheme)
+        assertEquals(RoutineAssistanceRole.MainLift, reconstructedPlacement.assistanceRole)
+        assertTrue(reconstructedPlacement.jokerSetsEnabled)
         assertEquals(4, reconstructed.days.single().progressionIndex)
         assertEquals(RoutineProgramKind.FiveThreeOneClassic, reconstructed.program?.kind)
         assertEquals(listOf("5s", "3s", "5/3/1", "Deload"), reconstructed.program?.phaseLabels)
+        assertEquals(
+            listOf(
+                RoutineProgramPhaseRole.Leader,
+                RoutineProgramPhaseRole.Leader,
+                RoutineProgramPhaseRole.Anchor,
+                RoutineProgramPhaseRole.Deload,
+            ),
+            reconstructed.program?.phaseRoles,
+        )
+        assertEquals(setOf(3), reconstructed.program?.trainingMaxAdvanceAfterPhaseIndices)
         assertEquals(plannedSet.draft, reconstructedPlacement.plannedSets.single())
         assertEquals(
             "Classic 5/3/1 · Cycle 3 · 5/3/1 · Next · Upper",
@@ -193,6 +227,107 @@ class GymPowerInputUiTest {
         compose.onNodeWithText("Effort field").assertIsDisplayed()
         compose.onAllNodes(hasText("RPE field")).assertCountEquals(0)
         compose.onAllNodes(hasText("RIR field")).assertCountEquals(0)
+    }
+
+    @Test
+    fun exerciseEditorExplainsInvalidDefaultsAndDoesNotSubmitThem() {
+        var submitted = false
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                ExerciseEditorDialog(
+                    exercise = null,
+                    categories = emptyList(),
+                    selectedCategoryIds = emptySet(),
+                    defaultWeightUnit = "kilogram",
+                    defaultRestSeconds = 120,
+                    defaultFormula = EstimatedOneRepMaxFormula.Epley,
+                    platePresets = emptyList(),
+                    onDismiss = {},
+                    onSave = { submitted = true },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("exercise-editor-name").performTextInput("Bench press")
+        compose.onNodeWithText("Advanced Options").performClick()
+        compose.onNodeWithTag("exercise-editor-list").performScrollToNode(hasTestTag("exercise-weight-increment"))
+        compose.onNodeWithTag("exercise-weight-increment").performTextReplacement("0")
+        compose.onNodeWithText("Save").performClick()
+
+        compose.onNodeWithTag("exercise-editor-list").performScrollToNode(hasTestTag("exercise-save-problem"))
+        compose.onNodeWithTag("exercise-save-problem")
+            .assertIsDisplayed()
+        compose.onNodeWithContentDescription("Save blocked. Weight increment must be above 0")
+            .assertIsDisplayed()
+        compose.runOnIdle { assertEquals(false, submitted) }
+    }
+
+    @Test
+    fun progressWithoutCompletedWorkoutsDoesNotShowInventedTrendControls() {
+        var workoutRequested = false
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                GymProgressContent(
+                    state = GymUiState(exercises = listOf(testExercise()), loading = false),
+                    onOpenExercises = {},
+                    onOpenWorkout = { workoutRequested = true },
+                    onOpenWorkoutHistory = {},
+                    onManageTrackedRecords = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("No Progress Data Yet").assertIsDisplayed()
+        compose.onAllNodes(hasTestTag("gym-progress-exercise-selector")).assertCountEquals(0)
+        compose.onNode(hasText("Start a Workout") and hasClickAction()).performClick()
+        compose.runOnIdle { assertTrue(workoutRequested) }
+    }
+
+    @Test
+    fun restTimerStacksActionsAtLargeTextAndNamesEveryAction() {
+        val session = WorkoutSession(
+            id = 91,
+            uuid = "large-text-timer",
+            name = "Workout",
+            notes = "",
+            startedAt = Instant.parse("2026-08-31T16:00:00Z"),
+            endedAt = null,
+            localDate = LocalDate.of(2026, 8, 31),
+            zoneId = "UTC",
+            state = WorkoutSessionState.Active,
+            keepScreenAwake = false,
+            restTimerDeadlineMillis = null,
+            restTimerDurationSeconds = null,
+            archived = false,
+            createdAtMillis = 1,
+            updatedAtMillis = 1,
+        )
+        compose.setContent {
+            val currentDensity = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(currentDensity.density, fontScale = 2f)) {
+                WhipTheme(darkTheme = true, dynamicColor = false) {
+                    RestTimerCard(
+                        session = session,
+                        remaining = 45,
+                        selectedSeconds = 120,
+                        presetSeconds = DEFAULT_REST_TIMER_PRESET_SECONDS,
+                        notificationPermissionRequested = false,
+                        onSelectedSecondsChange = {},
+                        onPresetSecondsChange = {},
+                        onStart = { _, _ -> },
+                        onAdjust = { _, _ -> },
+                        onStop = {},
+                    )
+                }
+            }
+        }
+
+        val timer = compose.onNodeWithText("Rest · 0:45").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val subtract = compose.onNodeWithContentDescription("Subtract 15 seconds from rest timer").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val add = compose.onNodeWithContentDescription("Add 15 seconds to rest timer").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val stop = compose.onNodeWithContentDescription("Stop rest timer").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        check(timer.bottom <= subtract.top) { "Large-text timer actions must move below the timer label" }
+        check(subtract.right <= add.left && add.right <= stop.left) { "Timer actions must not overlap" }
     }
 
     @Test
@@ -876,6 +1011,8 @@ class GymPowerInputUiTest {
         val session = testHistorySession().copy(
             sourceRoutineProgramKind = RoutineProgramKind.FiveThreeOneClassic,
             sourceRoutinePhaseIndex = 2,
+            sourceRoutinePhaseLabel = "Anchor 1",
+            sourceRoutinePhaseRole = RoutineProgramPhaseRole.Anchor,
             sourceRoutineCycle = 3,
             sourceRoutineDayPosition = 1,
             sourceRoutineDayProgressionIndex = 4,
@@ -917,7 +1054,7 @@ class GymPowerInputUiTest {
         compose.onNodeWithTag("history-workout-toggle-${session.id}").performClick()
         compose.onNodeWithTag("history-program-snapshot-${session.id}")
             .assertTextContains(
-                "Program snapshot · Classic 5/3/1 · Cycle 3 · Phase 3 · Day 2 · Day progression 5 · Did not advance program progress",
+                "Program snapshot · Classic 5/3/1 · Cycle 3 · Anchor 1 · Anchor · Day 2 · Day progression 5 · Did not advance program progress",
             )
         compose.onAllNodesWithText("Use Again").assertCountEquals(3)
         compose.onNodeWithText("Repeat Workout").assertExists()
@@ -947,7 +1084,7 @@ class GymPowerInputUiTest {
         compose.onNodeWithText("Resume Original Workout").assertIsDisplayed()
         compose.onNodeWithText("Save as Routine").assertIsDisplayed()
         assertEquals(
-            "Program snapshot · Classic 5/3/1 · Cycle 3 · Phase 3 · Day 2 · Day progression 5 · Did not advance program progress",
+            "Program snapshot · Classic 5/3/1 · Cycle 3 · Anchor 1 · Anchor · Day 2 · Day progression 5 · Did not advance program progress",
             workoutProgramSnapshotLabel(session),
         )
     }

@@ -77,6 +77,25 @@ class GymRepositoryTest {
     }
 
     @Test
+    fun exerciseDefaultsRejectInvalidRestAndPlateValuesBeforePersistence() {
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking {
+                repository.createExercise(
+                    ExerciseDraft(name = "Bench press", defaultRestSeconds = -30),
+                )
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking {
+                repository.createExercise(
+                    ExerciseDraft(name = "Bench press", availablePlatesKg = listOf(20.0, 0.0)),
+                )
+            }
+        }
+        assertTrue(runBlocking { repository.exercises.first().isEmpty() })
+    }
+
+    @Test
     fun machineCanBeCreatedUnattachedThenLinkedToMultipleExercises() = runBlocking {
         val rowId = repository.createExercise(ExerciseDraft(name = "Cable row"))
         val pressId = repository.createExercise(ExerciseDraft(name = "Cable press"))
@@ -174,6 +193,18 @@ class GymRepositoryTest {
 
         repository.stopRestTimer(sessionId)
         assertEquals(null, repository.sessions.first().single().restTimerDeadlineMillis)
+    }
+
+    @Test
+    fun restTimerAdjustmentsPreserveTheDisplayedSecondCount() = runBlocking {
+        val sessionId = repository.startWorkout()
+        repository.startRestTimer(sessionId, 300)
+
+        repository.adjustRestTimer(sessionId, 15)
+        assertEquals(315, repository.sessions.first().single().restTimerDurationSeconds)
+
+        repository.adjustRestTimer(sessionId, -15)
+        assertEquals(300, repository.sessions.first().single().restTimerDurationSeconds)
     }
 
     @Test
