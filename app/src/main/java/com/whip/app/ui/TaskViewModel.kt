@@ -5,10 +5,17 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.whip.app.WhipApplication
 import com.whip.app.core.HomeSection
+import com.whip.app.core.CommittedEntitySaveCancellation
 import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
+import com.whip.app.core.EntitySaveReceipt
+import com.whip.app.core.PersistenceRequestState
 import com.whip.app.core.WhipClock
+import com.whip.app.core.WhipResult
+import com.whip.app.core.completeCommittedEntitySave
 import com.whip.app.core.revealHomeSection
+import com.whip.app.core.saveFollowUpWarning
+import com.whip.app.core.tryStartPersistenceRequest
 import com.whip.app.core.zoneId
 import com.whip.app.data.TaskRepository
 import com.whip.app.data.TaskDeletionBatchImpact
@@ -29,7 +36,6 @@ import com.whip.app.domain.WhipTask
 import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.RecurrenceAnchor
 import com.whip.app.domain.visibleTaskStepsForOccurrence
-import com.whip.app.reminders.reminderDefinitionChanged
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
@@ -49,6 +55,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 enum class TaskDestination {
@@ -89,6 +97,10 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _operationFeedback = MutableStateFlow(TaskOperationFeedback())
     val operationFeedback: StateFlow<TaskOperationFeedback> = _operationFeedback.asStateFlow()
+    private val _editorSaveState = MutableStateFlow<PersistenceRequestState<EntitySaveReceipt>>(
+        PersistenceRequestState.Idle,
+    )
+    val editorSaveState: StateFlow<PersistenceRequestState<EntitySaveReceipt>> = _editorSaveState.asStateFlow()
     private var pendingUndoAction: TaskUndoAction? = null
     private var pendingUndoMessage: String? = null
     private var pendingUndoToken: Long? = null
@@ -153,38 +165,78 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         _operationFeedback.value = _operationFeedback.value.copy(status = OperationStatus.Idle)
     }
 
+    fun consumeEditorSaveResult(requestId: String) {
+        if ((_editorSaveState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _editorSaveState.value = PersistenceRequestState.Idle
+        }
+    }
+
     fun retryLoading() { reloadKey.value++ }
 
     fun saveTask(
         taskId: Long?,
         draft: TaskDraft,
         fromOccurrence: LocalDate? = null,
+        requestId: String? = null,
         onFinished: (Boolean) -> Unit = {},
-    ) {
-        runOperation(
+    ): Boolean {
+        if (requestId != null && !_editorSaveState.tryStartPersistenceRequest(requestId)) {
+            onFinished(false)
+            return false
+        }
+        runEntitySaveOperation(
             runningMessage = if (taskId == null) "Creating task…" else "Saving task…",
             successMessage = when {
                 taskId == null -> "Task created"
                 fromOccurrence != null -> "Future series created · earlier history preserved"
                 else -> "Task saved"
             },
-            onFinished = onFinished,
+            requestId = requestId,
+            onFinished = { result ->
+                if (requestId != null &&
+                    (_editorSaveState.value as? PersistenceRequestState.Running)?.requestId == requestId
+                ) {
+                    _editorSaveState.value = PersistenceRequestState.Finished(requestId, result)
+                }
+                onFinished(result is WhipResult.Success)
+            },
         ) {
-            val existing = taskId?.let { repository.getTask(it) }
-            val savedId = if (taskId == null) {
-                repository.create(draft)
-            } else {
-                repository.update(taskId, draft, fromOccurrence)
-            }
-            if (existing == null || existing.reminderDefinitionChanged(draft) || savedId != taskId) {
-                reminders.syncTask(savedId)
-            }
-            if (taskId != null && savedId != taskId) {
-                reminders.syncTask(taskId)
-            }
-            draft.tags.filter { tag -> existing?.tags?.none { it.equals(tag, ignoreCase = true) } != false }
-                .forEach { app.measurementRepository.ensureTag(it) }
+            completeCommittedEntitySave(
+                commit = {
+                    val savedId = if (taskId == null) {
+                        repository.create(draft)
+                    } else {
+                        repository.update(taskId, draft, fromOccurrence)
+                    }
+                    EntitySaveReceipt(savedId, draft.areaId, areaVerified = false)
+                },
+                followUp = { committed ->
+                    val savedId = requireNotNull(committed.entityId)
+                    var resolvedAreaId = committed.areaId
+                    var areaVerified = false
+                    val warnings = listOfNotNull(
+                        saveFollowUpWarning("Saved Area could not be verified; showing All Areas.") {
+                            val saved = requireNotNull(repository.getTask(savedId)) { "Saved Task could not be reread" }
+                            resolvedAreaId = saved.areaId
+                            areaVerified = true
+                        },
+                        saveFollowUpWarning("Some tag suggestions did not refresh. Saving again will retry them.") {
+                            draft.tags.forEach { app.measurementRepository.ensureTag(it) }
+                        },
+                        saveFollowUpWarning("Reminder refresh did not finish. Reopen and save the Task to retry.") {
+                            reminders.syncTask(savedId)
+                            if (taskId != null && savedId != taskId) reminders.syncTask(taskId)
+                        },
+                    )
+                    committed.copy(
+                        areaId = resolvedAreaId,
+                        warnings = warnings,
+                        areaVerified = areaVerified,
+                    )
+                },
+            )
         }
+        return true
     }
 
     fun quickAddTask(
@@ -615,6 +667,65 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private val reorderMutex = Mutex()
+
+    private fun runEntitySaveOperation(
+        runningMessage: String,
+        successMessage: String,
+        requestId: String?,
+        onFinished: (WhipResult<EntitySaveReceipt>) -> Unit,
+        block: suspend () -> EntitySaveReceipt,
+    ) {
+        _operationFeedback.value = TaskOperationFeedback(status = OperationStatus.Running(runningMessage))
+        viewModelScope.launch {
+            fun successResult(receipt: EntitySaveReceipt): WhipResult.Success<EntitySaveReceipt> {
+                val message = if (receipt.warnings.isEmpty()) successMessage else {
+                    "$successMessage · ${receipt.warnings.joinToString(" ")}"
+                }
+                _operationFeedback.value = TaskOperationFeedback(
+                    status = OperationStatus.Succeeded(message, OperationFeedbackPresentation.Snackbar),
+                )
+                return WhipResult.Success(receipt)
+            }
+            val result = try {
+                val receipt = checkNotNull(app.withUserDataAccess { block() }) {
+                    "Whip data is unavailable while recovery is in progress"
+                }
+                successResult(receipt)
+            } catch (cancelled: CommittedEntitySaveCancellation) {
+                if (requestId != null && currentCoroutineContext().isActive) {
+                    successResult(
+                        cancelled.receipt.copy(
+                            warnings = cancelled.receipt.warnings +
+                                "Some post-save updates were interrupted; the Task itself was saved.",
+                        ),
+                    )
+                } else {
+                    if ((_editorSaveState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _editorSaveState.value = PersistenceRequestState.Idle
+                    }
+                    _operationFeedback.value = TaskOperationFeedback(status = OperationStatus.Idle)
+                    throw cancelled
+                }
+            } catch (cancelled: CancellationException) {
+                if (requestId != null && currentCoroutineContext().isActive) {
+                    _operationFeedback.value = TaskOperationFeedback(status = OperationStatus.Idle)
+                    WhipResult.Failure("The Task save was interrupted. Your changes are still here.", cancelled)
+                } else {
+                    if ((_editorSaveState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _editorSaveState.value = PersistenceRequestState.Idle
+                    }
+                    _operationFeedback.value = TaskOperationFeedback(status = OperationStatus.Idle)
+                    throw cancelled
+                }
+            } catch (error: Exception) {
+                _operationFeedback.value = if (requestId == null) {
+                    TaskOperationFeedback(status = OperationStatus.Failed(error.message ?: "Something went wrong", error))
+                } else TaskOperationFeedback(status = OperationStatus.Idle)
+                WhipResult.Failure(error.message ?: "The task could not be saved.", error)
+            }
+            runCatching { onFinished(result) }
+        }
+    }
 
     private fun runOperation(
         runningMessage: String,

@@ -71,3 +71,15 @@
 - Related: `FND-20260831-009`, `DEC-20260831-010`.
 - Verification: `VER-20260831-009`.
 - Status: Implemented and fully verified; integrated physical-device release remains deferred until the maximum-quality goal is complete.
+
+### IMP-20260831-008 — Request-owned productivity definition saves
+
+- Behavior changed: Task, Habit, and Goal definition editors now retain their draft, scroll position, and Area context until their exact asynchronous request settles. Saving blocks Back, pointer, and hardware-key editing with an accessible live overlay. Failure stays inline and retryable; success dismisses or opens a fresh Save-and-New session exactly once and only then reconciles the visible Area.
+- Architecture: `PersistenceRequestState` and `EntitySaveReceipt` separate request ownership from global presentation. Admission is atomic and Idle-only; stale terminal delivery is reclaimed without adopting unrelated Running work. `completeCommittedEntitySave` marks the authoritative repository write as the point of no return, preserves the committed identity across cancellation, converts only ordinary post-commit failures to warnings, and lets fatal errors propagate. Saved Area is authoritatively reread; unverifiable or no-longer-active Areas route safely to All Areas. Every authored save retries tag and reminder derivation, making the recovery message truthful.
+- Important files: `core/AppRuntime.kt`, `domain/AreaScope.kt`, `ui/ProductivityEditorComponents.kt`, `TaskViewModel.kt`, `HabitViewModel.kt`, `GoalViewModel.kt`, `WhipApp.kt`, `TaskEditorDialog.kt`, `HabitScreens.kt`, `GoalScreens.kt`, and the focused JVM/Android tests.
+- Persistence/history impact: No Room schema or backup-format change. Existing entities, completed records, reminder definitions, Areas, tags, and historical data are untouched. The change governs only the sequence and outcome reporting of new authored saves.
+- Compatibility: Legacy non-editor ViewModel callers retain Boolean/global operation feedback. UI defaults no longer fabricate success when a request path is absent. Filtered list projections remain scoped while editor entity resolution uses unscoped authoritative state or a captured Task snapshot.
+- Commit/push: Focused productivity-save commit containing this entry on `origin/main`.
+- Related: `FND-20260831-010`, `FND-20260831-019`, `DEC-20260831-011`.
+- Verification: `VER-20260831-010`.
+- Status: Implemented, independently accepted, fully verified, committed, and pushed; integrated physical-device release remains deferred.

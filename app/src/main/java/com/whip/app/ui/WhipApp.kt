@@ -148,6 +148,8 @@ import com.whip.app.R
 import com.whip.app.WhipApplication
 import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
+import com.whip.app.core.EntitySaveReceipt
+import com.whip.app.core.PersistenceRequestState
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.TaskDraft
@@ -155,6 +157,7 @@ import com.whip.app.domain.TaskQuickCaptureParser
 import com.whip.app.domain.Area
 import com.whip.app.domain.AreaScope
 import com.whip.app.domain.matches
+import com.whip.app.domain.scopeForSavedArea
 import com.whip.app.domain.massFromKilograms
 import com.whip.app.domain.unitSymbol
 import com.whip.app.domain.periodBounds
@@ -605,6 +608,7 @@ fun WhipApp(
     val goalState = coherentCalendarState.goals
     val trackState = coherentCalendarState.tracks
     val taskOperationFeedback by taskViewModel.operationFeedback.collectAsStateWithLifecycle()
+    val taskEditorSaveState by taskViewModel.editorSaveState.collectAsStateWithLifecycle()
     val operationStatus = taskOperationFeedback.status
     val taskDeletionImpact by taskViewModel.taskDeletionImpact.collectAsStateWithLifecycle()
     val taskDeletionBatchImpact by taskViewModel.taskDeletionBatchImpact.collectAsStateWithLifecycle()
@@ -798,6 +802,8 @@ fun WhipApp(
             adaptiveLayout = adaptiveLayout,
             foldInfo = foldInfo,
             operationStatus = operationStatus,
+            taskEditorSaveState = taskEditorSaveState,
+            onTaskEditorSaveResultConsumed = taskViewModel::consumeEditorSaveResult,
             onOperationStatusConsumed = taskViewModel::consumeOperationStatus,
             taskUndoMessage = pendingTaskUndoMessage,
             taskUndoToken = pendingTaskUndoToken,
@@ -826,8 +832,8 @@ fun WhipApp(
                 gym = gymViewModel::retryLoading,
             ),
             onSaveTask = { id, draft, from -> taskViewModel.saveTask(id, draft, from) },
-            onSaveTaskWithResult = { id, draft, from, onFinished ->
-                taskViewModel.saveTask(id, draft, from, onFinished)
+            onSaveTaskRequest = { id, draft, from, requestId ->
+                taskViewModel.saveTask(id, draft, from, requestId = requestId)
             },
             onQuickAddTask = { capture, date, areaId ->
                 taskViewModel.quickAddTask(capture, date, areaId)
@@ -904,6 +910,8 @@ fun WhipScreen(
     pendingAreaBadgeId: String? = null,
     onAreaBadgeConsumed: () -> Unit = {},
     operationStatus: OperationStatus = OperationStatus.Idle,
+    taskEditorSaveState: PersistenceRequestState<EntitySaveReceipt> = PersistenceRequestState.Idle,
+    onTaskEditorSaveResultConsumed: (String) -> Unit = {},
     onOperationStatusConsumed: () -> Unit = {},
     taskUndoMessage: String? = null,
     taskUndoToken: Long? = null,
@@ -926,10 +934,7 @@ fun WhipScreen(
     onTrackEntryUndoDismissed: (Long) -> Unit = {},
     domainRetryActions: DomainRetryActions = DomainRetryActions(),
     onSaveTask: (Long?, TaskDraft, LocalDate?) -> Unit,
-    onSaveTaskWithResult: (Long?, TaskDraft, LocalDate?, (Boolean) -> Unit) -> Unit = { id, draft, from, onFinished ->
-        onSaveTask(id, draft, from)
-        onFinished(true)
-    },
+    onSaveTaskRequest: (Long?, TaskDraft, LocalDate?, String) -> Boolean = { _, _, _, _ -> false },
     onQuickAddTask: (String, LocalDate?, String?) -> Unit = { _, _, _ -> },
     onQuickAddTaskWithResult: (String, LocalDate?, String?, (Boolean) -> Unit) -> Unit = { capture, date, areaId, onFinished ->
         onQuickAddTask(capture, date, areaId)
@@ -987,8 +992,8 @@ fun WhipScreen(
     var taskPlanningViewRequest by rememberSaveable { mutableStateOf<TaskPlanningView?>(null) }
     var taskEditorOpen by rememberSaveable { mutableStateOf(false) }
     var taskEditorTaskId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var taskEditorSnapshot by remember { mutableStateOf<com.whip.app.domain.WhipTask?>(null) }
     var taskEditorFromEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
-    var taskEditorSavePending by rememberSaveable { mutableStateOf(false) }
     var taskEditorSaveAndNew by rememberSaveable { mutableStateOf(false) }
     var taskEditorCapture by rememberSaveable { mutableStateOf("") }
     var taskEditorInitialScheduleEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -1192,7 +1197,10 @@ fun WhipScreen(
         }
         searchPreviouslyOpen = searchOpen
     }
-    val editorTask = taskEditorTaskId?.let { id -> allScheduledTasks.firstOrNull { it.task.id == id }?.task }
+    val editorTask = taskEditorTaskId?.let { id ->
+        taskEditorSnapshot?.takeIf { it.id == id }
+            ?: unscopedTaskState.taskEntities.firstOrNull { it.id == id }
+    }
     val editorRequest = if (taskEditorOpen && (taskEditorTaskId == null || editorTask != null)) {
         TaskEditorRequest(
             editorTask,
@@ -1213,6 +1221,7 @@ fun WhipScreen(
     ) {
         taskEditorOpen = true
         taskEditorTaskId = item?.task?.id
+        taskEditorSnapshot = item?.task
         taskEditorFromEpochDay = item?.originalDate
             ?.takeIf { item.task.scheduleKind == ScheduleKind.Recurring }
             ?.toEpochDay()
@@ -1224,8 +1233,8 @@ fun WhipScreen(
     fun closeTaskEditor() {
         taskEditorOpen = false
         taskEditorTaskId = null
+        taskEditorSnapshot = null
         taskEditorFromEpochDay = null
-        taskEditorSavePending = false
         taskEditorSaveAndNew = false
         taskEditorCapture = ""
         taskEditorInitialScheduleEpochDay = null
@@ -1519,19 +1528,42 @@ fun WhipScreen(
         }
     }
 
-    fun keepSavedItemVisible(areaId: String?) {
-        val target = areaId?.let(AreaScope::One)
-            ?: settingsState.areas.firstOrNull { !it.archived }?.id?.let(AreaScope::One)
-            ?: AreaScope.All
-        if (!areaScope.matches(areaId)) {
+    fun keepSavedItemVisible(areaId: String?, areaVerified: Boolean = true) {
+        val availableAreas = settingsState.areas.filterNot(Area::archived)
+        val target = if (areaVerified) {
+            scopeForSavedArea(areaId, availableAreas.mapTo(mutableSetOf(), Area::id))
+        } else AreaScope.All
+        val needsMove = when {
+            !areaVerified -> areaScope != AreaScope.All
+            areaScope == AreaScope.All -> false
+            target == AreaScope.All -> true
+            else -> !areaScope.matches(areaId)
+        }
+        if (needsMove) {
             areaMoveRestoreScope = areaScope.storageKey
             onSelectAreaScope(target)
-            val label = areaId?.let { id -> settingsState.areas.firstOrNull { it.id == id }?.name }
-                ?: settingsState.areas.firstOrNull { !it.archived }?.name
-                ?: "Main"
+            val label = when (target) {
+                AreaScope.All -> "All Areas"
+                AreaScope.Unassigned -> "Main"
+                is AreaScope.One -> availableAreas.firstOrNull { it.id == target.areaId }?.name ?: "All Areas"
+            }
             areaMoveNotice = "Switched to $label to keep the saved item visible"
         }
     }
+
+    val taskEditorSaveCoordinator = rememberEntitySaveCoordinator(
+        state = taskEditorSaveState,
+        consume = onTaskEditorSaveResultConsumed,
+        key = taskEditorSessionId,
+        onPersisted = { receipt ->
+            keepSavedItemVisible(receipt.areaId, receipt.areaVerified)
+            if (taskEditorSaveAndNew) {
+                taskEditorSaveAndNew = false
+                taskEditorCapture = ""
+                taskEditorSessionId++
+            } else closeTaskEditor()
+        },
+    )
 
     fun requestCompletion(item: ScheduledTask) {
         if (item.subtasks.any { !it.completed }) {
@@ -2204,6 +2236,7 @@ fun WhipScreen(
                 )
                 if (habitViewModel != null) HabitAreaContent(
                     state = habitState,
+                    editorState = unscopedHabitState,
                     innerPadding = PaddingValues(),
                     viewModel = habitViewModel,
                     modifier = paneDialogModifier,
@@ -2224,11 +2257,12 @@ fun WhipScreen(
                     customIdentityEmojis = settingsState.settings.customIdentityEmojis,
                     onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
                     onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
-                    onAreaChanged = ::keepSavedItemVisible,
+                    onAreaChanged = { keepSavedItemVisible(it.areaId, it.areaVerified) },
                     showWorkspace = false,
                 )
                 if (goalViewModel != null) GoalAreaContent(
                     state = goalState,
+                    editorState = unscopedGoalState,
                     innerPadding = PaddingValues(),
                     viewModel = goalViewModel,
                     modifier = paneDialogModifier,
@@ -2254,7 +2288,7 @@ fun WhipScreen(
                     customIdentityEmojis = settingsState.settings.customIdentityEmojis,
                     onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
                     onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
-                    onAreaChanged = ::keepSavedItemVisible,
+                    onAreaChanged = { keepSavedItemVisible(it.areaId, it.areaVerified) },
                     showWorkspace = false,
                 )
             }
@@ -2322,6 +2356,7 @@ fun WhipScreen(
                 if (habitViewModel != null) {
                     HabitAreaContent(
                         state = habitState,
+                        editorState = unscopedHabitState,
                         innerPadding = innerPadding,
                         viewModel = habitViewModel,
                         createRequested = createHabitRequested,
@@ -2350,7 +2385,7 @@ fun WhipScreen(
                             is AreaScope.One -> settingsState.areas.firstOrNull { it.id == areaScope.areaId }?.name
                         },
                         onShowAllAreasForReorder = { onTemporarilySelectAreaScope(AreaScope.All) },
-                        onAreaChanged = ::keepSavedItemVisible,
+                        onAreaChanged = { keepSavedItemVisible(it.areaId, it.areaVerified) },
                         destinationState = habitDestinationState,
                         onReorderModeChange = { reorderModeActive = it },
                         reorderDismissRequest = reorderDismissRequest,
@@ -2386,6 +2421,7 @@ fun WhipScreen(
             AppDestination.Goals -> {
                 if (goalViewModel != null) GoalAreaContent(
                     state = goalState,
+                    editorState = unscopedGoalState,
                     innerPadding = innerPadding,
                     viewModel = goalViewModel,
                     createRequested = createGoalRequested,
@@ -2419,7 +2455,7 @@ fun WhipScreen(
                         is AreaScope.One -> settingsState.areas.firstOrNull { it.id == areaScope.areaId }?.name
                     },
                     onShowAllAreasForReorder = { onTemporarilySelectAreaScope(AreaScope.All) },
-                    onAreaChanged = ::keepSavedItemVisible,
+                    onAreaChanged = { keepSavedItemVisible(it.areaId, it.areaVerified) },
                     destinationState = goalDestinationState,
                     onReorderModeChange = { reorderModeActive = it },
                     reorderDismissRequest = reorderDismissRequest,
@@ -2611,26 +2647,19 @@ fun WhipScreen(
             request = request,
             onDismiss = ::closeTaskEditor,
             onSave = { taskId, draft, fromOccurrence ->
-                taskEditorSavePending = true
+                val requestId = taskEditorSaveCoordinator.begin() ?: return@TaskEditorDialog
                 taskEditorSaveAndNew = false
-                onSaveTaskWithResult(taskId, draft, fromOccurrence) { succeeded ->
-                    taskEditorSavePending = false
-                    if (succeeded) closeTaskEditor()
+                if (!onSaveTaskRequest(taskId, draft, fromOccurrence, requestId)) {
+                    taskEditorSaveCoordinator.finishFailure("Another Task save is already finishing.")
                 }
-                keepSavedItemVisible(draft.areaId)
             },
             onSaveAndNew = { taskId, draft, fromOccurrence ->
-                taskEditorSavePending = true
+                val requestId = taskEditorSaveCoordinator.begin() ?: return@TaskEditorDialog
                 taskEditorSaveAndNew = true
-                onSaveTaskWithResult(taskId, draft, fromOccurrence) { succeeded ->
-                    taskEditorSavePending = false
-                    if (succeeded) {
-                        taskEditorSaveAndNew = false
-                        taskEditorCapture = ""
-                        taskEditorSessionId++
-                    }
+                if (!onSaveTaskRequest(taskId, draft, fromOccurrence, requestId)) {
+                    taskEditorSaveAndNew = false
+                    taskEditorSaveCoordinator.finishFailure("Another Task save is already finishing.")
                 }
-                keepSavedItemVisible(draft.areaId)
             },
             onRequestNotificationPermission = onRequestNotificationPermission,
             defaultRepeatStepPolicy = settingsState.settings.defaultTaskStepPolicy,
@@ -2649,7 +2678,8 @@ fun WhipScreen(
             onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
             paneOffsetX = dialogPaneOffset,
             paneMaxWidth = dialogContentWidth,
-            saving = taskEditorSavePending,
+            saving = taskEditorSaveCoordinator.saving,
+            persistenceError = taskEditorSaveCoordinator.errorMessage,
         )
     }
 

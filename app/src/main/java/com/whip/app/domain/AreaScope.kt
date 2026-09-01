@@ -27,3 +27,13 @@ fun AreaScope.matches(areaId: String?): Boolean = when (this) {
 }
 
 fun AreaScope.defaultAreaId(): String? = (this as? AreaScope.One)?.areaId
+
+/** The narrowest currently selectable scope that can truthfully reveal a newly saved entity. */
+fun scopeForSavedArea(
+    areaId: String?,
+    availableAreaIds: Set<String>? = null,
+): AreaScope = when {
+    areaId == null -> AreaScope.Unassigned
+    availableAreaIds == null || areaId in availableAreaIds -> AreaScope.One(areaId)
+    else -> AreaScope.All
+}

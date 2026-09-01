@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
@@ -64,7 +65,9 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.whip.app.core.AppSettings
+import com.whip.app.core.EntitySaveReceipt
 import com.whip.app.core.resolveExactLocalTime
 import com.whip.app.core.resolveEditedExactInstant
 import com.whip.app.core.zoneId
@@ -110,6 +113,7 @@ enum class GoalDestination { Active, Completed, Archived, Insights }
 @Composable
 fun GoalAreaContent(
     state: GoalUiState,
+    editorState: GoalUiState = state,
     innerPadding: PaddingValues,
     viewModel: GoalViewModel,
     modifier: Modifier = Modifier,
@@ -134,7 +138,7 @@ fun GoalAreaContent(
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
     areaScopeLabel: String? = null,
     onShowAllAreasForReorder: () -> Unit = {},
-    onAreaChanged: (String?) -> Unit = {},
+    onAreaChanged: (EntitySaveReceipt) -> Unit = {},
     destinationState: MutableState<GoalDestination>? = null,
     showWorkspace: Boolean = true,
     onReorderModeChange: (Boolean) -> Unit = {},
@@ -171,9 +175,10 @@ fun GoalAreaContent(
     var deleteCandidateGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var templatesOpen by rememberSaveable { mutableStateOf(false) }
     var templateDraft by rememberSaveable { mutableStateOf<GoalDraft?>(null) }
-    var editorSavePending by rememberSaveable { mutableStateOf(false) }
     val projectionById = (state.active + state.completed + state.archived).associateBy { it.goal.id }
-    val editing = editingGoalId?.let(projectionById::get)
+    val editorProjectionById = (editorState.active + editorState.completed + editorState.archived)
+        .associateBy { it.goal.id }
+    val editing = editingGoalId?.let(editorProjectionById::get)
     val recording = recordingGoalId?.let(projectionById::get)
     val actions = actionsGoalId?.let(projectionById::get)
     val editingMeasurement = editingMeasurementGoalId?.let(projectionById::get)?.let { projection ->
@@ -181,6 +186,18 @@ fun GoalAreaContent(
     }
     val resettingElapsed = resettingElapsedGoalId?.let(projectionById::get)
     val deleteCandidate = deleteCandidateGoalId?.let(projectionById::get)
+    val editorSaveState by viewModel.editorSaveState.collectAsStateWithLifecycle()
+    val editorSaveCoordinator = rememberEntitySaveCoordinator(
+        state = editorSaveState,
+        consume = viewModel::consumeEditorSaveResult,
+        key = editingGoalId ?: if (creating) "creating-goal" else "no-goal-editor",
+        onPersisted = { receipt ->
+            onAreaChanged(receipt)
+            creating = false
+            editingGoalId = null
+            templateDraft = null
+        },
+    )
     val elapsedNowMillis = state.nowMillis
     LaunchedEffect(createRequested, recordGoalIdRequest, resetElapsedGoalIdRequest, state.active) {
         if (createRequested) creating = true
@@ -383,10 +400,10 @@ fun GoalAreaContent(
             modifier = editorModifier,
             projection = editing,
             initialDraft = templateDraft.takeIf { editing == null },
-            today = state.currentDate,
-            activeZoneId = state.activeZoneId,
-            nowMillis = state.nowMillis,
-            customUnits = state.customUnits,
+            today = editorState.currentDate,
+            activeZoneId = editorState.activeZoneId,
+            nowMillis = editorState.nowMillis,
+            customUnits = editorState.customUnits,
             defaults = viewModel.defaultSettings(),
             areas = areas,
             defaultAreaId = defaultAreaId,
@@ -395,25 +412,22 @@ fun GoalAreaContent(
             customIdentityEmojis = customIdentityEmojis,
             onSaveIdentityEmoji = onSaveIdentityEmoji,
             onRemoveSavedIdentityEmoji = onRemoveSavedIdentityEmoji,
-            saving = editorSavePending,
+            saving = editorSaveCoordinator.saving,
+            persistenceError = editorSaveCoordinator.errorMessage,
             onRequestNotificationPermission = onRequestNotificationPermission,
             onDismiss = {
+                editorSaveCoordinator.clear()
                 creating = false
                 editingGoalId = null
                 templateDraft = null
-                editorSavePending = false
             },
             onSave = { draft ->
-                editorSavePending = true
-                viewModel.saveGoal(editing?.goal?.id, draft) { succeeded ->
-                    editorSavePending = false
-                    if (succeeded) {
-                        creating = false
-                        editingGoalId = null
-                        templateDraft = null
+                val requestId = editorSaveCoordinator.begin()
+                if (requestId != null) {
+                    if (!viewModel.saveGoal(editing?.goal?.id, draft, requestId = requestId)) {
+                        editorSaveCoordinator.finishFailure("Another Goal save is already finishing.")
                     }
                 }
-                onAreaChanged(draft.areaId)
             },
         )
     }
@@ -987,7 +1001,7 @@ private fun goalTemplateDescription(label: String): String = when (label) {
 }
 
 @Composable
-private fun GoalEditorDialog(
+internal fun GoalEditorDialog(
     projection: GoalProjection?,
     modifier: Modifier = Modifier,
     initialDraft: GoalDraft? = null,
@@ -1000,6 +1014,7 @@ private fun GoalEditorDialog(
     onSave: (GoalDraft) -> Unit,
     onRequestNotificationPermission: () -> Unit = {},
     saving: Boolean = false,
+    persistenceError: String? = null,
     areas: List<Area> = emptyList(),
     defaultAreaId: String? = null,
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
@@ -1162,24 +1177,35 @@ private fun GoalEditorDialog(
     val draftValidationMessages = currentDraft.validationErrors(nowMillis)
     val validationMessages = (rawFieldProblems + draftValidationMessages).distinct()
     val validationRequester = remember { BringIntoViewRequester() }
+    val editorListState = rememberLazyListState()
     LaunchedEffect(validationRequested, validationMessages) {
         if (validationRequested && validationMessages.isNotEmpty()) validationRequester.bringIntoView()
     }
-    BackHandler(enabled = !showDiscardConfirmation, onBack = requestDismiss)
+    LaunchedEffect(persistenceError) {
+        if (!persistenceError.isNullOrBlank()) editorListState.scrollToItem(0)
+    }
+    BackHandler(enabled = !showDiscardConfirmation && !saving, onBack = requestDismiss)
     ProductivityEditorDialog(
         modifier = modifier,
         testTag = "goal-editor-surface",
         primary = true,
         paneTitle = if (goal == null) "Create Goal" else "Edit Goal",
-        onDismissRequest = requestDismiss,
+        onDismissRequest = { if (!saving) requestDismiss() },
         title = { Text(if (goal == null) "Create Goal" else "Edit Goal") },
         text = {
             WhipReorderLazyColumn(
                 modifier = Modifier.testTag("goal-editor-fields"),
+                state = editorListState,
                 verticalArrangement = Arrangement.spacedBy(9.dp),
             ) {
                 item {
                     Text("* Required field", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (persistenceError != null) item {
+                    PersistenceFailureNotice(
+                        message = persistenceError,
+                        testTag = "goal-persistence-save-problem",
+                    )
                 }
                 if (validationRequested && validationMessages.isNotEmpty()) item {
                     FormValidationSummary(
@@ -1605,6 +1631,8 @@ private fun GoalEditorDialog(
                 modifier = Modifier.semantics { contentDescription = "Cancel Goal editing" },
             ) { Icon(Icons.Outlined.Close, contentDescription = null) }
         },
+        inputBlocked = saving,
+        inputBlockedLabel = "Saving Goal",
     )
     if (showElapsedDatePicker) WhipDatePickerDialog(elapsedDate, { showElapsedDatePicker = false }, {
         elapsedDate = it

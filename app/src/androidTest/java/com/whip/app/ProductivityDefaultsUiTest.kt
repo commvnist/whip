@@ -20,12 +20,18 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.input.key.Key
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.HomeSection
+import com.whip.app.core.EntitySaveReceipt
+import com.whip.app.core.PersistenceRequestState
+import com.whip.app.core.WhipResult
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TargetPeriod
@@ -72,12 +78,23 @@ class ProductivityDefaultsUiTest {
         val today = LocalDate.of(2026, 8, 19)
         val saved = AtomicReference<TaskDraft?>()
         val permissionRequests = AtomicInteger()
+        var saveState by mutableStateOf<PersistenceRequestState<EntitySaveReceipt>>(PersistenceRequestState.Idle)
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 WhipScreen(
                     state = TaskUiState(currentDate = today, loading = false),
                     onRequestNotificationPermission = { permissionRequests.incrementAndGet() },
-                    onSaveTask = { _, draft, _ -> saved.set(draft) },
+                    taskEditorSaveState = saveState,
+                    onTaskEditorSaveResultConsumed = { saveState = PersistenceRequestState.Idle },
+                    onSaveTask = { _, _, _ -> },
+                    onSaveTaskRequest = { _, draft, _, requestId ->
+                        saved.set(draft)
+                        saveState = PersistenceRequestState.Finished(
+                            requestId,
+                            WhipResult.Success(EntitySaveReceipt(null, draft.areaId)),
+                        )
+                        true
+                    },
                     onComplete = {},
                     onSkip = {},
                     onReschedule = { _, _ -> },
@@ -106,11 +123,22 @@ class ProductivityDefaultsUiTest {
         val today = LocalDate.of(2026, 8, 25)
         val quickCaptures = mutableListOf<Pair<String, LocalDate?>>()
         val detailedDraft = AtomicReference<TaskDraft?>()
+        var saveState by mutableStateOf<PersistenceRequestState<EntitySaveReceipt>>(PersistenceRequestState.Idle)
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 WhipScreen(
                     state = TaskUiState(currentDate = today, loading = false),
-                    onSaveTask = { _, draft, _ -> detailedDraft.set(draft) },
+                    taskEditorSaveState = saveState,
+                    onTaskEditorSaveResultConsumed = { saveState = PersistenceRequestState.Idle },
+                    onSaveTask = { _, _, _ -> },
+                    onSaveTaskRequest = { _, draft, _, requestId ->
+                        detailedDraft.set(draft)
+                        saveState = PersistenceRequestState.Finished(
+                            requestId,
+                            WhipResult.Success(EntitySaveReceipt(null, draft.areaId)),
+                        )
+                        true
+                    },
                     onQuickAddTaskWithResult = { capture, date, _, onFinished ->
                         quickCaptures += capture to date
                         onFinished(true)

@@ -25,6 +25,14 @@ class AreaScopeTest {
         assertEquals(AreaScope.All, AreaScope.fromStorageKey("unexpected"))
     }
 
+    @Test
+    fun savedEntitiesRouteToTheirExactAssignedOrMainScope() {
+        assertEquals(AreaScope.One("work"), scopeForSavedArea("work"))
+        assertEquals(AreaScope.Unassigned, scopeForSavedArea(null))
+        assertEquals(AreaScope.All, scopeForSavedArea("archived", setOf("work")))
+        assertTrue(scopeForSavedArea(null).matches(null))
+    }
+
     @Test(timeout = 1_000)
     fun switchingScopeAcrossTenThousandAssignmentsStaysLinearAndComplete() {
         val assignments = List(10_000) { index -> if (index % 4 == 0) null else "area-${index % 3}" }

@@ -2,9 +2,11 @@ package com.whip.app.ui
 
 import android.content.Context
 import android.text.format.DateFormat
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -16,12 +18,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,16 +37,27 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -54,9 +69,14 @@ import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.graphics.RectangleShape
+import com.whip.app.core.EntitySaveReceipt
+import com.whip.app.core.PersistenceRequestState
+import com.whip.app.core.UuidWhipIdGenerator
+import com.whip.app.core.WhipResult
 import com.whip.app.domain.editableNumericValue
 import java.time.DayOfWeek
 import java.util.Calendar
+import kotlinx.coroutines.delay
 
 /**
  * Models a dependent control without allowing an unexplained disabled state.
@@ -189,6 +209,197 @@ internal fun FormValidationSummary(
     }
 }
 
+@Composable
+internal fun PersistenceFailureNotice(
+    message: String?,
+    modifier: Modifier = Modifier,
+    testTag: String = "persistence-save-problem",
+) {
+    if (message.isNullOrBlank()) return
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(testTag)
+            .clearAndSetSemantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = "Save did not finish. $message. Your changes are still here."
+            },
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.errorContainer,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                "Save Didn't Finish",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            Text(
+                message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            Text(
+                "Your changes are still here. Review them and try again.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+        }
+    }
+}
+
+@Composable
+internal fun BoxScope.PersistenceSavingOverlay(
+    active: Boolean,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    val focusManager = LocalFocusManager.current
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(active) {
+        if (active) {
+            focusManager.clearFocus(force = true)
+            focusRequester.requestFocus()
+        }
+    }
+    if (!active) return
+    Surface(
+        modifier = modifier
+            .matchParentSize()
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent().changes.forEach { it.consume() }
+                    }
+                }
+            }
+            .onPreviewKeyEvent { true }
+            .focusRequester(focusRequester)
+            .focusable()
+            .testTag("persistence-saving-overlay")
+            .clearAndSetSemantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = "$label. Editing is temporarily unavailable."
+                disabled()
+            },
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            CircularProgressIndicator(Modifier.size(32.dp))
+            Text(label, modifier = Modifier.padding(top = 12.dp), style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Editing is temporarily unavailable.",
+                modifier = Modifier.padding(top = 4.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+internal class EntitySaveCoordinator internal constructor(
+    private val requestIdState: MutableState<String?>,
+    private val errorMessageState: MutableState<String?>,
+) {
+    val requestId: String? get() = requestIdState.value
+    val saving: Boolean get() = requestId != null
+    val errorMessage: String? get() = errorMessageState.value
+
+    fun begin(): String? {
+        if (saving) return null
+        errorMessageState.value = null
+        return UuidWhipIdGenerator.nextId().also { requestIdState.value = it }
+    }
+
+    fun clear() {
+        requestIdState.value = null
+        errorMessageState.value = null
+    }
+
+    internal fun finishFailure(message: String) {
+        requestIdState.value = null
+        errorMessageState.value = message.ifBlank { "The item could not be saved." }
+    }
+
+    internal fun finishSuccess() {
+        requestIdState.value = null
+        errorMessageState.value = null
+    }
+}
+
+/**
+ * Reconnects an editor to its ViewModel-owned request after rotation. A request
+ * restored without a matching ViewModel state (process recreation) is released
+ * with an actionable in-editor warning instead of remaining stuck on Saving.
+ */
+@Composable
+internal fun rememberEntitySaveCoordinator(
+    state: PersistenceRequestState<EntitySaveReceipt>,
+    consume: (String) -> Unit,
+    key: Any? = Unit,
+    onPersisted: (EntitySaveReceipt) -> Unit,
+): EntitySaveCoordinator {
+    val requestIdState = rememberSaveable(key) { mutableStateOf<String?>(null) }
+    val errorMessageState = rememberSaveable(key) { mutableStateOf<String?>(null) }
+    val coordinator = EntitySaveCoordinator(requestIdState, errorMessageState)
+    val latestState by rememberUpdatedState(state)
+    val latestConsume by rememberUpdatedState(consume)
+    val latestOnPersisted by rememberUpdatedState(onPersisted)
+
+    LaunchedEffect(requestIdState.value, state) {
+        val requestId = requestIdState.value
+        if (requestId == null) {
+            // The editor that owned this terminal result may have left composition
+            // after persistence finished but before it could acknowledge delivery.
+            // Reclaim only terminal outcomes; a live Running request still owns itself.
+            if (state is PersistenceRequestState.Finished) latestConsume(state.requestId)
+            return@LaunchedEffect
+        }
+        suspend fun releaseIfOrphaned() {
+            delay(250)
+            val current = latestState
+            val matches = when (current) {
+                PersistenceRequestState.Idle -> false
+                is PersistenceRequestState.Running -> current.requestId == requestId
+                is PersistenceRequestState.Finished -> current.requestId == requestId
+            }
+            if (requestIdState.value == requestId && !matches) {
+                coordinator.finishFailure(
+                    "The previous save was interrupted. Check whether the item already exists before retrying.",
+                )
+            }
+        }
+        when (state) {
+            PersistenceRequestState.Idle -> releaseIfOrphaned()
+            is PersistenceRequestState.Running -> if (state.requestId != requestId) releaseIfOrphaned()
+            is PersistenceRequestState.Finished -> if (state.requestId == requestId) {
+                val result = state.result
+                when (result) {
+                    is WhipResult.Success -> {
+                        coordinator.finishSuccess()
+                        latestConsume(requestId)
+                        latestOnPersisted(result.value)
+                    }
+                    is WhipResult.Failure -> {
+                        coordinator.finishFailure(result.message)
+                        latestConsume(requestId)
+                    }
+                }
+            } else {
+                latestConsume(state.requestId)
+                releaseIfOrphaned()
+            }
+        }
+    }
+    return coordinator
+}
+
 /**
  * A full-window dialog whose card can be positioned wholly inside the active fold pane.
  * Material's AlertDialog sizes its platform window around the card, which prevents an
@@ -206,6 +417,8 @@ internal fun ProductivityEditorDialog(
     primary: Boolean = false,
     paneTitle: String = "Editor",
     stableHeight: Boolean = false,
+    inputBlocked: Boolean = false,
+    inputBlockedLabel: String = "Saving",
 ) {
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -229,8 +442,13 @@ internal fun ProductivityEditorDialog(
                 shape = if (primary) RectangleShape else MaterialTheme.shapes.extraLarge,
                 tonalElevation = if (primary) 0.dp else 6.dp,
             ) {
+                Box {
                 if (primary) {
-                    Column(Modifier.fillMaxSize()) {
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .then(if (inputBlocked) Modifier.clearAndSetSemantics {} else Modifier),
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -247,7 +465,9 @@ internal fun ProductivityEditorDialog(
                     }
                 } else {
                     Column(
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+                        modifier = Modifier
+                            .padding(horizontal = 24.dp, vertical = 20.dp)
+                            .then(if (inputBlocked) Modifier.clearAndSetSemantics {} else Modifier),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         Box(Modifier.semantics { heading() }) { title() }
@@ -261,6 +481,8 @@ internal fun ProductivityEditorDialog(
                             confirmButton()
                         }
                     }
+                }
+                PersistenceSavingOverlay(active = inputBlocked, label = inputBlockedLabel)
                 }
             }
         }

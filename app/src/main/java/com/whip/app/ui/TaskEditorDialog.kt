@@ -68,6 +68,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -173,6 +174,7 @@ fun TaskEditorDialog(
     paneOffsetX: Dp = 0.dp,
     paneMaxWidth: Dp = 720.dp,
     saving: Boolean = false,
+    persistenceError: String? = null,
 ) {
     val keyboard = LocalSoftwareKeyboardController.current
     val titleFocusRequester = remember { FocusRequester() }
@@ -347,7 +349,7 @@ fun TaskEditorDialog(
         repeatStepPolicy != initial.repeatStepPolicy ||
         missedOccurrencePolicy != initial.missedOccurrencePolicy
     val requestDismiss = { if (isDirty) confirmDiscard = true else onDismiss() }
-    BackHandler(enabled = !confirmDiscard, onBack = requestDismiss)
+    BackHandler(enabled = !confirmDiscard && !saving, onBack = requestDismiss)
 
     val interval = intervalText.toIntOrNull()
     val count = occurrenceCountText.toIntOrNull()
@@ -429,9 +431,13 @@ fun TaskEditorDialog(
     fun setRepeatEnabled(enabled: Boolean) {
         scheduleKind = if (enabled) ScheduleKind.Recurring else ScheduleKind.Once
     }
+    val editorScrollState = rememberScrollState()
+    LaunchedEffect(persistenceError) {
+        if (!persistenceError.isNullOrBlank()) editorScrollState.scrollTo(0)
+    }
 
     Dialog(
-        onDismissRequest = requestDismiss,
+        onDismissRequest = { if (!saving) requestDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         BoxWithConstraints(
@@ -448,7 +454,10 @@ fun TaskEditorDialog(
                 shape = RectangleShape,
                 tonalElevation = 0.dp,
             ) {
-            Column {
+            Box {
+            Column(
+                modifier = if (saving) Modifier.clearAndSetSemantics {} else Modifier,
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -512,10 +521,14 @@ fun TaskEditorDialog(
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 20.dp, vertical = 14.dp)
-                        .verticalScroll(rememberScrollState()),
+                        .verticalScroll(editorScrollState),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     Text("* Required field", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    PersistenceFailureNotice(
+                        message = persistenceError,
+                        testTag = "task-persistence-save-problem",
+                    )
                     saveProblem?.takeIf { validationRequested }?.let { problem ->
                         FormValidationSummary(
                             messages = listOf(problem),
@@ -1183,10 +1196,11 @@ fun TaskEditorDialog(
                     }
 
                 }
-
                 }
+                PersistenceSavingOverlay(active = saving, label = "Saving Task")
             }
             }
+        }
         }
 
     dateTarget?.let { target ->

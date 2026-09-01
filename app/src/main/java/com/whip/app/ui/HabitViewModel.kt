@@ -4,11 +4,18 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.whip.app.WhipApplication
+import com.whip.app.core.CommittedEntitySaveCancellation
 import com.whip.app.core.HomeSection
+import com.whip.app.core.EntitySaveReceipt
 import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
+import com.whip.app.core.PersistenceRequestState
 import com.whip.app.core.revealHomeSection
 import com.whip.app.core.WhipClock
+import com.whip.app.core.WhipResult
+import com.whip.app.core.completeCommittedEntitySave
+import com.whip.app.core.saveFollowUpWarning
+import com.whip.app.core.tryStartPersistenceRequest
 import com.whip.app.data.HabitRepository
 import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitChecklistItem
@@ -40,7 +47,6 @@ import com.whip.app.domain.flexibleProgress
 import com.whip.app.domain.targetSatisfied
 import com.whip.app.domain.valueForPeriod
 import com.whip.app.domain.dayStateOn
-import com.whip.app.reminders.reminderDefinitionChanged
 import java.time.LocalDate
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -54,6 +60,8 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 data class HabitUiState(
@@ -79,6 +87,10 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
     private val reminders = app.habitReminderScheduler
     private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
     val operationStatus: StateFlow<OperationStatus> = _operationStatus.asStateFlow()
+    private val _editorSaveState = MutableStateFlow<PersistenceRequestState<EntitySaveReceipt>>(
+        PersistenceRequestState.Idle,
+    )
+    val editorSaveState: StateFlow<PersistenceRequestState<EntitySaveReceipt>> = _editorSaveState.asStateFlow()
     private val reloadKey = MutableStateFlow(0)
 
     init { viewModelScope.launch { runCatching { reminders.syncAll() } } }
@@ -118,18 +130,70 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
     )
 
     fun consumeOperationStatus() { _operationStatus.value = OperationStatus.Idle }
+    fun consumeEditorSaveResult(requestId: String) {
+        if ((_editorSaveState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _editorSaveState.value = PersistenceRequestState.Idle
+        }
+    }
     fun retryLoading() { reloadKey.value++ }
     fun defaultSettings() = app.settingsRepository.current()
-    fun saveHabit(id: Long?, draft: HabitDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
-        if (id == null) "Creating habit…" else "Saving habit…",
-        if (id == null) "Habit created" else "Habit saved",
-        onFinished,
-    ) {
-        val existing = id?.let { repository.get(it) }
-        val savedId = if (id == null) repository.create(draft) else { repository.update(id, draft); id }
-        if (existing == null || existing.reminderDefinitionChanged(draft)) reminders.syncHabit(savedId)
-        draft.tags.filter { tag -> existing?.tags?.none { it.equals(tag, ignoreCase = true) } != false }
-            .forEach { app.measurementRepository.ensureTag(it) }
+    fun saveHabit(
+        id: Long?,
+        draft: HabitDraft,
+        requestId: String? = null,
+        onFinished: (Boolean) -> Unit = {},
+    ): Boolean {
+        if (requestId != null && !_editorSaveState.tryStartPersistenceRequest(requestId)) {
+            onFinished(false)
+            return false
+        }
+        runEntitySaveOperation(
+            if (id == null) "Creating habit…" else "Saving habit…",
+            if (id == null) "Habit created" else "Habit saved",
+            requestId = requestId,
+            onFinished = { result ->
+                if (requestId != null &&
+                    (_editorSaveState.value as? PersistenceRequestState.Running)?.requestId == requestId
+                ) {
+                    _editorSaveState.value = PersistenceRequestState.Finished(requestId, result)
+                }
+                onFinished(result is WhipResult.Success)
+            },
+        ) {
+            completeCommittedEntitySave(
+                commit = {
+                    val savedId = if (id == null) repository.create(draft) else {
+                        repository.update(id, draft)
+                        id
+                    }
+                    EntitySaveReceipt(savedId, draft.areaId, areaVerified = false)
+                },
+                followUp = { committed ->
+                    val savedId = requireNotNull(committed.entityId)
+                    var resolvedAreaId = committed.areaId
+                    var areaVerified = false
+                    val warnings = listOfNotNull(
+                        saveFollowUpWarning("Saved Area could not be verified; showing All Areas.") {
+                            val saved = requireNotNull(repository.get(savedId)) { "Saved Habit could not be reread" }
+                            resolvedAreaId = saved.areaId
+                            areaVerified = true
+                        },
+                        saveFollowUpWarning("Some tag suggestions did not refresh. Saving again will retry them.") {
+                            draft.tags.forEach { app.measurementRepository.ensureTag(it) }
+                        },
+                        saveFollowUpWarning("Reminder refresh did not finish. Reopen and save the Habit to retry.") {
+                            reminders.syncHabit(savedId)
+                        },
+                    )
+                    committed.copy(
+                        areaId = resolvedAreaId,
+                        warnings = warnings,
+                        areaVerified = areaVerified,
+                    )
+                },
+            )
+        }
+        return true
     }
     fun duplicate(id: Long) = runOperation("Duplicating habit…", "Habit duplicated") { reminders.syncHabit(repository.duplicate(id)) }
     fun setArchived(id: Long, archived: Boolean) = runOperation(
@@ -283,6 +347,61 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
                 _operationStatus.value = OperationStatus.Failed(error.message ?: "Something went wrong", error)
                 runCatching { onFinished(false) }
             }
+        }
+    }
+
+    private fun runEntitySaveOperation(
+        running: String,
+        success: String,
+        requestId: String?,
+        onFinished: (WhipResult<EntitySaveReceipt>) -> Unit,
+        block: suspend () -> EntitySaveReceipt,
+    ) {
+        _operationStatus.value = OperationStatus.Running(running)
+        viewModelScope.launch {
+            fun successResult(receipt: EntitySaveReceipt): WhipResult.Success<EntitySaveReceipt> {
+                val message = if (receipt.warnings.isEmpty()) success else "$success · ${receipt.warnings.joinToString(" ")}"
+                _operationStatus.value = OperationStatus.Succeeded(message, OperationFeedbackPresentation.Snackbar)
+                return WhipResult.Success(receipt)
+            }
+            val result = try {
+                val receipt = checkNotNull(app.withUserDataAccess { block() }) {
+                    "Whip data is unavailable while recovery is in progress"
+                }
+                successResult(receipt)
+            } catch (cancelled: CommittedEntitySaveCancellation) {
+                if (requestId != null && currentCoroutineContext().isActive) {
+                    successResult(
+                        cancelled.receipt.copy(
+                            warnings = cancelled.receipt.warnings +
+                                "Some post-save updates were interrupted; the Habit itself was saved.",
+                        ),
+                    )
+                } else {
+                    if ((_editorSaveState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _editorSaveState.value = PersistenceRequestState.Idle
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw cancelled
+                }
+            } catch (cancelled: CancellationException) {
+                if (requestId != null && currentCoroutineContext().isActive) {
+                    _operationStatus.value = OperationStatus.Idle
+                    WhipResult.Failure("The Habit save was interrupted. Your changes are still here.", cancelled)
+                } else {
+                    if ((_editorSaveState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _editorSaveState.value = PersistenceRequestState.Idle
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw cancelled
+                }
+            } catch (error: Exception) {
+                _operationStatus.value = if (requestId == null) {
+                    OperationStatus.Failed(error.message ?: "Something went wrong", error)
+                } else OperationStatus.Idle
+                WhipResult.Failure(error.message ?: "The habit could not be saved.", error)
+            }
+            runCatching { onFinished(result) }
         }
     }
 }

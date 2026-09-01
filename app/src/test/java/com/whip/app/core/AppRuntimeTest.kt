@@ -5,8 +5,13 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.UUID
+import java.util.concurrent.CancellationException
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -36,6 +41,58 @@ class AppRuntimeTest {
         assertEquals(cause, OperationStatus.Failed("Failed", cause).cause)
         assertEquals(42, WhipResult.Success(42).value)
         assertEquals(cause, WhipResult.Failure("Failed", cause).cause)
+    }
+
+    @Test
+    fun saveFollowUpsBecomeWarningsButNeverSwallowCancellation() {
+        runBlocking {
+            assertNull(saveFollowUpWarning("warning") {})
+            assertEquals(
+                "warning",
+                saveFollowUpWarning("warning") { error("derived work failed") },
+            )
+            assertThrows(CancellationException::class.java) {
+                runBlocking {
+                    saveFollowUpWarning("warning") { throw CancellationException("stop") }
+                }
+            }
+            assertThrows(AssertionError::class.java) {
+                runBlocking {
+                    saveFollowUpWarning("warning") { throw AssertionError("fatal") }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun committedEntitySavesCanNeverBecomeRetryableOrdinaryFailures() {
+        val committed = EntitySaveReceipt(42, "work")
+        val recovered = runBlocking {
+            completeCommittedEntitySave(
+                commit = { committed },
+                followUp = { error("receipt lookup failed") },
+            )
+        }
+        assertEquals(42L, recovered.entityId)
+        assertTrue(recovered.warnings.single().contains("item itself was saved"))
+
+        val cancelled = assertThrows(CommittedEntitySaveCancellation::class.java) {
+            runBlocking {
+                completeCommittedEntitySave(
+                    commit = { committed },
+                    followUp = { throw CancellationException("stop") },
+                )
+            }
+        }
+        assertEquals(committed, cancelled.receipt)
+        assertThrows(AssertionError::class.java) {
+            runBlocking {
+                completeCommittedEntitySave(
+                    commit = { committed },
+                    followUp = { throw AssertionError("fatal") },
+                )
+            }
+        }
     }
 
     @Test
@@ -84,5 +141,22 @@ class AppRuntimeTest {
             Instant.parse("2026-11-01T06:30:00Z"),
             resolveEditedExactInstant(original, true, reprojected, -5 * 60 * 60),
         )
+    }
+
+    @Test
+    fun authoredSaveAdmissionIsAtomicAndKeepsTheFirstRequestOwner() {
+        val state = MutableStateFlow<PersistenceRequestState<EntitySaveReceipt>>(PersistenceRequestState.Idle)
+
+        assertTrue(state.tryStartPersistenceRequest("first"))
+        assertEquals(PersistenceRequestState.Running("first"), state.value)
+        assertTrue(!state.tryStartPersistenceRequest("second"))
+        assertEquals(PersistenceRequestState.Running("first"), state.value)
+
+        state.value = PersistenceRequestState.Finished(
+            "first",
+            WhipResult.Success(EntitySaveReceipt(1, null)),
+        )
+        assertTrue(!state.tryStartPersistenceRequest("third"))
+        assertTrue(state.value is PersistenceRequestState.Finished)
     }
 }

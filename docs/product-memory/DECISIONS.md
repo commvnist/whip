@@ -94,8 +94,14 @@
 ### DEC-20260831-011 — Save-dependent navigation occurs only after confirmed persistence
 
 - Context: Area scope changes and success notices currently precede asynchronous persistence in several productivity editors.
-- Decision: Keep draft, editor, and scope unchanged until a typed successful save outcome is received; reconcile visibility only afterward.
-- Status: Accepted; implementation pending.
+- Position A: Keep local callback-driven dismissal and move Area navigation into each callback.
+- Position B: Treat the existing global `OperationStatus` as the authoritative save outcome for every open editor.
+- Position C: Give each authored editor one typed, request-scoped state and a post-commit receipt; keep global status as presentation feedback only.
+- Evidence and constraints: Task, Habit, and Goal writes are asynchronous; Area-filtered entities can disappear from scoped projections during an edit; activity recreation can retain a ViewModel while process restoration cannot; repository commit may succeed before reminder/tag refresh; rapid input can race; historical records must not be recomputed; and a user must never be encouraged to retry an entity that already committed.
+- Failure modes: Position A duplicates lifecycle and exact-once logic and cannot distinguish commit from follow-up. Position B lets unrelated success/failure dismiss the wrong editor and can render a Snackbar behind a modal. Position C can wedge if terminal outcomes are not explicitly consumed, can become a generic framework if overextended, and must preserve cancellation/fatal-error semantics.
+- Synthesis/decision: Use Position C for Task/Habit/Goal authored definitions. Atomically admit only an Idle request, settle only the matching UUID, reclaim unowned terminal results, never adopt another live Running request, block editor input during the write, preserve failure inline, and move/dismiss only after a successful authoritative receipt. Define repository commit as the point of no return: ordinary post-commit work adds warnings; pre-commit failure remains retryable; fatal errors and structured cancellation retain their meaning.
+- Why this is superior for Whip: It makes persistence, lifecycle ownership, navigation, and user messaging one falsifiable sequence without coupling domain rules to Compose or inventing a cross-product transaction DSL. It also leaves quick reversible mutations free to use lighter behavior after individual audit.
+- Status: Accepted and implemented for authored Task/Habit/Goal definition editors in `IMP-20260831-008`; secondary mutation families remain `FND-20260831-019`.
 
 ### DEC-20260831-012 — Large text preserves visible destination names
 

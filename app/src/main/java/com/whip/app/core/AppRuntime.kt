@@ -7,6 +7,8 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.UUID
+import java.util.concurrent.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
 
 interface WhipClock {
     fun now(): Instant
@@ -96,4 +98,85 @@ enum class OperationFeedbackPresentation {
 sealed interface WhipResult<out T> {
     data class Success<T>(val value: T) : WhipResult<T>
     data class Failure(val message: String, val cause: Throwable? = null) : WhipResult<Nothing>
+}
+
+/** Receipt for an authored entity after its authoritative repository write committed. */
+data class EntitySaveReceipt(
+    val entityId: Long?,
+    val areaId: String?,
+    val warnings: List<String> = emptyList(),
+    val areaVerified: Boolean = true,
+)
+
+class CommittedEntitySaveCancellation(
+    val receipt: EntitySaveReceipt,
+    cause: CancellationException,
+) : CancellationException(cause.message) {
+    init {
+        initCause(cause)
+    }
+}
+
+/**
+ * Makes the repository write an explicit point of no return. After [commit]
+ * succeeds, ordinary follow-up failures can only add warnings; they can never
+ * produce a retryable failure for an entity that already exists.
+ */
+suspend fun completeCommittedEntitySave(
+    commit: suspend () -> EntitySaveReceipt,
+    followUp: suspend (EntitySaveReceipt) -> EntitySaveReceipt,
+): EntitySaveReceipt {
+    val committed = commit()
+    return try {
+        followUp(committed)
+    } catch (cancelled: CancellationException) {
+        throw CommittedEntitySaveCancellation(committed, cancelled)
+    } catch (_: Exception) {
+        committed.copy(
+            warnings = committed.warnings + "Some post-save updates did not finish; the item itself was saved.",
+        )
+    }
+}
+
+/**
+ * Runs derived work after an entity commit without turning that committed save
+ * into a retryable failure. Structured cancellation is never downgraded to a warning.
+ */
+suspend fun saveFollowUpWarning(
+    warning: String,
+    block: suspend () -> Unit,
+): String? = try {
+    block()
+    null
+} catch (cancelled: CancellationException) {
+    throw cancelled
+} catch (_: Exception) {
+    warning
+}
+
+/**
+ * Request-scoped save state survives Activity recreation with its ViewModel.
+ * UI must only react to a terminal result whose request id it owns.
+ */
+sealed interface PersistenceRequestState<out T> {
+    data object Idle : PersistenceRequestState<Nothing>
+    data class Running(val requestId: String) : PersistenceRequestState<Nothing>
+    data class Finished<T>(
+        val requestId: String,
+        val result: WhipResult<T>,
+    ) : PersistenceRequestState<T>
+}
+
+/**
+ * Atomically admits one authored save request. This prevents two near-simultaneous
+ * taps or callers from both passing a separate read-then-write Running check.
+ */
+fun <T> MutableStateFlow<PersistenceRequestState<T>>.tryStartPersistenceRequest(
+    requestId: String,
+): Boolean {
+    while (true) {
+        val current = value
+        if (current !is PersistenceRequestState.Idle) return false
+        if (compareAndSet(current, PersistenceRequestState.Running(requestId))) return true
+    }
 }

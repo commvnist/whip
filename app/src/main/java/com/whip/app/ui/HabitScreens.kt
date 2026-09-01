@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -60,6 +61,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Archive
@@ -73,6 +75,7 @@ import androidx.compose.material.icons.outlined.PauseCircleOutline
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
 import com.whip.app.core.AppSettings
+import com.whip.app.core.EntitySaveReceipt
 import com.whip.app.domain.Habit
 import com.whip.app.domain.Area
 import com.whip.app.domain.CustomIdentityEmoji
@@ -119,6 +122,7 @@ enum class HabitDestination { Today, All, Archived, Insights }
 @Composable
 fun HabitAreaContent(
     state: HabitUiState,
+    editorState: HabitUiState = state,
     innerPadding: PaddingValues,
     viewModel: HabitViewModel,
     modifier: Modifier = Modifier,
@@ -142,7 +146,7 @@ fun HabitAreaContent(
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
     areaScopeLabel: String? = null,
     onShowAllAreasForReorder: () -> Unit = {},
-    onAreaChanged: (String?) -> Unit = {},
+    onAreaChanged: (EntitySaveReceipt) -> Unit = {},
     destinationState: MutableState<HabitDestination>? = null,
     showWorkspace: Boolean = true,
     onReorderModeChange: (Boolean) -> Unit = {},
@@ -173,7 +177,6 @@ fun HabitAreaContent(
     var templatesOpen by rememberSaveable { mutableStateOf(false) }
     var reorderAllRequested by rememberSaveable { mutableStateOf(false) }
     var templateDraft by rememberSaveable { mutableStateOf<HabitDraft?>(null) }
-    var editorSavePending by rememberSaveable { mutableStateOf(false) }
     var historicalLogHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editingLogHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editingLogId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -181,7 +184,9 @@ fun HabitAreaContent(
     var deleteCandidateHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var skipConfirmationHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     val progressById = (state.all + state.today + state.archivedProgress).associateBy { it.habit.id }
-    val editing = editingHabitId?.let(progressById::get)
+    val editorProgressById = (editorState.all + editorState.today + editorState.archivedProgress)
+        .associateBy { it.habit.id }
+    val editing = editingHabitId?.let(editorProgressById::get)
     val actions = actionsHabitId?.let(progressById::get)
     val numericLog = numericLogHabitId?.let(progressById::get)
     val pauseRequest = pauseRequestHabitId?.let(progressById::get)
@@ -192,6 +197,18 @@ fun HabitAreaContent(
     val deleteCandidate = deleteCandidateHabitId?.let { id ->
         progressById[id]?.habit ?: state.archived.firstOrNull { it.id == id }
     }
+    val editorSaveState by viewModel.editorSaveState.collectAsStateWithLifecycle()
+    val editorSaveCoordinator = rememberEntitySaveCoordinator(
+        state = editorSaveState,
+        consume = viewModel::consumeEditorSaveResult,
+        key = editingHabitId ?: if (creating) "creating-habit" else "no-habit-editor",
+        onPersisted = { receipt ->
+            onAreaChanged(receipt)
+            creating = false
+            editingHabitId = null
+            templateDraft = null
+        },
+    )
     fun latestPeriodLog(item: HabitDayProgress): HabitLog? = state.logs
         .asSequence()
         .filter { it.habitId == item.habit.id && it.localDate in item.habit.periodBounds(item.date) }
@@ -313,11 +330,11 @@ fun HabitAreaContent(
             initialChecklist = editing?.checklistItems?.mapIndexed { index, (item, _) ->
                 HabitChecklistItemDraft(item.name, index, item.id, item.uuid)
             }.orEmpty(),
-            today = state.currentDate,
+            today = editorState.currentDate,
             defaultWeekStart = viewModel.defaultSettings().defaultHabitWeekStart,
             defaults = viewModel.defaultSettings(),
-            customUnits = state.customUnits,
-            sourceMetrics = state.sourceMetrics,
+            customUnits = editorState.customUnits,
+            sourceMetrics = editorState.sourceMetrics,
             areas = areas,
             defaultAreaId = defaultAreaId,
             onCreateArea = onCreateArea,
@@ -325,25 +342,22 @@ fun HabitAreaContent(
             customIdentityEmojis = customIdentityEmojis,
             onSaveIdentityEmoji = onSaveIdentityEmoji,
             onRemoveSavedIdentityEmoji = onRemoveSavedIdentityEmoji,
-            saving = editorSavePending,
+            saving = editorSaveCoordinator.saving,
+            persistenceError = editorSaveCoordinator.errorMessage,
             onRequestNotificationPermission = onRequestNotificationPermission,
             onDismiss = {
+                editorSaveCoordinator.clear()
                 creating = false
                 editingHabitId = null
                 templateDraft = null
-                editorSavePending = false
             },
             onSave = { draft ->
-                editorSavePending = true
-                viewModel.saveHabit(editing?.habit?.id, draft) { succeeded ->
-                    editorSavePending = false
-                    if (succeeded) {
-                        creating = false
-                        editingHabitId = null
-                        templateDraft = null
+                val requestId = editorSaveCoordinator.begin()
+                if (requestId != null) {
+                    if (!viewModel.saveHabit(editing?.habit?.id, draft, requestId = requestId)) {
+                        editorSaveCoordinator.finishFailure("Another Habit save is already finishing.")
                     }
                 }
-                onAreaChanged(draft.areaId)
             },
         )
     }
@@ -1445,7 +1459,7 @@ private fun Habit.toEditorDraft(checklist: List<HabitChecklistItemDraft>) = Habi
 )
 
 @Composable
-private fun HabitEditorDialog(
+internal fun HabitEditorDialog(
     habit: Habit?,
     modifier: Modifier = Modifier,
     initialDraft: HabitDraft? = null,
@@ -1459,6 +1473,7 @@ private fun HabitEditorDialog(
     sourceMetrics: List<MetricDefinition> = emptyList(),
     onRequestNotificationPermission: () -> Unit = {},
     saving: Boolean = false,
+    persistenceError: String? = null,
     areas: List<Area> = emptyList(),
     defaultAreaId: String? = null,
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
@@ -1593,8 +1608,12 @@ private fun HabitEditorDialog(
     }
     val validationMessages = (rawFieldProblems + currentDraft.validationErrors()).distinct()
     val validationRequester = remember { BringIntoViewRequester() }
+    val editorListState = rememberLazyListState()
     LaunchedEffect(validationRequested, validationMessages) {
         if (validationRequested && validationMessages.isNotEmpty()) validationRequester.bringIntoView()
+    }
+    LaunchedEffect(persistenceError) {
+        if (!persistenceError.isNullOrBlank()) editorListState.scrollToItem(0)
     }
     var showAdvanced by rememberSaveable(editorKey) {
         mutableStateOf(
@@ -1614,20 +1633,27 @@ private fun HabitEditorDialog(
     val initialFingerprint by rememberSaveable(editorKey) { mutableStateOf(editorFingerprint) }
     var showDiscardConfirmation by rememberSaveable(editorKey) { mutableStateOf(false) }
     val requestDismiss = { if (editorFingerprint != initialFingerprint) showDiscardConfirmation = true else onDismiss() }
-    BackHandler(enabled = !showDiscardConfirmation, onBack = requestDismiss)
+    BackHandler(enabled = !showDiscardConfirmation && !saving, onBack = requestDismiss)
     ProductivityEditorDialog(
         modifier = modifier,
         testTag = "habit-editor-surface",
         primary = true,
         paneTitle = if (habit == null) "Create Habit" else "Edit Habit",
-        onDismissRequest = requestDismiss,
+        onDismissRequest = { if (!saving) requestDismiss() },
         title = { Text(if (habit == null) "Create Habit" else "Edit Habit") },
         text = {
             WhipReorderLazyColumn(
                 modifier = Modifier.testTag("habit-editor-fields"),
+                state = editorListState,
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 item { Text("* Required field", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                if (persistenceError != null) item {
+                    PersistenceFailureNotice(
+                        message = persistenceError,
+                        testTag = "habit-persistence-save-problem",
+                    )
+                }
                 if (validationRequested && validationMessages.isNotEmpty()) item {
                     FormValidationSummary(
                         messages = validationMessages,
@@ -2002,6 +2028,8 @@ private fun HabitEditorDialog(
                 modifier = Modifier.semantics { contentDescription = "Cancel Habit editing" },
             ) { Icon(Icons.Outlined.Close, contentDescription = null) }
         },
+        inputBlocked = saving,
+        inputBlockedLabel = "Saving Habit",
     )
     if (showEndDatePicker) WhipDatePickerDialog(endDate ?: today, { showEndDatePicker = false }, { endDate = it; showEndDatePicker = false })
     if (showDiscardConfirmation) {

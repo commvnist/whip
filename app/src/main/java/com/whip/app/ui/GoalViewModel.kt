@@ -4,10 +4,17 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.whip.app.WhipApplication
+import com.whip.app.core.CommittedEntitySaveCancellation
 import com.whip.app.core.HomeSection
+import com.whip.app.core.EntitySaveReceipt
 import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
+import com.whip.app.core.PersistenceRequestState
+import com.whip.app.core.WhipResult
+import com.whip.app.core.completeCommittedEntitySave
 import com.whip.app.core.revealHomeSection
+import com.whip.app.core.saveFollowUpWarning
+import com.whip.app.core.tryStartPersistenceRequest
 import com.whip.app.data.GoalRepository
 import com.whip.app.domain.Goal
 import com.whip.app.domain.GoalDraft
@@ -18,7 +25,6 @@ import com.whip.app.domain.MetricEntry
 import com.whip.app.domain.MetricDefinition
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.projectGoal
-import com.whip.app.reminders.reminderDefinitionChanged
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
@@ -61,6 +67,10 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
     private val reminders = app.goalReminderScheduler
     private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
     val operationStatus: StateFlow<OperationStatus> = _operationStatus.asStateFlow()
+    private val _editorSaveState = MutableStateFlow<PersistenceRequestState<EntitySaveReceipt>>(
+        PersistenceRequestState.Idle,
+    )
+    val editorSaveState: StateFlow<PersistenceRequestState<EntitySaveReceipt>> = _editorSaveState.asStateFlow()
     private val reloadKey = MutableStateFlow(0)
 
     fun defaultSettings() = app.settingsRepository.current()
@@ -113,17 +123,69 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         )
 
     fun consumeOperationStatus() { _operationStatus.value = OperationStatus.Idle }
+    fun consumeEditorSaveResult(requestId: String) {
+        if ((_editorSaveState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _editorSaveState.value = PersistenceRequestState.Idle
+        }
+    }
     fun retryLoading() { reloadKey.value++ }
-    fun saveGoal(id: Long?, draft: GoalDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
-        if (id == null) "Creating goal…" else "Saving goal…",
-        if (id == null) "Goal created" else "Goal saved",
-        onFinished,
-    ) {
-        val existing = id?.let { repository.get(it) }
-        val savedId = if (id == null) repository.create(draft) else { repository.update(id, draft); id }
-        if (existing == null || existing.reminderDefinitionChanged(draft)) reminders.syncGoal(savedId)
-        draft.tags.filter { tag -> existing?.tags?.none { it.equals(tag, ignoreCase = true) } != false }
-            .forEach { app.measurementRepository.ensureTag(it) }
+    fun saveGoal(
+        id: Long?,
+        draft: GoalDraft,
+        requestId: String? = null,
+        onFinished: (Boolean) -> Unit = {},
+    ): Boolean {
+        if (requestId != null && !_editorSaveState.tryStartPersistenceRequest(requestId)) {
+            onFinished(false)
+            return false
+        }
+        runEntitySaveOperation(
+            if (id == null) "Creating goal…" else "Saving goal…",
+            if (id == null) "Goal created" else "Goal saved",
+            requestId = requestId,
+            onFinished = { result ->
+                if (requestId != null &&
+                    (_editorSaveState.value as? PersistenceRequestState.Running)?.requestId == requestId
+                ) {
+                    _editorSaveState.value = PersistenceRequestState.Finished(requestId, result)
+                }
+                onFinished(result is WhipResult.Success)
+            },
+        ) {
+            completeCommittedEntitySave(
+                commit = {
+                    val savedId = if (id == null) repository.create(draft) else {
+                        repository.update(id, draft)
+                        id
+                    }
+                    EntitySaveReceipt(savedId, draft.areaId, areaVerified = false)
+                },
+                followUp = { committed ->
+                    val savedId = requireNotNull(committed.entityId)
+                    var resolvedAreaId = committed.areaId
+                    var areaVerified = false
+                    val warnings = listOfNotNull(
+                        saveFollowUpWarning("Saved Area could not be verified; showing All Areas.") {
+                            val saved = requireNotNull(repository.get(savedId)) { "Saved Goal could not be reread" }
+                            resolvedAreaId = saved.areaId
+                            areaVerified = true
+                        },
+                        saveFollowUpWarning("Some tag suggestions did not refresh. Saving again will retry them.") {
+                            draft.tags.forEach { app.measurementRepository.ensureTag(it) }
+                        },
+                        saveFollowUpWarning("Reminder refresh did not finish. Reopen and save the Goal to retry.") {
+                            reminders.syncGoal(savedId)
+                        },
+                    )
+                    committed.copy(
+                        areaId = resolvedAreaId,
+                        warnings = warnings,
+                        areaVerified = areaVerified,
+                    )
+                },
+            )
+        }
+        return true
     }
     fun duplicate(id: Long) = runOperation("Duplicating goal…", "Goal duplicated") {
         reminders.syncGoal(repository.duplicate(id))
@@ -215,6 +277,61 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
                 _operationStatus.value = OperationStatus.Failed(error.message ?: "Something went wrong", error)
                 runCatching { onFinished(false) }
             }
+        }
+    }
+
+    private fun runEntitySaveOperation(
+        running: String,
+        success: String,
+        requestId: String?,
+        onFinished: (WhipResult<EntitySaveReceipt>) -> Unit,
+        block: suspend () -> EntitySaveReceipt,
+    ) {
+        _operationStatus.value = OperationStatus.Running(running)
+        viewModelScope.launch {
+            fun successResult(receipt: EntitySaveReceipt): WhipResult.Success<EntitySaveReceipt> {
+                val message = if (receipt.warnings.isEmpty()) success else "$success · ${receipt.warnings.joinToString(" ")}"
+                _operationStatus.value = OperationStatus.Succeeded(message, OperationFeedbackPresentation.Snackbar)
+                return WhipResult.Success(receipt)
+            }
+            val result = try {
+                val receipt = checkNotNull(app.withUserDataAccess { block() }) {
+                    "Whip data is unavailable while recovery is in progress"
+                }
+                successResult(receipt)
+            } catch (cancelled: CommittedEntitySaveCancellation) {
+                if (requestId != null && currentCoroutineContext().isActive) {
+                    successResult(
+                        cancelled.receipt.copy(
+                            warnings = cancelled.receipt.warnings +
+                                "Some post-save updates were interrupted; the Goal itself was saved.",
+                        ),
+                    )
+                } else {
+                    if ((_editorSaveState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _editorSaveState.value = PersistenceRequestState.Idle
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw cancelled
+                }
+            } catch (cancelled: CancellationException) {
+                if (requestId != null && currentCoroutineContext().isActive) {
+                    _operationStatus.value = OperationStatus.Idle
+                    WhipResult.Failure("The Goal save was interrupted. Your changes are still here.", cancelled)
+                } else {
+                    if ((_editorSaveState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _editorSaveState.value = PersistenceRequestState.Idle
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw cancelled
+                }
+            } catch (error: Exception) {
+                _operationStatus.value = if (requestId == null) {
+                    OperationStatus.Failed(error.message ?: "Something went wrong", error)
+                } else OperationStatus.Idle
+                WhipResult.Failure(error.message ?: "The goal could not be saved.", error)
+            }
+            runCatching { onFinished(result) }
         }
     }
 

@@ -111,6 +111,7 @@ These values are source- and emulator-informed heuristic estimates, not observed
 - Affected users: everyone using Areas, especially interruption-prone and multi-Area workflows.
 - Source: `WhipApp.kt`, `HabitScreens.kt`, `GoalScreens.kt`.
 - Recommended solution: typed save results and success-only navigation/scope effects.
+- Remediation status: resolved for Task/Habit/Goal authored definition editors with request-owned receipts, post-commit warning semantics, retained retry drafts, atomic admission, stale-terminal reclamation, input blocking, and authoritative Area fallback. Secondary mutation dialogs remain tracked separately as `FND-20260831-019`.
 - Regression gate: injected failure for Task Save, Save & New, Habit, and Goal; editor/draft/scope/notice assertions.
 - Durable record: `FND-20260831-010`, `DEC-20260831-011`.
 
