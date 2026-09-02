@@ -24,12 +24,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsActions
@@ -1025,6 +1027,210 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithContentDescription("Tasks tab").performClick().assertIsSelected()
         compose.onNodeWithContentDescription("Go to Home").assertIsDisplayed().performClick()
         compose.onNodeWithContentDescription("Home").assertIsSelected()
+    }
+
+    @Test
+    fun enlargedTextKeepsEveryCompactPrimaryDestinationVisiblyNamed() {
+        val fontScale = mutableStateOf(1.5f)
+        val baseDensity = compose.density.density
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(baseDensity, fontScale.value)) {
+                WhipTheme(dynamicColor = false) {
+                    WhipScreen(
+                        state = TaskUiState(loading = false),
+                        habitState = HabitUiState(loading = false),
+                        goalState = GoalUiState(loading = false),
+                        trackState = TrackUiState(loading = false),
+                        gymState = GymUiState(loading = false),
+                        adaptiveLayout = WhipAdaptiveLayout.Compact,
+                        onSaveTask = { _, _, _ -> },
+                        onComplete = {},
+                        onSkip = {},
+                        onReschedule = { _, _ -> },
+                        onArchive = {},
+                        onReopen = {},
+                    )
+                }
+            }
+        }
+
+        listOf(1.5f, 2f, 3.2f).forEach { scale ->
+            compose.runOnIdle { fontScale.value = scale }
+            compose.waitForIdle()
+            val usesTwoRows = compose.onAllNodesWithTag("compact-primary-navigation-two-row")
+                .fetchSemanticsNodes().isNotEmpty()
+            if (usesTwoRows) {
+                compose.onNodeWithTag("compact-primary-navigation-two-row").assertIsDisplayed()
+            } else {
+                compose.onNodeWithTag("compact-primary-navigation-single-row").assertIsDisplayed()
+            }
+            val firstRow = listOf("Home", "Tasks", "Habits").map { destination ->
+                val item = compose.onNodeWithTag("primary-navigation-$destination").assertIsDisplayed()
+                    .fetchSemanticsNode().boundsInRoot
+                val label = compose.onNodeWithTag(
+                    "primary-navigation-label-$destination",
+                    useUnmergedTree = true,
+                ).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+                check(item.contains(label.topLeft) && item.contains(label.bottomRight)) {
+                    "$destination label must fit at ${scale}x: label=$label item=$item"
+                }
+                item
+            }
+            val secondRow = listOf("Goals", "Tracks", "Gym").map { destination ->
+                val item = compose.onNodeWithTag("primary-navigation-$destination").assertIsDisplayed()
+                    .fetchSemanticsNode().boundsInRoot
+                val label = compose.onNodeWithTag(
+                    "primary-navigation-label-$destination",
+                    useUnmergedTree = true,
+                ).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+                check(item.contains(label.topLeft) && item.contains(label.bottomRight)) {
+                    "$destination label must fit at ${scale}x: label=$label item=$item"
+                }
+                item
+            }
+            if (usesTwoRows) {
+                check(firstRow.all { it.top == firstRow.first().top }) { "First navigation row is unstable at ${scale}x: $firstRow" }
+                check(secondRow.all { it.top == secondRow.first().top }) { "Second navigation row is unstable at ${scale}x: $secondRow" }
+                check(firstRow.first().top < secondRow.first().top) {
+                    "Large-text destination rows must remain ordered at ${scale}x: first=$firstRow second=$secondRow"
+                }
+            } else {
+                val oneRow = firstRow + secondRow
+                check(oneRow.all { it.top == oneRow.first().top }) {
+                    "Measured single-row navigation is unstable at ${scale}x: $oneRow"
+                }
+            }
+        }
+    }
+
+    @Test
+    fun enlargedTextKeepsEveryRailDestinationVisiblyNamed() {
+        val fontScale = mutableStateOf(1.5f)
+        val baseDensity = compose.density.density
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(baseDensity, fontScale.value)) {
+                WhipTheme(dynamicColor = false) {
+                    WhipScreen(
+                        state = TaskUiState(loading = false),
+                        habitState = HabitUiState(loading = false),
+                        goalState = GoalUiState(loading = false),
+                        trackState = TrackUiState(loading = false),
+                        gymState = GymUiState(loading = false),
+                        adaptiveLayout = WhipAdaptiveLayout.NavigationRail,
+                        onSaveTask = { _, _, _ -> },
+                        onComplete = {},
+                        onSkip = {},
+                        onReschedule = { _, _ -> },
+                        onArchive = {},
+                        onReopen = {},
+                    )
+                }
+            }
+        }
+
+        listOf(1.5f, 2f, 3.2f).forEach { scale ->
+            compose.runOnIdle { fontScale.value = scale }
+            compose.waitForIdle()
+            val rail = compose.onNodeWithTag("adaptive-navigation-rail").assertIsDisplayed()
+                .fetchSemanticsNode().boundsInRoot
+            listOf("Home", "Tasks", "Habits", "Goals", "Tracks", "Gym", "Settings").forEach { destination ->
+                val item = compose.onNodeWithTag("rail-primary-navigation-$destination").assertIsDisplayed()
+                    .fetchSemanticsNode().boundsInRoot
+                val label = compose.onNodeWithTag(
+                    "rail-primary-navigation-label-$destination",
+                    useUnmergedTree = true,
+                ).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+                check(item.contains(label.topLeft) && item.contains(label.bottomRight)) {
+                    "$destination rail label must fit at ${scale}x: label=$label item=$item"
+                }
+                check(rail.contains(item.center)) {
+                    "$destination must remain inside the rail at ${scale}x: item=$item rail=$rail"
+                }
+            }
+        }
+    }
+
+    @Test
+    fun shortLargeTextRailScrollsToEveryNamedDestination() {
+        val largeText = Density(compose.density.density, fontScale = 2f)
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides largeText) {
+                WhipTheme(dynamicColor = false) {
+                    Box(Modifier.width(700.dp).height(360.dp)) {
+                        WhipScreen(
+                            state = TaskUiState(loading = false),
+                            habitState = HabitUiState(loading = false),
+                            goalState = GoalUiState(loading = false),
+                            trackState = TrackUiState(loading = false),
+                            gymState = GymUiState(loading = false),
+                            adaptiveLayout = WhipAdaptiveLayout.NavigationRail,
+                            onSaveTask = { _, _, _ -> },
+                            onComplete = {},
+                            onSkip = {},
+                            onReschedule = { _, _ -> },
+                            onArchive = {},
+                            onReopen = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("rail-primary-navigation-Settings").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("rail-primary-navigation-label-Settings", useUnmergedTree = true)
+            .assertIsDisplayed()
+        compose.onNodeWithTag("rail-primary-navigation-Home").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("rail-primary-navigation-label-Home", useUnmergedTree = true)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun clearReturningHomeOffersAndOpensTheActualInbox() {
+        val today = LocalDate.of(2026, 9, 2)
+        val inboxTask = ScheduledTask(
+            task = WhipTask(
+                id = 901,
+                title = "Captured thought",
+                notes = "",
+                scheduleKind = ScheduleKind.Anytime,
+                date = null,
+                recurrence = null,
+                timeMinutes = null,
+                reminderEnabled = false,
+                archived = false,
+                completedAtMillis = null,
+                createdAtMillis = 1,
+                updatedAtMillis = 1,
+                inbox = true,
+            ),
+            originalDate = null,
+            scheduledDate = null,
+        )
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(inbox = listOf(inboxTask), currentDate = today, loading = false),
+                    habitState = HabitUiState(currentDate = today, loading = false),
+                    goalState = GoalUiState(currentDate = today, loading = false),
+                    trackState = TrackUiState(currentDate = today, loading = false),
+                    gymState = GymUiState(loading = false),
+                    settingsState = SettingsUiState(settings = AppSettings(setupCompleted = true)),
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Your Day Is Clear").assertIsDisplayed()
+        compose.onNodeWithTag("home-resume-path").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Pick Up Where You Left Off").assertIsDisplayed()
+        compose.onNodeWithTag("home-resume-inbox").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("task-destination-Inbox").assertIsSelected()
+        compose.onNodeWithText("Captured thought").assertIsDisplayed()
     }
 
     @Test

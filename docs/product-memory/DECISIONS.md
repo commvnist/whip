@@ -346,3 +346,12 @@
 - Compatibility: Existing check-ins, skips, pauses, timestamps, Room schema 41, backup format 18, and calculation rules are unchanged. Presentation is derived from existing immutable facts; no row is migrated or recomputed in storage.
 - Related: `FND-20260902-003`, `IMP-20260902-005`, `VER-20260902-005`.
 - Status: Accepted and implemented.
+
+### DEC-20260902-005 — Enlarged text preserves named direct navigation; clear Home preserves context
+
+- Context: Six short primary destinations can fit one phone row at some enlarged scales but not all. A fixed threshold discarded all visible names at 150%, while a fixed rail width clipped them. Home also treated “nothing due” as sufficient even when existing work was merely outside the dashboard.
+- Decision: Measure rendered destination labels against the actual compact width. Use one stable named row when every label fits and two stable three-item named rows otherwise; never fall back to icon-only primary navigation. Size the rail from its rendered names and make its direct list vertically scrollable in short windows. On a settled, clear returning Home, show at most three concrete recovery routes ordered Inbox → Upcoming → Habits → Goals → Tracks → Gym, while recent completion evidence continues to route to Review & Trends.
+- Rationale: The interface adapts to real content instead of an arbitrary font threshold, retains one-tap/muscle-memory access, and bounds Home assistance without becoming a guilt dashboard or a second navigation system.
+- Compatibility: App-destination order, saved workspace state, Back behavior, deep links, keyboard shortcuts, Room schema 41, backup format 18, and every domain record remain unchanged. Recovery links only select existing workspace destinations.
+- Related: `FND-20260831-011`, `FND-20260831-017`, `FND-20260902-004`, `IMP-20260902-006`, `VER-20260902-006`.
+- Status: Accepted and implemented.

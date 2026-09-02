@@ -38,6 +38,30 @@ class WhipNavigationPolicyTest {
     }
 
     @Test
+    fun returningHomeOffersBoundedConcreteDestinationsInAttentionOrder() {
+        assertEquals(
+            listOf(
+                HomeResumeDestination.Inbox,
+                HomeResumeDestination.Upcoming,
+                HomeResumeDestination.Habits,
+            ),
+            homeResumeDestinations(
+                inboxTaskCount = 2,
+                upcomingTaskCount = 4,
+                habitCount = 3,
+                goalCount = 2,
+                trackCount = 1,
+                gymItemCount = 5,
+            ),
+        )
+        assertEquals(
+            listOf(HomeResumeDestination.Tracks, HomeResumeDestination.Gym),
+            homeResumeDestinations(0, 0, 0, 0, 2, 1),
+        )
+        assertTrue(homeResumeDestinations(0, 0, 0, 0, 0, 0).isEmpty())
+    }
+
+    @Test
     fun homeSummaryNeverDropsPinnedItemsAndOnlyUsesSpareSlotsForOthers() {
         val items = listOf("pinned-a", "other-a", "pinned-b", "pinned-c", "pinned-d", "other-b")
 

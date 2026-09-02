@@ -315,3 +315,15 @@
 - Counts: Current baseline is 1,422 product tests—550 JVM and 872 Android—plus 9 Macrobenchmark/Baseline Profile scenarios.
 - Related: `FND-20260902-003`, `DEC-20260902-004`, `IMP-20260902-005`.
 - Status: Fully verified for this coherent Habit History and pause-impact chunk.
+
+### VER-20260902-006 — Named adaptive navigation and returning-Home verification
+
+- Scope/environment: Measured one-row/two-row phone navigation; persistent rail width/height; 150%, 200%, and 320% text; 360dp-short rail scrolling; clear returning Home with Inbox/Upcoming/paused-or-archived/unpinned/Gym context; exact Inbox routing; compact/rail/expanded/book/tabletop, light/dark/dynamic, and RTL structural matrices; API 34 disposable emulator `emulator-5554`.
+- Focused evidence: Five policy/resource/architecture JVM classes and 39 navigation/visual Android cases passed before the complete gate. Four new Compose regressions prove every compact and rail destination has a visible contained text node at 150/200/320%, the measured row choice remains stable, short rails scroll from Settings back to Home, and a clear returning Home exposes then opens the actual Inbox with its saved Task. The recovery-priority JVM regression proves the three-item bound and fallback ordering.
+- Visual evidence: Two inspected 1080×2400 captures plus UI hierarchies under `artifacts/full-product-audit/2026-09-02/navigation-home/` show all six names in the 200% two-row phone bar and the clear-day “Pick Up Where You Left Off” Inbox route. The emulator font scale was restored to 1.0 before the complete suite.
+- Complete gates: `ANDROID_SERIAL=emulator-5554 scripts/check --emulator` passed all 551 JVM and all 876 Android tests—1,427 product tests total—with zero failures/skips across ten instrumentation batches. Play assets, Kotlin/JVM/Android-test compilation, debug assembly, lint, and deterministic coverage passed: domain lines 78.17% (3,993/5,108), domain branches 56.26% (2,215/3,937), and core policy lines 66.46% (545/820). `scripts/check --full` passed release APK/AAB, release lint-vital, R8/resource shrinking, and optimized benchmark-harness assembly. `git diff --check` passed.
+- Release-build evidence: unsigned release APK SHA-256 `f50c891e4e5080e1762726756eb7fe229573a1237a1ecd063947d557e468f475`; release AAB SHA-256 `2cf254e861ae32085ca00c7e02f8c0032552c0f9f9774b4ee84e48578f1683d8`.
+- Compatibility/exclusions: No persistence, Room schema, migration, backup format, saved-workspace reset, historical mutation, or physical-device release. API 26/API 37, continuous E2E coverage, TalkBack service exploration, and signed phone deployment were not run in this chunk.
+- Counts: Current baseline is 1,427 product tests—551 JVM and 876 Android—plus 9 Macrobenchmark/Baseline Profile scenarios.
+- Related: `FND-20260831-011`, `FND-20260831-017`, `FND-20260902-004`, `DEC-20260902-005`, `IMP-20260902-006`.
+- Status: Fully verified for this coherent adaptive-navigation and returning-Home chunk.

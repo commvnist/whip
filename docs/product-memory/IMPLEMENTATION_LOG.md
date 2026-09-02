@@ -292,3 +292,15 @@
 - Related: `FND-20260902-003`, `DEC-20260902-004`.
 - Verification: `VER-20260902-005`.
 - Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.
+
+### IMP-20260902-006 — Named adaptive navigation and returning-Home recovery
+
+- Replaced the font-scale icon-only switch with measured label fitting. Compact/tabletop navigation renders all six names in one row when they fit and otherwise uses a stable Home/Tasks/Habits then Goals/Tracks/Gym two-row layout with unchanged direct tab semantics and minimum touch targets.
+- Made the persistent rail label-aware: its width follows the widest rendered destination, every item remains named at 150–320% text, item height grows with text, and short/landscape rails scroll directly to Home through Settings instead of stripping labels.
+- Added a bounded “Pick Up Where You Left Off” section when settled Home is clear for a returning user. It recognizes Inbox, Upcoming/planning, saved/archived Habits and Goals, unpinned/archived Tracks, and Gym workouts/routines/exercises/machines, displays at most three count-aware routes, and opens the exact relevant destination. Existing Review & Trends recovery remains primary when completion evidence exists.
+- Added one JVM policy regression and four Compose regressions covering bounded priority, exact Inbox routing, 150/200/320% compact and rail labels, label containment, stable one/two-row geometry, and scroll reachability in a 360dp-high rail. Expanded resource-policy coverage for all new copy.
+- Compatibility: Presentation and in-memory navigation state only. No persistence, migration, backup, entity semantics, history, deep-link, or keyboard-shortcut changes.
+- Important files: `WhipApp.kt`, `strings.xml`, `WhipNavigationPolicyTest.kt`, `AdaptiveWhipScreenTest.kt`, `AuditUiStringResourcePolicyTest.kt`, and `docs/testing.md`.
+- Related: `FND-20260831-011`, `FND-20260831-017`, `FND-20260902-004`, `DEC-20260902-005`.
+- Verification: `VER-20260902-006`.
+- Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.

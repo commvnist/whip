@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.offset
@@ -47,7 +48,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -96,6 +96,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -243,6 +244,32 @@ internal fun AreaScope.requiresExplicitCreationArea(areas: List<Area>): Boolean 
     this == AreaScope.All && areas.count { !it.archived } > 1
 
 internal fun shouldShowHomeGettingStarted(hasAnyUserData: Boolean): Boolean = !hasAnyUserData
+
+internal enum class HomeResumeDestination {
+    Inbox,
+    Upcoming,
+    Habits,
+    Goals,
+    Tracks,
+    Gym,
+}
+
+internal fun homeResumeDestinations(
+    inboxTaskCount: Int,
+    upcomingTaskCount: Int,
+    habitCount: Int,
+    goalCount: Int,
+    trackCount: Int,
+    gymItemCount: Int,
+    limit: Int = 3,
+): List<HomeResumeDestination> = buildList {
+    if (inboxTaskCount > 0) add(HomeResumeDestination.Inbox)
+    if (upcomingTaskCount > 0) add(HomeResumeDestination.Upcoming)
+    if (habitCount > 0) add(HomeResumeDestination.Habits)
+    if (goalCount > 0) add(HomeResumeDestination.Goals)
+    if (trackCount > 0) add(HomeResumeDestination.Tracks)
+    if (gymItemCount > 0) add(HomeResumeDestination.Gym)
+}.take(limit.coerceAtLeast(0))
 
 internal sealed interface LaunchTargetResolution {
     data object NotApplicable : LaunchTargetResolution
@@ -2049,6 +2076,50 @@ fun WhipScreen(
                         settingsViewModel?.selectHomeTaskFilter(name)
                     },
                     onOpenReview = { reviewOpen = true },
+                    onOpenResumeDestination = { destination ->
+                        when (destination) {
+                            HomeResumeDestination.Inbox -> {
+                                taskDestination = TaskDestination.Inbox
+                                appDestination = AppDestination.Tasks
+                            }
+                            HomeResumeDestination.Upcoming -> {
+                                taskDestination = TaskDestination.Upcoming
+                                appDestination = AppDestination.Tasks
+                            }
+                            HomeResumeDestination.Habits -> {
+                                habitDestinationState.value = if (habitState.all.isNotEmpty()) {
+                                    HabitDestination.All
+                                } else {
+                                    HabitDestination.Archived
+                                }
+                                appDestination = AppDestination.Habits
+                            }
+                            HomeResumeDestination.Goals -> {
+                                goalDestinationState.value = when {
+                                    goalState.active.isNotEmpty() -> GoalDestination.Active
+                                    goalState.completed.isNotEmpty() -> GoalDestination.Completed
+                                    else -> GoalDestination.Archived
+                                }
+                                appDestination = AppDestination.Goals
+                            }
+                            HomeResumeDestination.Tracks -> {
+                                trackWorkspaceDestinationState.value = if (trackState.active.isNotEmpty()) {
+                                    TrackWorkspaceDestination.Tracks
+                                } else {
+                                    TrackWorkspaceDestination.Archived
+                                }
+                                appDestination = AppDestination.Tracks
+                            }
+                            HomeResumeDestination.Gym -> {
+                                gymDestination = when {
+                                    gymState.activeSession != null -> GymDestination.Workout
+                                    gymState.routines.isNotEmpty() || gymState.exercises.isNotEmpty() -> GymDestination.Library
+                                    else -> GymDestination.History
+                                }
+                                appDestination = AppDestination.Gym
+                            }
+                        }
+                    },
                     showFullHeader = adaptiveLayout == WhipAdaptiveLayout.Compact || contentPaneIsExpanded,
                     areaScopeLabel = when (areaScope) {
                         AreaScope.All -> null
@@ -3984,12 +4055,14 @@ private fun WhipNavigationRailItem(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     showLabel: Boolean = true,
+    width: Dp = 80.dp,
+    minimumHeight: Dp = if (showLabel) 72.dp else 56.dp,
 ) {
     val itemColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         modifier = modifier
-            .width(80.dp)
-            .heightIn(min = if (showLabel) 72.dp else 56.dp)
+            .width(width)
+            .heightIn(min = minimumHeight)
             .selectable(
                 selected = selected,
                 enabled = enabled,
@@ -4027,8 +4100,22 @@ private fun WhipNavigationRail(
     enabled: Boolean = true,
 ) {
     val railColor = MaterialTheme.colorScheme.surfaceContainerLow
+    val density = LocalDensity.current
+    val labelStyle = MaterialTheme.typography.labelMedium
+    val textMeasurer = rememberTextMeasurer()
+    val railLabels = listOf(AppDestination.Home) + primaryAppDestinations + AppDestination.Settings
+    val widestLabelPx = railLabels.maxOf { destination ->
+        textMeasurer.measure(
+            text = stringResource(destination.labelRes),
+            style = labelStyle,
+            maxLines = 1,
+        ).size.width
+    }
+    val railWidth = with(density) { widestLabelPx.toDp() + 20.dp }.coerceAtLeast(80.dp)
+    val destinationHeight = (52.dp + 16.dp * density.fontScale).coerceAtLeast(72.dp)
     Surface(
         modifier = Modifier
+            .width(railWidth)
             .fillMaxHeight()
             .testTag("adaptive-navigation-rail"),
         color = railColor,
@@ -4039,17 +4126,12 @@ private fun WhipNavigationRail(
                 // Persistent navigation must not follow the IME. The active
                 // content pane owns keyboard avoidance while the rail keeps
                 // the same position users established before typing.
-                .width(80.dp),
+                .width(railWidth),
         ) {
             var stableRailHeight by remember { mutableStateOf(maxHeight) }
             LaunchedEffect(maxHeight) {
                 if (maxHeight > stableRailHeight) stableRailHeight = maxHeight
             }
-            // Large text must not turn the primary navigation into a row of
-            // symbols that users have to memorize. The rail has a fixed width
-            // and enough stable pre-IME height for its one-line labels.
-            val showLabels = stableRailHeight >= 560.dp
-            val destinationHeight = if (showLabels) 72.dp else 56.dp
             val stableTopOffset = (
                 (stableRailHeight - destinationHeight * (primaryAppDestinations.size + 2)) / 2
             ).coerceAtLeast(12.dp)
@@ -4057,21 +4139,27 @@ private fun WhipNavigationRail(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .offset(y = stableTopOffset)
+                    .verticalScroll(rememberScrollState())
                     .testTag("adaptive-navigation-rail-destinations"),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 WhipNavigationRailItem(
-                    modifier = Modifier.semantics {
-                        contentDescription = if (selected == AppDestination.Home) "Home" else "Go to Home"
-                    },
+                    modifier = Modifier
+                        .testTag("rail-primary-navigation-Home")
+                        .semantics {
+                            contentDescription = if (selected == AppDestination.Home) "Home" else "Go to Home"
+                        },
                     selected = selected == AppDestination.Home,
                     enabled = enabled,
-                    showLabel = showLabels,
+                    showLabel = true,
+                    width = railWidth,
+                    minimumHeight = destinationHeight,
                     onClick = { onSelect(AppDestination.Home) },
                     icon = { WhipBrandMark(Modifier.size(34.dp)) },
                     label = {
                         Text(
                             stringResource(R.string.nav_home),
+                            modifier = Modifier.testTag("rail-primary-navigation-label-Home"),
                             style = MaterialTheme.typography.labelMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -4082,15 +4170,20 @@ private fun WhipNavigationRail(
                     val destinationLabel = stringResource(destination.labelRes)
                     val destinationTabDescription = stringResource(R.string.nav_tab_description, destinationLabel)
                     WhipNavigationRailItem(
-                        modifier = Modifier.semantics { contentDescription = destinationTabDescription },
+                        modifier = Modifier
+                            .testTag("rail-primary-navigation-${destination.name}")
+                            .semantics { contentDescription = destinationTabDescription },
                         selected = destination == selected,
                         enabled = enabled,
-                        showLabel = showLabels,
+                        showLabel = true,
+                        width = railWidth,
+                        minimumHeight = destinationHeight,
                         onClick = { onSelect(destination) },
                         icon = { Icon(destination.icon, contentDescription = null, modifier = Modifier.size(28.dp)) },
                         label = {
                             Text(
                                 destinationLabel,
+                                modifier = Modifier.testTag("rail-primary-navigation-label-${destination.name}"),
                                 style = MaterialTheme.typography.labelMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -4099,15 +4192,20 @@ private fun WhipNavigationRail(
                     )
                 }
                 WhipNavigationRailItem(
-                    modifier = Modifier.semantics { contentDescription = "Settings tab" },
+                    modifier = Modifier
+                        .testTag("rail-primary-navigation-Settings")
+                        .semantics { contentDescription = "Settings tab" },
                     selected = selected == AppDestination.Settings,
                     enabled = enabled,
-                    showLabel = showLabels,
+                    showLabel = true,
+                    width = railWidth,
+                    minimumHeight = destinationHeight,
                     onClick = { onSelect(AppDestination.Settings) },
                     icon = { Icon(Icons.Outlined.Settings, contentDescription = null, modifier = Modifier.size(28.dp)) },
                     label = {
                         Text(
                             stringResource(R.string.nav_settings),
+                            modifier = Modifier.testTag("rail-primary-navigation-label-Settings"),
                             style = MaterialTheme.typography.labelMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -4152,50 +4250,95 @@ private fun PrimaryDestinationNavigationBar(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val showLabels = LocalDensity.current.fontScale < 1.5f
-    NavigationBar(
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        WhipNavigationBarItem(
-            modifier = Modifier.semantics {
-                contentDescription = if (selected == AppDestination.Home) "Home" else "Go to Home"
-            },
-            selected = selected == AppDestination.Home,
-            enabled = enabled,
-            showLabel = showLabels,
-            onClick = { onSelect(AppDestination.Home) },
-            icon = { WhipBrandMark(Modifier.size(28.dp)) },
-            label = {
-                Text(
-                    stringResource(R.string.nav_home),
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            },
-        )
-        primaryAppDestinations.forEach { destination ->
-            val destinationLabel = stringResource(destination.labelRes)
-            val destinationTabDescription = stringResource(R.string.nav_tab_description, destinationLabel)
-            WhipNavigationBarItem(
-                modifier = Modifier.semantics { contentDescription = destinationTabDescription },
-                selected = destination == selected,
-                enabled = enabled,
-                showLabel = showLabels,
-                onClick = { onSelect(destination) },
-                icon = { Icon(destination.icon, contentDescription = null, modifier = Modifier.size(26.dp)) },
-                label = {
-                    Text(
-                        destinationLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-            )
+    val destinations = listOf(AppDestination.Home) + primaryAppDestinations
+    val labels = destinations.associateWith { stringResource(it.labelRes) }
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val density = LocalDensity.current
+        val labelStyle = MaterialTheme.typography.labelSmall
+        val textMeasurer = rememberTextMeasurer()
+        val widestLabelPx = labels.values.maxOf { label ->
+            textMeasurer.measure(label, style = labelStyle, maxLines = 1).size.width
+        }
+        val oneRowCellTextWidthPx = with(density) {
+            (maxWidth / destinations.size - 8.dp).coerceAtLeast(0.dp).toPx()
+        }
+        val rows = if (widestLabelPx <= oneRowCellTextWidthPx) {
+            listOf(destinations)
+        } else {
+            destinations.chunked(3)
+        }
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .testTag(
+                        if (rows.size == 1) "compact-primary-navigation-single-row"
+                        else "compact-primary-navigation-two-row",
+                    ),
+            ) {
+                rows.forEach { rowDestinations ->
+                    Row(Modifier.fillMaxWidth()) {
+                        rowDestinations.forEach { destination ->
+                            PrimaryDestinationNavigationItem(
+                                destination = destination,
+                                label = labels.getValue(destination),
+                                selected = destination == selected,
+                                enabled = enabled,
+                                onSelect = onSelect,
+                            )
+                        }
+                        repeat((3 - rowDestinations.size).coerceAtLeast(0)) {
+                            Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun RowScope.PrimaryDestinationNavigationItem(
+    destination: AppDestination,
+    label: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onSelect: (AppDestination) -> Unit,
+) {
+    val description = if (destination == AppDestination.Home) {
+        if (selected) "Home" else "Go to Home"
+    } else {
+        stringResource(R.string.nav_tab_description, label)
+    }
+    WhipNavigationBarItem(
+        modifier = Modifier
+            .testTag("primary-navigation-${destination.name}")
+            .semantics { contentDescription = description },
+        selected = selected,
+        enabled = enabled,
+        showLabel = true,
+        onClick = { onSelect(destination) },
+        icon = {
+            if (destination == AppDestination.Home) {
+                WhipBrandMark(Modifier.size(28.dp))
+            } else {
+                Icon(destination.icon, contentDescription = null, modifier = Modifier.size(26.dp))
+            }
+        },
+        label = {
+            Text(
+                label,
+                modifier = Modifier.testTag("primary-navigation-label-${destination.name}"),
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Clip,
+            )
+        },
+    )
 }
 
 @Composable
@@ -4849,6 +4992,7 @@ private fun HomeContent(
     onAddTrackEntry: (com.whip.app.domain.TrackProjection) -> Unit,
     onSelectHomeTaskFilter: (String?) -> Unit,
     onOpenReview: () -> Unit,
+    onOpenResumeDestination: (HomeResumeDestination) -> Unit,
     showFullHeader: Boolean = true,
     areaScopeLabel: String? = null,
     onShowAllAreas: () -> Unit = {},
@@ -4930,6 +5074,23 @@ private fun HomeContent(
             gymState.history.any { it.state == com.whip.app.domain.WorkoutSessionState.Finished }
     val hasAnyUserData = homeHasAnyUserData(state, habitState, goalState, trackState, gymState)
     val showGettingStarted = shouldShowHomeGettingStarted(hasAnyUserData)
+    val inboxTaskCount = state.inbox.size
+    val upcomingTaskCount = (state.upcoming + state.planning).distinctBy(ScheduledTask::stableKey).size
+    val savedHabitCount = (habitState.all.map { it.habit.id } + habitState.archived.map { it.id }).distinct().size
+    val savedGoalCount = (goalState.active + goalState.completed + goalState.archived).distinctBy { it.goal.id }.size
+    val savedTrackCount = trackState.projections.size
+    val savedGymItemCount =
+        gymState.allSessions.size + gymState.routines.size + gymState.archivedRoutines.size +
+            gymState.exercises.size + gymState.archivedExercises.size +
+            gymState.machines.size + gymState.archivedMachines.size
+    val resumeDestinations = homeResumeDestinations(
+        inboxTaskCount = inboxTaskCount,
+        upcomingTaskCount = upcomingTaskCount,
+        habitCount = savedHabitCount,
+        goalCount = savedGoalCount,
+        trackCount = savedTrackCount,
+        gymItemCount = savedGymItemCount,
+    )
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -4985,6 +5146,19 @@ private fun HomeContent(
                         title = stringResource(R.string.home_support_clear_title),
                         supportingText = stringResource(R.string.home_clear_existing_message),
                     )
+                }
+                if (resumeDestinations.isNotEmpty()) {
+                    item {
+                        HomeResumePath(
+                            destinations = resumeDestinations,
+                            inboxTaskCount = inboxTaskCount,
+                            upcomingTaskCount = upcomingTaskCount,
+                            habitCount = savedHabitCount,
+                            goalCount = savedGoalCount,
+                            trackCount = savedTrackCount,
+                            onOpen = onOpenResumeDestination,
+                        )
+                    }
                 }
             }
         }
@@ -5236,6 +5410,90 @@ private fun HomeContent(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HomeResumePath(
+    destinations: List<HomeResumeDestination>,
+    inboxTaskCount: Int,
+    upcomingTaskCount: Int,
+    habitCount: Int,
+    goalCount: Int,
+    trackCount: Int,
+    onOpen: (HomeResumeDestination) -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag("home-resume-path"),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            stringResource(R.string.home_resume_title),
+            modifier = Modifier.semantics { heading() },
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            stringResource(R.string.home_resume_message),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        destinations.forEach { destination ->
+            val title: String
+            val supportingText: String
+            when (destination) {
+                HomeResumeDestination.Inbox -> {
+                    title = stringResource(R.string.home_resume_inbox)
+                    supportingText = pluralStringResource(
+                        R.plurals.home_resume_inbox_count,
+                        inboxTaskCount,
+                        inboxTaskCount,
+                    )
+                }
+                HomeResumeDestination.Upcoming -> {
+                    title = stringResource(R.string.home_resume_upcoming)
+                    supportingText = pluralStringResource(
+                        R.plurals.home_resume_upcoming_count,
+                        upcomingTaskCount,
+                        upcomingTaskCount,
+                    )
+                }
+                HomeResumeDestination.Habits -> {
+                    title = stringResource(R.string.home_resume_habits)
+                    supportingText = pluralStringResource(
+                        R.plurals.home_resume_habit_count,
+                        habitCount,
+                        habitCount,
+                    )
+                }
+                HomeResumeDestination.Goals -> {
+                    title = stringResource(R.string.home_resume_goals)
+                    supportingText = pluralStringResource(
+                        R.plurals.home_resume_goal_count,
+                        goalCount,
+                        goalCount,
+                    )
+                }
+                HomeResumeDestination.Tracks -> {
+                    title = stringResource(R.string.home_resume_tracks)
+                    supportingText = pluralStringResource(
+                        R.plurals.home_resume_track_count,
+                        trackCount,
+                        trackCount,
+                    )
+                }
+                HomeResumeDestination.Gym -> {
+                    title = stringResource(R.string.home_resume_gym)
+                    supportingText = stringResource(R.string.home_resume_gym_support)
+                }
+            }
+            NavigationRow(
+                title = title,
+                onClick = { onOpen(destination) },
+                modifier = Modifier.testTag("home-resume-${destination.name.lowercase()}"),
+                supportingText = supportingText,
+            )
         }
     }
 }

@@ -110,7 +110,8 @@
 - Expected: A measured named row, stable two-row named layout, or labeled drawer preserves visible destination names.
 - Affected users: Sighted low-vision, cognitive/ADHD, first-time, and narrow-landscape users.
 - Evidence: `WhipApp.kt`, `large-text-home.png`, `large-text-gym.png`.
-- Status: Confirmed; remediation pending.
+- Resolution: Compact navigation now measures rendered labels and retains one named row when they fit, otherwise uses two stable named rows. The rail measures its label width, keeps names at every text scale, and scrolls as one direct list in short windows. See `IMP-20260902-006` / `VER-20260902-006`.
+- Status: Resolved and verified at 150%, 200%, and 320% text, short rail height, RTL/theme/fold matrices, and full emulator/release gates.
 
 ### FND-20260831-012 — Basic Habit creation exposes advanced schedule machinery
 
@@ -165,7 +166,8 @@
 - Observed: Existing Inbox, upcoming, paused, recent, or unpinned content can still yield only “Your Day Is Clear.”
 - Expected: A compact, nonjudgmental “Pick up where you left off” path distinct from first-run guidance.
 - Evidence: `WhipApp.kt` Home clear state.
-- Status: Confirmed; remediation pending.
+- Resolution: A returning clear Home now offers up to three concrete, count-aware recovery routes in attention order—Inbox, Upcoming, Habits, Goals, Tracks, or Gym—and opens the actual relevant collection rather than a generic root. Review evidence retains its dedicated Progress route. See `IMP-20260902-006` / `VER-20260902-006`.
+- Status: Resolved and emulator/release-build verified.
 
 ### FND-20260831-018 — Track list query behavior is unreachable
 
@@ -331,3 +333,14 @@
 - Evidence: `HabitScreens.kt`, `ActivityPresentationTest.kt`, and `ActivityHistoryUiTest.kt`; emulator captures and semantics hierarchies live under `artifacts/full-product-audit/2026-09-02/habit-history/`.
 - Resolution: Implemented in `IMP-20260902-005` and fully verified in `VER-20260902-005`.
 - Status: Resolved and emulator/release-build verified; no historical rows were rewritten.
+
+### FND-20260902-004 — Primary navigation and clear Home removed context when users needed more support
+
+- Severity/category: P1 accessibility/navigation plus P2 returning-user and ADHD context recovery.
+- Observed: Compact navigation removed all six visible labels at 150% text even though one named row could still fit; the rail used a fixed 80dp width, ellipsized enlarged labels, and hid every label in short windows. Separately, a returning user with Inbox, Upcoming, archived/paused/unpinned, or Gym-library data could receive only “Your Day Is Clear” with no route back to that saved context.
+- Expected: Text enlargement must never convert understandable navigation into glyph memorization. Whip should measure the current labels, preserve stable direct destinations, remain usable in short/landscape windows, and give a clear returning Home a bounded nonjudgmental recovery route that opens the relevant collection.
+- Why it matters: Sighted low-vision, cognitive/ADHD, first-time, and interruption-prone users were given less information precisely when they requested more, while existing work appeared to have vanished from an otherwise empty Home.
+- Affected users: 150–320% text users, narrow/landscape/fold users, keyboard and one-handed users, returning users, users who intentionally leave work in Inbox/Upcoming or unpinned collections, and anyone with saved Gym plans or equipment but nothing due today.
+- Evidence: `WhipApp.kt`, `WhipNavigationPolicyTest.kt`, `AdaptiveWhipScreenTest.kt`, `VisualAcceptanceMatrixTest.kt`, and the captures/hierarchies under `artifacts/full-product-audit/2026-09-02/navigation-home/`.
+- Resolution: Implemented in `IMP-20260902-006` and fully verified in `VER-20260902-006`; this also resolves `FND-20260831-011` and `FND-20260831-017`.
+- Status: Resolved and emulator/release-build verified; no saved navigation or user data was changed.

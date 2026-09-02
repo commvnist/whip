@@ -25,7 +25,36 @@
     <string name="home_support_clear_message">Nothing in your visible Home sections needs attention right now.</string>
     <string name="home_clear_review_message">Nothing needs attention right now. Review your progress or plan what comes next.</string>
     <string name="home_clear_review_action">Review Progress</string>
-    <string name="home_clear_existing_message">Nothing needs attention right now. Your existing Tasks, Habits, Goals, Tracks, and Gym plans remain available from navigation.</string>
+    <string name="home_clear_existing_message">Nothing needs attention right now. Your saved work and plans are still here.</string>
+    <string name="home_resume_title">Pick Up Where You Left Off</string>
+    <string name="home_resume_message">Continue with saved work that is outside today’s Home view.</string>
+    <string name="home_resume_inbox">Open Inbox</string>
+    <string name="home_resume_upcoming">Review Upcoming</string>
+    <string name="home_resume_habits">Open All Habits</string>
+    <string name="home_resume_goals">Open Goals</string>
+    <string name="home_resume_tracks">Open All Tracks</string>
+    <string name="home_resume_gym">Open Gym</string>
+    <string name="home_resume_gym_support">Continue routines, workouts, exercises, or training history.</string>
+    <plurals name="home_resume_inbox_count">
+        <item quantity="one">%1$d captured Task</item>
+        <item quantity="other">%1$d captured Tasks</item>
+    </plurals>
+    <plurals name="home_resume_upcoming_count">
+        <item quantity="one">%1$d Task planned beyond today</item>
+        <item quantity="other">%1$d Tasks planned beyond today</item>
+    </plurals>
+    <plurals name="home_resume_habit_count">
+        <item quantity="one">%1$d saved Habit, including its schedule and history</item>
+        <item quantity="other">%1$d saved Habits, including their schedules and history</item>
+    </plurals>
+    <plurals name="home_resume_goal_count">
+        <item quantity="one">%1$d saved Goal, including closed or archived work</item>
+        <item quantity="other">%1$d saved Goals, including closed or archived work</item>
+    </plurals>
+    <plurals name="home_resume_track_count">
+        <item quantity="one">%1$d saved Track, including unpinned logs</item>
+        <item quantity="other">%1$d saved Tracks, including unpinned logs</item>
+    </plurals>
     <string name="home_support_today_title">Today</string>
     <string name="home_support_introduction_title">Your Day, Brought Together</string>
     <string name="home_support_introduction_message">Home gathers the work and routines that need your attention now. Start with Tasks or Habits; Goals, Tracks, and Gym join in as you use them.</string>
