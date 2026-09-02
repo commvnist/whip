@@ -337,3 +337,12 @@
 - Compatibility: Existing Habit rows, schedules, pauses, skips, check-ins, timer sessions, history, Room schema 41, and backup format 18 are unchanged. The legacy `habit-done-disclosure` test tag remains stable while visible language becomes “Finished for Today.”
 - Related: `FND-20260902-002`, `IMP-20260902-004`, `VER-20260902-004`.
 - Status: Accepted and implemented.
+
+### DEC-20260902-004 — Habit History follows effective dates and includes started neutral events
+
+- Context: A creation/update timestamp answers when Whip wrote a row, while a Habit event's local date answers when the user's check-in, skip, or pause applied. History and Insights are user-facing accounts of the latter.
+- Decision: Sort Habit history first by effective local date and only use write time/identity as a same-day tie breaker. Include check-ins, skips, and pauses whose start date is today or earlier in one editable “Habit History”; keep future pauses in Options until they begin. Paused/skipped dates are neutral authored events, not completion or failure. When no completed/missed period exists, Insights says “No scored periods.” Pause changes covering today/past explicitly disclose derived-stat recalculation while preserving check-ins and skips.
+- Rationale: This produces the chronology users mean without changing persistence or inventing historical snapshots. It keeps future planning separate from occurred history, makes neutral states explainable, and warns precisely where a schedule edit can alter derived interpretation.
+- Compatibility: Existing check-ins, skips, pauses, timestamps, Room schema 41, backup format 18, and calculation rules are unchanged. Presentation is derived from existing immutable facts; no row is migrated or recomputed in storage.
+- Related: `FND-20260902-003`, `IMP-20260902-005`, `VER-20260902-005`.
+- Status: Accepted and implemented.

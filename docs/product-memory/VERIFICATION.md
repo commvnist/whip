@@ -303,3 +303,15 @@
 - Counts: Current baseline is 1,420 product tests—549 JVM and 871 Android—plus 9 Macrobenchmark/Baseline Profile scenarios.
 - Related: `FND-20260902-002`, `DEC-20260902-003`, `IMP-20260902-004`.
 - Status: Fully verified for this coherent Habit availability and Today-resolution chunk.
+
+### VER-20260902-005 — Effective-date Habit History and pause-impact verification
+
+- Scope/environment: Effective-date chronology versus write time; manual/synced check-ins; skips; past/current/future scheduled pauses; pause-only Insights; no-scored-period language; pause create/edit/delete failure retention and impact disclosure; permanent-delete pause accounting; 320dp/200% inherited pause-editor coverage; API 34 disposable emulator `emulator-5554`.
+- Focused evidence: The JVM regression deliberately gives an older effective date a newer write time and proves the newer effective day remains first; it also proves started pauses appear and upcoming pauses do not. Fifteen Activity/History Compose tests pass, including exact past-pause editing, future pause management, skip undo, pause-only neutral Insights/grid semantics, historical-impact warning, delete consequences, persistence shielding/failure retention, configured-zone time, and narrow/large-text reachability.
+- Visual evidence: Two 1080×2400 captures plus UI hierarchies under `artifacts/full-product-audit/2026-09-02/habit-history/` show the pause editor's historical-impact disclosure and a started pause as an editable Habit History row.
+- Complete gates: `ANDROID_SERIAL=emulator-5554 scripts/check --emulator` passed all 550 JVM and all 872 Android tests—1,422 product tests total—with zero failures/skips across ten instrumentation batches. Play assets, Kotlin/JVM/Android-test compilation, debug assembly, lint, and deterministic coverage passed: domain lines 78.17% (3,993/5,108), domain branches 56.26% (2,215/3,937), and core policy lines 66.46% (545/820). `scripts/check --full` passed release APK/AAB, release lint-vital, R8/resource shrinking, and optimized benchmark-harness assembly. `git diff --check` passed.
+- Release-build evidence: unsigned release APK SHA-256 `a3e013754ebaf80371ac6d6f7ea6f1f5fe52be018c458568af8b3dbae6619b63`; release AAB SHA-256 `38c34a7922e6e1a9cb2c0c63725bb426f4753e358dde3dad993cfd705c144763`.
+- Compatibility/exclusions: No persistence, Room schema, migration, backup format, historical-row rewrite, calculation-rule change, or physical-device release. API 26/API 37, continuous E2E coverage, TalkBack service exploration, and signed phone deployment were not run in this chunk.
+- Counts: Current baseline is 1,422 product tests—550 JVM and 872 Android—plus 9 Macrobenchmark/Baseline Profile scenarios.
+- Related: `FND-20260902-003`, `DEC-20260902-004`, `IMP-20260902-005`.
+- Status: Fully verified for this coherent Habit History and pause-impact chunk.

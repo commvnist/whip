@@ -320,3 +320,14 @@
 - Evidence: `HabitScreens.kt`, `WhipApp.kt`, `CompactCollectionStatusTest.kt`, `ProductivityCardDesignUiTest.kt`, `ActivityHistoryUiTest.kt`, and `HabitSkipJourneyE2ETest.kt`; the paused All-Habits capture and semantics hierarchy live under `artifacts/full-product-audit/2026-09-02/habit-availability/`.
 - Resolution: Implemented in `IMP-20260902-004` and fully verified in `VER-20260902-004`.
 - Status: Resolved and emulator/release-build verified; broader Habit History and cross-platform accessibility work remains separate.
+
+### FND-20260902-003 — Habit History hid pauses and sorted backfilled events by edit time
+
+- Severity/category: P1 Habit historical truth, understandability, pause editing, and destructive-action disclosure.
+- Observed: History combined check-ins and skips but omitted scheduled-pause records. Backfilled check-ins were ordered by their write timestamp rather than the effective local date, so entering an older day today could move it above newer activity. A Habit with only a pause said “No activity yet” in Insights and showed a misleading 0% completion. Editing/deleting a past pause did not explain that unlogged dates, streak, and consistency can recalculate, and permanent Habit deletion omitted pause records from its impact count.
+- Expected: One chronological Habit History orders every started check-in, skip, and pause by the date it describes; upcoming pauses remain schedule configuration. Pause-only history is visible and neutral rather than failed. Any pause change that reaches today/past states exactly which derived history can change and which authored facts remain. Permanent deletion accounts for every owned record type.
+- Why it matters: Users correcting earlier history could see a false chronology, overlook why a period was neutral, mistake an intentional recovery/travel pause for inactivity or failure, or approve a destructive change without understanding its impact on derived streaks.
+- Affected users: Habit users who backfill entries, schedule travel/recovery breaks, inspect long histories, tune streak behavior, use assistive technology, or permanently delete a Habit.
+- Evidence: `HabitScreens.kt`, `ActivityPresentationTest.kt`, and `ActivityHistoryUiTest.kt`; emulator captures and semantics hierarchies live under `artifacts/full-product-audit/2026-09-02/habit-history/`.
+- Resolution: Implemented in `IMP-20260902-005` and fully verified in `VER-20260902-005`.
+- Status: Resolved and emulator/release-build verified; no historical rows were rewritten.

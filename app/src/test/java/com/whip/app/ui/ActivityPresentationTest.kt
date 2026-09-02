@@ -4,7 +4,9 @@ import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitEndType
 import com.whip.app.domain.HabitLog
 import com.whip.app.domain.HabitLogStatus
+import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitScheduleType
+import com.whip.app.domain.HabitSkip
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.MetricEntry
 import com.whip.app.domain.MetricEntryStatus
@@ -59,6 +61,35 @@ class ActivityPresentationTest {
         val completed = log(value = 1.0, status = HabitLogStatus.Success)
         assertEquals("Checked in", completed.activityTitle(habit(HabitTrackingMode.CheckOff)))
         assertFalse(completed.activitySupportingText(today).contains("Success"))
+    }
+
+    @Test
+    fun habitHistoryUsesEffectiveDatesAndIncludesOnlyStartedPauses() {
+        val newerDayOlderWrite = log(id = 2).copy(
+            localDate = today.minusDays(1),
+            timestamp = Instant.parse("2026-08-20T10:00:00Z"),
+        )
+        val olderDayNewerWrite = log(id = 3).copy(
+            localDate = today.minusDays(3),
+            timestamp = Instant.parse("2026-08-30T10:00:00Z"),
+        )
+        val skip = HabitSkip("skip-1", 1, today.minusDays(2), 9_000L, 9_000L, 9_000L)
+        val startedPause = HabitPause(8, 1, today.minusDays(4), today.minusDays(3), "Travel")
+        val upcomingPause = HabitPause(9, 1, today.plusDays(1), null, "Future")
+
+        val events = habitHistoryEvents(
+            logs = listOf(olderDayNewerWrite, newerDayOlderWrite),
+            skips = listOf(skip),
+            pauses = listOf(upcomingPause, startedPause),
+            throughDate = today,
+        )
+
+        assertEquals(
+            listOf(today.minusDays(1), today.minusDays(2), today.minusDays(3), today.minusDays(4)),
+            events.map(HabitHistoryEvent::effectiveDate),
+        )
+        assertTrue(events.last() is HabitHistoryEvent.Pause)
+        assertFalse(events.any { it is HabitHistoryEvent.Pause && it.value.id == upcomingPause.id })
     }
 
     @Test

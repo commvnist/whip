@@ -279,3 +279,16 @@
 - Related: `FND-20260902-002`, `DEC-20260902-003`.
 - Verification: `VER-20260902-004`.
 - Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.
+
+### IMP-20260902-005 — Effective-date Habit History and transparent pause impact
+
+- Replaced write-time-only History assembly with one deterministic effective-date projection for manual/synced check-ins, skipped days, and started scheduled pauses. Same-day entries retain stable secondary ordering; future pauses remain under Options. Pause rows open the existing exact-owner editor directly.
+- Renamed the inspector group to “Habit History” and generalized pagination copy from earlier check-ins to earlier events. Pause rows explain that check-ins, misses, and reminders were excluded.
+- Insights now treats a started pause as neutral activity, renders its paused grid state, and says “No scored periods” when the recent window contains no completion or miss instead of showing a misleading 0% failure.
+- Pause creation/editing warns when the selected range includes today/past and identifies derived streak/consistency recalculation. Delete confirmation states that completed check-ins and skips remain while unlogged dates may become missed. Permanent Habit deletion now counts scheduled-pause records.
+- Added one deterministic JVM ordering/filter regression and one pause-only Insights Compose regression; expanded the existing editor/history test for visible pause history, exact edit routing, impact warning, delete consequences, failure-draft retention, and historical skip undo.
+- Compatibility: Presentation and confirmation copy only. No repository, calculation, Room schema, migration, backup, check-in, skip, pause, or historical data format changed.
+- Important files: `HabitScreens.kt`, `ActivityPresentationTest.kt`, `ActivityHistoryUiTest.kt`, and `docs/testing.md`.
+- Related: `FND-20260902-003`, `DEC-20260902-004`.
+- Verification: `VER-20260902-005`.
+- Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.

@@ -543,10 +543,11 @@ fun HabitAreaContent(
     deleteCandidate?.let { habit ->
         val logCount = state.logs.count { it.habitId == habit.id }
         val skipCount = state.skips.count { it.habitId == habit.id }
+        val pauseCount = state.pauses.count { it.habitId == habit.id }
         PermanentDeleteDialog(
             title = "Delete ${habit.name} Permanently?",
             impacts = listOf(
-                "$logCount check-in${if (logCount == 1) "" else "s"}, $skipCount skipped day${if (skipCount == 1) "" else "s"}, checklist state, and streak history will be removed",
+                "$logCount check-in${if (logCount == 1) "" else "s"}, $skipCount skipped day${if (skipCount == 1) "" else "s"}, $pauseCount scheduled pause${if (pauseCount == 1) "" else "s"}, checklist state, and streak history will be removed",
             ),
             onDismiss = { deleteCandidateHabitId = null },
             onConfirm = { viewModel.deletePermanently(habit.id); deleteCandidateHabitId = null },
@@ -1447,7 +1448,7 @@ private fun HabitList(
 }
 
 @Composable
-private fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
+internal fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = WhipPageContentPadding,
@@ -1486,15 +1487,27 @@ private fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
                     val habitLogs = state.logs.filter { it.habitId == item.habit.id }
                     val habitSkips = state.skips.filter { it.habitId == item.habit.id }
                     val habitPauses = state.pauses.filter { it.habitId == item.habit.id }
-                    if (habitLogs.isEmpty() && habitSkips.isEmpty()) {
+                    if (habitHistoryEvents(habitLogs, habitSkips, habitPauses, state.currentDate).isEmpty()) {
                         Text(
-                            "No activity yet. Check off or log this habit to build consistency and recent-activity insights.",
+                            "No activity yet. Check in, log a value, skip, or pause this Habit to build its history.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     } else {
                         if (!lowPressureMode) Text("Current streak: ${item.streak}")
-                        Text("30-day completion: ${(item.completionRate * 100).toInt()}%")
+                        val scheduledStates = (29L downTo 0L).map { state.currentDate.minusDays(it) }
+                            .filter(item.habit::isScheduledOn)
+                            .map { day -> item.habit.dayStateOn(day, state.currentDate, habitLogs, habitPauses, habitSkips, state.customUnits) }
+                        val completedDays = scheduledStates.count { it == HabitDayState.Completed }
+                        val skippedDays = scheduledStates.count { it == HabitDayState.Skipped }
+                        val missedDays = scheduledStates.count { it in setOf(HabitDayState.Missed, HabitDayState.BelowTarget) }
+                        Text(
+                            if (completedDays + missedDays == 0) {
+                                "30-day completion: No scored periods"
+                            } else {
+                                "30-day completion: ${(item.completionRate * 100).toInt()}%"
+                            },
+                        )
                         val successfulDates = item.habit.successfulPeriodOutcomeDates(
                             habitLogs,
                             item.habit.startDate,
@@ -1513,12 +1526,6 @@ private fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
                             HabitTrackingMode.LogOnly -> "Entries Logged: ${habitLogs.count { it.status != HabitLogStatus.Failed }}"
                             else -> "All-Time Logged: ${formatHabitValue(values.sum(), item.habit.precision)} ${item.habit.unitId.unitLabel()}"
                         })
-                        val scheduledStates = (29L downTo 0L).map { state.currentDate.minusDays(it) }
-                            .filter(item.habit::isScheduledOn)
-                            .map { day -> item.habit.dayStateOn(day, state.currentDate, habitLogs, habitPauses, habitSkips, state.customUnits) }
-                        val completedDays = scheduledStates.count { it == HabitDayState.Completed }
-                        val skippedDays = scheduledStates.count { it == HabitDayState.Skipped }
-                        val missedDays = scheduledStates.count { it in setOf(HabitDayState.Missed, HabitDayState.BelowTarget) }
                         Text("Last 30 Days: $completedDays Completed · $skippedDays Skipped · $missedDays Missed/Below Target")
                         val weeklyRates = (7L downTo 0L).map { weeksAgo ->
                             val start = state.currentDate.minusWeeks(weeksAgo)
@@ -2833,10 +2840,9 @@ internal fun HabitActionsDialog(
                                 supportingText = "Health Connect keeps this history up to date. Synced check-ins are read-only in Whip.",
                             ) {}
                         }
-                        val events = (logs.map(HabitHistoryEvent::Log) + skips.map(HabitHistoryEvent::Skip))
-                            .sortedByDescending(HabitHistoryEvent::timeMillis)
+                        val events = habitHistoryEvents(logs, skips, pauses, item.date)
                         EntityInspectorGroup(
-                            title = "Check-In History",
+                            title = "Habit History",
                             supportingText = if (events.isEmpty()) "Nothing recorded yet." else null,
                         ) {
                             events.take(visibleLogs).forEach { event ->
@@ -2854,12 +2860,20 @@ internal fun HabitActionsDialog(
                                         supportingText = "Undo this skip and return the day to its normal schedule.",
                                         onClick = { onUndoHistoricalSkip(event.value.localDate) },
                                     )
+                                    is HabitHistoryEvent.Pause -> EntityInspectorAction(
+                                        id = "pause-history-${event.value.id}",
+                                        label = "Paused · ${event.value.displayDateRange()}",
+                                        supportingText = event.value.note.ifBlank {
+                                            "Excluded from check-ins, misses, and reminders · tap to edit"
+                                        },
+                                        onClick = { onEditPause(event.value) },
+                                    )
                                 }
                             }
                             if (visibleLogs < events.size) EntityInspectorAction(
                                 id = "show-more-history",
                                 label = "Show More History",
-                                supportingText = "${events.size - visibleLogs} earlier check-in${if (events.size - visibleLogs == 1) "" else "s"}",
+                                supportingText = "${events.size - visibleLogs} earlier event${if (events.size - visibleLogs == 1) "" else "s"}",
                                 onClick = { visibleLogs = (visibleLogs + 25).coerceAtMost(events.size) },
                             )
                         }
@@ -2955,16 +2969,41 @@ internal fun HabitActionsDialog(
     )
 }
 
-private sealed interface HabitHistoryEvent {
-    val timeMillis: Long
+internal sealed interface HabitHistoryEvent {
+    val effectiveDate: LocalDate
+    val tieBreaker: Long
 
     data class Log(val value: HabitLog) : HabitHistoryEvent {
-        override val timeMillis: Long = value.timestamp.toEpochMilli()
+        override val effectiveDate: LocalDate = value.localDate
+        override val tieBreaker: Long = value.timestamp.toEpochMilli()
     }
 
     data class Skip(val value: HabitSkip) : HabitHistoryEvent {
-        override val timeMillis: Long = value.skippedAtMillis
+        override val effectiveDate: LocalDate = value.localDate
+        override val tieBreaker: Long = value.skippedAtMillis
     }
+
+    data class Pause(val value: HabitPause) : HabitHistoryEvent {
+        override val effectiveDate: LocalDate = value.startDate
+        override val tieBreaker: Long = value.id
+    }
+}
+
+internal fun habitHistoryEvents(
+    logs: List<HabitLog>,
+    skips: List<HabitSkip>,
+    pauses: List<HabitPause>,
+    throughDate: LocalDate,
+): List<HabitHistoryEvent> {
+    val events = logs.map(HabitHistoryEvent::Log) +
+        skips.map(HabitHistoryEvent::Skip) +
+        pauses.filter { !it.startDate.isAfter(throughDate) }.map(HabitHistoryEvent::Pause)
+    return events
+        .filter { !it.effectiveDate.isAfter(throughDate) }
+        .sortedWith(
+            compareByDescending<HabitHistoryEvent>(HabitHistoryEvent::effectiveDate)
+                .thenByDescending(HabitHistoryEvent::tieBreaker),
+        )
 }
 
 private enum class HabitDetailSection(val id: String, val label: String) {
@@ -3202,6 +3241,12 @@ internal fun HabitPauseDialog(
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                 )
+                if (!start.isAfter(today)) Text(
+                    "This range includes today or earlier. Saving can recalculate streak and consistency; completed check-ins and skipped days stay recorded.",
+                    color = MaterialTheme.whipColors.warning,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.testTag("habit-pause-history-impact"),
+                )
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
@@ -3251,7 +3296,11 @@ internal fun HabitPauseDialog(
     if (confirmDelete && onDelete != null && !saving) PaneAwareAlertDialog(
         onDismissRequest = { confirmDelete = false },
         title = { Text("Delete Scheduled Pause?") },
-        text = { Text("These dates will return to the Habit schedule. Existing check-ins and history will not be removed.") },
+        text = {
+            Text(
+                "These dates will return to the Habit schedule. Completed check-ins and skipped days stay recorded, but unlogged past dates may become missed and streak or consistency may recalculate.",
+            )
+        },
         confirmButton = {
             WhipTextButton(
                 onClick = {

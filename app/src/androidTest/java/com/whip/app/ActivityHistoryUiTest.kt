@@ -43,6 +43,7 @@ import com.whip.app.domain.UnitDimension
 import com.whip.app.ui.HabitHistoryLogDialog
 import com.whip.app.ui.HabitActionsDialog
 import com.whip.app.ui.HabitAreaContent
+import com.whip.app.ui.HabitInsights
 import com.whip.app.ui.HabitPauseDialog
 import com.whip.app.ui.HabitUiState
 import com.whip.app.ui.HabitViewModel
@@ -270,9 +271,11 @@ class ActivityHistoryUiTest {
         }
         compose.onNodeWithTag("habit-pause-save-problem").assertIsDisplayed()
         compose.onNodeWithText("No end date", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("habit-pause-history-impact").assertIsDisplayed()
         compose.onNodeWithTag("habit-pause-note").assertTextContains("Long recovery")
         compose.onNodeWithTag("habit-pause-delete").performClick()
         compose.onNodeWithText("Delete Scheduled Pause?").assertIsDisplayed()
+        compose.onNodeWithText("unlogged past dates may become missed", substring = true).assertIsDisplayed()
         compose.runOnIdle { assertEquals(false, deleted) }
         compose.onNodeWithTag("habit-pause-confirm-delete").performClick()
         compose.runOnIdle { assertEquals(true, deleted) }
@@ -280,7 +283,8 @@ class ActivityHistoryUiTest {
 
     @Test
     fun inspectorMakesScheduledPausesEditableAndHistoricalSkipsUndoable() {
-        val pause = HabitPause(8, 1, today.plusDays(1), null, "Travel")
+        val upcomingPause = HabitPause(8, 1, today.plusDays(1), null, "Travel")
+        val pastPause = HabitPause(9, 1, today.minusDays(5), today.minusDays(3), "Recovery")
         val skippedDate = today.minusDays(2)
         val skip = HabitSkip("skip-1", 1, skippedDate, 1L, 1L, 1L)
         var editedPauseId: Long? = null
@@ -302,7 +306,7 @@ class ActivityHistoryUiTest {
                     onUndoHistoricalSkip = { undoneSkipDate = it; saving = true },
                     logs = emptyList(),
                     skips = listOf(skip),
-                    pauses = listOf(pause),
+                    pauses = listOf(upcomingPause, pastPause),
                     onAddHistoricalLog = {},
                     onEditLog = {},
                     onEditPause = { editedPauseId = it.id },
@@ -318,6 +322,12 @@ class ActivityHistoryUiTest {
         compose.runOnIdle { assertEquals(8L, editedPauseId) }
 
         compose.onNodeWithText("History").performClick()
+        compose.onNodeWithText("Habit History").assertIsDisplayed()
+        compose.onNodeWithTag("entity-inspector-action-pause-history-9")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .performClick()
+        compose.runOnIdle { assertEquals(9L, editedPauseId) }
         compose.onNodeWithTag("entity-inspector-action-skip-${skippedDate.toEpochDay()}")
             .performScrollTo()
             .assertIsDisplayed()
@@ -326,6 +336,31 @@ class ActivityHistoryUiTest {
         compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
         compose.onAllNodesWithTag("entity-inspector-action-skip-${skippedDate.toEpochDay()}")
             .assertCountEquals(0)
+    }
+
+    @Test
+    fun pauseOnlyHabitShowsNeutralInsightsInsteadOfClaimingThereIsNoActivity() {
+        val pause = HabitPause(8, 1, today, today, "Recovery")
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                HabitInsights(
+                    state = HabitUiState(
+                        all = listOf(progress(HabitTrackingMode.CheckOff)),
+                        pauses = listOf(pause),
+                        currentDate = today,
+                        loading = false,
+                    ),
+                    lowPressureMode = false,
+                )
+            }
+        }
+
+        compose.onAllNodesWithText("No activity yet", substring = true).assertCountEquals(0)
+        compose.onNodeWithText("30-day completion: No scored periods").assertIsDisplayed()
+        compose.onNodeWithText("Last 30 Days: 0 Completed · 0 Skipped · 0 Missed/Below Target")
+            .assertIsDisplayed()
+        compose.onNodeWithTag("habit-activity-day-${today.toEpochDay()}")
+            .assertContentDescriptionContains("paused", substring = true)
     }
 
     @Test
