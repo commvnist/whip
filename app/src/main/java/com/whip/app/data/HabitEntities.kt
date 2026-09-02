@@ -59,6 +59,37 @@ data class HabitEntity(
     val updatedAtMillis: Long,
     val sourceMetricId: String? = null,
     @ColumnInfo(defaultValue = "1") val autoCompleteFromItems: Boolean = true,
+    val timerSessionId: String? = null,
+    @ColumnInfo(defaultValue = "0") val timerNeedsReview: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val timerAccumulatedSeconds: Double = 0.0,
+    val timerAnchorElapsedRealtimeMillis: Long? = null,
+)
+
+@Entity(
+    tableName = "habit_timer_sessions",
+    foreignKeys = [
+        ForeignKey(
+            entity = HabitEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["habitId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("habitId"), Index("activeHabitId", unique = true)],
+)
+data class HabitTimerSessionEntity(
+    @PrimaryKey val sessionId: String,
+    val habitId: Long,
+    /** Equal to habitId only while unresolved; nullable uniqueness enforces one active session. */
+    val activeHabitId: Long?,
+    val state: String,
+    val anchorWallMillis: Long?,
+    val anchorElapsedRealtimeMillis: Long?,
+    val anchorBootId: String?,
+    val accumulatedCanonicalSeconds: Double?,
+    val unitId: String?,
+    val createdAtMillis: Long,
+    val resolvedAtMillis: Long?,
 )
 
 @Entity(

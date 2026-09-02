@@ -208,6 +208,17 @@
 - Resolution: Health provider rows are validated and reconciled as one exact prefix/window transaction. Stable provenance, ID/prefix collision checks, provider offset policy, narrow-window preservation, and time-zone policy are revalidated before commit. Sync, policy changes, local deletion, and recovery share one manager boundary; a failed transaction retains the prior local mirror and a durable retryable journal.
 - Status: Resolved, independently accepted, and fully verified in `IMP-20260901-019` / `VER-20260901-021`.
 
+### FND-20260902-001 — Habit timers could corrupt duration history and lose ownership
+
+- Severity/category: P0 duration correctness, persistence, recovery, and mobile usability.
+- Observed: Stopping a five-minute Habit timer passed `300` elapsed seconds through the Habit's entered unit, so a minute-based Habit could record 300 minutes / 18,000 canonical seconds. Start overwrote the only timestamp, Stop was owned only by numeric Habit ID, elapsed time used the mutable wall clock, and no durable session distinguished retries, stale widget actions, reboot, restore, or a newer timer. Active timers could also disappear behind schedule/Area/archive filters and exposed no live elapsed or recovery UI.
+- Expected: Timer actions own an exact stable Habit/session identity; elapsed time and visible state use a boot-owned monotonic clock; canonical seconds convert through a frozen Duration unit exactly once; uncertain elapsed time requires explicit review; and unresolved timers remain reachable on screen and in widgets.
+- Why it matters: Ordinary timer use could overstate progress by 60×, a delayed action could stop or start the wrong session, clock changes could contradict saved history, and reboot/restore ambiguity could silently become an authoritative fact.
+- Affected users: Duration-Habit users, custom-unit users, widget users, travelers, upgraded/restored users, one-handed mobile users, and anyone retrying after process or reminder failure.
+- Evidence: `HabitRepository.kt`, `HabitEntities.kt`, `HabitDao.kt`, `HabitTimerClock.kt`, `HabitViewModel.kt`, `HabitScreens.kt`, widget timer paths, `WhipDatabase.kt`, `BackupRepository.kt`, and focused repository/UI/migration/backup tests.
+- Resolution: Implemented in `IMP-20260902-002` and fully verified in `VER-20260902-002`.
+- Status: Resolved and emulator/release-build verified; physical-device release remains separate.
+
 ### FND-20260901-021 — Gym permanent deletion could corrupt an active 5/3/1 outcome
 
 - Severity/category: P0 program correctness, historical integrity, and destructive-action safety.

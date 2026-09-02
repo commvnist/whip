@@ -1301,6 +1301,76 @@ class WhipDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrationFortyToFortyOneMovesActiveHabitTimerIntoReviewWithoutChangingHistory() {
+        helper.createDatabase(V40_DATABASE_NAME, 40).apply {
+            execSQL(
+                "INSERT INTO metric_definitions (id, name, valueKind, dimension, defaultUnitId, precision, dimensionLocked, archived, createdAtMillis, updatedAtMillis) " +
+                    "VALUES ('metric-duration', 'Meditation', 'Duration', 'Duration', 'minute', 2, 0, 0, 1, 1)",
+            )
+            execSQL(
+                """
+                INSERT INTO habits (
+                    id, uuid, metricId, name, notes, areaId, area, tagsCsv, icon,
+                    trackingMode, dimension, unitId, precision, comparison, targetMin,
+                    targetMax, targetPeriod, rollingDays, scheduleType, scheduleInterval,
+                    weekdaysMask, flexibleTimesPerWeek, startEpochDay, endType, endEpochDay,
+                    endValue, quickIncrement, quickActionsCsv, reminderMinutesCsv,
+                    weekdayReminderMinutesCsv, weekStart, timerStartedAtMillis, pinned,
+                    position, archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId,
+                    autoCompleteFromItems
+                ) VALUES (
+                    3, 'habit-timer', 'metric-duration', 'Meditation', '', NULL, '', '', '🧘',
+                    'Duration', 'Duration', 'minute', 2, 'AtLeast', 5, NULL, 'Day', NULL,
+                    'Daily', 1, 0, NULL, 20690, 'Never', NULL, NULL, 1, '', '', '',
+                    'MONDAY', 1000, 0, 0, 0, 0, 1, 1, NULL, 1
+                )
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            V40_DATABASE_NAME,
+            41,
+            true,
+            WhipDatabase.migration40To41,
+        ).use { database ->
+            database.query(
+                "SELECT timerSessionId, timerNeedsReview, timerAccumulatedSeconds, timerStartedAtMillis, " +
+                    "timerAnchorElapsedRealtimeMillis " +
+                    "FROM habits WHERE id = 3",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("habit-timer-v1:legacy:habit-timer:1000", cursor.getString(0))
+                assertEquals(1, cursor.getInt(1))
+                assertEquals(0.0, cursor.getDouble(2), 0.0)
+                assertEquals(1000L, cursor.getLong(3))
+                assertTrue(cursor.isNull(4))
+            }
+            database.query(
+                "SELECT sessionId, habitId, activeHabitId, state, anchorWallMillis, " +
+                    "anchorElapsedRealtimeMillis, anchorBootId, accumulatedCanonicalSeconds, unitId " +
+                    "FROM habit_timer_sessions",
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("habit-timer-v1:legacy:habit-timer:1000", cursor.getString(0))
+                assertEquals(3L, cursor.getLong(1))
+                assertEquals(3L, cursor.getLong(2))
+                assertEquals("ReviewRequired", cursor.getString(3))
+                assertEquals(1000L, cursor.getLong(4))
+                assertTrue(cursor.isNull(5))
+                assertTrue(cursor.isNull(6))
+                assertEquals(0.0, cursor.getDouble(7), 0.0)
+                assertEquals("minute", cursor.getString(8))
+            }
+            database.query("SELECT COUNT(*) FROM habit_logs").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+            }
+        }
+    }
+
     private fun androidx.sqlite.db.SupportSQLiteDatabase.insertMainArea() {
         execSQL(
             "INSERT INTO areas (id, name, nameKey, position, archived, createdAtMillis, updatedAtMillis) " +
@@ -1386,6 +1456,7 @@ class WhipDatabaseMigrationTest {
         const val V37_DATABASE_NAME = "goal-lifecycle-v37-to-v38-migration"
         const val V38_DATABASE_NAME = "track-csv-receipt-v38-to-v39-migration"
         const val V39_DATABASE_NAME = "workout-revision-v39-to-v40-migration"
+        const val V40_DATABASE_NAME = "habit-timer-v40-to-v41-migration"
 
         val allMigrations: Array<Migration> = arrayOf(
             WhipDatabase.migration1To2,
@@ -1409,6 +1480,7 @@ class WhipDatabaseMigrationTest {
             WhipDatabase.migration37To38,
             WhipDatabase.migration38To39,
             WhipDatabase.migration39To40,
+            WhipDatabase.migration40To41,
         )
     }
 }

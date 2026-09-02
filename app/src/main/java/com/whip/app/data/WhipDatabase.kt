@@ -47,6 +47,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         HabitChecklistStateEntity::class,
         HabitPauseEntity::class,
         HabitSkipEntity::class,
+        HabitTimerSessionEntity::class,
         GoalEntity::class,
         GoalMilestoneEntity::class,
         LegacyGoalCompletionSnapshotEntity::class,
@@ -68,7 +69,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
         TrackEntrySearchEntity::class,
         TrackCsvImportReceiptEntity::class,
     ],
-    version = 40,
+    version = 41,
     exportSchema = true,
 )
 abstract class WhipDatabase : RoomDatabase() {
@@ -902,6 +903,67 @@ abstract class WhipDatabase : RoomDatabase() {
             }
         }
 
+        /** Makes Habit timers unit-safe, request-owned, and explicit across reboot/restore ambiguity. */
+        val migration40To41 = object : Migration(40, 41) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE habits ADD COLUMN timerSessionId TEXT")
+                db.execSQL("ALTER TABLE habits ADD COLUMN timerNeedsReview INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE habits ADD COLUMN timerAccumulatedSeconds REAL NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE habits ADD COLUMN timerAnchorElapsedRealtimeMillis INTEGER")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS habit_timer_sessions (
+                        sessionId TEXT NOT NULL,
+                        habitId INTEGER NOT NULL,
+                        activeHabitId INTEGER,
+                        state TEXT NOT NULL,
+                        anchorWallMillis INTEGER,
+                        anchorElapsedRealtimeMillis INTEGER,
+                        anchorBootId TEXT,
+                        accumulatedCanonicalSeconds REAL,
+                        unitId TEXT,
+                        createdAtMillis INTEGER NOT NULL,
+                        resolvedAtMillis INTEGER,
+                        PRIMARY KEY(sessionId),
+                        FOREIGN KEY(habitId) REFERENCES habits(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_habit_timer_sessions_habitId " +
+                        "ON habit_timer_sessions (habitId)",
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS index_habit_timer_sessions_activeHabitId " +
+                        "ON habit_timer_sessions (activeHabitId)",
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO habit_timer_sessions (
+                        sessionId, habitId, activeHabitId, state, anchorWallMillis,
+                        anchorElapsedRealtimeMillis, anchorBootId, accumulatedCanonicalSeconds,
+                        unitId, createdAtMillis, resolvedAtMillis
+                    )
+                    SELECT
+                        'habit-timer-v1:legacy:' || uuid || ':' || timerStartedAtMillis,
+                        id, id, 'ReviewRequired', timerStartedAtMillis,
+                        NULL, NULL, 0.0, unitId, timerStartedAtMillis, NULL
+                    FROM habits
+                    WHERE timerStartedAtMillis IS NOT NULL
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    UPDATE habits
+                    SET timerSessionId = 'habit-timer-v1:legacy:' || uuid || ':' || timerStartedAtMillis,
+                        timerNeedsReview = 1,
+                        timerAccumulatedSeconds = 0.0
+                    WHERE timerStartedAtMillis IS NOT NULL
+                    """.trimIndent(),
+                )
+            }
+        }
+
         /**
          * Repository checks provide friendly errors; these triggers are the final consistency
          * boundary for concurrent writers, restored data, and any future write path.
@@ -945,6 +1007,7 @@ abstract class WhipDatabase : RoomDatabase() {
                     migration37To38,
                     migration38To39,
                     migration39To40,
+                    migration40To41,
                 )
                 .addCallback(integrityGuardCallback)
                 .build()

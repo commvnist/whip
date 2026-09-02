@@ -10,6 +10,17 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HabitRulesTest {
+    @Test fun durationTrackingRequiresDurationMeasurementDimension() {
+        val problems = HabitDraft(
+            name = "Meditation",
+            trackingMode = HabitTrackingMode.Duration,
+            dimension = UnitDimension.Mass,
+            unitId = "kilogram",
+            startDate = LocalDate.of(2026, 8, 17),
+        ).validationErrors()
+
+        assertTrue(problems.any { it.contains("Duration unit") })
+    }
     private val monday = LocalDate.of(2026, 8, 17)
 
     @Test

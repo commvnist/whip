@@ -248,6 +248,48 @@ class WidgetContentTest {
         assertEquals(HabitWidgetAction.ReadOnly, content.rows.first { it.habit.id == synced.id }.action)
     }
 
+    @Test
+    fun activeAndReviewTimersStayReachableOutsideNormalWidgetFilters() {
+        val running = habit(5, areaId = "other-area").copy(
+            trackingMode = HabitTrackingMode.Duration,
+            dimension = UnitDimension.Duration,
+            unitId = "min",
+            scheduleType = HabitScheduleType.SelectedWeekdays,
+            weekdays = setOf(today.dayOfWeek.plus(1)),
+            timerStartedAtMillis = 1_000L,
+            timerSessionId = "running-session",
+            archived = true,
+        )
+        val review = habit(6, areaId = "other-area").copy(
+            trackingMode = HabitTrackingMode.Duration,
+            dimension = UnitDimension.Duration,
+            unitId = "min",
+            timerStartedAtMillis = null,
+            timerSessionId = "review-session",
+            timerNeedsReview = true,
+            paused = true,
+        )
+
+        val content = calculateHabitTrackingContent(
+            habits = listOf(running, review),
+            habitLogs = emptyList(),
+            habitChecklistItems = emptyList(),
+            habitChecklistStates = emptyList(),
+            habitPauses = emptyList(),
+            habitSkips = emptyList(),
+            metricEntries = emptyList(),
+            customUnits = emptyList(),
+            today = today,
+            areaScope = AreaScope.Unassigned,
+            showCompleted = false,
+            selectedHabitIds = emptySet(),
+        )
+
+        assertEquals(2, content.scheduledHabits)
+        assertEquals(HabitWidgetAction.StopTimer, content.rows.single { it.habit.id == running.id }.action)
+        assertEquals(HabitWidgetAction.Open, content.rows.single { it.habit.id == review.id }.action)
+    }
+
     private fun task(
         id: Long,
         scheduleKind: ScheduleKind,

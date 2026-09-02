@@ -36,6 +36,7 @@ import com.whip.app.domain.normalizedIdentityEmoji
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.LoadInterpretation
 import com.whip.app.domain.MachineStackMode
+import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.canonicalResistanceKg
 import java.security.MessageDigest
@@ -97,6 +98,7 @@ class RoomBackupRepository(
             }
             tables.put(table, rows)
         }
+        if (!includeLocalRecoveryState) sanitizeHabitTimersForPortableBackup(tables)
         retireAutomationBackupRows(tables)
         val settings = settingsRepository?.current()?.toJson(includeLocalRecoveryState)
         val payload = checksumPayload(tables, settings)
@@ -205,6 +207,7 @@ class RoomBackupRepository(
         ) { "Backup checksum does not match" }
         upgradeBackupTables(root.getInt("databaseVersion"), tables)
         validateBackupUnitDefinitions(tables)
+        sanitizeHabitTimersForMerge(tables)
         val summary = database.withTransaction {
             val db = database.openHelper.writableDatabase
             val idMaps = mutableMapOf<String, MutableMap<Long, Long>>()
@@ -372,7 +375,7 @@ class RoomBackupRepository(
         val tableNames = tables.keys().asSequence().toSet()
         val expected = when (dbVersion) {
             BACKUP_DATABASE_VERSION -> EXPORT_TABLES.toSet()
-            16 -> EXPORT_TABLES.toSet()
+            17, 16 -> VERSION_SEVENTEEN_EXPORT_TABLES.toSet()
             15, 14 -> VERSION_FIFTEEN_EXPORT_TABLES.toSet()
             13 -> VERSION_THIRTEEN_EXPORT_TABLES.toSet()
             9 -> VERSION_THIRTEEN_EXPORT_TABLES.toSet()
@@ -491,6 +494,7 @@ class RoomBackupRepository(
         tables.getJSONArray("habits").forEachObject { row ->
             requireCompatibleBackupUnit(units, row.getString("unitId"), row.getString("dimension"), "Habit")
         }
+        validateBackupHabitTimers(tables, units)
         val habitDimensions = tables.getJSONArray("habits").objects().associate { row ->
             row.getLong("id") to row.getString("dimension")
         }
@@ -853,6 +857,131 @@ class RoomBackupRepository(
         }
     }
 
+    private fun sanitizeHabitTimersForPortableBackup(tables: JSONObject) {
+        val habits = tables.getJSONArray("habits").objects().associateBy { it.getLong("id") }
+        val portable = JSONArray()
+        tables.getJSONArray("habit_timer_sessions").forEachObject { session ->
+            if (session.optString("state") !in setOf("Running", "ReviewRequired")) return@forEachObject
+            session.put("state", "ReviewRequired")
+            session.put("anchorElapsedRealtimeMillis", JSONObject.NULL)
+            session.put("anchorBootId", JSONObject.NULL)
+            portable.put(session)
+            habits[session.getLong("habitId")]?.apply {
+                put("timerNeedsReview", true)
+                put("timerSessionId", session.getString("sessionId"))
+                put("timerAccumulatedSeconds", session.optDouble("accumulatedCanonicalSeconds", 0.0))
+                put("timerAnchorElapsedRealtimeMillis", JSONObject.NULL)
+            }
+        }
+        tables.put("habit_timer_sessions", portable)
+    }
+
+    private fun sanitizeHabitTimersForMerge(tables: JSONObject) {
+        tables.getJSONArray("habits").forEachObject { habit ->
+            habit.put("timerStartedAtMillis", JSONObject.NULL)
+            habit.put("timerSessionId", JSONObject.NULL)
+            habit.put("timerNeedsReview", false)
+            habit.put("timerAccumulatedSeconds", 0.0)
+            habit.put("timerAnchorElapsedRealtimeMillis", JSONObject.NULL)
+        }
+        // Active timers belong to the installation that started them. Completed timer facts
+        // already live in Habit/Measurement history and merge through those tables normally.
+        tables.put("habit_timer_sessions", JSONArray())
+    }
+
+    private fun validateBackupHabitTimers(
+        tables: JSONObject,
+        units: Map<String, BackupUnitContract>,
+    ) {
+        val habits = tables.getJSONArray("habits").objects().associateBy { it.getLong("id") }
+        val seenSessions = mutableSetOf<String>()
+        val activeByHabit = mutableMapOf<Long, JSONObject>()
+        tables.getJSONArray("habit_timer_sessions").forEachObject { session ->
+            val sessionId = session.optString("sessionId")
+            require(sessionId.isNotBlank() && seenSessions.add(sessionId)) {
+                "Backup Habit timer has an invalid or duplicate session identity"
+            }
+            val habitId = session.getLong("habitId")
+            require(habits.containsKey(habitId)) { "Backup Habit timer references a missing Habit" }
+            val state = session.optString("state")
+            require(state in setOf("Running", "ReviewRequired", "Completed", "Discarded")) {
+                "Backup Habit timer has an unknown state"
+            }
+            val activeHabitId = session.optLongOrNull("activeHabitId")
+            val unresolved = state == "Running" || state == "ReviewRequired"
+            require(unresolved == (activeHabitId != null)) { "Backup Habit timer state is inconsistent" }
+            if (unresolved) {
+                require(activeHabitId == habitId && activeByHabit.put(habitId, session) == null) {
+                    "Backup contains more than one active timer for a Habit"
+                }
+                val habit = requireNotNull(habits[habitId])
+                require(
+                    habit.optString("trackingMode") == HabitTrackingMode.Duration.name &&
+                        habit.optString("dimension") == UnitDimension.Duration.name &&
+                        habit.nullableString("sourceMetricId") == null
+                ) { "Backup active timer belongs to an incompatible Habit" }
+                require(session.optLongOrNull("anchorWallMillis") != null) { "Backup active timer has no wall anchor" }
+                val timerUnitId = session.optString("unitId")
+                require(
+                    timerUnitId == habit.optString("unitId") &&
+                        units[timerUnitId]?.dimension == UnitDimension.Duration.name
+                ) { "Backup active timer has an incompatible duration unit" }
+                val accumulated = session.optDouble("accumulatedCanonicalSeconds", Double.NaN)
+                require(accumulated.isFinite() && accumulated >= 0.0) { "Backup active timer has invalid elapsed time" }
+                require(session.optLongOrNull("resolvedAtMillis") == null) {
+                    "Backup active timer is already marked resolved"
+                }
+                if (state == "Running") {
+                    require(
+                        session.optLongOrNull("anchorElapsedRealtimeMillis") != null &&
+                            session.optString("anchorBootId").isNotBlank()
+                    ) { "Backup running timer has no monotonic clock identity" }
+                }
+            } else {
+                require(
+                    activeHabitId == null &&
+                        session.optLongOrNull("anchorWallMillis") == null &&
+                        session.optLongOrNull("anchorElapsedRealtimeMillis") == null &&
+                        session.nullableString("anchorBootId") == null &&
+                        session.nullableDouble("accumulatedCanonicalSeconds") == null &&
+                        session.nullableString("unitId") == null &&
+                        session.optLongOrNull("resolvedAtMillis") != null
+                ) { "Backup resolved timer retains active timing state" }
+            }
+        }
+        habits.forEach { (habitId, habit) ->
+            val active = activeByHabit[habitId]
+            val mirroredSession = habit.nonBlankString("timerSessionId")
+            if (active == null) {
+                require(
+                    mirroredSession == null &&
+                        habit.optLongOrNull("timerStartedAtMillis") == null &&
+                        habit.optLongOrNull("timerAnchorElapsedRealtimeMillis") == null
+                ) {
+                    "Backup Habit has timer state without an active session"
+                }
+            } else {
+                require(mirroredSession == active.getString("sessionId")) { "Backup Habit timer mirror is stale" }
+                require(habit.optLongOrNull("timerStartedAtMillis") == active.optLongOrNull("anchorWallMillis")) {
+                    "Backup Habit timer start does not match its session"
+                }
+                val needsReview = habit.optInt("timerNeedsReview", 0) != 0 || habit.optBoolean("timerNeedsReview", false)
+                require(needsReview == (active.optString("state") == "ReviewRequired")) {
+                    "Backup Habit timer review state is inconsistent"
+                }
+                val accumulated = active.getDouble("accumulatedCanonicalSeconds")
+                require(habit.optDouble("timerAccumulatedSeconds", Double.NaN) == accumulated) {
+                    "Backup Habit timer elapsed-time mirror is stale"
+                }
+                val expectedElapsedAnchor = active.optLongOrNull("anchorElapsedRealtimeMillis")
+                    .takeIf { active.optString("state") == "Running" }
+                require(habit.optLongOrNull("timerAnchorElapsedRealtimeMillis") == expectedElapsedAnchor) {
+                    "Backup Habit timer monotonic-clock mirror is stale"
+                }
+            }
+        }
+    }
+
     /** Upgrade a checksum-verified older envelope in memory before restore or merge. */
     private fun upgradeBackupTables(databaseVersion: Int, tables: JSONObject) {
         if (databaseVersion < 8 && !tables.has("habit_skips")) {
@@ -937,6 +1066,39 @@ class RoomBackupRepository(
                     if (legacyArchived) row.put("status", "Active")
                 }
             }
+        }
+        if (databaseVersion < 18 && !tables.has("habit_timer_sessions")) {
+            val sessions = JSONArray()
+            tables.getJSONArray("habits").forEachObject { habit ->
+                val start = habit.optLongOrNull("timerStartedAtMillis")
+                if (start == null) {
+                    habit.put("timerSessionId", JSONObject.NULL)
+                    habit.put("timerNeedsReview", false)
+                    habit.put("timerAccumulatedSeconds", 0.0)
+                    habit.put("timerAnchorElapsedRealtimeMillis", JSONObject.NULL)
+                } else {
+                    val sessionId = "legacy-habit-timer:${habit.optString("uuid")}:$start"
+                    habit.put("timerSessionId", sessionId)
+                    habit.put("timerNeedsReview", true)
+                    habit.put("timerAccumulatedSeconds", 0.0)
+                    habit.put("timerAnchorElapsedRealtimeMillis", JSONObject.NULL)
+                    sessions.put(
+                        JSONObject()
+                            .put("sessionId", sessionId)
+                            .put("habitId", habit.getLong("id"))
+                            .put("activeHabitId", habit.getLong("id"))
+                            .put("state", "ReviewRequired")
+                            .put("anchorWallMillis", start)
+                            .put("anchorElapsedRealtimeMillis", JSONObject.NULL)
+                            .put("anchorBootId", JSONObject.NULL)
+                            .put("accumulatedCanonicalSeconds", 0.0)
+                            .put("unitId", habit.optString("unitId"))
+                            .put("createdAtMillis", start)
+                            .put("resolvedAtMillis", JSONObject.NULL),
+                    )
+                }
+            }
+            tables.put("habit_timer_sessions", sessions)
         }
         if (databaseVersion < 17) upgradeWorkoutProgressionRequirements(tables)
         retireAutomationBackupRows(tables)
@@ -1577,7 +1739,7 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 private const val BACKUP_FORMAT = "whip-backup"
 private const val ENVELOPE_VERSION = 2
 private const val OLDEST_COMPATIBLE_DATABASE_VERSION = 5
-private const val BACKUP_DATABASE_VERSION = 17
+private const val BACKUP_DATABASE_VERSION = 18
 
 private fun ContentValues.normalizeIdentityEmoji(table: String) {
     val defaultEmoji = when (table) {
@@ -1597,14 +1759,15 @@ private val EXPORT_TABLES = listOf(
     "exercises", "exercise_categories", "exercise_category_joins", "gym_machines", "gym_machine_exercise_joins",
     "gym_routines", "routine_days", "routine_exercises", "routine_sets", "training_max_decisions",
     "workout_sessions", "workout_groups", "workout_exercises", "workout_sets",
-    "personal_records", "graph_presets", "habits", "habit_checklist_items", "habit_logs",
+    "personal_records", "graph_presets", "habits", "habit_timer_sessions", "habit_checklist_items", "habit_logs",
     "habit_checklist_states", "habit_pauses", "habit_skips", "goals", "goal_milestones",
     "goal_completion_snapshots", "goal_elapsed_reset_events",
     "tracks", "track_fields", "track_choice_options", "track_entries", "track_values",
     "link_rules", "link_rule_conditions", "link_condition_choices", "contributions", "trigger_rules", "trigger_rule_conditions", "trigger_condition_choices", "trigger_field_mappings", "trigger_occurrences",
 )
 
-private val VERSION_FIFTEEN_EXPORT_TABLES = EXPORT_TABLES - setOf("goal_completion_snapshots", "goal_elapsed_reset_events")
+private val VERSION_SEVENTEEN_EXPORT_TABLES = EXPORT_TABLES - "habit_timer_sessions"
+private val VERSION_FIFTEEN_EXPORT_TABLES = VERSION_SEVENTEEN_EXPORT_TABLES - setOf("goal_completion_snapshots", "goal_elapsed_reset_events")
 private val VERSION_THIRTEEN_EXPORT_TABLES = VERSION_FIFTEEN_EXPORT_TABLES - "training_max_decisions"
 private val VERSION_EIGHT_EXPORT_TABLES = VERSION_THIRTEEN_EXPORT_TABLES - "gym_machine_exercise_joins"
 private val LEGACY_EXPORT_TABLES = VERSION_EIGHT_EXPORT_TABLES - "habit_skips"

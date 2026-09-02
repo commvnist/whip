@@ -4,6 +4,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.WhipClock
+import com.whip.app.core.HabitTimerClock
+import com.whip.app.core.HabitTimerClockReading
 import com.whip.app.core.WhipIdGenerator
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
@@ -35,6 +37,7 @@ import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.HabitTimerStartRequest
 import com.whip.app.domain.LinkRuleDraft
 import com.whip.app.domain.LinkSourceMetric
 import com.whip.app.domain.LinkSourceType
@@ -108,16 +111,18 @@ class BackupRepositoryTest {
     private lateinit var tracks: RoomTrackRepository
     private lateinit var backups: RoomBackupRepository
     private lateinit var settings: FakeSettingsRepository
+    private lateinit var timerClock: BackupTimerClock
 
     @Before fun setUp() {
         database = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), WhipDatabase::class.java)
             .addCallback(WhipDatabase.integrityGuardCallback)
             .build()
         val ids = SequentialIds()
+        timerClock = BackupTimerClock()
         measurements = RoomMeasurementRepository(database, FixedClock, ids)
         tracks = RoomTrackRepository(database, FixedClock, ids)
         tasks = RoomTaskRepository(database, FixedClock)
-        habits = RoomHabitRepository(database, measurements, FixedClock, ids)
+        habits = RoomHabitRepository(database, measurements, FixedClock, ids, timerClock)
         goals = RoomGoalRepository(database, measurements, FixedClock, ids)
         gym = RoomGymRepository(database, FixedClock, ids)
         routines = RoomRoutineRepository(database, FixedClock, ids)
@@ -153,6 +158,69 @@ class BackupRepositoryTest {
         backups = RoomBackupRepository(database, settings)
     }
     @After fun tearDown() = database.close()
+
+    @Test fun portableBackupReviewsActiveTimerPrivateRecoveryPreservesItAndMergeDropsIt() = runBlocking {
+        val habitId = habits.create(
+            HabitDraft(
+                name = "Meditation",
+                trackingMode = HabitTrackingMode.Duration,
+                dimension = UnitDimension.Duration,
+                unitId = "minute",
+                precision = 2,
+                targetMin = 5.0,
+                startDate = FixedClock.today(),
+            ),
+        )
+        val habit = requireNotNull(habits.get(habitId))
+        habits.startTimer(HabitTimerStartRequest(habit.id, habit.uuid, "backup-timer"))
+
+        val portable = JSONObject(backups.exportBackup())
+        val recovery = JSONObject(backups.exportRecoveryBackup())
+        val portableSession = portable.getJSONObject("tables").getJSONArray("habit_timer_sessions").getJSONObject(0)
+        val recoverySession = recovery.getJSONObject("tables").getJSONArray("habit_timer_sessions").getJSONObject(0)
+        assertEquals(18, portable.getInt("databaseVersion"))
+        assertEquals("ReviewRequired", portableSession.getString("state"))
+        assertTrue(portableSession.isNull("anchorElapsedRealtimeMillis"))
+        assertTrue(portableSession.isNull("anchorBootId"))
+        assertEquals("Running", recoverySession.getString("state"))
+        assertEquals("boot-backup", recoverySession.getString("anchorBootId"))
+
+        val malformedTimerMutations: List<(JSONObject) -> Unit> = listOf(
+            { root ->
+                root.getJSONObject("tables").getJSONArray("habit_timer_sessions").getJSONObject(0)
+                    .put("unitId", "count")
+            },
+            { root ->
+                root.getJSONObject("tables").getJSONArray("habits").getJSONObject(0)
+                    .put("timerAccumulatedSeconds", 60.0)
+            },
+        )
+        malformedTimerMutations.forEach { mutate ->
+            val malformed = JSONObject(portable.toString())
+            mutate(malformed)
+            refreshBackupChecksum(malformed)
+            assertTrue(runCatching { backups.previewBackup(malformed.toString()) }.isFailure)
+            assertTrue(runCatching { backups.restoreBackup(malformed.toString()) }.isFailure)
+            assertEquals("backup-timer", habits.get(habitId)?.timerSessionId)
+        }
+
+        backups.deleteAllData()
+        backups.restoreBackup(portable.toString())
+        assertTrue(requireNotNull(habits.get(habitId)).timerNeedsReview)
+        assertEquals("ReviewRequired", database.habitDao().getActiveTimerSession(habitId)?.state)
+
+        backups.deleteAllData()
+        backups.restoreBackup(recovery.toString())
+        assertFalse(requireNotNull(habits.get(habitId)).timerNeedsReview)
+        assertEquals("Running", database.habitDao().getActiveTimerSession(habitId)?.state)
+
+        backups.deleteAllData()
+        backups.mergeBackup(portable.toString())
+        val merged = habits.habits.first().single()
+        assertEquals(null, merged.timerSessionId)
+        assertEquals(null, merged.timerStartedAtMillis)
+        assertTrue(database.habitDao().getActiveTimerSessions().isEmpty())
+    }
 
     @Test fun healthScopeRoundTripsButTheLocalDeletionJournalNeverLeavesTheDevice() = runBlocking {
         settings.update {
@@ -258,7 +326,7 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val preview = backups.previewBackup(json)
         assertEquals(2, preview.envelopeVersion)
-        assertEquals(17, preview.databaseVersion)
+        assertEquals(18, preview.databaseVersion)
         assertTrue(preview.checksumValid)
         assertTrue(preview.settingsIncluded)
         assertTrue(preview.totalRecords >= 3)
@@ -306,7 +374,7 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val root = JSONObject(json)
 
-        assertEquals(17, root.getInt("databaseVersion"))
+        assertEquals(18, root.getInt("databaseVersion"))
         assertEquals(false, root.getJSONObject("tables").has("track_csv_import_receipts"))
         assertEquals(1, csvReceiptCount(committed.batchUuid))
 
@@ -757,7 +825,7 @@ class BackupRepositoryTest {
         )
 
         val exported = JSONObject(backups.exportBackup())
-        assertEquals(17, exported.getInt("databaseVersion"))
+        assertEquals(18, exported.getInt("databaseVersion"))
         assertEquals(0, exported.getJSONObject("tables").getJSONArray("link_rules").getJSONObject(0).getInt("enabled"))
         assertEquals(0, exported.getJSONObject("tables").getJSONArray("trigger_rules").getJSONObject(0).getInt("enabled"))
 
@@ -1457,7 +1525,7 @@ class BackupRepositoryTest {
     @Test fun nonCurrentBackupVersionsOrTableSetsCannotBePreviewedOrRestored() = runBlocking {
         habits.create(HabitDraft(name = "Keep local", startDate = FixedClock.today()))
         val current = backups.exportBackup()
-        val wrongDatabase = JSONObject(current).put("databaseVersion", 18).toString()
+        val wrongDatabase = JSONObject(current).put("databaseVersion", 19).toString()
         val wrongEnvelope = JSONObject(current).put("envelopeVersion", 1).toString()
         val incompleteTables = JSONObject(current).also {
             it.getJSONObject("tables").remove("tags")
@@ -1563,6 +1631,13 @@ class BackupRepositoryTest {
     private class SequentialIds : WhipIdGenerator {
         private val count = AtomicInteger()
         override fun nextId() = "backup-test-${count.incrementAndGet()}"
+    }
+    private class BackupTimerClock : HabitTimerClock {
+        override fun read() = HabitTimerClockReading(
+            wallMillis = FixedClock.now().toEpochMilli(),
+            elapsedRealtimeMillis = 25_000L,
+            bootId = "boot-backup",
+        )
     }
     private class FakeSettingsRepository(initial: AppSettings) : SettingsRepository {
         private val state = MutableStateFlow(initial)

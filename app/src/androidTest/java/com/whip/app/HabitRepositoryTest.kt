@@ -5,6 +5,9 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
+import com.whip.app.core.HabitTimerClock
+import com.whip.app.core.HabitTimerClockReading
+import com.whip.app.core.AndroidHabitTimerClock
 import com.whip.app.data.RoomHabitRepository
 import com.whip.app.data.RoomMeasurementRepository
 import com.whip.app.data.WhipDatabase
@@ -13,6 +16,11 @@ import com.whip.app.domain.HabitChecklistItemDraft
 import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.HabitEndType
 import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.HabitTimerBoundary
+import com.whip.app.domain.HabitTimerReviewResolution
+import com.whip.app.domain.HabitTimerStartOutcome
+import com.whip.app.domain.HabitTimerStartRequest
+import com.whip.app.domain.HabitTimerStopOutcome
 import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.valueInUnit
@@ -36,15 +44,29 @@ class HabitRepositoryTest {
     private lateinit var database: WhipDatabase
     private lateinit var repository: RoomHabitRepository
     private lateinit var measurements: RoomMeasurementRepository
+    private lateinit var timerClock: MutableHabitTimerClock
 
     @Before fun setUp() {
         database = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), WhipDatabase::class.java).build()
         val ids = SequentialIds()
+        timerClock = MutableHabitTimerClock()
         measurements = RoomMeasurementRepository(database, FixedClock, ids)
-        repository = RoomHabitRepository(database, measurements, FixedClock, ids)
+        repository = RoomHabitRepository(database, measurements, FixedClock, ids, timerClock)
     }
 
     @After fun tearDown() = database.close()
+
+    @Test fun androidTimerClockProvidesMonotonicBootOwnedReadings() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val first = AndroidHabitTimerClock(context, FixedClock).read()
+        val second = AndroidHabitTimerClock(context, FixedClock).read()
+
+        assertEquals(FixedClock.now().toEpochMilli(), first.wallMillis)
+        assertTrue(requireNotNull(first.elapsedRealtimeMillis) >= 0L)
+        assertTrue(first.bootId.orEmpty().isNotBlank())
+        assertTrue(requireNotNull(second.elapsedRealtimeMillis) >= requireNotNull(first.elapsedRealtimeMillis))
+        assertEquals(first.bootId, second.bootId)
+    }
 
     @Test fun userDefinedEightCountHabitStoresSixIndependentIncrements() = runBlocking {
         val id = repository.create(HabitDraft(name = "Glasses", trackingMode = HabitTrackingMode.Count, targetMin = 8.0, startDate = FixedClock.today()))
@@ -593,6 +615,110 @@ class HabitRepositoryTest {
         assertEquals(1.0, repository.logs.first().single().value ?: 0.0, 0.0)
     }
 
+    @Test fun fiveMinuteTimerWritesMinutesAndCanonicalSecondsExactlyOnce() = runBlocking {
+        val habitId = repository.create(durationHabit("Meditation", "minute"))
+        val habit = requireNotNull(repository.get(habitId))
+        val boundary = HabitTimerBoundary(habit.id, habit.uuid, "timer-five-minutes")
+
+        repository.startTimer(HabitTimerStartRequest(habit.id, habit.uuid, boundary.sessionId))
+        assertEquals(timerClock.elapsedMillis, repository.get(habitId)?.timerAnchorElapsedRealtimeMillis)
+        timerClock.advance(elapsedMillis = 300_000L, wallMillis = 3_600_000L)
+        val first = repository.stopTimer(boundary)
+        val repeated = repository.stopTimer(boundary)
+
+        assertTrue(first is HabitTimerStopOutcome.Stopped)
+        assertTrue(repeated is HabitTimerStopOutcome.AlreadyCompleted)
+        val log = repository.logs.first().single()
+        assertEquals(5.0, log.value ?: -1.0, 0.0)
+        assertEquals(300.0, log.canonicalValue ?: -1.0, 0.0)
+        assertEquals("minute", log.enteredUnitId)
+        val entry = database.measurementDao().observeEntries().first().single()
+        assertEquals(5.0, entry.enteredValue ?: -1.0, 0.0)
+        assertEquals(300.0, entry.canonicalValue ?: -1.0, 0.0)
+    }
+
+    @Test fun timerUsesSnapshottedCustomDurationUnitAndRejectsStaleStop() = runBlocking {
+        val customUnit = measurements.createCustomUnit("Focus block", "block", UnitDimension.Duration, 1_500.0)
+        val habitId = repository.create(durationHabit("Focus", customUnit))
+        val habit = requireNotNull(repository.get(habitId))
+        val firstBoundary = HabitTimerBoundary(habit.id, habit.uuid, "timer-a")
+        repository.startTimer(HabitTimerStartRequest(habit.id, habit.uuid, firstBoundary.sessionId))
+        timerClock.advance(elapsedMillis = 300_000L)
+        repository.stopTimer(firstBoundary)
+        val secondBoundary = HabitTimerBoundary(habit.id, habit.uuid, "timer-b")
+        repository.startTimer(HabitTimerStartRequest(habit.id, habit.uuid, secondBoundary.sessionId))
+
+        val stale = repository.stopTimer(firstBoundary)
+
+        assertTrue(stale is HabitTimerStopOutcome.AlreadyCompleted)
+        assertEquals(secondBoundary.sessionId, repository.get(habitId)?.timerSessionId)
+        val log = repository.logs.first().single()
+        assertEquals(0.2, log.value ?: -1.0, 0.0)
+        assertEquals(300.0, log.canonicalValue ?: -1.0, 0.0)
+        assertEquals(customUnit, log.enteredUnitId)
+    }
+
+    @Test fun competingStartRequestIsConsumedAndCannotStartLater() = runBlocking {
+        val habitId = repository.create(durationHabit("Meditation", "minute"))
+        val habit = requireNotNull(repository.get(habitId))
+        val firstRequest = HabitTimerStartRequest(habit.id, habit.uuid, "timer-first")
+        val delayedRequest = HabitTimerStartRequest(habit.id, habit.uuid, "timer-delayed")
+
+        val started = repository.startTimer(firstRequest) as HabitTimerStartOutcome.Started
+        assertTrue(repository.startTimer(delayedRequest) is HabitTimerStartOutcome.AlreadyRunning)
+        timerClock.advance(elapsedMillis = 30_000L)
+        repository.stopTimer(started.boundary)
+
+        assertEquals(HabitTimerStartOutcome.AlreadyResolved, repository.startTimer(delayedRequest))
+        assertEquals(null, repository.get(habitId)?.timerSessionId)
+        assertEquals(1, repository.logs.first().size)
+    }
+
+    @Test fun rebootRequiresReviewBeforeLoggingAndCanContinueFromConfirmedDuration() = runBlocking {
+        val habitId = repository.create(durationHabit("Meditation", "second"))
+        val habit = requireNotNull(repository.get(habitId))
+        val boundary = HabitTimerBoundary(habit.id, habit.uuid, "timer-review")
+        repository.startTimer(HabitTimerStartRequest(habit.id, habit.uuid, boundary.sessionId))
+        timerClock.advance(elapsedMillis = 90_000L, wallMillis = 90_000L)
+        timerClock.bootId = "boot-2"
+
+        val review = repository.stopTimer(boundary)
+        assertTrue(review is HabitTimerStopOutcome.ReviewRequired)
+        assertTrue(requireNotNull(repository.get(habitId)).timerNeedsReview)
+        assertTrue(repository.logs.first().isEmpty())
+
+        repository.resolveTimerReview(boundary, HabitTimerReviewResolution.Continue(90.0))
+        timerClock.advance(elapsedMillis = 30_000L, wallMillis = 30_000L)
+        val stopped = repository.stopTimer(boundary)
+
+        assertTrue(stopped is HabitTimerStopOutcome.Stopped)
+        assertEquals(120.0, repository.logs.first().single().canonicalValue ?: -1.0, 0.0)
+    }
+
+    @Test fun runningTimerBlocksArchivePauseAndIncompatibleEdit() = runBlocking {
+        val habitId = repository.create(durationHabit("Meditation", "minute"))
+        val habit = requireNotNull(repository.get(habitId))
+        repository.startTimer(HabitTimerStartRequest(habit.id, habit.uuid, "timer-guards"))
+
+        assertTrue(runCatching { repository.setArchived(habitId, true) }.isFailure)
+        assertTrue(runCatching { repository.setPaused(habitId, true) }.isFailure)
+        assertTrue(runCatching {
+            repository.update(habitId, durationHabit("Meditation", "second"))
+        }.isFailure)
+        assertEquals("timer-guards", repository.get(habitId)?.timerSessionId)
+    }
+
+    private fun durationHabit(name: String, unitId: String) = HabitDraft(
+        name = name,
+        trackingMode = HabitTrackingMode.Duration,
+        dimension = UnitDimension.Duration,
+        unitId = unitId,
+        precision = 2,
+        targetMin = 5.0,
+        quickIncrement = 1.0,
+        startDate = FixedClock.today(),
+    )
+
     private object FixedClock : WhipClock {
         override fun now(): Instant = Instant.parse("2026-08-17T16:00:00Z")
         override fun today(zoneId: ZoneId): LocalDate = LocalDate.of(2026, 8, 17)
@@ -600,5 +726,18 @@ class HabitRepositoryTest {
     private class SequentialIds : WhipIdGenerator {
         private val count = AtomicInteger()
         override fun nextId() = "habit-test-${count.incrementAndGet()}"
+    }
+
+    private class MutableHabitTimerClock : HabitTimerClock {
+        var wallMillis: Long = FixedClock.now().toEpochMilli()
+        var elapsedMillis: Long = 10_000L
+        var bootId: String = "boot-1"
+
+        override fun read() = HabitTimerClockReading(wallMillis, elapsedMillis, bootId)
+
+        fun advance(elapsedMillis: Long, wallMillis: Long = elapsedMillis) {
+            this.elapsedMillis += elapsedMillis
+            this.wallMillis += wallMillis
+        }
     }
 }

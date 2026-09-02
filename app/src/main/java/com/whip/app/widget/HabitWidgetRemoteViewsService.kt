@@ -3,6 +3,7 @@ package com.whip.app.widget
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
+import android.os.SystemClock
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.StrikethroughSpan
@@ -11,10 +12,12 @@ import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import com.whip.app.R
 import com.whip.app.WhipApplication
+import com.whip.app.core.calculateHabitTimerElapsedSeconds
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.time.LocalDate
 import java.util.Locale
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -277,8 +280,12 @@ private fun bindHabitAction(views: RemoteViews, row: HabitWidgetRow, iconOnly: B
     val label = if (iconOnly) null else when (row.action) {
         HabitWidgetAction.Increment -> "+${formatWidgetNumber(row.habit.quickIncrement)}"
         HabitWidgetAction.StartTimer -> "Start"
-        HabitWidgetAction.StopTimer -> "Stop"
-        HabitWidgetAction.Open -> if (row.habit.trackingMode == HabitTrackingMode.Rating) "Rate" else "Log"
+        HabitWidgetAction.StopTimer -> if (row.habit.timerNeedsReview) "Review" else "Stop"
+        HabitWidgetAction.Open -> when {
+            row.habit.timerNeedsReview -> "Review"
+            row.habit.trackingMode == HabitTrackingMode.Rating -> "Rate"
+            else -> "Log"
+        }
         else -> null
     }
     views.setViewVisibility(R.id.widget_row_action_icon, if (icon != null) View.VISIBLE else View.GONE)
@@ -305,12 +312,21 @@ private fun collectionFillInIntent(
     return Intent()
         .putExtra(HabitTrackingWidgetProvider.EXTRA_COLLECTION_ACTION, actionName)
         .putExtra(HabitTrackingWidgetProvider.EXTRA_HABIT_ID, row.habit.id)
+        .putExtra(HabitTrackingWidgetProvider.EXTRA_HABIT_UUID, row.habit.uuid)
         .putExtra(HabitTrackingWidgetProvider.EXTRA_DATE_EPOCH_DAY, today.toEpochDay())
         .putExtra(
             USER_DATA_GENERATION_KEY,
             dataGeneration,
         )
         .apply {
+            if (action == HabitWidgetAction.StartTimer) {
+                putExtra(HabitTrackingWidgetProvider.EXTRA_TIMER_REQUEST_ID, UUID.randomUUID().toString())
+            }
+            if (action == HabitWidgetAction.StopTimer) {
+                row.habit.timerSessionId?.let {
+                    putExtra(HabitTrackingWidgetProvider.EXTRA_TIMER_SESSION_ID, it)
+                }
+            }
             row.checklistItem?.let {
                 putExtra(HabitTrackingWidgetProvider.EXTRA_CHECKLIST_ITEM_ID, it.id)
             }
@@ -338,7 +354,9 @@ private fun habitActionDescription(context: Context, row: HabitWidgetRow): Strin
             row.habit.name,
         )
         HabitWidgetAction.StartTimer -> context.getString(R.string.widget_start_habit, row.habit.name)
-        HabitWidgetAction.StopTimer -> context.getString(R.string.widget_stop_habit, row.habit.name)
+        HabitWidgetAction.StopTimer -> if (row.habit.timerNeedsReview) {
+            "Review timer for ${row.habit.name}; ${widgetTimerElapsed(row.habit)} estimated"
+        } else "Stop and log ${row.habit.name}; ${widgetTimerElapsed(row.habit)} elapsed"
         HabitWidgetAction.Open -> context.getString(R.string.widget_open_habit, row.habit.name)
         HabitWidgetAction.ReadOnly -> if (row.habit.sourceMetricId != null) {
             "${row.habit.name} is synced and read-only"
@@ -357,15 +375,38 @@ private fun habitMeta(context: Context, row: HabitWidgetRow): String = when {
         row.checklistItemCount,
     )
     row.habit.trackingMode == HabitTrackingMode.CheckOff -> if (row.completed) "Completed" else "Due today"
-    row.habit.trackingMode == HabitTrackingMode.Duration -> if (row.action == HabitWidgetAction.StopTimer) {
-        context.getString(R.string.widget_stop)
-    } else context.getString(R.string.widget_start)
+    row.habit.trackingMode == HabitTrackingMode.Duration -> when {
+        row.habit.timerNeedsReview -> "Review · ${widgetTimerElapsed(row.habit)} estimated"
+        row.action == HabitWidgetAction.StopTimer -> "${widgetTimerElapsed(row.habit)} elapsed"
+        else -> context.getString(R.string.widget_start)
+    }
     row.habit.trackingMode in setOf(HabitTrackingMode.Rating, HabitTrackingMode.LogOnly) ->
         context.getString(R.string.widget_log)
     else -> listOfNotNull(
         formatWidgetNumber(row.value),
         row.habit.targetMin?.let { "of ${formatWidgetNumber(it)}" },
     ).joinToString(" ")
+}
+
+private fun widgetTimerElapsed(habit: com.whip.app.domain.Habit): String {
+    val seconds = calculateHabitTimerElapsedSeconds(
+        accumulatedCanonicalSeconds = habit.timerAccumulatedSeconds,
+        anchorWallMillis = habit.timerStartedAtMillis,
+        anchorElapsedRealtimeMillis = habit.timerAnchorElapsedRealtimeMillis,
+        needsReview = habit.timerNeedsReview,
+        nowWallMillis = System.currentTimeMillis(),
+        nowElapsedRealtimeMillis = SystemClock.elapsedRealtime(),
+    )
+    val total = seconds.takeIf { it.isFinite() && it >= 0.0 }?.toLong() ?: 0L
+    val days = total / 86_400L
+    val hours = total % 86_400L / 3_600L
+    val minutes = total % 3_600L / 60L
+    val remaining = total % 60L
+    return when {
+        days > 0L -> "%dd %02d:%02d:%02d".format(Locale.ROOT, days, hours, minutes, remaining)
+        hours > 0L -> "%d:%02d:%02d".format(Locale.ROOT, hours, minutes, remaining)
+        else -> "%d:%02d".format(Locale.ROOT, minutes, remaining)
+    }
 }
 
 private fun formatWidgetNumber(value: Double): String = if (value % 1.0 == 0.0) {

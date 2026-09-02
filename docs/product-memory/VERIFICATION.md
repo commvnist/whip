@@ -268,3 +268,14 @@
 - Exclusions: No application tests or device checks were run because this chunk changes documentation/process only.
 - Related: `FB-20260902-001`, `DEC-20260902-001`, `IMP-20260902-001`.
 - Status: Verified.
+
+### VER-20260902-002 — Habit timer correctness, recovery, UX, and regression campaign
+
+- Scope/environment: Duration units including minutes and a 1,500-second custom block; canonical Measurement/Habit parity; wall-clock jumps; boot mismatch; review/correct/continue/discard; duplicate Stop; competing and stale Start/Stop actions; archive/pause/edit guards; widget filtering/actions; legacy schema migration; portable/private/merge backup profiles; malformed timer backups; 320dp at 200% text; API 34 disposable emulator `emulator-5554`.
+- Focused result: 97 JVM/Android timer-adjacent tests passed after the final monotonic-display change. Repository tests prove five minutes records 5 entered minutes / 300 canonical seconds exactly once, custom-unit conversion, reboot review/continue, session ownership, consumed competing starts, and edit guards. Migration/backup tests prove history preservation and malformed-state rejection. Compose tests prove live/review semantics, reachable 48dp actions, and editable recovery choices.
+- Complete gates: `ANDROID_SERIAL=emulator-5554 scripts/check --emulator` passed all 547 JVM and all 863 Android tests; every instrumentation class executed across 10 batches with zero failures/skips. Lint, debug assembly, Android-test compilation, Play assets, and deterministic coverage passed: domain lines 78.17% (3,993/5,108), domain branches 56.26% (2,215/3,937), core policy lines 66.46% (545/820). `scripts/check --full` also passed release APK/bundle, release lint-vital, R8/resource shrinking, and optimized benchmark-harness assembly. `git diff --check` passed.
+- Compatibility evidence: Room schema 41 validates; v40 migration creates only review state and no historical row; backup format 18 preserves exact private rollback, makes portable elapsed ambiguity explicit, rejects incompatible unit/mirror data before mutation, and imports no foreign active timer on merge. Completed Habit/Measurement history is not retroactively recomputed.
+- Exclusions/residual risk: No API 26/API 37 run, continuous E2E coverage campaign, TalkBack service exploration, or signed physical-phone deployment occurred in this chunk. Only the disposable emulator was connected. Release artifacts were built but not installed or published.
+- Counts: Current baseline is 1,410 product tests—547 JVM and 863 Android—plus 9 Macrobenchmark/Baseline Profile scenarios.
+- Related: `FND-20260902-001`, `DEC-20260902-002`, `IMP-20260902-002`.
+- Status: Fully verified for this coherent Habit-timer chunk.

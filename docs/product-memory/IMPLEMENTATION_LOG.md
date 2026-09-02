@@ -242,3 +242,15 @@
 - Related: `FB-20260902-001`, `DEC-20260902-001`.
 - Verification: `VER-20260902-001`.
 - Status: Implemented.
+
+### IMP-20260902-002 — Durable, unit-correct, accessible Habit timers
+
+- Added the schema-41 `habit_timer_sessions` ledger and stable typed Start/Stop/Review outcomes. Production uses Android elapsed realtime plus boot count; Start/Stop is idempotent and exact-owner bound; duplicate or stale actions cannot mutate a newer session; zero duration settles without inventing history.
+- Timer Stop now commits canonical seconds, entered value in the frozen Duration unit, paired Measurement/Habit history, and terminal session state atomically. Duration tracking rejects incompatible measurement dimensions. Active timers block archive, pause, unit, and schedule changes while harmless metadata edits remain available.
+- Added live monotonic elapsed display, `m:ss`/`h:mm:ss`/day formatting, spoken screen-reader duration, explicit Start / Stop & Log / Review Timer semantics, 48dp targets, an editable recovery dialog with Stop & Log / Continue / Discard, manual-duration access, and timer-first inspector status. Unresolved timers remain reachable despite schedule, Area, selection, pause, archive, or end-state filters.
+- Widgets carry stable Start request and exact Stop session identities; stale cached actions fail closed. Running and review states remain visible and use the same elapsed policy as the app.
+- Schema 40→41 turns legacy timestamps into ReviewRequired sessions without logging. Backup format 18 validates timer/Habit/unit/mirror coherence, converts portable timers to ReviewRequired, retains exact state only in private rollback, and drops active timers during merge while preserving recorded history.
+- Important files: `HabitTimerClock.kt`, `HabitModels.kt`, `HabitEntities.kt`, `HabitDao.kt`, `HabitRepository.kt`, `WhipDatabase.kt`, schema 41, `BackupRepository.kt`, `HabitViewModel.kt`, `HabitScreens.kt`, and Habit widget paths.
+- Related: `FND-20260902-001`, `DEC-20260902-002`.
+- Verification: `VER-20260902-002`.
+- Status: Implemented and verified; commit/push is the chunk handoff.

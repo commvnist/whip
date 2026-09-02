@@ -3,6 +3,8 @@ package com.whip.app.data
 import androidx.room.withTransaction
 import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
+import com.whip.app.core.HabitTimerClock
+import com.whip.app.core.WallOnlyHabitTimerClock
 import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitChecklistItem
 import com.whip.app.domain.HabitChecklistItemDraft
@@ -15,6 +17,12 @@ import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitSkip
 import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.HabitTimerBoundary
+import com.whip.app.domain.HabitTimerReviewResolution
+import com.whip.app.domain.HabitTimerSessionState
+import com.whip.app.domain.HabitTimerStartOutcome
+import com.whip.app.domain.HabitTimerStartRequest
+import com.whip.app.domain.HabitTimerStopOutcome
 import com.whip.app.domain.DEFAULT_HABIT_EMOJI
 import com.whip.app.domain.normalizedIdentityEmoji
 import com.whip.app.domain.MetricEntryStatus
@@ -23,6 +31,7 @@ import com.whip.app.domain.MetricValueKind
 import com.whip.app.domain.TargetComparison
 import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDimension
+import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.toWeekdayMask
 import com.whip.app.domain.toWeekdays
 import com.whip.app.domain.isScheduledOn
@@ -86,8 +95,13 @@ interface HabitRepository {
     ): Long
     suspend fun setCheckOff(habitId: Long, date: LocalDate, completed: Boolean)
     suspend fun toggleChecklistItem(habitId: Long, itemId: Long, date: LocalDate, completed: Boolean)
-    suspend fun startTimer(habitId: Long)
-    suspend fun stopTimer(habitId: Long, date: LocalDate? = null): Long
+    suspend fun startTimer(request: HabitTimerStartRequest): HabitTimerStartOutcome
+    suspend fun stopTimer(boundary: HabitTimerBoundary, date: LocalDate? = null): HabitTimerStopOutcome
+    suspend fun resolveTimerReview(
+        boundary: HabitTimerBoundary,
+        resolution: HabitTimerReviewResolution,
+    ): HabitTimerStopOutcome
+    suspend fun reconcileTimerClockState()
     suspend fun repairLegacyGeneratedCanonicalValues(): Int
 }
 
@@ -96,6 +110,7 @@ class RoomHabitRepository(
     private val measurementRepository: MeasurementRepository,
     private val clock: WhipClock,
     private val ids: WhipIdGenerator,
+    private val timerClock: HabitTimerClock = WallOnlyHabitTimerClock(clock),
 ) : HabitRepository {
     private val dao = database.habitDao()
     private val areaRepository = RoomAreaRepository(database, clock, ids)
@@ -146,6 +161,32 @@ class RoomHabitRepository(
         require(existing.dimension == draft.dimension.name) {
             "A habit's measurement dimension cannot change; create a new habit instead"
         }
+        if (existing.timerSessionId != null) {
+            val resolvedEndEpochDay = draft.endDate
+                ?.takeIf { draft.endType == HabitEndType.OnDate }
+                ?.toEpochDay()
+            val resolvedEndValue = draft.endValue?.takeIf {
+                draft.endType in setOf(
+                    HabitEndType.AfterStreak,
+                    HabitEndType.AfterCompletions,
+                    HabitEndType.AfterTotal,
+                )
+            }
+            require(
+                draft.trackingMode == HabitTrackingMode.Duration &&
+                    draft.dimension == UnitDimension.Duration &&
+                    draft.unitId == existing.unitId &&
+                    draft.sourceMetricId == null &&
+                    draft.scheduleType.name == existing.scheduleType &&
+                    draft.scheduleInterval == existing.scheduleInterval &&
+                    draft.weekdays.toWeekdayMask() == existing.weekdaysMask &&
+                    draft.flexibleTimesPerWeek == existing.flexibleTimesPerWeek &&
+                    draft.startDate.toEpochDay() == existing.startEpochDay &&
+                    draft.endType.name == existing.endType &&
+                    resolvedEndEpochDay == existing.endEpochDay &&
+                    resolvedEndValue == existing.endValue
+            ) { "Stop or discard the running timer before changing its tracking unit or schedule" }
+        }
         val now = clock.now().toEpochMilli()
         dao.updateHabit(
             resolvedDraft.toEntity(
@@ -153,6 +194,10 @@ class RoomHabitRepository(
                 uuid = existing.uuid,
                 metricId = existing.metricId,
                 timerStartedAtMillis = existing.timerStartedAtMillis,
+                timerSessionId = existing.timerSessionId,
+                timerNeedsReview = existing.timerNeedsReview,
+                timerAccumulatedSeconds = existing.timerAccumulatedSeconds,
+                timerAnchorElapsedRealtimeMillis = existing.timerAnchorElapsedRealtimeMillis,
                 pinned = existing.pinned,
                 position = existing.position,
                 archived = existing.archived,
@@ -173,9 +218,15 @@ class RoomHabitRepository(
         return create(habit.toDraft(items).copy(name = "${habit.name} copy"))
     }
 
-    override suspend fun setArchived(id: Long, archived: Boolean) = updateFlags(id) { it.copy(archived = archived) }
+    override suspend fun setArchived(id: Long, archived: Boolean) = updateFlags(id) {
+        require(!archived || it.timerSessionId == null) { "Stop or discard the running timer before archiving this Habit" }
+        it.copy(archived = archived)
+    }
     override suspend fun setPinned(id: Long, pinned: Boolean) = updateFlags(id) { it.copy(pinned = pinned) }
-    override suspend fun setPaused(id: Long, paused: Boolean) = updateFlags(id) { it.copy(paused = paused) }
+    override suspend fun setPaused(id: Long, paused: Boolean) = updateFlags(id) {
+        require(!paused || it.timerSessionId == null) { "Stop or discard the running timer before pausing this Habit" }
+        it.copy(paused = paused)
+    }
 
     override suspend fun reorder(ids: List<Long>) = database.withTransaction {
         val requested = ids.distinct()
@@ -455,16 +506,356 @@ class RoomHabitRepository(
         check(dao.deleteSkip(habitId, date.toEpochDay()) == 1) { "Skipped day no longer exists" }
     }
 
-    override suspend fun startTimer(habitId: Long) {
-        updateFlags(habitId) { it.copy(timerStartedAtMillis = clock.now().toEpochMilli()) }
+    override suspend fun startTimer(request: HabitTimerStartRequest): HabitTimerStartOutcome = database.withTransaction {
+        dao.getTimerSession(request.requestId)?.let { existing ->
+            require(existing.habitId == request.habitId) { "Timer request belongs to another Habit" }
+            return@withTransaction if (existing.activeHabitId != null) {
+                val habit = dao.getHabit(existing.habitId) ?: error("Habit no longer exists")
+                require(habit.uuid == request.habitUuid) { "Habit changed after this timer action was created" }
+                HabitTimerStartOutcome.AlreadyRunning(existing.boundary(habit), existing.state == HabitTimerSessionState.ReviewRequired.name)
+            } else HabitTimerStartOutcome.AlreadyResolved
+        }
+        val habit = dao.getHabit(request.habitId) ?: error("Habit no longer exists")
+        require(habit.uuid == request.habitUuid) { "Habit changed after this timer action was created" }
+        require(habit.trackingMode == HabitTrackingMode.Duration.name && habit.dimension == UnitDimension.Duration.name) {
+            "Only Duration Habits can use a timer"
+        }
+        require(habit.sourceMetricId == null) { "Synced Habits cannot start a manual timer" }
+        require(!habit.archived) { "Restore this Habit before starting its timer" }
+        require(!habit.paused) { "Resume this Habit before starting its timer" }
+        require(habit.endType != HabitEndType.OnDate.name || habit.endEpochDay == null || habit.endEpochDay >= clock.today().toEpochDay()) {
+            "This Habit has ended"
+        }
+        val metric = database.measurementDao().getMetric(habit.metricId) ?: error("Habit metric no longer exists")
+        require(metric.valueKind == MetricValueKind.Duration.name && metric.dimension == UnitDimension.Duration.name) {
+            "Habit timer measurement contract is invalid"
+        }
+        val unit = BuiltInUnits.get(habit.unitId) ?: database.measurementDao().getUnit(habit.unitId)?.toDomain()
+        require(unit?.dimension == UnitDimension.Duration) { "Choose a Duration unit before starting the timer" }
+        dao.getActiveTimerSession(habit.id)?.let { active ->
+            val reading = timerClock.read()
+            // Consume the losing request identity. If this delayed or retried Start action
+            // arrives again after the current timer stops, it must not create a surprise timer.
+            dao.insertTimerSession(
+                HabitTimerSessionEntity(
+                    sessionId = request.requestId,
+                    habitId = habit.id,
+                    activeHabitId = null,
+                    state = HabitTimerSessionState.Discarded.name,
+                    anchorWallMillis = null,
+                    anchorElapsedRealtimeMillis = null,
+                    anchorBootId = null,
+                    accumulatedCanonicalSeconds = null,
+                    unitId = null,
+                    createdAtMillis = reading.wallMillis,
+                    resolvedAtMillis = reading.wallMillis,
+                ),
+            )
+            return@withTransaction HabitTimerStartOutcome.AlreadyRunning(
+                active.boundary(habit),
+                active.state == HabitTimerSessionState.ReviewRequired.name,
+            )
+        }
+        val reading = timerClock.read()
+        val exact = reading.elapsedRealtimeMillis != null && reading.bootId != null
+        val state = if (exact) HabitTimerSessionState.Running else HabitTimerSessionState.ReviewRequired
+        val session = HabitTimerSessionEntity(
+            sessionId = request.requestId,
+            habitId = habit.id,
+            activeHabitId = habit.id,
+            state = state.name,
+            anchorWallMillis = reading.wallMillis,
+            anchorElapsedRealtimeMillis = reading.elapsedRealtimeMillis,
+            anchorBootId = reading.bootId,
+            accumulatedCanonicalSeconds = 0.0,
+            unitId = habit.unitId,
+            createdAtMillis = reading.wallMillis,
+            resolvedAtMillis = null,
+        )
+        dao.insertTimerSession(session)
+        dao.updateHabit(
+            habit.copy(
+                timerStartedAtMillis = reading.wallMillis,
+                timerSessionId = session.sessionId,
+                timerNeedsReview = !exact,
+                timerAccumulatedSeconds = 0.0,
+                timerAnchorElapsedRealtimeMillis = reading.elapsedRealtimeMillis.takeIf { exact },
+                updatedAtMillis = reading.wallMillis,
+            ),
+        )
+        HabitTimerStartOutcome.Started(session.boundary(habit), needsReview = !exact)
     }
 
-    override suspend fun stopTimer(habitId: Long, date: LocalDate?): Long = database.withTransaction {
-        val habit = dao.getHabit(habitId) ?: error("Habit no longer exists")
-        val start = habit.timerStartedAtMillis ?: error("Timer is not running")
-        val seconds = ((clock.now().toEpochMilli() - start) / 1_000.0).coerceAtLeast(0.0)
-        updateFlags(habitId) { it.copy(timerStartedAtMillis = null) }
-        log(habitId, seconds, date = date)
+    override suspend fun stopTimer(
+        boundary: HabitTimerBoundary,
+        date: LocalDate?,
+    ): HabitTimerStopOutcome = database.withTransaction {
+        val session = requireTimerSession(boundary)
+        when (session.state) {
+            HabitTimerSessionState.Completed.name -> HabitTimerStopOutcome.AlreadyCompleted(
+                historyPresent = dao.getLogBySource(MetricSourceType.Manual.name, timerSourceId(session.sessionId)) != null,
+            )
+            HabitTimerSessionState.Discarded.name -> HabitTimerStopOutcome.AlreadyDiscarded
+            HabitTimerSessionState.ReviewRequired.name -> HabitTimerStopOutcome.ReviewRequired(
+                boundary,
+                estimatedTimerSeconds(session, timerClock.read()),
+            )
+            HabitTimerSessionState.Running.name -> {
+                val reading = timerClock.read()
+                val anchorElapsed = session.anchorElapsedRealtimeMillis
+                val exact = anchorElapsed != null &&
+                    session.anchorBootId != null &&
+                    reading.elapsedRealtimeMillis != null &&
+                    reading.bootId == session.anchorBootId &&
+                    reading.elapsedRealtimeMillis >= anchorElapsed
+                if (!exact) {
+                    markTimerReviewRequired(session, reading.wallMillis)
+                    HabitTimerStopOutcome.ReviewRequired(boundary, estimatedTimerSeconds(session, reading))
+                } else {
+                    val seconds = requireNotNull(session.accumulatedCanonicalSeconds) +
+                        (requireNotNull(reading.elapsedRealtimeMillis) - anchorElapsed) / 1_000.0
+                    stopAndLogTimer(session, boundary, seconds, date, reading.wallMillis)
+                }
+            }
+            else -> error("Timer has an unknown state")
+        }
+    }
+
+    override suspend fun resolveTimerReview(
+        boundary: HabitTimerBoundary,
+        resolution: HabitTimerReviewResolution,
+    ): HabitTimerStopOutcome = database.withTransaction {
+        val session = requireTimerSession(boundary)
+        when (session.state) {
+            HabitTimerSessionState.Completed.name -> return@withTransaction HabitTimerStopOutcome.AlreadyCompleted(
+                historyPresent = dao.getLogBySource(MetricSourceType.Manual.name, timerSourceId(session.sessionId)) != null,
+            )
+            HabitTimerSessionState.Discarded.name -> return@withTransaction HabitTimerStopOutcome.AlreadyDiscarded
+            HabitTimerSessionState.ReviewRequired.name -> Unit
+            else -> error("Timer no longer requires review")
+        }
+        val reading = timerClock.read()
+        when (resolution) {
+            is HabitTimerReviewResolution.StopAndLog -> stopAndLogTimer(
+                session,
+                boundary,
+                resolution.canonicalSeconds.validTimerSeconds(),
+                resolution.date,
+                reading.wallMillis,
+            )
+            is HabitTimerReviewResolution.Continue -> {
+                val elapsed = requireNotNull(reading.elapsedRealtimeMillis) { "This device cannot safely continue the timer" }
+                val boot = requireNotNull(reading.bootId) { "This device cannot safely continue the timer" }
+                val seconds = resolution.canonicalSeconds.validTimerSeconds()
+                dao.updateTimerSession(
+                    session.copy(
+                        state = HabitTimerSessionState.Running.name,
+                        anchorWallMillis = reading.wallMillis,
+                        anchorElapsedRealtimeMillis = elapsed,
+                        anchorBootId = boot,
+                        accumulatedCanonicalSeconds = seconds,
+                    ),
+                )
+                val habit = dao.getHabit(session.habitId) ?: error("Habit no longer exists")
+                dao.updateHabit(
+                    habit.copy(
+                        timerStartedAtMillis = reading.wallMillis,
+                        timerNeedsReview = false,
+                        timerAccumulatedSeconds = seconds,
+                        timerAnchorElapsedRealtimeMillis = elapsed,
+                        updatedAtMillis = reading.wallMillis,
+                    ),
+                )
+                HabitTimerStopOutcome.Continued(boundary, seconds)
+            }
+            HabitTimerReviewResolution.Discard -> {
+                settleTimer(session, HabitTimerSessionState.Discarded, reading.wallMillis)
+                HabitTimerStopOutcome.Discarded
+            }
+        }
+    }
+
+    override suspend fun reconcileTimerClockState() = database.withTransaction {
+        val reading = timerClock.read()
+        val sessions = dao.getActiveTimerSessions()
+        val activeByHabit = sessions.associateBy(HabitTimerSessionEntity::habitId)
+        sessions.forEach { stored ->
+            val session = if (
+                stored.state == HabitTimerSessionState.Running.name &&
+                (stored.anchorBootId == null || stored.anchorElapsedRealtimeMillis == null ||
+                    reading.bootId != stored.anchorBootId || reading.elapsedRealtimeMillis == null ||
+                    reading.elapsedRealtimeMillis < stored.anchorElapsedRealtimeMillis)
+            ) {
+                val updated = stored.copy(state = HabitTimerSessionState.ReviewRequired.name)
+                dao.updateTimerSession(updated)
+                updated
+            } else stored
+            dao.getHabit(session.habitId)?.let { habit ->
+                val wall = session.anchorWallMillis ?: reading.wallMillis
+                val needsReview = session.state == HabitTimerSessionState.ReviewRequired.name
+                val elapsedAnchor = session.anchorElapsedRealtimeMillis.takeUnless { needsReview }
+                if (
+                    habit.timerSessionId != session.sessionId || habit.timerStartedAtMillis != wall ||
+                    habit.timerNeedsReview != needsReview ||
+                    habit.timerAccumulatedSeconds != (session.accumulatedCanonicalSeconds ?: 0.0) ||
+                    habit.timerAnchorElapsedRealtimeMillis != elapsedAnchor
+                ) {
+                    dao.updateHabit(
+                        habit.copy(
+                            timerSessionId = session.sessionId,
+                            timerStartedAtMillis = wall,
+                            timerNeedsReview = needsReview,
+                            timerAccumulatedSeconds = session.accumulatedCanonicalSeconds ?: 0.0,
+                            timerAnchorElapsedRealtimeMillis = elapsedAnchor,
+                            updatedAtMillis = reading.wallMillis,
+                        ),
+                    )
+                }
+            }
+        }
+        dao.getAllHabits().filter { it.timerSessionId != null && it.id !in activeByHabit }.forEach { habit ->
+            dao.updateHabit(
+                habit.copy(
+                    timerSessionId = null,
+                    timerStartedAtMillis = null,
+                    timerNeedsReview = false,
+                    timerAccumulatedSeconds = 0.0,
+                    timerAnchorElapsedRealtimeMillis = null,
+                    updatedAtMillis = reading.wallMillis,
+                ),
+            )
+        }
+    }
+
+    private suspend fun requireTimerSession(boundary: HabitTimerBoundary): HabitTimerSessionEntity {
+        val habit = dao.getHabit(boundary.habitId) ?: error("Habit no longer exists")
+        require(habit.uuid == boundary.habitUuid) { "Habit changed after this timer action was created" }
+        val session = dao.getTimerSession(boundary.sessionId) ?: error("Timer session no longer exists")
+        require(session.habitId == boundary.habitId) { "Timer belongs to another Habit" }
+        return session
+    }
+
+    private suspend fun markTimerReviewRequired(session: HabitTimerSessionEntity, now: Long) {
+        dao.updateTimerSession(session.copy(state = HabitTimerSessionState.ReviewRequired.name))
+        val habit = dao.getHabit(session.habitId) ?: return
+        dao.updateHabit(
+            habit.copy(
+                timerNeedsReview = true,
+                timerAnchorElapsedRealtimeMillis = null,
+                updatedAtMillis = now,
+            ),
+        )
+    }
+
+    private suspend fun stopAndLogTimer(
+        session: HabitTimerSessionEntity,
+        boundary: HabitTimerBoundary,
+        canonicalSeconds: Double,
+        date: LocalDate?,
+        now: Long,
+    ): HabitTimerStopOutcome {
+        val seconds = canonicalSeconds.validTimerSeconds()
+        val logId = if (seconds == 0.0) null else insertCanonicalTimerLog(session, seconds, date, now)
+        settleTimer(session, HabitTimerSessionState.Completed, now)
+        return HabitTimerStopOutcome.Stopped(boundary, seconds, logId)
+    }
+
+    private suspend fun insertCanonicalTimerLog(
+        session: HabitTimerSessionEntity,
+        canonicalSeconds: Double,
+        date: LocalDate?,
+        now: Long,
+    ): Long {
+        val habit = dao.getHabit(session.habitId) ?: error("Habit no longer exists")
+        val metricDao = database.measurementDao()
+        val metric = metricDao.getMetric(habit.metricId) ?: error("Habit metric no longer exists")
+        require(metric.valueKind == MetricValueKind.Duration.name && metric.dimension == UnitDimension.Duration.name) {
+            "Habit timer measurement contract is invalid"
+        }
+        val unitId = requireNotNull(session.unitId) { "Timer has no saved duration unit" }
+        val unit = BuiltInUnits.get(unitId) ?: metricDao.getUnit(unitId)?.toDomain()
+        require(unit?.dimension == UnitDimension.Duration) { "Timer's saved duration unit is unavailable" }
+        val value = unit.fromCanonical(canonicalSeconds)
+        require(value.isFinite()) { "Timer duration cannot be represented in its saved unit" }
+        val instant = Instant.ofEpochMilli(now)
+        val zone = clock.zoneId()
+        val effectiveDate = date ?: clock.today(zone)
+        val logUuid = ids.nextId()
+        val entryId = ids.nextId()
+        val sourceId = timerSourceId(session.sessionId)
+        val firstEntry = metricDao.entryCount(metric.id) == 0
+        metricDao.upsertEntry(
+            MetricEntryEntity(
+                id = entryId,
+                metricId = metric.id,
+                canonicalValue = canonicalSeconds,
+                enteredValue = value,
+                enteredUnitId = unitId,
+                status = MetricEntryStatus.Recorded.name,
+                timestampMillis = now,
+                localEpochDay = effectiveDate.toEpochDay(),
+                zoneId = zone.id,
+                offsetSeconds = zone.rules.getOffset(instant).totalSeconds,
+                sourceType = MetricSourceType.Habit.name,
+                sourceId = logUuid,
+                note = "",
+                createdAtMillis = now,
+                updatedAtMillis = now,
+            ),
+        )
+        if (firstEntry && !metric.dimensionLocked) {
+            metricDao.upsertMetric(metric.copy(dimensionLocked = true, updatedAtMillis = now))
+        }
+        return dao.insertLog(
+            HabitLogEntity(
+                uuid = logUuid,
+                habitId = habit.id,
+                value = value,
+                canonicalValue = canonicalSeconds,
+                enteredUnitId = unitId,
+                status = HabitLogStatus.Recorded.name,
+                timestampMillis = now,
+                localEpochDay = effectiveDate.toEpochDay(),
+                zoneId = zone.id,
+                offsetSeconds = zone.rules.getOffset(instant).totalSeconds,
+                note = "",
+                sourceType = MetricSourceType.Manual.name,
+                sourceId = sourceId,
+                metricEntryId = entryId,
+                createdAtMillis = now,
+                updatedAtMillis = now,
+            ),
+        )
+    }
+
+    private suspend fun settleTimer(
+        session: HabitTimerSessionEntity,
+        state: HabitTimerSessionState,
+        now: Long,
+    ) {
+        dao.updateTimerSession(
+            session.copy(
+                activeHabitId = null,
+                state = state.name,
+                anchorWallMillis = null,
+                anchorElapsedRealtimeMillis = null,
+                anchorBootId = null,
+                accumulatedCanonicalSeconds = null,
+                unitId = null,
+                resolvedAtMillis = now,
+            ),
+        )
+        val habit = dao.getHabit(session.habitId) ?: return
+        dao.updateHabit(
+            habit.copy(
+                timerStartedAtMillis = null,
+                timerSessionId = null,
+                timerNeedsReview = false,
+                timerAccumulatedSeconds = 0.0,
+                timerAnchorElapsedRealtimeMillis = null,
+                updatedAtMillis = now,
+            ),
+        )
     }
 
     private suspend fun syncChecklist(habitId: Long, drafts: List<HabitChecklistItemDraft>, now: Long) {
@@ -538,6 +929,9 @@ private fun HabitTrackingMode.metricValueKind() = when (this) {
 
 private fun HabitDraft.toEntity(
     id: Long = 0, uuid: String, metricId: String, timerStartedAtMillis: Long? = null,
+    timerSessionId: String? = null, timerNeedsReview: Boolean = false,
+    timerAccumulatedSeconds: Double = 0.0,
+    timerAnchorElapsedRealtimeMillis: Long? = null,
     pinned: Boolean = false, position: Int, archived: Boolean = false, paused: Boolean = false,
     createdAtMillis: Long, updatedAtMillis: Long = createdAtMillis,
 ) = HabitEntity(
@@ -550,6 +944,7 @@ private fun HabitDraft.toEntity(
     quickIncrement, quickActions.joinToString(","), reminderMinutes.joinToString(","),
     weekdayReminderMinutes.toReminderCsv(), weekStart.name, timerStartedAtMillis, pinned, position,
     archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId, autoCompleteFromItems,
+    timerSessionId, timerNeedsReview, timerAccumulatedSeconds, timerAnchorElapsedRealtimeMillis,
 )
 
 private fun HabitEntity.toDomain() = Habit(
@@ -565,7 +960,30 @@ private fun HabitEntity.toDomain() = Habit(
     weekdayReminderMinutesCsv.fromReminderCsv(),
     java.time.DayOfWeek.valueOf(weekStart), timerStartedAtMillis, pinned, position,
     archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId, autoCompleteFromItems,
+    timerSessionId, timerNeedsReview, timerAccumulatedSeconds, timerAnchorElapsedRealtimeMillis,
 )
+
+private fun HabitTimerSessionEntity.boundary(habit: HabitEntity) = HabitTimerBoundary(
+    habitId = habitId,
+    habitUuid = habit.uuid,
+    sessionId = sessionId,
+)
+
+private fun timerSourceId(sessionId: String) = "habit-timer-v1:$sessionId"
+
+private fun Double.validTimerSeconds(): Double = also {
+    require(isFinite() && this >= 0.0) { "Timer duration must be a non-negative finite number" }
+}
+
+private fun estimatedTimerSeconds(
+    session: HabitTimerSessionEntity,
+    reading: com.whip.app.core.HabitTimerClockReading,
+): Double {
+    val accumulated = session.accumulatedCanonicalSeconds ?: 0.0
+    val anchor = session.anchorWallMillis ?: return accumulated.coerceAtLeast(0.0)
+    val wallDelta = ((reading.wallMillis.toDouble() - anchor.toDouble()) / 1_000.0).coerceAtLeast(0.0)
+    return (accumulated + wallDelta).takeIf(Double::isFinite)?.coerceAtLeast(0.0) ?: accumulated.coerceAtLeast(0.0)
+}
 
 private fun HabitChecklistItemEntity.toDomain() = HabitChecklistItem(id, uuid, habitId, name, position, archived, createdAtMillis, updatedAtMillis)
 private fun HabitLogEntity.toDomain() = HabitLog(id, uuid, habitId, value, canonicalValue, enteredUnitId, HabitLogStatus.valueOf(status), Instant.ofEpochMilli(timestampMillis), LocalDate.ofEpochDay(localEpochDay), zoneId, offsetSeconds, note, MetricSourceType.valueOf(sourceType), sourceId, metricEntryId, createdAtMillis, updatedAtMillis)

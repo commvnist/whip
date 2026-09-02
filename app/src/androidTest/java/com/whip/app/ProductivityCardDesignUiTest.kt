@@ -1,6 +1,7 @@
 package com.whip.app
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +25,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -44,6 +46,7 @@ import com.whip.app.domain.HabitDayState
 import com.whip.app.domain.HabitEndType
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.HabitTimerBoundary
 import com.whip.app.domain.RecurrenceRule
 import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.ScheduleKind
@@ -60,6 +63,8 @@ import com.whip.app.ui.HabitActivityGrid
 import com.whip.app.ui.HabitAreaContent
 import com.whip.app.ui.HabitDestination
 import com.whip.app.ui.HabitProgressCard
+import com.whip.app.ui.HabitTimerReviewDialog
+import com.whip.app.ui.HabitTimerReviewPrompt
 import com.whip.app.ui.HabitUiState
 import com.whip.app.ui.HabitViewModel
 import com.whip.app.ui.DestinationTabBar
@@ -710,6 +715,102 @@ class ProductivityCardDesignUiTest {
             assertTrue(timerRequested)
             assertTrue(undoSkipRequested)
         }
+    }
+
+    @Test
+    fun habitTimerRemainsReadableOwnedAndReachableAtNarrowLargeText() {
+        val date = LocalDate.of(2026, 8, 24)
+        val futureAnchor = System.currentTimeMillis() + 60_000L
+        val running = sampleHabit(date).copy(
+            id = 14,
+            name = "Meditate",
+            trackingMode = HabitTrackingMode.Duration,
+            dimension = UnitDimension.Duration,
+            unitId = "second",
+            timerStartedAtMillis = futureAnchor,
+            timerSessionId = "timer-running",
+            timerAccumulatedSeconds = 90.0,
+        )
+        val review = running.copy(
+            id = 15,
+            name = "Breathing",
+            timerSessionId = "timer-review",
+            timerNeedsReview = true,
+        )
+        var runningTapped = false
+        var reviewTapped = false
+
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                val density = LocalDensity.current
+                CompositionLocalProvider(
+                    LocalDensity provides Density(density.density, 2f),
+                    LocalCompactItemLayout provides true,
+                ) {
+                    Column(Modifier.width(320.dp).padding(12.dp)) {
+                        HabitProgressCard(
+                            item = HabitDayProgress(running, date, true, 0.0, null, false, emptyList(), 0, 0.0),
+                            onOpen = {}, onEdit = {}, onQuick = { runningTapped = true }, onDecrement = {},
+                            onUndo = {}, onUndoSkip = {}, onChecklist = { _, _, _, _ -> },
+                        )
+                        HabitProgressCard(
+                            item = HabitDayProgress(review, date, true, 0.0, null, false, emptyList(), 0, 0.0),
+                            onOpen = {}, onEdit = {}, onQuick = { reviewTapped = true }, onDecrement = {},
+                            onUndo = {}, onUndoSkip = {}, onChecklist = { _, _, _, _ -> },
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithContentDescription(
+            "Stop and log Meditate; 1 minute 30 seconds elapsed",
+            useUnmergedTree = true,
+        ).performClick()
+        compose.onNodeWithContentDescription(
+            "Review timer for Breathing; 1 minute 30 seconds estimated",
+            useUnmergedTree = true,
+        ).performClick()
+        val runningAction = compose.onNodeWithTag("habit-primary-action-14", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        assertTrue(runningAction.bottom - runningAction.top >= 48.dp)
+        compose.runOnIdle {
+            assertTrue(runningTapped)
+            assertTrue(reviewTapped)
+        }
+    }
+
+    @Test
+    fun timerReviewDialogSupportsCorrectionContinueStopAndDiscardAtNarrowWidth() {
+        var stoppedSeconds: Double? = null
+        var continuedSeconds: Double? = null
+        var discarded = false
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Box(Modifier.width(320.dp)) {
+                    HabitTimerReviewDialog(
+                        prompt = HabitTimerReviewPrompt(
+                            HabitTimerBoundary(1L, "habit-1", "timer-review"),
+                            "Meditation",
+                            90.0,
+                        ),
+                        onDismiss = {},
+                        onStopAndLog = { stoppedSeconds = it },
+                        onContinue = { continuedSeconds = it },
+                        onDiscard = { discarded = true },
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithText("Review Meditation Timer").assertIsDisplayed()
+        compose.onNodeWithTag("habit-timer-review-minutes").performTextReplacement("2.5")
+        compose.onNodeWithTag("habit-timer-review-stop").performClick()
+        compose.runOnIdle { assertEquals(150.0, stoppedSeconds ?: -1.0, 0.0) }
+        compose.onNodeWithTag("habit-timer-review-continue").performClick()
+        compose.runOnIdle { assertEquals(150.0, continuedSeconds ?: -1.0, 0.0) }
+        compose.onNodeWithText("Discard Timer").performClick()
+        compose.runOnIdle { assertTrue(discarded) }
     }
 
     @Test

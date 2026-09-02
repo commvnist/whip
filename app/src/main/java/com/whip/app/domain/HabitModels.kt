@@ -12,6 +12,47 @@ enum class HabitScheduleType { Daily, EveryNDays, SelectedWeekdays, FlexibleTime
 enum class HabitEndType { Never, OnDate, AfterStreak, AfterCompletions, AfterTotal }
 enum class HabitLogStatus { Recorded, Success, Failed }
 enum class HabitDayState { Pending, Completed, BelowTarget, Missed, Skipped, Paused, NotScheduled }
+enum class HabitTimerSessionState { Running, ReviewRequired, Completed, Discarded }
+
+data class HabitTimerBoundary(
+    val habitId: Long,
+    val habitUuid: String,
+    val sessionId: String,
+)
+
+data class HabitTimerStartRequest(
+    val habitId: Long,
+    val habitUuid: String,
+    val requestId: String,
+)
+
+sealed interface HabitTimerStartOutcome {
+    data class Started(val boundary: HabitTimerBoundary, val needsReview: Boolean) : HabitTimerStartOutcome
+    data class AlreadyRunning(val boundary: HabitTimerBoundary, val needsReview: Boolean) : HabitTimerStartOutcome
+    data object AlreadyResolved : HabitTimerStartOutcome
+}
+
+sealed interface HabitTimerStopOutcome {
+    data class Stopped(
+        val boundary: HabitTimerBoundary,
+        val canonicalSeconds: Double,
+        val logId: Long?,
+    ) : HabitTimerStopOutcome
+    data class AlreadyCompleted(val historyPresent: Boolean) : HabitTimerStopOutcome
+    data object AlreadyDiscarded : HabitTimerStopOutcome
+    data class ReviewRequired(
+        val boundary: HabitTimerBoundary,
+        val estimatedCanonicalSeconds: Double,
+    ) : HabitTimerStopOutcome
+    data class Continued(val boundary: HabitTimerBoundary, val canonicalSeconds: Double) : HabitTimerStopOutcome
+    data object Discarded : HabitTimerStopOutcome
+}
+
+sealed interface HabitTimerReviewResolution {
+    data class StopAndLog(val canonicalSeconds: Double, val date: LocalDate? = null) : HabitTimerReviewResolution
+    data class Continue(val canonicalSeconds: Double) : HabitTimerReviewResolution
+    data object Discard : HabitTimerReviewResolution
+}
 
 data class HabitDraft(
     val name: String,
@@ -55,6 +96,9 @@ fun HabitDraft.validationErrors(): List<String> = buildList {
     if (!quickIncrement.isFinite() || quickIncrement <= 0.0) add("Quick increment must be a positive number")
     if (quickActions.any { !it.isFinite() || it < 0.0 }) add("Quick actions must be non-negative numbers")
     if (precision !in 0..6) add("Decimal places must be between 0 and 6")
+    if (trackingMode == HabitTrackingMode.Duration && dimension != UnitDimension.Duration) {
+        add("Duration tracking requires a Duration unit")
+    }
     if (trackingMode == HabitTrackingMode.Checklist && checklistItems.none { it.name.isNotBlank() }) {
         add("Add at least one checklist item")
     }
@@ -128,6 +172,10 @@ data class Habit(
     val updatedAtMillis: Long,
     val sourceMetricId: String? = null,
     val autoCompleteFromItems: Boolean = true,
+    val timerSessionId: String? = null,
+    val timerNeedsReview: Boolean = false,
+    val timerAccumulatedSeconds: Double = 0.0,
+    val timerAnchorElapsedRealtimeMillis: Long? = null,
 )
 
 data class HabitChecklistItemDraft(

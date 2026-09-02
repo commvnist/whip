@@ -16,6 +16,8 @@ import com.whip.app.WhipApplication
 import com.whip.app.core.WhipLaunchActions
 import com.whip.app.core.zoneId
 import com.whip.app.domain.AreaScope
+import com.whip.app.domain.HabitTimerBoundary
+import com.whip.app.domain.HabitTimerStartRequest
 import com.whip.app.startup.MISSING_USER_DATA_GENERATION
 import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.time.LocalDate
@@ -458,10 +460,24 @@ class HabitTrackingWidgetProvider : AppWidgetProvider() {
                                     app.habitRepository.log(habitId, habit.quickIncrement, date = today)
                                 }
                                 ACTION_START_HABIT -> if (parent.action == HabitWidgetAction.StartTimer) {
-                                    app.habitRepository.startTimer(habitId)
+                                    val habitUuid = intent.getStringExtra(EXTRA_HABIT_UUID)
+                                    val requestId = intent.getStringExtra(EXTRA_TIMER_REQUEST_ID)
+                                    if (habit.uuid != habitUuid || requestId.isNullOrBlank()) return@runCatching
+                                    app.habitRepository.startTimer(
+                                        HabitTimerStartRequest(habit.id, habit.uuid, requestId),
+                                    )
                                 }
                                 ACTION_STOP_HABIT -> if (parent.action == HabitWidgetAction.StopTimer) {
-                                    app.habitRepository.stopTimer(habitId, today)
+                                    val habitUuid = intent.getStringExtra(EXTRA_HABIT_UUID)
+                                    val sessionId = intent.getStringExtra(EXTRA_TIMER_SESSION_ID)
+                                    if (
+                                        habit.uuid != habitUuid || sessionId.isNullOrBlank() ||
+                                        habit.timerSessionId != sessionId
+                                    ) return@runCatching
+                                    app.habitRepository.stopTimer(
+                                        HabitTimerBoundary(habit.id, habit.uuid, sessionId),
+                                        today,
+                                    )
                                 }
                             }
                             app.habitReminderScheduler.syncHabit(habitId, allowDuringRecovery = true)
@@ -500,6 +516,9 @@ class HabitTrackingWidgetProvider : AppWidgetProvider() {
         internal const val COLLECTION_SET_EXPANDED = "set_expanded"
         internal const val COLLECTION_REFRESH_HABITS = "refresh_habits"
         internal const val EXTRA_HABIT_ID = "commvne.com.whip.app.widget.HABIT_ID"
+        internal const val EXTRA_HABIT_UUID = "commvne.com.whip.app.widget.HABIT_UUID"
+        internal const val EXTRA_TIMER_REQUEST_ID = "commvne.com.whip.app.widget.TIMER_REQUEST_ID"
+        internal const val EXTRA_TIMER_SESSION_ID = "commvne.com.whip.app.widget.TIMER_SESSION_ID"
         internal const val EXTRA_CHECKLIST_ITEM_ID = "commvne.com.whip.app.widget.CHECKLIST_ITEM_ID"
         internal const val EXTRA_DATE_EPOCH_DAY = "commvne.com.whip.app.widget.DATE_EPOCH_DAY"
         internal const val EXTRA_COMPLETED = "commvne.com.whip.app.widget.COMPLETED"

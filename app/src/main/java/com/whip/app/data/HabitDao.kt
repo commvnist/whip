@@ -27,6 +27,9 @@ interface HabitDao {
     @Query("SELECT * FROM habit_skips ORDER BY localEpochDay DESC, skippedAtMillis DESC")
     fun observeSkips(): Flow<List<HabitSkipEntity>>
 
+    @Query("SELECT * FROM habit_timer_sessions WHERE activeHabitId IS NOT NULL ORDER BY createdAtMillis")
+    fun observeActiveTimerSessions(): Flow<List<HabitTimerSessionEntity>>
+
     @Query("SELECT * FROM habits")
     suspend fun getAllHabits(): List<HabitEntity>
 
@@ -73,6 +76,15 @@ interface HabitDao {
 
     @Query("SELECT * FROM habits WHERE id = :id")
     suspend fun getHabit(id: Long): HabitEntity?
+
+    @Query("SELECT * FROM habit_timer_sessions WHERE sessionId = :sessionId")
+    suspend fun getTimerSession(sessionId: String): HabitTimerSessionEntity?
+
+    @Query("SELECT * FROM habit_timer_sessions WHERE activeHabitId = :habitId LIMIT 1")
+    suspend fun getActiveTimerSession(habitId: Long): HabitTimerSessionEntity?
+
+    @Query("SELECT * FROM habit_timer_sessions WHERE activeHabitId IS NOT NULL")
+    suspend fun getActiveTimerSessions(): List<HabitTimerSessionEntity>
 
     @Query("SELECT * FROM habit_checklist_items WHERE habitId = :habitId ORDER BY position, id")
     suspend fun getChecklistItems(habitId: Long): List<HabitChecklistItemEntity>
@@ -125,12 +137,14 @@ interface HabitDao {
     @Insert suspend fun insertChecklistItem(entity: HabitChecklistItemEntity): Long
     @Insert suspend fun insertLog(entity: HabitLogEntity): Long
     @Insert suspend fun insertPause(entity: HabitPauseEntity): Long
+    @Insert suspend fun insertTimerSession(entity: HabitTimerSessionEntity)
     @Upsert suspend fun upsertSkip(entity: HabitSkipEntity)
 
     @Update suspend fun updateHabit(entity: HabitEntity)
     @Update suspend fun updateChecklistItem(entity: HabitChecklistItemEntity)
     @Update suspend fun updateLog(entity: HabitLogEntity)
     @Update suspend fun updatePause(entity: HabitPauseEntity)
+    @Update suspend fun updateTimerSession(entity: HabitTimerSessionEntity)
 
     @Upsert suspend fun upsertChecklistState(entity: HabitChecklistStateEntity)
 

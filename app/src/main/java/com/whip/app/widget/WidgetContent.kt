@@ -142,17 +142,20 @@ internal fun calculateHabitTrackingContent(
 ): HabitTrackingContent {
     val projectedLogs = habitLogs + mirrorMetricEntriesAsHabitLogs(habits, metricEntries, customUnits)
     val scheduled = habits.mapNotNull { habit ->
+        val hasActiveTimer = habit.timerSessionId != null
         if (
-            habit.archived ||
-            habit.paused ||
-            !areaScope.matches(habit.areaId) ||
-            selectedHabitIds?.contains(habit.id) == false
+            !hasActiveTimer && (
+                habit.archived ||
+                    habit.paused ||
+                    !areaScope.matches(habit.areaId) ||
+                    selectedHabitIds?.contains(habit.id) == false
+                )
         ) return@mapNotNull null
         val logs = projectedLogs.filter { it.habitId == habit.id }
         val pauses = habitPauses.filter { it.habitId == habit.id }
         val skips = habitSkips.filter { it.habitId == habit.id }
-        if (habit.hasEnded(logs, today, pauses, customUnits, skips)) return@mapNotNull null
-        if (habit.isNeutralDate(today, pauses, skips)) return@mapNotNull null
+        if (!hasActiveTimer && habit.hasEnded(logs, today, pauses, customUnits, skips)) return@mapNotNull null
+        if (!hasActiveTimer && habit.isNeutralDate(today, pauses, skips)) return@mapNotNull null
         val flexible = habit.flexibleProgress(logs, today, pauses, skips)
         val isScheduled = when (habit.scheduleType) {
             HabitScheduleType.FlexibleTimesPerWeek,
@@ -160,7 +163,7 @@ internal fun calculateHabitTrackingContent(
             -> flexible?.target?.let { it > 0 } == true
             else -> habit.isScheduledOn(today)
         }
-        if (!isScheduled) return@mapNotNull null
+        if (!isScheduled && !hasActiveTimer) return@mapNotNull null
         val completed = habit.outcomeForPeriod(logs, today, customUnits) == true
         ScheduledHabit(
             habit = habit,
@@ -185,6 +188,7 @@ internal fun calculateHabitTrackingContent(
                 habit.trackingMode == HabitTrackingMode.CheckOff -> HabitWidgetAction.ToggleHabit
                 habit.trackingMode == HabitTrackingMode.Checklist -> HabitWidgetAction.ToggleHabit
                 habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) -> HabitWidgetAction.Increment
+                habit.trackingMode == HabitTrackingMode.Duration && habit.timerNeedsReview -> HabitWidgetAction.Open
                 habit.trackingMode == HabitTrackingMode.Duration && habit.timerStartedAtMillis == null -> HabitWidgetAction.StartTimer
                 habit.trackingMode == HabitTrackingMode.Duration -> HabitWidgetAction.StopTimer
                 else -> HabitWidgetAction.Open

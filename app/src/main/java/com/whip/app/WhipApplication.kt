@@ -3,6 +3,7 @@ package com.whip.app
 import android.app.Application
 import android.util.Log
 import com.whip.app.core.SettingsWhipClock
+import com.whip.app.core.AndroidHabitTimerClock
 import com.whip.app.core.SharedPreferencesSettingsRepository
 import com.whip.app.core.UuidWhipIdGenerator
 import com.whip.app.data.RoomTaskRepository
@@ -125,7 +126,7 @@ class WhipApplication : Application(), Configuration.Provider {
     val gymRepository by lazy { RoomGymRepository(database, clock, idGenerator, settingsRepository) }
     val routineRepository by lazy { RoomRoutineRepository(database, clock, idGenerator, settingsRepository) }
     internal val rawHabitRepository by lazy {
-        RoomHabitRepository(database, rawMeasurementRepository, clock, idGenerator)
+        RoomHabitRepository(database, rawMeasurementRepository, clock, idGenerator, AndroidHabitTimerClock(this, clock))
     }
     val habitRepository: HabitRepository by lazy {
         CoordinatedHabitRepository(rawHabitRepository, reminderDeliveryCoordinator)
@@ -341,6 +342,7 @@ class WhipApplication : Application(), Configuration.Provider {
         // Habit canonical value while its paired metric entry held the correct
         // conversion. Repair only rows whose full paired provenance matches.
         habitRepository.repairLegacyGeneratedCanonicalValues()
+        habitRepository.reconcileTimerClockState()
         // Existing persisted reminder work cannot be trusted across a delivery
         // claim schema change. This is awaited while the startup recovery gate
         // is still closed, before receivers or normal runtime jobs can schedule.

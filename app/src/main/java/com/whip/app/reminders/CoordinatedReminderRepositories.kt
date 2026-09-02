@@ -13,6 +13,9 @@ import com.whip.app.domain.GoalProgressBoundary
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitLogStatus
+import com.whip.app.domain.HabitTimerBoundary
+import com.whip.app.domain.HabitTimerReviewResolution
+import com.whip.app.domain.HabitTimerStartRequest
 import com.whip.app.domain.MetricEntryStatus
 import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.HealthSourceWindow
@@ -141,8 +144,14 @@ internal class CoordinatedHabitRepository(
         mutate { delegate.setCheckOff(habitId, date, completed) }
     override suspend fun toggleChecklistItem(habitId: Long, itemId: Long, date: LocalDate, completed: Boolean) =
         mutate { delegate.toggleChecklistItem(habitId, itemId, date, completed) }
-    override suspend fun startTimer(habitId: Long) = mutate { delegate.startTimer(habitId) }
-    override suspend fun stopTimer(habitId: Long, date: LocalDate?) = mutate { delegate.stopTimer(habitId, date) }
+    override suspend fun startTimer(request: HabitTimerStartRequest) = mutate { delegate.startTimer(request) }
+    override suspend fun stopTimer(boundary: HabitTimerBoundary, date: LocalDate?) =
+        mutate { delegate.stopTimer(boundary, date) }
+    override suspend fun resolveTimerReview(
+        boundary: HabitTimerBoundary,
+        resolution: HabitTimerReviewResolution,
+    ) = mutate { delegate.resolveTimerReview(boundary, resolution) }
+    override suspend fun reconcileTimerClockState() = mutate { delegate.reconcileTimerClockState() }
     override suspend fun repairLegacyGeneratedCanonicalValues() =
         mutate { delegate.repairLegacyGeneratedCanonicalValues() }
 

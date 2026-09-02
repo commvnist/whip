@@ -1,5 +1,6 @@
 package com.whip.app.ui
 
+import android.os.SystemClock
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
@@ -43,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -76,6 +78,7 @@ import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
 import com.whip.app.core.AppSettings
 import com.whip.app.core.EntitySaveReceipt
+import com.whip.app.core.calculateHabitTimerElapsedSeconds
 import com.whip.app.domain.Habit
 import com.whip.app.domain.Area
 import com.whip.app.domain.CustomIdentityEmoji
@@ -111,11 +114,14 @@ import com.whip.app.domain.validationErrors
 import com.whip.app.domain.dayStateOn
 import com.whip.app.domain.successfulPeriodOutcomeDates
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
+import kotlinx.coroutines.delay
 import com.whip.app.ui.theme.whipColors
 
 enum class HabitDestination { Today, All, Archived, Insights }
@@ -196,11 +202,13 @@ fun HabitAreaContent(
     var reorderAllRequested by rememberSaveable { mutableStateOf(false) }
     var templateDraft by rememberSaveable { mutableStateOf<HabitDraft?>(null) }
     var historicalLogHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var historicalLogForToday by rememberSaveable { mutableStateOf(false) }
     var editingLogHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editingLogId by rememberSaveable { mutableStateOf<Long?>(null) }
     var focusedArchivedHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var deleteCandidateHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var skipConfirmationHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val timerReviewPrompt by viewModel.timerReviewPrompt.collectAsStateWithLifecycle()
     val progressById = (state.all + state.today + state.archivedProgress).associateBy { it.habit.id }
     val editorProgressById = (editorState.all + editorState.today + editorState.archivedProgress)
         .associateBy { it.habit.id }
@@ -281,6 +289,7 @@ fun HabitAreaContent(
             onPersisted = {
                 numericLogHabitId = null
                 historicalLogHabitId = null
+                historicalLogForToday = false
                 editingLogHabitId = null
                 editingLogId = null
                 pauseRequestHabitId = null
@@ -482,7 +491,16 @@ fun HabitAreaContent(
             logs = state.logs.filter { it.habitId == item.habit.id },
             skips = state.skips.filter { it.habitId == item.habit.id },
             pauses = state.pauses.filter { it.habitId == item.habit.id },
-            onAddHistoricalLog = { historicalLogHabitId = item.habit.id; actionsHabitId = null },
+            onAddHistoricalLog = {
+                historicalLogForToday = false
+                historicalLogHabitId = item.habit.id
+                actionsHabitId = null
+            },
+            onEnterDurationManually = {
+                historicalLogForToday = true
+                historicalLogHabitId = item.habit.id
+                actionsHabitId = null
+            },
             onEditLog = { log -> editingLogHabitId = item.habit.id; editingLogId = log.id; actionsHabitId = null },
             onEditPause = { pause ->
                 pauseRequestHabitId = item.habit.id
@@ -511,6 +529,15 @@ fun HabitAreaContent(
                 }) { Text("Skip Today") }
             },
             dismissButton = { WhipTextButton(onClick = { skipConfirmationHabitId = null }) { Text("Cancel") } },
+        )
+    }
+    timerReviewPrompt?.let { prompt ->
+        HabitTimerReviewDialog(
+            prompt = prompt,
+            onDismiss = viewModel::dismissTimerReview,
+            onStopAndLog = { seconds -> viewModel.resolveTimerReview(seconds, continueTimer = false) },
+            onContinue = { seconds -> viewModel.resolveTimerReview(seconds, continueTimer = true) },
+            onDiscard = viewModel::discardTimer,
         )
     }
     deleteCandidate?.let { habit ->
@@ -554,12 +581,13 @@ fun HabitAreaContent(
             HabitHistoryLogDialog(
                 item = item,
                 log = null,
-                initialDate = state.currentDate.minusDays(1),
+                initialDate = if (historicalLogForToday) state.currentDate else state.currentDate.minusDays(1),
                 saving = authoredMutationCoordinator.saving,
                 persistenceError = authoredMutationCoordinator.errorMessage,
                 onDismiss = {
                     authoredMutationCoordinator.clear()
                     historicalLogHabitId = null
+                    historicalLogForToday = false
                 },
                 onSave = { value, status, date, note ->
                     val requestId = authoredMutationCoordinator.begin()
@@ -693,6 +721,121 @@ internal fun HabitDayProgress.compactCollectionStatus(): String {
 }
 
 @Composable
+private fun rememberHabitTimerElapsedSeconds(habit: Habit) = produceState(
+    initialValue = habit.currentTimerElapsedSeconds(),
+    key1 = habit.timerSessionId,
+    key2 = habit.timerStartedAtMillis,
+    key3 = Triple(
+        habit.timerAccumulatedSeconds,
+        habit.timerAnchorElapsedRealtimeMillis,
+        habit.timerNeedsReview,
+    ),
+) {
+    while (true) {
+        value = habit.currentTimerElapsedSeconds()
+        delay(1_000L)
+    }
+}
+
+private fun Habit.currentTimerElapsedSeconds(): Double = calculateHabitTimerElapsedSeconds(
+    accumulatedCanonicalSeconds = timerAccumulatedSeconds,
+    anchorWallMillis = timerStartedAtMillis,
+    anchorElapsedRealtimeMillis = timerAnchorElapsedRealtimeMillis,
+    needsReview = timerNeedsReview,
+    nowWallMillis = System.currentTimeMillis(),
+    nowElapsedRealtimeMillis = SystemClock.elapsedRealtime(),
+)
+
+internal fun formatElapsedDuration(seconds: Double): String {
+    val total = seconds.takeIf { it.isFinite() && it >= 0.0 }?.toLong() ?: 0L
+    val days = total / 86_400L
+    val hours = total % 86_400L / 3_600L
+    val minutes = total % 3_600L / 60L
+    val remainingSeconds = total % 60L
+    return when {
+        days > 0L -> "%dd %02d:%02d:%02d".format(Locale.ROOT, days, hours, minutes, remainingSeconds)
+        hours > 0L -> "%d:%02d:%02d".format(Locale.ROOT, hours, minutes, remainingSeconds)
+        else -> "%d:%02d".format(Locale.ROOT, minutes, remainingSeconds)
+    }
+}
+
+internal fun formatElapsedDurationSpoken(seconds: Double): String {
+    val total = seconds.takeIf { it.isFinite() && it >= 0.0 }?.toLong() ?: 0L
+    val days = total / 86_400L
+    val hours = total % 86_400L / 3_600L
+    val minutes = total % 3_600L / 60L
+    val remainingSeconds = total % 60L
+    return buildList {
+        if (days > 0) add("$days ${if (days == 1L) "day" else "days"}")
+        if (hours > 0) add("$hours ${if (hours == 1L) "hour" else "hours"}")
+        if (minutes > 0) add("$minutes ${if (minutes == 1L) "minute" else "minutes"}")
+        if (remainingSeconds > 0 || isEmpty()) {
+            add("$remainingSeconds ${if (remainingSeconds == 1L) "second" else "seconds"}")
+        }
+    }.joinToString(" ")
+}
+
+@Composable
+internal fun HabitTimerReviewDialog(
+    prompt: HabitTimerReviewPrompt,
+    onDismiss: () -> Unit,
+    onStopAndLog: (Double) -> Unit,
+    onContinue: (Double) -> Unit,
+    onDiscard: () -> Unit,
+) {
+    var minutesText by rememberSaveable(prompt.boundary.sessionId) {
+        mutableStateOf(editableNumericValue(prompt.estimatedCanonicalSeconds / 60.0))
+    }
+    val minutes = minutesText.toWhipDoubleOrNull()?.takeIf { it.isFinite() && it >= 0.0 }
+    val seconds = minutes?.times(60.0)?.takeIf(Double::isFinite)
+    PaneAwareAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Review ${prompt.habitName} Timer") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact)) {
+                Text(
+                    "Whip cannot prove the exact elapsed time after a reboot, clock reset, or restored backup. Review the estimate before it becomes history.",
+                )
+                Text(
+                    "Estimated elapsed: ${formatElapsedDuration(prompt.estimatedCanonicalSeconds)}",
+                    fontWeight = FontWeight.SemiBold,
+                )
+                OutlinedTextField(
+                    value = minutesText,
+                    onValueChange = { minutesText = it },
+                    label = { Text("Elapsed minutes") },
+                    supportingText = {
+                        Text(if (seconds == null) "Enter zero or a positive number." else formatElapsedDuration(seconds))
+                    },
+                    isError = minutesText.isNotBlank() && seconds == null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("habit-timer-review-minutes"),
+                )
+                WhipTextButton(
+                    onClick = onDiscard,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                ) { Text("Discard Timer", color = MaterialTheme.colorScheme.error) }
+            }
+        },
+        confirmButton = {
+            WhipTextButton(
+                enabled = seconds != null,
+                onClick = { seconds?.let(onStopAndLog) },
+                modifier = Modifier.testTag("habit-timer-review-stop"),
+            ) { Text("Stop & Log") }
+        },
+        dismissButton = {
+            WhipTextButton(
+                enabled = seconds != null,
+                onClick = { seconds?.let(onContinue) },
+                modifier = Modifier.testTag("habit-timer-review-continue"),
+            ) { Text("Continue Timer") }
+        },
+    )
+}
+
+@Composable
 fun HabitProgressCard(
     item: HabitDayProgress,
     onOpen: () -> Unit,
@@ -709,6 +852,7 @@ fun HabitProgressCard(
     reorderMode: Boolean = false,
 ) {
     val habit = item.habit
+    val timerElapsedSeconds by rememberHabitTimerElapsedSeconds(habit)
     val compact = LocalCompactItemLayout.current
     val skipped = item.dayState == HabitDayState.Skipped
     val disclosure = rememberCompactItemDisclosure(itemKey = habitCompactExpansionKey(habit.id, item.date))
@@ -723,7 +867,10 @@ fun HabitProgressCard(
             HabitScheduleType.FlexibleTimesPerMonth,
         )
     ) "recent periods" else "30d"
-    val compactStatus = item.compactCollectionStatus()
+    val compactStatus = if (habit.timerStartedAtMillis != null) {
+        if (habit.timerNeedsReview) "Review timer · ${formatElapsedDuration(timerElapsedSeconds)} estimated"
+        else "${formatElapsedDuration(timerElapsedSeconds)} elapsed"
+    } else item.compactCollectionStatus()
     val primaryAction: (@Composable () -> Unit)? = when {
         reorderMode -> null
         skipped -> if (compact) {{ ItemPrimaryTextButton("Undo", onUndoSkip) }} else {{ Text("Skipped", color = MaterialTheme.whipColors.warning, fontWeight = FontWeight.SemiBold) }}
@@ -740,10 +887,23 @@ fun HabitProgressCard(
             )
         }}
         habit.trackingMode == HabitTrackingMode.Duration -> {{
+            val label = when {
+                habit.timerStartedAtMillis == null -> "Start"
+                habit.timerNeedsReview -> "Review"
+                else -> "Stop"
+            }
+            val actionDescription = when {
+                habit.timerStartedAtMillis == null -> "Start timer for ${habit.name}"
+                habit.timerNeedsReview -> "Review timer for ${habit.name}; ${formatElapsedDurationSpoken(timerElapsedSeconds)} estimated"
+                else -> "Stop and log ${habit.name}; ${formatElapsedDurationSpoken(timerElapsedSeconds)} elapsed"
+            }
             if (compact) {
-                ItemPrimaryTextButton(if (habit.timerStartedAtMillis == null) "Start" else "Stop", onQuick)
+                ItemPrimaryTextButton(label, onQuick, Modifier.semantics { contentDescription = actionDescription })
             } else {
-                WhipButton(onClick = onQuick) { Text(if (habit.timerStartedAtMillis == null) "Start" else "Stop") }
+                WhipButton(
+                    onClick = onQuick,
+                    modifier = Modifier.semantics { contentDescription = actionDescription },
+                ) { Text(if (label == "Stop") "Stop & Log" else "$label Timer") }
             }
         }}
         habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) -> if (compact) {{
@@ -789,7 +949,11 @@ fun HabitProgressCard(
             editModifier = Modifier.testTag("habit-edit-action-${habit.id}"),
             supportingContent = {
                 Text(
-                    if (lowPressureMode) {
+                    if (habit.timerStartedAtMillis != null) {
+                        if (habit.timerNeedsReview) {
+                            "Timer needs review · ${formatElapsedDuration(timerElapsedSeconds)} estimated"
+                        } else "Timer running · ${formatElapsedDuration(timerElapsedSeconds)} elapsed"
+                    } else if (lowPressureMode) {
                         "${habit.trackingMode.uiLabel()} · ${(item.completionRate * 100).toInt()}% / $rateWindow"
                     } else {
                         "${habit.trackingMode.uiLabel()} · ${item.streak} $streakUnit streak · ${(item.completionRate * 100).toInt()}% / $rateWindow"
@@ -815,6 +979,16 @@ fun HabitProgressCard(
             primaryAction = primaryAction,
         )
         if (!reorderMode && (!compact || disclosure.expanded)) {
+            if (habit.timerStartedAtMillis != null) {
+                Text(
+                    if (habit.timerNeedsReview) {
+                        "Timer duration needs review: ${formatElapsedDuration(timerElapsedSeconds)} estimated"
+                    } else "Timer running: ${formatElapsedDuration(timerElapsedSeconds)} elapsed",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (habit.timerNeedsReview) MaterialTheme.whipColors.warning
+                    else MaterialTheme.colorScheme.primary,
+                )
+            }
             if (skipped) {
                 if (compact) {
                     BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -2444,6 +2618,7 @@ internal fun HabitActionsDialog(
     skips: List<HabitSkip>,
     pauses: List<HabitPause>,
     onAddHistoricalLog: () -> Unit,
+    onEnterDurationManually: () -> Unit = onAddHistoricalLog,
     onEditLog: (HabitLog) -> Unit,
     onEditPause: (HabitPause) -> Unit,
     onArchive: () -> Unit,
@@ -2453,6 +2628,7 @@ internal fun HabitActionsDialog(
     mutationError: String? = null,
 ) {
     var visibleLogs by rememberSaveable(item.habit.id) { mutableIntStateOf(8) }
+    val timerElapsedSeconds by rememberHabitTimerElapsedSeconds(item.habit)
     var section by rememberSaveable(item.habit.id) {
         mutableStateOf(if (item.habit.archived) HabitDetailSection.More else HabitDetailSection.Today)
     }
@@ -2463,6 +2639,11 @@ internal fun HabitActionsDialog(
             HabitScheduleType.FlexibleTimesPerMonth,
         )
     val primaryAction = when {
+        item.habit.timerStartedAtMillis != null -> EntityInspectorPrimaryAction(
+            "timer",
+            item.inspectorPrimaryActionLabel(),
+            onQuick,
+        )
         item.habit.archived -> EntityInspectorPrimaryAction("restore", "Restore", onArchive)
         item.habit.sourceMetricId != null -> null
         item.habit.paused -> EntityInspectorPrimaryAction("resume", "Resume Habit", onPause)
@@ -2501,6 +2682,11 @@ internal fun HabitActionsDialog(
                         EntityInspectorGroup("Today's check-in") {
                             Text(
                                 when {
+                                    item.habit.timerStartedAtMillis != null -> if (item.habit.timerNeedsReview) {
+                                        "Timer needs review · ${formatElapsedDuration(timerElapsedSeconds)} estimated."
+                                    } else {
+                                        "Timer started ${Instant.ofEpochMilli(requireNotNull(item.habit.timerStartedAtMillis)).atZone(ZoneId.systemDefault()).toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))} · ${formatElapsedDuration(timerElapsedSeconds)} elapsed."
+                                    }
                                     item.habit.archived -> "This habit is archived. Use Restore below to resume check-ins."
                                     item.dayState == HabitDayState.Skipped -> if (lowPressureMode) {
                                         "Skipped today. No check-in is expected."
@@ -2512,6 +2698,14 @@ internal fun HabitActionsDialog(
                                     else -> "${formatHabitValue(item.value, item.habit.precision)} logged today."
                                 },
                             )
+                            if (item.habit.trackingMode == HabitTrackingMode.Duration && item.habit.sourceMetricId == null) {
+                                EntityInspectorAction(
+                                    id = "enter-duration-manually",
+                                    label = "Enter Duration Manually",
+                                    onClick = onEnterDurationManually,
+                                    supportingText = "Record a duration when you forgot to start the timer.",
+                                )
+                            }
                         }
                         EntityInspectorGroup("Context") {
                             EntityInspectorFact("Date", item.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)))
@@ -2691,6 +2885,8 @@ private enum class HabitDetailSection(val id: String, val label: String) {
 }
 
 internal fun HabitDayProgress.inspectorStatus(lowPressureMode: Boolean): String = when {
+    habit.timerStartedAtMillis != null && habit.timerNeedsReview -> "Timer needs review"
+    habit.timerStartedAtMillis != null -> "Timer running"
     habit.archived -> "Archived"
     habit.paused || dayState == HabitDayState.Paused -> "Paused"
     dayState == HabitDayState.Skipped -> "Skipped today"
@@ -2702,6 +2898,8 @@ internal fun HabitDayProgress.inspectorStatus(lowPressureMode: Boolean): String 
 }
 
 internal fun HabitDayProgress.inspectorStatusTone(): WhipStatusTone = when {
+    habit.timerStartedAtMillis != null && habit.timerNeedsReview -> WhipStatusTone.Warning
+    habit.timerStartedAtMillis != null -> WhipStatusTone.Info
     habit.archived -> WhipStatusTone.Neutral
     habit.paused || dayState == HabitDayState.Paused -> WhipStatusTone.Warning
     dayState == HabitDayState.Skipped -> WhipStatusTone.Warning
@@ -2718,7 +2916,11 @@ private fun HabitDayProgress.inspectorPrimaryActionLabel(): String = when (habit
         val value = formatHabitValue(habit.quickIncrement, habit.precision)
         "Add $value ${habit.unitId.unitLabel()}".trim()
     }
-    HabitTrackingMode.Duration -> if (habit.timerStartedAtMillis == null) "Start Timer" else "Stop and Log"
+    HabitTrackingMode.Duration -> when {
+        habit.timerStartedAtMillis == null -> "Start Timer"
+        habit.timerNeedsReview -> "Review Timer"
+        else -> "Stop & Log"
+    }
     HabitTrackingMode.Checklist -> if (successful == true) "Undo Today's Completion" else "Mark Today Complete"
     HabitTrackingMode.Rating -> "Rate Today"
     HabitTrackingMode.LogOnly -> "Add Entry"

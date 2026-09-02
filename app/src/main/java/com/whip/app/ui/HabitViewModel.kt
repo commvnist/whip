@@ -31,6 +31,11 @@ import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitSkip
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.HabitTimerBoundary
+import com.whip.app.domain.HabitTimerReviewResolution
+import com.whip.app.domain.HabitTimerStartOutcome
+import com.whip.app.domain.HabitTimerStartRequest
+import com.whip.app.domain.HabitTimerStopOutcome
 import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.MetricDefinition
@@ -80,6 +85,12 @@ data class HabitUiState(
     val errorMessage: String? = null,
     val customUnits: List<UnitDefinition> = emptyList(),
     val sourceMetrics: List<MetricDefinition> = emptyList(),
+)
+
+data class HabitTimerReviewPrompt(
+    val boundary: HabitTimerBoundary,
+    val habitName: String,
+    val estimatedCanonicalSeconds: Double,
 )
 
 internal enum class HabitMutationKind {
@@ -138,6 +149,8 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
     private val reminders = app.habitReminderScheduler
     private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
     val operationStatus: StateFlow<OperationStatus> = _operationStatus.asStateFlow()
+    private val _timerReviewPrompt = MutableStateFlow<HabitTimerReviewPrompt?>(null)
+    val timerReviewPrompt: StateFlow<HabitTimerReviewPrompt?> = _timerReviewPrompt.asStateFlow()
     private val _editorSaveState = MutableStateFlow<PersistenceRequestState<EntitySaveReceipt>>(
         PersistenceRequestState.Idle,
     )
@@ -156,6 +169,7 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
                 _editorSaveState.value = PersistenceRequestState.Idle
                 _authoredMutationState.value = PersistenceRequestState.Idle
                 _operationStatus.value = OperationStatus.Idle
+                _timerReviewPrompt.value = null
             }
         }
     }
@@ -514,10 +528,140 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
             repository.toggleChecklistItem(habitId, itemId, date, completed)
             reminders.syncHabit(habitId)
         }
-    fun startTimer(habitId: Long) = runOperation("Starting timer…", "Habit timer started") { repository.startTimer(habitId) }
-    fun stopTimer(habitId: Long) = runOperation("Stopping timer…", "Duration logged") {
-        repository.stopTimer(habitId)
-        reminders.syncHabit(habitId)
+    fun startTimer(habitId: Long) {
+        _operationStatus.value = OperationStatus.Running("Starting timer…")
+        viewModelScope.launch {
+            try {
+                val outcome = checkNotNull(app.withUserDataAccess {
+                    val habit = repository.get(habitId) ?: error("Habit no longer exists")
+                    repository.startTimer(
+                        HabitTimerStartRequest(habit.id, habit.uuid, app.idGenerator.nextId()),
+                    )
+                }) { "Whip data is unavailable while recovery is in progress" }
+                _operationStatus.value = when (outcome) {
+                    is HabitTimerStartOutcome.Started -> OperationStatus.Succeeded(
+                        if (outcome.needsReview) "Timer needs review before it can be logged" else "Habit timer started",
+                        OperationFeedbackPresentation.Inline,
+                    )
+                    is HabitTimerStartOutcome.AlreadyRunning -> OperationStatus.Succeeded(
+                        "Habit timer is already running",
+                        OperationFeedbackPresentation.Inline,
+                    )
+                    HabitTimerStartOutcome.AlreadyResolved -> OperationStatus.Failed(
+                        "This timer action was already used. Start a new timer.",
+                    )
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                _operationStatus.value = OperationStatus.Failed(error.message ?: "Could not start the timer", error)
+            }
+        }
+    }
+
+    fun stopTimer(habitId: Long) {
+        _operationStatus.value = OperationStatus.Running("Stopping timer…")
+        viewModelScope.launch {
+            try {
+                val habit = repository.get(habitId) ?: error("Habit no longer exists")
+                val sessionId = habit.timerSessionId ?: error("Timer is not running")
+                val outcome = checkNotNull(app.withUserDataAccess {
+                    repository.stopTimer(HabitTimerBoundary(habit.id, habit.uuid, sessionId))
+                }) { "Whip data is unavailable while recovery is in progress" }
+                handleTimerStopOutcome(habit, outcome)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                _operationStatus.value = OperationStatus.Failed(
+                    error.message ?: "Couldn't stop the timer. It is still running.",
+                    error,
+                )
+            }
+        }
+    }
+
+    fun resolveTimerReview(canonicalSeconds: Double, continueTimer: Boolean) {
+        val prompt = _timerReviewPrompt.value ?: return
+        _operationStatus.value = OperationStatus.Running(if (continueTimer) "Continuing timer…" else "Logging duration…")
+        viewModelScope.launch {
+            try {
+                val habit = repository.get(prompt.boundary.habitId) ?: error("Habit no longer exists")
+                val outcome = checkNotNull(app.withUserDataAccess {
+                    repository.resolveTimerReview(
+                        prompt.boundary,
+                        if (continueTimer) HabitTimerReviewResolution.Continue(canonicalSeconds)
+                        else HabitTimerReviewResolution.StopAndLog(canonicalSeconds),
+                    )
+                }) { "Whip data is unavailable while recovery is in progress" }
+                _timerReviewPrompt.value = null
+                handleTimerStopOutcome(habit, outcome)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                _operationStatus.value = OperationStatus.Failed(error.message ?: "Could not resolve the timer", error)
+            }
+        }
+    }
+
+    fun discardTimer() {
+        val prompt = _timerReviewPrompt.value ?: return
+        _operationStatus.value = OperationStatus.Running("Discarding timer…")
+        viewModelScope.launch {
+            try {
+                checkNotNull(app.withUserDataAccess {
+                    repository.resolveTimerReview(prompt.boundary, HabitTimerReviewResolution.Discard)
+                }) { "Whip data is unavailable while recovery is in progress" }
+                _timerReviewPrompt.value = null
+                _operationStatus.value = OperationStatus.Succeeded(
+                    "Timer discarded; no duration was logged",
+                    OperationFeedbackPresentation.Snackbar,
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                _operationStatus.value = OperationStatus.Failed(error.message ?: "Could not discard the timer", error)
+            }
+        }
+    }
+
+    fun dismissTimerReview() {
+        _timerReviewPrompt.value = null
+        _operationStatus.value = OperationStatus.Idle
+    }
+
+    private suspend fun handleTimerStopOutcome(habit: Habit, outcome: HabitTimerStopOutcome) {
+        when (outcome) {
+            is HabitTimerStopOutcome.ReviewRequired -> {
+                _timerReviewPrompt.value = HabitTimerReviewPrompt(
+                    outcome.boundary,
+                    habit.name,
+                    outcome.estimatedCanonicalSeconds,
+                )
+                _operationStatus.value = OperationStatus.Succeeded("Review the timer duration", OperationFeedbackPresentation.Inline)
+            }
+            is HabitTimerStopOutcome.Stopped -> {
+                val warning = saveFollowUpWarning(
+                    "Duration was logged, but reminders did not refresh.",
+                ) { reminders.syncHabit(habit.id) }
+                val duration = formatElapsedDurationSpoken(outcome.canonicalSeconds)
+                _operationStatus.value = OperationStatus.Succeeded(
+                    if (outcome.logId == null) "Timer stopped; no duration was logged"
+                    else "Logged $duration for ${habit.name}.${warning?.let { " $it" }.orEmpty()}",
+                    OperationFeedbackPresentation.Snackbar,
+                )
+            }
+            is HabitTimerStopOutcome.AlreadyCompleted -> _operationStatus.value = OperationStatus.Succeeded(
+                if (outcome.historyPresent) "Duration was already logged" else "Timer was already resolved",
+                OperationFeedbackPresentation.Inline,
+            )
+            HabitTimerStopOutcome.AlreadyDiscarded,
+            HabitTimerStopOutcome.Discarded,
+            -> _operationStatus.value = OperationStatus.Succeeded("Timer was discarded", OperationFeedbackPresentation.Inline)
+            is HabitTimerStopOutcome.Continued -> _operationStatus.value = OperationStatus.Succeeded(
+                "Timer continued",
+                OperationFeedbackPresentation.Inline,
+            )
+        }
     }
     private val reorderMutex = Mutex()
 
@@ -757,11 +901,13 @@ private data class HabitData(
 )
 
 private fun buildHabitUiState(data: HabitData, today: LocalDate, customUnits: List<UnitDefinition>): HabitUiState {
-    val active = data.habits.filterNot(Habit::archived)
+    // An unresolved timer stays reachable even when legacy/restored state says archived,
+    // paused, ended, or not scheduled today. New archive/pause operations are blocked first.
+    val active = data.habits.filter { !it.archived || it.timerSessionId != null }
     val progress = active.map { habit -> buildProgress(habit, data, today, customUnits) }
     val archived = data.habits.filter(Habit::archived)
     return HabitUiState(
-        today = progress.filter { it.scheduled },
+        today = progress.filter { it.scheduled || it.habit.timerSessionId != null },
         all = progress,
         archived = archived,
         archivedProgress = archived.map { habit -> buildProgress(habit, data, today, customUnits) },

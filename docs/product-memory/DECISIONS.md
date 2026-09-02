@@ -318,3 +318,13 @@
 - Scope: Historical audit records remain unchanged as evidence of work already performed. The simplified process overrides orchestration language in the reusable goal for all future work; it does not weaken product acceptance criteria or release gates.
 - Related: `FB-20260902-001`, `MAXIMUM_QUALITY_GOAL.md`
 - Status: Accepted by direct user instruction and active from 2026-09-02.
+
+### DEC-20260902-002 — Habit timers use a durable canonical session ledger
+
+- Context: A timestamp stored on `Habit` cannot safely own retry, unit conversion, reboot, restore, competing Start requests, or stale Stop actions, while historical duration must remain an immutable statement of what was logged.
+- Decision: `habit_timer_sessions` is the authoritative timer ledger. Each Start has a stable request/session ID, one unresolved session per Habit, frozen Duration-unit identity, wall anchor for understandable recovery, monotonic anchor plus boot identity for exact running time, accumulated canonical seconds, and terminal Completed/Discarded tombstones. `Habit` retains only observable lightweight mirrors for UI/widget projection.
+- Runtime policy: Running time and its display use monotonic elapsed time. Boot mismatch, missing monotonic identity, legacy migration, or portable restore becomes `ReviewRequired`; the user may correct and Stop & Log, Continue from a confirmed duration, or Discard. Exact Stop converts canonical seconds through the frozen unit and writes the Measurement, Habit log, terminal session, and cleared mirrors in one Room transaction. Competing Start request IDs are consumed so a delayed replay cannot create a surprise timer later.
+- Compatibility: Schema 41 migrates every legacy active timestamp into review without creating or changing history. Portable backup format 18 carries unresolved timers only as review-required and removes device clock identity; private rollback preserves exact sessions; merge imports completed history but never a foreign active timer. Existing completed logs and metric entries are never recomputed.
+- Rationale: This is narrower and more auditable than a generic timer engine, while providing the ownership and historical guarantees required by a productivity app that can be interrupted, restored, and controlled from widgets.
+- Related: `FND-20260902-001`, `IMP-20260902-002`, `VER-20260902-002`.
+- Status: Accepted and implemented.
