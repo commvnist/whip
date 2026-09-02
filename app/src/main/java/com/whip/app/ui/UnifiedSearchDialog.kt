@@ -973,7 +973,7 @@ private fun UnifiedSearchResultsPane(
             when {
                 !model.queryStarted -> item(key = "start") {
                     Text(
-                        stringResource(R.string.search_start_hint),
+                        stringResource(R.string.search_start_hint, model.scopeLabel),
                         modifier = Modifier.padding(vertical = WhipSpacing.standard),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

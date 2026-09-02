@@ -304,3 +304,16 @@
 - Related: `FND-20260831-011`, `FND-20260831-017`, `FND-20260902-004`, `DEC-20260902-005`.
 - Verification: `VER-20260902-006`.
 - Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.
+
+### IMP-20260902-007 — Explicit Track/Entry search ownership and archive-correct routing
+
+- Centralized workspace search accessibility labels on `WhipSearchEntryContext`: Tracks now announces “Search Tracks & Entries,” Tasks announces “Search Tasks & Steps,” and Gym destinations announce the exact scope they open.
+- Removed the unreachable Track-list query, no-match, query/reorder, and clear-query branches. Track list selection and reordering now operate only on the visible active or archived source; Activity and per-Track Entry search remain unchanged.
+- Made Track result routing projection-owned: the request waits until the selected Area projection is present, then opens Tracks or Archived from the record's actual state instead of forcing every result into active Tracks.
+- Made unified-search empty guidance follow the live scope. The inspected Tracks flow now presents a matching action, “Search tracks & entries” placeholder, “Scope · Tracks & Entries” summary, and “within Tracks & Entries” guidance.
+- Added one JVM policy regression and one Compose ownership/routing regression; expanded the production-repository global-search journey to create, archive, find, and open a real Track in the selected Archived destination.
+- Compatibility: UI/policy and in-memory navigation only. No repository, search-index, Room schema, migration, backup, Track/Entry identity, Area, history, or reorder persistence change.
+- Important files: `WhipNavigationPolicy.kt`, `WhipApp.kt`, `TrackScreens.kt`, `UnifiedSearchDialog.kt`, `strings.xml`, `WhipNavigationPolicyTest.kt`, `TrackWorkspaceUiTest.kt`, `GlobalSearchRoutingTest.kt`, and `docs/testing.md`.
+- Related: `FND-20260831-018`, `FND-20260902-005`, `DEC-20260902-006`.
+- Verification: `VER-20260902-007`.
+- Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.

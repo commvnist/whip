@@ -355,3 +355,12 @@
 - Compatibility: App-destination order, saved workspace state, Back behavior, deep links, keyboard shortcuts, Room schema 41, backup format 18, and every domain record remain unchanged. Recovery links only select existing workspace destinations.
 - Related: `FND-20260831-011`, `FND-20260831-017`, `FND-20260902-004`, `IMP-20260902-006`, `VER-20260902-006`.
 - Status: Accepted and implemented.
+
+### DEC-20260902-006 — Global search owns cross-Track discovery; local search owns collection filtering
+
+- Context: Whip already had a complete global index and exact result router for Track definitions and Entry content, while a second Track-list query existed only as unreachable state. Adding another visible text field would duplicate scope, conflict with reorder behavior, and place two search owners in the same compact workspace.
+- Decision: Use the persistent workspace search as the single cross-Track owner and name its exact live scope in the accessibility action, placeholder, scope summary, and empty guidance. Keep Activity search for filtering the visible chronological feed and per-Track Entry search for one Track's history. Remove the unreachable Track-list query branches. Route an archived Track result to the Archived destination and wait for the scoped projection before consuming a cross-Area request.
+- Rationale: Users get one predictable entry point that is more capable than the dead branch, while legitimately different local searches remain close to the collections they filter. The design reduces state and contradictory controls without removing any reachable behavior.
+- Compatibility: Search indexing, Entry FTS, Track/Entry identities, Area scope, saved workspace state, Room schema 41, backup format 18, and all history remain unchanged. Only action labeling, result presentation/navigation, and unreachable UI state changed.
+- Related: `FND-20260831-018`, `FND-20260902-005`, `IMP-20260902-007`, `VER-20260902-007`.
+- Status: Accepted and implemented.

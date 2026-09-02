@@ -2,6 +2,7 @@ package com.whip.app
 
 import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
@@ -27,6 +28,9 @@ import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
+import com.whip.app.domain.TrackDraft
+import com.whip.app.domain.TrackFieldDraft
+import com.whip.app.domain.TrackFieldType
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -51,6 +55,15 @@ class GlobalSearchRoutingTest {
         val routineId = app.routineRepository.createRoutine(
             RoutineDraft("Searchable archived routine", days = listOf(RoutineDayDraft("Day", listOf(RoutineExerciseDraft(exerciseId))))),
         )
+        val trackId = app.trackRepository.create(
+            TrackDraft(
+                name = "Searchable archived track",
+                fields = listOf(
+                    TrackFieldDraft("Title", TrackFieldType.ShortText, required = true, primary = true),
+                ),
+            ),
+        )
+        app.trackRepository.setArchived(trackId, true)
         app.routineRepository.setRoutineArchived(routineId, true)
         app.gymRepository.setExerciseArchived(exerciseId, true)
 
@@ -93,6 +106,10 @@ class GlobalSearchRoutingTest {
                 compose.onAllNodesWithText("Searchable archived routine").fetchSemanticsNodes().isNotEmpty()
             }
             compose.onNodeWithText("Searchable archived routine").assertIsDisplayed()
+
+            searchFor("Searchable archived track")
+            compose.onNodeWithTag("track-workspace-destination-Archived").assertIsSelected()
+            compose.onNodeWithText("Searchable archived track").assertIsDisplayed()
         }
         }
     }
@@ -132,9 +149,9 @@ class GlobalSearchRoutingTest {
             "Search All Whip Data",
             "Search Habits",
             "Search Goals",
-            "Search Tracks",
+            "Search Tracks & Entries",
             "Search Gym",
-            "Search Tasks",
+            "Search Tasks & Steps",
         )
     }
 }

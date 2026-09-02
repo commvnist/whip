@@ -50,6 +50,11 @@ internal fun WhipSearchEntryContext.defaultSearchScope(): WhipSearchScope = when
     WhipSearchEntryContext.Routines -> WhipSearchScope("Routines", setOf(SearchDomain.Routine))
 }
 
+internal fun WhipSearchEntryContext.searchActionLabel(): String = when (this) {
+    WhipSearchEntryContext.AllWhip -> "Search All Whip Data"
+    else -> "Search ${defaultSearchScope().label}"
+}
+
 internal fun GymDestination.searchEntryContext(): WhipSearchEntryContext = when (this) {
     GymDestination.Exercises, GymDestination.Progress, GymDestination.Categories -> WhipSearchEntryContext.Exercises
     GymDestination.Machines -> WhipSearchEntryContext.Machines

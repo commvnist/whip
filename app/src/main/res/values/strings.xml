@@ -319,7 +319,7 @@
     <string name="search_limited_sources">Index limit reached · %1$s</string>
     <string name="search_index_source">Search index</string>
     <string name="search_results_may_be_incomplete">Results may be incomplete.</string>
-    <string name="search_start_hint">Type a name, note, tag, area, status, or date to search across Whip.</string>
+    <string name="search_start_hint">Search by name, note, tag, area, status, or date within %1$s.</string>
     <string name="search_no_matches_loaded">No matches from loaded data yet.</string>
     <string name="search_no_matches">No matching items</string>
     <string name="search_show_more">Show %1$d More · %2$d Remaining</string>

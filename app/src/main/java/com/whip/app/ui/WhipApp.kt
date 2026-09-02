@@ -1954,13 +1954,14 @@ fun WhipScreen(
                         }
                     }
                     if (!focusedCollectionMode && appDestination != AppDestination.Settings) {
+                        val activeSearchContext = appDestination.searchEntryContext(gymDestination)
                         IconButton(
                             onClick = {
-                                searchEntryContext = appDestination.searchEntryContext(gymDestination)
+                                searchEntryContext = activeSearchContext
                                 searchOpen = true
                             },
                             modifier = Modifier.focusRequester(searchInvokerFocusRequester).size(52.dp).testTag("workspace-search-action").semantics {
-                                contentDescription = if (appDestination == AppDestination.Home) "Search All Whip Data" else "Search ${appDestination.label}"
+                                contentDescription = activeSearchContext.searchActionLabel()
                             },
                         ) { Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(28.dp)) }
                     }

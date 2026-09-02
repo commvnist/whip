@@ -307,7 +307,6 @@ internal fun TrackAreaContent(
     val localWorkspaceDestinationState = rememberSaveable { mutableStateOf(TrackWorkspaceDestination.Tracks) }
     val activeWorkspaceDestinationState = workspaceDestinationState ?: localWorkspaceDestinationState
     var workspaceDestination by activeWorkspaceDestinationState
-    var query by rememberSaveable { mutableStateOf("") }
     val localDestinationState = rememberSaveable { mutableStateOf(TrackDetailDestination.Entries) }
     val activeDestinationState = destinationState ?: localDestinationState
     var destination by activeDestinationState
@@ -402,13 +401,19 @@ internal fun TrackAreaContent(
             onCreateRequestConsumed()
         }
     }
-    LaunchedEffect(openTrackIdRequest) {
-        openTrackIdRequest?.let {
-            workspaceDestination = TrackWorkspaceDestination.Tracks
-            selectedTrackId = it
+    LaunchedEffect(openTrackIdRequest, state.projections) {
+        val requestedId = openTrackIdRequest ?: return@LaunchedEffect
+        val requested = state.track(requestedId)
+        if (requested != null) {
+            workspaceDestination = if (requested.track.archived) {
+                TrackWorkspaceDestination.Archived
+            } else {
+                TrackWorkspaceDestination.Tracks
+            }
+            selectedTrackId = requestedId
             destination = TrackDetailDestination.Entries
+            onOpenTrackRequestConsumed()
         }
-        if (openTrackIdRequest != null) onOpenTrackRequestConsumed()
     }
     LaunchedEffect(editTrackIdRequest, state.projections) {
         val trackId = editTrackIdRequest ?: return@LaunchedEffect
@@ -442,8 +447,6 @@ internal fun TrackAreaContent(
         AllTracksPage(
             state = state,
             innerPadding = PaddingValues(),
-            query = query,
-            onQueryChange = { query = it },
             showArchived = workspaceDestination == TrackWorkspaceDestination.Archived,
             onOpen = { selectedTrackId = it },
             onEdit = { onEditorRequest(TrackEditorIntent.Definition(it)) },
@@ -1153,8 +1156,6 @@ private fun TrackWorkspaceInsightsPage(
 private fun AllTracksPage(
     state: TrackUiState,
     innerPadding: PaddingValues,
-    query: String,
-    onQueryChange: (String) -> Unit,
     showArchived: Boolean,
     onOpen: (Long) -> Unit,
     onEdit: (Long) -> Unit,
@@ -1176,12 +1177,8 @@ private fun AllTracksPage(
     var selecting by rememberSaveable { mutableStateOf(false) }
     var selectedIds by rememberSaveable { mutableStateOf<Set<Long>>(emptySet()) }
     val source = if (showArchived) state.archived else state.active
-    val shown = source.filter { projection ->
-        query.isBlank() || projection.track.name.contains(query, true) || projection.track.description.contains(query, true) ||
-            projection.track.tags.any { it.contains(query, true) }
-    }
-    val pinned = if (showArchived) emptyList() else shown.filter { it.track.pinned }
-    val unpinned = if (showArchived) shown else shown.filterNot { it.track.pinned }
+    val pinned = if (showArchived) emptyList() else source.filter { it.track.pinned }
+    val unpinned = if (showArchived) source else source.filterNot { it.track.pinned }
     BackHandler(enabled = reordering) { reordering = false }
     BackHandler(enabled = selecting) { selecting = false; selectedIds = emptySet() }
     DisposableEffect(reordering) {
@@ -1191,8 +1188,8 @@ private fun AllTracksPage(
     LaunchedEffect(reorderDismissRequest) {
         if (reorderDismissRequest > 0) reordering = false
     }
-    LaunchedEffect(query, reorderEnabled, showArchived) {
-        if (query.isNotBlank() || !reorderEnabled || showArchived) reordering = false
+    LaunchedEffect(reorderEnabled, showArchived) {
+        if (!reorderEnabled || showArchived) reordering = false
     }
     fun moveWithin(group: List<TrackProjection>, index: Int, delta: Int) {
         val moved = moveListItem(group, index, delta)
@@ -1220,20 +1217,16 @@ private fun AllTracksPage(
             ) {
                 if (!reordering) {
                     val hasAdditionalActions =
-                        (!showArchived && (state.active.size > 1 || query.isNotBlank() || !reorderEnabled)) ||
-                            shown.isNotEmpty()
+                        (!showArchived && (state.active.size > 1 || !reorderEnabled)) || source.isNotEmpty()
                     if (hasAdditionalActions) Box {
                         WhipPageIconAction(Icons.Outlined.MoreVert, "More Track Options", { moreOpen = true })
                         DropdownMenu(moreOpen, { moreOpen = false }) {
-                        if (!showArchived && (state.active.size > 1 || query.isNotBlank() || !reorderEnabled)) WhipMenuItem(
+                        if (!showArchived && (state.active.size > 1 || !reorderEnabled)) WhipMenuItem(
                             label = when {
-                                query.isNotBlank() && !reorderEnabled -> "Clear Search, Show All Areas & Reorder"
-                                query.isNotBlank() -> "Clear Search & Reorder All"
                                 !reorderEnabled -> "Show All Areas & Reorder"
                                 else -> "Reorder Tracks"
                             },
                             onClick = {
-                                onQueryChange("")
                                 if (!reorderEnabled) onShowAllAreasForReorder()
                                 selecting = false
                                 selectedIds = emptySet()
@@ -1241,7 +1234,7 @@ private fun AllTracksPage(
                                 moreOpen = false
                             },
                         )
-                        if (shown.isNotEmpty()) WhipMenuItem(
+                        if (source.isNotEmpty()) WhipMenuItem(
                             label = if (selecting) "Cancel Selection" else "Select Tracks",
                             onClick = {
                                 selecting = !selecting
@@ -1294,20 +1287,18 @@ private fun AllTracksPage(
         if (state.loading || state.errorMessage != null) item {
             DomainLoadContent("Tracks", PaddingValues(), state.errorMessage, onRetryLoading)
         }
-        else if (shown.isEmpty()) item {
+        else if (source.isEmpty()) item {
             WhipEmptyState(
                 title = when {
-                    query.isNotBlank() -> "No Matching Tracks"
                     showArchived -> "No Archived Tracks"
                     else -> "Track What Matters"
                 },
                 supportingText = when {
-                    query.isNotBlank() -> "Try a different name, tag, or description."
                     showArchived -> "Archived Tracks appear here and can be restored."
                     else -> "Create a reusable log for anything you want to record or compare."
                 },
-                primaryActionLabel = "Create First Track".takeUnless { showArchived || query.isNotBlank() },
-                onPrimaryAction = onCreate.takeUnless { showArchived || query.isNotBlank() },
+                primaryActionLabel = "Create First Track".takeUnless { showArchived },
+                onPrimaryAction = onCreate.takeUnless { showArchived },
             )
         } else {
             if (pinned.isNotEmpty() && !showArchived) {

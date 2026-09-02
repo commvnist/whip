@@ -175,7 +175,8 @@
 - Observed: Track list query/no-match/reorder logic exists but `AllTracksPage` exposes no setter.
 - Expected: Purposeful local search or removal of the unreachable branch in favor of explicit global Search routing.
 - Evidence: `TrackScreens.kt`.
-- Status: Confirmed; product decision pending.
+- Resolution: The workspace search is now the single owner for finding Tracks and Entries across active and archived data. Its action, live scope, placeholder, and empty guidance all name “Tracks & Entries”; selecting an archived Track restores the Archived workspace context. The unreachable Track-list query/no-match/reorder branches were removed. See `IMP-20260902-007` / `VER-20260902-007`.
+- Status: Resolved and emulator/release-build verified.
 
 ### FND-20260831-019 — Secondary mutation dialogs still dismiss optimistically
 
@@ -196,7 +197,7 @@
 - Gym evidence: `DomainDeletionCoordinator.kt`, `GymDao.kt`, `RoutineDao.kt`, `GymViewModel.kt`, `GymScreens.kt`, `DomainDeletionCoordinatorTest.kt`, `GymDeletionViewModelIntegrationTest.kt`, and `GymPowerInputUiTest.kt`.
 - Gym active-session sub-resolution: Add/create/substitute Exercise, detailed Set and Exercise editing, quick-set completion, workout finish/5/3/1 review, and discard now use exact stable identities, revisions, or request-owned terminal receipts proportionate to their risk. Drafts/errors survive Activity recreation; a process-recreated orphan warns and releases instead of hanging. Workout-only additions create and focus an editable first Set without changing the Routine. Finish binds the exact session UUID/revision and required Main-work evidence. Derived PR/Link/timer work is durable, warning-based, and startup-reconcilable rather than a false retry of the committed workout fact.
 - Gym active-session evidence: `GymModels.kt`, `GymEntities.kt`, `GymDao.kt`, `GymRepository.kt`, `RoutineRepository.kt`, `GymViewModel.kt`, `GymScreens.kt`, `RestTimerNotifications.kt`, schema 40, backup format 17, and focused JVM/Android/migration/backup/E2E regressions.
-- Track sub-resolution: Definition, direct Entry, and CSV batch mutation families are resolved in `IMP-20260901-013` through `IMP-20260901-015`; local Track search ownership remains the separate `FND-20260831-018` product decision rather than an authored-save integrity bug.
+- Track sub-resolution: Definition, direct Entry, and CSV batch mutation families are resolved in `IMP-20260901-013` through `IMP-20260901-015`; Track/Entry search ownership is separately resolved in `IMP-20260902-007` and remains outside authored-save integrity.
 - Settings/Health sub-resolution: Numeric, clock, time-zone, quiet-hour, retention, and other typed Settings use bounded explicit drafts, strict validation, durable request receipts, failed-commit rollback/retry, lifecycle/conflict protection, and IME/large-text reachability. Custom Unit create/rename/archive/version flows now have exact identity/revision ownership, retained drafts, and narrow/large-text reachability. Health Connect now has least-privilege category scope, serialized mutations, atomic source-window reconciliation, durable interrupted-action recovery, explicit external-provider ownership, and exact local-copy deletion. Whole-app reset is exclusive with every admitted data-access lease.
 - Status: Partially resolved. Habit is verified in `IMP-20260831-009` / `VER-20260831-011`, Task in `IMP-20260831-010` / `VER-20260831-012`, Goal in `IMP-20260831-011` / `VER-20260831-013`, Gym permanent deletion in `IMP-20260901-012` / `VER-20260901-014`, Track definition/direct/CSV in `IMP-20260901-013` through `IMP-20260901-015`, Gym active-session/quick-set and remaining structure mutations in `IMP-20260901-016` / `VER-20260901-018` and `IMP-20260901-018` / `VER-20260901-020`, typed Settings in `IMP-20260901-017` / `VER-20260901-019`, Custom Unit/Health/backup/reset integrity in `IMP-20260901-019` / `VER-20260901-021`, and external Task launch/share handoff in `IMP-20260901-020` / `VER-20260901-022`. Other secondary families still require separate risk-proportionate review.
 
@@ -344,3 +345,14 @@
 - Evidence: `WhipApp.kt`, `WhipNavigationPolicyTest.kt`, `AdaptiveWhipScreenTest.kt`, `VisualAcceptanceMatrixTest.kt`, and the captures/hierarchies under `artifacts/full-product-audit/2026-09-02/navigation-home/`.
 - Resolution: Implemented in `IMP-20260902-006` and fully verified in `VER-20260902-006`; this also resolves `FND-20260831-011` and `FND-20260831-017`.
 - Status: Resolved and emulator/release-build verified; no saved navigation or user data was changed.
+
+### FND-20260902-005 — Track search had no coherent owner and lost archive context
+
+- Severity/category: P2 discoverability, information architecture, accessibility, and navigation correctness.
+- Observed: `TrackAreaContent` retained a local Track-name query with no control capable of changing it, including dead no-match and “clear search” reorder branches. The reachable shell action announced only “Search Tracks” even though its actual scope included Tracks and Entries. Its empty hint claimed to search across all Whip while that narrower scope was active, and selecting an archived Track forced the active Tracks destination.
+- Expected: One visible search owner should state exactly what it searches, find both Track definitions and Entry content across active/archived data, keep guidance synchronized with the live scope, and land results in their truthful workspace context. Local Activity and per-Track Entry searches remain purposeful filters for those specific collections.
+- Why it matters: Users with many structured logs could not discover the dormant list behavior, screen-reader users heard an incomplete scope, sighted users received contradictory guidance, and archived results appeared under the wrong navigation state.
+- Affected users: Track users with many logs or Entries, archived history users, keyboard/screen-reader users, ADHD/interruption-prone users, and anyone searching from a filtered Area.
+- Evidence: `TrackScreens.kt`, `WhipApp.kt`, `WhipNavigationPolicy.kt`, `UnifiedSearchDialog.kt`, `TrackWorkspaceUiTest.kt`, `GlobalSearchRoutingTest.kt`, and the inspected capture/hierarchy under `artifacts/full-product-audit/2026-09-02/track-search/`.
+- Resolution: Implemented in `IMP-20260902-007` and fully verified in `VER-20260902-007`; this also resolves `FND-20260831-018`.
+- Status: Resolved and emulator/release-build verified; no Track, Entry, Area, schema, or backup data changed.

@@ -166,6 +166,15 @@ class WhipNavigationPolicyTest {
     }
 
     @Test
+    fun searchActionsNameTheExactScopeTheyOpen() {
+        assertEquals("Search All Whip Data", WhipSearchEntryContext.AllWhip.searchActionLabel())
+        assertEquals("Search Tasks & Steps", WhipSearchEntryContext.Tasks.searchActionLabel())
+        assertEquals("Search Tracks & Entries", WhipSearchEntryContext.Tracks.searchActionLabel())
+        assertEquals("Search Exercises", WhipSearchEntryContext.Exercises.searchActionLabel())
+        assertEquals("Search Routines", WhipSearchEntryContext.Routines.searchActionLabel())
+    }
+
+    @Test
     fun backUnwindsHighestTransientLayerFirst() {
         val fullyLayered = WhipBackState(
             imeVisible = true,

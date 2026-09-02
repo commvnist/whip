@@ -9,11 +9,13 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -21,6 +23,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -57,6 +60,77 @@ import org.junit.runner.RunWith
 class TrackWorkspaceUiTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun tracksAndEntriesHaveOneExplicitSearchOwnerAndArchivedResultsReturnToArchive() {
+        val today = LocalDate.of(2026, 9, 2)
+        val active = trackProjection(
+            id = 1,
+            name = "Fermentation Log",
+            icon = "🥬",
+            areaId = "personal",
+            area = "Personal",
+            entryId = 11,
+            title = "Kimchi batch",
+            score = 4.5,
+            date = today,
+        )
+        val archived = trackProjection(
+            id = 2,
+            name = "Medication Archive",
+            icon = "💊",
+            areaId = "personal",
+            area = "Personal",
+            entryId = 22,
+            title = "Prior dosage",
+            score = 3.0,
+            date = today.minusDays(30),
+            archived = true,
+        )
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                val trackViewModel: TrackViewModel = viewModel()
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    trackState = TrackUiState(projections = listOf(active, archived), currentDate = today, loading = false),
+                    trackViewModel = trackViewModel,
+                    adaptiveLayout = WhipAdaptiveLayout.Compact,
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Tracks tab").performClick()
+        compose.onAllNodesWithContentDescription("Search Tracks & Entries").assertCountEquals(1)
+        compose.onAllNodesWithContentDescription("Search Tracks").assertCountEquals(0)
+        compose.onNodeWithContentDescription("Search Tracks & Entries").performClick()
+        compose.onNodeWithText("Scope · Tracks & Entries").assertIsDisplayed()
+        compose.onNodeWithText(
+            "Search by name, note, tag, area, status, or date within Tracks & Entries.",
+        ).assertIsDisplayed()
+
+        compose.onNodeWithTag("unified-search-query").performTextReplacement("Kimchi batch")
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithTag("unified-search-result-TrackEntry-11").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("unified-search-result-TrackEntry-11").assertIsDisplayed()
+
+        compose.onNodeWithTag("unified-search-query").performTextReplacement("Medication Archive")
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithTag("unified-search-result-Track-2").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("unified-search-result-Track-2").performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithTag("track-workspace-destination-Archived").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("track-workspace-destination-Archived").assertIsSelected()
+        compose.onNodeWithText("Medication Archive").assertIsDisplayed()
+    }
 
     @Test
     fun activityFiltersAndCrossTrackInsightsUseVisibleTrackData() {
@@ -285,11 +359,12 @@ class TrackWorkspaceUiTest {
         title: String,
         score: Double,
         date: LocalDate,
+        archived: Boolean = false,
     ): TrackProjection {
         val titleFieldId = id * 10 + 1
         val scoreFieldId = id * 10 + 2
         return TrackProjection(
-            track = Track(id, "track-$id", name, "", icon, areaId, area, emptyList(), false, false, 0, 1, 1),
+            track = Track(id, "track-$id", name, "", icon, areaId, area, emptyList(), false, archived, 0, 1, 1),
             fields = listOf(
                 TrackField(titleFieldId, "title-$id", id, "Title", TrackFieldType.ShortText, 0, true, true, true, null, null, 0, null, null, "", "", 1, 1),
                 TrackField(scoreFieldId, "score-$id", id, "Score", TrackFieldType.Number, 1, false, false, true, null, null, 1, null, null, "", "", 1, 1),
