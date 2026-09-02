@@ -80,6 +80,7 @@ class StartupRecoveryGate(
         restore: suspend () -> T,
         hasPendingRecovery: () -> Boolean,
         resumeNormalRuntime: suspend (backgroundAlreadyRebuilt: Boolean) -> Unit,
+        backgroundAlreadyRebuiltOnSuccess: Boolean = true,
     ): T = attemptMutex.withLock {
         withContext(NonCancellable) {
             check(mutableState.value == StartupRecoveryState.Ready) {
@@ -107,7 +108,7 @@ class StartupRecoveryGate(
             }
 
             try {
-                resumeNormalRuntime(true)
+                resumeNormalRuntime(backgroundAlreadyRebuiltOnSuccess)
                 mutableState.value = StartupRecoveryState.Ready
                 result
             } catch (error: Throwable) {
@@ -116,6 +117,23 @@ class StartupRecoveryGate(
             }
         }
     }
+
+    /**
+     * Runs a destructive whole-app operation only after every admitted data
+     * lease has drained. Unlike replace-restore, maintenance has no rollback
+     * marker, so a failure resumes whatever durable state the operation left.
+     */
+    suspend fun <T> runExclusiveMaintenance(
+        prepareForMaintenance: suspend () -> Unit,
+        maintenance: suspend () -> T,
+        resumeNormalRuntime: suspend (backgroundAlreadyRebuilt: Boolean) -> Unit,
+    ): T = runRestore(
+        prepareForRestore = prepareForMaintenance,
+        restore = maintenance,
+        hasPendingRecovery = { false },
+        resumeNormalRuntime = resumeNormalRuntime,
+        backgroundAlreadyRebuiltOnSuccess = false,
+    )
 
     /** Moves a running process behind the gate if a persistent marker is found. */
     suspend fun blockForPendingRecovery(

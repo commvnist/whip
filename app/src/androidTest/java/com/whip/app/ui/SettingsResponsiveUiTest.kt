@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -36,6 +37,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
@@ -48,9 +50,13 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.pressBack
 import com.whip.app.WhipApplication
 import com.whip.app.core.AppSettings
+import com.whip.app.core.HealthDataType
 import com.whip.app.core.PersistenceRequestState
 import com.whip.app.core.WhipResult
 import com.whip.app.ui.theme.WhipTheme
+import com.whip.app.health.HealthConnectAvailability
+import com.whip.app.health.HealthConnectStatus
+import com.whip.app.domain.UnitDimension
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -620,6 +626,195 @@ class SettingsResponsiveUiTest {
         about.performSemanticsAction(SemanticsActions.RequestFocus).assertIsFocused()
         about.performClick().assertIsSelected().assertIsFocused()
         assertTrue(about.fetchSemanticsNode().boundsInRoot.height >= with(compose.density) { 48.dp.toPx() })
+    }
+
+    @Test
+    fun healthControlsRemainUnderstandableAndDeletableWhenProviderIsUnavailable() {
+        val app: WhipApplication = ApplicationProvider.getApplicationContext()
+        val viewModel = SettingsViewModel(app)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Box(Modifier.size(width = 390.dp, height = 760.dp)) {
+                    SettingsContent(
+                        state = SettingsUiState(
+                            settings = AppSettings(
+                                setupCompleted = true,
+                                healthDataTypes = setOf(HealthDataType.Weight),
+                                healthConnectEnabled = false,
+                            ),
+                            healthConnect = HealthConnectStatus(
+                                availability = HealthConnectAvailability.Unsupported,
+                            ),
+                            healthImportedEntryCount = 3,
+                        ),
+                        innerPadding = PaddingValues(),
+                        viewModel = viewModel,
+                        selectedSection = SettingsSection.DataPrivacy,
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("settings-list")
+            .performScrollToNode(hasTestTag("health-type-Weight"))
+        compose.onNodeWithTag("health-type-Weight").assertIsEnabled()
+        compose.onNodeWithTag("settings-list")
+            .performScrollToNode(hasTestTag("health-sync-now"))
+        compose.onNodeWithTag("health-sync-now").assertIsNotEnabled()
+        compose.onNodeWithText("Older Health Connect copies", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("settings-list")
+            .performScrollToNode(hasTestTag("delete-health-connect-copies"))
+        compose.onNodeWithTag("delete-health-connect-copies").assertIsEnabled().performClick()
+        compose.onNodeWithText("Delete Health Connect Copies from Whip?").assertIsDisplayed()
+        compose.onAllNodesWithText(
+            "Health Connect provider records and Android permissions are not changed.",
+            substring = true,
+        )
+            .assertCountEquals(1)
+        compose.onNodeWithTag("confirm-delete-health-connect-copies").assertIsEnabled()
+    }
+
+    @Test
+    fun customUnitDialogKeepsDraftAndShowsAnInlineDurabilityFailure() {
+        var saving by mutableStateOf(false)
+        var failure by mutableStateOf<String?>(null)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                CustomUnitDialog(
+                    mode = CustomUnitEditMode.Create,
+                    saving = saving,
+                    error = failure,
+                    onDismiss = {},
+                    onSave = { _, _, _, _ -> saving = true },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("custom-unit-name").performTextReplacement("Training block")
+        compose.onNodeWithTag("custom-unit-symbol").performTextReplacement("blk")
+        compose.onNodeWithTag("custom-unit-factor").performTextReplacement("4")
+        compose.onNodeWithTag("custom-unit-confirm").performClick()
+        compose.onNodeWithText("Waiting for Whip to confirm the saved unit…").assertIsDisplayed()
+        compose.onNodeWithTag("custom-unit-confirm").assertIsNotEnabled()
+
+        compose.runOnIdle {
+            saving = false
+            failure = "Local storage did not confirm this custom unit."
+        }
+        compose.onNodeWithText("Local storage did not confirm this custom unit.").assertIsDisplayed()
+        compose.onNodeWithTag("custom-unit-name").assertTextContains("Training block")
+        compose.onNodeWithTag("custom-unit-factor").assertTextContains("4")
+        compose.onNodeWithTag("custom-unit-confirm").assertIsEnabled()
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithTag("custom-unit-discard-confirmation").assertIsDisplayed()
+        compose.onNodeWithText("Keep Editing").performClick()
+        compose.onNodeWithTag("custom-unit-name").assertTextContains("Training block")
+    }
+
+    @Test
+    fun destructiveFailureIsAssertiveInsideTheRetainedDialogAndCanBeRetried() {
+        var attempts by mutableIntStateOf(0)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                PermanentDeleteDialog(
+                    title = "Delete Health Connect Copies from Whip?",
+                    impacts = listOf("Provider records are kept."),
+                    error = "Deletion could not finish. Your recovery marker is still active.",
+                    confirmLabel = "Retry Deletion",
+                    onDismiss = {},
+                    onConfirm = { attempts++ },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Deletion could not finish. Your recovery marker is still active.")
+            .assertIsDisplayed()
+        compose.onNodeWithText("Retry Deletion").assertIsEnabled().performClick()
+        assertEquals(1, attempts)
+    }
+
+    @Test
+    fun destructiveCopyAndActionsRemainReachableInAShortLargeTextWindow() {
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 2f)) {
+                WhipTheme(dynamicColor = false) {
+                    PermanentDeleteDialog(
+                        modifier = Modifier
+                            .width(320.dp)
+                            .heightIn(max = 360.dp)
+                            .testTag("short-delete-dialog"),
+                        title = "Delete Health Connect Copies from Whip?",
+                        impacts = listOf(
+                            "Only local copies imported from Health Connect are deleted.",
+                            "Health Connect provider records and Android permissions are not changed.",
+                            "Linked Habits, goals, and trends may change after rebuilding.",
+                        ),
+                        error = "Deletion could not finish. Your recovery marker is still active.",
+                        confirmLabel = "Retry Deletion",
+                        onDismiss = {},
+                        onConfirm = {},
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithText("Deletion could not finish. Your recovery marker is still active.")
+            .performScrollTo()
+            .assertIsDisplayed()
+        compose.onNodeWithText("Cancel").assertIsDisplayed()
+        compose.onNodeWithText("Retry Deletion").assertIsDisplayed()
+        val bounds = compose.onNodeWithTag("short-delete-dialog").getUnclippedBoundsInRoot()
+        assertTrue(bounds.bottom - bounds.top <= 361.dp)
+    }
+
+    @Test
+    fun customUnitValidationExplainsInvalidFieldsWithoutHidingTheAction() {
+        var saves by mutableIntStateOf(0)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                CustomUnitDialog(
+                    mode = CustomUnitEditMode.Create,
+                    onDismiss = {},
+                    onSave = { _, _, _, _ -> saves++ },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("custom-unit-confirm").assertIsEnabled().performClick()
+        compose.onNodeWithText("Name is required").assertIsDisplayed()
+        compose.onNodeWithTag("custom-unit-name").performTextReplacement("serving")
+        compose.onNodeWithTag("custom-unit-factor").performTextReplacement("0")
+        compose.onNodeWithTag("custom-unit-confirm").performClick()
+        compose.onNodeWithText("Enter a number greater than 0").performScrollTo().assertIsDisplayed()
+        compose.runOnIdle { assertEquals(0, saves) }
+
+        compose.onNodeWithTag("custom-unit-factor").performTextReplacement("2")
+        compose.onNodeWithTag("custom-unit-confirm").performClick()
+        compose.runOnIdle { assertEquals(1, saves) }
+    }
+
+    @Test
+    fun customUnitFactorAndActionsRemainReachableAtTwoHundredPercentText() {
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalDensity provides Density(1f, fontScale = 2f),
+                LocalWhipDialogPlacement provides WhipDialogPlacement(maxWidth = 320.dp),
+            ) {
+                WhipTheme(dynamicColor = false) {
+                    CustomUnitDialog(
+                        mode = CustomUnitEditMode.Create,
+                        initialDimension = UnitDimension.Volume,
+                        onDismiss = {},
+                        onSave = { _, _, _, _ -> },
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("custom-unit-factor").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("custom-unit-confirm").assertIsDisplayed()
+        val bounds = compose.onNodeWithTag("custom-unit-dialog").getUnclippedBoundsInRoot()
+        assertTrue(bounds.right - bounds.left <= 321.dp)
     }
 
     @Test

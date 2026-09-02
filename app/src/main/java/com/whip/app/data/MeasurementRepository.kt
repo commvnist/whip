@@ -5,11 +5,15 @@ import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
 import com.whip.app.domain.Area
 import com.whip.app.domain.BuiltInUnits
+import com.whip.app.domain.CustomUnitBoundary
+import com.whip.app.domain.customUnitBoundary
 import com.whip.app.domain.MetricDefinition
 import com.whip.app.domain.MetricEntry
 import com.whip.app.domain.MetricEntryStatus
 import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.MetricValueKind
+import com.whip.app.domain.HealthSourceRecord
+import com.whip.app.domain.HealthSourceWindow
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WhipTag
@@ -69,6 +73,24 @@ interface MeasurementRepository {
         toCanonicalFactor: Double,
     ): String
 
+    suspend fun createCustomUnitExact(
+        requestedId: String,
+        name: String,
+        symbol: String,
+        dimension: UnitDimension,
+        toCanonicalFactor: Double,
+    ): String
+
+    suspend fun renameCustomUnitExact(boundary: CustomUnitBoundary, name: String, symbol: String)
+    suspend fun setCustomUnitArchivedExact(boundary: CustomUnitBoundary, archived: Boolean)
+    suspend fun createCustomUnitVersionExact(
+        boundary: CustomUnitBoundary,
+        requestedId: String,
+        name: String,
+        symbol: String,
+        toCanonicalFactor: Double,
+    ): String
+
     suspend fun ensureArea(name: String): String
     suspend fun ensureTag(name: String): String
     suspend fun renameArea(id: String, name: String)
@@ -98,6 +120,12 @@ interface MeasurementRepository {
         sourcePrefix: String,
         retainedEntryIds: Set<String>,
     )
+
+    /** Atomically applies every selected authoritative Health Connect source window. */
+    suspend fun reconcileHealthSourceWindows(windows: List<HealthSourceWindow>): Int
+
+    /** Deletes Whip's local Health Connect mirror without touching provider records. */
+    suspend fun deleteHealthConnectEntries(): Int
 }
 
 class RoomMeasurementRepository(
@@ -157,6 +185,10 @@ class RoomMeasurementRepository(
         val existing = dao.getMetric(id)
         if (existing != null) {
             require(existing.dimension == dimension.name) { "The metric already uses another dimension" }
+            require(existing.valueKind == valueKind.name) { "The metric already uses another value type" }
+            require(findUnit(existing.defaultUnitId)?.dimension == dimension) {
+                "The metric's existing default unit is incompatible"
+            }
             return@withTransaction id
         }
         val now = clock.now().toEpochMilli()
@@ -175,27 +207,7 @@ class RoomMeasurementRepository(
         symbol: String,
         dimension: UnitDimension,
         toCanonicalFactor: Double,
-    ): String {
-        require(name.isNotBlank()) { "Unit name is required" }
-        require(toCanonicalFactor.isFinite() && toCanonicalFactor > 0.0) { "Conversion factor must be a finite positive number" }
-        val now = clock.now().toEpochMilli()
-        val id = ids.nextId()
-        dao.upsertUnit(
-            UnitDefinitionEntity(
-                id = id,
-                name = name.trim(),
-                symbol = symbol.trim(),
-                dimension = dimension.name,
-                toCanonicalFactor = toCanonicalFactor,
-                toCanonicalOffset = 0.0,
-                custom = true,
-                archived = false,
-                createdAtMillis = now,
-                updatedAtMillis = now,
-            ),
-        )
-        return id
-    }
+    ): String = createCustomUnitExact(ids.nextId(), name, symbol, dimension, toCanonicalFactor)
 
     override suspend fun ensureArea(name: String): String = areaRepository.create(name)
 
@@ -276,16 +288,13 @@ class RoomMeasurementRepository(
     }
 
     override suspend fun renameCustomUnit(id: String, name: String, symbol: String) {
-        require(name.isNotBlank()) { "Unit name is required" }
-        val existing = requireNotNull(dao.getUnit(id)) { "Custom unit no longer exists" }
-        require(existing.custom) { "Built-in units cannot be edited" }
-        dao.upsertUnit(existing.copy(name = name.trim(), symbol = symbol.trim(), updatedAtMillis = clock.now().toEpochMilli()))
+        val existing = requireNotNull(dao.getUnit(id)) { "Custom unit no longer exists" }.toDomain()
+        renameCustomUnitExact(existing.customUnitBoundary(), name, symbol)
     }
 
     override suspend fun setCustomUnitArchived(id: String, archived: Boolean) {
-        val existing = requireNotNull(dao.getUnit(id)) { "Custom unit no longer exists" }
-        require(existing.custom) { "Built-in units cannot be archived" }
-        dao.upsertUnit(existing.copy(archived = archived, updatedAtMillis = clock.now().toEpochMilli()))
+        val existing = requireNotNull(dao.getUnit(id)) { "Custom unit no longer exists" }.toDomain()
+        setCustomUnitArchivedExact(existing.customUnitBoundary(), archived)
     }
 
     override suspend fun createCustomUnitVersion(
@@ -293,26 +302,138 @@ class RoomMeasurementRepository(
         name: String,
         symbol: String,
         toCanonicalFactor: Double,
+    ): String {
+        val existing = requireNotNull(dao.getUnit(sourceId)) { "Custom unit no longer exists" }.toDomain()
+        return createCustomUnitVersionExact(
+            existing.customUnitBoundary(),
+            ids.nextId(),
+            name,
+            symbol,
+            toCanonicalFactor,
+        )
+    }
+
+    override suspend fun createCustomUnitExact(
+        requestedId: String,
+        name: String,
+        symbol: String,
+        dimension: UnitDimension,
+        toCanonicalFactor: Double,
     ): String = database.withTransaction {
-        val existing = requireNotNull(dao.getUnit(sourceId)) { "Custom unit no longer exists" }
-        require(existing.custom) { "Built-in units cannot be versioned" }
-        require(name.isNotBlank()) { "Unit name is required" }
-        require(toCanonicalFactor.isFinite() && toCanonicalFactor > 0.0) { "Conversion factor must be positive" }
+        val normalizedName = validateCustomUnitName(name)
+        val normalizedSymbol = validateCustomUnitSymbol(symbol)
+        require(requestedId.isNotBlank()) { "Custom unit request identity is required" }
+        require(BuiltInUnits.get(requestedId) == null) { "Custom unit identity conflicts with a built-in unit" }
+        require(toCanonicalFactor.isFinite() && toCanonicalFactor > 0.0) {
+            "Conversion factor must be a finite positive number"
+        }
+        val existing = dao.getUnit(requestedId)
+        if (existing != null) {
+            require(
+                existing.custom &&
+                    existing.name == normalizedName &&
+                    existing.symbol == normalizedSymbol &&
+                    existing.dimension == dimension.name &&
+                    existing.toCanonicalFactor == toCanonicalFactor &&
+                    existing.toCanonicalOffset == 0.0 &&
+                    !existing.archived,
+            ) { "Custom unit request identity already belongs to different data" }
+            return@withTransaction requestedId
+        }
         val now = clock.now().toEpochMilli()
-        dao.upsertUnit(existing.copy(archived = true, updatedAtMillis = now))
-        val id = ids.nextId()
         dao.upsertUnit(
-            existing.copy(
-                id = id,
-                name = name.trim(),
-                symbol = symbol.trim(),
+            UnitDefinitionEntity(
+                id = requestedId,
+                name = normalizedName,
+                symbol = normalizedSymbol,
+                dimension = dimension.name,
+                toCanonicalFactor = toCanonicalFactor,
+                toCanonicalOffset = 0.0,
+                custom = true,
+                archived = false,
+                createdAtMillis = now,
+                updatedAtMillis = now,
+            ),
+        )
+        requestedId
+    }
+
+    override suspend fun renameCustomUnitExact(boundary: CustomUnitBoundary, name: String, symbol: String) =
+        database.withTransaction {
+            val normalizedName = validateCustomUnitName(name)
+            val normalizedSymbol = validateCustomUnitSymbol(symbol)
+            val existing = requireNotNull(dao.getUnit(boundary.id)) { "Custom unit no longer exists" }
+            require(existing.custom) { "Built-in units cannot be edited" }
+            if (existing.name == normalizedName && existing.symbol == normalizedSymbol) return@withTransaction
+            require(existing.toDomain().customUnitBoundary() == boundary) {
+                "Custom unit changed after this editor opened; review it and try again"
+            }
+            dao.upsertUnit(
+                existing.copy(
+                    name = normalizedName,
+                    symbol = normalizedSymbol,
+                    updatedAtMillis = clock.now().toEpochMilli(),
+                ),
+            )
+        }
+
+    override suspend fun setCustomUnitArchivedExact(boundary: CustomUnitBoundary, archived: Boolean) =
+        database.withTransaction {
+            val existing = requireNotNull(dao.getUnit(boundary.id)) { "Custom unit no longer exists" }
+            require(existing.custom) { "Built-in units cannot be archived" }
+            if (existing.archived == archived) return@withTransaction
+            require(existing.toDomain().customUnitBoundary() == boundary) {
+                "Custom unit changed before this action was saved; review it and try again"
+            }
+            dao.upsertUnit(existing.copy(archived = archived, updatedAtMillis = clock.now().toEpochMilli()))
+        }
+
+    override suspend fun createCustomUnitVersionExact(
+        boundary: CustomUnitBoundary,
+        requestedId: String,
+        name: String,
+        symbol: String,
+        toCanonicalFactor: Double,
+    ): String = database.withTransaction {
+        val normalizedName = validateCustomUnitName(name)
+        val normalizedSymbol = validateCustomUnitSymbol(symbol)
+        require(requestedId.isNotBlank()) { "Custom unit version request identity is required" }
+        require(BuiltInUnits.get(requestedId) == null) { "Custom unit version identity conflicts with a built-in unit" }
+        require(toCanonicalFactor.isFinite() && toCanonicalFactor > 0.0) {
+            "Conversion factor must be a finite positive number"
+        }
+        dao.getUnit(requestedId)?.let { achieved ->
+            require(
+                achieved.custom &&
+                    achieved.name == normalizedName &&
+                    achieved.symbol == normalizedSymbol &&
+                    achieved.dimension == boundary.dimension.name &&
+                    achieved.toCanonicalFactor == toCanonicalFactor &&
+                    achieved.toCanonicalOffset == boundary.toCanonicalOffset &&
+                    !achieved.archived,
+            ) { "Custom unit version request identity already belongs to different data" }
+            return@withTransaction requestedId
+        }
+        val source = requireNotNull(dao.getUnit(boundary.id)) { "Custom unit no longer exists" }
+        require(source.custom) { "Built-in units cannot be versioned" }
+        require(source.toDomain().customUnitBoundary() == boundary) {
+            "Custom unit changed after this editor opened; review it and try again"
+        }
+        require(!source.archived) { "Restore this custom unit before creating a new conversion version" }
+        val now = clock.now().toEpochMilli()
+        dao.upsertUnit(source.copy(archived = true, updatedAtMillis = now))
+        dao.upsertUnit(
+            source.copy(
+                id = requestedId,
+                name = normalizedName,
+                symbol = normalizedSymbol,
                 toCanonicalFactor = toCanonicalFactor,
                 archived = false,
                 createdAtMillis = now,
                 updatedAtMillis = now,
             ),
         )
-        id
+        requestedId
     }
 
     override suspend fun record(
@@ -409,6 +530,143 @@ class RoomMeasurementRepository(
             .forEach { dao.deleteEntry(it.id) }
     }
 
+    override suspend fun reconcileHealthSourceWindows(windows: List<HealthSourceWindow>): Int =
+        database.withTransaction {
+            require(windows.isNotEmpty()) { "Choose at least one Health Connect data type" }
+            require(windows.map { it.metric.id }.distinct().size == windows.size) {
+                "Health sync contains a duplicate metric window"
+            }
+            require(windows.map { it.sourcePrefix }.distinct().size == windows.size) {
+                "Health sync contains a duplicate source window"
+            }
+            val now = clock.now().toEpochMilli()
+            var imported = 0
+
+            windows.forEach { window ->
+                require(HEALTH_SOURCE_PREFIX.matches(window.sourcePrefix)) {
+                    "Health source prefix is invalid"
+                }
+                require(window.startInclusive < window.endExclusive) { "Health source window is invalid" }
+                val defaultUnit = findUnit(window.metric.defaultUnitId) ?: error("Unknown Health metric unit")
+                require(defaultUnit.dimension == window.metric.dimension) { "Health metric unit is incompatible" }
+                require(window.metric.precision in 0..6) { "Health metric precision is invalid" }
+                val storedMetric = dao.getMetric(window.metric.id)
+                if (storedMetric == null) {
+                    dao.upsertMetric(
+                        MetricDefinitionEntity(
+                            id = window.metric.id,
+                            name = window.metric.name,
+                            valueKind = window.metric.valueKind.name,
+                            dimension = window.metric.dimension.name,
+                            defaultUnitId = window.metric.defaultUnitId,
+                            precision = window.metric.precision,
+                            dimensionLocked = false,
+                            archived = false,
+                            createdAtMillis = now,
+                            updatedAtMillis = now,
+                        ),
+                    )
+                } else {
+                    require(storedMetric.name == window.metric.name) { "Health metric name does not match its reserved contract" }
+                    require(storedMetric.valueKind == window.metric.valueKind.name) { "Health metric value type does not match" }
+                    require(storedMetric.dimension == window.metric.dimension.name) { "Health metric dimension does not match" }
+                    require(storedMetric.defaultUnitId == window.metric.defaultUnitId) { "Health metric unit does not match" }
+                    require(storedMetric.precision == window.metric.precision) { "Health metric precision does not match" }
+                    require(!storedMetric.archived) { "Health metric is archived" }
+                }
+                val metric = requireNotNull(dao.getMetric(window.metric.id)).toDomain()
+                val hadEntries = dao.entryCount(metric.id) > 0
+                val requestedIds = linkedSetOf<String>()
+
+                window.records.forEach { record ->
+                    require(record.providerRecordId.isNotBlank()) { "Health provider record ID is required" }
+                    require(record.providerRecordId.length <= 512) { "Health provider record ID is too long" }
+                    require(record.value.isFinite()) { "Health measurement value must be finite" }
+                    require(record.value >= 0.0) { "Health measurement value cannot be negative" }
+                    require(record.timestamp >= window.startInclusive && record.timestamp < window.endExclusive) {
+                        "Health provider record is outside the reviewed source window"
+                    }
+                    val sourceId = "${window.sourcePrefix}${record.providerRecordId}"
+                    val entryId = "entry-$sourceId"
+                    require(requestedIds.add(entryId)) { "Health provider returned a duplicate record ID" }
+                    val unit = findUnit(record.unitId) ?: error("Unknown Health measurement unit")
+                    require(unit.dimension == metric.dimension) { "Health measurement unit is incompatible" }
+                    val canonicalValue = unit.toCanonical(record.value)
+                    require(canonicalValue.isFinite()) { "Converted Health measurement value must be finite" }
+                    val existing = dao.getEntry(entryId)
+                    if (existing != null) {
+                        require(existing.metricId == metric.id) { "Health measurement identity belongs to another metric" }
+                        require(
+                            existing.sourceType == MetricSourceType.HealthConnect.name && existing.sourceId == sourceId,
+                        ) { "Health measurement identity has different provenance" }
+                    }
+                    val providerOffset = record.zoneOffsetSeconds?.let { offsetSeconds ->
+                        runCatching { java.time.ZoneOffset.ofTotalSeconds(offsetSeconds) }
+                            .getOrElse { error("Health provider record has an invalid zone offset") }
+                    }
+                    // Some Health providers omit an offset. Once we have
+                    // assigned a stable provider record to a civil day, keep
+                    // that provenance on an unchanged timestamp so travel or
+                    // a later Settings time-zone change cannot move history.
+                    val existingProvenance = existing?.takeIf {
+                        providerOffset == null && it.timestampMillis == record.timestamp.toEpochMilli()
+                    }
+                    val existingOffset = existingProvenance?.let {
+                        runCatching { java.time.ZoneOffset.ofTotalSeconds(it.offsetSeconds) }
+                            .getOrElse { error("Stored Health record has an invalid zone offset") }
+                    }
+                    val effectiveOffset = providerOffset
+                        ?: existingOffset
+                        ?: window.zoneId.rules.getOffset(record.timestamp)
+                    val timestampDate = record.timestamp.atOffset(effectiveOffset).toLocalDate()
+                    require(record.localDate == null || record.localDate == timestampDate) {
+                        "Health provider record date does not match its timestamp"
+                    }
+                    val effectiveDate = record.localDate ?: timestampDate
+                    dao.upsertEntry(
+                        MetricEntryEntity(
+                            id = entryId,
+                            metricId = metric.id,
+                            canonicalValue = canonicalValue,
+                            enteredValue = record.value,
+                            enteredUnitId = record.unitId,
+                            status = MetricEntryStatus.Recorded.name,
+                            timestampMillis = record.timestamp.toEpochMilli(),
+                            localEpochDay = effectiveDate.toEpochDay(),
+                            zoneId = providerOffset?.id ?: existingProvenance?.zoneId ?: window.zoneId.id,
+                            offsetSeconds = effectiveOffset.totalSeconds,
+                            sourceType = MetricSourceType.HealthConnect.name,
+                            sourceId = sourceId,
+                            note = record.note.trim().take(1_000),
+                            createdAtMillis = existing?.createdAtMillis ?: now,
+                            updatedAtMillis = now,
+                        ),
+                    )
+                }
+
+                val existingWindowEntries = dao.getEntriesBySourceWindow(
+                    MetricSourceType.HealthConnect.name,
+                    window.sourcePrefix,
+                    window.startInclusive.toEpochMilli(),
+                    window.endExclusive.toEpochMilli(),
+                )
+                require(existingWindowEntries.all { it.metricId == metric.id }) {
+                    "Health source window contains data assigned to another metric"
+                }
+                existingWindowEntries.filterNot { it.id in requestedIds }.forEach { dao.deleteEntry(it.id) }
+
+                if (!hadEntries && window.records.isNotEmpty() && !metric.dimensionLocked) {
+                    dao.upsertMetric(metric.toEntity().copy(dimensionLocked = true, updatedAtMillis = now))
+                }
+                imported += requestedIds.size
+            }
+            imported
+        }
+
+    override suspend fun deleteHealthConnectEntries(): Int = database.withTransaction {
+        dao.deleteEntriesBySourceType(MetricSourceType.HealthConnect.name)
+    }
+
     private suspend fun findUnit(id: String): UnitDefinition? =
         BuiltInUnits.get(id) ?: dao.getUnit(id)?.toDomain()
 }
@@ -425,6 +683,17 @@ internal fun UnitDefinitionEntity.toDomain() = UnitDefinition(
     createdAtMillis = createdAtMillis,
     updatedAtMillis = updatedAtMillis,
 )
+
+private fun validateCustomUnitName(value: String): String = value.trim().also { normalized ->
+    require(normalized.isNotBlank()) { "Unit name is required" }
+    require(normalized.length <= 100) { "Unit name must be 100 characters or fewer" }
+}
+
+private fun validateCustomUnitSymbol(value: String): String = value.trim().also { normalized ->
+    require(normalized.length <= 20) { "Unit symbol must be 20 characters or fewer" }
+}
+
+private val HEALTH_SOURCE_PREFIX = Regex("health:[a-z0-9-]+:")
 
 private fun MetricDefinitionEntity.toDomain() = MetricDefinition(
     id = id,

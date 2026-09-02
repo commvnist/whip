@@ -167,9 +167,7 @@ fun GoalAreaContent(
     areas: List<Area> = emptyList(),
     defaultAreaId: String? = null,
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
-    onCreateCustomUnit: CreateCustomUnitAction = { _, _, _, _, result ->
-        result(Result.failure(IllegalStateException("Custom-unit creation is unavailable")))
-    },
+    onCreateCustomUnit: CreateCustomUnitAction = UnavailableCreateCustomUnitAction,
     customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
     onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
@@ -1337,9 +1335,7 @@ internal fun GoalEditorDialog(
     areas: List<Area> = emptyList(),
     defaultAreaId: String? = null,
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
-    onCreateCustomUnit: CreateCustomUnitAction = { _, _, _, _, result ->
-        result(Result.failure(IllegalStateException("Custom-unit creation is unavailable")))
-    },
+    onCreateCustomUnit: CreateCustomUnitAction = UnavailableCreateCustomUnitAction,
     customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
     onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},

@@ -201,7 +201,11 @@ class SettingsBehaviorUiTest {
             up()
         }
 
-        compose.waitUntil { !app.settingsRepository.current().setupCompleted }
+        compose.waitUntil(timeoutMillis = 15_000) {
+            !app.settingsRepository.current().setupCompleted &&
+                app.startupRecoveryState.value == com.whip.app.startup.StartupRecoveryState.Ready
+        }
+        compose.waitForIdle()
         compose.onNodeWithText("Welcome to Whip").assertIsDisplayed()
         compose.onNodeWithText("Use Recommended").performClick()
         compose.waitUntil { app.settingsRepository.current().setupCompleted }

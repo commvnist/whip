@@ -102,7 +102,7 @@
     <string name="settings_backup_last_verified">Last verified: %1$s</string>
     <string name="settings_backup_last_verified_file">Last verified: %1$s · %2$s</string>
     <string name="settings_backup_automatic_retention">Turning off automatic backup keeps every existing backup file. Whip only stops creating new automatic backups.</string>
-    <string name="settings_health_sync_paused_empty">Sync is paused. No health data is read, and no categories are selected. Previously imported records remain in Whip until you remove them through Whip’s data controls.</string>
+    <string name="settings_health_sync_paused_empty">Sync is paused. Select at least one category below before turning sync on. No health data is read. Existing local copies remain until you delete them through Whip’s data controls.</string>
     <string name="settings_health_sync_paused_saved">Sync is paused. No health data is read. Saved for next time: %1$s. Previously imported records remain in Whip until you remove them through Whip’s data controls.</string>
     <string name="settings_health_last_sync">Last sync: %1$s · %2$s</string>
     <plurals name="settings_health_imported_entries">

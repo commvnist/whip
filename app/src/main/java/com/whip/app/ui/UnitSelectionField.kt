@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -28,14 +29,32 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
+import com.whip.app.core.PersistenceRequestState
+import java.util.UUID
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
-internal typealias CreateCustomUnitAction = (
-    name: String,
-    symbol: String,
-    dimension: UnitDimension,
-    factor: Double,
-    onResult: (Result<String>) -> Unit,
-) -> Unit
+data class CreateCustomUnitAction(
+    val state: StateFlow<PersistenceRequestState<CustomUnitMutationReceipt>>,
+    val consume: (String) -> Unit,
+    val submit: (
+        requestId: String,
+        requestedId: String,
+        name: String,
+        symbol: String,
+        dimension: UnitDimension,
+        factor: Double,
+    ) -> Boolean,
+)
+
+private val unavailableCustomUnitCreationState =
+    MutableStateFlow<PersistenceRequestState<CustomUnitMutationReceipt>>(PersistenceRequestState.Idle)
+
+internal val UnavailableCreateCustomUnitAction = CreateCustomUnitAction(
+    state = unavailableCustomUnitCreationState,
+    consume = {},
+    submit = { _, _, _, _, _, _ -> false },
+)
 
 internal fun unitDefinitionDisplayLabel(unit: UnitDefinition): String =
     "${unit.name}${unit.symbol.takeIf(String::isNotBlank)?.let { " ($it)" }.orEmpty()}"
@@ -63,8 +82,22 @@ internal fun UnitSelectionField(
     val selected = available.firstOrNull { it.id == selectedUnitId } ?: available.firstOrNull()
     var expanded by rememberSaveable(label) { mutableStateOf(false) }
     var creating by rememberSaveable(label) { mutableStateOf(false) }
-    var saving by rememberSaveable(label) { mutableStateOf(false) }
-    var error by rememberSaveable(label) { mutableStateOf<String?>(null) }
+    var requestedUnitId by rememberSaveable(label) { mutableStateOf(UUID.randomUUID().toString()) }
+    var pendingDimension by rememberSaveable(label) { mutableStateOf(dimension) }
+    val creationState by onCreateUnit.state.collectAsStateWithLifecycle()
+    val creationCoordinator = rememberPersistenceRequestCoordinator(
+        state = creationState,
+        consume = onCreateUnit.consume,
+        key = requestedUnitId,
+        requestNamespace = "inline-custom-unit-$requestedUnitId",
+        onPersisted = { receipt ->
+            onDimensionSelect(pendingDimension)
+            onSelect(receipt.unitId)
+            creating = false
+            requestedUnitId = UUID.randomUUID().toString()
+        },
+        orphanedMessage = "The previous custom-unit save was interrupted. Your draft is still here; retrying with the same identity is safe.",
+    )
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium)
@@ -110,7 +143,12 @@ internal fun UnitSelectionField(
                             )
                         }
                     },
-                    onClick = { expanded = false; error = null; creating = true },
+                    onClick = {
+                        expanded = false
+                        creationCoordinator.clear()
+                        requestedUnitId = UUID.randomUUID().toString()
+                        creating = true
+                    },
                 )
             }
         }
@@ -127,21 +165,29 @@ internal fun UnitSelectionField(
             mode = CustomUnitEditMode.Create,
             initialDimension = dimension,
             dimensionLocked = !allowAnyDimension,
-            saving = saving,
-            error = error,
-            onDismiss = { if (!saving) creating = false },
+            saving = creationCoordinator.saving,
+            error = creationCoordinator.errorMessage,
+            onDismiss = {
+                if (!creationCoordinator.saving) {
+                    creating = false
+                    creationCoordinator.clear()
+                }
+            },
             onSave = { name, symbol, selectedDimension, factor ->
-                saving = true
-                error = null
-                onCreateUnit(name, symbol, selectedDimension, factor) { result ->
-                    saving = false
-                    result.onSuccess { id ->
-                        onDimensionSelect(selectedDimension)
-                        onSelect(id)
-                        creating = false
-                    }.onFailure { failure ->
-                        error = failure.message ?: "Could not create custom unit"
-                    }
+                pendingDimension = selectedDimension
+                val requestId = creationCoordinator.begin() ?: return@CustomUnitDialog
+                if (!onCreateUnit.submit(
+                        requestId,
+                        requestedUnitId,
+                        name,
+                        symbol,
+                        selectedDimension,
+                        factor,
+                    )
+                ) {
+                    creationCoordinator.finishFailure(
+                        "Another custom-unit change is still finishing. Review it and try again.",
+                    )
                 }
             },
         )

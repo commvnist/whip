@@ -22,7 +22,7 @@ class RestoreRecoveryManager(
         rebuildBackgroundState: suspend () -> Unit,
     ) {
         require(!recoveryFile.baseFile.exists()) { "A previous restore still needs recovery" }
-        val rollbackJson = backups.exportBackup()
+        val rollbackJson = backups.exportRecoveryBackup()
         writeRecovery(rollbackJson)
         try {
             // Anything that invalidates old external actions must happen only

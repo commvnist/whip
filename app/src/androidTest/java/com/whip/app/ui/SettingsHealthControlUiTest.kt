@@ -1,6 +1,7 @@
 package com.whip.app.ui
 
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -17,7 +18,7 @@ class SettingsHealthControlUiTest {
     val compose = createComposeRule()
 
     @Test
-    fun pausedHealthSyncShowsSavedCategorySelectionInsteadOfFalselyClearingIt() {
+    fun pausedHealthSyncKeepsSavedCategorySelectedAndEditable() {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 HealthDataTypeSetting(
@@ -25,6 +26,26 @@ class SettingsHealthControlUiTest {
                     syncEnabled = false,
                     selected = true,
                     accessGranted = false,
+                    onChange = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("health-type-Weight")
+            .assertIsOn()
+            .assertIsEnabled()
+    }
+
+    @Test
+    fun categoryControlIsDisabledOnlyWhileAHealthMutationIsRunning() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                HealthDataTypeSetting(
+                    type = HealthDataType.Weight,
+                    syncEnabled = false,
+                    selected = true,
+                    accessGranted = false,
+                    controlsEnabled = false,
                     onChange = {},
                 )
             }

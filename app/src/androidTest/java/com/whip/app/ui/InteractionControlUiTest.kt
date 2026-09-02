@@ -35,6 +35,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -61,6 +62,8 @@ import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackValueDraft
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
+import com.whip.app.core.PersistenceRequestState
+import com.whip.app.core.WhipResult
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.WhipTask
@@ -70,6 +73,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -1195,6 +1199,33 @@ class InteractionControlUiTest {
     fun unitChooserCreatesAndSelectsACustomUnitInContext() {
         var selectedUnitId by mutableStateOf("count")
         var units by mutableStateOf(BuiltInUnits.all)
+        val creationState = MutableStateFlow<PersistenceRequestState<CustomUnitMutationReceipt>>(
+            PersistenceRequestState.Idle,
+        )
+        val creationAction = CreateCustomUnitAction(
+            state = creationState,
+            consume = { requestId ->
+                if ((creationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+                    creationState.value = PersistenceRequestState.Idle
+                }
+            },
+            submit = { requestId, requestedId, name, symbol, dimension, factor ->
+                creationState.value = PersistenceRequestState.Running(requestId)
+                units = units + UnitDefinition(
+                    id = requestedId,
+                    name = name,
+                    symbol = symbol,
+                    dimension = dimension,
+                    toCanonicalFactor = factor,
+                    custom = true,
+                )
+                creationState.value = PersistenceRequestState.Finished(
+                    requestId,
+                    WhipResult.Success(CustomUnitMutationReceipt(requestedId)),
+                )
+                true
+            },
+        )
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 Box(Modifier.width(360.dp)) {
@@ -1203,18 +1234,7 @@ class InteractionControlUiTest {
                         selectedUnitId = selectedUnitId,
                         dimension = UnitDimension.Count,
                         onSelect = { selectedUnitId = it },
-                        onCreateUnit = { name, symbol, dimension, factor, onResult ->
-                            val id = "custom-$name"
-                            units = units + UnitDefinition(
-                                id = id,
-                                name = name,
-                                symbol = symbol,
-                                dimension = dimension,
-                                toCanonicalFactor = factor,
-                                custom = true,
-                            )
-                            onResult(Result.success(id))
-                        },
+                        onCreateUnit = creationAction,
                     )
                 }
             }
@@ -1229,7 +1249,72 @@ class InteractionControlUiTest {
         compose.onNodeWithTag("custom-unit-factor").performTextReplacement("1")
         compose.onNodeWithTag("custom-unit-confirm").performClick()
 
-        assertEquals("custom-session", selectedUnitId)
+        compose.waitUntil { selectedUnitId !in BuiltInUnits.all.map(UnitDefinition::id) }
+        assertTrue(selectedUnitId !in BuiltInUnits.all.map(UnitDefinition::id))
+        compose.onNodeWithContentDescription("Unit: session (sess)").assertIsDisplayed()
+    }
+
+    @Test
+    fun unitChooserAdoptsAnExactSaveReceiptAfterActivityRecreation() {
+        var selectedUnitId by mutableStateOf("count")
+        var units by mutableStateOf(BuiltInUnits.all)
+        val creationState = MutableStateFlow<PersistenceRequestState<CustomUnitMutationReceipt>>(
+            PersistenceRequestState.Idle,
+        )
+        var submittedRequestId: String? = null
+        var submittedUnitId: String? = null
+        var submittedUnit: UnitDefinition? = null
+        val action = CreateCustomUnitAction(
+            state = creationState,
+            consume = { requestId ->
+                if ((creationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+                    creationState.value = PersistenceRequestState.Idle
+                }
+            },
+            submit = { requestId, unitId, name, symbol, dimension, factor ->
+                submittedRequestId = requestId
+                submittedUnitId = unitId
+                submittedUnit = UnitDefinition(unitId, name, symbol, dimension, factor, custom = true)
+                creationState.value = PersistenceRequestState.Running(requestId)
+                true
+            },
+        )
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                Box(Modifier.width(360.dp)) {
+                    UnitSelectionField(
+                        units = units,
+                        selectedUnitId = selectedUnitId,
+                        dimension = UnitDimension.Count,
+                        onSelect = { selectedUnitId = it },
+                        onCreateUnit = action,
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithContentDescription("Unit: count").performClick()
+        compose.onNodeWithText("Create Custom Unit…").performClick()
+        compose.onNodeWithTag("custom-unit-name").performTextReplacement("session")
+        compose.onNodeWithTag("custom-unit-symbol").performTextReplacement("sess")
+        compose.onNodeWithTag("custom-unit-factor").performTextReplacement("1")
+        compose.onNodeWithTag("custom-unit-confirm").performClick()
+        compose.runOnIdle {
+            assertTrue(submittedRequestId != null)
+            assertTrue(submittedUnitId != null)
+        }
+
+        restoration.emulateSavedInstanceStateRestore()
+        compose.runOnIdle {
+            units = units + checkNotNull(submittedUnit)
+            creationState.value = PersistenceRequestState.Finished(
+                checkNotNull(submittedRequestId),
+                WhipResult.Success(CustomUnitMutationReceipt(checkNotNull(submittedUnitId))),
+            )
+        }
+
+        compose.waitUntil { selectedUnitId == submittedUnitId }
         compose.onNodeWithContentDescription("Unit: session (sess)").assertIsDisplayed()
     }
 

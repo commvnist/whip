@@ -15,6 +15,7 @@ import androidx.work.testing.TestListenableWorkerBuilder
 import com.whip.app.data.PortableBackupWorker
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.ExerciseDraft
 import com.whip.app.reminders.ReminderActionReceiver
 import com.whip.app.reminders.FocusTimerScheduler
 import com.whip.app.startup.StartupRecoveryState
@@ -28,9 +29,13 @@ import com.whip.app.core.OperationStatus
 import com.whip.app.ui.TaskViewModel
 import java.io.File
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -38,6 +43,38 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class RecoveryBoundaryIntegrationTest {
+    @Test
+    fun resetAllDrainsAnAdmittedGymMutationThenDeletesItAndInvalidatesOldOwnership() = runBlocking {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        app.backupRepository.deleteAllData()
+        val initialGeneration = app.currentUserDataGeneration()
+        val mutationAdmitted = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val releaseMutation = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val mutation = async {
+            checkNotNull(app.withUserDataAccess {
+                mutationAdmitted.complete(Unit)
+                releaseMutation.await()
+                app.gymRepository.createExercise(ExerciseDraft("Must be removed by reset"))
+            })
+        }
+        mutationAdmitted.await()
+
+        val reset = async { app.resetAllData() }
+        withTimeout(5_000) {
+            while (app.startupRecoveryState.value != StartupRecoveryState.Checking) yield()
+        }
+        assertFalse(reset.isCompleted)
+        assertNull(app.withUserDataAccess { "late mutation" })
+
+        releaseMutation.complete(Unit)
+        mutation.await()
+        withTimeout(15_000) { reset.await() }
+
+        assertTrue(app.gymRepository.exercises.first().isEmpty())
+        assertEquals(initialGeneration + 1L, app.currentUserDataGeneration())
+        assertEquals(StartupRecoveryState.Ready, app.startupRecoveryState.value)
+    }
+
     @Test
     fun blockedRecoveryPreventsWorkerNotificationAndWidgetDataAccess() = runBlocking {
         val app = ApplicationProvider.getApplicationContext<WhipApplication>()

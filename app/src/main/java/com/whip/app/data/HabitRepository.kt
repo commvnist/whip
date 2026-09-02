@@ -88,6 +88,7 @@ interface HabitRepository {
     suspend fun toggleChecklistItem(habitId: Long, itemId: Long, date: LocalDate, completed: Boolean)
     suspend fun startTimer(habitId: Long)
     suspend fun stopTimer(habitId: Long, date: LocalDate? = null): Long
+    suspend fun repairLegacyGeneratedCanonicalValues(): Int
 }
 
 class RoomHabitRepository(
@@ -107,6 +108,9 @@ class RoomHabitRepository(
     override val skips = dao.observeSkips().map { it.map(HabitSkipEntity::toDomain) }
 
     override suspend fun get(id: Long): Habit? = dao.getHabit(id)?.toDomain()
+
+    override suspend fun repairLegacyGeneratedCanonicalValues(): Int =
+        dao.repairLegacyGeneratedCanonicalValues(clock.now().toEpochMilli())
 
     override suspend fun create(draft: HabitDraft): Long = database.withTransaction {
         validateHabit(draft)

@@ -36,6 +36,7 @@ import com.whip.app.domain.TrackFieldDraft
 import com.whip.app.domain.TrackFieldRemovalImpact
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.ui.LocalWhipDialogPlacement
+import com.whip.app.ui.UnavailableCreateCustomUnitAction
 import com.whip.app.ui.TrackDefinitionReviewUiState
 import com.whip.app.ui.TrackEditor
 import com.whip.app.ui.TrackEntryUnavailableRoute
@@ -113,7 +114,7 @@ class TrackDefinitionMutationUiTest {
                         sessionId = 4,
                         onDismiss = {},
                         onCreateArea = { _, _, _ -> },
-                        onCreateCustomUnit = { _, _, _, _, _ -> },
+                        onCreateCustomUnit = UnavailableCreateCustomUnitAction,
                         onRetryPreparation = {},
                         onReview = { _, _, _ -> },
                         onSave = { _, _, _ -> },
@@ -156,7 +157,7 @@ class TrackDefinitionMutationUiTest {
                     modifier = Modifier,
                     onDismiss = { dismissed++ },
                     onCreateArea = { _, _, _ -> },
-                    onCreateCustomUnit = { _, _, _, _, _ -> },
+                    onCreateCustomUnit = UnavailableCreateCustomUnitAction,
                     onRetryPreparation = {},
                     onReview = { _, _, _ -> },
                     onSave = { _, _, _ -> },
@@ -212,7 +213,7 @@ class TrackDefinitionMutationUiTest {
                     sessionId = 21,
                     onDismiss = {},
                     onCreateArea = { _, _, _ -> },
-                    onCreateCustomUnit = { _, _, _, _, _ -> },
+                    onCreateCustomUnit = UnavailableCreateCustomUnitAction,
                     onRetryPreparation = {},
                     onReview = { _, _, _ -> },
                     onSave = { _, _, _ -> },
@@ -305,7 +306,7 @@ class TrackDefinitionMutationUiTest {
                     sessionId = 31,
                     onDismiss = {},
                     onCreateArea = { _, _, _ -> },
-                    onCreateCustomUnit = { _, _, _, _, _ -> },
+                    onCreateCustomUnit = UnavailableCreateCustomUnitAction,
                     onRetryPreparation = {},
                     onReview = { _, _, _ -> },
                     onSave = { _, _, _ -> },

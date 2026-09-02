@@ -3,6 +3,7 @@ package com.whip.app.domain
 import java.io.Serializable
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 
 enum class MetricValueKind {
     Boolean,
@@ -69,6 +70,43 @@ data class UnitDefinition(
     fun fromCanonical(value: Double): Double = value / toCanonicalFactor - toCanonicalOffset
 }
 
+data class CustomUnitBoundary(
+    val id: String,
+    val name: String,
+    val symbol: String,
+    val dimension: UnitDimension,
+    val toCanonicalFactor: Double,
+    val toCanonicalOffset: Double,
+    val archived: Boolean,
+    val createdAtMillis: Long,
+    val updatedAtMillis: Long,
+) : Serializable
+
+fun UnitDefinition.customUnitBoundary() = CustomUnitBoundary(
+    id = id,
+    name = name,
+    symbol = symbol,
+    dimension = dimension,
+    toCanonicalFactor = toCanonicalFactor,
+    toCanonicalOffset = toCanonicalOffset,
+    archived = archived,
+    createdAtMillis = createdAtMillis,
+    updatedAtMillis = updatedAtMillis,
+)
+
+fun CustomUnitBoundary.toUnitDefinition() = UnitDefinition(
+    id = id,
+    name = name,
+    symbol = symbol,
+    dimension = dimension,
+    toCanonicalFactor = toCanonicalFactor,
+    toCanonicalOffset = toCanonicalOffset,
+    custom = true,
+    archived = archived,
+    createdAtMillis = createdAtMillis,
+    updatedAtMillis = updatedAtMillis,
+)
+
 data class MetricDefinition(
     val id: String,
     val name: String,
@@ -99,6 +137,36 @@ data class MetricEntry(
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
 ) : Serializable
+
+/** One provider-owned fact prepared for an exact Health Connect source-window commit. */
+data class HealthSourceRecord(
+    val providerRecordId: String,
+    val value: Double,
+    val unitId: String,
+    val timestamp: Instant,
+    /** Provider-authored offset at [timestamp]; null only when the provider omitted it. */
+    val zoneOffsetSeconds: Int? = null,
+    val localDate: LocalDate? = null,
+    val note: String = "Imported from Health Connect",
+)
+
+data class HealthMetricContract(
+    val id: String,
+    val name: String,
+    val valueKind: MetricValueKind,
+    val dimension: UnitDimension,
+    val defaultUnitId: String,
+    val precision: Int,
+)
+
+data class HealthSourceWindow(
+    val metric: HealthMetricContract,
+    val sourcePrefix: String,
+    val startInclusive: Instant,
+    val endExclusive: Instant,
+    val zoneId: ZoneId,
+    val records: List<HealthSourceRecord>,
+)
 
 data class Area(
     val id: String,

@@ -87,6 +87,26 @@ class RestoreRecoveryManagerTest {
     }
 
     @Test
+    fun rollbackUsesThePrivateRecoverySnapshotRatherThanThePortableExport() = runBlocking {
+        val repository = FakeBackupRepository("portable-old").apply {
+            recoverySnapshotOverride = "private-old-with-local-journal"
+        }
+        val manager = manager(repository)
+        var rebuilds = 0
+
+        val result = runCatching {
+            manager.restore("target") {
+                rebuilds++
+                if (rebuilds == 1) error("force rollback")
+            }
+        }
+
+        assertTrue(result.isFailure)
+        assertEquals("private-old-with-local-journal", repository.state)
+        assertFalse(manager.hasPendingRecovery())
+    }
+
+    @Test
     fun failedRollbackLeavesMarkerAndNextLaunchRecoversOldState() = runBlocking {
         val repository = FakeBackupRepository("old")
         val fileName = "restore-test-${UUID.randomUUID()}.json"
@@ -169,8 +189,10 @@ class RestoreRecoveryManagerTest {
         var failRestoreValue: String? = null
         var failAfterApplyingValue: String? = null
         var previewChecksumValid = true
+        var recoverySnapshotOverride: String? = null
 
         override suspend fun exportBackup() = state
+        override suspend fun exportRecoveryBackup() = recoverySnapshotOverride ?: state
         override suspend fun previewBackup(json: String) = BackupPreview(
             envelopeVersion = 2,
             databaseVersion = 21,

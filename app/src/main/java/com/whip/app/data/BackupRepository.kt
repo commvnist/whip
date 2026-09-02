@@ -22,6 +22,7 @@ import com.whip.app.core.SystemWhipClock
 import com.whip.app.core.UuidWhipIdGenerator
 import com.whip.app.core.DEFAULT_REST_TIMER_PRESET_SECONDS
 import com.whip.app.core.normalizeRestTimerPresets
+import com.whip.app.core.normalized
 import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskEffort
@@ -32,6 +33,11 @@ import com.whip.app.domain.DEFAULT_HABIT_EMOJI
 import com.whip.app.domain.DEFAULT_TASK_EMOJI
 import com.whip.app.domain.DEFAULT_TRACK_EMOJI
 import com.whip.app.domain.normalizedIdentityEmoji
+import com.whip.app.domain.BuiltInUnits
+import com.whip.app.domain.LoadInterpretation
+import com.whip.app.domain.MachineStackMode
+import com.whip.app.domain.UnitDimension
+import com.whip.app.domain.canonicalResistanceKg
 import java.security.MessageDigest
 import java.time.DayOfWeek
 import java.time.Instant
@@ -59,6 +65,8 @@ data class BackupMergeSummary(
 
 interface BackupRepository {
     suspend fun exportBackup(): String
+    /** App-private rollback snapshot; may include local recovery journals omitted from portable exports. */
+    suspend fun exportRecoveryBackup(): String = exportBackup()
     suspend fun previewBackup(json: String): BackupPreview
     suspend fun restoreBackup(json: String)
     suspend fun mergeBackup(json: String): BackupMergeSummary
@@ -75,7 +83,11 @@ class RoomBackupRepository(
     private val settingsRepository: SettingsRepository? = null,
     private val areaRepository: AreaRepository? = null,
 ) : BackupRepository {
-    override suspend fun exportBackup(): String = database.withTransaction {
+    override suspend fun exportBackup(): String = exportBackup(includeLocalRecoveryState = false)
+
+    override suspend fun exportRecoveryBackup(): String = exportBackup(includeLocalRecoveryState = true)
+
+    private suspend fun exportBackup(includeLocalRecoveryState: Boolean): String = database.withTransaction {
         val db = database.openHelper.readableDatabase
         val tables = JSONObject()
         EXPORT_TABLES.forEach { table ->
@@ -86,7 +98,7 @@ class RoomBackupRepository(
             tables.put(table, rows)
         }
         retireAutomationBackupRows(tables)
-        val settings = settingsRepository?.current()?.toJson()
+        val settings = settingsRepository?.current()?.toJson(includeLocalRecoveryState)
         val payload = checksumPayload(tables, settings)
         JSONObject()
             .put("format", BACKUP_FORMAT)
@@ -104,7 +116,10 @@ class RoomBackupRepository(
         val tables = root.getJSONObject("tables")
         val settings = root.optJSONObject("settings")
         val checksumValid = root.getString("checksumSha256") == sha256(checksumPayload(tables, settings))
-        if (checksumValid) upgradeBackupTables(root.getInt("databaseVersion"), tables)
+        if (checksumValid) {
+            upgradeBackupTables(root.getInt("databaseVersion"), tables)
+            validateBackupUnitDefinitions(tables)
+        }
         val counts = EXPORT_TABLES.associateWith { table -> tables.optJSONArray(table)?.length() ?: 0 }
         var duplicates = 0
         val db = database.openHelper.readableDatabase
@@ -152,6 +167,7 @@ class RoomBackupRepository(
             ),
         ) { "Backup checksum does not match" }
         upgradeBackupTables(root.getInt("databaseVersion"), tables)
+        validateBackupUnitDefinitions(tables)
         database.withTransaction {
             val db = database.openHelper.writableDatabase
             EXPORT_TABLES.asReversed().forEach { table -> db.execSQL("DELETE FROM ${safeIdentifier(table)}") }
@@ -167,7 +183,13 @@ class RoomBackupRepository(
                 }
             }
         }
-        settings?.let { restored -> settingsRepository?.update { restored.toAppSettings() } }
+        settings?.let { restored ->
+            settingsRepository?.let { repository ->
+                check(repository.updateAndConfirm { restored.toAppSettings() }) {
+                    "Local storage did not confirm the restored settings. Whip will roll back this restore."
+                }
+            }
+        }
         areaRepository?.ensureDefaultArea()
         RoomTrackRepository(database, SystemWhipClock, UuidWhipIdGenerator).rebuildSearchIndex()
     }
@@ -182,6 +204,7 @@ class RoomBackupRepository(
             ),
         ) { "Backup checksum does not match" }
         upgradeBackupTables(root.getInt("databaseVersion"), tables)
+        validateBackupUnitDefinitions(tables)
         val summary = database.withTransaction {
             val db = database.openHelper.writableDatabase
             val idMaps = mutableMapOf<String, MutableMap<Long, Long>>()
@@ -220,6 +243,9 @@ class RoomBackupRepository(
                         }
                     }
                     if (existing != null) {
+                        if (table == "unit_definitions") {
+                            requireMatchingLiveUnitContract(db, row)
+                        }
                         existing.numericId?.let { target -> sourceNumericId?.let { source -> idMaps.getOrPut(table, ::mutableMapOf)[source] = target } }
                         skipped++
                         continue
@@ -305,9 +331,13 @@ class RoomBackupRepository(
     )
 
     override suspend fun deleteAllData() {
+        settingsRepository?.let { repository ->
+            check(repository.updateAndConfirm { AppSettings() }) {
+                "Local storage did not confirm reset settings; no Whip records were deleted."
+            }
+        }
         database.clearAllTables()
         areaRepository?.ensureDefaultArea()
-        settingsRepository?.update { AppSettings() }
     }
 
     private suspend fun queryCsv(sql: String): String = database.withTransaction {
@@ -373,6 +403,454 @@ class RoomBackupRepository(
             }
         }
         return root
+    }
+
+    /**
+     * A checksum proves that a backup was not changed after export; it does not
+     * prove that the contained domain values are safe. Validate custom units
+     * before any live table is deleted or merged so malformed conversions can
+     * never become latent crashes or corrupt later history.
+     */
+    private fun validateBackupUnitDefinitions(tables: JSONObject) {
+        val rows = tables.getJSONArray("unit_definitions")
+        val validDimensions = UnitDimension.entries.mapTo(mutableSetOf(), UnitDimension::name)
+        for (index in 0 until rows.length()) {
+            val row = rows.getJSONObject(index)
+            val id = row.optString("id")
+            val name = row.optString("name")
+            val dimension = row.optString("dimension")
+            val factor = runCatching { row.getDouble("toCanonicalFactor") }
+                .getOrElse { error("Backup custom unit ${index + 1} has no valid conversion factor") }
+            val offset = runCatching { row.getDouble("toCanonicalOffset") }
+                .getOrElse { error("Backup custom unit ${index + 1} has no valid conversion offset") }
+
+            require(id.isNotBlank() && id.length <= 512) { "Backup custom unit ${index + 1} has an invalid identity" }
+            require(BuiltInUnits.get(id) == null) { "Backup custom unit '$id' conflicts with a built-in unit" }
+            // Existing releases did not cap custom-unit labels. Preserve those
+            // historical definitions even though current creation UI applies
+            // tighter limits to new names and symbols.
+            require(name.isNotBlank()) {
+                "Backup custom unit '$id' has an invalid name"
+            }
+            require(dimension in validDimensions) { "Backup custom unit '$id' has an unknown measurement type" }
+            require(factor.isFinite() && factor > 0.0) { "Backup custom unit '$id' has an invalid conversion factor" }
+            require(offset.isFinite()) { "Backup custom unit '$id' has an invalid conversion offset" }
+            require(row.optInt("custom", 0) == 1 || row.optBoolean("custom", false)) {
+                "Backup unit '$id' is not a valid custom unit"
+            }
+        }
+        validateBackupUnitReferencesAndCanonicalValues(tables)
+    }
+
+    private data class BackupUnitContract(
+        val dimension: String,
+        val factor: Double,
+        val offset: Double,
+    ) {
+        fun toCanonical(value: Double): Double = (value + offset) * factor
+    }
+
+    private fun validateBackupUnitReferencesAndCanonicalValues(tables: JSONObject) {
+        val builtInUnits = BuiltInUnits.all.associate { unit ->
+            unit.id to BackupUnitContract(unit.dimension.name, unit.toCanonicalFactor, unit.toCanonicalOffset)
+        }
+        val units = builtInUnits.toMutableMap()
+        tables.getJSONArray("unit_definitions").forEachObject { row ->
+            units[row.getString("id")] = BackupUnitContract(
+                row.getString("dimension"),
+                row.getDouble("toCanonicalFactor"),
+                row.getDouble("toCanonicalOffset"),
+            )
+        }
+
+        val metricDimensions = mutableMapOf<String, String>()
+        tables.getJSONArray("metric_definitions").forEachObject { row ->
+            val dimension = row.getString("dimension")
+            metricDimensions[row.getString("id")] = dimension
+            requireCompatibleBackupUnit(units, row.getString("defaultUnitId"), dimension, "metric definition")
+        }
+        val metricEntryRows = tables.getJSONArray("metric_entries").objects().associateBy { it.getString("id") }
+        tables.getJSONArray("metric_entries").forEachObject { row ->
+            val enteredValue = row.nullableDouble("enteredValue")
+            val enteredUnitId = row.nonBlankString("enteredUnitId")
+            require((enteredValue == null) == (enteredUnitId == null)) {
+                "Backup metric history has inconsistent value and unit data"
+            }
+            if (enteredUnitId == null) {
+                require(row.nullableDouble("canonicalValue") == null) {
+                    "Backup metric history has canonical data without an entered value"
+                }
+                return@forEachObject
+            }
+            val dimension = metricDimensions[row.getString("metricId")]
+                ?: error("Backup metric entry references a missing metric definition")
+            val unit = requireCompatibleBackupUnit(units, enteredUnitId, dimension, "metric history")
+            validateCanonicalPair(row, "enteredValue", "canonicalValue", unit, "metric history")
+        }
+
+        tables.getJSONArray("habits").forEachObject { row ->
+            requireCompatibleBackupUnit(units, row.getString("unitId"), row.getString("dimension"), "Habit")
+        }
+        val habitDimensions = tables.getJSONArray("habits").objects().associate { row ->
+            row.getLong("id") to row.getString("dimension")
+        }
+        val habitMetricIds = tables.getJSONArray("habits").objects().associate { row ->
+            row.getLong("id") to row.getString("metricId")
+        }
+        tables.getJSONArray("habit_logs").forEachObject { row ->
+            val value = row.nullableDouble("value")
+            val unitId = row.nonBlankString("enteredUnitId")
+            require((value == null) == (unitId == null)) {
+                "Backup Habit history has inconsistent value and unit data"
+            }
+            if (unitId == null) {
+                require(row.nullableDouble("canonicalValue") == null) {
+                    "Backup Habit history has canonical data without an entered value"
+                }
+                return@forEachObject
+            }
+            val dimension = habitDimensions[row.getLong("habitId")]
+                ?: error("Backup Habit history references a missing Habit")
+            val unit = requireCompatibleBackupUnit(units, unitId, dimension, "Habit history")
+            repairLegacyGeneratedHabitCanonical(row, habitMetricIds, metricEntryRows)
+            validateCanonicalPair(row, "value", "canonicalValue", unit, "Habit history")
+        }
+        tables.getJSONArray("goals").forEachObject { row ->
+            requireCompatibleBackupUnit(units, row.getString("unitId"), row.getString("dimension"), "Goal")
+        }
+
+        val trackFieldDimensions = mutableMapOf<Long, String>()
+        tables.getJSONArray("track_fields").forEachObject { row ->
+            val unitId = row.nullableString("unitId") ?: return@forEachObject
+            val dimension = row.nullableString("dimension")
+                ?: error("Backup Track Field with a unit has no measurement type")
+            trackFieldDimensions[row.getLong("id")] = dimension
+            requireCompatibleBackupUnit(units, unitId, dimension, "Track Field")
+        }
+        tables.getJSONArray("track_values").forEachObject { row ->
+            val entered = row.nullableDouble("enteredNumber")
+            val unitId = row.nonBlankString("enteredUnitId")
+            require((entered == null) == (unitId == null)) {
+                "Backup Track history has inconsistent value and unit data"
+            }
+            if (unitId == null) {
+                require(row.nullableDouble("canonicalNumber") == null) {
+                    "Backup Track history has canonical data without an entered value"
+                }
+                return@forEachObject
+            }
+            val dimension = trackFieldDimensions[row.getLong("fieldId")]
+                ?: error("Backup Track value references a Field without a compatible unit")
+            val unit = requireCompatibleBackupUnit(units, unitId, dimension, "Track history")
+            validateCanonicalPair(row, "enteredNumber", "canonicalNumber", unit, "Track history")
+        }
+
+        val mass = UnitDimension.Mass.name
+        val distance = UnitDimension.Distance.name
+        tables.getJSONArray("exercises").forEachObject { row ->
+            requireCompatibleBackupUnit(builtInUnits, row.getString("weightUnitId"), mass, "Exercise")
+        }
+        tables.getJSONArray("gym_machines").forEachObject { row ->
+            if (row.optString("loadType") == "Mass") {
+                val unitId = row.nonBlankString("unitId")
+                    ?: error("Backup Gym Machine has no mass unit")
+                requireCompatibleBackupUnit(builtInUnits, unitId, mass, "Gym Machine")
+            } else {
+                row.requireOptionalBackupUnit(builtInUnits, "unitId", mass, "Gym Machine")
+            }
+        }
+        val routinePlacements = mutableMapOf<Long, JSONObject>()
+        tables.getJSONArray("routine_exercises").forEachObject { row ->
+            routinePlacements[row.getLong("id")] = row
+            row.requireOptionalBackupUnit(builtInUnits, "machineUnitIdSnapshot", mass, "Routine machine snapshot")
+            if (row.optString("machineLoadTypeSnapshot") == "Mass") {
+                require(row.nonBlankString("machineUnitIdSnapshot") != null) {
+                    "Backup Routine mass-machine snapshot has no unit"
+                }
+            }
+            row.requireBackupUnitForValues(
+                builtInUnits, "trainingMaxUnitId", mass, "Routine Training Max", "trainingMaxValue",
+            )
+            row.requireBackupUnitForValues(
+                builtInUnits, "trainingMaxBasisUnitId", mass, "Routine Training Max basis", "trainingMaxBasisValue",
+            )
+            row.nonBlankString("trainingMaxUnitId")?.let { unitId ->
+                validateCanonicalPair(
+                    row, "trainingMaxValue", "trainingMaxKg",
+                    builtInUnits.getValue(unitId), "Routine Training Max",
+                )
+            }
+        }
+        tables.getJSONArray("routine_sets").forEachObject { row ->
+            row.requireBackupUnitForValues(
+                builtInUnits, "enteredWeightUnitId", mass, "Routine weight", "enteredWeight",
+            )
+            row.requireBackupUnitForValues(
+                builtInUnits, "enteredDistanceUnitId", distance, "Routine distance", "enteredDistance",
+            )
+            validateMachineBoundWeightUnit(
+                row,
+                routinePlacements[row.getLong("routineExerciseId")]
+                    ?: error("Backup Routine Set references a missing Exercise placement"),
+                "enteredWeight",
+                "enteredWeightUnitId",
+                "Routine weight",
+            )
+        }
+        val workoutPlacements = mutableMapOf<Long, JSONObject>()
+        tables.getJSONArray("workout_exercises").forEachObject { row ->
+            workoutPlacements[row.getLong("id")] = row
+            row.requireOptionalBackupUnit(builtInUnits, "machineUnitIdSnapshot", mass, "Workout machine snapshot")
+            if (row.optString("machineLoadTypeSnapshot") == "Mass") {
+                require(row.nonBlankString("machineUnitIdSnapshot") != null) {
+                    "Backup Workout mass-machine snapshot has no unit"
+                }
+            }
+            row.requireOptionalBackupUnit(builtInUnits, "exerciseWeightUnitSnapshot", mass, "Workout Exercise snapshot")
+            row.requireBackupUnitForValues(
+                builtInUnits, "trainingMaxUnitIdSnapshot", mass, "Workout Training Max snapshot",
+                "trainingMaxValueSnapshot",
+            )
+            row.nonBlankString("trainingMaxUnitIdSnapshot")?.let { unitId ->
+                validateCanonicalPair(
+                    row, "trainingMaxValueSnapshot", "trainingMaxKgSnapshot",
+                    builtInUnits.getValue(unitId), "Workout Training Max snapshot",
+                )
+            }
+        }
+        tables.getJSONArray("workout_sets").forEachObject { row ->
+            row.requireBackupUnitForValues(
+                builtInUnits, "enteredWeightUnitId", mass, "Workout weight history", "enteredWeight",
+            )
+            row.requireBackupUnitForValues(
+                builtInUnits, "prescribedWeightUnitId", mass, "Workout prescribed weight", "prescribedEnteredWeight",
+            )
+            row.requireBackupUnitForValues(
+                builtInUnits, "enteredDistanceUnitId", distance, "Workout distance history", "enteredDistance",
+            )
+            row.nonBlankString("enteredDistanceUnitId")?.let { unitId ->
+                validateCanonicalPair(
+                    row, "enteredDistance", "canonicalDistanceMetres",
+                    builtInUnits.getValue(unitId), "Workout distance history",
+                )
+            }
+            val placement = workoutPlacements[row.getLong("workoutExerciseId")]
+                ?: error("Backup Workout Set references a missing Exercise placement")
+            validateMachineBoundWeightUnit(
+                row, placement, "enteredWeight", "enteredWeightUnitId", "Workout weight history",
+            )
+            validateMachineBoundWeightUnit(
+                row, placement, "prescribedEnteredWeight", "prescribedWeightUnitId", "Workout prescribed weight",
+            )
+            validateWorkoutResistancePair(
+                row = row,
+                placement = placement,
+                enteredKey = "enteredWeight",
+                unitKey = "enteredWeightUnitId",
+                canonicalKey = "canonicalWeightKg",
+                machineSettingKey = "machineLoadValue",
+                label = "Workout weight history",
+            )
+            validateWorkoutResistancePair(
+                row = row,
+                placement = placement,
+                enteredKey = "prescribedEnteredWeight",
+                unitKey = "prescribedWeightUnitId",
+                canonicalKey = "prescribedCanonicalWeightKg",
+                machineSettingKey = "prescribedMachineLoadValue",
+                label = "Workout prescribed weight",
+            )
+        }
+        tables.getJSONArray("training_max_decisions").forEachObject { row ->
+            requireCompatibleBackupUnit(builtInUnits, row.getString("unitId"), mass, "Training Max decision")
+        }
+        tables.getJSONArray("personal_records").forEachObject { row ->
+            val expectedUnitId = when (row.getString("type")) {
+                "MaxWeight", "BestWeightForRepCount", "EstimatedOneRepMax",
+                "SetVolume", "ExerciseWorkoutVolume" -> "kilogram"
+                "MaxRepetitions", "MaxRepetitionsForWeight" -> "count"
+                "MaxDistance" -> "distance_m"
+                "MaxDuration" -> "second"
+                "MaxSpeed" -> "distance_m/second"
+                "MinPace" -> "second/kilometre"
+                // Machine setting units are immutable user-authored labels,
+                // not measurement conversion identities.
+                "MaxMachineSetting" -> null
+                else -> error("Backup Personal Record has an unknown type")
+            }
+            if (expectedUnitId != null) {
+                require(row.getString("unitId") == expectedUnitId) {
+                    "Backup Personal Record does not use its canonical unit"
+                }
+            }
+        }
+
+        tables.getJSONArray("trigger_field_mappings").forEachObject { row ->
+            val unitId = row.nonBlankString("constantUnitId") ?: return@forEachObject
+            val dimension = trackFieldDimensions[row.getLong("targetFieldId")]
+                ?: error("Backup automation constant references a Field without a compatible unit")
+            requireCompatibleBackupUnit(units, unitId, dimension, "automation constant")
+        }
+    }
+
+    private fun JSONObject.requireOptionalBackupUnit(
+        units: Map<String, BackupUnitContract>,
+        key: String,
+        dimension: String,
+        label: String,
+    ) {
+        val unitId = nonBlankString(key) ?: return
+        requireCompatibleBackupUnit(units, unitId, dimension, label)
+    }
+
+    private fun repairLegacyGeneratedHabitCanonical(
+        row: JSONObject,
+        habitMetricIds: Map<Long, String>,
+        metricEntryRows: Map<String, JSONObject>,
+    ) {
+        val sourceId = row.nonBlankString("sourceId") ?: return
+        if (!sourceId.startsWith("trigger:")) return
+        val entry = row.nonBlankString("metricEntryId")?.let(metricEntryRows::get) ?: return
+        val sameContract = entry.optString("metricId") == habitMetricIds[row.getLong("habitId")] &&
+            entry.nonBlankString("enteredUnitId") == row.nonBlankString("enteredUnitId") &&
+            entry.nullableDouble("enteredValue") == row.nullableDouble("value") &&
+            entry.optString("sourceType") == row.optString("sourceType") &&
+            entry.nonBlankString("sourceId") == sourceId
+        if (sameContract) {
+            row.put("canonicalValue", entry.nullableDouble("canonicalValue") ?: JSONObject.NULL)
+        }
+    }
+
+    private fun JSONObject.requireBackupUnitForValues(
+        units: Map<String, BackupUnitContract>,
+        key: String,
+        dimension: String,
+        label: String,
+        vararg valueKeys: String,
+    ) {
+        val hasValue = valueKeys.any { valueKey ->
+            has(valueKey) && !isNull(valueKey) && when (val value = opt(valueKey)) {
+                is String -> value.isNotBlank()
+                null -> false
+                else -> true
+            }
+        }
+        val unitId = nonBlankString(key)
+        require(!hasValue || unitId != null) { "Backup $label has a value without a unit" }
+        unitId?.let { requireCompatibleBackupUnit(units, it, dimension, label) }
+    }
+
+    private fun validateWorkoutResistancePair(
+        row: JSONObject,
+        placement: JSONObject,
+        enteredKey: String,
+        unitKey: String,
+        canonicalKey: String,
+        machineSettingKey: String,
+        label: String,
+    ) {
+        val entered = row.nullableDouble(enteredKey)
+        val unitId = row.nonBlankString(unitKey)
+        val machineType = placement.optString("machineLoadTypeSnapshot")
+        val machineSetting = row.nullableDouble(machineSettingKey).takeIf { machineType == "Level" }
+        if (entered == null && machineSetting == null && row.nullableDouble(canonicalKey) == null) return
+        val expected = canonicalResistanceKg(
+            enteredValue = entered,
+            enteredUnitId = unitId,
+            machineSetting = machineSetting,
+            interpretation = runCatching {
+                LoadInterpretation.valueOf(placement.optString("loadInterpretationSnapshot", "Total"))
+            }.getOrDefault(LoadInterpretation.Total),
+            baseLoadKg = placement.nullableDouble("baseLoadKgSnapshot"),
+            addOnPlateKg = placement.nullableDouble("machineAddOnPlateKgSnapshot"),
+            massMappingKg = placement.optString("machineMassMappingCsvSnapshot").parseStableMappingCsv(),
+            stackMode = runCatching {
+                MachineStackMode.valueOf(placement.optString("machineStackModeSnapshot", "Single"))
+            }.getOrDefault(MachineStackMode.Single),
+            pulleyRatio = placement.optDouble("machinePulleyRatioSnapshot", 1.0),
+            unilateral = row.optInt("unilateral", 0) != 0,
+        )
+        val stored = row.nullableDouble(canonicalKey)
+        require(stored == null || stored.isFinite()) { "Backup $label contains a non-finite canonical value" }
+        require(expected == null || expected.isFinite()) { "Backup $label overflows its conversion" }
+        require((expected == null) == (stored == null)) { "Backup $label has inconsistent canonical data" }
+        if (expected != null && stored != null) requireApproximatelyEqual(expected, stored, label)
+    }
+
+    private fun validateMachineBoundWeightUnit(
+        row: JSONObject,
+        placement: JSONObject,
+        enteredKey: String,
+        unitKey: String,
+        label: String,
+    ) {
+        val entered = row.nullableDouble(enteredKey)
+        val unitId = row.nonBlankString(unitKey)
+        when (placement.optString("machineLoadTypeSnapshot")) {
+            "Mass" -> if (entered != null) {
+                require(unitId == placement.nonBlankString("machineUnitIdSnapshot")) {
+                    "Backup $label does not match its mass-machine unit snapshot"
+                }
+            }
+            "Level" -> require(entered == null && unitId == null) {
+                "Backup $label stores weight for an ordinal machine"
+            }
+        }
+    }
+
+    private fun requireCompatibleBackupUnit(
+        units: Map<String, BackupUnitContract>,
+        unitId: String,
+        dimension: String,
+        label: String,
+    ): BackupUnitContract {
+        val unit = units[unitId] ?: error("Backup $label references unknown unit '$unitId'")
+        require(unit.dimension == dimension) { "Backup $label uses an incompatible unit '$unitId'" }
+        return unit
+    }
+
+    private fun validateCanonicalPair(
+        row: JSONObject,
+        enteredKey: String,
+        canonicalKey: String,
+        unit: BackupUnitContract,
+        label: String,
+    ) {
+        val entered = row.nullableDouble(enteredKey)
+        val canonical = row.nullableDouble(canonicalKey)
+        require((entered == null) == (canonical == null)) {
+            "Backup $label has incomplete canonical data"
+        }
+        if (entered == null || canonical == null) return
+        require(entered.isFinite() && canonical.isFinite()) { "Backup $label contains a non-finite value" }
+        val expected = unit.toCanonical(entered)
+        require(expected.isFinite()) { "Backup $label overflows its saved unit conversion" }
+        requireApproximatelyEqual(expected, canonical, label)
+    }
+
+    private fun requireApproximatelyEqual(expected: Double, actual: Double, label: String) {
+        require(actual.isFinite()) { "Backup $label contains a non-finite canonical value" }
+        val tolerance = maxOf(1.0, kotlin.math.abs(expected), kotlin.math.abs(actual)) * 1e-9
+        require(kotlin.math.abs(expected - actual) <= tolerance) {
+            "Backup $label contradicts its saved unit conversion"
+        }
+    }
+
+    private fun requireMatchingLiveUnitContract(db: androidx.sqlite.db.SupportSQLiteDatabase, row: JSONObject) {
+        db.query(
+            "SELECT dimension, toCanonicalFactor, toCanonicalOffset, custom FROM unit_definitions WHERE id = ? LIMIT 1",
+            arrayOf(row.getString("id")),
+        ).use { cursor ->
+            require(cursor.moveToFirst()) { "Live custom unit disappeared during merge" }
+            require(cursor.getString(0) == row.getString("dimension")) {
+                "Backup custom unit identity conflicts with the live measurement type"
+            }
+            require(cursor.getDouble(1) == row.getDouble("toCanonicalFactor") &&
+                cursor.getDouble(2) == row.getDouble("toCanonicalOffset")) {
+                "Backup custom unit identity conflicts with the live conversion contract"
+            }
+            require(cursor.getInt(3) != 0) { "Live unit identity is not a custom unit" }
+        }
     }
 
     /** Upgrade a checksum-verified older envelope in memory before restore or merge. */
@@ -1134,7 +1612,7 @@ private val LEGACY_EXPORT_TABLES = VERSION_EIGHT_EXPORT_TABLES - "habit_skips"
 private fun checksumPayload(tables: JSONObject, settings: JSONObject?): String =
     tables.toString() + "\n" + settings?.toString().orEmpty()
 
-private fun AppSettings.toJson(): JSONObject = JSONObject()
+private fun AppSettings.toJson(includeLocalRecoveryState: Boolean = false): JSONObject = JSONObject()
     .put("setupCompleted", setupCompleted)
     .put("powerMode", powerMode)
     .put("lowPressureMode", lowPressureMode)
@@ -1234,6 +1712,13 @@ private fun AppSettings.toJson(): JSONObject = JSONObject()
     }))
     .putNullableLong("focusTimerDeadlineMillis", focusTimerDeadlineMillis)
     .putNullableLong("focusTimerTaskId", focusTimerTaskId)
+    .apply {
+        if (includeLocalRecoveryState) {
+            putNullableLong("healthLastSyncMillis", healthLastSyncMillis)
+            put("healthLastSyncCount", healthLastSyncCount.coerceAtLeast(0))
+            put("healthConnectDeletionPending", healthConnectDeletionPending)
+        }
+    }
 
 private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     setupCompleted = optBoolean("setupCompleted", true),
@@ -1284,8 +1769,18 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     hiddenHomeSections = enumSet("hiddenHomeSections", HomeSection.entries),
     collapsedHomeSections = enumSet("collapsedHomeSections", HomeSection.entries),
     healthConnectEnabled = optBoolean("healthConnectEnabled", false),
-    healthDataTypes = if (has("healthDataTypes")) enumSet("healthDataTypes", HealthDataType.entries) else HealthDataType.entries.toSet(),
+    healthDataTypes = if (has("healthDataTypes")) {
+        enumSet("healthDataTypes", HealthDataType.entries)
+    } else if (optBoolean("healthConnectEnabled", false)) {
+        // Preserve old enabled backups that predate explicit category scope.
+        HealthDataType.entries.toSet()
+    } else {
+        emptySet()
+    },
     healthSyncDays = optInt("healthSyncDays", 30).coerceIn(1, 365),
+    healthLastSyncMillis = nullableLong("healthLastSyncMillis"),
+    healthLastSyncCount = optInt("healthLastSyncCount", 0).coerceAtLeast(0),
+    healthConnectDeletionPending = optBoolean("healthConnectDeletionPending", false),
     reviewPeriod = enumValue("reviewPeriod", ReviewPeriod.Weekly),
     defaultTaskStepPolicy = enumValue("defaultTaskStepPolicy", RepeatStepPolicy.Reset),
     showAllUpcomingTaskOccurrences = optBoolean("showAllUpcomingTaskOccurrences", false),
@@ -1357,13 +1852,15 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     },
     focusTimerDeadlineMillis = nullableLong("focusTimerDeadlineMillis"),
     focusTimerTaskId = nullableLong("focusTimerTaskId"),
-)
+).normalized()
 
 private fun JSONObject.putNullable(key: String, value: Int?): JSONObject = put(key, value ?: JSONObject.NULL)
 private fun JSONObject.putNullableLong(key: String, value: Long?): JSONObject = put(key, value ?: JSONObject.NULL)
 private fun JSONObject.nullableInt(key: String): Int? = if (!has(key) || isNull(key)) null else optInt(key)
 private fun JSONObject.nullableLong(key: String): Long? = if (!has(key) || isNull(key)) null else optLong(key)
+private fun JSONObject.nullableDouble(key: String): Double? = if (!has(key) || isNull(key)) null else getDouble(key)
 private fun JSONObject.nullableString(key: String): String? = if (!has(key) || isNull(key)) null else optString(key)
+private fun JSONObject.nonBlankString(key: String): String? = nullableString(key)?.takeIf(String::isNotBlank)
 private fun JSONArray?.objects(): List<JSONObject> = if (this == null) emptyList() else
     (0 until length()).mapNotNull { optJSONObject(it) }
 private fun JSONArray?.doubles(): List<Double> = if (this == null) emptyList() else

@@ -200,6 +200,24 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import com.whip.app.widget.WhipWidgetProvider
 
+private fun SettingsViewModel?.createCustomUnitAction(): CreateCustomUnitAction {
+    val viewModel = this ?: return UnavailableCreateCustomUnitAction
+    return CreateCustomUnitAction(
+        state = viewModel.customUnitMutationState,
+        consume = viewModel::consumeCustomUnitMutation,
+        submit = { requestId, requestedId, name, symbol, dimension, factor ->
+            viewModel.createCustomUnitMutation(
+                requestId = requestId,
+                requestedUnitId = requestedId,
+                name = name,
+                symbol = symbol,
+                dimension = dimension,
+                factor = factor,
+            )
+        },
+    )
+}
+
 internal enum class AppDestination {
     Home,
     Tasks,
@@ -2138,10 +2156,7 @@ fun WhipScreen(
                     areas = settingsState.areas,
                     defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
                     onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
-                    onCreateCustomUnit = { name, symbol, dimension, factor, result ->
-                        settingsViewModel?.createCustomUnit(name, symbol, dimension, factor, result)
-                            ?: result(Result.failure(IllegalStateException("Settings are unavailable")))
-                    },
+                    onCreateCustomUnit = settingsViewModel.createCustomUnitAction(),
                     customIdentityEmojis = settingsState.settings.customIdentityEmojis,
                     onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
                     onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
@@ -2170,10 +2185,7 @@ fun WhipScreen(
                     areas = settingsState.areas,
                     defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
                     onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
-                    onCreateCustomUnit = { name, symbol, dimension, factor, result ->
-                        settingsViewModel?.createCustomUnit(name, symbol, dimension, factor, result)
-                            ?: result(Result.failure(IllegalStateException("Settings are unavailable")))
-                    },
+                    onCreateCustomUnit = settingsViewModel.createCustomUnitAction(),
                     customIdentityEmojis = settingsState.settings.customIdentityEmojis,
                     onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
                     onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
@@ -2268,10 +2280,7 @@ fun WhipScreen(
                         areas = settingsState.areas,
                         defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
                         onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
-                        onCreateCustomUnit = { name, symbol, dimension, factor, result ->
-                            settingsViewModel?.createCustomUnit(name, symbol, dimension, factor, result)
-                                ?: result(Result.failure(IllegalStateException("Settings are unavailable")))
-                        },
+                        onCreateCustomUnit = settingsViewModel.createCustomUnitAction(),
                         customIdentityEmojis = settingsState.settings.customIdentityEmojis,
                         onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
                         onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
@@ -2339,10 +2348,7 @@ fun WhipScreen(
                     areas = settingsState.areas,
                     defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
                     onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
-                        onCreateCustomUnit = { name, symbol, dimension, factor, result ->
-                            settingsViewModel?.createCustomUnit(name, symbol, dimension, factor, result)
-                                ?: result(Result.failure(IllegalStateException("Settings are unavailable")))
-                        },
+                        onCreateCustomUnit = settingsViewModel.createCustomUnitAction(),
                         customIdentityEmojis = settingsState.settings.customIdentityEmojis,
                         onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
                         onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
@@ -3356,10 +3362,7 @@ private fun TrackDefinitionEditorRouteHost(
             onDismiss()
         },
         onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
-        onCreateCustomUnit = { name, symbol, dimension, factor, result ->
-            settingsViewModel?.createCustomUnit(name, symbol, dimension, factor, result)
-                ?: result(Result.failure(IllegalStateException("Settings are unavailable")))
-        },
+        onCreateCustomUnit = settingsViewModel.createCustomUnitAction(),
         customIdentityEmojis = settingsState.settings.customIdentityEmojis,
         onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
         onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },

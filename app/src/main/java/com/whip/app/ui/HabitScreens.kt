@@ -120,6 +120,23 @@ import com.whip.app.ui.theme.whipColors
 
 enum class HabitDestination { Today, All, Archived, Insights }
 
+internal fun preferredHealthMetricUnitId(
+    metric: MetricDefinition,
+    defaults: AppSettings,
+    customUnits: List<UnitDefinition>,
+): String {
+    val preferred = when (metric.dimension) {
+        UnitDimension.Mass -> defaults.massUnitId
+        UnitDimension.Distance -> defaults.distanceUnitId
+        UnitDimension.Volume -> defaults.volumeUnitId
+        else -> metric.defaultUnitId
+    }
+    val available = BuiltInUnits.all + customUnits
+    return available.firstOrNull {
+        it.id == preferred && it.dimension == metric.dimension && !it.archived
+    }?.id ?: metric.defaultUnitId
+}
+
 @Composable
 fun HabitAreaContent(
     state: HabitUiState,
@@ -139,9 +156,7 @@ fun HabitAreaContent(
     areas: List<Area> = emptyList(),
     defaultAreaId: String? = null,
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
-    onCreateCustomUnit: CreateCustomUnitAction = { _, _, _, _, result ->
-        result(Result.failure(IllegalStateException("Custom-unit creation is unavailable")))
-    },
+    onCreateCustomUnit: CreateCustomUnitAction = UnavailableCreateCustomUnitAction,
     customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
     onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
@@ -1644,9 +1659,7 @@ internal fun HabitEditorDialog(
     areas: List<Area> = emptyList(),
     defaultAreaId: String? = null,
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
-    onCreateCustomUnit: CreateCustomUnitAction = { _, _, _, _, result ->
-        result(Result.failure(IllegalStateException("Custom-unit creation is unavailable")))
-    },
+    onCreateCustomUnit: CreateCustomUnitAction = UnavailableCreateCustomUnitAction,
     customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
     onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
@@ -1863,7 +1876,7 @@ internal fun HabitEditorDialog(
                         sourceMetricId = selected?.id
                         if (selected != null) {
                             dimension = selected.dimension
-                            unitId = selected.defaultUnitId
+                            unitId = preferredHealthMetricUnitId(selected, defaults, customUnits)
                             precision = selected.precision.toString()
                             mode = when (selected.valueKind) {
                                 MetricValueKind.Integer -> HabitTrackingMode.Count

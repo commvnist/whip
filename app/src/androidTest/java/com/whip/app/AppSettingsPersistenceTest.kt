@@ -37,6 +37,39 @@ class AppSettingsPersistenceTest {
     }
 
     @Test
+    fun freshHealthConnectScopeIsLeastPrivilegeAndLegacyEnabledScopeIsPreserved() {
+        val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
+        preferences.edit().clear().commit()
+        assertTrue(SharedPreferencesSettingsRepository(context).current().healthDataTypes.isEmpty())
+
+        preferences.edit().clear().putBoolean("healthEnabled", true).commit()
+        assertEquals(
+            HealthDataType.entries.toSet(),
+            SharedPreferencesSettingsRepository(context).current().healthDataTypes,
+        )
+
+        preferences.edit().putBoolean("healthEnabled", false).putStringSet("healthTypes", emptySet()).commit()
+        assertTrue(SharedPreferencesSettingsRepository(context).current().healthDataTypes.isEmpty())
+    }
+
+    @Test
+    fun healthDeletionRecoveryMarkerIsDurableButLocallyControlled() {
+        val repository = SharedPreferencesSettingsRepository(context)
+        assertTrue(repository.updateAndConfirm {
+            it.copy(
+                healthConnectEnabled = false,
+                healthConnectDeletionPending = true,
+                healthLastSyncMillis = 123_456L,
+                healthLastSyncCount = 42,
+            )
+        })
+        val restored = SharedPreferencesSettingsRepository(context).current()
+        assertTrue(restored.healthConnectDeletionPending)
+        assertEquals(123_456L, restored.healthLastSyncMillis)
+        assertEquals(42, restored.healthLastSyncCount)
+    }
+
+    @Test
     fun settingsMigrationsRunAndAnExplicitSmartCaptureOptOutPersists() {
         val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
         preferences

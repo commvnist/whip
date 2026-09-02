@@ -204,6 +204,44 @@ class StartupRecoveryGateTest {
     }
 
     @Test
+    fun exclusiveMaintenanceDrainsAdmittedMutationsRejectsLateAccessAndRebuildsBeforeReady() = runBlocking {
+        val accessStarted = CompletableDeferred<Unit>()
+        val releaseAccess = CompletableDeferred<Unit>()
+        val events = mutableListOf<String>()
+        val gate = StartupRecoveryGate(recoverPendingRestore = { }, initializeNormalRuntime = { })
+        assertNull(gate.start())
+        val admittedMutation = async {
+            gate.withReadyDataAccess {
+                accessStarted.complete(Unit)
+                releaseAccess.await()
+                events += "mutation"
+            }
+        }
+        accessStarted.await()
+
+        val maintenance = async {
+            gate.runExclusiveMaintenance(
+                prepareForMaintenance = { events += "quiesce" },
+                maintenance = { events += "reset" },
+                resumeNormalRuntime = { rebuilt ->
+                    assertEquals(false, rebuilt)
+                    events += "rebuild"
+                },
+            )
+        }
+        while (gate.state.value != StartupRecoveryState.Checking) yield()
+        assertNull(gate.withReadyDataAccess { "late mutation" })
+        assertEquals(emptyList<String>(), events)
+
+        releaseAccess.complete(Unit)
+        admittedMutation.await()
+        maintenance.await()
+
+        assertEquals(listOf("mutation", "quiesce", "reset", "rebuild"), events)
+        assertSame(StartupRecoveryState.Ready, gate.state.value)
+    }
+
+    @Test
     fun cancellingRestoreWhileAccessDrainsStillReachesAStableTerminalState() = runBlocking {
         val accessStarted = CompletableDeferred<Unit>()
         val releaseAccess = CompletableDeferred<Unit>()

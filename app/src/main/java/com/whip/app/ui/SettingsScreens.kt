@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -98,8 +99,11 @@ import com.whip.app.domain.IDENTITY_EMOJI_PRESETS
 import com.whip.app.domain.isDefaultIdentityEmoji
 import com.whip.app.domain.isIdentityEmoji
 import com.whip.app.domain.UnitDimension
+import com.whip.app.domain.CustomUnitBoundary
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.AreaScope
+import com.whip.app.domain.customUnitBoundary
+import com.whip.app.domain.toUnitDefinition
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.health.HealthConnectAvailability
 import com.whip.app.reminders.ReminderNotifications
@@ -123,6 +127,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+import java.util.UUID
 
 internal enum class SettingsSection(val label: String, val supportingText: String) {
     Appearance("Appearance & Home", "Theme, presentation, home sections, and keyboard shortcuts"),
@@ -133,6 +138,25 @@ internal enum class SettingsSection(val label: String, val supportingText: Strin
     AboutDiagnostics("About Whip", "App identity, version, package, and data-handling summary"),
 }
 
+internal enum class DataPrivacyGroup { Health, Backup, Reset }
+
+internal val DataPrivacyGroupOrder = listOf(
+    DataPrivacyGroup.Health,
+    DataPrivacyGroup.Backup,
+    DataPrivacyGroup.Reset,
+)
+
+internal fun healthConnectOrphanedMessage(pendingAction: String?): String = when {
+    pendingAction == "sync" ->
+        "The previous Health Connect sync was interrupted. Review Last Sync and the copied-record count. Sync Now is idempotent and safe to repeat."
+    pendingAction == "delete" ->
+        "The previous local-copy deletion was interrupted. Review the local-copy count and pending-recovery message, then retry deletion; the cleanup is idempotent."
+    pendingAction != null ->
+        "The previous Health Connect policy change was interrupted. Review the current master toggle and category choices. If they already match your intent, do not repeat the change."
+    else ->
+        "The previous Health Connect action was interrupted. Review the current Health controls before trying again."
+}
+
 private val LocalSettingsTypedEditorState = staticCompositionLocalOf<(String, Boolean) -> Unit> {
     { _, _ -> }
 }
@@ -141,6 +165,7 @@ internal data class TypedSettingMutation<T>(
     val state: PersistenceRequestState<SettingsMutationReceipt>,
     val consume: (String) -> Unit,
     val submit: (requestId: String, value: T) -> Boolean,
+    val onCompletedWarnings: (List<String>) -> Unit = {},
 )
 
 internal fun submitDestructiveActionOnce(
@@ -168,10 +193,18 @@ internal fun SettingsContent(
     val context = LocalContext.current
     var pendingExport by rememberSaveable { mutableStateOf(ExportKind.Backup) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var confirmHealthDelete by rememberSaveable { mutableStateOf(false) }
     var resetSubmitted by rememberSaveable { mutableStateOf(false) }
     var createUnit by rememberSaveable { mutableStateOf(false) }
-    var renameUnitId by rememberSaveable { mutableStateOf<String?>(null) }
-    var versionUnitId by rememberSaveable { mutableStateOf<String?>(null) }
+    var createUnitTargetId by rememberSaveable { mutableStateOf(UUID.randomUUID().toString()) }
+    var renameUnitBoundary by rememberSaveable { mutableStateOf<CustomUnitBoundary?>(null) }
+    var versionUnitBoundary by rememberSaveable { mutableStateOf<CustomUnitBoundary?>(null) }
+    var versionUnitTargetId by rememberSaveable { mutableStateOf(UUID.randomUUID().toString()) }
+    var customUnitPendingAction by rememberSaveable { mutableStateOf<String?>(null) }
+    var healthPendingAction by rememberSaveable { mutableStateOf<String?>(null) }
+    var healthOutcome by rememberSaveable { mutableStateOf<String?>(null) }
+    var healthWarning by rememberSaveable { mutableStateOf<String?>(null) }
+    var typedSettingWarning by rememberSaveable { mutableStateOf<String?>(null) }
     var taxonomyEditKind by rememberSaveable { mutableStateOf<String?>(null) }
     var taxonomyEditId by rememberSaveable { mutableStateOf<String?>(null) }
     var customEmojiEditorOpen by rememberSaveable { mutableStateOf(false) }
@@ -213,6 +246,89 @@ internal fun SettingsContent(
     )
     val settings = state.settings
     val typedSettingMutationState by viewModel.typedSettingMutationState.collectAsStateWithLifecycle()
+    val customUnitMutationState by viewModel.customUnitMutationState.collectAsStateWithLifecycle()
+    val healthMutationState by viewModel.healthMutationState.collectAsStateWithLifecycle()
+    val customUnitCoordinator = rememberPersistenceRequestCoordinator(
+        state = customUnitMutationState,
+        consume = viewModel::consumeCustomUnitMutation,
+        key = "settings-custom-units",
+        requestNamespace = "settings-custom-unit",
+        onPersisted = {
+            when (customUnitPendingAction) {
+                "create" -> {
+                    createUnit = false
+                    createUnitTargetId = UUID.randomUUID().toString()
+                }
+                "rename" -> renameUnitBoundary = null
+                "version" -> {
+                    versionUnitBoundary = null
+                    versionUnitTargetId = UUID.randomUUID().toString()
+                }
+            }
+            customUnitPendingAction = null
+        },
+        orphanedMessage =
+            "The previous custom-unit change was interrupted. Review the unit's current name, version, and archive state before trying again. Do not repeat Archive or Restore blindly.",
+    )
+    val healthCoordinator = rememberPersistenceRequestCoordinator(
+        state = healthMutationState,
+        consume = viewModel::consumeHealthMutation,
+        key = "settings-health-connect",
+        requestNamespace = "settings-health",
+        onPersisted = { receipt ->
+            val completedAction = healthPendingAction
+            healthOutcome = when (receipt.kind) {
+                HealthMutationKind.Policy -> null
+                HealthMutationKind.Sync -> "Synchronized ${receipt.affectedEntries} Health Connect records this run."
+                HealthMutationKind.DeleteLocalCopies -> "Deleted ${receipt.affectedEntries} Health Connect copies from Whip."
+            }
+            healthWarning = receipt.warnings.joinToString(" ").takeIf(String::isNotBlank)
+            if (receipt.kind == HealthMutationKind.Policy && completedAction == "enable") {
+                healthPermissions.launch(viewModel.requiredHealthPermissions())
+            }
+            if (receipt.kind == HealthMutationKind.DeleteLocalCopies) confirmHealthDelete = false
+            healthPendingAction = null
+        },
+        orphanedMessage = healthConnectOrphanedMessage(healthPendingAction),
+    )
+    val quietHoursCoordinator = rememberPersistenceRequestCoordinator(
+        state = typedSettingMutationState,
+        consume = viewModel::consumeTypedSettingMutation,
+        key = "settings-quiet-hours-toggle",
+        requestNamespace = "settings-quiet-hours-toggle",
+        onPersisted = { receipt ->
+            typedSettingWarning = receipt.warnings.joinToString(" ").takeIf(String::isNotBlank)
+        },
+        orphanedMessage = "The previous quiet-hours change was interrupted. Review the current schedule and retry.",
+    )
+    val timeZoneModeCoordinator = rememberPersistenceRequestCoordinator(
+        state = typedSettingMutationState,
+        consume = viewModel::consumeTypedSettingMutation,
+        key = "settings-follow-device-time-zone",
+        requestNamespace = "settings-follow-device-time-zone",
+        onPersisted = { receipt ->
+            typedSettingWarning = receipt.warnings.joinToString(" ").takeIf(String::isNotBlank)
+        },
+        orphanedMessage = "The previous time-zone mode change was interrupted. Review the active time zone and retry.",
+    )
+    fun submitCustomUnitAction(action: String, submit: (String) -> Boolean) {
+        val requestId = customUnitCoordinator.begin() ?: return
+        customUnitPendingAction = action
+        if (!submit(requestId)) {
+            customUnitPendingAction = null
+            customUnitCoordinator.finishFailure("Another custom-unit change is still finishing. Review it and try again.")
+        }
+    }
+    fun submitHealthAction(action: String, submit: (String) -> Boolean) {
+        val requestId = healthCoordinator.begin() ?: return
+        healthPendingAction = action
+        healthOutcome = null
+        healthWarning = null
+        if (!submit(requestId)) {
+            healthPendingAction = null
+            healthCoordinator.finishFailure("Another Health Connect action is still finishing. Review it and try again.")
+        }
+    }
     fun <T> appSettingMutation(
         transform: (AppSettings, T) -> AppSettings,
     ): TypedSettingMutation<T> = TypedSettingMutation(
@@ -220,6 +336,9 @@ internal fun SettingsContent(
         consume = viewModel::consumeTypedSettingMutation,
         submit = { requestId, value ->
             viewModel.updateTypedSetting(requestId) { current -> transform(current, value) }
+        },
+        onCompletedWarnings = { warnings ->
+            typedSettingWarning = warnings.joinToString(" ").takeIf(String::isNotBlank)
         },
     )
     val notificationPermissionGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -369,6 +488,16 @@ internal fun SettingsContent(
                 actionLabel = "Dismiss",
                 onAction = viewModel::consumeMessage,
                 modifier = Modifier.testTag("settings-result-status"),
+            )
+        } }
+        typedSettingWarning?.let { warning -> item {
+            WhipStatusCard(
+                kind = WhipStatusKind.Status,
+                title = "Setting Saved with Warnings",
+                message = warning,
+                actionLabel = "Dismiss",
+                onAction = { typedSettingWarning = null },
+                modifier = Modifier.testTag("settings-completed-warning"),
             )
         } }
 
@@ -560,10 +689,24 @@ internal fun SettingsContent(
             SettingsToggle(
                 "Follow device time zone",
                 followDevice,
-                enabled = activeTypedSettingTag == null,
+                enabled = activeTypedSettingTag == null && !timeZoneModeCoordinator.saving,
                 modifier = Modifier.testTag("settings-follow-device-time-zone"),
             ) { enabled ->
-                viewModel.update { it.copy(timeZoneId = if (enabled) null else ZoneId.systemDefault().id) }
+                val requestId = timeZoneModeCoordinator.begin() ?: return@SettingsToggle
+                if (!viewModel.updateTypedSetting(requestId) {
+                        it.copy(timeZoneId = if (enabled) null else ZoneId.systemDefault().id)
+                    }
+                ) {
+                    timeZoneModeCoordinator.finishFailure("Another Settings change is still finishing. Review it and try again.")
+                }
+            }
+            timeZoneModeCoordinator.errorMessage?.let {
+                Text(
+                    it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                )
             }
             if (!followDevice || editingTimeZone) {
                 TimeZoneSetting(
@@ -634,21 +777,54 @@ internal fun SettingsContent(
                             expanded = unitMenuOpen,
                             onExpandedChange = { unitMenuOpen = it },
                             modifier = Modifier.testTag("custom-unit-menu-${unit.id}"),
+                            enabled = !customUnitCoordinator.saving,
                         ) {
-                            WhipMenuItem("Rename", onClick = { unitMenuOpen = false; renameUnitId = unit.id })
-                            WhipMenuItem("Create New Version", onClick = { unitMenuOpen = false; versionUnitId = unit.id })
+                            WhipMenuItem("Rename", onClick = {
+                                unitMenuOpen = false
+                                renameUnitBoundary = unit.customUnitBoundary()
+                            })
+                            if (!unit.archived) {
+                                WhipMenuItem("Create New Version", onClick = {
+                                    unitMenuOpen = false
+                                    versionUnitBoundary = unit.customUnitBoundary()
+                                    versionUnitTargetId = UUID.randomUUID().toString()
+                                })
+                            }
                             WhipMenuItem(
                                 if (unit.archived) "Restore" else "Archive",
                                 onClick = {
                                     unitMenuOpen = false
-                                    viewModel.setCustomUnitArchived(unit.id, !unit.archived)
+                                    val boundary = unit.customUnitBoundary()
+                                    submitCustomUnitAction("archive") { requestId ->
+                                        viewModel.setCustomUnitArchivedMutation(
+                                            requestId = requestId,
+                                            boundary = boundary,
+                                            archived = !boundary.archived,
+                                        )
+                                    }
                                 },
                             )
                         }
                     }
                 }
             }
-            WhipOutlinedButton(onClick = { createUnit = true }, modifier = Modifier.fillMaxWidth()) { Text("Create Custom Unit") }
+            customUnitCoordinator.errorMessage?.let { message ->
+                WhipStatusCard(
+                    kind = WhipStatusKind.Error,
+                    title = "Custom Unit Not Saved",
+                    message = message,
+                    modifier = Modifier.testTag("custom-unit-error"),
+                )
+            }
+            WhipOutlinedButton(
+                onClick = {
+                    createUnitTargetId = UUID.randomUUID().toString()
+                    createUnit = true
+                    customUnitCoordinator.clear()
+                },
+                enabled = !customUnitCoordinator.saving,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Create Custom Unit") }
         }
         item { SettingsHeading("Review Defaults") }
         item { SettingsDropdown("Default review period", ReviewPeriod.entries, settings.reviewPeriod, { it.name }) { value -> viewModel.update { it.copy(reviewPeriod = value) } } }
@@ -1090,15 +1266,27 @@ internal fun SettingsContent(
             SettingsToggle(
                 "Enable notification quiet hours",
                 enabled,
-                enabled = activeTypedSettingTag == null,
+                enabled = activeTypedSettingTag == null && !quietHoursCoordinator.saving,
                 modifier = Modifier.testTag("settings-enable-quiet-hours"),
             ) { selected ->
-                viewModel.update { current ->
-                    current.copy(
-                        quietStartMinutes = if (selected) current.quietStartMinutes ?: 22 * 60 else null,
-                        quietEndMinutes = if (selected) current.quietEndMinutes ?: 7 * 60 else null,
-                    )
+                val requestId = quietHoursCoordinator.begin() ?: return@SettingsToggle
+                if (!viewModel.updateTypedSetting(requestId) { current ->
+                        current.copy(
+                            quietStartMinutes = if (selected) current.quietStartMinutes ?: 22 * 60 else null,
+                            quietEndMinutes = if (selected) current.quietEndMinutes ?: 7 * 60 else null,
+                        )
+                    }
+                ) {
+                    quietHoursCoordinator.finishFailure("Another Settings change is still finishing. Review it and try again.")
                 }
+            }
+            quietHoursCoordinator.errorMessage?.let {
+                Text(
+                    it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                )
             }
             if (enabled || editingQuietHours) {
                 ClockSetting(
@@ -1127,7 +1315,13 @@ internal fun SettingsContent(
         }
         }
 
-        if (section == SettingsSection.DataPrivacy) {
+        val dataPrivacyPasses = if (section == SettingsSection.DataPrivacy) {
+            DataPrivacyGroupOrder
+        } else {
+            emptyList()
+        }
+        dataPrivacyPasses.forEach { dataPrivacyPass ->
+        if (dataPrivacyPass == DataPrivacyGroup.Backup) {
         item { SettingsHeading("Backup & Export") }
         item {
             Card(Modifier.fillMaxWidth()) {
@@ -1244,6 +1438,8 @@ internal fun SettingsContent(
                 }
             }
         }
+        }
+        if (dataPrivacyPass == DataPrivacyGroup.Reset) {
         item {
             val destructiveActionDescription = stringResource(R.string.state_destructive_action)
             WhipDangerZone {
@@ -1267,7 +1463,7 @@ internal fun SettingsContent(
         }
         }
 
-        if (section == SettingsSection.DataPrivacy) {
+        if (dataPrivacyPass == DataPrivacyGroup.Health) {
         item { SettingsHeading("Health & Privacy") }
         item {
             Text("Whip stores data locally and does not require an account. Estimated 1RM and correlations are informational, not medical or safety advice.")
@@ -1279,98 +1475,195 @@ internal fun SettingsContent(
                 },
                 style = MaterialTheme.typography.bodySmall,
             )
-        }
-        if (state.healthConnect.availability == HealthConnectAvailability.Available) {
-            item {
-                SettingsToggle("Sync with Health Connect", settings.healthConnectEnabled) { enabled ->
-                    viewModel.setHealthConnectEnabled(enabled)
-                    if (enabled && settings.healthDataTypes.isNotEmpty()) {
-                        healthPermissions.launch(viewModel.requiredHealthPermissions())
-                    }
-                }
-                if (!settings.healthConnectEnabled) {
-                    Text(
-                        if (settings.healthDataTypes.isEmpty()) {
-                            stringResource(R.string.settings_health_sync_paused_empty)
-                        } else {
-                            stringResource(
-                                R.string.settings_health_sync_paused_saved,
-                                settings.healthDataTypes.joinToString { it.name },
+            if (state.healthConnect.availability == HealthConnectAvailability.InstallOrUpdate) {
+                WhipOutlinedButton(
+                    onClick = {
+                        val packageId = "com.google.android.apps.healthdata"
+                        runCatching {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, "market://details?id=$packageId".toUri()))
+                        }.onFailure {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    "https://play.google.com/store/apps/details?id=$packageId".toUri(),
+                                ),
                             )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Install or Update Health Connect") }
+            }
+        }
+        item {
+            val healthAvailable = state.healthConnect.availability == HealthConnectAvailability.Available
+            SettingsToggle(
+                label = "Sync with Health Connect",
+                checked = settings.healthConnectEnabled,
+                supportingText = when {
+                    settings.healthConnectDeletionPending -> "Local Health Connect deletion is pending recovery. Finish Delete Health Connect Copies below before turning sync on again."
+                    settings.healthConnectEnabled -> "Whip reads only the selected categories. Turn this off to stop future reads; existing local copies remain until you delete them below."
+                    settings.healthDataTypes.isEmpty() -> stringResource(R.string.settings_health_sync_paused_empty)
+                    else -> stringResource(
+                        R.string.settings_health_sync_paused_saved,
+                        settings.healthDataTypes.joinToString { it.name },
+                    )
+                },
+                enabled = !settings.healthConnectDeletionPending && !healthCoordinator.saving &&
+                    (settings.healthConnectEnabled || (healthAvailable && settings.healthDataTypes.isNotEmpty())),
+                modifier = Modifier.testTag("settings-health-enabled"),
+            ) { enabled ->
+                submitHealthAction(if (enabled) "enable" else "disable") { requestId ->
+                    viewModel.setHealthConnectEnabled(requestId, enabled)
+                }
+            }
+            if (!healthAvailable && !settings.healthConnectEnabled) {
+                Text(
+                    "Sync cannot be enabled on this device, but you can still review saved scope and delete Whip's local copies.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        HealthDataType.entries.forEach { type ->
+            item(key = "health-${type.name}") {
+                val selected = type in settings.healthDataTypes
+                val permission = viewModel.requiredHealthPermissionsFor(type)
+                val granted = permission in state.healthConnect.grantedPermissions
+                HealthDataTypeSetting(
+                    type = type,
+                    syncEnabled = settings.healthConnectEnabled,
+                    selected = selected,
+                    accessGranted = granted,
+                    controlsEnabled = !healthCoordinator.saving,
+                    onChange = { enabled ->
+                        submitHealthAction("category-${type.name}") { requestId ->
+                            viewModel.setHealthDataType(requestId, type, enabled)
+                        }
+                    },
+                )
+            }
+        }
+        item {
+            NumberSetting(
+                label = "Health read window (days)",
+                current = settings.healthSyncDays,
+                mutation = TypedSettingMutation(
+                    state = typedSettingMutationState,
+                    consume = viewModel::consumeTypedSettingMutation,
+                    submit = viewModel::setHealthSyncDays,
+                ),
+                validRange = 1..365,
+            )
+            Text(
+                "Each sync reconciles the selected categories inside this recent window. Older Health Connect copies already in Whip are preserved.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            val requiredPermissions = viewModel.requiredHealthPermissions()
+            val hasAllAccess = requiredPermissions.isNotEmpty() &&
+                state.healthConnect.grantedPermissions.containsAll(requiredPermissions)
+            val healthAvailable = state.healthConnect.availability == HealthConnectAvailability.Available
+            val accessAvailability = ControlAvailability(
+                enabled = healthAvailable && settings.healthDataTypes.isNotEmpty() && !healthCoordinator.saving,
+                unavailableExplanation = when {
+                    !healthAvailable -> "Health Connect is unavailable on this device."
+                    settings.healthDataTypes.isEmpty() -> "Select at least one Health Connect category."
+                    healthCoordinator.saving -> "Wait for the current Health Connect action to finish."
+                    else -> null
+                },
+            )
+            val syncAvailability = ControlAvailability(
+                enabled = healthAvailable && settings.healthConnectEnabled &&
+                    settings.healthDataTypes.isNotEmpty() && hasAllAccess && !healthCoordinator.saving,
+                unavailableExplanation = when {
+                    !healthAvailable -> "Health Connect is unavailable on this device."
+                    !settings.healthConnectEnabled -> "Turn on Health Connect sync."
+                    settings.healthDataTypes.isEmpty() -> "Select at least one Health Connect category."
+                    !hasAllAccess -> "Review Android access for every selected category first."
+                    healthCoordinator.saving -> "Wait for the current Health Connect action to finish."
+                    else -> null
+                },
+            )
+            ResponsiveSettingsActions(
+                first = { buttonModifier ->
+                    WhipOutlinedButton(
+                        onClick = { healthPermissions.launch(requiredPermissions) },
+                        enabled = accessAvailability.enabled,
+                        modifier = buttonModifier.testTag("health-review-access"),
+                    ) { Text("Review Access") }
+                },
+                second = { buttonModifier ->
+                    WhipButton(
+                        onClick = {
+                            submitHealthAction("sync") { requestId ->
+                                viewModel.syncHealthConnect(requestId)
+                            }
                         },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                        enabled = syncAvailability.enabled,
+                        modifier = buttonModifier.testTag("health-sync-now"),
+                    ) { Text("Sync Now") }
+                },
+            )
+            AvailabilityNotice("Review access", accessAvailability)
+            AvailabilityNotice("Sync now", syncAvailability)
+            healthOutcome?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                )
             }
-            HealthDataType.entries.forEach { type ->
-                item(key = "health-${type.name}") {
-                    val selected = type in settings.healthDataTypes
-                    val permission = viewModel.requiredHealthPermissionsFor(type)
-                    val granted = permission in state.healthConnect.grantedPermissions
-                    HealthDataTypeSetting(
-                        type = type,
-                        syncEnabled = settings.healthConnectEnabled,
-                        selected = selected,
-                        accessGranted = granted,
-                        onChange = { enabled -> viewModel.setHealthDataType(type, enabled) },
-                    )
-                }
+            healthWarning?.let { warning ->
+                WhipStatusCard(
+                    kind = WhipStatusKind.Status,
+                    title = "Completed with Warnings",
+                    message = warning,
+                    modifier = Modifier.testTag("health-connect-warning"),
+                )
             }
-            item {
-                NumberSetting(
-                    label = "Days to sync",
-                    current = settings.healthSyncDays,
-                    mutation = appSettingMutation { current, value -> current.copy(healthSyncDays = value) },
-                    validRange = 1..365,
+            healthCoordinator.errorMessage?.let { message ->
+                WhipStatusCard(
+                    kind = WhipStatusKind.Error,
+                    title = "Health Connect Action Not Completed",
+                    message = message,
+                    modifier = Modifier.testTag("health-connect-error"),
                 )
-                val accessAvailability = ControlAvailability(
-                    enabled = settings.healthDataTypes.isNotEmpty(),
-                    unavailableExplanation = "Select at least one Health Connect category.",
-                )
-                val syncAvailability = ControlAvailability(
-                    enabled = settings.healthConnectEnabled && settings.healthDataTypes.isNotEmpty(),
-                    unavailableExplanation = when {
-                        !settings.healthConnectEnabled -> "Turn on Health Connect sync."
-                        settings.healthDataTypes.isEmpty() -> "Select at least one Health Connect category."
-                        else -> null
-                    },
-                )
-                ResponsiveSettingsActions(
-                    first = { buttonModifier ->
-                        WhipOutlinedButton(
-                            onClick = { healthPermissions.launch(viewModel.requiredHealthPermissions()) },
-                            enabled = accessAvailability.enabled,
-                            modifier = buttonModifier,
-                        ) { Text("Review Access") }
-                    },
-                    second = { buttonModifier ->
-                        WhipButton(
-                            onClick = viewModel::syncHealthConnect,
-                            enabled = syncAvailability.enabled && !state.busy,
-                            modifier = buttonModifier,
-                        ) { Text("Sync Now") }
-                    },
-                )
-                AvailabilityNotice("Review access", accessAvailability)
-                AvailabilityNotice("Sync now", syncAvailability)
-                state.healthConnect.lastSync?.let { lastSync ->
-                    val formatted = formatSettingsTimestamp(
-                        instant = lastSync,
-                        zoneId = settings.zoneId(),
-                        locale = LocalConfiguration.current.locales[0],
-                    )
-                    val importedEntries = pluralStringResource(
-                        R.plurals.settings_health_imported_entries,
-                        state.healthConnect.importedEntries,
-                        state.healthConnect.importedEntries,
-                    )
-                    Text(
-                        stringResource(R.string.settings_health_last_sync, formatted, importedEntries),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
             }
+            state.healthConnect.lastSync?.let { lastSync ->
+                val formatted = formatSettingsTimestamp(
+                    instant = lastSync,
+                    zoneId = settings.zoneId(),
+                    locale = LocalConfiguration.current.locales[0],
+                )
+                val synchronizedEntries = pluralStringResource(
+                    R.plurals.settings_health_imported_entries,
+                    state.healthConnect.importedEntries,
+                    state.healthConnect.importedEntries,
+                )
+                Text(
+                    stringResource(
+                        R.string.settings_health_last_sync,
+                        formatted,
+                        "$synchronizedEntries this run",
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+        item {
+            WhipSettingsSectionCard {
+                Text("Local Health Connect Copies", fontWeight = FontWeight.Bold)
+                Text(
+                    "Whip currently stores ${state.healthImportedEntryCount} Health Connect ${if (state.healthImportedEntryCount == 1) "record" else "records"}.${if (settings.healthConnectDeletionPending) " A previous deletion is pending safe recovery." else ""} Deleting them keeps your metric definitions, selected categories, Android permissions, provider records, other Whip data, and existing backup files. Linked Habits, goals, and trends may change. Re-enabling sync can copy provider data again.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                WhipOutlinedButton(
+                    onClick = { confirmHealthDelete = true },
+                    enabled = (state.healthImportedEntryCount > 0 || settings.healthConnectDeletionPending) &&
+                        !healthCoordinator.saving,
+                    modifier = Modifier.fillMaxWidth().testTag("delete-health-connect-copies"),
+                ) { Text("Delete Health Connect Copies from Whip") }
+            }
+        }
         }
         }
         if (section == SettingsSection.AboutDiagnostics) {
@@ -1508,6 +1801,27 @@ internal fun SettingsContent(
             },
         )
     }
+    if (confirmHealthDelete) {
+        PermanentDeleteDialog(
+            title = "Delete Health Connect Copies from Whip?",
+            message = "This turns off future Health Connect sync and deletes ${state.healthImportedEntryCount} local ${if (state.healthImportedEntryCount == 1) "record" else "records"} from Whip.",
+            impacts = listOf(
+                "Health Connect provider records and Android permissions are not changed.",
+                "Metric definitions, selected categories, other Whip data, and existing backup files are kept.",
+                "Linked Habits, goals, and trends may change; re-enabling sync can copy provider data again.",
+            ),
+            confirmLabel = "Turn Off Sync and Delete Copies",
+            busy = healthCoordinator.saving,
+            error = healthCoordinator.errorMessage,
+            confirmModifier = Modifier.testTag("confirm-delete-health-connect-copies"),
+            onDismiss = { if (!healthCoordinator.saving) confirmHealthDelete = false },
+            onConfirm = {
+                submitHealthAction("delete") { requestId ->
+                    viewModel.deleteHealthConnectCopies(requestId)
+                }
+            },
+        )
+    }
     if (customEmojiEditorOpen) {
         val initial = settings.customIdentityEmojis.firstOrNull { it.emoji == customEmojiEditorOriginal }
         CustomIdentityEmojiDialog(
@@ -1527,38 +1841,72 @@ internal fun SettingsContent(
     if (createUnit) {
         CustomUnitDialog(
             mode = CustomUnitEditMode.Create,
-            onDismiss = { createUnit = false },
+            saving = customUnitCoordinator.saving && customUnitPendingAction == "create",
+            error = customUnitCoordinator.errorMessage,
+            onDismiss = {
+                if (!customUnitCoordinator.saving) {
+                    createUnit = false
+                    customUnitCoordinator.clear()
+                }
+            },
             onSave = { name, symbol, dimension, factor ->
-                viewModel.createCustomUnit(name, symbol, dimension, factor)
-                createUnit = false
+                submitCustomUnitAction("create") { requestId ->
+                    viewModel.createCustomUnitMutation(
+                        requestId = requestId,
+                        requestedUnitId = createUnitTargetId,
+                        name = name,
+                        symbol = symbol,
+                        dimension = dimension,
+                        factor = factor,
+                    )
+                }
             },
         )
     }
-    renameUnitId?.let { id ->
-        state.customUnits.firstOrNull { it.id == id }?.let { unit ->
-            CustomUnitDialog(
-                mode = CustomUnitEditMode.Rename,
-                initial = unit,
-                onDismiss = { renameUnitId = null },
-                onSave = { name, symbol, _, _ ->
-                    viewModel.renameCustomUnit(unit.id, name, symbol)
-                    renameUnitId = null
-                },
-            )
-        }
+    renameUnitBoundary?.let { boundary ->
+        CustomUnitDialog(
+            mode = CustomUnitEditMode.Rename,
+            initial = boundary.toUnitDefinition(),
+            saving = customUnitCoordinator.saving && customUnitPendingAction == "rename",
+            error = customUnitCoordinator.errorMessage,
+            onDismiss = {
+                if (!customUnitCoordinator.saving) {
+                    renameUnitBoundary = null
+                    customUnitCoordinator.clear()
+                }
+            },
+            onSave = { name, symbol, _, _ ->
+                submitCustomUnitAction("rename") { requestId ->
+                    viewModel.renameCustomUnitMutation(requestId, boundary, name, symbol)
+                }
+            },
+        )
     }
-    versionUnitId?.let { id ->
-        state.customUnits.firstOrNull { it.id == id }?.let { unit ->
-            CustomUnitDialog(
-                mode = CustomUnitEditMode.Version,
-                initial = unit,
-                onDismiss = { versionUnitId = null },
-                onSave = { name, symbol, _, factor ->
-                    viewModel.createCustomUnitVersion(unit.id, name, symbol, factor)
-                    versionUnitId = null
-                },
-            )
-        }
+    versionUnitBoundary?.let { boundary ->
+        CustomUnitDialog(
+            mode = CustomUnitEditMode.Version,
+            initial = boundary.toUnitDefinition(),
+            saving = customUnitCoordinator.saving && customUnitPendingAction == "version",
+            error = customUnitCoordinator.errorMessage,
+            onDismiss = {
+                if (!customUnitCoordinator.saving) {
+                    versionUnitBoundary = null
+                    customUnitCoordinator.clear()
+                }
+            },
+            onSave = { name, symbol, _, factor ->
+                submitCustomUnitAction("version") { requestId ->
+                    viewModel.createCustomUnitVersionMutation(
+                        requestId = requestId,
+                        boundary = boundary,
+                        requestedUnitId = versionUnitTargetId,
+                        name = name,
+                        symbol = symbol,
+                        factor = factor,
+                    )
+                }
+            },
+        )
     }
     taxonomyEditKind?.let { kind ->
         val id = taxonomyEditId
@@ -1846,6 +2194,7 @@ internal fun HealthDataTypeSetting(
     syncEnabled: Boolean,
     selected: Boolean,
     accessGranted: Boolean,
+    controlsEnabled: Boolean = true,
     onChange: (Boolean) -> Unit,
 ) {
     WhipSettingsRow(
@@ -1856,7 +2205,7 @@ internal fun HealthDataTypeSetting(
         },
         modifier = Modifier.testTag("health-type-${type.name}"),
         checked = selected,
-        enabled = syncEnabled,
+        enabled = controlsEnabled,
         onCheckedChange = onChange,
     )
 }
@@ -2010,7 +2359,10 @@ private fun <T> TransactionalSettingsField(
         consume = mutation.consume,
         key = testTag,
         requestNamespace = testTag,
-        onPersisted = { resetEditor(close = true) },
+        onPersisted = { receipt ->
+            mutation.onCompletedWarnings(receipt.warnings)
+            resetEditor(close = true)
+        },
         orphanedMessage =
             "Whip was interrupted before it could confirm this save. Your draft is still here; review the current value and try again.",
     )
@@ -2233,6 +2585,7 @@ internal enum class CustomUnitEditMode { Create, Rename, Version }
 
 @Composable internal fun CustomUnitDialog(
     modifier: Modifier = Modifier,
+    testTag: String? = "custom-unit-dialog",
     mode: CustomUnitEditMode,
     initial: com.whip.app.domain.UnitDefinition? = null,
     initialDimension: UnitDimension? = null,
@@ -2242,14 +2595,36 @@ internal enum class CustomUnitEditMode { Create, Rename, Version }
     onDismiss: () -> Unit,
     onSave: (String, String, UnitDimension, Double) -> Unit,
 ) {
-    var name by rememberSaveable(initial?.id, mode) { mutableStateOf(initial?.name.orEmpty()) }
-    var symbol by rememberSaveable(initial?.id, mode) { mutableStateOf(initial?.symbol.orEmpty()) }
-    var dimension by rememberSaveable(initial?.id, mode, initialDimension) { mutableStateOf(initial?.dimension ?: initialDimension ?: UnitDimension.Count) }
-    var factor by rememberSaveable(initial?.id, mode) { mutableStateOf(initial?.toCanonicalFactor?.toString() ?: "1") }
+    val startingName = initial?.name.orEmpty()
+    val startingSymbol = initial?.symbol.orEmpty()
+    val startingDimension = initial?.dimension ?: initialDimension ?: UnitDimension.Count
+    val startingFactor = initial?.toCanonicalFactor?.toString() ?: "1"
+    var name by rememberSaveable(initial?.id, mode) { mutableStateOf(startingName) }
+    var symbol by rememberSaveable(initial?.id, mode) { mutableStateOf(startingSymbol) }
+    var dimension by rememberSaveable(initial?.id, mode, initialDimension) { mutableStateOf(startingDimension) }
+    var factor by rememberSaveable(initial?.id, mode) { mutableStateOf(startingFactor) }
+    var confirmDiscard by rememberSaveable(initial?.id, mode) { mutableStateOf(false) }
+    var validationRequested by rememberSaveable(initial?.id, mode) { mutableStateOf(false) }
+    val dirty = name != startingName || symbol != startingSymbol || dimension != startingDimension ||
+        (mode != CustomUnitEditMode.Rename && factor != startingFactor)
+    fun requestDismiss() {
+        if (saving) return
+        if (dirty) confirmDiscard = true else onDismiss()
+    }
     val canonicalLabel = canonicalUnitLabel(dimension)
+    val nameFocus = remember { FocusRequester() }
+    val symbolFocus = remember { FocusRequester() }
+    val factorFocus = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    val parsedFactor = factor.toWhipDoubleOrNull()
+    val nameInvalid = validationRequested && name.isBlank()
+    val factorInvalid = validationRequested && mode != CustomUnitEditMode.Rename &&
+        (parsedFactor == null || parsedFactor <= 0.0)
+    LaunchedEffect(initial?.id, mode) { nameFocus.requestFocus() }
     PaneAwareAlertDialog(
         modifier = modifier,
-        onDismissRequest = { if (!saving) onDismiss() },
+        testTag = testTag,
+        onDismissRequest = ::requestDismiss,
         title = {
             Text(
                 when (mode) {
@@ -2260,22 +2635,41 @@ internal enum class CustomUnitEditMode { Create, Rename, Version }
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 520.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 OutlinedTextField(
                     name,
-                    { name = it },
+                    { name = it.take(100) },
                     enabled = !saving,
-                    label = { Text("Name, e.g. glass") },
-                    modifier = Modifier.fillMaxWidth().testTag("custom-unit-name"),
+                    label = { Text("Name *, e.g. glass") },
+                    singleLine = true,
+                    isError = nameInvalid,
+                    supportingText = if (nameInvalid) {{ Text("Name is required") }} else null,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { symbolFocus.requestFocus() }),
+                    modifier = Modifier.fillMaxWidth().focusRequester(nameFocus).testTag("custom-unit-name"),
                 )
                 OutlinedTextField(
                     symbol,
-                    { symbol = it },
+                    { symbol = it.take(20) },
                     enabled = !saving,
                     label = { Text("Symbol, e.g. gl") },
-                    modifier = Modifier.fillMaxWidth().testTag("custom-unit-symbol"),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = if (mode == CustomUnitEditMode.Rename) ImeAction.Done else ImeAction.Next,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { factorFocus.requestFocus() },
+                        onDone = { keyboard?.hide() },
+                    ),
+                    modifier = Modifier.fillMaxWidth().focusRequester(symbolFocus).testTag("custom-unit-symbol"),
                 )
-                if (mode == CustomUnitEditMode.Create && !dimensionLocked) {
+                if (mode == CustomUnitEditMode.Create && !dimensionLocked && !saving) {
                     SettingsDropdown("Dimension", UnitDimension.entries, dimension, UnitDimension::uiLabel) { dimension = it }
                 } else Text("Dimension: ${dimension.uiLabel()}", style = MaterialTheme.typography.bodySmall)
                 if (mode != CustomUnitEditMode.Rename) {
@@ -2285,32 +2679,72 @@ internal enum class CustomUnitEditMode { Create, Rename, Version }
                     )
                     OutlinedTextField(
                         factor,
-                        { factor = it },
+                        { factor = it.take(64) },
                         enabled = !saving,
                         label = { Text("1 ${symbol.ifBlank { name.ifBlank { "custom unit" } }} equals how many $canonicalLabel?") },
-                        supportingText = { Text(customUnitExample(dimension)) },
-                        modifier = Modifier.fillMaxWidth().testTag("custom-unit-factor"),
+                        isError = factorInvalid,
+                        supportingText = {
+                            Column {
+                                if (factorInvalid) Text("Enter a number greater than 0")
+                                Text(customUnitExample(dimension))
+                            }
+                        },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { keyboard?.hide() }),
+                        modifier = Modifier.fillMaxWidth().focusRequester(factorFocus).testTag("custom-unit-factor"),
                     )
                     if (mode == CustomUnitEditMode.Version) Text(
-                        "The existing conversion is archived for old records. New entries use this version.",
+                        "The existing unit stays attached to current definitions and history, then is archived from new pickers. This new version becomes available for future selections; Whip does not silently retarget anything.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                 } else Text(
-                    "Renaming changes only the label; recorded values and conversion meaning stay unchanged.",
+                    "Renaming changes this label wherever the unit appears, including history. Recorded numbers and conversion meaning stay unchanged.",
                     style = MaterialTheme.typography.bodySmall,
                 )
-                error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                if (saving) {
+                    Text(
+                        "Waiting for Whip to confirm the saved unit…",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                }
+                error?.let {
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                    )
+                }
             }
         },
         confirmButton = {
             WhipTextButton(
-                enabled = !saving && name.isNotBlank() && (mode == CustomUnitEditMode.Rename || (factor.toWhipDoubleOrNull() ?: 0.0) > 0.0),
-                onClick = { onSave(name, symbol, dimension, factor.toWhipDoubleOrNull() ?: requireNotNull(initial).toCanonicalFactor) },
+                enabled = !saving,
+                onClick = {
+                    validationRequested = true
+                    if (name.isBlank() || (mode != CustomUnitEditMode.Rename && (parsedFactor == null || parsedFactor <= 0.0))) {
+                        return@WhipTextButton
+                    }
+                    onSave(name, symbol, dimension, parsedFactor ?: requireNotNull(initial).toCanonicalFactor)
+                },
                 modifier = Modifier.testTag("custom-unit-confirm"),
-            ) { Text(if (saving) "Creating…" else if (mode == CustomUnitEditMode.Rename) "Save Name" else "Create") }
+            ) { Text(if (saving) "Saving…" else if (mode == CustomUnitEditMode.Rename) "Save Name" else "Create") }
         },
-        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = ::requestDismiss) { Text("Cancel") } },
     )
+    if (confirmDiscard && !saving) {
+        UnsavedChangesDialog(
+            subject = "custom unit",
+            onKeepEditing = { confirmDiscard = false },
+            onDiscard = {
+                confirmDiscard = false
+                onDismiss()
+            },
+            modifier = Modifier.testTag("custom-unit-discard-confirmation"),
+        )
+    }
 }
 
 private fun canonicalUnitLabel(dimension: UnitDimension): String = when (dimension) {

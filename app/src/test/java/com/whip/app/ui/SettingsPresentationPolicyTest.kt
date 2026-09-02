@@ -12,6 +12,23 @@ import org.junit.Test
 
 class SettingsPresentationPolicyTest {
     @Test
+    fun dataPrivacyPrioritizesHealthAndKeepsWholeAppResetLast() {
+        assertEquals(
+            listOf(DataPrivacyGroup.Health, DataPrivacyGroup.Backup, DataPrivacyGroup.Reset),
+            DataPrivacyGroupOrder,
+        )
+    }
+
+    @Test
+    fun interruptedHealthActionsGiveActionSpecificRecoveryEvidence() {
+        assertTrue(healthConnectOrphanedMessage("sync").contains("Last Sync"))
+        assertTrue(healthConnectOrphanedMessage("sync").contains("safe to repeat"))
+        assertTrue(healthConnectOrphanedMessage("delete").contains("pending-recovery"))
+        assertTrue(healthConnectOrphanedMessage("delete").contains("idempotent"))
+        assertTrue(healthConnectOrphanedMessage("category-Weight").contains("do not repeat"))
+    }
+
+    @Test
     fun settingsClockRequiresOneCompleteExactHhMmValue() {
         assertEquals(0, parseSettingsClock("00:00"))
         assertEquals(23 * 60 + 59, parseSettingsClock("23:59"))

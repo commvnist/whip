@@ -2,10 +2,17 @@ package com.whip.app.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -17,6 +24,7 @@ fun PermanentDeleteDialog(
     confirmLabel: String = "Delete Permanently",
     busyLabel: String = "Working…",
     busy: Boolean = false,
+    error: String? = null,
     confirmModifier: Modifier = Modifier,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
@@ -27,9 +35,23 @@ fun PermanentDeleteDialog(
         paneTitle = title,
         title = { Text(title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 520.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Text(message)
                 impacts.filter(String::isNotBlank).forEach { Text("• $it") }
+                error?.let {
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                    )
+                }
                 Text(
                     "Export a backup first if you may need this history.",
                     style = MaterialTheme.typography.bodySmall,

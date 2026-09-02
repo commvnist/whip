@@ -82,8 +82,13 @@ data class AppSettings(
     val hiddenHomeSections: Set<HomeSection> = emptySet(),
     val collapsedHomeSections: Set<HomeSection> = emptySet(),
     val healthConnectEnabled: Boolean = false,
-    val healthDataTypes: Set<HealthDataType> = HealthDataType.entries.toSet(),
+    val healthDataTypes: Set<HealthDataType> = emptySet(),
     val healthSyncDays: Int = 30,
+    /** Local-only sync receipt metadata; portable backups do not export it. */
+    val healthLastSyncMillis: Long? = null,
+    val healthLastSyncCount: Int = 0,
+    /** Local-only crash-recovery journal; never exported in portable backups. */
+    val healthConnectDeletionPending: Boolean = false,
     val reviewPeriod: ReviewPeriod = ReviewPeriod.Weekly,
     val defaultTaskStepPolicy: RepeatStepPolicy = RepeatStepPolicy.Reset,
     val showAllUpcomingTaskOccurrences: Boolean = false,
@@ -251,10 +256,11 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         hiddenHomeSections = preferences.enumSet("homeHidden", HomeSection.entries),
         collapsedHomeSections = preferences.enumSet("homeCollapsed", HomeSection.entries),
         healthConnectEnabled = preferences.getBoolean("healthEnabled", false),
-        healthDataTypes = preferences.getStringSet("healthTypes", null)
-            ?.mapNotNullTo(mutableSetOf()) { runCatching { HealthDataType.valueOf(it) }.getOrNull() }
-            ?: HealthDataType.entries.toSet(),
+        healthDataTypes = preferences.healthDataTypes(),
         healthSyncDays = preferences.getInt("healthSyncDays", 30).coerceIn(1, 365),
+        healthLastSyncMillis = preferences.nullableLong("healthLastSyncMillis"),
+        healthLastSyncCount = preferences.getInt("healthLastSyncCount", 0).coerceAtLeast(0),
+        healthConnectDeletionPending = preferences.getBoolean("healthDeletionPending", false),
         reviewPeriod = preferences.enum("reviewPeriod", ReviewPeriod.Weekly),
         defaultTaskStepPolicy = preferences.enum("taskStepPolicy", RepeatStepPolicy.Reset),
         showAllUpcomingTaskOccurrences = preferences.getBoolean("showAllUpcomingTaskOccurrences", false),
@@ -335,6 +341,9 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .putBoolean("healthEnabled", value.healthConnectEnabled)
             .putStringSet("healthTypes", value.healthDataTypes.mapTo(mutableSetOf(), HealthDataType::name))
             .putInt("healthSyncDays", value.healthSyncDays.coerceIn(1, 365))
+            .putNullableLong("healthLastSyncMillis", value.healthLastSyncMillis)
+            .putInt("healthLastSyncCount", value.healthLastSyncCount.coerceAtLeast(0))
+            .putBoolean("healthDeletionPending", value.healthConnectDeletionPending)
             .putString("reviewPeriod", value.reviewPeriod.name)
             .putString("taskStepPolicy", value.defaultTaskStepPolicy.name)
             .putBoolean("showAllUpcomingTaskOccurrences", value.showAllUpcomingTaskOccurrences)
@@ -410,8 +419,12 @@ fun AppSettings.normalized(): AppSettings {
         homeSections = normalizedOrder,
         hiddenHomeSections = normalizedHidden,
         collapsedHomeSections = collapsedHomeSections.intersect(HomeSection.entries.toSet()),
+        healthConnectEnabled = healthConnectEnabled &&
+            healthDataTypes.any(HealthDataType.entries.toSet()::contains) &&
+            !healthConnectDeletionPending,
         healthDataTypes = healthDataTypes.intersect(HealthDataType.entries.toSet()),
         healthSyncDays = healthSyncDays.coerceIn(1, 365),
+        healthLastSyncCount = healthLastSyncCount.coerceAtLeast(0),
         activeTaskSortMode = activeTaskSortMode.takeIf {
             it in setOf("Smart", "Manual", "Scheduled Date", "Deadline", "Priority", "Title")
         } ?: "Smart",
@@ -472,6 +485,13 @@ private fun <T : Enum<T>> SharedPreferences.enumSet(key: String, values: List<T>
     val names = getStringSet(key, emptySet()).orEmpty()
     return values.filterTo(mutableSetOf()) { it.name in names }
 }
+
+private fun SharedPreferences.healthDataTypes(): Set<HealthDataType> =
+    getStringSet("healthTypes", null)
+        ?.mapNotNullTo(mutableSetOf()) { runCatching { HealthDataType.valueOf(it) }.getOrNull() }
+        // Preserve an old enabled install that predates stored scope. Fresh and
+        // paused installs begin with no permission category selected.
+        ?: if (getBoolean("healthEnabled", false)) HealthDataType.entries.toSet() else emptySet()
 
 private fun SharedPreferences.nullableInt(key: String): Int? = if (contains(key)) getInt(key, 0) else null
 private fun SharedPreferences.nullableLong(key: String): Long? = if (contains(key)) getLong(key, 0L) else null

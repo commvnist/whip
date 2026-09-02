@@ -276,6 +276,26 @@ class WhipApplication : Application(), Configuration.Provider {
         resumeNormalRuntime = ::resumeAfterRestoreMaintenance,
     )
 
+    /**
+     * Whole-app reset is exclusive with every repository lease, worker, and
+     * editor. Old ownership is invalidated before any table can be cleared.
+     */
+    suspend fun resetAllData() = startupRecoveryGate.runExclusiveMaintenance(
+        prepareForMaintenance = ::quiesceNormalRuntime,
+        maintenance = {
+            portableBackupManager.clearFolder()
+            healthConnectManager.withMutationBoundary {
+                reminderDeliveryCoordinator.withStateBoundary {
+                    NotificationManagerCompat.from(this).cancelAll()
+                    advanceUserDataGeneration()
+                    backupRepository.deleteAllData()
+                    NotificationManagerCompat.from(this).cancelAll()
+                }
+            }
+        },
+        resumeNormalRuntime = ::resumeAfterRestoreMaintenance,
+    )
+
     fun currentUserDataGeneration(): Long = mutableUserDataGeneration.value
 
     fun isCurrentUserDataGeneration(
@@ -313,14 +333,26 @@ class WhipApplication : Application(), Configuration.Provider {
 
     private suspend fun initializeNormalRuntime(backgroundAlreadyRebuilt: Boolean) {
         if (normalRuntimeJob?.isActive == true) return
-        val settings = settingsRepository.current()
+        var settings = settingsRepository.current()
         if (!backgroundAlreadyRebuilt) {
             areaRepository.ensureDefaultArea()
         }
+        // Older retired trigger automation could store 1.0 as a custom-unit
+        // Habit canonical value while its paired metric entry held the correct
+        // conversion. Repair only rows whose full paired provenance matches.
+        habitRepository.repairLegacyGeneratedCanonicalValues()
         // Existing persisted reminder work cannot be trusted across a delivery
         // claim schema change. This is awaited while the startup recovery gate
         // is still closed, before receivers or normal runtime jobs can schedule.
         reconcilePendingReminderDeletions()
+        if (settings.healthConnectDeletionPending) {
+            healthConnectManager.deleteImportedData()
+            linkRepository.rebuildAll()
+            check(healthConnectManager.completeImportedDataDeletion()) {
+                "Could not complete the pending Health Connect deletion"
+            }
+            settings = settingsRepository.current()
+        }
         reminderRuntimeMaintenance.upgradeDeliveryClaimsIfRequired()
         portableBackupScheduler.sync(portableBackupManager.state.value, allowDuringRecovery = true)
         if (!backgroundAlreadyRebuilt) {
@@ -337,9 +369,12 @@ class WhipApplication : Application(), Configuration.Provider {
         if (!backgroundAlreadyRebuilt) {
             runtimeScope.launch { runCatching { automationPromptScheduler.syncAll() } }
         }
-        if (settings.healthConnectEnabled) {
+        if (settings.healthConnectEnabled && !settings.healthConnectDeletionPending) {
             runtimeScope.launch {
-                runCatching { healthConnectManager.sync(settings.healthDataTypes, settings.healthSyncDays) }
+                runCatching {
+                    healthConnectManager.sync(settings.healthDataTypes, settings.healthSyncDays)
+                    runCatching { withUserDataAccess { linkRepository.rebuildAll() } }
+                }
             }
         }
         runtimeScope.launch {

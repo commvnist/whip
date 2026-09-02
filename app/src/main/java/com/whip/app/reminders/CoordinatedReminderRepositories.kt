@@ -15,6 +15,8 @@ import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.MetricEntryStatus
 import com.whip.app.domain.MetricSourceType
+import com.whip.app.domain.HealthSourceWindow
+import com.whip.app.domain.CustomUnitBoundary
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.TaskDraft
 import com.whip.app.domain.TaskEditBoundary
@@ -141,6 +143,8 @@ internal class CoordinatedHabitRepository(
         mutate { delegate.toggleChecklistItem(habitId, itemId, date, completed) }
     override suspend fun startTimer(habitId: Long) = mutate { delegate.startTimer(habitId) }
     override suspend fun stopTimer(habitId: Long, date: LocalDate?) = mutate { delegate.stopTimer(habitId, date) }
+    override suspend fun repairLegacyGeneratedCanonicalValues() =
+        mutate { delegate.repairLegacyGeneratedCanonicalValues() }
 
     private suspend fun <T> mutate(block: suspend () -> T): T = coordinator.withStateBoundary(block)
 }
@@ -231,6 +235,28 @@ internal class CoordinatedMeasurementRepository(
         symbol: String,
         toCanonicalFactor: Double,
     ) = mutate { delegate.createCustomUnitVersion(sourceId, name, symbol, toCanonicalFactor) }
+    override suspend fun createCustomUnitExact(
+        requestedId: String,
+        name: String,
+        symbol: String,
+        dimension: UnitDimension,
+        toCanonicalFactor: Double,
+    ) = mutate {
+        delegate.createCustomUnitExact(requestedId, name, symbol, dimension, toCanonicalFactor)
+    }
+    override suspend fun renameCustomUnitExact(boundary: CustomUnitBoundary, name: String, symbol: String) =
+        mutate { delegate.renameCustomUnitExact(boundary, name, symbol) }
+    override suspend fun setCustomUnitArchivedExact(boundary: CustomUnitBoundary, archived: Boolean) =
+        mutate { delegate.setCustomUnitArchivedExact(boundary, archived) }
+    override suspend fun createCustomUnitVersionExact(
+        boundary: CustomUnitBoundary,
+        requestedId: String,
+        name: String,
+        symbol: String,
+        toCanonicalFactor: Double,
+    ) = mutate {
+        delegate.createCustomUnitVersionExact(boundary, requestedId, name, symbol, toCanonicalFactor)
+    }
     override suspend fun record(
         metricId: String,
         value: Double?,
@@ -256,6 +282,9 @@ internal class CoordinatedMeasurementRepository(
         sourcePrefix: String,
         retainedEntryIds: Set<String>,
     ) = mutate { delegate.deleteSourceEntriesExcept(sourceType, sourcePrefix, retainedEntryIds) }
+    override suspend fun reconcileHealthSourceWindows(windows: List<HealthSourceWindow>) =
+        mutate { delegate.reconcileHealthSourceWindows(windows) }
+    override suspend fun deleteHealthConnectEntries() = mutate { delegate.deleteHealthConnectEntries() }
 
     private suspend fun <T> mutate(block: suspend () -> T): T = coordinator.withStateBoundary(block)
 }

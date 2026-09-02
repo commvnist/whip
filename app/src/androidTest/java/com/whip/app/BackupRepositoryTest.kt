@@ -7,6 +7,7 @@ import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
+import com.whip.app.core.HealthDataType
 import com.whip.app.core.RepPrescriptionScheme
 import com.whip.app.core.TrackedGymRecord
 import com.whip.app.core.SettingsRepository
@@ -37,6 +38,9 @@ import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.LinkRuleDraft
 import com.whip.app.domain.LinkSourceMetric
 import com.whip.app.domain.LinkSourceType
+import com.whip.app.domain.MetricEntryStatus
+import com.whip.app.domain.MetricSourceType
+import com.whip.app.domain.MetricValueKind
 import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.PersonalRecordType
@@ -84,6 +88,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -148,6 +153,80 @@ class BackupRepositoryTest {
         backups = RoomBackupRepository(database, settings)
     }
     @After fun tearDown() = database.close()
+
+    @Test fun healthScopeRoundTripsButTheLocalDeletionJournalNeverLeavesTheDevice() = runBlocking {
+        settings.update {
+            it.copy(
+                healthConnectEnabled = true,
+                healthDataTypes = setOf(HealthDataType.Weight, HealthDataType.Sleep),
+                healthSyncDays = 90,
+                healthLastSyncMillis = 123_456L,
+                healthLastSyncCount = 12,
+                healthConnectDeletionPending = true,
+            )
+        }
+        val current = JSONObject(backups.exportBackup())
+        val exportedSettings = current.getJSONObject("settings")
+        assertEquals(false, exportedSettings.has("healthConnectDeletionPending"))
+        assertEquals(false, exportedSettings.has("healthLastSyncMillis"))
+        assertEquals(false, exportedSettings.has("healthLastSyncCount"))
+
+        backups.restoreBackup(current.toString())
+        assertEquals(setOf(HealthDataType.Weight, HealthDataType.Sleep), settings.current().healthDataTypes)
+        assertEquals(90, settings.current().healthSyncDays)
+        assertEquals(false, settings.current().healthConnectDeletionPending)
+        assertEquals(null, settings.current().healthLastSyncMillis)
+        assertEquals(0, settings.current().healthLastSyncCount)
+
+        val legacyEnabled = JSONObject(backups.exportBackup())
+        legacyEnabled.getJSONObject("settings")
+            .put("healthConnectEnabled", true)
+            .remove("healthDataTypes")
+        refreshBackupChecksum(legacyEnabled)
+        backups.restoreBackup(legacyEnabled.toString())
+        assertEquals(HealthDataType.entries.toSet(), settings.current().healthDataTypes)
+
+        val legacyPaused = JSONObject(backups.exportBackup())
+        legacyPaused.getJSONObject("settings")
+            .put("healthConnectEnabled", false)
+            .remove("healthDataTypes")
+        refreshBackupChecksum(legacyPaused)
+        backups.restoreBackup(legacyPaused.toString())
+        assertTrue(settings.current().healthDataTypes.isEmpty())
+
+        val malformedExplicitEmpty = JSONObject(backups.exportBackup())
+        malformedExplicitEmpty.getJSONObject("settings")
+            .put("healthConnectEnabled", true)
+            .put("healthDataTypes", org.json.JSONArray())
+        refreshBackupChecksum(malformedExplicitEmpty)
+        backups.restoreBackup(malformedExplicitEmpty.toString())
+        assertFalse(settings.current().healthConnectEnabled)
+        assertTrue(settings.current().healthDataTypes.isEmpty())
+    }
+
+    @Test fun privateRecoveryBackupPreservesTheLocalHealthDeletionJournalAndReceipt() = runBlocking {
+        settings.update {
+            it.copy(
+                healthDataTypes = setOf(HealthDataType.Weight),
+                healthLastSyncMillis = 123_456L,
+                healthLastSyncCount = 12,
+                healthConnectDeletionPending = true,
+            )
+        }
+
+        val recovery = JSONObject(backups.exportRecoveryBackup())
+        val recoverySettings = recovery.getJSONObject("settings")
+        assertEquals(true, recoverySettings.getBoolean("healthConnectDeletionPending"))
+        assertEquals(123_456L, recoverySettings.getLong("healthLastSyncMillis"))
+        assertEquals(12, recoverySettings.getInt("healthLastSyncCount"))
+
+        settings.update { AppSettings() }
+        backups.restoreBackup(recovery.toString())
+
+        assertTrue(settings.current().healthConnectDeletionPending)
+        assertEquals(123_456L, settings.current().healthLastSyncMillis)
+        assertEquals(12, settings.current().healthLastSyncCount)
+    }
 
     @Test fun backupPreviewAndTransactionalRestoreRoundTrip() = runBlocking {
         val id = habits.create(HabitDraft(name = "Hydrate, safely", unitId = "glass", startDate = FixedClock.today()))
@@ -1061,6 +1140,266 @@ class BackupRepositoryTest {
         assertEquals("Keep this", habits.habits.first().single().name)
     }
 
+    @Test fun malformedCustomUnitsAreRejectedBeforeLiveDataOrSettingsChange() = runBlocking {
+        habits.create(HabitDraft(name = "Keep live data", startDate = FixedClock.today()))
+        measurements.createCustomUnitExact(
+            requestedId = "backup-custom-unit",
+            name = "servings",
+            symbol = "srv",
+            dimension = UnitDimension.Count,
+            toCanonicalFactor = 1.0,
+        )
+        val exported = backups.exportBackup()
+        val mutations: List<(JSONObject) -> Unit> = listOf(
+            { it.put("dimension", "Imaginary") },
+            { it.put("toCanonicalFactor", 0.0) },
+            { it.put("id", "kilogram") },
+            { it.put("name", "") },
+        )
+
+        mutations.forEach { mutate ->
+            val malformed = JSONObject(exported)
+            mutate(malformed.getJSONObject("tables").getJSONArray("unit_definitions").getJSONObject(0))
+            refreshBackupChecksum(malformed)
+
+            assertTrue(runCatching { backups.restoreBackup(malformed.toString()) }.isFailure)
+            assertEquals("Keep live data", habits.habits.first().single().name)
+            assertEquals(AppThemeMode.Dark, settings.current().themeMode)
+            assertEquals("servings", measurements.customUnits.first().single().name)
+        }
+    }
+
+    @Test fun replaceRestoreRejectsAUnitConversionThatContradictsCanonicalHistoryBeforeMutation() = runBlocking {
+        measurements.createCustomUnitExact(
+            requestedId = "canonical-contract-unit",
+            name = "double count",
+            symbol = "2x",
+            dimension = UnitDimension.Count,
+            toCanonicalFactor = 2.0,
+        )
+        val metricId = measurements.createMetric(
+            name = "Canonical contract",
+            valueKind = MetricValueKind.Decimal,
+            dimension = UnitDimension.Count,
+            defaultUnitId = "canonical-contract-unit",
+        )
+        measurements.record(
+            metricId = metricId,
+            value = 3.0,
+            unitId = "canonical-contract-unit",
+            status = MetricEntryStatus.Recorded,
+            sourceType = MetricSourceType.Manual,
+        )
+        habits.create(HabitDraft(name = "Keep live data", startDate = FixedClock.today()))
+        val exported = backups.exportBackup()
+        listOf(3.0, Double.MAX_VALUE).forEach { malformedFactor ->
+            val malformed = JSONObject(exported)
+            malformed.getJSONObject("tables").getJSONArray("unit_definitions")
+                .getJSONObject(0).put("toCanonicalFactor", malformedFactor)
+            refreshBackupChecksum(malformed)
+
+            assertTrue(runCatching { backups.previewBackup(malformed.toString()) }.isFailure)
+            assertTrue(runCatching { backups.restoreBackup(malformed.toString()) }.isFailure)
+            assertEquals("Keep live data", habits.habits.first().single().name)
+            assertEquals(2.0, measurements.customUnits.first().single().toCanonicalFactor, 0.0)
+            assertEquals(6.0, measurements.entries.first().single().canonicalValue!!, 0.0)
+        }
+    }
+
+    @Test fun legacyAutomationHabitCanonicalBugIsSafelyNormalizedDuringPreviewAndRestore() = runBlocking {
+        measurements.createCustomUnitExact(
+            requestedId = "automation-double-count",
+            name = "double count",
+            symbol = "2x",
+            dimension = UnitDimension.Count,
+            toCanonicalFactor = 2.0,
+        )
+        val habitId = habits.create(
+            HabitDraft(
+                name = "Automated custom count",
+                trackingMode = HabitTrackingMode.Count,
+                dimension = UnitDimension.Count,
+                unitId = "automation-double-count",
+                startDate = FixedClock.today(),
+            ),
+        )
+        habits.log(
+            habitId = habitId,
+            value = 1.0,
+            sourceType = MetricSourceType.Task,
+            sourceId = "trigger:legacy-rule:task-event",
+        )
+        val legacy = JSONObject(backups.exportBackup())
+        val tables = legacy.getJSONObject("tables")
+        val log = tables.getJSONArray("habit_logs").getJSONObject(0)
+            .put("canonicalValue", 1.0)
+        tables.getJSONArray("metric_entries").getJSONObject(0)
+            .put("sourceType", MetricSourceType.Task.name)
+            .put("sourceId", log.getString("sourceId"))
+        refreshBackupChecksum(legacy)
+
+        assertTrue(backups.previewBackup(legacy.toString()).checksumValid)
+        backups.deleteAllData()
+        backups.restoreBackup(legacy.toString())
+
+        assertEquals(2.0, habits.logs.first().single().canonicalValue!!, 0.0)
+        assertEquals(2.0, measurements.entries.first().single().canonicalValue!!, 0.0)
+    }
+
+    @Test fun startupIntegrityRepairCorrectsAProvenanceMatchedLegacyAutomationHabitLog() = runBlocking {
+        measurements.createCustomUnitExact(
+            requestedId = "live-automation-double-count",
+            name = "double count",
+            symbol = "2x",
+            dimension = UnitDimension.Count,
+            toCanonicalFactor = 2.0,
+        )
+        val habitId = habits.create(
+            HabitDraft(
+                name = "Live automated custom count",
+                trackingMode = HabitTrackingMode.Count,
+                dimension = UnitDimension.Count,
+                unitId = "live-automation-double-count",
+                startDate = FixedClock.today(),
+            ),
+        )
+        habits.log(
+            habitId = habitId,
+            value = 1.0,
+            sourceType = MetricSourceType.Task,
+            sourceId = "trigger:live-legacy-rule:task-event",
+        )
+        val log = database.habitDao().getAllLogs().single()
+        database.openHelper.writableDatabase.execSQL(
+            "UPDATE metric_entries SET sourceType = ?, sourceId = ? WHERE id = ?",
+            arrayOf(log.sourceType, log.sourceId, log.metricEntryId),
+        )
+        database.openHelper.writableDatabase.execSQL(
+            "UPDATE habit_logs SET canonicalValue = 1.0 WHERE id = ?",
+            arrayOf(log.id),
+        )
+
+        assertEquals(1, habits.repairLegacyGeneratedCanonicalValues())
+        assertEquals(2.0, habits.logs.first().single().canonicalValue!!, 0.0)
+        assertEquals(0, habits.repairLegacyGeneratedCanonicalValues())
+    }
+
+    @Test fun mergeRejectsTheSameCustomUnitIdentityWithADifferentImmutableContract() = runBlocking {
+        measurements.createCustomUnitExact(
+            requestedId = "merge-contract-unit",
+            name = "double count",
+            symbol = "2x",
+            dimension = UnitDimension.Count,
+            toCanonicalFactor = 2.0,
+        )
+        val metricId = measurements.createMetric(
+            name = "Merge contract",
+            valueKind = MetricValueKind.Decimal,
+            dimension = UnitDimension.Count,
+            defaultUnitId = "merge-contract-unit",
+        )
+        measurements.record(metricId = metricId, value = 3.0, unitId = "merge-contract-unit")
+        val conflicting = JSONObject(backups.exportBackup())
+        val tables = conflicting.getJSONObject("tables")
+        tables.getJSONArray("unit_definitions").getJSONObject(0).put("toCanonicalFactor", 3.0)
+        tables.getJSONArray("metric_entries").getJSONObject(0).put("canonicalValue", 9.0)
+        refreshBackupChecksum(conflicting)
+
+        assertTrue(runCatching { backups.mergeBackup(conflicting.toString()) }.isFailure)
+        assertEquals(2.0, measurements.customUnits.first().single().toCanonicalFactor, 0.0)
+        assertEquals(6.0, measurements.entries.first().single().canonicalValue!!, 0.0)
+    }
+
+    @Test fun malformedGymUnitAndCanonicalContractsAreRejectedBeforeLiveMutation() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Pound press", weightUnitId = "pound"))
+        val sessionId = gym.startWorkout("Pound history")
+        val placementId = gym.addExerciseToWorkout(sessionId, exerciseId)
+        gym.addSet(
+            placementId,
+            WorkoutSetDraft(weight = 225.0, weightUnitId = "pound", reps = 5, completed = true),
+        )
+        gym.finishWorkout(sessionId)
+        routines.rebuildPersonalRecords(exerciseId)
+        routines.createRoutine(
+            RoutineDraft(
+                name = "Explicit pound TM",
+                days = listOf(
+                    RoutineDayDraft(
+                        "Press",
+                        listOf(
+                            RoutineExerciseDraft(
+                                exerciseId = exerciseId,
+                                trainingMaxValue = 300.0,
+                                trainingMaxUnitId = "pound",
+                                trainingMaxSource = RoutineTrainingMaxSource.Explicit,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        measurements.createCustomUnitExact(
+            requestedId = "custom-gym-mass",
+            name = "half kilogram",
+            symbol = "hkg",
+            dimension = UnitDimension.Mass,
+            toCanonicalFactor = 0.5,
+        )
+        val exported = backups.exportBackup()
+        val mutations: List<(JSONObject) -> Unit> = listOf(
+            { root -> root.getJSONObject("tables").getJSONArray("workout_sets").getJSONObject(0)
+                .put("enteredWeightUnitId", "mystery-mass") },
+            { root -> root.getJSONObject("tables").getJSONArray("workout_sets").getJSONObject(0)
+                .put("enteredWeightUnitId", "custom-gym-mass").put("canonicalWeightKg", 112.5) },
+            { root -> root.getJSONObject("tables").getJSONArray("workout_sets").getJSONObject(0)
+                .put("enteredWeightUnitId", "") },
+            { root -> root.getJSONObject("tables").getJSONArray("workout_sets").getJSONObject(0)
+                .put("canonicalWeightKg", 225.0) },
+            { root -> root.getJSONObject("tables").getJSONArray("routine_exercises").getJSONObject(0)
+                .put("trainingMaxKg", JSONObject.NULL) },
+            { root ->
+                val rows = root.getJSONObject("tables").getJSONArray("personal_records")
+                val maxWeight = (0 until rows.length()).map(rows::getJSONObject)
+                    .first { it.getString("type") == "MaxWeight" }
+                maxWeight.put("unitId", "pound")
+            },
+        )
+
+        mutations.forEach { mutate ->
+            val malformed = JSONObject(exported)
+            mutate(malformed)
+            refreshBackupChecksum(malformed)
+            assertTrue(runCatching { backups.previewBackup(malformed.toString()) }.isFailure)
+            assertTrue(runCatching { backups.restoreBackup(malformed.toString()) }.isFailure)
+        }
+        val liveSet = gym.sets.first().single()
+        assertEquals(225.0, liveSet.enteredWeight!!, 0.0)
+        assertEquals("pound", liveSet.enteredWeightUnitId)
+    }
+
+    @Test fun restoreDoesNotReportSuccessUntilSettingsAreDurable() = runBlocking {
+        val backup = backups.exportBackup()
+        settings.update { it.copy(themeMode = AppThemeMode.Light) }
+        settings.confirmUpdates = false
+
+        val result = runCatching { backups.restoreBackup(backup) }
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message.orEmpty().contains("roll back"))
+        assertEquals(AppThemeMode.Light, settings.current().themeMode)
+    }
+
+    @Test fun deleteAllDataDoesNotDeleteRecordsWhenResetSettingsCannotBeConfirmed() = runBlocking {
+        habits.create(HabitDraft(name = "Keep until reset is durable", startDate = FixedClock.today()))
+        settings.confirmUpdates = false
+
+        val result = runCatching { backups.deleteAllData() }
+
+        assertTrue(result.isFailure)
+        assertEquals("Keep until reset is durable", habits.habits.first().single().name)
+        assertEquals(AppThemeMode.Dark, settings.current().themeMode)
+    }
+
     @Test fun versionFiveBackupWithoutScaleIncrementUpgradesDuringRestore() = runBlocking {
         tasks.create(TaskDraft(title = "Legacy Task"))
         tracks.create(
@@ -1227,8 +1566,14 @@ class BackupRepositoryTest {
     }
     private class FakeSettingsRepository(initial: AppSettings) : SettingsRepository {
         private val state = MutableStateFlow(initial)
+        var confirmUpdates: Boolean = true
         override val settings: Flow<AppSettings> = state
         override fun current(): AppSettings = state.value
         override fun update(transform: (AppSettings) -> AppSettings) { state.value = transform(state.value) }
+        override fun updateAndConfirm(transform: (AppSettings) -> AppSettings): Boolean {
+            if (!confirmUpdates) return false
+            update(transform)
+            return true
+        }
     }
 }

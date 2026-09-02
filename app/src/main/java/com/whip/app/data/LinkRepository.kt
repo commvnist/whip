@@ -898,21 +898,33 @@ class RoomLinkRepository(
         val retained = events.mapTo(mutableSetOf()) { prefix + it.id }
         events.forEach { event ->
             val sourceId = prefix + event.id
-            if (database.habitDao().getLogBySource(event.metricSourceType.name, sourceId) == null) {
+            val existingLog = database.habitDao().getLogBySource(event.metricSourceType.name, sourceId)
+            if (existingLog == null) {
                 val logUuid = ids.nextId()
                 val entryId = measurementRepository.record(
                     habit.metricId, 1.0, habit.unitId, timestamp = event.timestamp, localDate = event.date,
                     zoneId = clock.zoneId(),
                     sourceType = event.metricSourceType, sourceId = sourceId, note = "Automatically logged by ${rule.name}",
                 )
+                val canonical = requireNotNull(database.measurementDao().getEntry(entryId)?.canonicalValue) {
+                    "Generated Habit measurement has no canonical value"
+                }
                 val now = clock.now().toEpochMilli()
                 database.habitDao().insertLog(
-                    HabitLogEntity(uuid = logUuid, habitId = habit.id, value = 1.0, canonicalValue = BuiltInUnits.get(habit.unitId)?.toCanonical(1.0) ?: 1.0,
+                    HabitLogEntity(uuid = logUuid, habitId = habit.id, value = 1.0, canonicalValue = canonical,
                         enteredUnitId = habit.unitId, status = HabitLogStatus.Success.name, timestampMillis = event.timestamp.toEpochMilli(),
                         localEpochDay = event.date.toEpochDay(), zoneId = clock.zoneId().id,
                         offsetSeconds = clock.zoneId().rules.getOffset(event.timestamp).totalSeconds, note = "Automatically logged by ${rule.name}",
                         sourceType = event.metricSourceType.name, sourceId = sourceId, metricEntryId = entryId, createdAtMillis = now, updatedAtMillis = now),
                 )
+            } else {
+                val canonical = existingLog.metricEntryId
+                    ?.let { database.measurementDao().getEntry(it)?.canonicalValue }
+                if (canonical != null && canonical != existingLog.canonicalValue) {
+                    database.habitDao().updateLog(
+                        existingLog.copy(canonicalValue = canonical, updatedAtMillis = clock.now().toEpochMilli()),
+                    )
+                }
             }
         }
         removeGeneratedHabitLogs(rule, retained)
