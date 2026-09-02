@@ -201,6 +201,9 @@ class EditorStateRecreationTest {
 
     @Test fun dirtyInlineSetSurvivesActivityRecreation() = withActivity {
         compose.onNodeWithContentDescription("Gym tab").performClick()
+        compose.onNodeWithTag("active-workout-list").performScrollToNode(
+            hasTestTag("quick-set-load-$workoutSetId"),
+        )
         compose.onNodeWithTag("quick-set-load-$workoutSetId").performTextClearance()
         compose.onNodeWithTag("quick-set-load-$workoutSetId").performTextInput("72.5")
         it.recreate()

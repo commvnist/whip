@@ -129,7 +129,7 @@ class TrackWorkspaceUiTest {
             compose.onAllNodesWithTag("track-workspace-destination-Archived").fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag("track-workspace-destination-Archived").assertIsSelected()
-        compose.onNodeWithText("Medication Archive").assertIsDisplayed()
+        compose.onAllNodesWithText("Medication Archive")[0].assertIsDisplayed()
     }
 
     @Test

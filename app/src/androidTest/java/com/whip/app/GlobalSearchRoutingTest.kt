@@ -109,7 +109,7 @@ class GlobalSearchRoutingTest {
 
             searchFor("Searchable archived track")
             compose.onNodeWithTag("track-workspace-destination-Archived").assertIsSelected()
-            compose.onNodeWithText("Searchable archived track").assertIsDisplayed()
+            compose.onAllNodesWithText("Searchable archived track")[0].assertIsDisplayed()
         }
         }
     }

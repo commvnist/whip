@@ -317,3 +317,15 @@
 - Related: `FND-20260831-018`, `FND-20260902-005`, `DEC-20260902-006`.
 - Verification: `VER-20260902-007`.
 - Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.
+
+### IMP-20260902-008 — Cross-device search visibility and accessibility-matrix hardening
+
+- Reordered emoji search mode around the user's immediate intent: matches appear directly after the search field, redundant headings disappear, search-only spacing tightens, matching saved emoji are brought into view, and custom creation remains available below. Saved-emoji management moves to the dialog footer during search, and choosing/closing explicitly clears focus and hides the software keyboard.
+- Gave Unified Search results an owned list state and return-to-summary behavior whenever filter disclosure changes, so active filter summaries cannot remain hidden behind a stale deep scroll position.
+- Made affected end-to-end tests viewport-aware without relaxing product assertions: tests scroll the owning Home, workout, Task, or routine surface; derive compact tab edges from the physical root; wait for exact editor/removal semantics; distinguish compact Settings navigation from a persistent wide sidebar; and scope intentional wide master/detail duplicate identities to their semantic owner.
+- Added final API 26 emoji screenshot/UI-hierarchy evidence and API 37 actual-TalkBack keyboard-navigation evidence to the product audit artifact tree.
+- Compatibility: UI ordering, focus/keyboard behavior, and test targeting only. No persistence, Room schema, migration, backup, search index, emoji identity format, Gym semantics, or historical record changed.
+- Important files: `IdentityEmojiPicker.kt`, `UnifiedSearchDialog.kt`, `InteractionControlUiTest.kt`, `CoreFeatureJourneyE2ETest.kt`, `EditorStateRecreationTest.kt`, `WhipNavigationTest.kt`, `WhipComposeSemanticsTest.kt`, `RoutineBuilderUiTest.kt`, `TrackWorkspaceUiTest.kt`, `GlobalSearchRoutingTest.kt`, and `artifacts/full-product-audit/2026-09-02/platform-matrix/`.
+- Related: `FND-20260902-006`, `DEC-20260902-007`.
+- Verification: `VER-20260902-008`.
+- Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.

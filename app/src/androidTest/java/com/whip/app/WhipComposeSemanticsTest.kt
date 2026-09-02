@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -88,33 +89,33 @@ class WhipComposeSemanticsTest {
             compose.waitForIdle()
             compose.onNodeWithText(previousMonthLabel).fetchSemanticsNode()
             openSettings()
-            compose.onNodeWithTag("settings-section-Appearance & Home").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            openSettingsSection("Appearance & Home")
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Home Overview"))
             compose.onNodeWithText("Home Overview").assertIsDisplayed()
-            compose.onNodeWithContentDescription("Back to Settings").performClick()
-            compose.onNodeWithTag("settings-section-Planning & Units").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            returnToSettingsIndexIfCompact()
+            openSettingsSection("Planning & Units")
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Create reusable units", substring = true))
             compose.onNodeWithText("Create reusable units", substring = true).assertIsDisplayed()
-            compose.onNodeWithContentDescription("Back to Settings").performClick()
-            compose.onNodeWithTag("settings-section-Organization").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            returnToSettingsIndexIfCompact()
+            openSettingsSection("Organization")
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Manage Areas"))
             compose.onNodeWithText("Manage Areas").assertIsDisplayed()
-            compose.onNodeWithContentDescription("Back to Settings").performClick()
-            compose.onNodeWithTag("settings-section-Reminders").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            returnToSettingsIndexIfCompact()
+            openSettingsSection("Reminders")
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Delivery Details"))
             compose.onNodeWithTag("notification-diagnostics").assertIsDisplayed()
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Send Test Notification"))
             compose.onNodeWithText("Send Test Notification").assertIsDisplayed()
-            compose.onNodeWithContentDescription("Back to Settings").performClick()
-            compose.onNodeWithTag("settings-section-Data & Privacy").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            returnToSettingsIndexIfCompact()
+            openSettingsSection("Data & Privacy")
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Portable Backup Folder"))
             compose.onNodeWithText("Portable Backup Folder").assertIsDisplayed()
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Choose Backup Folder"))
             compose.onNodeWithText("Choose Backup Folder").assertIsDisplayed()
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Reset Whip and Delete All Data"))
             compose.onAllNodesWithText("FitNotes", substring = true).assertCountEquals(0)
-            compose.onNodeWithContentDescription("Back to Settings").performClick()
-            compose.onNodeWithTag("settings-section-About Whip").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            returnToSettingsIndexIfCompact()
+            openSettingsSection("About Whip")
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("About Whip"))
             compose.onNodeWithTag("about-build-identity").assertIsDisplayed()
         }
@@ -145,6 +146,22 @@ class WhipComposeSemanticsTest {
 
     private fun openSettings() {
         compose.onNodeWithTag("workspace-settings-action").performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithContentDescription("Close Settings").fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodesWithText("Appearance & Home").fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun openSettingsSection(label: String) {
+        val action = hasText(label) and hasClickAction()
+        compose.waitUntil(10_000) { compose.onAllNodes(action).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(action).performClick()
+    }
+
+    private fun returnToSettingsIndexIfCompact() {
+        if (compose.onAllNodesWithContentDescription("Back to Settings").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithContentDescription("Back to Settings").performClick()
+        }
     }
 
     @Test

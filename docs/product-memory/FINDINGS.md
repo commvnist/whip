@@ -356,3 +356,14 @@
 - Evidence: `TrackScreens.kt`, `WhipApp.kt`, `WhipNavigationPolicy.kt`, `UnifiedSearchDialog.kt`, `TrackWorkspaceUiTest.kt`, `GlobalSearchRoutingTest.kt`, and the inspected capture/hierarchy under `artifacts/full-product-audit/2026-09-02/track-search/`.
 - Resolution: Implemented in `IMP-20260902-007` and fully verified in `VER-20260902-007`; this also resolves `FND-20260831-018`.
 - Status: Resolved and emulator/release-build verified; no Track, Entry, Area, schema, or backup data changed.
+
+### FND-20260902-006 — Short-window search dialogs could hide the result or state the user just requested
+
+- Severity/category: P1 mobile accessibility and interaction truthfulness plus P2 cross-device test portability.
+- Observed: On a 320×533dp API 26 phone, opening the keyboard in the emoji picker left a matching saved choice as a nearly invisible sliver below redundant search copy and editor controls. Unified Search could retain a deep result-list offset after filters were expanded or collapsed, hiding the active-filter summary. Several otherwise valid journeys also assumed a requested synthetic width would exceed the physical root or that below-fold controls and duplicated wide-pane labels were already visible.
+- Expected: Search results and active state changes remain immediately reachable in the actual post-keyboard viewport. Compact and wide layouts expose the same semantic actions without requiring impossible physical dimensions, and automation scrolls the owning collection or scopes duplicated master/detail content rather than weakening production layout constraints.
+- Why it matters: A one-handed user could type the exact emoji or filter they wanted and appear to receive no usable result. Low-height, large-text, keyboard, screen-reader, fold, and desktop users need equivalent reachable behavior, while a trustworthy platform matrix must distinguish product defects from invalid test geometry.
+- Affected users: Small-phone and landscape users, software-keyboard users, 150–320% text users, keyboard/TalkBack users, foldable/tablet/desktop users, and anyone searching a long result list.
+- Evidence: `IdentityEmojiPicker.kt`, `UnifiedSearchDialog.kt`, the portable navigation/journey regressions, and inspected screenshot/UI-hierarchy evidence under `artifacts/full-product-audit/2026-09-02/platform-matrix/`.
+- Resolution: Implemented in `IMP-20260902-008` and fully verified in `VER-20260902-008`.
+- Status: Resolved across API 26/34/37, actual TalkBack keyboard traversal, adaptive visual/semantic matrices, the complete emulator gate, and release builds; no user data or domain semantics changed.

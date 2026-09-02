@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
@@ -25,12 +27,16 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -94,6 +100,8 @@ internal fun WhipEmojiPicker(
     var customName by rememberSaveable { mutableStateOf("") }
     var customAttempted by rememberSaveable { mutableStateOf(false) }
     var managingSaved by rememberSaveable { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
     val normalizedCustom = normalizeCustomIdentityEmojis(customEmojis)
     val selectedEmoji = value.normalizedIdentityEmoji(defaultEmoji)
     val selectedLabel = IDENTITY_EMOJI_PRESETS.firstOrNull { it.emoji == selectedEmoji }?.label
@@ -123,12 +131,20 @@ internal fun WhipEmojiPicker(
             query.isBlank() || query in choice.emoji.lowercase(Locale.ROOT) ||
                 query in choice.name.lowercase(Locale.ROOT)
         }
+        val savedMatchRequester = remember { BringIntoViewRequester() }
+        LaunchedEffect(query, filteredCustom.map { it.emoji }) {
+            if (query.isNotBlank() && filteredCustom.isNotEmpty()) {
+                savedMatchRequester.bringIntoView()
+            }
+        }
         val customEmojiValid = customValue.isIdentityEmoji() && !customValue.isDefaultIdentityEmoji()
         val duplicateCustomName = normalizedCustom.any { choice ->
             choice.emoji != customValue.trim() && choice.name.equals(customName.trim(), ignoreCase = true)
         }
         val customNameValid = customName.isNotBlank() && !duplicateCustomName
         fun closePicker() {
+            focusManager.clearFocus(force = true)
+            keyboard?.hide()
             pickerOpen = false
             customOpen = false
             customAttempted = false
@@ -142,6 +158,64 @@ internal fun WhipEmojiPicker(
                 if (save) onSaveEmoji(CustomIdentityEmoji(emoji = emoji, name = customName.trim()))
                 onValueChange(emoji)
                 closePicker()
+            }
+        }
+        val customEditorControls: @Composable () -> Unit = {
+            WhipOutlinedButton(
+                onClick = {
+                    customOpen = !customOpen
+                    val currentCustom = normalizedCustom.firstOrNull { it.emoji == selectedEmoji }
+                    customValue = currentCustom?.emoji.orEmpty()
+                    customName = currentCustom?.name.orEmpty()
+                    customAttempted = false
+                },
+                modifier = Modifier.fillMaxWidth().testTag("emoji-picker-custom-option"),
+            ) {
+                Icon(Icons.Outlined.Add, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (customOpen) "Close Custom Emoji" else "Add Custom Emoji")
+            }
+            if (customOpen) {
+                OutlinedTextField(
+                    value = customValue,
+                    onValueChange = {
+                        customValue = it.trim().take(32)
+                        customAttempted = false
+                    },
+                    label = { Text("Custom Emoji") },
+                    supportingText = {
+                        Text(
+                            when {
+                                customAttempted && customValue.isDefaultIdentityEmoji() -> "That emoji is already in the built-in library."
+                                customAttempted && !customEmojiValid -> "Enter one emoji, not text or multiple separate emojis."
+                                else -> "Custom choices stay separate from Whip's read-only defaults."
+                            },
+                        )
+                    },
+                    isError = customAttempted && !customEmojiValid,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("emoji-picker-custom-input"),
+                )
+                OutlinedTextField(
+                    value = customName,
+                    onValueChange = {
+                        customName = it
+                        customAttempted = false
+                    },
+                    label = { Text("Name") },
+                    supportingText = {
+                        Text(
+                            when {
+                                customAttempted && duplicateCustomName -> "That custom emoji name is already in use."
+                                customAttempted && customName.isBlank() -> "Give this emoji a name for your organization."
+                                else -> "This name appears in every Task, Habit, Goal, and Track picker."
+                            },
+                        )
+                    },
+                    isError = customAttempted && !customNameValid,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("emoji-picker-custom-name"),
+                )
             }
         }
 
@@ -158,7 +232,7 @@ internal fun WhipEmojiPicker(
                         .heightIn(max = 520.dp)
                         .verticalScroll(rememberScrollState())
                         .testTag("emoji-picker-presets"),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (query.isBlank()) 12.dp else 4.dp),
                 ) {
                     OutlinedTextField(
                         value = searchQuery,
@@ -169,81 +243,40 @@ internal fun WhipEmojiPicker(
                         leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                         singleLine = true,
                     )
-                    WhipOutlinedButton(
-                        onClick = {
-                            customOpen = !customOpen
-                            val currentCustom = normalizedCustom.firstOrNull { it.emoji == selectedEmoji }
-                            customValue = currentCustom?.emoji.orEmpty()
-                            customName = currentCustom?.name.orEmpty()
-                            customAttempted = false
-                        },
-                        modifier = Modifier.fillMaxWidth().testTag("emoji-picker-custom-option"),
-                    ) {
-                        Icon(Icons.Outlined.Add, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(if (customOpen) "Close Custom Emoji" else "Add Custom Emoji")
-                    }
-                    if (customOpen) {
-                        OutlinedTextField(
-                            value = customValue,
-                            onValueChange = {
-                                customValue = it.trim().take(32)
-                                customAttempted = false
-                            },
-                            label = { Text("Custom Emoji") },
-                            supportingText = {
-                                Text(
-                                    when {
-                                        customAttempted && customValue.isDefaultIdentityEmoji() -> "That emoji is already in the built-in library."
-                                        customAttempted && !customEmojiValid -> "Enter one emoji, not text or multiple separate emojis."
-                                        else -> "Custom choices stay separate from Whip's read-only defaults."
-                                    },
-                                )
-                            },
-                            isError = customAttempted && !customEmojiValid,
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth().testTag("emoji-picker-custom-input"),
-                        )
-                        OutlinedTextField(
-                            value = customName,
-                            onValueChange = {
-                                customName = it
-                                customAttempted = false
-                            },
-                            label = { Text("Name") },
-                            supportingText = {
-                                Text(
-                                    when {
-                                        customAttempted && duplicateCustomName -> "That custom emoji name is already in use."
-                                        customAttempted && customName.isBlank() -> "Give this emoji a name for your organization."
-                                        else -> "This name appears in every Task, Habit, Goal, and Track picker."
-                                    },
-                                )
-                            },
-                            isError = customAttempted && !customNameValid,
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth().testTag("emoji-picker-custom-name"),
-                        )
-                    }
+                    if (query.isBlank()) customEditorControls()
 
-                    EmojiSectionHeading(
-                        title = "Common Emojis",
-                        supportingText = "100 common planning activities, ordered from broadest use to more specific use.",
-                    )
+                    if (query.isBlank()) {
+                        EmojiSectionHeading(
+                            title = "Common Emojis",
+                            supportingText = "100 common planning activities, ordered from broadest use to more specific use.",
+                        )
+                    }
                     if (filteredPresets.isEmpty() && filteredCustom.isEmpty()) {
                         Text(
-                            "No emoji matches “${searchQuery.trim()}”. Add any emoji above instead.",
+                            "No emoji matches “${searchQuery.trim()}”. Use Add Custom Emoji below instead.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                    } else if (filteredPresets.isNotEmpty()) {
-                        EmojiGrid(
-                            presets = filteredPresets,
-                            selectedEmoji = selectedEmoji,
-                            onSelect = { emoji -> onValueChange(emoji); closePicker() },
-                        )
+                    } else {
+                        if (filteredPresets.isNotEmpty()) {
+                            EmojiGrid(
+                                presets = filteredPresets,
+                                selectedEmoji = selectedEmoji,
+                                onSelect = { emoji -> onValueChange(emoji); closePicker() },
+                            )
+                        }
+                        if (query.isNotBlank() && filteredCustom.isNotEmpty()) {
+                            SavedEmojiList(
+                                choices = filteredCustom,
+                                selectedEmoji = selectedEmoji,
+                                managing = managingSaved,
+                                onSelect = { emoji -> onValueChange(emoji); closePicker() },
+                                onRemove = onRemoveSavedEmoji,
+                                modifier = Modifier.bringIntoViewRequester(savedMatchRequester),
+                            )
+                        }
                     }
 
-                    if (normalizedCustom.isNotEmpty()) {
+                    if (normalizedCustom.isNotEmpty() && query.isBlank()) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -274,6 +307,7 @@ internal fun WhipEmojiPicker(
                             Text("No saved emoji matches this search.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
+                    if (query.isNotBlank()) customEditorControls()
                 }
             },
             confirmButton = {
@@ -292,6 +326,11 @@ internal fun WhipEmojiPicker(
                         onClick = { useCustom(save = false) },
                         modifier = Modifier.testTag("emoji-picker-custom-use-once"),
                     ) { Text("Use Once") }
+                } else if (query.isNotBlank() && normalizedCustom.isNotEmpty()) {
+                    WhipTextButton(
+                        onClick = { managingSaved = !managingSaved },
+                        modifier = Modifier.testTag("emoji-picker-manage-saved"),
+                    ) { Text(if (managingSaved) "Done" else "Manage My Emojis") }
                 }
             },
         )
@@ -347,8 +386,9 @@ private fun SavedEmojiList(
     managing: Boolean,
     onSelect: (String) -> Unit,
     onRemove: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         choices.forEachIndexed { index, choice ->
             val selected = !managing && selectedEmoji == choice.emoji
             Surface(

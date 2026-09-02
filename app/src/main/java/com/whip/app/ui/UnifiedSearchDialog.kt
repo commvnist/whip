@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
@@ -881,6 +882,10 @@ private fun UnifiedSearchResultsPane(
     onSelect: (WhipSearchResult) -> Unit,
     onShowMore: () -> Unit,
 ) {
+    val resultsListState = rememberLazyListState()
+    LaunchedEffect(model.filtersExpanded) {
+        if (includeFilters) resultsListState.scrollToItem(0)
+    }
     Column(modifier) {
         val resultsComplete = model.searchSettled && model.dataStatus.complete
         val resultsLabel = when {
@@ -909,6 +914,7 @@ private fun UnifiedSearchResultsPane(
         )
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag("unified-search-results-list"),
+            state = resultsListState,
             contentPadding = PaddingValues(
                 start = WhipSpacing.screenCompact,
                 end = WhipSpacing.screenCompact,

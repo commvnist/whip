@@ -1036,7 +1036,10 @@ class RoutineBuilderUiTest {
         compose.waitForIdle()
         assertEquals("Incline press", createdName)
         compose.onNodeWithTag("routine-placement-editor").assertIsDisplayed()
-        compose.onNodeWithText("Incline press").assertIsDisplayed()
+        compose.onNode(
+            hasText("Incline press") and hasAnyAncestor(hasTestTag("routine-placement-editor")),
+            useUnmergedTree = true,
+        ).assertIsDisplayed()
         compose.onNodeWithContentDescription("Back in routine builder").performClick()
         compose.onNode(
             hasText("Incline press") and hasAnyAncestor(hasTestTag("routine-selected-exercises")),
@@ -1146,7 +1149,10 @@ class RoutineBuilderUiTest {
         }
         compose.onNodeWithTag("routine-builder").assertIsDisplayed()
         compose.onNodeWithTag("routine-placement-editor").assertIsDisplayed()
-        compose.onNodeWithText("Zercher Squat", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNode(
+            hasText("Zercher Squat") and hasAnyAncestor(hasTestTag("routine-placement-editor")),
+            useUnmergedTree = true,
+        ).assertIsDisplayed()
         compose.onNodeWithTag("routine-saved-in-place").assertIsDisplayed()
         compose.onNodeWithText("Routine saved. Continue editing Zercher.").assertIsDisplayed()
         compose.onNodeWithText("Close").assertIsDisplayed()

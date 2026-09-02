@@ -364,3 +364,12 @@
 - Compatibility: Search indexing, Entry FTS, Track/Entry identities, Area scope, saved workspace state, Room schema 41, backup format 18, and all history remain unchanged. Only action labeling, result presentation/navigation, and unreachable UI state changed.
 - Related: `FND-20260831-018`, `FND-20260902-005`, `IMP-20260902-007`, `VER-20260902-007`.
 - Status: Accepted and implemented.
+
+### DEC-20260902-007 — Test real viewport contracts on valid profiles and preserve semantic parity across layouts
+
+- Context: A 320dp physical root cannot render a synthetic 360dp or desktop-width host merely because a test requests it. Conversely, a clipped result under a real API 26 keyboard is a production defect, not a test inconvenience. Wide master/detail layouts may intentionally present the selected identity in more than one semantic region.
+- Decision: Validate compact behavior on a physically compact API 26 profile, adaptive/fold/wide contracts on an API 37 display large enough to host them, and the complete product gate on the representative API 34 phone. Tests derive physical edges from the root, scroll through the owning collection before interacting, branch only on genuine compact-versus-persistent navigation, and scope intentional wide-pane duplicates to the relevant owner. Search disclosure changes reset to the state-summary region; emoji search prioritizes the result above custom creation while the keyboard is open.
+- Rationale: This keeps production geometry honest, prevents false failures caused by impossible canvases, and still treats every defect reproducible in a valid supported viewport as a product bug. Semantic parity matters more than forcing compact and wide compositions to expose identical node counts or simultaneous visibility.
+- Compatibility: Presentation, focus, keyboard, and test targeting only. No Room schema, backup format, search index, identity, workout/program rule, saved record, or historical fact changed.
+- Related: `FND-20260902-006`, `IMP-20260902-008`, `VER-20260902-008`.
+- Status: Accepted and implemented.

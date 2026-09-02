@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -74,9 +75,10 @@ class WhipNavigationTest {
             compose.onAllNodesWithTag("habit-workspace-navigation").assertCountEquals(0)
             compose.onNodeWithContentDescription("Close Habit details").performClick()
 
-            compose.onNodeWithContentDescription("Open goal details for Home overlay goal")
-                .performScrollTo()
-                .performClick()
+            compose.onNodeWithTag("home-list").performScrollToNode(
+                hasContentDescription("Open goal details for Home overlay goal"),
+            )
+            compose.onNodeWithContentDescription("Open goal details for Home overlay goal").performClick()
             compose.onNodeWithTag("entity-inspector").assertIsDisplayed()
             compose.onNodeWithContentDescription("Home").assertIsSelected()
             compose.onNodeWithTag("home-list").assertIsDisplayed()

@@ -519,7 +519,11 @@ class InteractionControlUiTest {
         compose.onNodeWithTag("emoji-picker-trigger").performClick()
         compose.onNodeWithTag("emoji-picker-search").performTextReplacement("🦊")
         compose.onNodeWithTag("emoji-picker-manage-saved").performClick()
-        compose.onNodeWithTag("emoji-saved-0").performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithContentDescription("Remove Forest Work custom emoji")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithContentDescription("Remove Forest Work custom emoji").performClick()
         assertTrue(saved.isEmpty())
     }
 
@@ -991,7 +995,7 @@ class InteractionControlUiTest {
         var destination by mutableStateOf("Today")
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                Box(Modifier.width(360.dp)) {
+                Box(Modifier.fillMaxWidth().testTag("compact-task-tab-host")) {
                     DestinationTabBar(
                         selected = destination,
                         destinations = listOf("Today", "Inbox", "Upcoming", "History"),
@@ -1003,12 +1007,12 @@ class InteractionControlUiTest {
             }
         }
 
-        val leftGutter = with(compose.density) { 12.dp.toPx() }
-        val rightEdge = with(compose.density) { (360.dp - 12.dp).toPx() }
+        val host = compose.onNodeWithTag("compact-task-tab-host").fetchSemanticsNode().boundsInRoot
+        val gutter = with(compose.density) { 12.dp.toPx() }
         val today = compose.onNodeWithTag("compact-task-tab-Today").fetchSemanticsNode().boundsInRoot
         val history = compose.onNodeWithTag("compact-task-tab-History").fetchSemanticsNode().boundsInRoot
-        assertEquals(leftGutter, today.left, 0.5f)
-        assertEquals(rightEdge, history.right, 0.5f)
+        assertEquals(host.left + gutter, today.left, 0.5f)
+        assertEquals(host.right - gutter, history.right, 0.5f)
         compose.onNodeWithText("History").assertIsDisplayed()
     }
 

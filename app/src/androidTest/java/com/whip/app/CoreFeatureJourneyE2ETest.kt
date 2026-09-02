@@ -97,6 +97,7 @@ class CoreFeatureJourneyE2ETest {
             // Expanded Fold layouts intentionally show the selected record in both
             // master and contextual detail panes.
             compose.onAllNodesWithText("E2E workout")[0].assertIsDisplayed()
+            compose.onNodeWithTag("active-workout-list").performScrollToNode(hasText("E2E exercise"))
             compose.onAllNodesWithText("E2E exercise")[0].assertIsDisplayed()
 
             compose.onNodeWithTag("gym-destination-Progress").performClick()
@@ -135,7 +136,12 @@ class CoreFeatureJourneyE2ETest {
             compose.waitUntil(timeoutMillis = 5_000) {
                 compose.onAllNodesWithContentDescription("Edit task", substring = true).fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onAllNodesWithContentDescription("Edit task", substring = true)[0].performClick()
+            compose.onAllNodesWithContentDescription("Edit task", substring = true)[0]
+                .performScrollTo()
+                .performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithTag("task-editor-title").fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNodeWithTag("task-editor-title").performTextClearance()
             compose.onNodeWithTag("task-editor-title").performTextInput("Unsaved fold draft")
 
