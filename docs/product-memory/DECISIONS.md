@@ -373,3 +373,12 @@
 - Compatibility: Presentation, focus, keyboard, and test targeting only. No Room schema, backup format, search index, identity, workout/program rule, saved record, or historical fact changed.
 - Related: `FND-20260902-006`, `IMP-20260902-008`, `VER-20260902-008`.
 - Status: Accepted and implemented.
+
+### DEC-20260902-008 — Area changes use one request-owned result with repository-authoritative truth
+
+- Context: Areas are shared ownership metadata for Tasks, Habits, Goals, Tracks, Entries, saved scopes, and widgets. Their apparently small controls can therefore trigger cross-domain moves, deletions, and Settings reconciliation. Optimistically closing a dialog before that work finishes loses authorship and cannot distinguish a rejected transaction from a committed transaction whose derived cleanup failed.
+- Decision: Serialize Area-management mutations through one ViewModel-owned request state and return a typed receipt naming the exact operation, source identity, optional destination identity, and committed follow-up warnings. The initiating surface retains its draft/choice, disables dismissal and duplicate submission only while saving, consumes only its matching result, and closes on authoritative success. Repository/database operations remain the source of truth; destructive methods do not depend on an asynchronously collected UI projection. Read-modify-write color changes are transactional. Archived-name creation restores the same Area and preserves its color; archive, restore, search, and conflict copy all model archived state explicitly.
+- Rationale: This gives consequential cross-domain operations the same lifecycle and retry truth as other authored Whip changes without forcing harmless pickers or immediate preferences into a generic transaction DSL. A committed warning cannot trigger an unsafe retry, while a pre-commit failure leaves the user's intent intact and understandable.
+- Compatibility: No Room schema, migration, backup format, Area ID, assignment, historical record, or existing saved color is rewritten. Existing archived Area identity is reused on restoration. Atomic deletion and assignment behavior remains in the existing repositories/coordinators.
+- Related: `FND-20260831-019`, `FND-20260901-027`, `FND-20260902-007`, `IMP-20260902-009`, `VER-20260902-009`.
+- Status: Accepted and implemented.

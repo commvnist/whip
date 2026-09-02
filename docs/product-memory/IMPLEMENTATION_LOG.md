@@ -329,3 +329,16 @@
 - Related: `FND-20260902-006`, `DEC-20260902-007`.
 - Verification: `VER-20260902-008`.
 - Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.
+
+### IMP-20260902-009 — Exact and archive-correct Area management
+
+- Added a typed `AreaMutationReceipt` boundary covering create, rename, color, reorder, move-all, merge, archive, restore, delete-while-moving, and delete-with-items. `SettingsViewModel` serializes these requests, retains their exact terminal result through Activity recreation, reads destructive truth from repositories, and classifies post-commit Settings reconciliation as a warning rather than a retryable failure.
+- Area-management dialogs now stay owned by the initiating request, retain reviewed fields and destination choices on failure, expose in-context saving/errors, disable dismissal and duplicate submission only while persistence is active, and close the matching child surface only after authoritative success. Archive success stays in the Area detail, offers Undo, and uses an exact Restore request.
+- Corrected archived-state behavior throughout the flow: archived details execute Restore; archived search matches appear without prior disclosure; archived-name creation says Restore and reactivates the same Area while preserving its saved color; active duplicates still select existing; rename conflicts explain that an archived destination must be restored before merge.
+- Wrapped Area color read-modify-write in the existing Room transaction. No generic mutation DSL or schema expansion was introduced.
+- Added four Area-management Compose regressions, three exact ViewModel mutation regressions, and two repository archived-identity/conflict regressions. Preserved inspected manager, detail, archive-confirmation, and archive-result screenshots plus UI hierarchies.
+- Compatibility: No Room schema, migration, backup format, Area ID, cross-domain assignment, completed history, or saved color was changed. Existing archived identities are restored rather than duplicated.
+- Important files: `AreaManagementDialog.kt`, `AreaPicker.kt`, `WhipColorPicker.kt`, `SettingsViewModel.kt`, `AreaRepository.kt`, `AreaFeatureUiTest.kt`, `AreaMutationViewModelTest.kt`, `MeasurementTaxonomyRepositoryTest.kt`, `docs/testing.md`, and `artifacts/full-product-audit/2026-09-02/area-management/`.
+- Related: `FND-20260831-019`, `FND-20260901-027`, `FND-20260902-007`, `DEC-20260902-008`.
+- Verification: `VER-20260902-009`.
+- Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.

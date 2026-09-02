@@ -192,6 +192,35 @@ class MeasurementTaxonomyRepositoryTest {
     }
 
     @Test
+    fun renameConflictNamesAnArchivedDestinationThatMustBeRestored() = runBlocking {
+        val mainId = areas.ensureDefaultArea()
+        val archivedId = areas.create("Archived Project")
+        areas.setArchived(archivedId, true)
+
+        val failure = runCatching { areas.rename(mainId, "Archived Project") }.exceptionOrNull()
+
+        assertTrue(failure?.message?.contains("archived Area") == true)
+        assertTrue(failure?.message?.contains("Restore it before merging") == true)
+        assertEquals("Main", areas.areas.first().single { it.id == mainId }.name)
+    }
+
+    @Test
+    fun creatingAnArchivedAreaNameRestoresTheSameIdentityAndPreservesItsColor() = runBlocking {
+        areas.ensureDefaultArea()
+        val originalColor = 0xFF1565C0
+        val archivedId = areas.create("Archived Project", originalColor)
+        areas.setArchived(archivedId, true)
+
+        val restoredId = areas.create("  archived project  ", 0xFFFF0000)
+        val restored = areas.areas.first().single { it.id == archivedId }
+
+        assertEquals(archivedId, restoredId)
+        assertFalse(restored.archived)
+        assertEquals(originalColor, restored.colorArgb)
+        assertEquals(2, areas.areas.first().size)
+    }
+
+    @Test
     fun measurementRecordsUseTheRepositoryClockZoneUnlessAnExplicitProvenanceZoneIsSupplied() = runBlocking {
         val metricId = measurements.createMetric(
             name = "Timezone provenance",

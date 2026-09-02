@@ -202,12 +202,29 @@ internal fun CreateAreaDialog(
     onDismiss: () -> Unit,
     onCreate: (String, Long?, (Result<String>) -> Unit) -> Unit,
     onSelected: (String, String) -> Unit = { _, _ -> },
+    controlledSaving: Boolean? = null,
+    controlledError: String? = null,
+    onCreateRequested: ((String, Long?) -> Unit)? = null,
 ) {
     var name by rememberSaveable { mutableStateOf("") }
     var color by rememberSaveable { mutableStateOf<Long?>(null) }
-    var saving by rememberSaveable { mutableStateOf(false) }
-    var error by rememberSaveable { mutableStateOf<String?>(null) }
+    var localSaving by rememberSaveable { mutableStateOf(false) }
+    var localError by rememberSaveable { mutableStateOf<String?>(null) }
+    val saving = controlledSaving ?: localSaving
+    val error = controlledError ?: localError
     val duplicate = existingAreas.firstOrNull { it.name.equals(name.trim(), true) }
+    fun submitCreate(displayName: String, requestedColor: Long?) {
+        if (onCreateRequested != null) {
+            onCreateRequested(displayName, requestedColor)
+        } else {
+            localSaving = true
+            onCreate(displayName, requestedColor) { result ->
+                localSaving = false
+                result.onSuccess { onSelected(it, displayName) }
+                    .onFailure { localError = it.message ?: "Could not create area" }
+            }
+        }
+    }
     PaneAwareAlertDialog(
         modifier = modifier,
         onDismissRequest = { if (!saving) onDismiss() },
@@ -216,7 +233,7 @@ internal fun CreateAreaDialog(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it.take(40); error = null },
+                    onValueChange = { name = it.take(40); localError = null },
                     label = { Text("Area name") },
                     supportingText = { Text("${name.length}/40") },
                     placeholder = { Text("Enter a name") },
@@ -232,24 +249,36 @@ internal fun CreateAreaDialog(
                     dialogModifier = modifier,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                duplicate?.let { Text("${it.name} already exists. Select it instead.", color = MaterialTheme.colorScheme.primary) }
+                duplicate?.let {
+                    Text(
+                        if (it.archived) {
+                            "${it.name} is archived. Restore it to use it again; its saved color will be kept."
+                        } else {
+                            "${it.name} already exists. Select it instead."
+                        },
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         },
         confirmButton = {
-            if (duplicate != null) {
-                WhipTextButton(onClick = { onSelected(duplicate.id, duplicate.name) }) { Text("Select Existing") }
+            if (duplicate?.archived == true) {
+                WhipTextButton(
+                    enabled = !saving,
+                    onClick = { submitCreate(duplicate.name, duplicate.colorArgb) },
+                ) { Text(if (saving) "Restoring…" else "Restore Existing Area") }
+            } else if (duplicate != null) {
+                WhipTextButton(
+                    enabled = !saving,
+                    onClick = { onSelected(duplicate.id, duplicate.name) },
+                ) { Text("Select Existing") }
             } else {
                 WhipTextButton(
                     enabled = name.isNotBlank() && !saving,
                     onClick = {
-                        saving = true
                         val displayName = name.trim()
-                        onCreate(displayName, color) { result ->
-                            saving = false
-                            result.onSuccess { onSelected(it, displayName) }
-                                .onFailure { error = it.message ?: "Could not create area" }
-                        }
+                        submitCreate(displayName, color)
                     },
                 ) { Text(if (saving) "Saving…" else "Create") }
             }

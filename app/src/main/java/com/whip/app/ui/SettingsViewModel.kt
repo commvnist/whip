@@ -94,6 +94,26 @@ data class SettingsMutationReceipt(
 
 data class CustomUnitMutationReceipt(val unitId: String)
 
+enum class AreaMutationKind {
+    Create,
+    Rename,
+    Color,
+    Reorder,
+    MoveItems,
+    Merge,
+    Archive,
+    Restore,
+    DeleteKeepingItems,
+    DeleteWithItems,
+}
+
+data class AreaMutationReceipt(
+    val kind: AreaMutationKind,
+    val areaId: String,
+    val relatedAreaId: String? = null,
+    val warnings: List<String> = emptyList(),
+)
+
 enum class HealthMutationKind { Policy, Sync, DeleteLocalCopies }
 
 data class HealthMutationReceipt(
@@ -123,6 +143,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _customUnitMutationState =
         MutableStateFlow<PersistenceRequestState<CustomUnitMutationReceipt>>(PersistenceRequestState.Idle)
     internal val customUnitMutationState = _customUnitMutationState.asStateFlow()
+    private val _areaMutationState =
+        MutableStateFlow<PersistenceRequestState<AreaMutationReceipt>>(PersistenceRequestState.Idle)
+    internal val areaMutationState = _areaMutationState.asStateFlow()
     private val _healthMutationState =
         MutableStateFlow<PersistenceRequestState<HealthMutationReceipt>>(PersistenceRequestState.Idle)
     internal val healthMutationState = _healthMutationState.asStateFlow()
@@ -212,6 +235,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             app.userDataGeneration.drop(1).collect {
                 _typedSettingMutationState.value = PersistenceRequestState.Idle
                 _customUnitMutationState.value = PersistenceRequestState.Idle
+                _areaMutationState.value = PersistenceRequestState.Idle
                 _healthMutationState.value = PersistenceRequestState.Idle
             }
         }
@@ -271,6 +295,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun consumeCustomUnitMutation(requestId: String) {
         if ((_customUnitMutationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
             _customUnitMutationState.value = PersistenceRequestState.Idle
+        }
+    }
+
+    fun consumeAreaMutation(requestId: String) {
+        if ((_areaMutationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _areaMutationState.value = PersistenceRequestState.Idle
         }
     }
 
@@ -439,7 +469,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 .onSuccess { id ->
                     runtime.value = runtime.value.copy(
                         busy = false,
-                        message = if (existing == null) "Area created" else "${existing.name} already exists; selected it instead",
+                        message = when {
+                            existing == null -> "Area created"
+                            existing.archived -> "${existing.name} restored"
+                            else -> "${existing.name} already exists; selected it instead"
+                        },
                     )
                     onResult(Result.success(id))
                 }
@@ -471,85 +505,177 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 }
         }
     }
-    fun mergeAreas(sourceId: String, targetId: String) = runIo("Areas merged") {
-        app.areaRepository.merge(sourceId, targetId)
-        val sourceScope = AreaScope.One(sourceId).storageKey
-        val targetScope = AreaScope.One(targetId).storageKey
-        repository.update { current ->
-            current.copy(
-                activeAreaScope = if (current.activeAreaScope == sourceScope) targetScope else current.activeAreaScope,
-                chosenOpeningAreaScope = if (current.chosenOpeningAreaScope == sourceScope) targetScope else current.chosenOpeningAreaScope,
-            )
-        }
+
+    fun createAreaMutation(
+        requestId: String,
+        name: String,
+        colorArgb: Long?,
+    ): Boolean = runAreaMutation(requestId) {
+        val areaId = app.areaRepository.create(name, colorArgb)
+        AreaMutationReceipt(AreaMutationKind.Create, areaId)
     }
-    fun moveAllAreaItems(sourceId: String, targetId: String) = runIo("Area items moved") {
+
+    fun renameAreaMutation(
+        requestId: String,
+        areaId: String,
+        name: String,
+    ): Boolean = runAreaMutation(requestId) {
+        app.areaRepository.rename(areaId, name)
+        AreaMutationReceipt(AreaMutationKind.Rename, areaId)
+    }
+
+    fun setAreaColorMutation(
+        requestId: String,
+        areaId: String,
+        colorArgb: Long?,
+    ): Boolean = runAreaMutation(requestId) {
+        app.areaRepository.setColor(areaId, colorArgb)
+        AreaMutationReceipt(AreaMutationKind.Color, areaId)
+    }
+
+    fun moveAreaMutation(
+        requestId: String,
+        areaId: String,
+        direction: Int,
+    ): Boolean = runAreaMutation(requestId) {
+        app.areaRepository.move(areaId, direction)
+        AreaMutationReceipt(AreaMutationKind.Reorder, areaId)
+    }
+
+    fun moveAllAreaItemsMutation(
+        requestId: String,
+        sourceId: String,
+        targetId: String,
+    ): Boolean = runAreaMutation(requestId) {
         app.areaRepository.moveAssignments(sourceId, targetId)
-        val currentSourceScope = AreaScope.One(sourceId)
-        if (repository.current().activeAreaScope == currentSourceScope.storageKey) {
-            repository.update { it.copy(activeAreaScope = AreaScope.One(targetId).storageKey) }
-        }
-    }
-    fun deleteAreaAndKeepItems(id: String, replacementAreaId: String) {
-        var committedWarnings: List<String> = emptyList()
-        runIo(
-            success = "Area deleted; assigned items moved",
-            successDetail = { committedWarnings.joinToString(" ").takeIf(String::isNotBlank) },
+        val warnings = areaFollowUpWarnings(
+            "The items were moved, but Whip could not update the current Area view. Reopen Areas to refresh it.",
         ) {
-            requireNotNull(uiState.value.areas.firstOrNull { it.id == id }) { "Area no longer exists" }
-            app.areaRepository.deletePermanently(id, replacementAreaId)
-            committedWarnings = reconcileAreaReferencesAfterCommittedDeletion(id)
-        }
-    }
-    fun deleteAreaAndItems(id: String) {
-        var committedWarnings: List<String> = emptyList()
-        runIo(
-            success = "Area and assigned items permanently deleted",
-            successDetail = { committedWarnings.joinToString(" ").takeIf(String::isNotBlank) },
-        ) {
-            requireNotNull(uiState.value.areas.firstOrNull { it.id == id }) { "Area no longer exists" }
-            val summary = try {
-                app.areaDeletionCoordinator.deleteAreaAndItems(id)
-            } catch (cancelled: CommittedAreaDeletionCancellation) {
-                if (!currentCoroutineContext().isActive) throw cancelled
-                cancelled.summary
+            val currentSourceScope = AreaScope.One(sourceId)
+            if (repository.current().activeAreaScope == currentSourceScope.storageKey) {
+                repository.update { it.copy(activeAreaScope = AreaScope.One(targetId).storageKey) }
             }
-            committedWarnings = summary.warnings + reconcileAreaReferencesAfterCommittedDeletion(
-                id,
+        }
+        AreaMutationReceipt(AreaMutationKind.MoveItems, sourceId, targetId, warnings)
+    }
+
+    fun mergeAreasMutation(
+        requestId: String,
+        sourceId: String,
+        targetId: String,
+    ): Boolean = runAreaMutation(requestId) {
+        app.areaRepository.merge(sourceId, targetId)
+        val warnings = areaFollowUpWarnings(
+            "The Areas were merged, but Whip could not update the current or opening Area view. Reopen Areas to refresh it.",
+        ) {
+            val sourceScope = AreaScope.One(sourceId).storageKey
+            val targetScope = AreaScope.One(targetId).storageKey
+            repository.update { current ->
+                current.copy(
+                    activeAreaScope = if (current.activeAreaScope == sourceScope) targetScope else current.activeAreaScope,
+                    chosenOpeningAreaScope = if (current.chosenOpeningAreaScope == sourceScope) targetScope else current.chosenOpeningAreaScope,
+                )
+            }
+        }
+        AreaMutationReceipt(AreaMutationKind.Merge, sourceId, targetId, warnings)
+    }
+
+    fun setAreaArchivedMutation(
+        requestId: String,
+        areaId: String,
+        archived: Boolean,
+    ): Boolean = runAreaMutation(requestId) {
+        app.areaRepository.setArchived(areaId, archived)
+        val warnings = if (archived) {
+            areaFollowUpWarnings(
+                "The Area was archived, but Whip could not reset a saved view that used it. Reopen Areas to refresh it.",
+            ) { repository.update { it.withoutAreaReferences(areaId) } }
+        } else {
+            emptyList()
+        }
+        AreaMutationReceipt(
+            kind = if (archived) AreaMutationKind.Archive else AreaMutationKind.Restore,
+            areaId = areaId,
+            warnings = warnings,
+        )
+    }
+
+    fun deleteAreaKeepingItemsMutation(
+        requestId: String,
+        areaId: String,
+        replacementAreaId: String,
+    ): Boolean = runAreaMutation(requestId) {
+        app.areaRepository.deletePermanently(areaId, replacementAreaId)
+        AreaMutationReceipt(
+            kind = AreaMutationKind.DeleteKeepingItems,
+            areaId = areaId,
+            relatedAreaId = replacementAreaId,
+            warnings = reconcileAreaReferencesAfterCommittedDeletion(areaId),
+        )
+    }
+
+    fun deleteAreaWithItemsMutation(
+        requestId: String,
+        areaId: String,
+    ): Boolean = runAreaMutation(requestId) {
+        val summary = try {
+            app.areaDeletionCoordinator.deleteAreaAndItems(areaId)
+        } catch (cancelled: CommittedAreaDeletionCancellation) {
+            if (!currentCoroutineContext().isActive) throw cancelled
+            cancelled.summary
+        }
+        AreaMutationReceipt(
+            kind = AreaMutationKind.DeleteWithItems,
+            areaId = areaId,
+            warnings = summary.warnings + reconcileAreaReferencesAfterCommittedDeletion(
+                areaId,
                 summary.taskIds.toSet(),
-            )
-        }
+            ),
+        )
     }
-    fun setAreaColor(id: String, colorArgb: Long?) = runIo("Area color updated") { app.areaRepository.setColor(id, colorArgb) }
+
+    private fun runAreaMutation(
+        requestId: String,
+        block: suspend () -> AreaMutationReceipt,
+    ): Boolean {
+        if (!_areaMutationState.tryStartPersistenceRequest(requestId)) return false
+        viewModelScope.launch(Dispatchers.IO) {
+            val result: WhipResult<AreaMutationReceipt> = try {
+                val receipt = checkNotNull(app.withUserDataAccess { block() }) {
+                    "Whip data is temporarily unavailable; review the Area and try again."
+                }
+                WhipResult.Success(receipt)
+            } catch (cancelled: CancellationException) {
+                if ((_areaMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                    _areaMutationState.value = PersistenceRequestState.Idle
+                }
+                throw cancelled
+            } catch (error: Exception) {
+                WhipResult.Failure(
+                    error.message ?: "Whip could not save this Area change. Your reviewed choice is still here.",
+                    error,
+                )
+            }
+            if ((_areaMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                _areaMutationState.value = PersistenceRequestState.Finished(requestId, result)
+            }
+        }
+        return true
+    }
+
+    private inline fun areaFollowUpWarnings(message: String, block: () -> Unit): List<String> =
+        try {
+            block()
+            emptyList()
+        } catch (fatal: Error) {
+            throw fatal
+        } catch (_: Exception) {
+            listOf(message)
+        }
+
     fun renameTag(id: String, name: String) = runIo("Tag updated") { app.measurementRepository.renameTag(id, name) }
-    fun setAreaArchived(id: String, archived: Boolean) = runIo(
-        success = if (archived) "Area archived" else "Area restored",
-        showSuccess = false,
-    ) {
-        app.areaRepository.setArchived(id, archived)
-        if (archived) {
-            repository.update { it.withoutAreaReferences(id) }
-        }
-    }
     fun setTagArchived(id: String, archived: Boolean) = runIo(if (archived) "Tag archived" else "Tag restored") {
         app.measurementRepository.setTagArchived(id, archived)
-    }
-    fun moveArea(id: String, direction: Int) {
-        viewModelScope.launch {
-            areaReorderMutex.withLock {
-                try {
-                    withContext(Dispatchers.IO) {
-                        checkNotNull(app.withUserDataAccess {
-                            app.areaRepository.move(id, direction)
-                            Unit
-                        }) { "Whip data is unavailable while recovery is in progress" }
-                    }
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (error: Throwable) {
-                    runtime.value = runtime.value.copy(message = error.message ?: "Could not save the new order")
-                }
-            }
-        }
     }
 
     private fun reconcileAreaReferencesAfterCommittedDeletion(
@@ -1024,7 +1150,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         return true
     }
 
-    private val areaReorderMutex = Mutex()
     private val reminderSettingsUpdateMutex = Mutex()
 
     private fun runIo(

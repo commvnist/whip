@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -80,14 +81,97 @@ internal fun AreaManagementDialog(
     var detailId by rememberSaveable { mutableStateOf<String?>(null) }
     var archivedExpanded by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
+    var pendingAction by rememberSaveable { mutableStateOf<String?>(null) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val areaMutationState by viewModel.areaMutationState.collectAsStateWithLifecycle()
     val active = state.areas.filterNot(Area::archived)
     val archived = state.areas.filter(Area::archived)
     val childDialogModifier = Modifier.width(paneMaxWidth)
     val selectedArea = detailId?.let { id -> state.areas.firstOrNull { it.id == id } }
+    lateinit var mutationCoordinator: EntitySaveCoordinator
+    mutationCoordinator = rememberPersistenceRequestCoordinator(
+        state = areaMutationState,
+        consume = viewModel::consumeAreaMutation,
+        key = "area-management",
+        requestNamespace = "area-management",
+        onPersisted = { receipt ->
+            when (receipt.kind) {
+                AreaMutationKind.Create -> createOpen = false
+                AreaMutationKind.Rename -> renameId = null
+                AreaMutationKind.Color -> colorId = null
+                AreaMutationKind.Reorder -> Unit
+                AreaMutationKind.MoveItems -> moveItemsSourceId = null
+                AreaMutationKind.Merge -> {
+                    mergeSourceId = null
+                    if (detailId == receipt.areaId) detailId = receipt.relatedAreaId
+                }
+                AreaMutationKind.Archive -> archiveId = null
+                AreaMutationKind.Restore -> Unit
+                AreaMutationKind.DeleteKeepingItems,
+                AreaMutationKind.DeleteWithItems,
+                -> {
+                    deleteId = null
+                    if (detailId == receipt.areaId) detailId = null
+                }
+            }
+            pendingAction = null
+            val resultMessage = when (receipt.kind) {
+                AreaMutationKind.Create -> "Area created"
+                AreaMutationKind.Rename -> "Area renamed"
+                AreaMutationKind.Color -> "Area color updated"
+                AreaMutationKind.Reorder -> "Area order updated"
+                AreaMutationKind.MoveItems -> "Area items moved"
+                AreaMutationKind.Merge -> "Areas merged"
+                AreaMutationKind.Archive -> "Area archived"
+                AreaMutationKind.Restore -> "Area restored"
+                AreaMutationKind.DeleteKeepingItems -> "Area deleted; assigned items moved"
+                AreaMutationKind.DeleteWithItems -> "Area and assigned items permanently deleted"
+            }
+            scope.launch {
+                val message = listOfNotNull(
+                    resultMessage,
+                    receipt.warnings.joinToString(" ").takeIf(String::isNotBlank),
+                ).joinToString(" · ")
+                val result = snackbar.showSnackbar(
+                    message = message,
+                    actionLabel = "Undo".takeIf { receipt.kind == AreaMutationKind.Archive },
+                    withDismissAction = receipt.warnings.isNotEmpty(),
+                )
+                if (result == SnackbarResult.ActionPerformed && receipt.kind == AreaMutationKind.Archive) {
+                    val requestId = mutationCoordinator.begin() ?: return@launch
+                    pendingAction = AreaMutationKind.Restore.name
+                    if (!viewModel.setAreaArchivedMutation(requestId, receipt.areaId, false)) {
+                        pendingAction = null
+                        mutationCoordinator.finishFailure(
+                            "Another Area change is still finishing. Review the current Areas and try Restore again.",
+                        )
+                    }
+                }
+            }
+        },
+        orphanedMessage =
+            "The previous Area change was interrupted. Review the current Area, assignments, and archive state before retrying a destructive action.",
+    )
+    fun submitAreaMutation(kind: AreaMutationKind, submit: (String) -> Boolean) {
+        val requestId = mutationCoordinator.begin() ?: return
+        pendingAction = kind.name
+        if (!submit(requestId)) {
+            pendingAction = null
+            mutationCoordinator.finishFailure(
+                "Another Area change is still finishing. Review the current Areas and try again.",
+            )
+        }
+    }
+    fun saving(kind: AreaMutationKind): Boolean =
+        mutationCoordinator.saving && pendingAction == kind.name
+    fun error(kind: AreaMutationKind): String? =
+        mutationCoordinator.errorMessage.takeIf { pendingAction == kind.name }
+
     BackHandler {
-        if (detailId != null) detailId = null else onDismiss()
+        if (!mutationCoordinator.saving) {
+            if (detailId != null) detailId = null else onDismiss()
+        }
     }
 
     WhipFullScreenSurface(title = "Areas") {
@@ -120,10 +204,28 @@ internal fun AreaManagementDialog(
                     WhipTrailingCloseAction(
                         label = "Close Areas",
                         onClick = onDismiss,
+                        enabled = !mutationCoordinator.saving,
                         modifier = Modifier.testTag("area-close-action"),
                     )
                 }
                 HorizontalDivider()
+                if (mutationCoordinator.saving) {
+                    WhipStatusCard(
+                        kind = WhipStatusKind.Loading,
+                        title = "Saving Area Change",
+                        message = "Whip is confirming the exact Area, assignments, and resulting view before this action finishes.",
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)
+                            .testTag("area-mutation-saving"),
+                    )
+                } else mutationCoordinator.errorMessage?.let { message ->
+                    WhipStatusCard(
+                        kind = WhipStatusKind.Error,
+                        title = "Area Change Not Saved",
+                        message = message,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)
+                            .testTag("area-mutation-error"),
+                    )
+                }
                 BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                     val masterDetail = maxWidth >= 760.dp
                     if (masterDetail) {
@@ -141,12 +243,20 @@ internal fun AreaManagementDialog(
                                 onOpen = { detailId = it },
                                 onRename = { renameId = it },
                                 onColor = { colorId = it },
-                                onMove = viewModel::moveArea,
+                                onMove = { id, direction ->
+                                    submitAreaMutation(AreaMutationKind.Reorder) { requestId ->
+                                        viewModel.moveAreaMutation(requestId, id, direction)
+                                    }
+                                },
                                 onMoveItems = { moveItemsSourceId = it },
                                 onMerge = { mergeSourceId = it },
                                 onArchive = { archiveId = it },
                                 onDelete = { deleteId = it },
-                                onRestore = { viewModel.setAreaArchived(it, false) },
+                                onRestore = { id ->
+                                    submitAreaMutation(AreaMutationKind.Restore) { requestId ->
+                                        viewModel.setAreaArchivedMutation(requestId, id, false)
+                                    }
+                                },
                             )
                             VerticalDivider(Modifier.fillMaxHeight())
                             if (selectedArea != null) {
@@ -159,6 +269,11 @@ internal fun AreaManagementDialog(
                                     onMoveItems = { moveItemsSourceId = selectedArea.id },
                                     onMerge = { mergeSourceId = selectedArea.id },
                                     onArchive = { archiveId = selectedArea.id },
+                                    onRestore = { id ->
+                                        submitAreaMutation(AreaMutationKind.Restore) { requestId ->
+                                            viewModel.setAreaArchivedMutation(requestId, id, false)
+                                        }
+                                    },
                                     onDelete = { deleteId = selectedArea.id },
                                 )
                             } else {
@@ -179,6 +294,11 @@ internal fun AreaManagementDialog(
                             onMoveItems = { moveItemsSourceId = selectedArea.id },
                             onMerge = { mergeSourceId = selectedArea.id },
                             onArchive = { archiveId = selectedArea.id },
+                            onRestore = { id ->
+                                submitAreaMutation(AreaMutationKind.Restore) { requestId ->
+                                    viewModel.setAreaArchivedMutation(requestId, id, false)
+                                }
+                            },
                             onDelete = { deleteId = selectedArea.id },
                         )
                     } else {
@@ -195,12 +315,20 @@ internal fun AreaManagementDialog(
                             onOpen = { detailId = it },
                             onRename = { renameId = it },
                             onColor = { colorId = it },
-                            onMove = viewModel::moveArea,
+                            onMove = { id, direction ->
+                                submitAreaMutation(AreaMutationKind.Reorder) { requestId ->
+                                    viewModel.moveAreaMutation(requestId, id, direction)
+                                }
+                            },
                             onMoveItems = { moveItemsSourceId = it },
                             onMerge = { mergeSourceId = it },
                             onArchive = { archiveId = it },
                             onDelete = { deleteId = it },
-                            onRestore = { viewModel.setAreaArchived(it, false) },
+                            onRestore = { id ->
+                                submitAreaMutation(AreaMutationKind.Restore) { requestId ->
+                                    viewModel.setAreaArchivedMutation(requestId, id, false)
+                                }
+                            },
                         )
                     }
                 }
@@ -212,27 +340,58 @@ internal fun AreaManagementDialog(
     if (createOpen) CreateAreaDialog(
         modifier = childDialogModifier,
         existingAreas = state.areas,
-        onDismiss = { createOpen = false },
+        onDismiss = { if (!saving(AreaMutationKind.Create)) createOpen = false },
         onCreate = viewModel::createArea,
         onSelected = { _, _ -> createOpen = false },
+        controlledSaving = saving(AreaMutationKind.Create),
+        controlledError = error(AreaMutationKind.Create),
+        onCreateRequested = { name, color ->
+            submitAreaMutation(AreaMutationKind.Create) { requestId ->
+                viewModel.createAreaMutation(requestId, name, color)
+            }
+        },
     )
     renameId?.let { id -> state.areas.firstOrNull { it.id == id }?.let { area ->
         RenameAreaDialog(
             modifier = childDialogModifier,
             area = area,
             existingAreas = state.areas,
-            onDismiss = { renameId = null },
-            onRename = { name, result -> viewModel.renameArea(area.id, name, result) },
-            onRenamed = { renameId = null },
+            onDismiss = { if (!saving(AreaMutationKind.Rename)) renameId = null },
+            saving = saving(AreaMutationKind.Rename),
+            error = error(AreaMutationKind.Rename),
+            onRename = { name ->
+                submitAreaMutation(AreaMutationKind.Rename) { requestId ->
+                    viewModel.renameAreaMutation(requestId, area.id, name)
+                }
+            },
         )
     } }
     colorId?.let { id -> state.areas.firstOrNull { it.id == id }?.let { area ->
-        AreaColorDialog(childDialogModifier, area, { colorId = null }) { viewModel.setAreaColor(area.id, it); colorId = null }
+        AreaColorDialog(
+            modifier = childDialogModifier,
+            area = area,
+            saving = saving(AreaMutationKind.Color),
+            error = error(AreaMutationKind.Color),
+            onDismiss = { if (!saving(AreaMutationKind.Color)) colorId = null },
+        ) { color ->
+            submitAreaMutation(AreaMutationKind.Color) { requestId ->
+                viewModel.setAreaColorMutation(requestId, area.id, color)
+            }
+        }
     } }
     mergeSourceId?.let { id -> state.areas.firstOrNull { it.id == id }?.let { source ->
-        MergeAreaDialog(childDialogModifier, source, active.filter { it.id != id }, state.areaUsage[id] ?: AreaUsageCounts(), { mergeSourceId = null }) { target ->
-            viewModel.mergeAreas(source.id, target.id)
-            mergeSourceId = null
+        MergeAreaDialog(
+            childDialogModifier,
+            source,
+            active.filter { it.id != id },
+            state.areaUsage[id] ?: AreaUsageCounts(),
+            saving = saving(AreaMutationKind.Merge),
+            error = error(AreaMutationKind.Merge),
+            onDismiss = { if (!saving(AreaMutationKind.Merge)) mergeSourceId = null },
+        ) { target ->
+            submitAreaMutation(AreaMutationKind.Merge) { requestId ->
+                viewModel.mergeAreasMutation(requestId, source.id, target.id)
+            }
         }
     } }
     moveItemsSourceId?.let { sourceId ->
@@ -244,10 +403,13 @@ internal fun AreaManagementDialog(
                 sourceName = source.name,
                 usage = state.areaUsage[sourceId] ?: AreaUsageCounts(),
                 targets = active.filter { it.id != sourceId },
-                onDismiss = { moveItemsSourceId = null },
+                saving = saving(AreaMutationKind.MoveItems),
+                error = error(AreaMutationKind.MoveItems),
+                onDismiss = { if (!saving(AreaMutationKind.MoveItems)) moveItemsSourceId = null },
                 onMove = { targetId ->
-                    viewModel.moveAllAreaItems(sourceId, targetId)
-                    moveItemsSourceId = null
+                    submitAreaMutation(AreaMutationKind.MoveItems) { requestId ->
+                        viewModel.moveAllAreaItemsMutation(requestId, sourceId, targetId)
+                    }
                 },
             )
         }
@@ -262,19 +424,28 @@ internal fun AreaManagementDialog(
         } else {
             PaneAwareAlertDialog(
                 modifier = childDialogModifier,
-                onDismissRequest = { archiveId = null },
+                onDismissRequest = { if (!saving(AreaMutationKind.Archive)) archiveId = null },
                 title = { Text("Archive ${area.name}?") },
-                text = { Text(if (usage.total == 0) "It will be hidden from area pickers." else "${usageText(usage)} will keep this assignment. The area will be hidden from pickers until restored.") },
-                confirmButton = { WhipTextButton(onClick = {
-                    viewModel.setAreaArchived(id, true)
-                    archiveId = null
-                    scope.launch {
-                        if (snackbar.showSnackbar("${area.name} archived", "Undo") == SnackbarResult.ActionPerformed) {
-                            viewModel.setAreaArchived(id, false)
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(if (usage.total == 0) "It will be hidden from area pickers." else "${usageText(usage)} will keep this assignment. The area will be hidden from pickers until restored.")
+                        error(AreaMutationKind.Archive)?.let { message ->
+                            Text(message, color = MaterialTheme.colorScheme.error)
                         }
                     }
-                }) { Text("Archive") } },
-                dismissButton = { WhipTextButton(onClick = { archiveId = null }) { Text("Cancel") } },
+                },
+                confirmButton = { WhipTextButton(
+                    enabled = !saving(AreaMutationKind.Archive),
+                    onClick = {
+                        submitAreaMutation(AreaMutationKind.Archive) { requestId ->
+                            viewModel.setAreaArchivedMutation(requestId, id, true)
+                        }
+                    }
+                ) { Text(if (saving(AreaMutationKind.Archive)) "Archiving…" else "Archive") } },
+                dismissButton = { WhipTextButton(
+                    enabled = !saving(AreaMutationKind.Archive),
+                    onClick = { archiveId = null },
+                ) { Text("Cancel") } },
             )
         }
     } }
@@ -290,14 +461,26 @@ internal fun AreaManagementDialog(
                 area = area,
                 usage = state.areaUsage[id] ?: AreaUsageCounts(),
                 replacementAreas = active.filter { it.id != id },
-                onDismiss = { deleteId = null },
+                saving = mutationCoordinator.saving && pendingAction in setOf(
+                    AreaMutationKind.DeleteKeepingItems.name,
+                    AreaMutationKind.DeleteWithItems.name,
+                ),
+                error = mutationCoordinator.errorMessage.takeIf {
+                    pendingAction in setOf(
+                        AreaMutationKind.DeleteKeepingItems.name,
+                        AreaMutationKind.DeleteWithItems.name,
+                    )
+                },
+                onDismiss = { if (!mutationCoordinator.saving) deleteId = null },
                 onMoveItems = { targetId ->
-                    viewModel.deleteAreaAndKeepItems(id, targetId)
-                    deleteId = null
+                    submitAreaMutation(AreaMutationKind.DeleteKeepingItems) { requestId ->
+                        viewModel.deleteAreaKeepingItemsMutation(requestId, id, targetId)
+                    }
                 },
                 onDeleteItems = {
-                    viewModel.deleteAreaAndItems(id)
-                    deleteId = null
+                    submitAreaMutation(AreaMutationKind.DeleteWithItems) { requestId ->
+                        viewModel.deleteAreaWithItemsMutation(requestId, id)
+                    }
                 },
             )
         }
@@ -327,6 +510,7 @@ private fun AreaListContent(
 ) {
     var reordering by rememberSaveable { mutableStateOf(false) }
     val visibleActive = active.filter { query.isBlank() || it.name.contains(query, true) }
+    val visibleArchived = archived.filter { query.isBlank() || it.name.contains(query, true) }
     BackHandler(enabled = reordering) { reordering = false }
     WhipReorderLazyColumn(
         modifier = modifier,
@@ -392,7 +576,13 @@ private fun AreaListContent(
                 onOpen = { onOpen(area.id) },
             )
         }
-        if (!reordering && archived.isNotEmpty()) item {
+        if (!reordering && query.isNotBlank() && visibleActive.isEmpty() && visibleArchived.isEmpty()) item {
+            WhipEmptyState(
+                title = "No Matching Areas",
+                supportingText = "Try another name. Search includes active and archived Areas.",
+            )
+        }
+        if (!reordering && archived.isNotEmpty() && query.isBlank()) item {
             HorizontalDivider(Modifier.padding(top = 8.dp))
             DisclosureButton(
                 label = "Archived · ${archived.size}",
@@ -401,8 +591,15 @@ private fun AreaListContent(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        if (!reordering && archivedExpanded) itemsIndexed(
-            archived.filter { query.isBlank() || it.name.contains(query, true) },
+        if (!reordering && query.isNotBlank() && visibleArchived.isNotEmpty()) item {
+            HorizontalDivider(Modifier.padding(top = 8.dp))
+            Text(
+                "Archived Matches · ${visibleArchived.size}",
+                style = MaterialTheme.typography.titleSmall,
+            )
+        }
+        if (!reordering && (archivedExpanded || query.isNotBlank())) itemsIndexed(
+            visibleArchived,
             key = { _, area -> "archived-${area.id}" },
         ) { _, area ->
             Surface(
@@ -525,6 +722,7 @@ private fun AreaDetailContent(
     onMoveItems: () -> Unit,
     onMerge: () -> Unit,
     onArchive: () -> Unit,
+    onRestore: (String) -> Unit,
     onDelete: () -> Unit,
 ) {
     LazyColumn(
@@ -558,7 +756,10 @@ private fun AreaDetailContent(
         }
         item {
             WhipSection("Lifecycle") {
-                WhipOutlinedButton(onClick = onArchive, modifier = Modifier.fillMaxWidth()) {
+                WhipOutlinedButton(
+                    onClick = { if (area.archived) onRestore(area.id) else onArchive() },
+                    modifier = Modifier.fillMaxWidth().testTag("area-detail-lifecycle-action"),
+                ) {
                     Text(if (area.archived) "Restore Area" else "Archive Area")
                 }
             }
@@ -599,6 +800,8 @@ internal fun MoveAreaItemsDialog(
     sourceName: String,
     usage: AreaUsageCounts,
     targets: List<Area>,
+    saving: Boolean = false,
+    error: String? = null,
     onDismiss: () -> Unit,
     onMove: (String) -> Unit,
 ) {
@@ -606,8 +809,8 @@ internal fun MoveAreaItemsDialog(
     val options = targets.filterNot(Area::archived)
     val selected = options.firstOrNull { it.id == targetId }
     PaneAwareAlertDialog(
-        modifier = modifier,
-        onDismissRequest = onDismiss,
+        modifier = modifier.testTag("move-area-items-dialog"),
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text("Move Everything from $sourceName") },
         text = {
             WhipChoiceList(Modifier.testTag("move-area-choice-list")) {
@@ -627,14 +830,17 @@ internal fun MoveAreaItemsDialog(
                         )
                     }
                 }
+                error?.let { message ->
+                    item { Text(message, color = MaterialTheme.colorScheme.error) }
+                }
             }
         },
         confirmButton = {
-            WhipTextButton(enabled = selected != null, onClick = { selected?.let { onMove(it.id) } }) {
-                Text("Move ${usage.total} Items")
+            WhipTextButton(enabled = selected != null && !saving, onClick = { selected?.let { onMove(it.id) } }) {
+                Text(if (saving) "Moving…" else "Move ${usage.total} Items")
             }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -644,6 +850,8 @@ internal fun PermanentAreaDeleteDialog(
     area: Area,
     usage: AreaUsageCounts,
     replacementAreas: List<Area>,
+    saving: Boolean = false,
+    error: String? = null,
     onDismiss: () -> Unit,
     onMoveItems: (String) -> Unit,
     onDeleteItems: () -> Unit,
@@ -658,8 +866,8 @@ internal fun PermanentAreaDeleteDialog(
             "Saved filters and widgets using this area will reset to All areas."
     }
     PaneAwareAlertDialog(
-        modifier = modifier,
-        onDismissRequest = onDismiss,
+        modifier = modifier.testTag("permanent-area-delete-dialog"),
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text("Delete ${area.name} Permanently?") },
         text = {
             WhipChoiceList(Modifier.testTag("delete-area-choice-list")) {
@@ -675,17 +883,21 @@ internal fun PermanentAreaDeleteDialog(
                         )
                     }
                 }
+                error?.let { message ->
+                    item { Text(message, color = MaterialTheme.colorScheme.error) }
+                }
             }
         },
         confirmButton = {
             Column(horizontalAlignment = Alignment.End) {
                 if (usage.total > 0) {
                     WhipTextButton(
-                        enabled = replacement != null,
+                        enabled = replacement != null && !saving,
                         onClick = { replacement?.let { onMoveItems(it.id) } },
-                    ) { Text("Move Items and Delete Area") }
+                    ) { Text(if (saving) "Deleting…" else "Move Items and Delete Area") }
                 }
                 WhipTextButton(
+                    enabled = !saving,
                     onClick = onDeleteItems,
                     colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error,
@@ -695,7 +907,7 @@ internal fun PermanentAreaDeleteDialog(
                 }
             }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -744,39 +956,55 @@ private fun RenameAreaDialog(
     modifier: Modifier,
     area: Area,
     existingAreas: List<Area>,
+    saving: Boolean,
+    error: String?,
     onDismiss: () -> Unit,
-    onRename: (String, (Result<Unit>) -> Unit) -> Unit,
-    onRenamed: () -> Unit,
+    onRename: (String) -> Unit,
 ) {
     var name by rememberSaveable(area.id) { mutableStateOf(area.name) }
-    var saving by rememberSaveable { mutableStateOf(false) }
-    var error by rememberSaveable { mutableStateOf<String?>(null) }
     val conflict = existingAreas.firstOrNull { it.id != area.id && it.name.equals(name.trim(), true) }
     PaneAwareAlertDialog(
-        modifier = modifier,
+        modifier = modifier.testTag("rename-area-dialog"),
         onDismissRequest = { if (!saving) onDismiss() },
         title = { Text("Rename Area") },
         text = { Column {
-            OutlinedTextField(name, { name = it.take(40); error = null }, label = { Text("Area name") }, supportingText = { Text("${name.length}/40") }, singleLine = true, isError = conflict != null || error != null)
-            conflict?.let { Text("${it.name} already exists. Cancel and use Merge instead.", color = MaterialTheme.colorScheme.error) }
+            OutlinedTextField(name, { name = it.take(40) }, label = { Text("Area name") }, supportingText = { Text("${name.length}/40") }, singleLine = true, isError = conflict != null || error != null, enabled = !saving, modifier = Modifier.testTag("rename-area-name"))
+            conflict?.let {
+                Text(
+                    if (it.archived) {
+                        "${it.name} already exists and is archived. Restore it before merging, or choose another name."
+                    } else {
+                        "${it.name} already exists. Cancel and use Merge instead."
+                    },
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         } },
         confirmButton = { WhipTextButton(enabled = name.isNotBlank() && conflict == null && !saving, onClick = {
-            saving = true
-            onRename(name.trim()) { result -> saving = false; result.onSuccess { onRenamed() }.onFailure { error = it.message } }
+            onRename(name.trim())
         }) { Text(if (saving) "Saving…" else "Rename") } },
         dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
 @Composable
-private fun AreaColorDialog(modifier: Modifier, area: Area, onDismiss: () -> Unit, onSelect: (Long?) -> Unit) {
+private fun AreaColorDialog(
+    modifier: Modifier,
+    area: Area,
+    saving: Boolean,
+    error: String?,
+    onDismiss: () -> Unit,
+    onSelect: (Long?) -> Unit,
+) {
     WhipColorPickerDialog(
         modifier = modifier,
         title = "Color for ${area.name}",
         initialColor = area.colorArgb,
         onDismiss = onDismiss,
         onConfirm = onSelect,
+        saving = saving,
+        error = error,
     )
 }
 
@@ -786,6 +1014,8 @@ private fun MergeAreaDialog(
     source: Area,
     targets: List<Area>,
     usage: AreaUsageCounts,
+    saving: Boolean,
+    error: String?,
     onDismiss: () -> Unit,
     onMerge: (Area) -> Unit,
 ) {
@@ -793,13 +1023,14 @@ private fun MergeAreaDialog(
     val target = targets.firstOrNull { it.id == targetId }
     PaneAwareAlertDialog(
         modifier = modifier,
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text("Merge ${source.name}") },
         text = { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Move ${usageText(usage)} to another area. ${source.name} will then be removed. This cannot be undone.")
             if (targets.isEmpty()) Text("Create another active area before merging.") else AreaSelectionDropdown(targets, targetId, onSelect = { id, _ -> targetId = id })
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         } },
-        confirmButton = { WhipTextButton(enabled = target != null, onClick = { target?.let(onMerge) }) { Text("Merge into ${target?.name ?: "…"}") } },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { WhipTextButton(enabled = target != null && !saving, onClick = { target?.let(onMerge) }) { Text(if (saving) "Merging…" else "Merge into ${target?.name ?: "…"}") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )
 }

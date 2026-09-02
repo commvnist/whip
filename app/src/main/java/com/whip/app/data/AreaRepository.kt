@@ -75,7 +75,13 @@ class RoomAreaRepository(
         val key = areaNameKey(displayName)
         val target = dao.getAreaByNameKey(key)
         if (target != null && target.id != id) {
-            error("An Area named “${target.name}” already exists. Use Merge instead.")
+            error(
+                if (target.archived) {
+                    "An archived Area named “${target.name}” already exists. Restore it before merging, or choose another name."
+                } else {
+                    "An Area named “${target.name}” already exists. Use Merge instead."
+                },
+            )
         }
         dao.updateArea(
             current.copy(name = displayName, nameKey = key, updatedAtMillis = clock.now().toEpochMilli()),
@@ -128,7 +134,7 @@ class RoomAreaRepository(
         check(dao.deleteArea(id) == 1) { "Area could not be deleted" }
     }
 
-    override suspend fun setColor(id: String, colorArgb: Long?) {
+    override suspend fun setColor(id: String, colorArgb: Long?) = database.withTransaction {
         val current = requireNotNull(dao.getArea(id)) { "Area no longer exists" }
         dao.updateArea(current.copy(colorArgb = colorArgb, updatedAtMillis = clock.now().toEpochMilli()))
     }

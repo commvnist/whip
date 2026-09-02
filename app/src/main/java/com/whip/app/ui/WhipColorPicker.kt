@@ -99,6 +99,8 @@ internal fun WhipColorPickerDialog(
     onDismiss: () -> Unit,
     onConfirm: (Long?) -> Unit,
     modifier: Modifier = Modifier,
+    saving: Boolean = false,
+    error: String? = null,
 ) {
     val initialOpaque = initialColor?.let(::opaqueColor)
     val initialCustomColor = initialOpaque ?: WhipColorPresets.first { it.name == "Blue" }.argb
@@ -130,7 +132,7 @@ internal fun WhipColorPickerDialog(
 
     PaneAwareAlertDialog(
         modifier = modifier.testTag("color-picker-dialog"),
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(title) },
         text = {
             Column(
@@ -242,15 +244,18 @@ internal fun WhipColorPickerDialog(
                         thumbColor = Color(hsvToColorArgb(hue, saturation, brightness)),
                     ) { brightness = it; adoptSliders() }
                 }
+                error?.let { message ->
+                    Text(message, color = MaterialTheme.colorScheme.error)
+                }
             }
         },
         confirmButton = {
             WhipTextButton(
-                enabled = !customExpanded || parseColorArgb(hexText) != null,
+                enabled = !saving && (!customExpanded || parseColorArgb(hexText) != null),
                 onClick = { onConfirm(selectedColor) },
-            ) { Text("Apply") }
+            ) { Text(if (saving) "Applying…" else "Apply") }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )
 }
 

@@ -9,15 +9,21 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import com.whip.app.WhipApplication
@@ -62,6 +68,33 @@ class AreaFeatureUiTest {
         compose.onNodeWithText("Area name").performTextInput("Personal")
         compose.onNodeWithText("Create").performClick()
         assertEquals("created-personal" to "Personal", selected.get())
+    }
+
+    @Test
+    fun creatingAnArchivedNameRestoresBeforeSelectingIt() {
+        val created = AtomicReference<Pair<String, Long?>>()
+        val selected = AtomicReference<Pair<String?, String>>()
+        val archived = area("archived-work", "Work", archived = true)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                CreateAreaDialog(
+                    existingAreas = listOf(archived),
+                    onDismiss = {},
+                    onCreate = { name, color, result ->
+                        created.set(name to color)
+                        result(Result.success(archived.id))
+                    },
+                    onSelected = { id, name -> selected.set(id to name) },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Area name").performTextInput("Work")
+        compose.onNodeWithText("Work is archived.", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Restore Existing Area").performClick()
+
+        assertEquals("Work" to archived.colorArgb, created.get())
+        assertEquals(archived.id to archived.name, selected.get())
     }
 
     @Test
@@ -197,6 +230,65 @@ class AreaFeatureUiTest {
     }
 
     @Test
+    fun failedAreaRenameKeepsTheReviewedDialogAndDraft() {
+        val application = ApplicationProvider.getApplicationContext<WhipApplication>()
+        val viewModel = SettingsViewModel(application)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                AreaManagementDialog(
+                    state = SettingsUiState(areas = listOf(area("missing-area", "Missing Area"))),
+                    viewModel = viewModel,
+                    onDismiss = {},
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Open area details for Missing Area").performClick()
+        compose.onNodeWithText("Rename Area").performClick()
+        compose.onNodeWithTag("rename-area-name").performTextReplacement("Reviewed Name")
+        compose.onNodeWithText("Rename").performClick()
+
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("area-mutation-error").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("rename-area-dialog").assertIsDisplayed()
+        compose.onNodeWithTag("rename-area-name").assertTextContains("Reviewed Name")
+        compose.onNode(
+            hasText("Area no longer exists") and hasAnyAncestor(hasTestTag("rename-area-dialog")),
+            useUnmergedTree = true,
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun archivedAreaDetailUsesRestoreInsteadOfOpeningArchiveConfirmation() {
+        val application = ApplicationProvider.getApplicationContext<WhipApplication>()
+        val viewModel = SettingsViewModel(application)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                AreaManagementDialog(
+                    state = SettingsUiState(
+                        areas = listOf(
+                            area("active-area", "Active Area"),
+                            area("archived-area", "Archived Area", archived = true),
+                        ),
+                    ),
+                    viewModel = viewModel,
+                    onDismiss = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Archived · 1").performClick()
+        compose.onNodeWithText("Archived Area").performClick()
+        compose.onNodeWithTag("area-detail-lifecycle-action").assertTextContains("Restore Area").performClick()
+
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("area-mutation-error").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onAllNodesWithText("Archive Archived Area?").assertCountEquals(0)
+    }
+
+    @Test
     fun largeAreaPickerUsesSearchAndCanSelectTheLastArea() {
         val selected = AtomicReference<Pair<String?, String>>()
         val areas = (1..50).map { area("area-$it", "Area $it") }
@@ -210,6 +302,28 @@ class AreaFeatureUiTest {
         compose.onNodeWithText("Find area").performTextInput("Area 50")
         compose.onNodeWithContentDescription("Area Area 50").performClick()
         assertEquals("area-50" to "Area 50", selected.get())
+    }
+
+    @Test
+    fun areaManagerSearchIncludesArchivedMatchesWithoutPriorExpansion() {
+        val application = ApplicationProvider.getApplicationContext<WhipApplication>()
+        val viewModel = SettingsViewModel(application)
+        val areas = (1..8).map { area("active-$it", "Active $it") } +
+            area("deep-storage", "Deep Storage", archived = true)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                AreaManagementDialog(
+                    state = SettingsUiState(areas = areas),
+                    viewModel = viewModel,
+                    onDismiss = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Find Area").performTextInput("Deep")
+
+        compose.onNodeWithText("Archived Matches · 1").assertIsDisplayed()
+        compose.onNodeWithText("Deep Storage").assertIsDisplayed()
     }
 
     @Test
@@ -307,12 +421,12 @@ class AreaFeatureUiTest {
         assertEquals("create", choice.get())
     }
 
-    private fun area(id: String, name: String) = Area(
+    private fun area(id: String, name: String, archived: Boolean = false) = Area(
         id = id,
         name = name,
         colorArgb = 0xFF1565C0,
         position = 0,
-        archived = false,
+        archived = archived,
         createdAtMillis = 1,
         updatedAtMillis = 1,
     )
