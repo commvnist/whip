@@ -364,151 +364,6 @@ data class DomainRetryActions(
     val gym: () -> Unit = {},
 )
 
-/**
- * Keeps platform-entry delivery policy out of the already broad app shell.
- * Besides keeping the effect testable, this prevents Compose/Jacoco from
- * folding another complete navigation state machine into WhipScreen's method.
- */
-private sealed interface LaunchDeliveryCommand {
-    data class LoadFailed(val destination: AppDestination) : LaunchDeliveryCommand
-    data class Unavailable(val destination: AppDestination, val message: String) : LaunchDeliveryCommand
-    data object OpenTaskAgenda : LaunchDeliveryCommand
-    data object OpenHabitTracking : LaunchDeliveryCommand
-    data class AddTask(val date: LocalDate?) : LaunchDeliveryCommand
-    data class CaptureSharedTask(val text: String) : LaunchDeliveryCommand
-    data object AddHabit : LaunchDeliveryCommand
-    data class OpenTask(
-        val item: ScheduledTask,
-        val completed: Boolean,
-        val destination: TaskDestination?,
-    ) : LaunchDeliveryCommand
-    data class OpenTaskFallback(val message: String) : LaunchDeliveryCommand
-    data class OpenHabit(val id: Long) : LaunchDeliveryCommand
-    data class OpenGoal(val id: Long) : LaunchDeliveryCommand
-    data object OpenGym : LaunchDeliveryCommand
-    data class OpenTrack(val id: Long) : LaunchDeliveryCommand
-}
-
-@Composable
-private fun LaunchDeliveryEffect(
-    launchDeliveryId: Long,
-    consumedLaunchDeliveryId: Long?,
-    areaSelectionReady: Boolean,
-    initialAction: String?,
-    initialEntityId: Long?,
-    initialOccurrenceEpochDay: Long?,
-    initialSharedText: String?,
-    setupCompleted: Boolean,
-    taskState: TaskUiState,
-    habitState: HabitUiState,
-    goalState: GoalUiState,
-    trackState: TrackUiState,
-    onConsume: (Long) -> Unit,
-    onCommand: (LaunchDeliveryCommand) -> Unit,
-) {
-    LaunchedEffect(
-        launchDeliveryId,
-        initialAction,
-        initialEntityId,
-        initialOccurrenceEpochDay,
-        initialSharedText,
-        setupCompleted,
-        areaSelectionReady,
-        taskState,
-        habitState,
-        goalState,
-        trackState,
-    ) {
-        if (
-            launchDeliveryId == 0L ||
-            consumedLaunchDeliveryId == launchDeliveryId ||
-            !setupCompleted ||
-            !areaSelectionReady
-        ) {
-            return@LaunchedEffect
-        }
-        val targetResolution = resolveLaunchTarget(
-            action = initialAction,
-            entityId = initialEntityId,
-            occurrenceEpochDay = initialOccurrenceEpochDay,
-            taskState = taskState,
-            habitState = habitState,
-            goalState = goalState,
-            trackState = trackState,
-        )
-        when (targetResolution) {
-            LaunchTargetResolution.Pending -> return@LaunchedEffect
-            is LaunchTargetResolution.LoadFailed -> {
-                onCommand(LaunchDeliveryCommand.LoadFailed(targetResolution.destination))
-                return@LaunchedEffect
-            }
-            is LaunchTargetResolution.Unavailable -> {
-                onConsume(launchDeliveryId)
-                onCommand(
-                    LaunchDeliveryCommand.Unavailable(
-                        targetResolution.destination,
-                        targetResolution.message,
-                    ),
-                )
-                return@LaunchedEffect
-            }
-            LaunchTargetResolution.NotApplicable,
-            is LaunchTargetResolution.Available -> Unit
-        }
-        when (initialAction) {
-            WhipWidgetProvider.ACTION_OPEN_TASK_AGENDA -> onCommand(LaunchDeliveryCommand.OpenTaskAgenda)
-            WhipWidgetProvider.ACTION_OPEN_HABIT_TRACKING -> onCommand(LaunchDeliveryCommand.OpenHabitTracking)
-            WhipWidgetProvider.ACTION_ADD_TASK -> onCommand(
-                LaunchDeliveryCommand.AddTask(initialOccurrenceEpochDay?.let(LocalDate::ofEpochDay)),
-            )
-            WhipLaunchActions.ACTION_CAPTURE_SHARED_TASK -> onCommand(
-                LaunchDeliveryCommand.CaptureSharedTask(initialSharedText.orEmpty()),
-            )
-            WhipWidgetProvider.ACTION_ADD_HABIT -> onCommand(LaunchDeliveryCommand.AddHabit)
-            WhipLaunchActions.ACTION_OPEN_TASK -> {
-                val id = initialEntityId ?: return@LaunchedEffect
-                val allTasks = taskState.inbox + taskState.today + taskState.upcoming +
-                    taskState.planning + taskState.completed + taskState.archived
-                val found = allTasks.firstOrNull { item ->
-                    item.task.id == id && (
-                        initialOccurrenceEpochDay == null ||
-                            item.originalDate?.toEpochDay() == initialOccurrenceEpochDay
-                        )
-                }
-                if (found == null) {
-                    val detail = (targetResolution as? LaunchTargetResolution.Available)?.unavailableDetail
-                    if (detail != null) onCommand(LaunchDeliveryCommand.OpenTaskFallback(detail))
-                    onConsume(launchDeliveryId)
-                    return@LaunchedEffect
-                }
-                val destination = when (found) {
-                    in taskState.inbox -> TaskDestination.Inbox
-                    in taskState.planning -> TaskDestination.Upcoming
-                    else -> null
-                }
-                onCommand(
-                    LaunchDeliveryCommand.OpenTask(
-                        found,
-                        found in taskState.completed,
-                        destination,
-                    ),
-                )
-            }
-            WhipLaunchActions.ACTION_OPEN_HABIT -> initialEntityId?.let {
-                onCommand(LaunchDeliveryCommand.OpenHabit(it))
-            }
-            WhipLaunchActions.ACTION_OPEN_GOAL -> initialEntityId?.let {
-                onCommand(LaunchDeliveryCommand.OpenGoal(it))
-            }
-            WhipLaunchActions.ACTION_OPEN_GYM -> onCommand(LaunchDeliveryCommand.OpenGym)
-            WhipLaunchActions.ACTION_OPEN_TRACK -> initialEntityId?.let { trackId ->
-                onCommand(LaunchDeliveryCommand.OpenTrack(trackId))
-            }
-        }
-        onConsume(launchDeliveryId)
-    }
-}
-
 /** Keeps every pinned item visible while retaining the compact default summary. */
 internal fun <T> pinnedHomeSummary(
     items: List<T>,
@@ -571,9 +426,11 @@ fun WhipApp(
     initialEntityId: Long? = null,
     initialOccurrenceEpochDay: Long? = null,
     initialSharedText: String? = null,
+    initialSharedTextShortened: Boolean = false,
     initialAreaScopeStorageKey: String? = null,
     initialDeliveryId: Long = 0L,
     foldInfo: WhipFoldInfo? = null,
+    onLaunchDeliveryConsumed: (Long) -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     taskViewModel: TaskViewModel = viewModel(),
     gymViewModel: GymViewModel = viewModel(),
@@ -780,6 +637,7 @@ fun WhipApp(
             LocalWhipDialogPlacement provides dialogPlacement,
             LocalCompactItemLayout provides settingsState.settings.compactItemLayout,
             LocalCompactItemExpansionState provides compactItemExpansionState,
+            LocalLaunchDeliveryConsumer provides onLaunchDeliveryConsumed,
         ) {
             UserDataGenerationBoundary(userDataGeneration) {
                 WhipScreen(
@@ -909,6 +767,7 @@ fun WhipApp(
                     initialEntityId = initialEntityId,
                     initialOccurrenceEpochDay = initialOccurrenceEpochDay,
                     initialSharedText = initialSharedText,
+                    initialSharedTextShortened = initialSharedTextShortened,
                     initialDeliveryId = initialDeliveryId,
                     launchAreaSelectionReady = requestedLaunchDeliveryId == 0L ||
                         transientAreaScopeDelivery == requestedLaunchDeliveryId,
@@ -1033,6 +892,7 @@ fun WhipScreen(
     initialEntityId: Long? = null,
     initialOccurrenceEpochDay: Long? = null,
     initialSharedText: String? = null,
+    initialSharedTextShortened: Boolean = false,
     initialDeliveryId: Long = 0L,
     launchAreaSelectionReady: Boolean = true,
     adaptiveLayout: WhipAdaptiveLayout = WhipAdaptiveLayout.Compact,
@@ -1058,8 +918,13 @@ fun WhipScreen(
     var taskEditorFromEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
     var taskEditorSaveAndNew by rememberSaveable { mutableStateOf(false) }
     var taskEditorCapture by rememberSaveable { mutableStateOf("") }
+    var taskEditorCaptureShortened by rememberSaveable { mutableStateOf(false) }
+    val pendingTaskEditorLaunchState = rememberPendingTaskEditorLaunchState()
+    val launchQueueOverflowState = rememberLaunchQueueOverflowState()
     var taskEditorInitialScheduleEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
     var taskEditorInitialPlacement by rememberSaveable { mutableStateOf<TaskPlacement?>(null) }
+    var taskEditorInitialAreaResolved by rememberSaveable { mutableStateOf(false) }
+    var taskEditorInitialAreaId by rememberSaveable { mutableStateOf<String?>(null) }
     var taskEditorSessionId by rememberSaveable { mutableLongStateOf(0L) }
     var actionItemKey by rememberSaveable { mutableStateOf<String?>(null) }
     var completedItemKey by rememberSaveable { mutableStateOf<String?>(null) }
@@ -1144,20 +1009,12 @@ fun WhipScreen(
     val scheduledTaskByKey = allScheduledTasks.associateBy(ScheduledTask::stableKey)
     val actionItem = actionItemKey?.let(scheduledTaskByKey::get)
     val completedItem = completedItemKey?.let(scheduledTaskByKey::get)
-    LaunchedEffect(
-        completedItemKey,
-        completedItem?.completedAtMillis,
-        completedItem?.occurrenceState,
-        unscopedTaskState.loading,
-    ) {
-        if (
-            completedItemKey != null &&
-            !unscopedTaskState.loading &&
-            (completedItem == null || completedItem.completedAtMillis == null)
-        ) {
-            completedItemKey = null
-        }
-    }
+    CompletedTaskRouteEffect(
+        completedItemKey = completedItemKey,
+        completedItem = completedItem,
+        loading = unscopedTaskState.loading,
+        onClear = { completedItemKey = null },
+    )
     var rescheduleItemSnapshot by remember { mutableStateOf<ScheduledTask?>(null) }
     var rescheduleSnapshotTitle by rememberSaveable { mutableStateOf("") }
     var rescheduleSnapshotEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -1234,8 +1091,11 @@ fun WhipScreen(
             expectedBoundary = taskEditorBoundary,
             fromOccurrence = taskEditorFromEpochDay?.let(LocalDate::ofEpochDay),
             initialCapture = taskEditorCapture,
+            initialCaptureShortened = taskEditorCaptureShortened,
             initialScheduleDate = taskEditorInitialScheduleEpochDay?.let(LocalDate::ofEpochDay),
             initialPlacement = taskEditorInitialPlacement,
+            initialAreaResolved = taskEditorInitialAreaResolved,
+            initialAreaId = taskEditorInitialAreaId,
             sessionId = taskEditorSessionId,
         )
     } else {
@@ -1244,8 +1104,11 @@ fun WhipScreen(
     fun openTaskEditor(
         item: ScheduledTask? = null,
         capture: String = "",
+        captureShortened: Boolean = false,
         scheduleDate: LocalDate? = null,
         placement: TaskPlacement? = null,
+        resolvedInitialArea: Boolean = false,
+        initialAreaId: String? = null,
     ) {
         taskEditorOpen = true
         taskEditorTaskId = item?.task?.id
@@ -1260,8 +1123,11 @@ fun WhipScreen(
             }
             ?.toEpochDay()
         taskEditorCapture = capture
+        taskEditorCaptureShortened = captureShortened
         taskEditorInitialScheduleEpochDay = scheduleDate?.toEpochDay()
         taskEditorInitialPlacement = placement
+        taskEditorInitialAreaResolved = resolvedInitialArea
+        taskEditorInitialAreaId = initialAreaId
         taskEditorSessionId++
     }
     fun closeTaskEditor() {
@@ -1272,8 +1138,11 @@ fun WhipScreen(
         taskEditorFromEpochDay = null
         taskEditorSaveAndNew = false
         taskEditorCapture = ""
+        taskEditorCaptureShortened = false
         taskEditorInitialScheduleEpochDay = null
         taskEditorInitialPlacement = null
+        taskEditorInitialAreaResolved = false
+        taskEditorInitialAreaId = null
     }
 
     val launchDeliveryId = initialDeliveryId.takeIf { it != 0L }
@@ -1287,6 +1156,9 @@ fun WhipScreen(
         initialEntityId = initialEntityId,
         initialOccurrenceEpochDay = initialOccurrenceEpochDay,
         initialSharedText = initialSharedText,
+        initialSharedTextShortened = initialSharedTextShortened,
+        commandAdmissionVersion =
+            pendingTaskEditorLaunchState.revision + launchQueueOverflowState.revision,
         setupCompleted = settingsState.settings.setupCompleted,
         taskState = unscopedTaskState,
         habitState = unscopedHabitState,
@@ -1313,11 +1185,43 @@ fun WhipScreen(
                 LaunchDeliveryCommand.OpenHabitTracking -> appDestination = AppDestination.Habits
                 is LaunchDeliveryCommand.AddTask -> {
                     appDestination = AppDestination.Tasks
-                    openTaskEditor(scheduleDate = command.date)
+                    if (taskEditorOpen) {
+                        if (!pendingTaskEditorLaunchState.queue(
+                                text = "",
+                                shortened = false,
+                                scheduleEpochDay = command.date?.toEpochDay(),
+                                resolvedAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
+                            )
+                        ) {
+                            return@LaunchDeliveryEffect false
+                        }
+                    } else {
+                        openTaskEditor(
+                            scheduleDate = command.date,
+                            resolvedInitialArea = true,
+                            initialAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
+                        )
+                    }
                 }
                 is LaunchDeliveryCommand.CaptureSharedTask -> {
                     appDestination = AppDestination.Tasks
-                    openTaskEditor(capture = command.text)
+                    if (taskEditorOpen) {
+                        if (!pendingTaskEditorLaunchState.queue(
+                                text = command.text,
+                                shortened = command.wasShortened,
+                                resolvedAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
+                            )
+                        ) {
+                            return@LaunchDeliveryEffect false
+                        }
+                    } else {
+                        openTaskEditor(
+                            capture = command.text,
+                            captureShortened = command.wasShortened,
+                            resolvedInitialArea = true,
+                            initialAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
+                        )
+                    }
                 }
                 LaunchDeliveryCommand.AddHabit -> {
                     appDestination = AppDestination.Habits
@@ -1353,7 +1257,17 @@ fun WhipScreen(
                     openTrackIdRequested = command.id
                     appDestination = AppDestination.Tracks
                 }
+                is LaunchDeliveryCommand.SharedTaskQueueOverflow -> {
+                    if (pendingTaskEditorLaunchState.text != null) {
+                        return@LaunchDeliveryEffect false
+                    }
+                    return@LaunchDeliveryEffect launchQueueOverflowState.admit(
+                        deliveryId = launchDeliveryId,
+                        rejectedShareCount = command.count,
+                    )
+                }
             }
+            true
         },
     )
 
@@ -1374,6 +1288,8 @@ fun WhipScreen(
                 taskEditorCapture = ""
                 taskEditorInitialScheduleEpochDay = null
                 taskEditorInitialPlacement = null
+                taskEditorInitialAreaResolved = false
+                taskEditorInitialAreaId = null
                 taskEditorSessionId++
             }
         },
@@ -1401,31 +1317,20 @@ fun WhipScreen(
         invalidateRecovery = ::invalidateTransientRecovery,
     )
 
-    LaunchedEffect(areaMoveNotice) {
-        val message = areaMoveNotice ?: return@LaunchedEffect
-        val restoreScope = areaMoveRestoreScope
-        areaMoveNotice = null
-        areaMoveRestoreScope = null
-        presentTransientFeedback(source = "area-move", priority = 2, recoverable = true) {
-            val result = snackbarHostState.showSnackbar(message, actionLabel = "Restore view", withDismissAction = true)
-            if (result == SnackbarResult.ActionPerformed) {
-                onSelectAreaScope(AreaScope.fromStorageKey(restoreScope))
-            }
-        }
-    }
-
-    LaunchedEffect(pendingAreaBadgeId) {
-        val id = pendingAreaBadgeId ?: return@LaunchedEffect
-        val area = settingsState.areas.firstOrNull { it.id == id && !it.archived }
-        onAreaBadgeConsumed()
-        if (area != null) {
-            onSelectAreaScope(AreaScope.One(id))
-            presentTransientFeedback(source = "area-badge", priority = 2) {
-                val result = snackbarHostState.showSnackbar("Showing ${area.name}", actionLabel = "Show all", withDismissAction = true)
-                if (result == SnackbarResult.ActionPerformed) onSelectAreaScope(AreaScope.All)
-            }
-        }
-    }
+    AreaRouteFeedbackEffects(
+        areaMoveNotice = areaMoveNotice,
+        areaMoveRestoreScope = areaMoveRestoreScope,
+        pendingAreaBadgeId = pendingAreaBadgeId,
+        areas = settingsState.areas,
+        snackbarHostState = snackbarHostState,
+        onAreaMoveConsumed = {
+            areaMoveNotice = null
+            areaMoveRestoreScope = null
+        },
+        onAreaBadgeConsumed = onAreaBadgeConsumed,
+        onSelectAreaScope = onSelectAreaScope,
+        presentFeedback = ::presentTransientFeedback,
+    )
 
     fun keepSavedItemVisible(areaId: String?, areaVerified: Boolean = true) {
         val availableAreas = settingsState.areas.filterNot(Area::archived)
@@ -1456,9 +1361,26 @@ fun WhipScreen(
         key = taskEditorSessionId,
         onPersisted = { receipt ->
             keepSavedItemVisible(receipt.areaId, receipt.areaVerified)
-            if (taskEditorSaveAndNew) {
+            val pendingCapture = pendingTaskEditorLaunchState.text
+            if (pendingCapture != null) {
+                val pendingCaptureShortened = pendingTaskEditorLaunchState.shortened
+                val pendingScheduleDate = pendingTaskEditorLaunchState.scheduleEpochDay
+                    ?.let(LocalDate::ofEpochDay)
+                val pendingAreaId = pendingTaskEditorLaunchState.resolvedAreaId
+                pendingTaskEditorLaunchState.clear()
+                taskEditorSaveAndNew = false
+                closeTaskEditor()
+                openTaskEditor(
+                    capture = pendingCapture,
+                    captureShortened = pendingCaptureShortened,
+                    scheduleDate = pendingScheduleDate,
+                    resolvedInitialArea = true,
+                    initialAreaId = pendingAreaId,
+                )
+            } else if (taskEditorSaveAndNew) {
                 taskEditorSaveAndNew = false
                 taskEditorCapture = ""
+                taskEditorCaptureShortened = false
                 taskEditorSessionId++
             } else closeTaskEditor()
         },
@@ -2538,46 +2460,33 @@ fun WhipScreen(
         viewModel = habitViewModel,
     )
 
-    editorRequest?.let { request ->
-        TaskEditorDialog(
-            request = request,
-            onDismiss = ::closeTaskEditor,
-            onSave = { taskId, draft, fromOccurrence ->
-                val requestId = taskEditorSaveCoordinator.begin() ?: return@TaskEditorDialog
-                taskEditorSaveAndNew = false
-                if (!onSaveTaskRequest(taskId, request.expectedBoundary, draft, fromOccurrence, requestId)) {
-                    taskEditorSaveCoordinator.finishFailure("Another Task save is already finishing.")
-                }
-            },
-            onSaveAndNew = { taskId, draft, fromOccurrence ->
-                val requestId = taskEditorSaveCoordinator.begin() ?: return@TaskEditorDialog
-                taskEditorSaveAndNew = true
-                if (!onSaveTaskRequest(taskId, request.expectedBoundary, draft, fromOccurrence, requestId)) {
-                    taskEditorSaveAndNew = false
-                    taskEditorSaveCoordinator.finishFailure("Another Task save is already finishing.")
-                }
-            },
-            onRequestNotificationPermission = onRequestNotificationPermission,
-            defaultRepeatStepPolicy = settingsState.settings.defaultTaskStepPolicy,
-            firstDayOfWeek = settingsState.settings.firstDayOfWeek,
-            today = state.currentDate,
-            naturalLanguageCapture = settingsState.settings.naturalLanguageTaskCapture,
-            powerMode = settingsState.settings.powerMode,
-            areas = settingsState.areas,
-            defaultAreaId = areaScope.creationDefaultAreaId(settingsState.areas),
-            inheritedAreaFromScope = areaScope is AreaScope.One,
-            onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
-            knownTags = (state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived)
-                .flatMap { it.task.tags }.distinct().sorted(),
-            customIdentityEmojis = settingsState.settings.customIdentityEmojis,
-            onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
-            onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
-            paneOffsetX = dialogPaneOffset,
-            paneMaxWidth = dialogContentWidth,
-            saving = taskEditorSaveCoordinator.saving,
-            persistenceError = taskEditorSaveCoordinator.errorMessage,
-        )
-    }
+    TaskEditorRouteHost(
+        request = editorRequest,
+        taskState = state,
+        settingsState = settingsState,
+        settingsViewModel = settingsViewModel,
+        areaScope = areaScope,
+        saveCoordinator = taskEditorSaveCoordinator,
+        pendingTaskEditorLaunchState = pendingTaskEditorLaunchState,
+        launchQueueOverflowState = launchQueueOverflowState,
+        paneOffsetX = dialogPaneOffset,
+        paneMaxWidth = dialogContentWidth,
+        pendingDialogModifier = paneDialogModifier,
+        onDismiss = ::closeTaskEditor,
+        onSaveAndNewIntentChange = { taskEditorSaveAndNew = it },
+        onSaveTaskRequest = onSaveTaskRequest,
+        onRequestNotificationPermission = onRequestNotificationPermission,
+        onReplacePendingTaskRequest = { capture, shortened, scheduleDate, areaId ->
+            closeTaskEditor()
+            openTaskEditor(
+                capture = capture,
+                captureShortened = shortened,
+                scheduleDate = scheduleDate,
+                resolvedInitialArea = true,
+                initialAreaId = areaId,
+            )
+        },
+    )
 
     actionItem?.let { item ->
         TaskActionsDialog(

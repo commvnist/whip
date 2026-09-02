@@ -67,6 +67,35 @@ class EditorDependencyUxTest {
     }
 
     @Test
+    fun shortenedSharedDraftWarningIsReachableFromTheFocusedTitleAtLargeText() {
+        val largeText = Density(compose.density.density, fontScale = 2f)
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides largeText) {
+                WhipTheme(dynamicColor = false) {
+                    TaskEditorDialog(
+                        request = TaskEditorRequest(
+                            initialCapture = "Bounded shared title",
+                            initialCaptureShortened = true,
+                            sessionId = 2_101L,
+                        ),
+                        onDismiss = {},
+                        onSave = { _, _, _ -> },
+                        onRequestNotificationPermission = {},
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("shared-task-capture-shortened").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("task-editor-title").assert(
+            SemanticsMatcher("announces shortened shared content from the focused title") { node ->
+                node.config[SemanticsProperties.StateDescription]
+                    .contains("Shared content shortened")
+            },
+        )
+    }
+
+    @Test
     fun smartCaptureHighlightsPreviewsAndAppliesEverySupportedDetailBeforeSave() {
         val saved = AtomicReference<TaskDraft?>(null)
         val today = LocalDate.of(2026, 8, 25)

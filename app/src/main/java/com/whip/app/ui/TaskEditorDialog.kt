@@ -85,6 +85,7 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
+import com.whip.app.core.SharedTaskCapturePolicy
 import com.whip.app.domain.RecurrenceEnd
 import com.whip.app.domain.RecurrenceAnchor
 import com.whip.app.domain.RecurrenceRule
@@ -128,8 +129,11 @@ data class TaskEditorRequest(
     val expectedBoundary: TaskEditBoundary? = null,
     val fromOccurrence: LocalDate? = null,
     val initialCapture: String = "",
+    val initialCaptureShortened: Boolean = false,
     val initialScheduleDate: LocalDate? = null,
     val initialPlacement: TaskPlacement? = null,
+    val initialAreaResolved: Boolean = false,
+    val initialAreaId: String? = null,
     val sessionId: Long = 0L,
 )
 
@@ -178,6 +182,7 @@ fun TaskEditorDialog(
     paneMaxWidth: Dp = 720.dp,
     saving: Boolean = false,
     persistenceError: String? = null,
+    pendingTaskRequestWaiting: Boolean = false,
 ) {
     val keyboard = LocalSoftwareKeyboardController.current
     val titleFocusRequester = remember { FocusRequester() }
@@ -260,6 +265,8 @@ fun TaskEditorDialog(
     val smartCaptureStateDescription = smartCaptureAssumptions.smartCaptureStateDescription(
         "These highlighted phrases are a preview and are only applied when Apply Highlighted Details is selected",
     )
+    val sharedCaptureStateDescription = "Shared content shortened. Review this draft before saving."
+        .takeIf { request.initialCaptureShortened }
     val stepDraftSaver = listSaver<List<TaskStepDraft>, Any>(
         save = { drafts -> drafts.flatMap { listOf(it.id ?: Long.MIN_VALUE, it.title, it.position, it.notes, it.uiKey) } },
         restore = { saved -> saved.chunked(5).map { values ->
@@ -532,6 +539,18 @@ fun TaskEditorDialog(
                         message = persistenceError,
                         testTag = "task-persistence-save-problem",
                     )
+                    if (request.initialCaptureShortened) {
+                        DependentSettingsNotice(
+                            message = "This share exceeded Whip's draft limits, so the title or subtask list was shortened. Review the draft before saving.",
+                            testTag = "shared-task-capture-shortened",
+                        )
+                    }
+                    if (pendingTaskRequestWaiting) {
+                        DependentSettingsNotice(
+                            message = "Another Task request is waiting. Save or close this draft to review it.",
+                            testTag = "pending-task-request-waiting",
+                        )
+                    }
                     saveProblem?.takeIf { validationRequested }?.let { problem ->
                         FormValidationSummary(
                             messages = listOf(problem),
@@ -553,7 +572,9 @@ fun TaskEditorDialog(
                             // Smart Capture accepts a compact command, not just a final title. Leave
                             // enough room for recurrence, date, priority, tag, and reminder phrases;
                             // applying the preview reduces this back to the parsed Task title.
-                            title = lines.firstOrNull().orEmpty().replace('\r', ' ').take(200)
+                            title = SharedTaskCapturePolicy.boundTaskTitle(
+                                lines.firstOrNull().orEmpty().replace('\r', ' '),
+                            )
                             smartCaptureSummary = null
                             val pastedSteps = lines.drop(1).map(String::trim).filter(String::isNotBlank)
                             if (pastedSteps.isNotEmpty()) {
@@ -572,7 +593,12 @@ fun TaskEditorDialog(
                             .fillMaxWidth()
                             .focusRequester(titleFocusRequester)
                             .semantics {
-                                smartCaptureStateDescription?.let { stateDescription = it }
+                                listOfNotNull(
+                                    sharedCaptureStateDescription,
+                                    smartCaptureStateDescription,
+                                ).takeIf(List<String>::isNotEmpty)?.let { descriptions ->
+                                    stateDescription = descriptions.joinToString(separator = ". ")
+                                }
                             }
                             .testTag("task-editor-title"),
                         label = { Text("Task *") },
@@ -580,7 +606,7 @@ fun TaskEditorDialog(
                         supportingText = {
                             Text(
                                 if (validationRequested && title.isBlank()) "Task title is required"
-                                else "${title.length}/200",
+                                else "${SharedTaskCapturePolicy.taskTitleCodePointCount(title)}/${SharedTaskCapturePolicy.MAX_TITLE_CODE_POINTS}",
                             )
                         },
                         visualTransformation = SmartTaskCaptureVisualTransformation(

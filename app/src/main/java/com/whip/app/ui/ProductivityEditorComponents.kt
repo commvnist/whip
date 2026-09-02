@@ -461,6 +461,8 @@ internal fun ProductivityEditorDialog(
     stableHeight: Boolean = false,
     inputBlocked: Boolean = false,
     inputBlockedLabel: String = "Saving",
+    dismissOnBackPress: Boolean = true,
+    dismissOnClickOutside: Boolean = true,
 ) {
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -470,6 +472,8 @@ internal fun ProductivityEditorDialog(
             // actions remain above the keyboard. Preserve the established
             // system-window behavior of full-screen primary editors.
             decorFitsSystemWindows = primary,
+            dismissOnBackPress = dismissOnBackPress,
+            dismissOnClickOutside = dismissOnClickOutside,
         ),
     ) {
         BoxWithConstraints(
@@ -554,6 +558,8 @@ internal fun PaneAwareAlertDialog(
     stableHeight: Boolean = false,
     inputBlocked: Boolean = false,
     inputBlockedLabel: String = "Saving",
+    dismissOnBackPress: Boolean = true,
+    dismissOnClickOutside: Boolean = true,
 ) {
     val placement = LocalWhipDialogPlacement.current
     val resolvedModifier = if (modifier == Modifier) {
@@ -571,6 +577,8 @@ internal fun PaneAwareAlertDialog(
         stableHeight = stableHeight,
         inputBlocked = inputBlocked,
         inputBlockedLabel = inputBlockedLabel,
+        dismissOnBackPress = dismissOnBackPress,
+        dismissOnClickOutside = dismissOnClickOutside,
     )
 }
 
