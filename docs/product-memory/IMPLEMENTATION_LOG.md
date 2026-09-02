@@ -231,3 +231,14 @@
 - Related: `FND-20260831-014`, `DEC-20260901-030`.
 - Verification: `VER-20260901-022`.
 - Status: Implemented and verified; commit/push is the final chunk handoff. Physical release remains deferred because only the disposable emulator is connected and the maximum-quality whole-product goal remains active.
+
+### IMP-20260902-001 — Simplified the maximum-quality development workflow
+
+- Changed the active reusable goal from mandatory multi-agent orchestration to a conventional single-developer loop: verify, inspect, implement, test proportionately, exercise affected UI, record concise facts, commit, push, and move on.
+- Removed future requirements for simulated panels, recursive audits, formal dialectics, Director approvals, and repeated specialist review. Delegation now requires an explicit user request.
+- Preserved historical audit records, existing acceptance criteria, data-safety requirements, accessibility expectations, test gates, durable memory, and coherent commit/push discipline.
+- Important files: `docs/product-memory/MAXIMUM_QUALITY_GOAL.md`, `USER_FEEDBACK.md`, `DECISIONS.md`, and `INDEX.md`.
+- Compatibility: Process/documentation-only change; no application source, schema, backup, test, or user data changed.
+- Related: `FB-20260902-001`, `DEC-20260902-001`.
+- Verification: `VER-20260902-001`.
+- Status: Implemented.

@@ -99,3 +99,10 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: A chunk is coherent, independently understandable, proportionately tested, narrowly staged, committed with a focused message, pushed normally to its configured upstream, and verified before unrelated work begins. Unrelated user edits, failing checks, secrets, caches, and transient artifacts are not swept in; blocked pushes are reported rather than misrepresented.
 - Related: `DEC-20260831-007`, `IMP-20260831-003`, `VER-20260831-004`
 - Status: Implemented and structurally verified; ongoing behavior is enforced for future chunks.
+
+### FB-20260902-001 — Return to a conventional development process
+
+- User need: Stop recursive subagent calls, simulated panels, formal debates, and repeated review loops for each issue. Use a straightforward development process now that the major problems are identified.
+- Acceptance criteria: One primary developer verifies the problem, implements the smallest coherent fix, adds proportionate tests, exercises affected UI, records concise durable facts, commits and pushes the chunk, and moves on. Subagents or specialist reviews are used only when the user explicitly requests them.
+- Related: `DEC-20260902-001`, `MAXIMUM_QUALITY_GOAL.md`
+- Status: Implemented in the active working protocol on 2026-09-02.

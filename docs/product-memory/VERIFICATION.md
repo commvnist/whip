@@ -259,3 +259,12 @@
 - Counts: Current baseline is 1,392 product tests—539 JVM and 853 Android—plus 9 Macrobenchmark/Baseline Profile scenarios.
 - Related: `FND-20260831-014`, `FND-20260831-019`, `FND-20260901-027`, `DEC-20260901-030`, `IMP-20260901-020`.
 - Status: Bounded Share-to-Task capture, exact mixed-source launch ordering, draft-safe Task handoff, overflow recovery, mobile interaction, and accessibility are fully verified and independently accepted; commit/push is the final chunk handoff and physical release remains deferred until a phone is connected and the whole-product goal is complete.
+
+### VER-20260902-001 — Simplified development protocol verification
+
+- Scope: Active reusable goal and durable-memory routing for the user-directed return to a conventional development process.
+- Checks: `git diff --check`; targeted `rg` review proving the active goal contains the single-developer rule and no longer contains mandatory Product Director, specialist-deployment, independent-specialist, focus-group challenge, or final specialist-deployment instructions.
+- Result: Passed. Historical audits retain their original evidence; the active goal and index now unambiguously govern future work with no subagents or formal review loops unless explicitly requested.
+- Exclusions: No application tests or device checks were run because this chunk changes documentation/process only.
+- Related: `FB-20260902-001`, `DEC-20260902-001`, `IMP-20260902-001`.
+- Status: Verified.

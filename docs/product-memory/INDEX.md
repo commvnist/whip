@@ -1,6 +1,6 @@
 # Whip durable product memory
 
-Last reconciled: 2026-09-01
+Last reconciled: 2026-09-02
 
 This is the canonical cross-session entry point for Whip product and engineering context. It indexes durable conclusions and evidence; current code and reproducible behavior remain authoritative.
 
@@ -26,7 +26,7 @@ This is the canonical cross-session entry point for Whip product and engineering
 
 ## Active direction
 
-- `FB-20260831-012`: the maximum-quality whole-product goal is active. Iteration 1 inventory, disposable-emulator baseline, independent specialist review, cross-challenge, and Director synthesis are complete in `VER-20260831-005` and `../WHOLE_PRODUCT_MAXIMUM_QUALITY_AUDIT_2026-08-31.md`.
+- `FB-20260831-012`: the maximum-quality whole-product backlog remains the product direction. Its initial multi-agent inventory and synthesis are preserved as historical evidence in `VER-20260831-005` and `../WHOLE_PRODUCT_MAXIMUM_QUALITY_AUDIT_2026-08-31.md`. Per `FB-20260902-001` / `DEC-20260902-001`, ongoing work now uses a conventional single-developer loop with no subagents, simulated panels, recursive audits, formal debates, or repeated approval rounds unless the user explicitly requests them.
 - `FND-20260831-007` P0 restore recovery, `FND-20260831-008` reminder-delivery integrity, `FND-20260831-009` shared live calendar/time-zone consistency, `FND-20260831-010` Task/Habit/Goal authored-save integrity, `FND-20260831-013` typed Settings integrity, `FND-20260831-014` bounded external Task capture, `FND-20260831-015` Goal backup history, `FND-20260831-016` Goal historical IA, `FND-20260831-020` batch-atomic Health reconciliation, `FND-20260901-022` stale Track schema integrity, `FND-20260901-023` direct Track Entry integrity, `FND-20260901-024` CSV batch identity/recovery, `FND-20260901-025` exact Gym session outcomes, `FND-20260901-026` lightweight Gym structure exactness, `FND-20260901-028` restore/reset integrity, and the Habit, Task, Goal, Track, Gym, Custom Unit, and Health subsets of `FND-20260831-019` / `FND-20260901-027` are resolved and verified. Progressive Habit correctness/UX, named large-text navigation, returning Home, Track search ownership, and other secondary families follow.
 - `FB-20260831-013`: keep durable project memory outside chat. The infrastructure and skill package are structurally validated; future task use will validate whether the protocol needs adjustment.
 - `FB-20260831-014`: commit and push each coherent verified chunk for easier tracking and reverts. The workflow rule is implemented and structurally validated in the skill, workspace instructions, memory schema, and whole-product goal.

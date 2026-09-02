@@ -3,11 +3,11 @@
 Copy the text below into a new Codex request when ready to run the whole-product program.
 
 ```text
-/goal Whip Maximum-Quality Product Remediation — Durable, Exhaustive, Multi-Iteration Implementation
+/goal Whip Maximum-Quality Product Remediation — Durable, Focused, Iterative Implementation
 
 Transform the entire Whip application into an exceptionally coherent, usable, reliable, accessible, understandable, and customizable product.
 
-This is an implementation goal, not a report, design proposal, or superficial polish pass. Continue investigating, implementing, testing, challenging, and refining the product until the completion criteria are credibly satisfied.
+This is an implementation goal, not a report, design proposal, or superficial polish pass. Continue investigating, implementing, testing, and refining the product until the completion criteria are credibly satisfied.
 
 You have authority to rewrite, replace, consolidate, migrate, or remove weak interfaces, components, navigation structures, data models, state systems, persistence logic, and architectural abstractions when this materially improves the product. Do not preserve a flawed abstraction because it already exists. Do not rewrite functioning systems without concrete benefit. Preserve user data, historical records, completed activity, custom content, and compatible behavior unless an explicit, tested, safe migration is implemented.
 
@@ -26,7 +26,7 @@ During every iteration:
 
 - Assign stable IDs to new feedback, findings, decisions, implementations, and verification.
 - Record observed behavior separately from expectation, inference, and decision.
-- Capture root causes, systemic patterns, rejected approaches, tradeoffs, failed attempts, unresolved risks, affected users, source paths/symbols, and regression requirements.
+- Capture root causes, unresolved risks, affected users, source paths/symbols, and regression requirements. Record alternatives or rejected approaches only when they materially affect compatibility, safety, or future maintenance.
 - Update memory at meaningful checkpoints and before any context-heavy phase ends.
 - Preserve superseded history rather than rewriting it as if it never happened.
 
@@ -59,40 +59,25 @@ Inventory and exercise every:
 
 Do not sample only attractive or familiar screens. Trace every action to its result and every result back to a discoverable configuration path.
 
-## Product Director and specialist team
+## Development process
 
-Assign one Product Director who owns investigation, decisions, prioritization, implementation coordination, cross-agent challenges, regression testing, memory reconciliation, and final product quality.
+Use a conventional single-developer workflow. The primary agent owns investigation, prioritization, implementation, testing, documentation, commits, and final quality.
 
-Deploy specialists for:
+For each coherent issue or closely related group:
 
-- general UX and interaction design
-- mobile, foldable, and one-handed usability
-- visual design and information architecture
-- accessibility
-- ADHD and executive-function usability
-- beginner and advanced productivity workflows
-- strength-programming domain architecture
-- powerlifting workflows
-- 5/3/1 methodology
-- beginner, intermediate, and expert lifters
-- software architecture and data integrity
-- adversarial QA
-- product strategy
+1. Reproduce or verify the current behavior.
+2. Inspect the relevant UI, domain, persistence, and test boundaries.
+3. Select the smallest coherent solution that fixes the root problem without unnecessary abstraction.
+4. Implement the change.
+5. Add focused regression coverage and run proportionate shared checks.
+6. Exercise the affected workflow on an emulator when interaction behavior changed.
+7. Record concise durable facts, commit, push, and move to the next priority.
 
-Specialists must investigate independently before synthesis. The Director must make decisions rather than aggregate reports.
+Do not create subagents, simulated agent panels, recursive audits, formal debates, Director reviews, adversarial-review loops, or repeated approval rounds. Do not reopen a settled decision without new contradictory evidence. Use delegation or an external specialist only when the user explicitly asks for it.
 
-For meaningful disagreement, record:
+## Representative use cases
 
-1. Position A
-2. Position B
-3. Evidence and constraints
-4. User and engineering failure modes
-5. Selected design
-6. Why it is superior for Whip
-
-## Representative user panels
-
-Create realistic panels for:
+Evaluate realistic workflows for:
 
 - a first-time user
 - a casual productivity user
@@ -111,7 +96,7 @@ Create realistic panels for:
 - beginner, intermediate, and expert 5/3/1 lifters
 - a coach who expects precise programming semantics
 
-Give each panel realistic tasks and do not explain the intended UI beforehand. Record confusion, hesitation, misinterpretation, errors, dead ends, repetitive entry, hidden functionality, unsafe editing, unclear terminology, poor defaults, excessive taps, and unmet expectations.
+Exercise representative tasks without relying on hidden implementation knowledge. Record confusion, misinterpretation, errors, dead ends, repetitive entry, hidden functionality, unsafe editing, unclear terminology, poor defaults, excessive taps, and unmet expectations. These are developer-run use-case checks, not simulated focus groups or claims of recruited user research.
 
 Pay special attention to people who want to modify, edit, reorder, substitute, duplicate, override, and customize nearly everything. Customization must remain understandable and must not silently corrupt rules, progression, relationships, or history.
 
@@ -217,35 +202,19 @@ Prioritize:
 
 Fix P0/P1 before extensive P3 work.
 
-## Required iteration loop
+## Work sequence
 
-### Iteration 1 — Exhaustive discovery
+Work through the prioritized backlog one coherent chunk at a time:
 
-Inventory the product, run independent specialist audits and user panels, exercise workflows, identify architectural causes, write findings to durable memory, and prioritize remediation.
+1. Correctness and data-integrity defects.
+2. Broken, inaccessible, or misleading primary workflows.
+3. UX, information hierarchy, customization, responsive layout, and visual consistency.
+4. Secondary workflow and platform-integration gaps.
+5. Whole-app regression, migration, accessibility, and release checks.
 
-### Iteration 2 — Foundational remediation
+Test fresh installs, upgrades with data, app closure during editing, partial saves, rapid taps, resize/rotation/folds, large text, invalid/zero/negative/large values, duplicates, missing/deleted references, unit changes, rounding, timer boundaries, workout restoration, routine edits during active blocks, optional/skipped work, historical stability, offline behavior, and malformed imports where relevant to the current chunk. Fix discovered regressions and rerun affected suites.
 
-Fix correctness, data integrity, domain modeling, navigation, persistence, calculations, migrations, and architectural problems. Add regression tests and preserve history.
-
-### Iteration 3 — Interaction and design remediation
-
-Improve workflows, customization, terminology, hierarchy, mobile/foldable ergonomics, accessibility, and visual coherence. Test real small-screen and high-text-scale layouts.
-
-### Iteration 4 — Fresh focus-group retest
-
-Present the implemented app to fresh representatives without explaining the UI. Record hesitation and failures. Have specialists challenge the fixes, then implement the resulting changes.
-
-### Iteration 5 — Adversarial QA
-
-Test fresh installs, upgrades with data, app closure during editing, partial saves, rapid taps, resize/rotation/folds, large text, invalid/zero/negative/large values, duplicates, missing/deleted references, unit changes, rounding, timer boundaries, workout restoration, routine edits during active blocks, optional/skipped work, historical stability, offline behavior, and malformed imports.
-
-Fix every discovered regression and rerun affected suites.
-
-### Iteration 6 — Final independent review
-
-Repeat UX, accessibility, visual, domain-correctness, user-panel, architecture, and QA passes against the finished implementation. Update durable memory with the evidence and unresolved limitations.
-
-Continue iterating while any P0/P1 remains; any primary workflow has a dead end; navigation loses context; customization corrupts rules/history; a major feature is undiscoverable; mobile/accessibility remains blocking; tests reveal instability; or specialists identify a credible unresolved failure.
+Continue while a confirmed P0/P1 remains, a primary workflow has a dead end, navigation loses context, customization corrupts rules/history, a major feature is undiscoverable, mobile/accessibility remains blocking, or tests reveal instability. Avoid recursive investigation after the evidence is sufficient to implement safely.
 
 ## Test and release gates
 
@@ -285,5 +254,5 @@ The standard is:
 
 “A wide range of users—including demanding lifters, powerlifters, 5/3/1 users, productivity enthusiasts, ADHD users, accessibility users, beginners, and relentless customizers—can understand Whip, configure it confidently, modify it safely, use it rapidly, trust its behavior, and recover gracefully from mistakes.”
 
-Continue deploying specialists, implementing, recording evidence, retesting, and iterating until that standard is credibly met.
+Continue implementing, recording concise evidence, testing, and progressing through the backlog until that standard is credibly met.
 ```
