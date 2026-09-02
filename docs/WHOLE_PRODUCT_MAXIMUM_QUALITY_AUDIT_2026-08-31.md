@@ -140,13 +140,14 @@ These values are source- and emulator-informed heuristic estimates, not observed
 ### P1 — Settings can persist partial numeric and time edits
 
 - Observed: parseable intermediate keystrokes are committed immediately. Replacing `300` with `600` can persist `6` or `60` if interrupted; clock parsing accepts extra segments such as `12:30:99`.
-- Expected: fields own a local draft, validate the complete value strictly, and commit on IME Done or focus loss.
+- Expected: fields own a local draft, validate the complete value strictly, and commit through an explicit durable request boundary.
 - Why it matters: interrupted editing silently changes reminders, cutoffs, rest times, backup retention, or Health lookback.
 - Affected users: all Settings users, especially mobile and interruption-prone users.
 - Source: `SettingsScreens.kt` numeric/time setting controls.
 - Recommended solution: a shared transactional Settings field and typed validation outcome.
 - Regression gate: replacement typing, invalid clocks, focus/IME commit, recreation, and rapid submission.
 - Durable record: `FND-20260831-013`.
+- Resolution: Completed in `IMP-20260901-017` / `VER-20260901-019`. Cross-agent challenge rejected focus-loss and timeout/current-observation settlement; `DEC-20260901-024` records the explicit modal Save plus durable receipt design.
 
 ### P1 — Shared text is unbounded across Activity recreation
 

@@ -107,6 +107,17 @@ interface SettingsRepository {
     val settings: Flow<AppSettings>
     fun current(): AppSettings
     fun update(transform: (AppSettings) -> AppSettings)
+
+    /**
+     * Persists a settings mutation synchronously and reports whether durable
+     * storage accepted it. Authored editors use this boundary before telling a
+     * person that Save succeeded; fire-and-forget system maintenance may keep
+     * using [update].
+     */
+    fun updateAndConfirm(transform: (AppSettings) -> AppSettings): Boolean {
+        update(transform)
+        return true
+    }
 }
 
 /**
@@ -265,10 +276,21 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         focusTimerTaskId = preferences.nullableLong("focusTimerTaskId"),
     ).normalized()
 
+    override fun update(transform: (AppSettings) -> AppSettings) {
+        persist(transform, confirm = false)
+    }
+
+    override fun updateAndConfirm(transform: (AppSettings) -> AppSettings): Boolean =
+        persist(transform, confirm = true)
+
     @SuppressLint("UseKtx")
-    override fun update(transform: (AppSettings) -> AppSettings) = synchronized(updateLock) {
-        val value = transform(current()).normalized()
-        preferences.edit()
+    private fun persist(
+        transform: (AppSettings) -> AppSettings,
+        confirm: Boolean,
+    ): Boolean = synchronized(updateLock) {
+        val before = current()
+        val value = transform(before).normalized()
+        val editor = preferences.edit()
             .putBoolean("setupCompleted", value.setupCompleted)
             .putBoolean("powerMode", value.powerMode)
             .putBoolean("lowPressureMode", value.lowPressureMode)
@@ -333,7 +355,20 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .putString("trackedGymRecords", value.trackedGymRecords.encodeTrackedGymRecords())
             .putNullableLong("focusTimerDeadlineMillis", value.focusTimerDeadlineMillis)
             .putNullableLong("focusTimerTaskId", value.focusTimerTaskId)
-            .apply()
+        if (confirm) {
+            val committed = editor.commit()
+            if (!committed) {
+                // SharedPreferences updates its process-local map before it
+                // knows whether disk accepted commit(). Restore the last
+                // durable snapshot so current()/listeners cannot advertise a
+                // value that will disappear after process restart.
+                persist(transform = { before }, confirm = false)
+            }
+            committed
+        } else {
+            editor.apply()
+            true
+        }
     }
 
     private companion object {

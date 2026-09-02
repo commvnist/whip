@@ -464,7 +464,13 @@ internal fun ProductivityEditorDialog(
 ) {
     Dialog(
         onDismissRequest = onDismissRequest,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            // Alert-style editors rely on the explicit imePadding below so
+            // actions remain above the keyboard. Preserve the established
+            // system-window behavior of full-screen primary editors.
+            decorFitsSystemWindows = primary,
+        ),
     ) {
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize().imePadding(),

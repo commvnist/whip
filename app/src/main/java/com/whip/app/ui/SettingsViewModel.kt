@@ -12,6 +12,9 @@ import com.whip.app.core.ReviewSection
 import com.whip.app.core.HealthDataType
 import com.whip.app.core.SavedTaskFilter
 import com.whip.app.core.PlatePreset
+import com.whip.app.core.PersistenceRequestState
+import com.whip.app.core.WhipResult
+import com.whip.app.core.tryStartPersistenceRequest
 import com.whip.app.core.withoutAreaReferences
 import com.whip.app.data.BackupPreview
 import com.whip.app.data.CommittedAreaDeletionCancellation
@@ -31,6 +34,8 @@ import com.whip.app.widget.WhipWidgetProvider
 import java.time.DayOfWeek
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -77,6 +82,10 @@ internal fun reminderDeliverySemanticsChanged(before: AppSettings, after: AppSet
         before.quietEndMinutes != after.quietEndMinutes ||
         before.timeZoneId != after.timeZoneId
 
+data class SettingsMutationReceipt(
+    val warnings: List<String> = emptyList(),
+)
+
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as WhipApplication
     private val repository = app.settingsRepository
@@ -84,6 +93,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val healthConnect = app.healthConnectManager
     private val runtime = MutableStateFlow(SettingsRuntime())
     private val healthRuntime = MutableStateFlow(HealthConnectStatus(availability = healthConnect.availability()))
+    private val _typedSettingMutationState =
+        MutableStateFlow<PersistenceRequestState<SettingsMutationReceipt>>(PersistenceRequestState.Idle)
+    internal val typedSettingMutationState = _typedSettingMutationState.asStateFlow()
     private var pendingRestoreJson: String? = null
     private var pendingEncryptedRestoreJson: String? = null
 
@@ -157,6 +169,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     init {
         refreshHealthConnect()
+        viewModelScope.launch {
+            app.userDataGeneration.drop(1).collect {
+                _typedSettingMutationState.value = PersistenceRequestState.Idle
+            }
+        }
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
                 app.withUserDataAccess {
@@ -202,6 +219,74 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 runCatching { app.goalReminderScheduler.syncAll() }
             }
         }
+    }
+
+    fun consumeTypedSettingMutation(requestId: String) {
+        if ((_typedSettingMutationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _typedSettingMutationState.value = PersistenceRequestState.Idle
+        }
+    }
+
+    /**
+     * Admits one authored typed-setting save, commits it durably off the main
+     * thread, and publishes a request-scoped terminal result. Observation of a
+     * matching value is intentionally not treated as proof that this request
+     * succeeded.
+     */
+    fun updateTypedSetting(
+        requestId: String,
+        transform: (AppSettings) -> AppSettings,
+    ): Boolean {
+        if (!_typedSettingMutationState.tryStartPersistenceRequest(requestId)) return false
+        viewModelScope.launch(Dispatchers.IO) {
+            val result: WhipResult<SettingsMutationReceipt> = try {
+                val receipt = reminderSettingsUpdateMutex.withLock {
+                    val change = app.withUserDataAccess {
+                        app.reminderDeliveryCoordinator.withStateBoundary {
+                            val before = repository.current()
+                            check(repository.updateAndConfirm(transform)) {
+                                "Local storage did not confirm the settings change."
+                            }
+                            before to repository.current()
+                        }
+                    } ?: error("Whip data is temporarily unavailable; try again.")
+                    val warnings = mutableListOf<String>()
+                    if (reminderDeliverySemanticsChanged(change.first, change.second)) {
+                        suspend fun sync(label: String, block: suspend () -> Unit) {
+                            try {
+                                block()
+                            } catch (cancelled: CancellationException) {
+                                throw cancelled
+                            } catch (_: Exception) {
+                                warnings += "$label could not be refreshed. The setting was saved; use Refresh Notification Status to retry."
+                            }
+                        }
+                        sync("Task reminders") { app.reminderScheduler.syncAll() }
+                        sync("Habit reminders") { app.habitReminderScheduler.syncAll() }
+                        sync("Goal reminders") { app.goalReminderScheduler.syncAll() }
+                    }
+                    SettingsMutationReceipt(warnings)
+                }
+                if (receipt.warnings.isNotEmpty()) {
+                    runtime.value = runtime.value.copy(message = receipt.warnings.joinToString(" "))
+                }
+                WhipResult.Success(receipt)
+            } catch (cancelled: CancellationException) {
+                if ((_typedSettingMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                    _typedSettingMutationState.value = PersistenceRequestState.Idle
+                }
+                throw cancelled
+            } catch (error: Exception) {
+                WhipResult.Failure(
+                    error.message ?: "Whip could not save this setting. Your draft is still here.",
+                    error,
+                )
+            }
+            if ((_typedSettingMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                _typedSettingMutationState.value = PersistenceRequestState.Finished(requestId, result)
+            }
+        }
+        return true
     }
 
     fun markNotificationPermissionRequested() = update {
@@ -565,8 +650,30 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun setPortableBackupRetention(count: Int) {
-        app.portableBackupManager.setRetentionCount(count)
+    fun setPortableBackupRetention(requestId: String, count: Int): Boolean {
+        if (!_typedSettingMutationState.tryStartPersistenceRequest(requestId)) return false
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = try {
+                check(app.portableBackupManager.setRetentionCountAndConfirm(count)) {
+                    "Local storage did not confirm the backup-retention change."
+                }
+                WhipResult.Success(SettingsMutationReceipt())
+            } catch (cancelled: CancellationException) {
+                if ((_typedSettingMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                    _typedSettingMutationState.value = PersistenceRequestState.Idle
+                }
+                throw cancelled
+            } catch (error: Exception) {
+                WhipResult.Failure(
+                    error.message ?: "Whip could not save backup retention. Your draft is still here.",
+                    error,
+                )
+            }
+            if ((_typedSettingMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                _typedSettingMutationState.value = PersistenceRequestState.Finished(requestId, result)
+            }
+        }
+        return true
     }
 
     fun clearPortableBackupFolder() = runIo("Backup folder forgotten; existing files were not deleted") {

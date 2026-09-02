@@ -130,6 +130,20 @@ class AppSettingsPersistenceTest {
     }
 
     @Test
+    fun confirmedUpdateReturnsOnlyAfterTheValueIsDurableAndRecreatable() {
+        val repository = SharedPreferencesSettingsRepository(context)
+
+        assertTrue(repository.updateAndConfirm { it.copy(defaultRestSeconds = 300) })
+
+        assertEquals(
+            300,
+            context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
+                .getInt("defaultRest", -1),
+        )
+        assertEquals(300, SharedPreferencesSettingsRepository(context).current().defaultRestSeconds)
+    }
+
+    @Test
     fun concurrentRepositoryInstancesDoNotLoseUnrelatedSettingsUpdates() {
         val first = SharedPreferencesSettingsRepository(context)
         val second = SharedPreferencesSettingsRepository(context)

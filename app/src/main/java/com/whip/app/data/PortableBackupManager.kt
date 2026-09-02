@@ -205,6 +205,7 @@ class PortableBackupManager(
 ) {
     private val preferences = context.getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
     private val mutex = Mutex()
+    private val updateLock = Any()
     private val mutableState = MutableStateFlow(readState())
     val state: StateFlow<PortableBackupState> = mutableState
 
@@ -234,6 +235,10 @@ class PortableBackupManager(
 
     fun setRetentionCount(count: Int) {
         updateState { it.copy(retentionCount = count.coerceIn(MIN_PORTABLE_BACKUP_RETENTION, MAX_PORTABLE_BACKUP_RETENTION)) }
+    }
+
+    fun setRetentionCountAndConfirm(count: Int): Boolean = updateState(confirm = true) {
+        it.copy(retentionCount = count.coerceIn(MIN_PORTABLE_BACKUP_RETENTION, MAX_PORTABLE_BACKUP_RETENTION))
     }
 
     suspend fun clearFolder() = mutex.withLock {
@@ -348,9 +353,13 @@ class PortableBackupManager(
     )
 
     @android.annotation.SuppressLint("UseKtx")
-    private fun updateState(transform: (PortableBackupState) -> PortableBackupState) {
-        val updated = transform(mutableState.value)
-        preferences.edit()
+    private fun updateState(
+        confirm: Boolean = false,
+        transform: (PortableBackupState) -> PortableBackupState,
+    ): Boolean = synchronized(updateLock) {
+        val before = mutableState.value
+        val updated = transform(before)
+        val editor = preferences.edit()
             .putNullableString(KEY_FOLDER_URI, updated.folderUri)
             .putNullableString(KEY_FOLDER_LABEL, updated.folderLabel)
             .putBoolean(KEY_AUTOMATIC, updated.automaticEnabled)
@@ -358,8 +367,18 @@ class PortableBackupManager(
             .putNullableLong(KEY_LAST_AT, updated.lastBackupAtMillis)
             .putNullableString(KEY_LAST_FILE, updated.lastBackupFileName)
             .putNullableString(KEY_LAST_ERROR, updated.lastError)
-            .apply()
+        val persisted = if (confirm) editor.commit() else {
+            editor.apply()
+            true
+        }
+        if (!persisted) {
+            // Mirror SettingsRepository: commit(false) may still change the
+            // process-local preference map, so restore the durable baseline.
+            if (confirm) updateState(transform = { before })
+            return false
+        }
         mutableState.value = updated
+        return true
     }
 }
 

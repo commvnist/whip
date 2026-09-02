@@ -27,9 +27,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -43,25 +48,38 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -95,6 +113,9 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.whip.app.core.AppSettings
+import com.whip.app.core.PersistenceRequestState
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -111,6 +132,16 @@ internal enum class SettingsSection(val label: String, val supportingText: Strin
     DataPrivacy("Data & Privacy", "Local data, backups, restore, export, health access, and deletion"),
     AboutDiagnostics("About Whip", "App identity, version, package, and data-handling summary"),
 }
+
+private val LocalSettingsTypedEditorState = staticCompositionLocalOf<(String, Boolean) -> Unit> {
+    { _, _ -> }
+}
+
+internal data class TypedSettingMutation<T>(
+    val state: PersistenceRequestState<SettingsMutationReceipt>,
+    val consume: (String) -> Unit,
+    val submit: (requestId: String, value: T) -> Boolean,
+)
 
 internal fun submitDestructiveActionOnce(
     alreadySubmitted: Boolean,
@@ -155,9 +186,11 @@ internal fun SettingsContent(
     var pendingExportPassphrase by remember { mutableStateOf<String?>(null) }
     var restorePassphrase by remember { mutableStateOf("") }
     var localSection by rememberSaveable { mutableStateOf(SettingsSection.Appearance) }
+    var activeTypedSettingTag by rememberSaveable { mutableStateOf<String?>(null) }
     val section = selectedSection ?: localSection
     val externalSectionNavigation = selectedSection != null
     fun selectSection(next: SettingsSection) {
+        if (activeTypedSettingTag != null) return
         if (externalSectionNavigation) onSectionChange(next) else localSection = next
     }
     var compactSectionOpen by rememberSaveable { mutableStateOf(false) }
@@ -179,6 +212,16 @@ internal fun SettingsContent(
         viewModel::onHealthPermissionsResult,
     )
     val settings = state.settings
+    val typedSettingMutationState by viewModel.typedSettingMutationState.collectAsStateWithLifecycle()
+    fun <T> appSettingMutation(
+        transform: (AppSettings, T) -> AppSettings,
+    ): TypedSettingMutation<T> = TypedSettingMutation(
+        state = typedSettingMutationState,
+        consume = viewModel::consumeTypedSettingMutation,
+        submit = { requestId, value ->
+            viewModel.updateTypedSetting(requestId) { current -> transform(current, value) }
+        },
+    )
     val notificationPermissionGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     val notificationPermissionRationale = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -214,6 +257,11 @@ internal fun SettingsContent(
     val taskNotificationChannelBlocked = taskNotificationChannel?.importance == NotificationManager.IMPORTANCE_NONE
     val batteryUnrestricted = context.getSystemService(PowerManager::class.java)
         .isIgnoringBatteryOptimizations(context.packageName)
+    CompositionLocalProvider(
+        LocalSettingsTypedEditorState provides { tag, open ->
+            activeTypedSettingTag = if (open) tag else activeTypedSettingTag.takeUnless { it == tag }
+        },
+    ) {
     BoxWithConstraints(Modifier.fillMaxSize().padding(innerPadding)) {
         val wideSettingsNavigation = !externalSectionNavigation && maxWidth >= 840.dp
         if (!externalSectionNavigation && !wideSettingsNavigation && !compactSectionOpen) {
@@ -224,7 +272,7 @@ internal fun SettingsContent(
                 ) {
                     WhipPageHeader(
                         title = "Settings",
-                        supportingText = "Choose a category. Changes save automatically.",
+                        supportingText = "Choices save immediately. Typed values open in an editor and change only after Save is confirmed.",
                     )
                 }
                 LazyColumn(
@@ -249,7 +297,10 @@ internal fun SettingsContent(
             }
             return@BoxWithConstraints
         }
-        BackHandler(enabled = !externalSectionNavigation && !wideSettingsNavigation && compactSectionOpen) {
+        BackHandler(
+            enabled = !externalSectionNavigation && !wideSettingsNavigation && compactSectionOpen &&
+                activeTypedSettingTag == null,
+        ) {
             compactSectionOpen = false
         }
     Column(Modifier.fillMaxSize()) {
@@ -264,7 +315,9 @@ internal fun SettingsContent(
                 if (!externalSectionNavigation && !wideSettingsNavigation) {
                     WhipBackAction(
                         label = "Back to Settings",
-                        onClick = { compactSectionOpen = false },
+                        onClick = {
+                            if (activeTypedSettingTag == null) compactSectionOpen = false
+                        },
                     )
                 }
                 WhipPageHeader(
@@ -503,25 +556,36 @@ internal fun SettingsContent(
         }
         item {
             val followDevice = settings.timeZoneId == null
-            SettingsToggle("Follow device time zone", followDevice) { enabled ->
+            val editingTimeZone = activeTypedSettingTag == "settings-field-time-zone"
+            SettingsToggle(
+                "Follow device time zone",
+                followDevice,
+                enabled = activeTypedSettingTag == null,
+                modifier = Modifier.testTag("settings-follow-device-time-zone"),
+            ) { enabled ->
                 viewModel.update { it.copy(timeZoneId = if (enabled) null else ZoneId.systemDefault().id) }
             }
-            if (!followDevice) {
-                TimeZoneSetting(settings.timeZoneId.orEmpty()) { value ->
-                    viewModel.update { it.copy(timeZoneId = value) }
-                }
+            if (!followDevice || editingTimeZone) {
+                TimeZoneSetting(
+                    current = settings.timeZoneId,
+                    mutation = appSettingMutation { current, value -> current.copy(timeZoneId = value) },
+                )
             }
             Text("Active time zone: ${settings.zoneId().id}. Historical entries keep their saved local date and offset.", style = MaterialTheme.typography.bodySmall)
         }
         item {
-            ClockSetting("Late-night day cutoff", settings.dayCutoffMinutes) { minutes -> viewModel.update { it.copy(dayCutoffMinutes = minutes) } }
+            ClockSetting(
+                label = "Late-night day cutoff",
+                currentMinutes = settings.dayCutoffMinutes,
+                mutation = appSettingMutation { current, minutes -> current.copy(dayCutoffMinutes = minutes) },
+            )
             Text("Before this time, Today still uses the previous calendar date. Use 00:00 for the standard midnight boundary.", style = MaterialTheme.typography.bodySmall)
         }
         item {
             NumberSetting(
-                "Default decimal precision",
-                settings.numberPrecision,
-                { value -> viewModel.update { it.copy(numberPrecision = value) } },
+                label = "Default decimal precision",
+                current = settings.numberPrecision,
+                mutation = appSettingMutation { current, value -> current.copy(numberPrecision = value) },
                 validRange = 0..6,
             )
         }
@@ -663,18 +727,18 @@ internal fun SettingsContent(
         item { SettingsDropdown("Estimated 1RM formula", listOf("Epley", "Brzycki"), settings.oneRepMaxFormula, { it }) { value -> viewModel.update { it.copy(oneRepMaxFormula = value) } } }
         item {
             NumberSetting(
-                "Estimated 1RM rep cutoff",
-                settings.oneRepMaxRepCutoff,
-                { value -> viewModel.update { it.copy(oneRepMaxRepCutoff = value) } },
+                label = "Estimated 1RM rep cutoff",
+                current = settings.oneRepMaxRepCutoff,
+                mutation = appSettingMutation { current, value -> current.copy(oneRepMaxRepCutoff = value) },
                 validRange = 1..36,
                 supportingText = "Sets above this repetition count are excluded from estimated 1RM records.",
             )
         }
         item {
             NumberSetting(
-                "Default rest time (seconds)",
-                settings.defaultRestSeconds,
-                { value -> viewModel.update { it.copy(defaultRestSeconds = value) } },
+                label = "Default rest time (seconds)",
+                current = settings.defaultRestSeconds,
+                mutation = appSettingMutation { current, value -> current.copy(defaultRestSeconds = value) },
                 validRange = 15..3_600,
                 supportingText = "Used when a workout has no temporary rest-time override.",
             )
@@ -1019,7 +1083,16 @@ internal fun SettingsContent(
         item { WhipTextButton(onClick = { diagnosticRefresh++ }) { Text("Refresh Notification Status") } }
         item {
             val enabled = settings.quietStartMinutes != null && settings.quietEndMinutes != null
-            SettingsToggle("Enable notification quiet hours", enabled) { selected ->
+            val editingQuietHours = activeTypedSettingTag in setOf(
+                "settings-field-quiet-hours-start",
+                "settings-field-quiet-hours-end",
+            )
+            SettingsToggle(
+                "Enable notification quiet hours",
+                enabled,
+                enabled = activeTypedSettingTag == null,
+                modifier = Modifier.testTag("settings-enable-quiet-hours"),
+            ) { selected ->
                 viewModel.update { current ->
                     current.copy(
                         quietStartMinutes = if (selected) current.quietStartMinutes ?: 22 * 60 else null,
@@ -1027,9 +1100,29 @@ internal fun SettingsContent(
                     )
                 }
             }
-            if (enabled) {
-                ClockSetting("Quiet hours start", requireNotNull(settings.quietStartMinutes)) { minutes -> viewModel.update { it.copy(quietStartMinutes = minutes) } }
-                ClockSetting("Quiet hours end", requireNotNull(settings.quietEndMinutes)) { minutes -> viewModel.update { it.copy(quietEndMinutes = minutes) } }
+            if (enabled || editingQuietHours) {
+                ClockSetting(
+                    label = "Quiet hours start",
+                    currentMinutes = settings.quietStartMinutes ?: 22 * 60,
+                    sourceIdentity = "${settings.quietStartMinutes}:${settings.quietEndMinutes}",
+                    mutation = appSettingMutation { current, minutes ->
+                        current.copy(
+                            quietStartMinutes = minutes,
+                            quietEndMinutes = current.quietEndMinutes ?: 7 * 60,
+                        )
+                    },
+                )
+                ClockSetting(
+                    label = "Quiet hours end",
+                    currentMinutes = settings.quietEndMinutes ?: 7 * 60,
+                    sourceIdentity = "${settings.quietStartMinutes}:${settings.quietEndMinutes}",
+                    mutation = appSettingMutation { current, minutes ->
+                        current.copy(
+                            quietStartMinutes = current.quietStartMinutes ?: 22 * 60,
+                            quietEndMinutes = minutes,
+                        )
+                    },
+                )
             }
         }
         }
@@ -1081,9 +1174,13 @@ internal fun SettingsContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         NumberSetting(
-                            "Verified backups to keep (1–30)",
-                            state.portableBackup.retentionCount,
-                            viewModel::setPortableBackupRetention,
+                            label = "Verified backups to keep (1–30)",
+                            current = state.portableBackup.retentionCount,
+                            mutation = TypedSettingMutation(
+                                state = typedSettingMutationState,
+                                consume = viewModel::consumeTypedSettingMutation,
+                                submit = viewModel::setPortableBackupRetention,
+                            ),
                             validRange = 1..30,
                         )
                         ResponsiveSettingsActions(
@@ -1222,9 +1319,9 @@ internal fun SettingsContent(
             }
             item {
                 NumberSetting(
-                    "Days to sync",
-                    settings.healthSyncDays,
-                    { value -> viewModel.update { it.copy(healthSyncDays = value) } },
+                    label = "Days to sync",
+                    current = settings.healthSyncDays,
+                    mutation = appSettingMutation { current, value -> current.copy(healthSyncDays = value) },
                     validRange = 1..365,
                 )
                 val accessAvailability = ControlAvailability(
@@ -1479,6 +1576,7 @@ internal fun SettingsContent(
                 },
             )
         }
+    }
     }
 }
 
@@ -1785,48 +1883,57 @@ internal fun HealthDataTypeSetting(
     SelectionField(label = label, values = values, selected = selected, valueText = text, onSelect = onChange)
 }
 
-@Composable private fun NumberSetting(
+@Composable internal fun NumberSetting(
     label: String,
     current: Int,
-    onChange: (Int) -> Unit,
+    mutation: TypedSettingMutation<Int>,
     validRange: IntRange? = null,
     supportingText: String? = null,
+    testTag: String = settingsFreeFormFieldTag(label),
+    sourceIdentity: String = "number",
 ) {
-    var text by rememberSaveable(current) { mutableStateOf(current.toString()) }
-    val parsed = text.toIntOrNull()
-    val valid = parsed != null && (validRange == null || parsed in validRange)
-    val supportingMessage = if (!valid && text.isNotBlank() && validRange != null) {
-        "Enter ${validRange.first}–${validRange.last}."
-    } else {
-        supportingText
-    }
-    OutlinedTextField(
-        value = text,
-        onValueChange = { value ->
-            text = value
-            value.toIntOrNull()?.takeIf { validRange == null || it in validRange }?.let(onChange)
+    TransactionalSettingsField(
+        label = label,
+        current = current,
+        parse = { value ->
+            value.toIntOrNull()?.takeIf { validRange == null || it in validRange }
         },
-        label = { Text(label) },
-        supportingText = if (supportingMessage != null) { { Text(supportingMessage) } } else null,
-        isError = text.isNotBlank() && !valid,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
+        format = Int::toString,
+        mutation = mutation,
+        invalidMessage = when (validRange) {
+            null -> "Enter a whole number."
+            else -> "Enter ${validRange.first}–${validRange.last}."
+        },
+        supportingText = supportingText,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Number,
+            imeAction = ImeAction.Done,
+        ),
+        maxInputLength = 10,
+        testTag = testTag,
+        sourceIdentity = sourceIdentity,
     )
 }
 
-@Composable private fun ClockSetting(label: String, currentMinutes: Int, onChange: (Int) -> Unit) {
-    var text by rememberSaveable(currentMinutes) { mutableStateOf("%02d:%02d".format(currentMinutes / 60, currentMinutes % 60)) }
-    val valid = parseSettingsClock(text) != null
-    OutlinedTextField(
-        value = text,
-        onValueChange = { value -> text = value; parseSettingsClock(value)?.let(onChange) },
-        label = { Text(label) },
-        supportingText = { Text("Use 24-hour HH:MM, from 00:00 to 23:59.") },
-        isError = text.isNotBlank() && !valid,
+@Composable internal fun ClockSetting(
+    label: String,
+    currentMinutes: Int,
+    mutation: TypedSettingMutation<Int>,
+    testTag: String = settingsFreeFormFieldTag(label),
+    sourceIdentity: String = "clock",
+) {
+    TransactionalSettingsField(
+        label = label,
+        current = currentMinutes,
+        parse = ::parseSettingsClock,
+        format = ::formatSettingsClock,
+        mutation = mutation,
+        invalidMessage = "Enter a complete 24-hour time from 00:00 to 23:59.",
+        supportingText = "Use 24-hour HH:MM, from 00:00 to 23:59.",
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
+        maxInputLength = 5,
+        testTag = testTag,
+        sourceIdentity = sourceIdentity,
     )
 }
 
@@ -1836,12 +1943,291 @@ internal fun HealthDataTypeSetting(
     }, onChange)
 }
 
-private fun parseSettingsClock(value: String): Int? {
-    val parts = value.split(':')
-    val hour = parts.getOrNull(0)?.toIntOrNull() ?: return null
-    val minute = parts.getOrNull(1)?.toIntOrNull() ?: return null
-    return if (hour in 0..23 && minute in 0..59) hour * 60 + minute else null
+internal fun parseSettingsClock(value: String): Int? {
+    if (!SETTINGS_CLOCK_PATTERN.matches(value)) return null
+    val hour = value.substring(0, 2).toInt()
+    val minute = value.substring(3, 5).toInt()
+    return hour * 60 + minute
 }
+
+internal fun formatSettingsClock(minutes: Int): String =
+    "%02d:%02d".format(Locale.ROOT, minutes / 60, minutes % 60)
+
+internal fun settingsFreeFormFieldTag(label: String): String = "settings-field-" + label
+    .lowercase(Locale.ROOT)
+    .replace(Regex("[^a-z0-9]+"), "-")
+    .trim('-')
+
+@Composable
+private fun <T> TransactionalSettingsField(
+    label: String,
+    current: T,
+    parse: (String) -> T?,
+    format: (T) -> String,
+    mutation: TypedSettingMutation<T>,
+    invalidMessage: String,
+    supportingText: String?,
+    keyboardOptions: KeyboardOptions,
+    maxInputLength: Int,
+    testTag: String,
+    sourceIdentity: String,
+) {
+    val currentText = format(current)
+    var editorOpen by rememberSaveable(label) { mutableStateOf(false) }
+    var editorWasOpened by rememberSaveable(label) { mutableStateOf(false) }
+    var baselineText by rememberSaveable(label) { mutableStateOf(currentText) }
+    var baselineIdentity by rememberSaveable(label) { mutableStateOf(sourceIdentity) }
+    var draftText by rememberSaveable(label) { mutableStateOf(currentText) }
+    var validationRequested by rememberSaveable(label) { mutableStateOf(false) }
+    var inputTooLong by rememberSaveable(label) { mutableStateOf(false) }
+    var externalConflict by rememberSaveable(label) { mutableStateOf<String?>(null) }
+    var durabilityRetryRequired by rememberSaveable(label) { mutableStateOf(false) }
+    var confirmDiscard by rememberSaveable(label) { mutableStateOf(false) }
+    val inputFocusRequester = remember { FocusRequester() }
+    val actionFocusRequester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    val editorScroll = rememberScrollState()
+    val reportEditorState = LocalSettingsTypedEditorState.current
+
+    DisposableEffect(testTag) {
+        onDispose { reportEditorState(testTag, false) }
+    }
+
+    fun resetEditor(close: Boolean) {
+        baselineText = currentText
+        baselineIdentity = sourceIdentity
+        draftText = currentText
+        validationRequested = false
+        inputTooLong = false
+        externalConflict = null
+        durabilityRetryRequired = false
+        confirmDiscard = false
+        if (close) editorOpen = false
+    }
+
+    val coordinator = rememberPersistenceRequestCoordinator(
+        state = mutation.state,
+        consume = mutation.consume,
+        key = testTag,
+        requestNamespace = testTag,
+        onPersisted = { resetEditor(close = true) },
+        orphanedMessage =
+            "Whip was interrupted before it could confirm this save. Your draft is still here; review the current value and try again.",
+    )
+
+    LaunchedEffect(editorOpen, currentText, sourceIdentity) {
+        if (!editorOpen) {
+            baselineText = currentText
+            baselineIdentity = sourceIdentity
+            draftText = currentText
+            return@LaunchedEffect
+        }
+
+        if (currentText != baselineText || sourceIdentity != baselineIdentity) {
+            // A repository may publish process-local SharedPreferences memory
+            // before a durable commit result is known. Never promote that
+            // observation to the editor's durable baseline while this exact
+            // request is still running.
+            if (coordinator.saving) return@LaunchedEffect
+            val semanticContextChanged = sourceIdentity != baselineIdentity
+            if (draftText == baselineText && !semanticContextChanged) {
+                draftText = currentText
+                inputTooLong = false
+            } else {
+                externalConflict =
+                    "This setting or its mode changed elsewhere. Your draft is still here; review it before saving."
+            }
+            baselineText = currentText
+            baselineIdentity = sourceIdentity
+        }
+    }
+
+    LaunchedEffect(editorOpen) {
+        reportEditorState(testTag, editorOpen)
+        if (editorOpen) {
+            editorWasOpened = true
+            inputFocusRequester.requestFocus()
+            keyboard?.show()
+        } else if (editorWasOpened) {
+            runCatching { actionFocusRequester.requestFocus() }
+        }
+    }
+
+    val parsed = if (inputTooLong) null else parse(draftText)
+    val dirty = inputTooLong || draftText != baselineText
+    val saving = coordinator.saving
+    val hasUncommittedIntent = dirty || externalConflict != null || durabilityRetryRequired
+    val inputProblem = when {
+        inputTooLong -> "Use at most $maxInputLength characters."
+        validationRequested && parsed == null -> invalidMessage
+        else -> null
+    }
+
+    fun submitDraft() {
+        if (coordinator.saving) return
+        validationRequested = true
+        val value = parsed ?: return
+        val normalized = format(value)
+        draftText = normalized
+        inputTooLong = false
+        if (normalized == currentText && externalConflict == null && !durabilityRetryRequired) {
+            resetEditor(close = true)
+            return
+        }
+        coordinator.clear()
+        val requestId = coordinator.begin() ?: return
+        durabilityRetryRequired = true
+        if (!mutation.submit(requestId, value)) {
+            coordinator.finishFailure("Another settings change is still finishing. Your draft is still here; try again.")
+        }
+    }
+
+    WhipActionRow(
+        title = label,
+        supportingText = buildString {
+            append("Current: ")
+            append(currentText)
+            supportingText?.let { append(". ").append(it) }
+        },
+        onClick = {
+            baselineText = currentText
+            baselineIdentity = sourceIdentity
+            draftText = currentText
+            validationRequested = false
+            inputTooLong = false
+            coordinator.clear()
+            externalConflict = null
+            editorOpen = true
+        },
+        modifier = Modifier
+            .focusRequester(actionFocusRequester)
+            .semantics { stateDescription = "Saved value $currentText. Activate to edit." }
+            .testTag(testTag),
+    )
+
+    if (editorOpen) {
+        ProductivityEditorDialog(
+            modifier = Modifier.widthIn(max = 560.dp),
+            testTag = "$testTag-editor",
+            paneTitle = "Edit $label",
+            stableHeight = false,
+            inputBlocked = saving,
+            inputBlockedLabel = "Saving $label",
+            onDismissRequest = {
+                if (!saving) {
+                    if (hasUncommittedIntent) confirmDiscard = true else resetEditor(close = true)
+                }
+            },
+            title = { Text("Edit $label") },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth().verticalScroll(editorScroll),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    externalConflict?.let { message ->
+                        Text(
+                            message,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        )
+                    }
+                    coordinator.errorMessage?.let { message ->
+                        Text(
+                            message,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .semantics { liveRegion = LiveRegionMode.Polite }
+                                .testTag("$testTag-save-error"),
+                        )
+                    }
+                    OutlinedTextField(
+                        value = draftText,
+                        onValueChange = { value ->
+                            inputTooLong = value.length > maxInputLength
+                            draftText = value.take(maxInputLength)
+                            validationRequested = false
+                        },
+                        label = { Text(label) },
+                        supportingText = {
+                            Text(
+                                inputProblem ?: supportingText ?: "Enter the value, then choose Save.",
+                                modifier = if (inputProblem == null) {
+                                    Modifier
+                                } else {
+                                    Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                                },
+                            )
+                        },
+                        isError = inputProblem != null,
+                        enabled = !saving,
+                        keyboardOptions = keyboardOptions,
+                        keyboardActions = KeyboardActions(onDone = { submitDraft() }),
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(inputFocusRequester)
+                            .onPreviewKeyEvent { event ->
+                                if (
+                                    event.type == KeyEventType.KeyDown &&
+                                    event.key == Key.Escape &&
+                                    !saving
+                                ) {
+                                    if (hasUncommittedIntent) confirmDiscard = true else resetEditor(close = true)
+                                    true
+                                } else {
+                                    false
+                                }
+                            }
+                            .semantics {
+                                stateDescription = when {
+                                    saving -> "Saving"
+                                    coordinator.errorMessage != null -> "Not saved"
+                                    dirty -> "Edited, not saved"
+                                    else -> "Matches saved value"
+                                }
+                            }
+                            .testTag("$testTag-input"),
+                    )
+                    if (saving) {
+                        Text(
+                            "Waiting for Whip to confirm the saved value…",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                WhipButton(
+                    onClick = ::submitDraft,
+                    enabled = !saving && parsed != null &&
+                        (dirty || externalConflict != null || durabilityRetryRequired),
+                    modifier = Modifier.testTag("$testTag-save"),
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                WhipTextButton(
+                    onClick = { resetEditor(close = true) },
+                    enabled = !saving,
+                    modifier = Modifier.testTag("$testTag-cancel"),
+                ) { Text("Cancel") }
+            },
+        )
+    }
+
+    if (confirmDiscard) {
+        UnsavedChangesDialog(
+            subject = "setting",
+            onKeepEditing = { confirmDiscard = false },
+            onDiscard = { resetEditor(close = true) },
+            modifier = Modifier.testTag("$testTag-discard-confirmation"),
+        )
+    }
+}
+
+private val SETTINGS_CLOCK_PATTERN = Regex("(?:[01]\\d|2[0-3]):[0-5]\\d")
 
 internal enum class CustomUnitEditMode { Create, Rename, Version }
 
@@ -1965,21 +2351,30 @@ private fun categoryAllocationModeLabel(value: String): String = when (value) {
     else -> value
 }
 
-@Composable private fun TimeZoneSetting(current: String, onChange: (String) -> Unit) {
-    var text by rememberSaveable(current) { mutableStateOf(current) }
-    val valid = runCatching { ZoneId.of(text.trim()) }.isSuccess
-    OutlinedTextField(
-        value = text,
-        onValueChange = { value ->
-            text = value
-            if (runCatching { ZoneId.of(value.trim()) }.isSuccess) onChange(value.trim())
-        },
-        label = { Text("IANA time zone") },
-        supportingText = { Text(if (valid) "Examples: America/Toronto, Europe/London" else "Enter a valid region time zone") },
-        isError = !valid,
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
+@Composable internal fun TimeZoneSetting(
+    current: String?,
+    mutation: TypedSettingMutation<String>,
+    testTag: String = "settings-field-time-zone",
+) {
+    val effectiveCurrent = current ?: ZoneId.systemDefault().id
+    TransactionalSettingsField(
+        label = "Time zone ID",
+        current = effectiveCurrent,
+        parse = { value -> parseSettingsTimeZone(value)?.id },
+        format = String::trim,
+        mutation = mutation,
+        invalidMessage = "Enter a valid region or UTC-offset time zone.",
+        supportingText = "Examples: America/Toronto, Europe/London, +02:00",
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        maxInputLength = 128,
+        testTag = testTag,
+        sourceIdentity = if (current == null) "follow-device" else "explicit",
     )
+}
+
+internal fun parseSettingsTimeZone(value: String): ZoneId? {
+    val normalized = value.trim()
+    return runCatching { ZoneId.of(normalized) }.getOrNull()
 }
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {

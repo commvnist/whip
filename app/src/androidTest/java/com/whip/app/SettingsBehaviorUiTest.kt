@@ -3,6 +3,7 @@ package com.whip.app
 import android.os.Build
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasTestTag
@@ -14,11 +15,13 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.espresso.Espresso.pressBack
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
@@ -32,6 +35,7 @@ import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TaskDraft
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -254,6 +258,129 @@ class SettingsBehaviorUiTest {
                 compose.onNodeWithContentDescription("Back to Settings").performClick()
             }
         }
+    }
+
+    @Test
+    fun validGymDefaultDraftSurvivesRecreationWithoutPersistingUntilDone() {
+        openSettingsSection("Planning & Units")
+        compose.onNodeWithTag("settings-list")
+            .performScrollToNode(hasTestTag("settings-field-default-rest-time-seconds"))
+        val initial = app.settingsRepository.current().defaultRestSeconds
+
+        compose.onNodeWithTag("settings-field-default-rest-time-seconds").performClick()
+        compose.onNodeWithTag("settings-field-default-rest-time-seconds-input")
+            .performTextReplacement("300")
+        compose.runOnIdle {
+            assertEquals(initial, app.settingsRepository.current().defaultRestSeconds)
+        }
+
+        compose.activityRule.scenario.recreate()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithTag("settings-field-default-rest-time-seconds-input")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("settings-field-default-rest-time-seconds-input")
+            .assertTextContains("300")
+        compose.runOnIdle {
+            assertEquals(initial, app.settingsRepository.current().defaultRestSeconds)
+        }
+
+        compose.onNodeWithTag("settings-field-default-rest-time-seconds-input").performImeAction()
+        compose.waitUntil {
+            app.settingsRepository.current().defaultRestSeconds == 300
+        }
+    }
+
+    @Test
+    fun malformedClockCannotChangeTheCutoffButCompleteClockCommits() {
+        openSettingsSection("Planning & Units")
+        compose.onNodeWithTag("settings-list")
+            .performScrollToNode(hasTestTag("settings-field-late-night-day-cutoff"))
+        val initial = app.settingsRepository.current().dayCutoffMinutes
+
+        compose.onNodeWithTag("settings-field-late-night-day-cutoff").performClick()
+        compose.onNodeWithTag("settings-field-late-night-day-cutoff-input")
+            .performTextReplacement("12:30:99")
+        compose.onNodeWithTag("settings-field-late-night-day-cutoff-input").performImeAction()
+        compose.onNodeWithText("Use at most 5 characters.")
+            .assertIsDisplayed()
+        compose.runOnIdle {
+            assertEquals(initial, app.settingsRepository.current().dayCutoffMinutes)
+        }
+
+        compose.onNodeWithTag("settings-field-late-night-day-cutoff-input")
+            .performTextReplacement("03:15")
+        compose.onNodeWithTag("settings-field-late-night-day-cutoff-input").performImeAction()
+        compose.waitUntil {
+            app.settingsRepository.current().dayCutoffMinutes == 3 * 60 + 15
+        }
+    }
+
+    @Test
+    fun hardwareBackRequiresExplicitDiscardAndCannotNavigateBehindATypedEditor() {
+        openSettingsSection("Planning & Units")
+        compose.onNodeWithTag("settings-list")
+            .performScrollToNode(hasTestTag("settings-field-default-rest-time-seconds"))
+        val initial = app.settingsRepository.current().defaultRestSeconds
+        compose.onNodeWithTag("settings-field-default-rest-time-seconds").performClick()
+        compose.onNodeWithTag("settings-field-default-rest-time-seconds-input")
+            .performTextReplacement("300")
+
+        repeat(2) {
+            if (compose.onAllNodesWithText("Discard Unsaved Changes?").fetchSemanticsNodes().isEmpty()) {
+                pressBack()
+                compose.waitForIdle()
+            }
+        }
+        compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(initial, app.settingsRepository.current().defaultRestSeconds) }
+        compose.onNodeWithText("Keep Editing").performClick()
+        compose.onNodeWithTag("settings-field-default-rest-time-seconds-input")
+            .assertTextContains("300")
+
+        repeat(2) {
+            if (compose.onAllNodesWithText("Discard Unsaved Changes?").fetchSemanticsNodes().isEmpty()) {
+                pressBack()
+                compose.waitForIdle()
+            }
+        }
+        compose.onNodeWithText("Discard Changes").performClick()
+        compose.onAllNodesWithTag("settings-field-default-rest-time-seconds-editor")
+            .assertCountEquals(0)
+        compose.runOnIdle { assertEquals(initial, app.settingsRepository.current().defaultRestSeconds) }
+        compose.onNodeWithContentDescription("Back to Settings").performClick()
+        compose.onNodeWithTag("settings-category-list").assertIsDisplayed()
+    }
+
+    @Test
+    fun conditionalParentControlsCannotRemoveAnOpenTypedEditor() {
+        runBlocking {
+            app.settingsRepository.update {
+                it.copy(
+                    timeZoneId = "America/Toronto",
+                    quietStartMinutes = 22 * 60,
+                    quietEndMinutes = 7 * 60,
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        openSettingsSection("Planning & Units")
+        compose.onNodeWithTag("settings-list")
+            .performScrollToNode(hasTestTag("settings-field-time-zone"))
+        compose.onNodeWithTag("settings-field-time-zone").performClick()
+        compose.onNodeWithTag("settings-follow-device-time-zone").assertIsNotEnabled()
+        compose.onNodeWithTag("settings-field-time-zone-cancel").performClick()
+        compose.onNodeWithTag("settings-follow-device-time-zone").assertIsEnabled()
+
+        compose.onNodeWithContentDescription("Back to Settings").performClick()
+        selectSettingsCategory("Reminders")
+        compose.onNodeWithTag("settings-list")
+            .performScrollToNode(hasTestTag("settings-field-quiet-hours-start"))
+        compose.onNodeWithTag("settings-field-quiet-hours-start").performClick()
+        compose.onNodeWithTag("settings-enable-quiet-hours").assertIsNotEnabled()
+        compose.onNodeWithTag("settings-field-quiet-hours-start-cancel").performClick()
+        compose.onNodeWithTag("settings-enable-quiet-hours").assertIsEnabled()
     }
 
     private fun openAppearanceSettings() {
