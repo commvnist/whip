@@ -494,6 +494,7 @@ class InteractionControlUiTest {
         compose.onNodeWithTag("emoji-picker-trigger").performClick()
         compose.onNodeWithTag("emoji-picker-search").performTextReplacement("dentist")
         compose.onNodeWithTag("emoji-preset-Dentist").assertIsDisplayed().performClick()
+        compose.waitUntil(10_000) { icon == "🦷" }
         assertEquals("🦷", icon)
 
         compose.onNodeWithTag("emoji-picker-trigger").performClick()
@@ -504,6 +505,9 @@ class InteractionControlUiTest {
         compose.onNodeWithTag("emoji-picker-custom-input").assertTextContains("🦊")
         compose.onNodeWithTag("emoji-picker-custom-name").performTextReplacement("Forest Work")
         compose.onNodeWithTag("emoji-picker-custom-apply").performClick()
+        compose.waitUntil(10_000) {
+            icon == "🦊" && saved == listOf(CustomIdentityEmoji("🦊", "Forest Work"))
+        }
         assertEquals(
             "Custom emoji code points were ${icon.codePoints().toArray().joinToString()}",
             "🦊",
@@ -514,16 +518,21 @@ class InteractionControlUiTest {
         compose.onNodeWithTag("emoji-picker-trigger").performClick()
         compose.onNodeWithTag("emoji-picker-search").performTextReplacement("forest")
         compose.onNodeWithTag("emoji-saved-0").assertIsDisplayed().performClick()
+        compose.waitUntil(10_000) { icon == "🦊" }
         assertEquals("🦊", icon)
 
         compose.onNodeWithTag("emoji-picker-trigger").performClick()
         compose.onNodeWithTag("emoji-picker-search").performTextReplacement("🦊")
-        compose.onNodeWithTag("emoji-picker-manage-saved").performClick()
-        compose.waitUntil(5_000) {
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("Manage My Emojis").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("Manage My Emojis").assertIsDisplayed().performClick()
+        compose.waitUntil(10_000) {
             compose.onAllNodesWithContentDescription("Remove Forest Work custom emoji")
                 .fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithContentDescription("Remove Forest Work custom emoji").performClick()
+        compose.waitUntil(10_000) { saved.isEmpty() }
         assertTrue(saved.isEmpty())
     }
 
@@ -542,8 +551,16 @@ class InteractionControlUiTest {
         compose.onNodeWithTag("color-preset-blue").performClick().assertIsSelected()
         compose.onNodeWithTag("custom-color-toggle").performClick()
         compose.onNodeWithTag("custom-color-hex").performTextReplacement("#123456")
-        compose.onNodeWithText("Apply").performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithContentDescription("Color preview: Custom · #123456")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("color-picker-apply").assertIsDisplayed().performClick()
 
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithContentDescription("Color: Custom · #123456. Choose color.")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
         assertEquals(0xFF123456L, color)
         compose.onNodeWithContentDescription("Color: Custom · #123456. Choose color.").assertIsDisplayed()
     }

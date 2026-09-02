@@ -391,3 +391,12 @@
 - Compatibility: No Room schema or backup-format change. Existing Tag IDs and item records are retained. Archive never rewrites references; explicit Rename/Merge intentionally updates Tag labels on saved Tasks, Habits, Goals, and Tracks while preserving their identities and other history.
 - Related: `FND-20260831-019`, `FND-20260901-027`, `FND-20260902-008`, `IMP-20260902-010`, `VER-20260902-010`.
 - Status: Accepted and implemented.
+
+### DEC-20260902-010 — Workout deletion removes the selected fact graph and preserves programming decisions
+
+- Context: A completed Workout owns placements, groups, and Sets, but it is also referenced by reconstructible personal records and immutable 5/3/1 Training Max decisions. Gym History previously confirmed against asynchronously collected UI projections and closed before persistence reported an outcome.
+- Decision: Review and commit permanent Workout deletion through one transaction-derived `WorkoutDeletionImpact` and revision token. Delete only the selected session graph; reject active sessions and changed reviews. Rebuild personal records after commit, apply the retired-Link compatibility policy without retracting its audit rows, cancel the timer afterward, and classify failures in those post-commit follow-ups as warnings. Preserve Training Max decisions, Goal contributions, generated Habit check-ins, automation occurrences, Exercise definitions, and Routine templates as historical facts. Keep the dialog/request owned until exact success, failure, or read-only recovery verification.
+- Rationale: Historical workout Sets are authoritative performed facts, personal records and timers are reconstructible projections, retired Link/automation rows are immutable audit history, and Training Max decisions explain why later programming changed. This boundary prevents stale destructive confirmation, avoids false retries after commit, and keeps 5/3/1 and automation history truthful without adding a new schema or generic programming DSL.
+- Compatibility: No Room schema, migration, or backup-format change. Only the explicitly selected completed Workout graph is removed. Existing Training Max decisions and linked historical facts remain; derived records are reconciled from surviving workout data.
+- Related: `FND-20260831-019`, `FND-20260901-025`, `FND-20260902-009`, `IMP-20260902-011`, `VER-20260902-011`.
+- Status: Accepted, implemented, and fully verified.

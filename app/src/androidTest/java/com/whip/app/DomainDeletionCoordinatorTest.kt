@@ -29,6 +29,7 @@ import com.whip.app.data.TriggerFieldMappingEntity
 import com.whip.app.data.TriggerOccurrenceEntity
 import com.whip.app.data.TriggerRuleConditionEntity
 import com.whip.app.data.TriggerRuleEntity
+import com.whip.app.data.TrainingMaxDecisionEntity
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.GymMachineDraft
@@ -40,6 +41,7 @@ import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.LinkRuleDraft
 import com.whip.app.domain.LinkSourceMetric
 import com.whip.app.domain.LinkSourceType
+import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
@@ -994,6 +996,187 @@ class DomainDeletionCoordinatorTest {
         assertTrue(gym.sets.first().isEmpty())
         assertTrue(routines.personalRecords.first().isEmpty())
         assertEquals(1, gym.exercises.first().size)
+    }
+
+    @Test fun workoutDeleteReportsExactImpactAndPreservesTrainingMaxDecisionHistory() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Zercher squat"))
+        val exercise = requireNotNull(database.gymDao().getExercise(exerciseId))
+        val sessionId = gym.startWorkout("5/3/1 Anchor")
+        val placementId = gym.addExerciseToWorkout(sessionId, exerciseId)
+        gym.addSet(placementId, WorkoutSetDraft(weight = 100.0, reps = 5, completed = true))
+        gym.addSet(placementId, WorkoutSetDraft(weight = 110.0, reps = 3, completed = false))
+        gym.finishWorkout(sessionId)
+        routines.rebuildPersonalRecords(exerciseId)
+        val session = requireNotNull(database.gymDao().getSession(sessionId))
+        database.routineDao().insertTrainingMaxDecision(
+            TrainingMaxDecisionEntity(
+                uuid = "tm-decision-${session.uuid}",
+                routineUuid = "reviewed-routine",
+                sessionUuid = session.uuid,
+                exerciseUuid = exercise.uuid,
+                exerciseName = exercise.name,
+                cycle = 4,
+                previousTrainingMax = 120.0,
+                appliedDelta = -2.5,
+                resultingTrainingMax = 117.5,
+                unitId = "kilogram",
+                standardDelta = 2.5,
+                recommendationCategory = "Decrease",
+                recommendationDelta = -2.5,
+                confidence = 0.9,
+                reasonsText = "Required work passed but AMRAP performance declined",
+                engineVersion = "five-three-one-progression/1",
+                action = "UseRecommendation",
+                createdAtMillis = 1234,
+            ),
+        )
+        val goalId = goals.create(accumulatingGoal("Preserved workout contribution"))
+        val linkRuleId = links.createRule(
+            LinkRuleDraft(
+                name = "Historical workout link",
+                sourceType = LinkSourceType.Workout,
+                sourceEntityId = sessionId,
+                sourceMetric = LinkSourceMetric.Completion,
+                targetGoalId = goalId,
+            ),
+        )
+        database.linkDao().upsertContribution(
+            ContributionEntity(
+                uuid = "workout-contribution-${session.uuid}",
+                linkRuleId = linkRuleId,
+                sourceEventId = "workout:${session.uuid}:Completion",
+                sourceType = LinkSourceType.Workout.name,
+                sourceEntityId = sessionId,
+                targetGoalId = goalId,
+                metricEntryId = null,
+                canonicalValue = 1.0,
+                localEpochDay = FixedClock.today().toEpochDay(),
+                timestampMillis = FixedClock.now().toEpochMilli(),
+                excluded = false,
+                overrideValue = null,
+                explanation = "Historical workout contribution",
+                createdAtMillis = FixedClock.now().toEpochMilli(),
+                updatedAtMillis = FixedClock.now().toEpochMilli(),
+            ),
+        )
+        val targetTaskId = tasks.create(TaskDraft(title = "Preserved automation target"))
+        val triggerId = links.createTrigger(
+            TriggerRuleDraft(
+                name = "Historical workout automation",
+                sourceType = LinkSourceType.Workout,
+                sourceEntityId = 0,
+                targetType = TriggerTargetType.Task,
+                targetEntityId = targetTaskId,
+            ),
+        )
+        database.linkDao().upsertTriggerOccurrence(
+            TriggerOccurrenceEntity(
+                triggerRuleId = triggerId,
+                sourceEventId = "workout:${session.uuid}:Completion",
+                availableAtMillis = FixedClock.now().toEpochMilli(),
+                deliveredAtMillis = FixedClock.now().toEpochMilli(),
+                dismissedAtMillis = FixedClock.now().toEpochMilli(),
+                remindAtMillis = null,
+                fulfilledEntryId = null,
+                sourceSnapshot = "{}",
+            ),
+        )
+        val habitId = habits.create(HabitDraft(name = "Preserved generated check-in", startDate = FixedClock.today()))
+        val generatedHabitLogId = habits.log(
+            habitId = habitId,
+            value = 1.0,
+            sourceType = MetricSourceType.Workout,
+            sourceId = "trigger:legacy:workout:${session.uuid}:Completion",
+        )
+
+        val impact = requireNotNull(coordinator.previewWorkoutDeletion(sessionId))
+
+        assertEquals(session.uuid, impact.sessionUuid)
+        assertEquals(1, impact.workoutPlacementCount)
+        assertEquals(2, impact.workoutSetCount)
+        assertEquals(1, impact.completedSetCount)
+        assertTrue(impact.personalRecordCount > 0)
+        assertEquals(1, impact.trainingMaxDecisionCount)
+        assertEquals(1, impact.contributionCount)
+        assertEquals(1, impact.generatedHabitLogCount)
+        assertEquals(1, impact.triggerOccurrenceCount)
+        val summary = coordinator.deleteWorkout(sessionId, impact.revisionToken)
+
+        assertTrue(summary.workoutDeleted)
+        assertEquals(impact.workoutSetCount, summary.workoutSetsDeleted)
+        assertEquals(impact.completedSetCount, summary.completedSetsDeleted)
+        assertEquals(1, summary.trainingMaxDecisionsPreserved)
+        assertEquals(1, summary.contributionsPreserved)
+        assertEquals(1, summary.generatedHabitLogsPreserved)
+        assertEquals(1, summary.triggerOccurrencesPreserved)
+        assertNull(database.gymDao().getSession(sessionId))
+        assertTrue(routines.personalRecords.first().none { it.sourceSessionId == sessionId })
+        assertEquals(
+            listOf("tm-decision-${session.uuid}"),
+            database.routineDao().getAllTrainingMaxDecisions().map { it.uuid },
+        )
+        assertTrue(links.contributions.first().any { it.uuid == "workout-contribution-${session.uuid}" })
+        assertTrue(links.triggerOccurrences.first().any { it.sourceEventId == "workout:${session.uuid}:Completion" })
+        assertTrue(habits.logs.first().any { it.id == generatedHabitLogId })
+        assertNotNull(database.gymDao().getExercise(exerciseId))
+    }
+
+    @Test fun workoutDeleteRejectsRecordedHistoryChangedAfterPreview() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Reviewed deadlift"))
+        val sessionId = gym.startWorkout("Reviewed workout")
+        val placementId = gym.addExerciseToWorkout(sessionId, exerciseId)
+        gym.addSet(placementId, WorkoutSetDraft(weight = 180.0, reps = 3, completed = true))
+        gym.finishWorkout(sessionId)
+        val preview = requireNotNull(coordinator.previewWorkoutDeletion(sessionId))
+        gym.updateWorkout(sessionId, "Changed after review", "New note", keepScreenAwake = false)
+
+        val error = runCatching {
+            coordinator.deleteWorkout(sessionId, preview.revisionToken)
+        }.exceptionOrNull()
+
+        assertTrue(error is IllegalArgumentException)
+        assertEquals("Changed after review", database.gymDao().getSession(sessionId)?.name)
+        assertEquals(1, database.gymDao().getWorkoutSets(placementId).size)
+    }
+
+    @Test fun workoutDeleteBlocksAnActiveSessionEvenWithAReviewedRevision() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Active bench"))
+        val sessionId = gym.startWorkout("Still training")
+        gym.addExerciseToWorkout(sessionId, exerciseId)
+        val preview = requireNotNull(coordinator.previewWorkoutDeletion(sessionId))
+
+        val error = runCatching {
+            coordinator.deleteWorkout(sessionId, preview.revisionToken)
+        }.exceptionOrNull()
+
+        assertTrue(error is IllegalArgumentException)
+        assertNotNull(database.gymDao().getSession(sessionId))
+    }
+
+    @Test fun workoutDeleteOwnsPostCommitReconciliationFailureAsAWarning() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Committed press"))
+        val sessionId = gym.startWorkout("Committed workout")
+        val placementId = gym.addExerciseToWorkout(sessionId, exerciseId)
+        gym.addSet(placementId, WorkoutSetDraft(weight = 60.0, reps = 8, completed = true))
+        gym.finishWorkout(sessionId)
+        val reconciliations = AtomicInteger()
+        val deletion = DomainDeletionCoordinator(
+            database,
+            links,
+            routines,
+            rebuildPersonalRecordsAfterExerciseDeletion = {
+                reconciliations.incrementAndGet()
+                error("Simulated PR rebuild failure")
+            },
+        )
+        val preview = requireNotNull(deletion.previewWorkoutDeletion(sessionId))
+
+        val summary = deletion.deleteWorkout(sessionId, preview.revisionToken)
+
+        assertTrue(summary.workoutDeleted)
+        assertEquals(1, reconciliations.get())
+        assertTrue(summary.warnings.single().contains("deletion was committed"))
+        assertNull(database.gymDao().getSession(sessionId))
     }
 
     @Test fun machineDeleteRemovesOnlyProfileAndPreservesHistoricalMeaning() = runBlocking {

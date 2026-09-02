@@ -15,8 +15,10 @@ import com.whip.app.core.revealHomeSection
 import com.whip.app.core.tryStartPersistenceRequest
 import com.whip.app.data.CommittedExerciseDeletionCancellation
 import com.whip.app.data.CommittedRoutineDeletionCancellation
+import com.whip.app.data.CommittedWorkoutDeletionCancellation
 import com.whip.app.data.ExerciseDeletionImpact
 import com.whip.app.data.RoutineDeletionImpact
+import com.whip.app.data.WorkoutDeletionImpact
 import com.whip.app.data.GymRepository
 import com.whip.app.data.GymWorkoutSnapshot
 import com.whip.app.data.QuickSetCommitReceipt
@@ -391,6 +393,7 @@ internal fun GymUiState.captureWorkoutArrangementDraft(
 internal enum class GymDeletionKind {
     Exercise,
     Routine,
+    Workout,
 }
 
 internal data class GymDeletionReceipt(
@@ -484,6 +487,12 @@ class GymViewModel @JvmOverloads constructor(
     val routineDeletionPreviewError: StateFlow<String?> = _routineDeletionPreviewError.asStateFlow()
     private val _routineDeletionTargetMissing = MutableStateFlow(false)
     val routineDeletionTargetMissing: StateFlow<Boolean> = _routineDeletionTargetMissing.asStateFlow()
+    private val _workoutDeletionImpact = MutableStateFlow<WorkoutDeletionImpact?>(null)
+    val workoutDeletionImpact: StateFlow<WorkoutDeletionImpact?> = _workoutDeletionImpact.asStateFlow()
+    private val _workoutDeletionPreviewError = MutableStateFlow<String?>(null)
+    val workoutDeletionPreviewError: StateFlow<String?> = _workoutDeletionPreviewError.asStateFlow()
+    private val _workoutDeletionTargetMissing = MutableStateFlow(false)
+    val workoutDeletionTargetMissing: StateFlow<Boolean> = _workoutDeletionTargetMissing.asStateFlow()
     private val _gymDeletionState = MutableStateFlow<PersistenceRequestState<GymDeletionReceipt>>(
         PersistenceRequestState.Idle,
     )
@@ -501,6 +510,7 @@ class GymViewModel @JvmOverloads constructor(
     val pendingWorkoutLayoutUndo: StateFlow<WorkoutLayoutUndo?> = _pendingWorkoutLayoutUndo.asStateFlow()
     private var exerciseDeletionPreviewGeneration = 0L
     private var routineDeletionPreviewGeneration = 0L
+    private var workoutDeletionPreviewGeneration = 0L
     private val _pendingMachineArchiveUndo = MutableStateFlow<Long?>(null)
     val pendingMachineArchiveUndo: StateFlow<Long?> = _pendingMachineArchiveUndo.asStateFlow()
     private var pendingMachineArchiveId: Long? = null
@@ -614,6 +624,9 @@ class GymViewModel @JvmOverloads constructor(
                 _routineDeletionImpact.value = null
                 _routineDeletionPreviewError.value = null
                 _routineDeletionTargetMissing.value = false
+                _workoutDeletionImpact.value = null
+                _workoutDeletionPreviewError.value = null
+                _workoutDeletionTargetMissing.value = false
                 _gymDeletionState.value = PersistenceRequestState.Idle
                 _sessionMutationState.value = PersistenceRequestState.Idle
                 historyCopyAuthorshipEncoded.value = null
@@ -622,6 +635,7 @@ class GymViewModel @JvmOverloads constructor(
                 orphanRecoveryInProgressRequestId.value = null
                 exerciseDeletionPreviewGeneration++
                 routineDeletionPreviewGeneration++
+                workoutDeletionPreviewGeneration++
                 _operationStatus.value = OperationStatus.Idle
             }
         }
@@ -707,7 +721,7 @@ class GymViewModel @JvmOverloads constructor(
             _gymDeletionState.value = PersistenceRequestState.Finished(
                 requestId,
                 WhipResult.Failure(
-                    "The previous deletion outcome could not be verified. Retry the read-only verification or close and inspect the Library; do not submit another deletion until the target is confirmed present.",
+                    "The previous deletion outcome could not be verified. Retry the read-only verification or close and inspect Gym History or the Library; do not submit another deletion until the target is confirmed present.",
                 ),
             )
         }
@@ -854,6 +868,88 @@ class GymViewModel @JvmOverloads constructor(
                         requestId,
                         WhipResult.Success(
                             GymDeletionReceipt(GymDeletionKind.Routine, routineId, warnings),
+                        ),
+                    )
+                }
+            } finally {
+                finishOrphanedGymDeletionRecovery(requestId)
+            }
+        }
+    }
+
+    fun finishOrphanedWorkoutDeletionAsAchieved(
+        requestId: String,
+        sessionId: Long,
+        expectedDataGeneration: Long,
+    ) {
+        if (!tryStartOrphanedGymDeletionRecovery(requestId)) return
+        viewModelScope.launch {
+            try {
+                if (!app.isCurrentUserDataGeneration(expectedDataGeneration)) {
+                    if ((_gymDeletionState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _gymDeletionState.value = PersistenceRequestState.Idle
+                    }
+                    return@launch
+                }
+                val warnings = mutableListOf<String>()
+                try {
+                    checkNotNull(app.withUserDataAccess {
+                        require(app.isCurrentUserDataGeneration(expectedDataGeneration)) {
+                            "User data changed during deletion recovery"
+                        }
+                        try {
+                            personalRecordReconciliationExerciseIds(
+                                sets = repository.sets.first(),
+                                placements = repository.workoutExercises.first(),
+                                records = routineRepository.personalRecords.first(),
+                            ).forEach { exerciseId ->
+                                routineRepository.rebuildPersonalRecords(exerciseId)
+                            }
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            warnings += "Personal-record reconciliation could not be verified after process recovery."
+                        }
+                        try {
+                            app.linkRepository.rebuildAll()
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            warnings += "Link reconciliation could not be verified after process recovery."
+                        }
+                        Unit
+                    }) { "Whip data is unavailable while recovery is in progress" }
+                    try {
+                        restTimerScheduler.cancel(sessionId)
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        warnings += "Rest-timer cleanup could not be verified after process recovery."
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    warnings += "Some post-delete reconciliation could not be verified after process recovery."
+                }
+                if (!app.isCurrentUserDataGeneration(expectedDataGeneration)) {
+                    if ((_gymDeletionState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _gymDeletionState.value = PersistenceRequestState.Idle
+                    }
+                    return@launch
+                }
+                if ((_gymDeletionState.value as? PersistenceRequestState.Running)?.requestId == requestId &&
+                    _orphanedGymDeletionRequestId.value == requestId
+                ) {
+                    _operationStatus.value = OperationStatus.Succeeded(
+                        listOf("Workout is already absent; deletion end state confirmed")
+                            .plus(warnings).joinToString(" · "),
+                        OperationFeedbackPresentation.Snackbar,
+                    )
+                    _orphanedGymDeletionRequestId.value = null
+                    _gymDeletionState.value = PersistenceRequestState.Finished(
+                        requestId,
+                        WhipResult.Success(
+                            GymDeletionReceipt(GymDeletionKind.Workout, sessionId, warnings),
                         ),
                     )
                 }
@@ -1380,13 +1476,91 @@ class GymViewModel @JvmOverloads constructor(
         )
     }
 
-    fun deleteWorkoutPermanently(id: Long) = runOperation(
-        "Deleting workout…",
-        "Workout permanently deleted",
-        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+    fun previewWorkoutDeletion(id: Long, expectedUuid: String? = null) {
+        val generation = ++workoutDeletionPreviewGeneration
+        _workoutDeletionImpact.value = null
+        _workoutDeletionPreviewError.value = null
+        _workoutDeletionTargetMissing.value = false
+        viewModelScope.launch {
+            try {
+                val lookup = checkNotNull(app.withUserDataAccess {
+                    GymDeletionPreviewLookup(app.domainDeletionCoordinator.previewWorkoutDeletion(id))
+                }) { "Whip data is unavailable while recovery is in progress" }
+                if (workoutDeletionPreviewGeneration == generation) {
+                    val impact = lookup.impact
+                    if (impact != null && expectedUuid != null && impact.sessionUuid != expectedUuid) {
+                        _workoutDeletionPreviewError.value =
+                            "Workout identity changed while the deletion review was opening. Close it and select the History item again."
+                    } else {
+                        _workoutDeletionImpact.value = impact
+                        if (impact == null) {
+                            _workoutDeletionTargetMissing.value = true
+                            _workoutDeletionPreviewError.value =
+                                "Workout no longer exists. It may already have been deleted; close this review and verify History."
+                        }
+                    }
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                if (workoutDeletionPreviewGeneration == generation) {
+                    _workoutDeletionPreviewError.value =
+                        error.message ?: "Could not review workout deletion impact"
+                }
+            }
+        }
+    }
+
+    fun dismissWorkoutDeletion() {
+        workoutDeletionPreviewGeneration++
+        _workoutDeletionImpact.value = null
+        _workoutDeletionPreviewError.value = null
+        _workoutDeletionTargetMissing.value = false
+    }
+
+    fun deleteWorkoutPermanently(
+        id: Long,
+        expectedRevisionToken: String,
+        requestId: String,
+    ): Boolean = runGymDeletion(
+        running = "Deleting workout…",
+        success = "Workout permanently deleted",
+        requestId = requestId,
+        savedDescription = "workout deletion",
     ) {
-        restTimerScheduler.cancel(id)
-        app.domainDeletionCoordinator.deleteWorkout(id)
+        completeCommittedPersistence<GymDeletionReceipt>(
+            commit = {
+                val summary = try {
+                    app.domainDeletionCoordinator.deleteWorkout(id, expectedRevisionToken)
+                } catch (cancelled: CommittedWorkoutDeletionCancellation) {
+                    throw CommittedGymDeletionCancellation(
+                        GymDeletionReceipt(GymDeletionKind.Workout, id, cancelled.summary.warnings),
+                        cancelled,
+                    )
+                }
+                require(summary.workoutDeleted) {
+                    _workoutDeletionImpact.value = null
+                    _workoutDeletionTargetMissing.value = true
+                    _workoutDeletionPreviewError.value =
+                        "Workout no longer exists. It may already have been deleted; close this review and verify History."
+                    "Workout no longer exists. It may already have been deleted; close this review and verify History."
+                }
+                GymDeletionReceipt(GymDeletionKind.Workout, id, summary.warnings)
+            },
+            followUp = { committed ->
+                restTimerScheduler.cancel(id)
+                committed
+            },
+            onCancellation = { committed, cancelled ->
+                CommittedGymDeletionCancellation(committed, cancelled)
+            },
+            onOrdinaryFailure = { committed ->
+                committed.copy(
+                    warnings = committed.warnings +
+                        "Rest-timer cleanup did not finish; the workout itself was deleted.",
+                )
+            },
+        )
     }
 
     fun duplicateWorkout(id: Long) = runOperation("Copying workout…", "Workout copied into today") {

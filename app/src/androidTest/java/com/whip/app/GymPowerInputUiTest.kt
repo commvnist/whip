@@ -795,7 +795,14 @@ class GymPowerInputUiTest {
         compose.onNodeWithText("Manage Presets").performClick()
         compose.onNodeWithTag("rest-preset-seconds").performTextReplacement("45")
         compose.onNodeWithText("Add Preset").performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(hasText("0:45 ×")).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithText("Save Presets").performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(hasText("Rest Time for This Workout")).fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodes(hasText("0:45")).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithText("0:45").assertIsDisplayed()
         compose.runOnIdle { check(savedPresets?.contains(45) == true) }
         compose.onNodeWithContentDescription("Increase workout rest time by 15").performClick()

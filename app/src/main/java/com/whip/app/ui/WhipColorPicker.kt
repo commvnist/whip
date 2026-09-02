@@ -253,6 +253,7 @@ internal fun WhipColorPickerDialog(
             WhipTextButton(
                 enabled = !saving && (!customExpanded || parseColorArgb(hexText) != null),
                 onClick = { onConfirm(selectedColor) },
+                modifier = Modifier.testTag("color-picker-apply"),
             ) { Text(if (saving) "Applying…" else "Apply") }
         },
         dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },

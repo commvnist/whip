@@ -356,3 +356,16 @@
 - Related: `FND-20260831-019`, `FND-20260901-027`, `FND-20260902-008`, `DEC-20260902-009`.
 - Verification: `VER-20260902-010`.
 - Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.
+
+### IMP-20260902-011 — Exact, outcome-owned completed-Workout deletion
+
+- Added transaction-derived `WorkoutDeletionImpact` and revision-checked deletion summaries. The reviewed snapshot includes session identity/lifecycle, placements, groups, all Sets, completed Sets, sourced personal records, preserved Training Max decisions, linked Goal contributions, automation occurrences, and affected Exercise identities.
+- Active workouts are rejected. A changed session or history graph invalidates confirmation without mutation. The commit removes only the selected Workout graph; post-commit personal-record rebuilding and the retired-Link compatibility check use warnings/cancellation receipts so the UI never invites a second destructive attempt after the first commit. Preserved Goal contributions, generated Habit check-ins, and automation occurrences remain immutable audit evidence and are disclosed before confirmation.
+- Added a request-owned ViewModel flow with exact target UUID validation, retained preview/error/missing state, rest-timer follow-up ownership, data-generation invalidation, and process-restored absent-target reconciliation.
+- Replaced the optimistic generic confirmation with a scrollable, accessible review that distinctly names Removed, Recalculated, and Kept data; discloses immutable 5/3/1 Training Max audit history; blocks active sessions; disables stale confirmation; and offers read-only re-review. Extracted the three Gym deletion review hosts to keep the main Compose method instrumentable.
+- Added four coordinator regressions, two real-application ViewModel lifecycle regressions, and three Compose interaction/accessibility regressions. A final-source 1080×2400 walkthrough created an Exercise and Workout, finished it, opened History, reviewed the exact impact, committed once, and verified the empty History/success outcome. Artifacts are under `artifacts/full-product-audit/2026-09-02/workout-deletion/`.
+- Compatibility: No Room schema, migration, backup format, Exercise/Routine definition, unrelated completed Workout, or historical Training Max decision changed. The only irreversible data removal is the selected completed Workout and its owned placements/groups/Sets.
+- Important files: `DomainDeletionCoordinator.kt`, `GymViewModel.kt`, `GymScreens.kt`, `DomainDeletionCoordinatorTest.kt`, `GymDeletionViewModelIntegrationTest.kt`, `WorkoutDeletionUiTest.kt`, `docs/testing.md`, and the final visual artifacts.
+- Related: `FND-20260831-019`, `FND-20260901-025`, `FND-20260902-009`, `DEC-20260902-010`.
+- Verification: `VER-20260902-011`.
+- Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.

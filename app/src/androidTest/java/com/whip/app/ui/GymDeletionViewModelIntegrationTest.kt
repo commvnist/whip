@@ -16,8 +16,11 @@ import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
 import com.whip.app.domain.WorkoutExerciseCopyBoundary
+import com.whip.app.domain.WorkoutPlacementMutationBoundary
 import com.whip.app.domain.WorkoutSetCopyBoundary
+import com.whip.app.domain.WorkoutSetDraft
 import com.whip.app.domain.WorkoutStructureBoundary
+import com.whip.app.domain.workoutStructureBoundary
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -218,6 +221,58 @@ class GymDeletionViewModelIntegrationTest {
     }
 
     @Test
+    fun reviewedWorkoutDeletionPublishesAnExactlyOwnedSuccess() = runBlocking {
+        val exerciseId = createExercise("History deadlift")
+        val sessionId = createFinishedWorkout(exerciseId, "Reviewed history")
+        val session = requireNotNull(app.database.gymDao().getSession(sessionId))
+        val impact = previewWorkout(sessionId, session.uuid)
+
+        assertTrue(
+            viewModel.deleteWorkoutPermanently(
+                sessionId,
+                impact.revisionToken,
+                requestId = "workout:reviewed",
+            ),
+        )
+
+        val finished = awaitFinished("workout:reviewed")
+        val success = finished.result as WhipResult.Success
+        assertEquals(GymDeletionKind.Workout, success.value.kind)
+        assertEquals(sessionId, success.value.targetId)
+        assertNull(app.database.gymDao().getSession(sessionId))
+        viewModel.consumeGymDeletionResult("workout:other-owner")
+        assertEquals(finished, viewModel.gymDeletionState.value)
+        viewModel.consumeGymDeletionResult("workout:reviewed")
+        assertEquals(PersistenceRequestState.Idle, viewModel.gymDeletionState.value)
+    }
+
+    @Test
+    fun restoredRequestWithAbsentWorkoutReconcilesWithoutTouchingExerciseDefinitions() = runBlocking {
+        val exerciseId = createExercise("Preserved Zercher squat")
+        val sessionId = createFinishedWorkout(exerciseId, "Already removed history")
+        val impact = requireNotNull(app.domainDeletionCoordinator.previewWorkoutDeletion(sessionId))
+        app.domainDeletionCoordinator.deleteWorkout(sessionId, impact.revisionToken)
+        assertNull(app.database.gymDao().getSession(sessionId))
+        replaceViewModel()
+
+        val generation = viewModel.currentDataGeneration()
+        assertTrue(viewModel.adoptOrphanedGymDeletionRequest("restored:workout-absent"))
+        viewModel.finishOrphanedWorkoutDeletionAsAchieved(
+            requestId = "restored:workout-absent",
+            sessionId = sessionId,
+            expectedDataGeneration = generation,
+        )
+
+        val finished = awaitFinished("restored:workout-absent")
+        val success = finished.result as WhipResult.Success
+        assertEquals(GymDeletionKind.Workout, success.value.kind)
+        assertEquals(sessionId, success.value.targetId)
+        assertNull(viewModel.orphanedGymDeletionRequestId.value)
+        assertNull(app.database.gymDao().getSession(sessionId))
+        assertNotNull(app.database.gymDao().getExercise(exerciseId))
+    }
+
+    @Test
     fun unverifiedOutcomeCanBeReplacedTwiceAndOnlyLatestRequestCanSettle() = runBlocking {
         val exerciseId = createExercise("Retry verification row")
         val exercise = requireNotNull(app.database.gymDao().getExercise(exerciseId))
@@ -391,10 +446,51 @@ class GymDeletionViewModelIntegrationTest {
     private suspend fun createExercise(name: String): Long =
         app.gymRepository.createExercise(ExerciseDraft(name = name))
 
+    private suspend fun createFinishedWorkout(exerciseId: Long, name: String): Long {
+        val sessionId = app.gymRepository.startWorkout(name)
+        val placementId = app.gymRepository.addExerciseToWorkout(sessionId, exerciseId)
+        app.gymRepository.addSet(
+            currentPlacementBoundary(sessionId, placementId),
+            WorkoutSetDraft(weight = 100.0, reps = 5, completed = true),
+        )
+        app.gymRepository.finishWorkout(sessionId)
+        return sessionId
+    }
+
+    private suspend fun currentPlacementBoundary(
+        sessionId: Long,
+        placementId: Long,
+    ): WorkoutPlacementMutationBoundary {
+        val session = requireNotNull(app.gymRepository.sessions.first().firstOrNull { it.id == sessionId })
+        val placements = app.gymRepository.workoutExercises.first()
+        val placement = requireNotNull(placements.firstOrNull { it.id == placementId })
+        val groups = app.gymRepository.groups.first()
+        return WorkoutPlacementMutationBoundary(
+            structure = workoutStructureBoundary(
+                session,
+                placements,
+                groups,
+                app.gymRepository.sets.first(),
+            ),
+            workoutExerciseId = placement.id,
+            workoutExerciseUuid = placement.uuid,
+            workoutExerciseUpdatedAtMillis = placement.updatedAtMillis,
+            expectedGroupUuid = placement.groupId?.let { groupId ->
+                groups.firstOrNull { it.id == groupId }?.uuid
+            },
+        )
+    }
+
     private suspend fun previewExercise(exerciseId: Long) = withTimeout(5_000) {
         viewModel.previewExerciseDeletion(exerciseId)
         viewModel.exerciseDeletionImpact.first { it?.exerciseId == exerciseId }
             ?: error("Exercise deletion preview disappeared")
+    }
+
+    private suspend fun previewWorkout(sessionId: Long, sessionUuid: String) = withTimeout(5_000) {
+        viewModel.previewWorkoutDeletion(sessionId, sessionUuid)
+        viewModel.workoutDeletionImpact.first { it?.sessionId == sessionId }
+            ?: error("Workout deletion preview disappeared")
     }
 
     private suspend fun awaitFinished(

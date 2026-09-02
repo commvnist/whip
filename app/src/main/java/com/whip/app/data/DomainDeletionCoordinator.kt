@@ -353,16 +353,64 @@ class DomainDeletionCoordinator internal constructor(
         }
     }
 
-    suspend fun deleteWorkout(sessionId: Long): DomainDeletionSummary {
-        val exerciseIds = database.gymDao().getWorkoutExercises(sessionId).map { it.exerciseId }.distinct()
+    suspend fun previewWorkoutDeletion(sessionId: Long): WorkoutDeletionImpact? = database.withTransaction {
+        buildWorkoutDeletionImpact(sessionId)
+    }
+
+    suspend fun deleteWorkout(
+        sessionId: Long,
+        expectedRevisionToken: String? = null,
+    ): WorkoutDeletionSummary {
         val summary = database.withTransaction {
-            database.gymDao().getSession(sessionId) ?: return@withTransaction DomainDeletionSummary()
+            val impact = buildWorkoutDeletionImpact(sessionId)
+                ?: return@withTransaction WorkoutDeletionSummary()
+            require(impact.state != WorkoutSessionState.Active.name) {
+                "The active workout cannot be permanently deleted. Finish or discard it first."
+            }
+            if (expectedRevisionToken != null) {
+                require(impact.revisionToken == expectedRevisionToken) {
+                    "The Workout or its recorded history changed while the confirmation was open. Review the updated impact before deleting."
+                }
+            }
             check(database.gymDao().permanentlyDeleteSession(sessionId) == 1) { "Workout no longer exists" }
-            DomainDeletionSummary(deleted = true, workoutReferencesDeleted = exerciseIds.size)
+            WorkoutDeletionSummary(
+                workoutDeleted = true,
+                workoutPlacementsDeleted = impact.workoutPlacementCount,
+                workoutGroupsDeleted = impact.workoutGroupCount,
+                workoutSetsDeleted = impact.workoutSetCount,
+                completedSetsDeleted = impact.completedSetCount,
+                personalRecordsRecalculated = impact.personalRecordCount,
+                trainingMaxDecisionsPreserved = impact.trainingMaxDecisionCount,
+                contributionsPreserved = impact.contributionCount,
+                generatedHabitLogsPreserved = impact.generatedHabitLogCount,
+                triggerOccurrencesPreserved = impact.triggerOccurrenceCount,
+                affectedExerciseIds = impact.exerciseIds,
+            )
         }
-        exerciseIds.forEach { routineRepository.rebuildPersonalRecords(it) }
-        linkRepository.rebuildAll()
-        return summary
+        if (!summary.workoutDeleted) return summary
+
+        val warnings = mutableListOf<String>()
+        summary.affectedExerciseIds.forEach { exerciseId ->
+            try {
+                rebuildPersonalRecordsAfterExerciseDeletion(exerciseId)
+            } catch (cancelled: CancellationException) {
+                throw CommittedWorkoutDeletionCancellation(summary.copy(warnings = warnings), cancelled)
+            } catch (_: Exception) {
+                if (warnings.none { it.startsWith("Personal-record reconciliation") }) {
+                    warnings +=
+                        "Personal-record reconciliation did not finish for one or more affected Exercises; the Workout deletion was committed and will be reconciled when Gym opens again."
+                }
+            }
+        }
+        try {
+            rebuildLinksAfterGymDeletion()
+        } catch (cancelled: CancellationException) {
+            throw CommittedWorkoutDeletionCancellation(summary.copy(warnings = warnings), cancelled)
+        } catch (_: Exception) {
+            warnings +=
+                "Link reconciliation did not finish; the Workout deletion was committed and will be reconciled later."
+        }
+        return summary.copy(warnings = warnings)
     }
 
     private suspend fun <T> withReminderStateBoundary(block: suspend () -> T): T =
@@ -619,6 +667,67 @@ class DomainDeletionCoordinator internal constructor(
         )
     }
 
+    private suspend fun buildWorkoutDeletionImpact(sessionId: Long): WorkoutDeletionImpact? {
+        val session = database.gymDao().getSession(sessionId) ?: return null
+        val placements = database.gymDao().getWorkoutExercises(sessionId)
+        val placementIds = placements.mapTo(linkedSetOf(), WorkoutExerciseEntity::id)
+        val sets = database.gymDao().getAllWorkoutSets().filter { it.workoutExerciseId in placementIds }
+        val groups = database.gymDao().getWorkoutGroups(sessionId)
+        val personalRecords = database.routineDao().getAllPersonalRecords().filter {
+            it.sourceSessionId == sessionId
+        }
+        val trainingMaxDecisions = database.routineDao().getAllTrainingMaxDecisions().filter {
+            it.sessionUuid == session.uuid
+        }
+        val contributions = database.linkDao().observeContributionsSnapshot().filter {
+            it.sourceEventId.startsWith("workout:${session.uuid}:") ||
+                it.sourceEventId.contains(":workout:${session.uuid}:")
+        }
+        val triggerOccurrences = database.linkDao().getTriggerRules()
+            .flatMap { database.linkDao().getTriggerOccurrences(it.id) }
+            .filter {
+                it.sourceEventId.startsWith("workout:${session.uuid}:") ||
+                    it.sourceEventId.contains(":workout:${session.uuid}:")
+            }
+        val generatedHabitLogs = database.habitDao().getAllLogs().filter {
+            it.sourceId?.startsWith("trigger:") == true &&
+                it.sourceId.contains(":workout:${session.uuid}:")
+        }
+        val exerciseIds = placements.map(WorkoutExerciseEntity::exerciseId).distinct().sorted()
+        return WorkoutDeletionImpact(
+            sessionId = session.id,
+            sessionUuid = session.uuid,
+            displayName = session.name,
+            localDate = LocalDate.ofEpochDay(session.localEpochDay),
+            state = session.state,
+            archived = session.archived,
+            workoutPlacementCount = placements.size,
+            workoutGroupCount = groups.size,
+            workoutSetCount = sets.size,
+            completedSetCount = sets.count { it.completed && it.deletedAtMillis == null },
+            personalRecordCount = personalRecords.size,
+            trainingMaxDecisionCount = trainingMaxDecisions.size,
+            contributionCount = contributions.size,
+            generatedHabitLogCount = generatedHabitLogs.size,
+            triggerOccurrenceCount = triggerOccurrences.size,
+            revisionToken = gymDeletionRevision(
+                rootLabel = "workout",
+                root = session,
+                rows = listOf(
+                    "workout-group" to groups,
+                    "workout-placement" to placements,
+                    "workout-set" to sets,
+                    "personal-record" to personalRecords,
+                    "preserved-training-max-decision" to trainingMaxDecisions,
+                    "preserved-contribution" to contributions,
+                    "preserved-generated-habit-log" to generatedHabitLogs,
+                    "preserved-trigger-occurrence" to triggerOccurrences,
+                ),
+            ),
+            exerciseIds = exerciseIds,
+        )
+    }
+
     private suspend fun buildMachineDeletionImpact(machineId: Long): MachineDeletionImpact? {
         val machine = database.gymDao().getMachine(machineId) ?: return null
         val placements = database.gymDao().getWorkoutExercisesForMachineScope(machine.uuid)
@@ -826,6 +935,48 @@ data class RoutineDeletionSummary(
 
 class CommittedRoutineDeletionCancellation(
     val summary: RoutineDeletionSummary,
+    cause: CancellationException,
+) : CancellationException(cause.message) {
+    init { initCause(cause) }
+}
+
+data class WorkoutDeletionImpact(
+    val sessionId: Long,
+    val sessionUuid: String,
+    val displayName: String,
+    val localDate: LocalDate,
+    val state: String,
+    val archived: Boolean,
+    val workoutPlacementCount: Int,
+    val workoutGroupCount: Int,
+    val workoutSetCount: Int,
+    val completedSetCount: Int,
+    val personalRecordCount: Int,
+    val trainingMaxDecisionCount: Int,
+    val contributionCount: Int,
+    val generatedHabitLogCount: Int,
+    val triggerOccurrenceCount: Int,
+    val revisionToken: String,
+    internal val exerciseIds: List<Long> = emptyList(),
+) : Serializable
+
+data class WorkoutDeletionSummary(
+    val workoutDeleted: Boolean = false,
+    val workoutPlacementsDeleted: Int = 0,
+    val workoutGroupsDeleted: Int = 0,
+    val workoutSetsDeleted: Int = 0,
+    val completedSetsDeleted: Int = 0,
+    val personalRecordsRecalculated: Int = 0,
+    val trainingMaxDecisionsPreserved: Int = 0,
+    val contributionsPreserved: Int = 0,
+    val generatedHabitLogsPreserved: Int = 0,
+    val triggerOccurrencesPreserved: Int = 0,
+    val warnings: List<String> = emptyList(),
+    internal val affectedExerciseIds: List<Long> = emptyList(),
+)
+
+class CommittedWorkoutDeletionCancellation(
+    val summary: WorkoutDeletionSummary,
     cause: CancellationException,
 ) : CancellationException(cause.message) {
     init { initCause(cause) }
