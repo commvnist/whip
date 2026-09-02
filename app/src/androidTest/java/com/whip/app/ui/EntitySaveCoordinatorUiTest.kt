@@ -36,8 +36,11 @@ import com.whip.app.core.PersistenceRequestState
 import com.whip.app.core.WhipResult
 import com.whip.app.domain.Area
 import com.whip.app.domain.AreaScope
+import com.whip.app.domain.HabitDraft
+import com.whip.app.domain.HabitEndType
 import com.whip.app.domain.TaskDraft
 import com.whip.app.ui.theme.WhipTheme
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
@@ -522,6 +525,137 @@ class EntitySaveCoordinatorUiTest {
         compose.onNodeWithTag("habit-persistence-save-problem").assertIsDisplayed()
         compose.onNodeWithTag("habit-editor-name").assertIsDisplayed()
         compose.onNodeWithText("Retained Habit").assertIsDisplayed()
+    }
+
+    @Test
+    fun basicHabitCreationSummarizesRemindersAndDisclosesAdvancedScheduleOptions() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                HabitEditorDialog(
+                    habit = null,
+                    initialChecklist = emptyList(),
+                    today = LocalDate.of(2026, 9, 2),
+                    onDismiss = {},
+                    onSave = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("habit-editor-fields")
+            .performScrollToNode(hasText("Reminders & Schedule Options"))
+        compose.onNodeWithText("Off — no reminders configured").assertIsDisplayed()
+        compose.onAllNodesWithText("Default Reminders").assertCountEquals(0)
+        compose.onAllNodesWithText("End Condition").assertCountEquals(0)
+        compose.onAllNodesWithText("First Day of Week").assertCountEquals(0)
+
+        compose.onNodeWithTag("habit-schedule-options").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Default Reminders"))
+        compose.onNodeWithText("Default Reminders").assertIsDisplayed()
+        compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("End Condition"))
+        compose.onNodeWithText("End Condition").assertIsDisplayed()
+        compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("First Day of Week"))
+        compose.onNodeWithText("First Day of Week").assertIsDisplayed()
+    }
+
+    @Test
+    fun configuredHabitAutomaticallyRevealsItsReminderAndScheduleSettings() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                HabitEditorDialog(
+                    habit = null,
+                    initialDraft = HabitDraft(
+                        name = "Configured Habit",
+                        startDate = LocalDate.of(2026, 9, 2),
+                        reminderMinutes = listOf(8 * 60, 17 * 60 + 30),
+                        weekdayReminderMinutes = mapOf(DayOfWeek.WEDNESDAY to listOf(12 * 60)),
+                        endType = HabitEndType.OnDate,
+                        endDate = LocalDate.of(2026, 12, 31),
+                        weekStart = DayOfWeek.SUNDAY,
+                    ),
+                    initialChecklist = emptyList(),
+                    today = LocalDate.of(2026, 9, 2),
+                    onDismiss = {},
+                    onSave = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("habit-editor-fields")
+            .performScrollToNode(hasText("Weekday overrides: Wed", substring = true))
+        compose.onNodeWithText("Default:", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Weekday overrides: Wed", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Default Reminders"))
+        compose.onNodeWithText("Default Reminders").assertIsDisplayed()
+        compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Ends ", substring = true))
+        compose.onNodeWithText("Ends ", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("habit-editor-fields")
+            .performScrollToNode(hasText("Week starts Sunday (different from your app default)"))
+        compose.onNodeWithText("Week starts Sunday (different from your app default)").assertIsDisplayed()
+    }
+
+    @Test
+    fun habitScheduleDisclosureSurvivesStateRestoration() {
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                HabitEditorDialog(
+                    habit = null,
+                    initialChecklist = emptyList(),
+                    today = LocalDate.of(2026, 9, 2),
+                    onDismiss = {},
+                    onSave = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("habit-editor-fields")
+            .performScrollToNode(hasText("Reminders & Schedule Options"))
+        compose.onNodeWithTag("habit-schedule-options").performClick()
+        compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Default Reminders"))
+        compose.onNodeWithText("Default Reminders").assertIsDisplayed()
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Default Reminders"))
+        compose.onNodeWithText("Default Reminders").assertIsDisplayed()
+    }
+
+    @Test
+    fun invalidHiddenEndConditionReopensScheduleOptionsOnSave() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                HabitEditorDialog(
+                    habit = null,
+                    initialDraft = HabitDraft(
+                        name = "Needs an end date",
+                        startDate = LocalDate.of(2026, 9, 2),
+                    ),
+                    initialChecklist = emptyList(),
+                    today = LocalDate.of(2026, 9, 2),
+                    onDismiss = {},
+                    onSave = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("habit-editor-fields")
+            .performScrollToNode(hasText("Reminders & Schedule Options"))
+        compose.onNodeWithTag("habit-schedule-options").performClick()
+        compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("End Condition"))
+        compose.onNodeWithText("Never").performClick()
+        compose.onNodeWithText("On Date").performClick()
+        compose.onNodeWithTag("habit-editor-fields")
+            .performScrollToNode(hasText("Reminders & Schedule Options"))
+        compose.onNodeWithTag("habit-schedule-options").performClick()
+        compose.onAllNodesWithText("Choose End Date").assertCountEquals(0)
+
+        compose.onNodeWithText("Save").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("habit-editor-fields")
+            .performScrollToNode(hasText("Choose an end date on or after the start date", substring = true))
+        compose.onNodeWithText("Choose an end date on or after the start date", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Choose End Date"))
+        compose.onNodeWithText("Choose End Date").assertIsDisplayed()
     }
 
     @Test

@@ -254,3 +254,16 @@
 - Related: `FND-20260902-001`, `DEC-20260902-002`.
 - Verification: `VER-20260902-002`.
 - Status: Implemented and verified; commit/push is the chunk handoff.
+
+### IMP-20260902-003 — Progressive Habit reminder and schedule configuration
+
+- Simplified ordinary Habit creation without removing capability: required cadence and its dependent fields remain inline, while default reminders, weekday-specific overrides, ending rules, and first-day-of-week configuration now live behind one clearly labeled in-place disclosure.
+- Added an always-visible reminder summary using the device's time format. Configured ending rules and a week boundary that differs from the app default remain visible even while the controls are collapsed, so progressive disclosure does not hide consequential state.
+- Existing Habits with reminders, weekday overrides, ending rules, or a non-default week boundary open the section automatically. Power Mode also opens it. A rejected Save automatically reveals the section when an ending-rule error would otherwise be hidden.
+- Kept Additional Details independent from schedule complexity; reminder/end settings no longer force tags, quick actions, and notes open. Both disclosure states survive saveable state restoration.
+- Added Compose regressions for the basic collapsed path, intentional reveal, configured-data auto-expansion, hidden-error recovery, state restoration, and 200% text reachability.
+- Compatibility: UI/state-only change. Habit domain data, Room schema 41, backup format 18, existing reminders, historical check-ins, and scheduling semantics are unchanged.
+- Important files: `HabitScreens.kt`, `EntitySaveCoordinatorUiTest.kt`, `AdaptiveWhipScreenTest.kt`, and `docs/testing.md`.
+- Related: `FND-20260831-012`, `DEC-20260831-013`.
+- Verification: `VER-20260902-003`.
+- Status: Implemented and fully verified; commit/push is the chunk handoff. Physical release remains deferred while the whole-product goal continues.

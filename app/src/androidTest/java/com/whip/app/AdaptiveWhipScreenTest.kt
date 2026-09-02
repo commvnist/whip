@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.runtime.CompositionLocalProvider
@@ -1308,6 +1310,12 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithText("New Habit").performClick()
         compose.onNodeWithTag("habit-editor-name").assertIsDisplayed()
         compose.onNodeWithText("Save").assertIsDisplayed()
+        compose.onNodeWithTag("habit-editor-fields")
+            .performScrollToNode(hasText("Reminders & Schedule Options"))
+        compose.onNodeWithText("Off — no reminders configured").assertIsDisplayed()
+        compose.onNodeWithTag("habit-schedule-options").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("First Day of Week"))
+        compose.onNodeWithText("First Day of Week").assertIsDisplayed()
         compose.onNodeWithContentDescription("Cancel Habit editing").performClick()
     }
 

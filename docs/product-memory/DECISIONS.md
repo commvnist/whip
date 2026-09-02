@@ -114,7 +114,7 @@
 
 - Context: Hiding everything weakens reminder awareness; showing every weekday/end/week-boundary option overloads simple creation.
 - Decision: Keep a concise reminder summary in the basic path and disclose advanced controls, auto-expanding for existing data, power mode, or validation errors.
-- Status: Accepted; implementation pending.
+- Status: Implemented in `IMP-20260902-003` and verified in `VER-20260902-003`.
 
 ### DEC-20260831-014 — Preserve meaningful legacy Goal history, not every retired table
 

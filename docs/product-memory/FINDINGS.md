@@ -118,7 +118,8 @@
 - Observed: Reminder overrides, end conditions, and week-boundary configuration remain in the ordinary path even when advanced controls are meant to stay folded.
 - Expected: A visible reminder summary and progressively disclosed advanced configuration, auto-expanded for existing data, power mode, or errors.
 - Evidence: `HabitScreens.kt`, baseline Habit editor capture, specialist workflow review.
-- Status: Confirmed; remediation pending.
+- Resolution: `IMP-20260902-003` keeps required cadence inline, adds a localized reminder/configuration summary, and discloses reminder overrides, ending rules, and week boundaries with automatic expansion for existing configuration, Power Mode, and hidden validation errors.
+- Status: Resolved and verified in `VER-20260902-003`.
 
 ### FND-20260831-013 — Settings can persist intermediate numeric and time edits
 

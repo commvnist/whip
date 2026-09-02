@@ -59,6 +59,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -1961,21 +1962,37 @@ internal fun HabitEditorDialog(
         if (habit == null && areas.count { !it.archived } > 1 && areaId == null) add("Choose an Area for this Habit")
     }
     val validationMessages = (rawFieldProblems + currentDraft.validationErrors()).distinct()
+    val advancedScheduleProblems = validationMessages.filter { message ->
+        message in setOf(
+            "Ending threshold must be a valid number",
+            "Choose an end date on or after the start date",
+            "Enter a positive whole-number ending threshold",
+            "Enter a positive ending total",
+        )
+    }
     val validationRequester = remember { BringIntoViewRequester() }
     val editorListState = rememberLazyListState()
+    var showScheduleOptions by rememberSaveable(editorKey) {
+        mutableStateOf(
+            defaults.powerMode || initial.reminderMinutes.isNotEmpty() ||
+                initial.weekdayReminderMinutes.values.any { it.isNotEmpty() } ||
+                initial.endType != HabitEndType.Never || initial.weekStart != defaultWeekStart,
+        )
+    }
+    var showAdditionalDetails by rememberSaveable(editorKey) {
+        mutableStateOf(
+            defaults.powerMode || initial.notes.isNotBlank() || initial.tags.isNotEmpty() ||
+                initial.quickActions.isNotEmpty(),
+        )
+    }
     LaunchedEffect(validationRequested, validationMessages) {
         if (validationRequested && validationMessages.isNotEmpty()) validationRequester.bringIntoView()
     }
+    LaunchedEffect(validationRequested, advancedScheduleProblems) {
+        if (validationRequested && advancedScheduleProblems.isNotEmpty()) showScheduleOptions = true
+    }
     LaunchedEffect(persistenceError) {
         if (!persistenceError.isNullOrBlank()) editorListState.scrollToItem(0)
-    }
-    var showAdvanced by rememberSaveable(editorKey) {
-        mutableStateOf(
-            defaults.powerMode || initial.notes.isNotBlank() || initial.tags.isNotEmpty() ||
-                initial.quickActions.isNotEmpty() ||
-                initial.reminderMinutes.isNotEmpty() || initial.weekdayReminderMinutes.isNotEmpty() ||
-                initial.endType != HabitEndType.Never,
-        )
     }
     val editorFingerprint = listOf(
         name, notes, areaId, area, tags, icon, mode, comparison, targetMin, targetMax,
@@ -2308,27 +2325,76 @@ internal fun HabitEditorDialog(
                     }
                 }
                 item {
-                    val parsed = reminders.split(',').mapNotNull { parseClockMinutes(it.trim()) }.distinct().sorted()
-                    ReminderTimesEditor("Default Reminders", parsed) { updated ->
-                        if (updated.isNotEmpty() && parsed.isEmpty()) onRequestNotificationPermission()
-                        reminders = updated.joinToString(",", transform = ::formatClockMinutes)
-                    }
-                }
-                item {
-                    WeekdayReminderEditor(
-                        values = parseWeekdayReminderMap(weekdayReminders),
-                        firstDayOfWeek = weekStart,
-                    ) { updated ->
-                        if (updated.values.any { it.isNotEmpty() } && parseWeekdayReminderMap(weekdayReminders).values.all { it.isEmpty() }) {
-                            onRequestNotificationPermission()
+                    val defaultReminderTimes = reminders.split(',')
+                        .mapNotNull { parseClockMinutes(it.trim()) }
+                        .distinct()
+                        .sorted()
+                    val weekdayReminderTimes = parseWeekdayReminderMap(weekdayReminders)
+                    val context = LocalContext.current
+                    Column(
+                        modifier = Modifier.fillMaxWidth().testTag("habit-schedule-summary"),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text("Reminders", fontWeight = FontWeight.Bold)
+                        Text(
+                            habitReminderSummary(defaultReminderTimes, weekdayReminderTimes) { minutes ->
+                                formatClockMinutes(context, minutes)
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (endType != HabitEndType.Never) {
+                            Text(
+                                habitEndSummary(endType, endDate, currentDraft.endValue),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
-                        weekdayReminders = formatWeekdayReminderMap(updated)
+                        if (weekStart != defaultWeekStart) {
+                            Text(
+                                "Week starts ${weekStart.displayName()} (different from your app default)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        DisclosureButton(
+                            label = "Reminders & Schedule Options",
+                            expanded = showScheduleOptions,
+                            onClick = { showScheduleOptions = !showScheduleOptions },
+                            modifier = Modifier.fillMaxWidth().testTag("habit-schedule-options"),
+                        )
                     }
                 }
-                item { EnumDropdown("End Condition", HabitEndType.entries, endType, { it.scheduleLabel() }) { endType = it } }
-                if (endType == HabitEndType.OnDate) item { WhipOutlinedButton(onClick = { showEndDatePicker = true }, modifier = Modifier.fillMaxWidth()) { Text(endDate?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "Choose End Date") } }
-                if (endType in setOf(HabitEndType.AfterStreak, HabitEndType.AfterCompletions, HabitEndType.AfterTotal)) item { NumberTextField(endValue, { endValue = it }, when (endType) { HabitEndType.AfterStreak -> "End After Streak"; HabitEndType.AfterCompletions -> "End After Completions"; else -> "End After Total" }) }
-                item { EnumDropdown("First Day of Week", DayOfWeek.entries, weekStart, { it.name.lowercase().replaceFirstChar(Char::uppercase) }) { weekStart = it } }
+                if (showScheduleOptions) {
+                    item {
+                        EditorSectionHeader(
+                            "Reminder & Schedule Options",
+                            "Set notification times, optional weekday overrides, an ending rule, or a different week boundary.",
+                        )
+                    }
+                    item {
+                        val parsed = reminders.split(',').mapNotNull { parseClockMinutes(it.trim()) }.distinct().sorted()
+                        ReminderTimesEditor("Default Reminders", parsed) { updated ->
+                            if (updated.isNotEmpty() && parsed.isEmpty()) onRequestNotificationPermission()
+                            reminders = updated.joinToString(",", transform = ::formatClockMinutes)
+                        }
+                    }
+                    item {
+                        WeekdayReminderEditor(
+                            values = parseWeekdayReminderMap(weekdayReminders),
+                            firstDayOfWeek = weekStart,
+                        ) { updated ->
+                            if (updated.values.any { it.isNotEmpty() } && parseWeekdayReminderMap(weekdayReminders).values.all { it.isEmpty() }) {
+                                onRequestNotificationPermission()
+                            }
+                            weekdayReminders = formatWeekdayReminderMap(updated)
+                        }
+                    }
+                    item { EnumDropdown("End Condition", HabitEndType.entries, endType, { it.scheduleLabel() }) { endType = it } }
+                    if (endType == HabitEndType.OnDate) item { WhipOutlinedButton(onClick = { showEndDatePicker = true }, modifier = Modifier.fillMaxWidth()) { Text(endDate?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "Choose End Date") } }
+                    if (endType in setOf(HabitEndType.AfterStreak, HabitEndType.AfterCompletions, HabitEndType.AfterTotal)) item { NumberTextField(endValue, { endValue = it }, when (endType) { HabitEndType.AfterStreak -> "End After Streak"; HabitEndType.AfterCompletions -> "End After Completions"; else -> "End After Total" }) }
+                    item { EnumDropdown("First Day of Week", DayOfWeek.entries, weekStart, DayOfWeek::displayName) { weekStart = it } }
+                }
                 item { EditorSectionHeader("Organization", "Choose the Area that owns this Habit.") }
                 item {
                     AreaPicker(
@@ -2345,12 +2411,12 @@ internal fun HabitEditorDialog(
                 item {
                     DisclosureButton(
                         label = "Additional Details",
-                        expanded = showAdvanced,
-                        onClick = { showAdvanced = !showAdvanced },
+                        expanded = showAdditionalDetails,
+                        onClick = { showAdditionalDetails = !showAdditionalDetails },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                if (showAdvanced) {
+                if (showAdditionalDetails) {
                     item { EditorSectionHeader("Details", "Add reusable tags, quick actions, and notes only when they help.") }
                     item { OutlinedTextField(tags, { tags = it }, label = { Text("Tags, comma-separated") }, modifier = Modifier.fillMaxWidth()) }
                     if (sourceMetricId == null) item {
@@ -3251,6 +3317,49 @@ private fun HabitEndType.scheduleLabel(): String = when (this) {
     HabitEndType.AfterCompletions -> "After completions"
     HabitEndType.AfterTotal -> "After total"
 }
+
+private fun DayOfWeek.displayName(): String = name.lowercase().replaceFirstChar(Char::uppercase)
+
+private fun habitReminderSummary(
+    defaultTimes: List<Int>,
+    weekdayTimes: Map<DayOfWeek, List<Int>>,
+    formatTime: (Int) -> String,
+): String {
+    val configuredWeekdays = weekdayTimes.entries
+        .filter { (_, times) -> times.isNotEmpty() }
+        .sortedBy { (day, _) -> day.value }
+        .map { (day, _) -> day.name.take(3).lowercase().replaceFirstChar(Char::uppercase) }
+    if (defaultTimes.isEmpty() && configuredWeekdays.isEmpty()) return "Off — no reminders configured"
+
+    return buildList {
+        if (defaultTimes.isNotEmpty()) {
+            val visibleTimes = defaultTimes.take(3).joinToString(transform = formatTime)
+            val remainingCount = defaultTimes.size - 3
+            add(
+                if (remainingCount > 0) "Default: $visibleTimes +$remainingCount more"
+                else "Default: $visibleTimes",
+            )
+        }
+        if (configuredWeekdays.isNotEmpty()) {
+            add("Weekday overrides: ${configuredWeekdays.joinToString()}")
+        }
+    }.joinToString(" · ")
+}
+
+private fun habitEndSummary(
+    endType: HabitEndType,
+    endDate: LocalDate?,
+    endValue: Double?,
+): String = when (endType) {
+    HabitEndType.Never -> "No end condition"
+    HabitEndType.OnDate -> endDate?.let {
+        "Ends ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}"
+    } ?: "Ends on a date — choose the date"
+    HabitEndType.AfterStreak -> "Ends after ${endValue?.let(::editableNumericValue) ?: "—"} consecutive completions"
+    HabitEndType.AfterCompletions -> "Ends after ${endValue?.let(::editableNumericValue) ?: "—"} completions"
+    HabitEndType.AfterTotal -> "Ends after a total of ${endValue?.let(::editableNumericValue) ?: "—"}"
+}
+
 private fun parseClockMinutes(value: String): Int? {
     val parts = value.split(':')
     val hours = parts.getOrNull(0)?.toIntOrNull() ?: return null

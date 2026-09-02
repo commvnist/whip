@@ -279,3 +279,15 @@
 - Counts: Current baseline is 1,410 product tests—547 JVM and 863 Android—plus 9 Macrobenchmark/Baseline Profile scenarios.
 - Related: `FND-20260902-001`, `DEC-20260902-002`, `IMP-20260902-002`.
 - Status: Fully verified for this coherent Habit-timer chunk.
+
+### VER-20260902-003 — Progressive Habit schedule UX and accessibility
+
+- Scope/environment: New simple Habit creation; existing reminders and weekday overrides; ending-rule and week-boundary summaries; Power Mode/advanced-data expansion; collapsed hidden-error recovery; saveable disclosure restoration; 200% text; API 34 disposable emulator `emulator-5554`.
+- Focused evidence: Four new Compose regressions prove that advanced controls are absent from the basic semantics tree until requested, configured data auto-opens them, disclosure state restores, and an invalid collapsed end condition reopens with both its validation message and correction control reachable. The existing 200% phone test now expands the section and reaches First Day of Week. Focused emulator executions passed after correcting only a test's title-case and bullet-text matchers; no production defect was hidden.
+- Visual evidence: Collapsed and expanded 1080×2400 captures plus UI hierarchies are preserved under `artifacts/full-product-audit/2026-09-02/habit-progressive-disclosure/`. They show the concise reminder state, 48dp disclosure, coherent hierarchy, and full reminder editor opening in place.
+- Complete gates: `ANDROID_SERIAL=emulator-5554 scripts/check --emulator` passed all 547 JVM and all 867 Android tests—1,414 product tests total—with zero failures/skips across ten instrumentation batches. Play assets, Kotlin/JVM/Android-test compilation, debug assembly, lint, and deterministic coverage passed: domain lines 78.17% (3,993/5,108), domain branches 56.26% (2,215/3,937), and core policy lines 66.46% (545/820). `scripts/check --full` passed release APK/AAB, release lint-vital, R8/resource shrinking, and optimized benchmark-harness assembly. `git diff --check` passed.
+- Release-build evidence: unsigned release APK SHA-256 `54abbbffd478bda6a7a413d2186e9a96417144c8807105df0eb80a86c14ba266`; release AAB SHA-256 `08015e1c33b51377f03ee56c2a1590d63719e0dccfac901e9613077cb0d06600`.
+- Compatibility/exclusions: No Room schema, migration, backup-format, Habit scheduling, reminder-delivery, historical-data, or physical-device release change. API 26/API 37, continuous E2E coverage, TalkBack service exploration, and signed phone deployment were not run in this chunk.
+- Counts: Current baseline is 1,414 product tests—547 JVM and 867 Android—plus 9 Macrobenchmark/Baseline Profile scenarios.
+- Related: `FND-20260831-012`, `DEC-20260831-013`, `IMP-20260902-003`.
+- Status: Fully verified for this coherent Habit progressive-disclosure chunk.
