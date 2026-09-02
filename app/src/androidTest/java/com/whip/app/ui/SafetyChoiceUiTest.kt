@@ -15,6 +15,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -40,6 +41,25 @@ import org.junit.Test
 
 class SafetyChoiceUiTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun workoutCompletionActionsAreDisabledWhileAnotherWorkoutMutationOwnsPersistence() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WorkoutCompletionActions(
+                    showGroupAction = true,
+                    saving = true,
+                    onGroupExercises = {},
+                    onFinish = {},
+                    onDiscard = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("active-workout-group").assertIsNotEnabled()
+        compose.onNodeWithTag("active-workout-finish").assertIsNotEnabled()
+        compose.onNodeWithTag("active-workout-discard").assertIsNotEnabled()
+    }
 
     @Test
     fun replaceEverythingRequiresFinalConfirmationAndBusyBlocksDuplicates() {
@@ -127,7 +147,7 @@ class SafetyChoiceUiTest {
                 WorkoutGroupDialog(
                     exercises = emptyList(),
                     onDismiss = { dismissals.incrementAndGet() },
-                    onCreate = { _, _, _, _ -> },
+                    onCreate = { _, _, _ -> true },
                 )
             }
         }
@@ -203,23 +223,32 @@ class SafetyChoiceUiTest {
     fun workoutGroupSaveFailureKeepsParentAndDraftOpenForRetry() {
         val creations = AtomicInteger(0)
         val dismissals = AtomicInteger(0)
-        val completion = AtomicReference<(WhipResult<Unit>) -> Unit>()
+        val saving = androidx.compose.runtime.mutableStateOf(false)
+        val saveError = androidx.compose.runtime.mutableStateOf<String?>(null)
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 WorkoutGroupDialog(
                     exercises = listOf(workoutExerciseUi(1), workoutExerciseUi(2)),
+                    saving = saving.value,
+                    saveError = saveError.value,
                     onDismiss = { dismissals.incrementAndGet() },
-                    onCreate = { _, _, _, onFinished ->
+                    onCreate = { _, _, _ ->
                         creations.incrementAndGet()
-                        completion.set(onFinished)
+                        saving.value = true
+                        true
                     },
                 )
             }
         }
 
         compose.onNodeWithTag("workout-group-name").performTextInput("Retry group")
-        compose.onNodeWithTag("workout-group-confirm").performClick().assertIsNotEnabled()
-        compose.runOnIdle { completion.get().invoke(WhipResult.Failure("Group write failed")) }
+        compose.onNodeWithTag("workout-group-confirm").performClick()
+        compose.onNodeWithTag("workout-group-confirm", useUnmergedTree = true).assertIsNotEnabled()
+        compose.onNodeWithTag("workout-group-name", useUnmergedTree = true).assertIsNotEnabled()
+        compose.runOnIdle {
+            saving.value = false
+            saveError.value = "Group write failed"
+        }
 
         compose.onNodeWithTag("workout-group-save-error").assertTextContains("Group write failed")
         compose.onNodeWithTag("workout-group-name").assertTextContains("Retry group")
@@ -227,9 +256,9 @@ class SafetyChoiceUiTest {
         assertEquals(0, dismissals.get())
 
         compose.onNodeWithTag("workout-group-confirm").performClick()
-        compose.runOnIdle { completion.get().invoke(WhipResult.Success(Unit)) }
+        compose.runOnIdle { saving.value = false }
         assertEquals(2, creations.get())
-        assertEquals(1, dismissals.get())
+        assertEquals(0, dismissals.get())
     }
 
     @Test

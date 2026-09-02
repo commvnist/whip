@@ -111,7 +111,7 @@ These values are source- and emulator-informed heuristic estimates, not observed
 - Affected users: everyone using Areas, especially interruption-prone and multi-Area workflows.
 - Source: `WhipApp.kt`, `HabitScreens.kt`, `GoalScreens.kt`.
 - Recommended solution: typed save results and success-only navigation/scope effects.
-- Remediation status: resolved for Task/Habit/Goal authored definition editors with request-owned receipts, post-commit warning semantics, retained retry drafts, atomic admission, stale-terminal reclamation, input blocking, and authoritative Area fallback. Habit and Task secondary-mutation families are also resolved and fully verified in `VER-20260831-011` and `VER-20260831-012`; Goal/Track/Gym secondary dialogs remain under `FND-20260831-019`.
+- Remediation status: resolved for Task/Habit/Goal authored definition editors with request-owned receipts, post-commit warning semantics, retained retry drafts, atomic admission, stale-terminal reclamation, input blocking, and authoritative Area fallback. Habit, Task, Goal, Track definition/Entry/CSV, Gym deletion/session/structure, and typed Settings families are also resolved through `VER-20260901-020`. Adjacent Settings/Health choices remain under `FND-20260901-027`; bounded shares and other secondary families still require their own risk-proportionate tranches under `FND-20260831-019`.
 - Regression gate: injected failure for Task Save, Save & New, Habit, and Goal; editor/draft/scope/notice assertions.
 - Durable record: `FND-20260831-010`, `DEC-20260831-011`.
 

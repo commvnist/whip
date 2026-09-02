@@ -27,14 +27,24 @@ import com.whip.app.domain.ExerciseCategory
 import com.whip.app.domain.ExerciseCategoryLink
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.WorkoutExercise
+import com.whip.app.domain.WorkoutExerciseCopyBoundary
 import com.whip.app.domain.WorkoutExerciseOutcome
+import com.whip.app.domain.WorkoutFinishBoundary
 import com.whip.app.domain.WorkoutGroup
 import com.whip.app.domain.WorkoutGroupType
 import com.whip.app.domain.WorkoutSession
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.WorkoutSet
+import com.whip.app.domain.WorkoutSetCopyBoundary
 import com.whip.app.domain.WorkoutSetDraft
 import com.whip.app.domain.WorkoutSetRemovalReason
+import com.whip.app.domain.WorkoutArrangementDraft
+import com.whip.app.domain.WorkoutLayoutSnapshot
+import com.whip.app.domain.WorkoutPlacementMutationBoundary
+import com.whip.app.domain.WorkoutSetMutationBoundary
+import com.whip.app.domain.WorkoutStructureBoundary
+import com.whip.app.domain.WorkoutStructureMutationReceipt
+import com.whip.app.domain.workoutStructureBoundary
 import com.whip.app.domain.WorkoutSummary
 import com.whip.app.domain.GymRoutine
 import com.whip.app.domain.GymMachine
@@ -95,6 +105,80 @@ data class WorkoutExerciseUi(
 
 private const val PREVIOUS_SET_SUMMARY_LIMIT = 12
 private const val GYM_DELETION_RECOVERY_REQUEST_ID_KEY = "gym_deletion_recovery_request_id"
+internal const val GYM_HISTORY_COPY_AUTHORSHIP_KEY = "gym_history_copy_authorship_v1"
+
+internal data class HistoryCopyAuthorship(
+    val boundary: WorkoutExerciseCopyBoundary,
+    val requestedWorkoutExerciseUuid: String,
+    val requestedSetUuids: List<String>,
+    val dataGeneration: Long,
+)
+
+internal fun encodeHistoryCopyAuthorship(authorship: HistoryCopyAuthorship): ArrayList<String> =
+    ArrayList<String>().apply {
+        val boundary = authorship.boundary
+        add("1")
+        add(boundary.sourceSessionId.toString())
+        add(boundary.sourceSessionUuid)
+        add(boundary.sourceWorkoutExerciseId.toString())
+        add(boundary.sourceWorkoutExerciseUuid)
+        add(boundary.sourceWorkoutExerciseUpdatedAtMillis.toString())
+        add(if (boundary.target != null) "1" else "0")
+        add(boundary.target?.sessionId?.toString().orEmpty())
+        add(boundary.target?.sessionUuid.orEmpty())
+        add(boundary.target?.fingerprint.orEmpty())
+        add(authorship.requestedWorkoutExerciseUuid)
+        add(authorship.dataGeneration.toString())
+        add(boundary.sourceSets.size.toString())
+        boundary.sourceSets.forEach { set ->
+            add(set.setId.toString())
+            add(set.setUuid)
+            add(set.setUpdatedAtMillis.toString())
+        }
+        add(authorship.requestedSetUuids.size.toString())
+        addAll(authorship.requestedSetUuids)
+    }
+
+internal fun decodeHistoryCopyAuthorship(encoded: List<String>?): HistoryCopyAuthorship? = runCatching {
+    encoded ?: return null
+    require(encoded.firstOrNull() == "1")
+    val sourceSetCount = encoded[12].toInt()
+    require(sourceSetCount >= 0)
+    val sourceSetsOffset = 13
+    val requestedSetCountOffset = sourceSetsOffset + sourceSetCount * 3
+    val requestedSetCount = encoded[requestedSetCountOffset].toInt()
+    require(requestedSetCount >= 0)
+    require(encoded.size == requestedSetCountOffset + 1 + requestedSetCount)
+    HistoryCopyAuthorship(
+        boundary = WorkoutExerciseCopyBoundary(
+            sourceSessionId = encoded[1].toLong(),
+            sourceSessionUuid = encoded[2],
+            sourceWorkoutExerciseId = encoded[3].toLong(),
+            sourceWorkoutExerciseUuid = encoded[4],
+            sourceWorkoutExerciseUpdatedAtMillis = encoded[5].toLong(),
+            target = if (encoded[6] == "1") {
+                WorkoutStructureBoundary(encoded[7].toLong(), encoded[8], encoded[9])
+            } else {
+                require(encoded[6] == "0")
+                null
+            },
+            sourceSets = List(sourceSetCount) { index ->
+                val offset = sourceSetsOffset + index * 3
+                WorkoutSetCopyBoundary(
+                    setId = encoded[offset].toLong(),
+                    setUuid = encoded[offset + 1],
+                    setUpdatedAtMillis = encoded[offset + 2].toLong(),
+                )
+            },
+        ),
+        requestedWorkoutExerciseUuid = encoded[10],
+        dataGeneration = encoded[11].toLong(),
+        requestedSetUuids = List(requestedSetCount) { index -> encoded[requestedSetCountOffset + 1 + index] },
+    ).also { authorship ->
+        require(authorship.requestedWorkoutExerciseUuid.isNotBlank())
+        require(authorship.requestedSetUuids.size == authorship.boundary.sourceSets.size)
+    }
+}.getOrNull()
 
 internal data class PreviousSetSummary(
     val sets: List<WorkoutSet>,
@@ -147,6 +231,7 @@ data class GymUiState(
     val allSessions: List<WorkoutSession> = emptyList(),
     val allWorkoutExercises: List<WorkoutExercise> = emptyList(),
     val allSets: List<WorkoutSet> = emptyList(),
+    val allWorkoutGroups: List<WorkoutGroup> = emptyList(),
     val summary: WorkoutSummary? = null,
     val restSecondsRemaining: Int? = null,
     val nowMillis: Long = 0,
@@ -180,17 +265,23 @@ internal data class QuickSetAuthorshipBoundary(
     val workoutRevision: Long,
 )
 
-internal data class WorkoutFinishBoundary(
-    val sessionId: Long,
-    val sessionUuid: String,
-    val workoutRevision: Long,
-)
-
 internal enum class GymSessionMutationKind {
     ExerciseAdded,
     ExerciseSubstituted,
+    WorkoutExerciseCopied,
     SetUpdated,
     ExerciseDetailsUpdated,
+    MachineCreatedAndAssigned,
+    WorkoutExerciseRemoved,
+    WorkoutGroupMemberRemoved,
+    WorkoutGroupCreated,
+    WorkoutArranged,
+    WorkoutLayoutRestored,
+    WorkoutSetRemoved,
+    WorkoutSetRestored,
+    WorkoutSetCompletionUpdated,
+    WorkoutSetAdded,
+    WorkoutSetDuplicated,
     WorkoutFinished,
     WorkoutDiscarded,
 }
@@ -199,7 +290,103 @@ internal data class GymSessionMutationReceipt(
     val kind: GymSessionMutationKind,
     val targetId: Long? = null,
     val warnings: List<String> = emptyList(),
+    val structureReceipt: WorkoutStructureMutationReceipt? = null,
+    val setRemovalReason: WorkoutSetRemovalReason? = null,
 )
+
+data class WorkoutLayoutUndo(
+    val boundary: WorkoutStructureBoundary,
+    val snapshot: WorkoutLayoutSnapshot,
+    val label: String,
+)
+
+internal fun GymUiState.captureWorkoutStructureBoundary(): WorkoutStructureBoundary? {
+    val session = activeSession ?: return null
+    return workoutStructureBoundary(session, allWorkoutExercises, allWorkoutGroups, allSets)
+}
+
+internal fun GymUiState.captureWorkoutExerciseCopyBoundary(
+    workoutExerciseId: Long,
+): WorkoutExerciseCopyBoundary? {
+    val source = allWorkoutExercises.firstOrNull { it.id == workoutExerciseId } ?: return null
+    val sourceSession = allSessions.firstOrNull { it.id == source.sessionId } ?: return null
+    val sourceSets = allSets
+        .filter { it.workoutExerciseId == source.id && it.deletedAtMillis == null }
+        .sortedWith(compareBy(WorkoutSet::position, WorkoutSet::id))
+    return WorkoutExerciseCopyBoundary(
+        sourceSessionId = sourceSession.id,
+        sourceSessionUuid = sourceSession.uuid,
+        sourceWorkoutExerciseId = source.id,
+        sourceWorkoutExerciseUuid = source.uuid,
+        sourceWorkoutExerciseUpdatedAtMillis = source.updatedAtMillis,
+        sourceSets = sourceSets.map { set ->
+            WorkoutSetCopyBoundary(set.id, set.uuid, set.updatedAtMillis)
+        },
+        target = captureWorkoutStructureBoundary(),
+    )
+}
+
+internal fun GymUiState.capturePlacementMutationBoundary(
+    workoutExerciseId: Long,
+): WorkoutPlacementMutationBoundary? {
+    val structure = captureWorkoutStructureBoundary() ?: return null
+    val placement = allWorkoutExercises.firstOrNull {
+        it.id == workoutExerciseId && it.sessionId == structure.sessionId
+    } ?: return null
+    val groupUuid = placement.groupId?.let { groupId ->
+        allWorkoutGroups.firstOrNull { it.id == groupId }?.uuid
+    }
+    return WorkoutPlacementMutationBoundary(
+        structure = structure,
+        workoutExerciseId = placement.id,
+        workoutExerciseUuid = placement.uuid,
+        workoutExerciseUpdatedAtMillis = placement.updatedAtMillis,
+        expectedGroupUuid = groupUuid,
+    )
+}
+
+internal fun GymUiState.captureSetMutationBoundary(setId: Long): WorkoutSetMutationBoundary? {
+    val session = activeSession ?: return null
+    val set = allSets.firstOrNull { it.id == setId } ?: return null
+    val placement = allWorkoutExercises.firstOrNull {
+        it.id == set.workoutExerciseId && it.sessionId == session.id
+    } ?: return null
+    return WorkoutSetMutationBoundary(
+        sessionId = session.id,
+        sessionUuid = session.uuid,
+        workoutRevision = session.workoutRevision,
+        workoutExerciseId = placement.id,
+        workoutExerciseUuid = placement.uuid,
+        setId = set.id,
+        setUuid = set.uuid,
+        setUpdatedAtMillis = set.updatedAtMillis,
+        expectedDeletedAtMillis = set.deletedAtMillis,
+        expectedRemovalReason = set.removalReason,
+    )
+}
+
+internal fun GymUiState.captureWorkoutArrangementDraft(
+    activeWorkoutExerciseIdsInOrder: List<Long> = activeWorkoutExercises
+        .sortedBy { it.workoutExercise.position }.map { it.workoutExercise.id },
+    setIdsInOrderByWorkoutExerciseId: Map<Long, List<Long>> = emptyMap(),
+): WorkoutArrangementDraft {
+    val placementById = activeWorkoutExercises.associateBy { it.workoutExercise.id }
+    return WorkoutArrangementDraft(
+        activeWorkoutExerciseUuidsInOrder = activeWorkoutExerciseIdsInOrder.map { id ->
+            requireNotNull(placementById[id]) { "Exercise order changed; review the workout" }
+                .workoutExercise.uuid
+        },
+        setOrders = activeWorkoutExercises.map { item ->
+            val orderedSets = setIdsInOrderByWorkoutExerciseId[item.workoutExercise.id]?.map { id ->
+                requireNotNull(item.sets.firstOrNull { it.id == id }) { "Set order changed; review the workout" }
+            } ?: item.sets.sortedWith(compareBy(WorkoutSet::position, WorkoutSet::id))
+            com.whip.app.domain.WorkoutSetOrderDraft(
+                workoutExerciseUuid = item.workoutExercise.uuid,
+                setUuidsInOrder = orderedSets.map(WorkoutSet::uuid),
+            )
+        },
+    )
+}
 
 internal enum class GymDeletionKind {
     Exercise,
@@ -270,6 +457,17 @@ class GymViewModel @JvmOverloads constructor(
     )
     internal val sessionMutationState: StateFlow<PersistenceRequestState<GymSessionMutationReceipt>> =
         _sessionMutationState.asStateFlow()
+    private val historyCopyAuthorshipEncoded = savedStateHandle.getMutableStateFlow<ArrayList<String>?>(
+        GYM_HISTORY_COPY_AUTHORSHIP_KEY,
+        null,
+    )
+    internal val historyCopyAuthorship: StateFlow<HistoryCopyAuthorship?> = historyCopyAuthorshipEncoded
+        .map(::decodeHistoryCopyAuthorship)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            decodeHistoryCopyAuthorship(historyCopyAuthorshipEncoded.value),
+        )
     private val _machineDeletionImpact = MutableStateFlow<MachineDeletionImpact?>(null)
     val machineDeletionImpact: StateFlow<MachineDeletionImpact?> = _machineDeletionImpact.asStateFlow()
     private val _machineDeletionInProgress = MutableStateFlow(false)
@@ -299,6 +497,8 @@ class GymViewModel @JvmOverloads constructor(
     private val orphanRecoveryInProgressRequestId = MutableStateFlow<String?>(null)
     private val gymDeletionMutex = Mutex()
     private val sessionMutationMutex = Mutex()
+    private val _pendingWorkoutLayoutUndo = MutableStateFlow<WorkoutLayoutUndo?>(null)
+    val pendingWorkoutLayoutUndo: StateFlow<WorkoutLayoutUndo?> = _pendingWorkoutLayoutUndo.asStateFlow()
     private var exerciseDeletionPreviewGeneration = 0L
     private var routineDeletionPreviewGeneration = 0L
     private val _pendingMachineArchiveUndo = MutableStateFlow<Long?>(null)
@@ -396,7 +596,7 @@ class GymViewModel @JvmOverloads constructor(
                 .collectLatest { sessionId ->
                     if (sessionId != null) {
                         app.withUserDataAccess {
-                            repository.normalizeWorkoutGroups(sessionId)
+                            repository.normalizeActiveWorkoutStructure(sessionId)
                             Unit
                         }
                     }
@@ -416,6 +616,8 @@ class GymViewModel @JvmOverloads constructor(
                 _routineDeletionTargetMissing.value = false
                 _gymDeletionState.value = PersistenceRequestState.Idle
                 _sessionMutationState.value = PersistenceRequestState.Idle
+                historyCopyAuthorshipEncoded.value = null
+                _pendingWorkoutLayoutUndo.value = null
                 _orphanedGymDeletionRequestId.value = null
                 orphanRecoveryInProgressRequestId.value = null
                 exerciseDeletionPreviewGeneration++
@@ -439,6 +641,10 @@ class GymViewModel @JvmOverloads constructor(
         }
     }
     fun currentDataGeneration(): Long = app.currentUserDataGeneration()
+
+    internal fun setHistoryCopyAuthorship(authorship: HistoryCopyAuthorship?) {
+        historyCopyAuthorshipEncoded.value = authorship?.let(::encodeHistoryCopyAuthorship)
+    }
 
     fun adoptOrphanedGymDeletionRequest(requestId: String): Boolean {
         val adopted = _gymDeletionState.tryStartPersistenceRequest(requestId)
@@ -729,13 +935,24 @@ class GymViewModel @JvmOverloads constructor(
         onFinished,
     ) { repository.createMachineVersion(sourceId, draft) }
 
-    fun createMachineAndAssign(workoutExerciseId: Long, draft: GymMachineDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
-        "Creating and assigning machine…",
-        "Machine created and assigned",
-        onFinished,
+    fun createMachineAndAssign(
+        boundary: WorkoutPlacementMutationBoundary,
+        draft: GymMachineDraft,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Creating and assigning machine…",
+        success = "Machine created and assigned",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(
+            GymSessionMutationKind.MachineCreatedAndAssigned,
+            boundary.workoutExerciseId,
+        ),
     ) {
-        val machineId = repository.createMachine(draft)
-        repository.setWorkoutExerciseMachine(workoutExerciseId, machineId)
+        repository.createMachineAndAssign(boundary, draft)
+        GymSessionMutationReceipt(
+            GymSessionMutationKind.MachineCreatedAndAssigned,
+            boundary.workoutExerciseId,
+        )
     }
 
     fun setMachineArchived(id: Long, archived: Boolean) {
@@ -869,8 +1086,10 @@ class GymViewModel @JvmOverloads constructor(
     }
 
     fun createExerciseAndAdd(
-        sessionId: Long,
+        boundary: WorkoutStructureBoundary,
         draft: ExerciseDraft,
+        requestedWorkoutExerciseUuid: String,
+        requestedInitialSetUuid: String,
         requestId: String,
     ): Boolean = runSessionMutation(
         running = "Creating exercise…",
@@ -878,13 +1097,21 @@ class GymViewModel @JvmOverloads constructor(
         requestId = requestId,
         committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.ExerciseAdded),
     ) {
-        val receipt = repository.createExerciseAndAddToWorkout(sessionId, draft)
+        val receipt = repository.createExerciseAndAddToWorkout(
+            boundary,
+            draft,
+            requestedWorkoutExerciseUuid,
+            requestedInitialSetUuid,
+        )
+        _pendingWorkoutLayoutUndo.value = null
         GymSessionMutationReceipt(GymSessionMutationKind.ExerciseAdded, receipt.workoutExerciseId)
     }
 
     fun createExerciseAndSubstitute(
-        workoutExerciseId: Long,
+        boundary: WorkoutPlacementMutationBoundary,
         draft: ExerciseDraft,
+        requestedWorkoutExerciseUuid: String,
+        requestedInitialSetUuid: String,
         requestId: String,
     ): Boolean = runSessionMutation(
         running = "Creating substitution…",
@@ -892,7 +1119,13 @@ class GymViewModel @JvmOverloads constructor(
         requestId = requestId,
         committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.ExerciseSubstituted),
     ) {
-        val replacementId = repository.createExerciseAndSubstitute(workoutExerciseId, draft)
+        val replacementId = repository.createExerciseAndSubstitute(
+            boundary,
+            draft,
+            requestedWorkoutExerciseUuid,
+            requestedInitialSetUuid,
+        )
+        _pendingWorkoutLayoutUndo.value = null
         GymSessionMutationReceipt(GymSessionMutationKind.ExerciseSubstituted, replacementId)
     }
 
@@ -1042,6 +1275,7 @@ class GymViewModel @JvmOverloads constructor(
             zoneId = clock.zoneId(),
             keepScreenAwake = keepScreenAwake,
         )
+        _pendingWorkoutLayoutUndo.value = null
     }
 
     fun updateWorkout(
@@ -1085,6 +1319,7 @@ class GymViewModel @JvmOverloads constructor(
             onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
             onOrdinaryFailure = { committed -> committed.also { followUpWarning = true } },
         )
+        _pendingWorkoutLayoutUndo.value = null
         GymSessionMutationReceipt(
             GymSessionMutationKind.WorkoutFinished,
             boundary.sessionId,
@@ -1104,27 +1339,29 @@ class GymViewModel @JvmOverloads constructor(
             onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
             onOrdinaryFailure = { },
         )
+        _pendingWorkoutLayoutUndo.value = null
     }
 
-    fun discardWorkout(id: Long, requestId: String): Boolean = runSessionMutation(
+    fun discardWorkout(boundary: WorkoutFinishBoundary, requestId: String): Boolean = runSessionMutation(
         running = "Discarding workout…",
         success = "Workout discarded",
         requestId = requestId,
-        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.WorkoutDiscarded, id),
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.WorkoutDiscarded, boundary.sessionId),
     ) {
         var followUpWarning = false
         completeCommittedPersistence<Unit>(
-            commit = { repository.discardWorkout(id) },
+            commit = { repository.discardWorkout(boundary) },
             followUp = {
-                reconcilePersistedRestTimer(id)
+                reconcilePersistedRestTimer(boundary.sessionId)
                 app.linkRepository.rebuildAll()
             },
             onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
             onOrdinaryFailure = { followUpWarning = true },
         )
+        _pendingWorkoutLayoutUndo.value = null
         GymSessionMutationReceipt(
             GymSessionMutationKind.WorkoutDiscarded,
-            id,
+            boundary.sessionId,
             warnings = if (followUpWarning) {
                 listOf("Workout discarded; background cleanup will be reconciled when Gym opens again.")
             } else emptyList(),
@@ -1156,14 +1393,32 @@ class GymViewModel @JvmOverloads constructor(
         repository.duplicateWorkout(id, asActive = true)
     }
 
-    fun copyWorkoutExercise(id: Long) = runOperation("Copying exercise…", "Exercise sets copied into the active workout") {
-        repository.copyWorkoutExerciseToActive(id)
+    fun copyWorkoutExercise(
+        boundary: WorkoutExerciseCopyBoundary,
+        requestedWorkoutExerciseUuid: String,
+        requestedSetUuids: List<String>,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Copying exercise…",
+        success = "Exercise sets copied into the active workout",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.WorkoutExerciseCopied),
+    ) {
+        val copiedId = repository.copyWorkoutExerciseToActive(
+            boundary,
+            requestedWorkoutExerciseUuid,
+            requestedSetUuids,
+        )
+        _pendingWorkoutLayoutUndo.value = null
+        GymSessionMutationReceipt(GymSessionMutationKind.WorkoutExerciseCopied, copiedId)
     }
 
     fun addExercise(
-        sessionId: Long,
+        boundary: WorkoutStructureBoundary,
         exerciseId: Long,
         machineId: Long? = null,
+        requestedWorkoutExerciseUuid: String,
+        requestedInitialSetUuid: String,
         requestId: String,
     ): Boolean = runSessionMutation(
         running = "Adding exercise…",
@@ -1171,17 +1426,19 @@ class GymViewModel @JvmOverloads constructor(
         requestId = requestId,
         committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.ExerciseAdded),
     ) {
-        val receipt = repository.addExerciseWithInitialSetToWorkout(sessionId, exerciseId, machineId)
+        val receipt = repository.addExerciseWithInitialSetToWorkout(
+            boundary,
+            exerciseId,
+            machineId,
+            requestedWorkoutExerciseUuid,
+            requestedInitialSetUuid,
+        )
+        _pendingWorkoutLayoutUndo.value = null
         GymSessionMutationReceipt(GymSessionMutationKind.ExerciseAdded, receipt.workoutExerciseId)
     }
 
-    fun updateWorkoutExercise(id: Long, notes: String, groupId: Long?) = runOperation(
-        "Saving exercise notes…",
-        "Exercise updated",
-    ) { repository.updateWorkoutExercise(id, notes, groupId) }
-
     fun updateWorkoutExerciseDetails(
-        id: Long,
+        boundary: WorkoutPlacementMutationBoundary,
         notes: String,
         groupId: Long?,
         machineId: Long?,
@@ -1190,21 +1447,24 @@ class GymViewModel @JvmOverloads constructor(
         running = "Saving exercise details…",
         success = "Exercise updated",
         requestId = requestId,
-        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.ExerciseDetailsUpdated, id),
+        committedReceipt = GymSessionMutationReceipt(
+            GymSessionMutationKind.ExerciseDetailsUpdated,
+            boundary.workoutExerciseId,
+        ),
     ) {
-        repository.updateWorkoutExerciseDetails(id, notes, groupId, machineId)
-        GymSessionMutationReceipt(GymSessionMutationKind.ExerciseDetailsUpdated, id)
+        repository.updateWorkoutExerciseDetails(boundary, notes, groupId, machineId)
+        GymSessionMutationReceipt(
+            GymSessionMutationKind.ExerciseDetailsUpdated,
+            boundary.workoutExerciseId,
+        )
     }
 
-    fun setWorkoutExerciseMachine(id: Long, machineId: Long?) = runOperation(
-        "Updating machine…",
-        "Machine selection updated",
-    ) { repository.setWorkoutExerciseMachine(id, machineId) }
-
     fun substituteWorkoutExercise(
-        id: Long,
+        boundary: WorkoutPlacementMutationBoundary,
         exerciseId: Long,
         machineId: Long?,
+        requestedWorkoutExerciseUuid: String,
+        requestedInitialSetUuid: String,
         requestId: String,
     ): Boolean = runSessionMutation(
         running = "Substituting exercise…",
@@ -1212,63 +1472,172 @@ class GymViewModel @JvmOverloads constructor(
         requestId = requestId,
         committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.ExerciseSubstituted),
     ) {
-        val replacementId = repository.substituteWorkoutExercise(id, exerciseId, machineId)
+        val replacementId = repository.substituteWorkoutExercise(
+            boundary,
+            exerciseId,
+            machineId,
+            requestedWorkoutExerciseUuid,
+            requestedInitialSetUuid,
+        )
+        _pendingWorkoutLayoutUndo.value = null
         GymSessionMutationReceipt(GymSessionMutationKind.ExerciseSubstituted, replacementId)
     }
 
-    fun removeWorkoutExercise(id: Long, onFinished: (Boolean) -> Unit = {}) = runOperation(
-        "Removing exercise…",
-        "Exercise removed from workout",
-        onFinished,
+    fun removeWorkoutExercise(
+        boundary: WorkoutPlacementMutationBoundary,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Removing exercise…",
+        success = "Exercise removed from this workout",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.WorkoutExerciseRemoved),
     ) {
-        repository.removeWorkoutExercise(id)
+        val receipt = repository.removeWorkoutExercise(boundary)
+        _pendingWorkoutLayoutUndo.value = null
+        GymSessionMutationReceipt(
+            kind = GymSessionMutationKind.WorkoutExerciseRemoved,
+            targetId = boundary.workoutExerciseId,
+            structureReceipt = receipt,
+        )
     }
 
-    fun removeWorkoutExerciseFromGroup(id: Long) = runOperation(
-        "Removing exercise from group…",
-        "Exercise is now independent",
+    fun removeWorkoutExerciseFromGroup(
+        boundary: WorkoutPlacementMutationBoundary,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Removing exercise from group…",
+        success = "Exercise is now independent · Undo available",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.WorkoutGroupMemberRemoved),
     ) {
-        repository.removeWorkoutExerciseFromGroup(id)
+        val receipt = repository.removeWorkoutExerciseFromGroup(boundary)
+        receipt.previousLayout?.let { snapshot ->
+            _pendingWorkoutLayoutUndo.value = WorkoutLayoutUndo(
+                boundary = receipt.afterBoundary,
+                snapshot = snapshot,
+                label = "Undo removal from group",
+            )
+        }
+        GymSessionMutationReceipt(
+            kind = GymSessionMutationKind.WorkoutGroupMemberRemoved,
+            targetId = boundary.workoutExerciseId,
+            structureReceipt = receipt,
+        )
     }
 
     fun reorderWorkoutExercises(sessionId: Long, ids: List<Long>) = runSilentReorder {
-        repository.reorderWorkoutExercises(sessionId, ids)
+        val state = uiState.value
+        val boundary = requireNotNull(state.captureWorkoutStructureBoundary()) { "Workout changed; review it and try again" }
+        require(boundary.sessionId == sessionId) { "Workout changed; review it and try again" }
+        repository.applyWorkoutArrangement(boundary, state.captureWorkoutArrangementDraft(ids))
+    }
+
+    fun applyWorkoutArrangement(
+        boundary: WorkoutStructureBoundary,
+        draft: WorkoutArrangementDraft,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Saving workout arrangement…",
+        success = "Workout arrangement saved · Undo available",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.WorkoutArranged),
+    ) {
+        val receipt = repository.applyWorkoutArrangement(boundary, draft)
+        receipt.previousLayout?.let { snapshot ->
+            _pendingWorkoutLayoutUndo.value = WorkoutLayoutUndo(
+                boundary = receipt.afterBoundary,
+                snapshot = snapshot,
+                label = "Undo arrangement",
+            )
+        }
+        GymSessionMutationReceipt(
+            kind = GymSessionMutationKind.WorkoutArranged,
+            structureReceipt = receipt,
+        )
+    }
+
+    fun undoWorkoutLayout(undo: WorkoutLayoutUndo, requestId: String): Boolean = runSessionMutation(
+        running = "Restoring previous workout layout…",
+        success = "Previous workout layout restored",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.WorkoutLayoutRestored),
+    ) {
+        val receipt = repository.restoreWorkoutLayout(undo.boundary, undo.snapshot)
+        _pendingWorkoutLayoutUndo.value = null
+        GymSessionMutationReceipt(
+            kind = GymSessionMutationKind.WorkoutLayoutRestored,
+            structureReceipt = receipt,
+        )
+    }
+
+    fun clearWorkoutLayoutUndo() {
+        _pendingWorkoutLayoutUndo.value = null
     }
 
     fun createGroup(
-        sessionId: Long,
+        boundary: WorkoutStructureBoundary,
+        requestedGroupUuid: String,
         name: String,
         type: WorkoutGroupType,
-        workoutExerciseIds: List<Long>,
-        onFinished: (Boolean) -> Unit = {},
-    ) = runOperation("Creating group…", "Exercise group created", onFinished) {
-        repository.createGroup(sessionId, name, type, workoutExerciseIds)
+        workoutExerciseUuids: List<String>,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Creating exercise group…",
+        success = "Exercise group created · Undo available",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.WorkoutGroupCreated),
+    ) {
+        val receipt = repository.createGroup(
+            boundary,
+            requestedGroupUuid,
+            name,
+            type,
+            workoutExerciseUuids,
+        )
+        receipt.previousLayout?.let { snapshot ->
+            _pendingWorkoutLayoutUndo.value = WorkoutLayoutUndo(
+                boundary = receipt.afterBoundary,
+                snapshot = snapshot,
+                label = "Undo group creation",
+            )
+        }
+        GymSessionMutationReceipt(
+            kind = GymSessionMutationKind.WorkoutGroupCreated,
+            structureReceipt = receipt,
+        )
     }
 
-    fun addSet(workoutExerciseId: Long) = runOperation("Adding set…", "Set added") {
-        repository.addSet(workoutExerciseId)
+    fun addSet(boundary: WorkoutPlacementMutationBoundary, requestId: String): Boolean = runSessionMutation(
+        running = "Adding Set…",
+        success = "Set added",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.WorkoutSetAdded),
+    ) {
+        val setId = repository.addSet(boundary)
+        _pendingWorkoutLayoutUndo.value = null
+        GymSessionMutationReceipt(GymSessionMutationKind.WorkoutSetAdded, setId)
     }
 
     fun updateSet(
-        id: Long,
+        boundary: WorkoutSetMutationBoundary,
         draft: WorkoutSetDraft,
         requestId: String,
     ): Boolean = runSessionMutation(
         running = "Saving set…",
         success = "Set saved",
         requestId = requestId,
-        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.SetUpdated, id),
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.SetUpdated, boundary.setId),
     ) {
         var followUpWarning = false
         completeCommittedPersistence<Unit>(
-            commit = { repository.updateSet(id, draft) },
-            followUp = { routineRepository.rebuildPersonalRecords(exerciseIdForSet(id)) },
+            commit = { repository.updateSet(boundary, draft) },
+            followUp = { routineRepository.rebuildPersonalRecords(exerciseIdForSet(boundary.setId)) },
             onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
             onOrdinaryFailure = { followUpWarning = true },
         )
         GymSessionMutationReceipt(
             GymSessionMutationKind.SetUpdated,
-            id,
+            boundary.setId,
             warnings = if (followUpWarning) {
                 listOf("Set saved; personal records will be reconciled when Gym opens again.")
             } else emptyList(),
@@ -1314,6 +1683,7 @@ class GymViewModel @JvmOverloads constructor(
                     onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
                     onOrdinaryFailure = { committed -> committed.also { followUpWarning = true } },
                 ).also {
+                    if (it.appendedSetId != null) _pendingWorkoutLayoutUndo.value = null
                     if (followUpWarning) {
                         postCommitWarning =
                             "Set saved · Background records or timer notification will be reconciled when Gym opens again"
@@ -1325,103 +1695,127 @@ class GymViewModel @JvmOverloads constructor(
         }
     }
 
-    fun completeSet(id: Long, completed: Boolean) {
-        var warning: String? = null
-        runOperation(
-            "Updating set…",
-            if (completed) "Set completed" else "Set reopened",
-            successFeedbackPresentation = OperationFeedbackPresentation.Inline,
-            successOverride = { warning },
-            successFeedbackPresentationOverride = {
-                OperationFeedbackPresentation.Snackbar.takeIf { warning != null }
-            },
-        ) {
+    fun completeSet(
+        boundary: WorkoutSetMutationBoundary,
+        completed: Boolean,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Updating Set…",
+        success = if (completed) "Set completed" else "Set reopened",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(
+            GymSessionMutationKind.WorkoutSetCompletionUpdated,
+            boundary.setId,
+        ),
+    ) {
+        var followUpWarning = false
         completeCommittedPersistence<Unit>(
             commit = {
-                repository.setSetCompleted(id, completed, app.settingsRepository.current().restTimerAutoStart)
+                repository.setSetCompleted(
+                    boundary,
+                    completed,
+                    app.settingsRepository.current().restTimerAutoStart,
+                )
             },
             followUp = {
-                rebuildRecordsForSet(id)
+                rebuildRecordsForSet(boundary.setId)
                 if (completed) schedulePersistedRestTimer()
             },
             onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
-            onOrdinaryFailure = {
-                warning = "Set saved · Personal records or timer notification will be reconciled when Gym opens again"
-            },
+            onOrdinaryFailure = { followUpWarning = true },
         )
-        }
+        GymSessionMutationReceipt(
+            kind = GymSessionMutationKind.WorkoutSetCompletionUpdated,
+            targetId = boundary.setId,
+            warnings = if (followUpWarning) {
+                listOf("Set saved; personal records or timer notification will reconcile when Gym opens again.")
+            } else emptyList(),
+        )
     }
 
-    fun duplicateSet(id: Long) = runOperation("Duplicating set…", "Set duplicated") {
-        repository.duplicateSet(id)
+    fun duplicateSet(boundary: WorkoutSetMutationBoundary, requestId: String): Boolean = runSessionMutation(
+        running = "Duplicating Set…",
+        success = "Set duplicated",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.WorkoutSetDuplicated),
+    ) {
+        val setId = repository.duplicateSet(boundary)
+        _pendingWorkoutLayoutUndo.value = null
+        GymSessionMutationReceipt(GymSessionMutationKind.WorkoutSetDuplicated, setId)
     }
 
-    fun deleteSet(id: Long) {
-        var warning: String? = null
-        runOperation(
-            "Removing set…",
-            "Set removed · Undo is available from its menu",
-            successOverride = { warning },
-            successFeedbackPresentationOverride = {
-                OperationFeedbackPresentation.Snackbar.takeIf { warning != null }
-            },
-        ) {
-        completeCommittedPersistence<Unit>(
-            commit = { repository.deleteSet(id) },
-            followUp = { rebuildRecordsForSet(id) },
+    fun deleteSet(
+        boundary: WorkoutSetMutationBoundary,
+        reason: WorkoutSetRemovalReason,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = if (reason == WorkoutSetRemovalReason.Skipped) "Skipping optional Set…" else "Removing Set…",
+        success = if (reason == WorkoutSetRemovalReason.Skipped) {
+            "Optional Set skipped · Undo available"
+        } else {
+            "Set marked not performed · Undo available"
+        },
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(
+            GymSessionMutationKind.WorkoutSetRemoved,
+            boundary.setId,
+            setRemovalReason = reason,
+        ),
+    ) {
+        var followUpWarning = false
+        val receipt = completeCommittedPersistence<WorkoutStructureMutationReceipt>(
+            commit = { repository.deleteSet(boundary, reason) },
+            followUp = { committed -> rebuildRecordsForSet(boundary.setId); committed },
             onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
-            onOrdinaryFailure = {
-                warning = "Set removed · Personal records will be reconciled when Gym opens again"
-            },
+            onOrdinaryFailure = { committed -> committed.also { followUpWarning = true } },
         )
-        }
+        _pendingWorkoutLayoutUndo.value = null
+        GymSessionMutationReceipt(
+            kind = GymSessionMutationKind.WorkoutSetRemoved,
+            targetId = boundary.setId,
+            warnings = if (followUpWarning) {
+                listOf("Set saved; personal records will be reconciled when Gym opens again.")
+            } else emptyList(),
+            structureReceipt = receipt,
+            setRemovalReason = reason,
+        )
     }
 
-    fun skipOptionalSet(id: Long, onFinished: (Boolean) -> Unit = {}) {
-        var warning: String? = null
-        runOperation(
-            "Skipping optional set…",
-            "Optional set skipped · Undo is available here",
-            onFinished,
-            successOverride = { warning },
-            successFeedbackPresentationOverride = {
-                OperationFeedbackPresentation.Snackbar.takeIf { warning != null }
-            },
-        ) {
-        completeCommittedPersistence<Unit>(
-            commit = { repository.deleteSet(id, WorkoutSetRemovalReason.Skipped) },
-            followUp = { rebuildRecordsForSet(id) },
+    fun undoDeleteSet(
+        boundary: WorkoutSetMutationBoundary,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Restoring Set…",
+        success = "Set restored",
+        requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.WorkoutSetRestored, boundary.setId),
+    ) {
+        var followUpWarning = false
+        val receipt = completeCommittedPersistence<WorkoutStructureMutationReceipt>(
+            commit = { repository.undoDeleteSet(boundary) },
+            followUp = { committed -> rebuildRecordsForSet(boundary.setId); committed },
             onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
-            onOrdinaryFailure = {
-                warning = "Optional set skipped · Personal records will be reconciled when Gym opens again"
-            },
+            onOrdinaryFailure = { committed -> committed.also { followUpWarning = true } },
         )
-        }
-    }
-
-    fun undoDeleteSet(id: Long) {
-        var warning: String? = null
-        runOperation(
-            "Restoring set…",
-            "Set restored",
-            successOverride = { warning },
-            successFeedbackPresentationOverride = {
-                OperationFeedbackPresentation.Snackbar.takeIf { warning != null }
-            },
-        ) {
-        completeCommittedPersistence<Unit>(
-            commit = { repository.undoDeleteSet(id) },
-            followUp = { rebuildRecordsForSet(id) },
-            onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
-            onOrdinaryFailure = {
-                warning = "Set restored · Personal records will be reconciled when Gym opens again"
-            },
+        GymSessionMutationReceipt(
+            kind = GymSessionMutationKind.WorkoutSetRestored,
+            targetId = boundary.setId,
+            warnings = if (followUpWarning) {
+                listOf("Set restored; personal records will be reconciled when Gym opens again.")
+            } else emptyList(),
+            structureReceipt = receipt,
         )
-        }
     }
 
     fun reorderSets(workoutExerciseId: Long, ids: List<Long>) = runSilentReorder {
-        repository.reorderSets(workoutExerciseId, ids)
+        val state = uiState.value
+        val boundary = requireNotNull(state.captureWorkoutStructureBoundary()) { "Workout changed; review it and try again" }
+        repository.applyWorkoutArrangement(
+            boundary,
+            state.captureWorkoutArrangementDraft(
+                setIdsInOrderByWorkoutExerciseId = mapOf(workoutExerciseId to ids),
+            ),
+        )
     }
 
     fun startRestTimer(sessionId: Long, seconds: Int) {
@@ -2033,6 +2427,7 @@ private fun buildGymUiState(data: GymData, routineData: RoutineBaseData, nowMill
         allSessions = data.sessions,
         allWorkoutExercises = data.workoutExercises,
         allSets = data.sets,
+        allWorkoutGroups = data.groups,
         summary = summary,
         restSecondsRemaining = remaining,
         nowMillis = nowMillis,

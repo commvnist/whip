@@ -13,12 +13,17 @@ import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.RoutineOptionalWorkKind
 import com.whip.app.domain.RoutineWorkSection
 import com.whip.app.domain.WorkoutExercise
+import com.whip.app.domain.WorkoutExerciseCopyBoundary
 import com.whip.app.domain.WorkoutExerciseOutcome
+import com.whip.app.domain.WorkoutFinishBoundary
+import com.whip.app.domain.WorkoutLayoutSnapshot
+import com.whip.app.domain.WorkoutStructureBoundary
 import com.whip.app.domain.WorkoutGroup
 import com.whip.app.domain.WorkoutGroupType
 import com.whip.app.domain.WorkoutSession
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.WorkoutSet
+import com.whip.app.domain.WorkoutSetCopyBoundary
 import com.whip.app.domain.WorkoutSetClassification
 import java.time.LocalDate
 import java.time.Instant
@@ -29,6 +34,83 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GymUxRulesTest {
+    @Test
+    fun workoutUndoVisibilityIsScopedToActiveSessionAndDataGeneration() {
+        val undo = WorkoutLayoutUndo(
+            boundary = WorkoutStructureBoundary(7, "session-a", "fingerprint"),
+            snapshot = WorkoutLayoutSnapshot(emptyList(), emptyList(), emptyMap(), emptyList()),
+            label = "Undo arrange",
+        )
+
+        assertSame(undo, undo.visibleForActiveSession("session-a"))
+        assertNull(undo.visibleForActiveSession("session-b"))
+        assertNull(undo.visibleForActiveSession(null))
+        assertEquals(41L, visibleSkippedOptionalSetId(41L, "session-a", 9L, "session-a", 9L))
+        assertNull(visibleSkippedOptionalSetId(41L, "session-a", 9L, "session-b", 9L))
+        assertNull(visibleSkippedOptionalSetId(41L, "session-a", 9L, "session-a", 10L))
+        assertNull(visibleSkippedOptionalSetId(41L, "session-a", 9L, null, 9L))
+    }
+
+    @Test
+    fun dataGenerationChangeClosesEveryWorkoutOwnedExerciseEditor() {
+        assertTrue(
+            shouldCloseWorkoutAuthoredExerciseEditor(
+                directWorkoutExerciseEditorOpen = true,
+                inlineMachineEditorOpen = false,
+                creatingExerciseForMachine = false,
+            ),
+        )
+        assertTrue(
+            shouldCloseWorkoutAuthoredExerciseEditor(
+                directWorkoutExerciseEditorOpen = false,
+                inlineMachineEditorOpen = true,
+                creatingExerciseForMachine = true,
+            ),
+        )
+        assertEquals(
+            false,
+            shouldCloseWorkoutAuthoredExerciseEditor(
+                directWorkoutExerciseEditorOpen = false,
+                inlineMachineEditorOpen = true,
+                creatingExerciseForMachine = false,
+            ),
+        )
+    }
+
+    @Test
+    fun historyCopyAndSharedMutationStateBlockCompetingWorkoutActions() {
+        assertTrue(hasActiveWorkoutMutation(false, true, true))
+        assertTrue(hasActiveWorkoutMutation(false, false, true))
+        assertTrue(hasActiveWorkoutMutation(true, false, false))
+        assertEquals(false, hasActiveWorkoutMutation(false, false, false))
+    }
+
+    @Test
+    fun historyCopyAuthorshipCodecPreservesExactRetryIdentityAndRejectsDamage() {
+        val expected = HistoryCopyAuthorship(
+            boundary = WorkoutExerciseCopyBoundary(
+                sourceSessionId = 11,
+                sourceSessionUuid = "source-session",
+                sourceWorkoutExerciseId = 12,
+                sourceWorkoutExerciseUuid = "source-placement",
+                sourceWorkoutExerciseUpdatedAtMillis = 13,
+                target = WorkoutStructureBoundary(21, "target-session", "target-fingerprint"),
+                sourceSets = listOf(
+                    WorkoutSetCopyBoundary(31, "source-set-a", 32),
+                    WorkoutSetCopyBoundary(33, "source-set-b", 34),
+                ),
+            ),
+            requestedWorkoutExerciseUuid = "requested-placement",
+            requestedSetUuids = listOf("requested-set-a", "requested-set-b"),
+            dataGeneration = 41,
+        )
+
+        val encoded = encodeHistoryCopyAuthorship(expected)
+        assertEquals(expected, decodeHistoryCopyAuthorship(encoded))
+        assertNull(decodeHistoryCopyAuthorship(encoded.dropLast(1)))
+        assertNull(decodeHistoryCopyAuthorship(encoded.toMutableList().also { it[12] = "500" }))
+    }
+
     private val today = LocalDate.of(2026, 8, 22)
 
     @Test

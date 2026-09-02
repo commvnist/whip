@@ -15,6 +15,9 @@ import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
+import com.whip.app.domain.WorkoutExerciseCopyBoundary
+import com.whip.app.domain.WorkoutSetCopyBoundary
+import com.whip.app.domain.WorkoutStructureBoundary
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -45,6 +48,40 @@ class GymDeletionViewModelIntegrationTest {
 
     private lateinit var store: ViewModelStore
     private lateinit var viewModel: GymViewModel
+
+    @Test
+    fun historyCopyAuthorshipSurvivesWorkspaceDisposalAndProcessRestorationExactly() = runBlocking {
+        val expected = HistoryCopyAuthorship(
+            boundary = WorkoutExerciseCopyBoundary(
+                sourceSessionId = 11,
+                sourceSessionUuid = "source-session",
+                sourceWorkoutExerciseId = 12,
+                sourceWorkoutExerciseUuid = "source-placement",
+                sourceWorkoutExerciseUpdatedAtMillis = 13,
+                sourceSets = listOf(
+                    WorkoutSetCopyBoundary(31, "source-set-a", 32),
+                    WorkoutSetCopyBoundary(33, "source-set-b", 34),
+                ),
+                target = WorkoutStructureBoundary(21, "target-session", "target-fingerprint"),
+            ),
+            requestedWorkoutExerciseUuid = "requested-placement",
+            requestedSetUuids = listOf("requested-set-a", "requested-set-b"),
+            dataGeneration = app.currentUserDataGeneration(),
+        )
+        val savedState = SavedStateHandle()
+        replaceViewModel(savedState)
+        viewModel.setHistoryCopyAuthorship(expected)
+        assertEquals(expected, withTimeout(5_000) { viewModel.historyCopyAuthorship.first { it != null } })
+
+        val restoredState = restoredCopy(savedState)
+        replaceViewModel(restoredState)
+
+        assertEquals(expected, withTimeout(5_000) { viewModel.historyCopyAuthorship.first { it != null } })
+        assertEquals(
+            encodeHistoryCopyAuthorship(expected),
+            restoredState.get<ArrayList<String>>(GYM_HISTORY_COPY_AUTHORSHIP_KEY),
+        )
+    }
 
     @Before
     fun resetAndCreateViewModel() = runBlocking {

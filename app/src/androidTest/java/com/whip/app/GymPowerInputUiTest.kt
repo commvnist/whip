@@ -52,6 +52,7 @@ import com.whip.app.domain.RoutineProgramPhaseRole
 import com.whip.app.domain.RoutineSet
 import com.whip.app.domain.RoutineSupplementalScheme
 import com.whip.app.domain.RoutineTrainingMaxSource
+import com.whip.app.domain.RoutineWorkSection
 import com.whip.app.domain.WorkoutExercise
 import com.whip.app.domain.WorkoutExerciseOutcome
 import com.whip.app.domain.WorkoutGroup
@@ -62,6 +63,7 @@ import com.whip.app.domain.WorkoutSet
 import com.whip.app.domain.WorkoutSetClassification
 import com.whip.app.domain.WorkoutSetDraft
 import com.whip.app.domain.WorkoutSetRemovalReason
+import com.whip.app.domain.WorkoutSetMutationBoundary
 import com.whip.app.core.DEFAULT_REST_TIMER_PRESET_SECONDS
 import com.whip.app.ui.ExerciseEditorDialog
 import com.whip.app.ui.MachineEditorDialog
@@ -94,6 +96,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import java.time.LocalDate
 import java.time.Instant
@@ -822,6 +825,7 @@ class GymPowerInputUiTest {
                     showRir = false,
                     nextSetId = second.id,
                     nextInGroup = false,
+                    arranging = true,
                     canMoveUp = false,
                     canMoveDown = true,
                     onMoveUp = {},
@@ -908,6 +912,135 @@ class GymPowerInputUiTest {
     }
 
     @Test
+    fun requiredMainSetUsesExplicitNotPerformedWarningInsteadOfGenericRemoval() {
+        val exercise = testExercise().copy(name = "Deadlift")
+        val workoutExercise = testWorkoutExercise(exercise)
+        val mainSet = testWorkoutSet(44, workoutExercise.id).copy(
+            workSectionSnapshot = RoutineWorkSection.Main,
+            requiredForProgressionSnapshot = true,
+        )
+        val reviewedBoundary = WorkoutSetMutationBoundary(
+            sessionId = workoutExercise.sessionId,
+            sessionUuid = "session-reviewed",
+            workoutRevision = 3,
+            workoutExerciseId = workoutExercise.id,
+            workoutExerciseUuid = workoutExercise.uuid,
+            setId = mainSet.id,
+            setUuid = mainSet.uuid,
+            setUpdatedAtMillis = mainSet.updatedAtMillis,
+            expectedDeletedAtMillis = null,
+            expectedRemovalReason = null,
+        )
+        val latestBoundary = mutableStateOf(reviewedBoundary)
+        var submittedBoundary: WorkoutSetMutationBoundary? = null
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                val currentBoundary = latestBoundary.value
+                WorkoutExerciseCard(
+                    item = WorkoutExerciseUi(workoutExercise, exercise, listOf(mainSet), emptyList(), 0, null, null),
+                    preferredWeightUnitId = "kilogram",
+                    preferredDistanceUnitId = "kilometre",
+                    numberPrecision = 1,
+                    compactRows = false,
+                    showRpe = false,
+                    showRir = false,
+                    nextSetId = null,
+                    nextInGroup = false,
+                    canMoveUp = false,
+                    canMoveDown = false,
+                    onMoveUp = {},
+                    onMoveDown = {},
+                    onRemoveExercise = {},
+                    onSubstituteExercise = {},
+                    onAddSet = {},
+                    onEditSet = {},
+                    onEditNotes = {},
+                    onCompleteSet = { _, _ -> },
+                    onSaveQuickSet = { _, _, _ -> },
+                    onDuplicateSet = {},
+                    captureSetBoundary = { currentBoundary },
+                    onDeleteSet = { submittedBoundary = it },
+                    onUndoDeleteSet = {},
+                    onReorderSets = {},
+                )
+            }
+        }
+
+        compose.onAllNodesWithContentDescription("Reorder Deadlift").assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("Reorder set 1").assertCountEquals(0)
+        compose.onNodeWithContentDescription("Manage set 1").performClick()
+        compose.onNodeWithText("Mark Main Set Not Performed").performClick()
+        compose.onNodeWithText("Mark Main Set not performed?").assertIsDisplayed()
+        compose.onNodeWithText("It can hold this lift's Training Max progression", substring = true).assertIsDisplayed()
+        compose.runOnIdle {
+            assertEquals(null, submittedBoundary)
+            latestBoundary.value = reviewedBoundary.copy(
+                workoutRevision = 4,
+                setUpdatedAtMillis = reviewedBoundary.setUpdatedAtMillis + 1,
+            )
+        }
+        compose.onNodeWithText("Mark Not Performed").performClick()
+        compose.runOnIdle { assertEquals(reviewedBoundary, submittedBoundary) }
+    }
+
+    @Test
+    fun destructiveFailureStaysInReviewAndCancelClearsItsOwnedError() {
+        val exercise = testExercise().copy(name = "Paused squat")
+        val workoutExercise = testWorkoutExercise(exercise)
+        val mainSet = testWorkoutSet(45, workoutExercise.id).copy(
+            workSectionSnapshot = RoutineWorkSection.Main,
+            requiredForProgressionSnapshot = true,
+        )
+        val error = mutableStateOf<String?>(null)
+        var clearCount = 0
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WorkoutExerciseCard(
+                    item = WorkoutExerciseUi(workoutExercise, exercise, listOf(mainSet), emptyList(), 0, null, null),
+                    preferredWeightUnitId = "kilogram",
+                    preferredDistanceUnitId = "kilometre",
+                    numberPrecision = 1,
+                    compactRows = false,
+                    showRpe = false,
+                    showRir = false,
+                    nextSetId = null,
+                    nextInGroup = false,
+                    canMoveUp = false,
+                    canMoveDown = false,
+                    onMoveUp = {},
+                    onMoveDown = {},
+                    sessionMutationError = error.value,
+                    onClearSessionMutationError = { error.value = null; clearCount += 1 },
+                    onRemoveExercise = {},
+                    onSubstituteExercise = {},
+                    onAddSet = {},
+                    onEditSet = {},
+                    onEditNotes = {},
+                    onCompleteSet = { _, _ -> },
+                    onSaveQuickSet = { _, _, _ -> },
+                    onDuplicateSet = {},
+                    onDeleteSet = {},
+                    onUndoDeleteSet = {},
+                    onReorderSets = {},
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Manage set 1").performClick()
+        compose.onNodeWithText("Mark Main Set Not Performed").performClick()
+        compose.runOnIdle { error.value = "Set changed after review" }
+        compose.onNodeWithText("Set changed after review").assertIsDisplayed()
+        compose.onNodeWithText("Cancel").performClick()
+        compose.runOnIdle {
+            assertEquals(2, clearCount)
+            assertEquals(null, error.value)
+        }
+        compose.onNodeWithContentDescription("Manage set 1").performClick()
+        compose.onNodeWithText("Mark Main Set Not Performed").performClick()
+        compose.onAllNodesWithText("Set changed after review").assertCountEquals(0)
+    }
+
+    @Test
     fun groupedExerciseUsesOneClearHeaderAndCanRemoveItsDesignation() {
         val exercise = testExercise().copy(name = "Bench press")
         val group = WorkoutGroup(
@@ -966,7 +1099,8 @@ class GymPowerInputUiTest {
         compose.onNodeWithText("Superset").assertIsDisplayed()
         compose.onNodeWithText("Upper A · 2 exercises").assertIsDisplayed()
         compose.onNodeWithContentDescription("Superset group, 2 exercises").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Reorder Superset group").assertIsDisplayed()
+        compose.onAllNodesWithContentDescription("Reorder Superset group").assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("Reorder Bench press").assertCountEquals(0)
         compose.onNodeWithContentDescription("More options for Bench press").performClick()
         compose.onNodeWithText("Remove from Superset").assertIsDisplayed().performClick()
         compose.runOnIdle { assertTrue(removalRequested) }
@@ -1088,7 +1222,8 @@ class GymPowerInputUiTest {
         compose.onNodeWithTag("active-set-composer").assertIsDisplayed()
         compose.onNodeWithText("1 Completed Set").performClick()
         compose.onNodeWithText("Set 1", substring = true).assertIsDisplayed()
-        compose.onAllNodesWithContentDescription("Reorder set 1").assertCountEquals(1)
+        compose.onAllNodesWithContentDescription("Reorder set 1").assertCountEquals(0)
+        compose.onNodeWithContentDescription("Manage set 1").assertIsDisplayed()
     }
 
     @Test

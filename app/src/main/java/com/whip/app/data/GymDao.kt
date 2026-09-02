@@ -90,6 +90,9 @@ interface GymDao {
     @Query("SELECT * FROM workout_exercises WHERE id = :id")
     suspend fun getWorkoutExercise(id: Long): WorkoutExerciseEntity?
 
+    @Query("SELECT * FROM workout_exercises WHERE uuid = :uuid LIMIT 1")
+    suspend fun getWorkoutExerciseByUuid(uuid: String): WorkoutExerciseEntity?
+
     @Query("SELECT * FROM workout_exercises WHERE sessionId = :sessionId ORDER BY position, id")
     suspend fun getWorkoutExercises(sessionId: Long): List<WorkoutExerciseEntity>
 
@@ -98,6 +101,9 @@ interface GymDao {
 
     @Query("SELECT * FROM workout_sets WHERE id = :id")
     suspend fun getWorkoutSet(id: Long): WorkoutSetEntity?
+
+    @Query("SELECT * FROM workout_sets WHERE uuid = :uuid LIMIT 1")
+    suspend fun getWorkoutSetByUuid(uuid: String): WorkoutSetEntity?
 
     @Query(
         "SELECT * FROM workout_sets WHERE workoutExerciseId = :workoutExerciseId " +

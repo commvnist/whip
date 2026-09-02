@@ -22,6 +22,8 @@ import com.whip.app.domain.WorkoutSetClassification
 import com.whip.app.domain.WorkoutSetRemovalReason
 import com.whip.app.domain.WorkoutGroupType
 import com.whip.app.domain.WorkoutSetDraft
+import com.whip.app.domain.WorkoutArrangementDraft
+import com.whip.app.domain.WorkoutSetOrderDraft
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -96,7 +98,7 @@ class GymRepositoryTest {
         }
 
         assertEquals(addition.workoutExerciseId, snapshot.sets.single().workoutExerciseId)
-        assertEquals(2L, snapshot.sessions.single { it.id == sessionId }.workoutRevision)
+        assertEquals(1L, snapshot.sessions.single { it.id == sessionId }.workoutRevision)
         assertEquals(addition.workoutExerciseId, snapshot.workoutExercises.single().id)
     }
 
@@ -175,6 +177,493 @@ class GymRepositoryTest {
         assertNotNull(repository.sets.first().single().deletedAtMillis)
         repository.undoDeleteSet(setId)
         assertEquals(null, repository.sets.first().single().deletedAtMillis)
+    }
+
+    @Test
+    fun noOpStructureRepairDoesNotRewriteRowsOrAdvanceWorkoutRevision() = runBlocking {
+        val exerciseId = repository.createExercise(ExerciseDraft(name = "No-op press"))
+        val sessionId = repository.startWorkout("No-op repair")
+        val placementId = repository.addExerciseToWorkout(sessionId, exerciseId)
+        repository.addSet(placementId)
+        val beforeSession = repository.sessions.first().single { it.id == sessionId }
+        val beforePlacement = repository.workoutExercises.first().single { it.id == placementId }
+        val beforeSet = repository.sets.first().single { it.workoutExerciseId == placementId }
+
+        val receipt = repository.normalizeActiveWorkoutStructure(sessionId)
+
+        val afterSession = repository.sessions.first().single { it.id == sessionId }
+        val afterPlacement = repository.workoutExercises.first().single { it.id == placementId }
+        val afterSet = repository.sets.first().single { it.workoutExerciseId == placementId }
+        assertFalse(receipt.changed)
+        assertEquals(beforeSession.workoutRevision, afterSession.workoutRevision)
+        assertEquals(beforePlacement.updatedAtMillis, afterPlacement.updatedAtMillis)
+        assertEquals(beforeSet.updatedAtMillis, afterSet.updatedAtMillis)
+    }
+
+    @Test
+    fun arrangementRetainsTombstoneSlotAndUndoRestoresWithoutDuplicatePositions() = runBlocking {
+        val exerciseId = repository.createExercise(ExerciseDraft(name = "Tombstone row"))
+        val sessionId = repository.startWorkout("Tombstone order")
+        val placementId = repository.addExerciseToWorkout(sessionId, exerciseId)
+        val first = repository.addSet(placementId)
+        val removed = repository.addSet(placementId)
+        val third = repository.addSet(placementId)
+        repository.deleteSet(removed)
+        val placement = repository.workoutExercises.first().single { it.id == placementId }
+        val setById = repository.sets.first().associateBy { it.id }
+        val before = repository.testStructureBoundary(sessionId)
+
+        repository.applyWorkoutArrangement(
+            before,
+            WorkoutArrangementDraft(
+                activeWorkoutExerciseUuidsInOrder = listOf(placement.uuid),
+                setOrders = listOf(
+                    WorkoutSetOrderDraft(
+                        placement.uuid,
+                        listOf(
+                            requireNotNull(setById[third]).uuid,
+                            requireNotNull(setById[removed]).uuid,
+                            requireNotNull(setById[first]).uuid,
+                        ),
+                    ),
+                ),
+            ),
+        )
+        repository.undoDeleteSet(removed)
+
+        val stored = repository.sets.first().filter { it.workoutExerciseId == placementId }.sortedBy { it.position }
+        assertEquals(listOf(third, removed, first), stored.map { it.id })
+        assertEquals(listOf(0, 1, 2), stored.map { it.position })
+        assertEquals(stored.size, stored.map { it.position }.distinct().size)
+        assertTrue(stored.all { it.deletedAtMillis == null })
+    }
+
+    @Test
+    fun staleArrangementCannotOverwriteAGroupCreatedAfterReview() = runBlocking {
+        val exerciseIds = listOf("A", "B", "C").map { repository.createExercise(ExerciseDraft(name = it)) }
+        val sessionId = repository.startWorkout("Stale arrangement")
+        val placements = exerciseIds.map { repository.addExerciseToWorkout(sessionId, it) }
+        placements.forEach { repository.addSet(it) }
+        val staleBoundary = repository.testStructureBoundary(sessionId)
+        val placementRows = repository.workoutExercises.first().associateBy { it.id }
+        val allSets = repository.sets.first()
+        val staleDraft = WorkoutArrangementDraft(
+            activeWorkoutExerciseUuidsInOrder = placements.reversed().map { requireNotNull(placementRows[it]).uuid },
+            setOrders = placements.map { id ->
+                val placement = requireNotNull(placementRows[id])
+                WorkoutSetOrderDraft(
+                    placement.uuid,
+                    allSets.filter { it.workoutExerciseId == id }.map { it.uuid },
+                )
+            },
+        )
+        repository.createGroup(sessionId, "Pair", WorkoutGroupType.Superset, placements.take(2))
+
+        val failure = runCatching { repository.applyWorkoutArrangement(staleBoundary, staleDraft) }
+
+        assertTrue(failure.isFailure)
+        assertEquals(
+            placements.take(2).toSet(),
+            repository.workoutExercises.first().filter { it.groupId != null }.map { it.id }.toSet(),
+        )
+    }
+
+    @Test
+    fun staleUngroupCannotDetachExerciseFromAReplacementGroup() = runBlocking {
+        val exerciseIds = listOf("A", "B", "C").map { repository.createExercise(ExerciseDraft(name = it)) }
+        val sessionId = repository.startWorkout("Exact ungroup")
+        val placements = exerciseIds.map { repository.addExerciseToWorkout(sessionId, it) }
+        repository.createGroup(sessionId, "First", WorkoutGroupType.Superset, placements.take(2))
+        val staleRemoval = repository.testPlacementBoundary(placements[0])
+        val replacementGroupId = repository.createGroup(
+            sessionId,
+            "Second",
+            WorkoutGroupType.Circuit,
+            listOf(placements[0], placements[2]),
+        )
+
+        val failure = runCatching { repository.removeWorkoutExerciseFromGroup(staleRemoval) }
+
+        assertTrue(failure.isFailure)
+        assertEquals(
+            replacementGroupId,
+            repository.workoutExercises.first().single { it.id == placements[0] }.groupId,
+        )
+    }
+
+    @Test
+    fun optionalSkipAndUndoRequireTheExactReviewedTombstone() = runBlocking {
+        val exerciseId = repository.createExercise(ExerciseDraft(name = "Joker row"))
+        val sessionId = repository.startWorkout("Exact optional undo")
+        val placementId = repository.addExerciseToWorkout(sessionId, exerciseId)
+        val setId = repository.addSet(
+            placementId,
+            WorkoutSetDraft(
+                workSection = RoutineWorkSection.Optional,
+                optionalWorkKind = RoutineOptionalWorkKind.Joker,
+            ),
+        )
+        repository.deleteSet(setId, WorkoutSetRemovalReason.Skipped)
+        val staleUndo = repository.testSetBoundary(setId)
+        repository.undoDeleteSet(setId)
+        repository.deleteSet(setId, WorkoutSetRemovalReason.Removed)
+
+        val failure = runCatching { repository.undoDeleteSet(staleUndo) }
+
+        assertTrue(failure.isFailure)
+        assertEquals(WorkoutSetRemovalReason.Removed, repository.sets.first().single { it.id == setId }.removalReason)
+    }
+
+    @Test
+    fun exactAddRequestIsIdempotentAndAStaleDifferentRequestWritesNothing() = runBlocking {
+        val pressId = repository.createExercise(ExerciseDraft(name = "Exact press"))
+        val rowId = repository.createExercise(ExerciseDraft(name = "Exact row"))
+        val sessionId = repository.startWorkout("Exact add")
+        val reviewed = repository.testStructureBoundary(sessionId)
+
+        val first = repository.addExerciseWithInitialSetToWorkout(
+            boundary = reviewed,
+            exerciseId = pressId,
+            requestedWorkoutExerciseUuid = "requested-placement",
+            requestedInitialSetUuid = "requested-set",
+        )
+        val replay = repository.addExerciseWithInitialSetToWorkout(
+            boundary = reviewed,
+            exerciseId = pressId,
+            requestedWorkoutExerciseUuid = "requested-placement",
+            requestedInitialSetUuid = "requested-set",
+        )
+        val revisionAfterCommit = repository.sessions.first().single { it.id == sessionId }.workoutRevision
+
+        val staleFailure = runCatching {
+            repository.addExerciseWithInitialSetToWorkout(
+                boundary = reviewed,
+                exerciseId = rowId,
+                requestedWorkoutExerciseUuid = "different-placement",
+                requestedInitialSetUuid = "different-set",
+            )
+        }
+
+        assertEquals(first, replay)
+        assertEquals(1, repository.workoutExercises.first().count { it.sessionId == sessionId })
+        assertEquals(1, repository.sets.first().count { it.workoutExerciseId == first.workoutExerciseId })
+        assertEquals(1L, revisionAfterCommit)
+        assertTrue(staleFailure.isFailure)
+        assertFalse(repository.workoutExercises.first().any { it.uuid == "different-placement" })
+        assertEquals(revisionAfterCommit, repository.sessions.first().single { it.id == sessionId }.workoutRevision)
+    }
+
+    @Test
+    fun exactSubstitutionRequestIsIdempotentWithoutRewritingRetainedSourceHistory() = runBlocking {
+        val pressId = repository.createExercise(ExerciseDraft(name = "Original press"))
+        val inclineId = repository.createExercise(ExerciseDraft(name = "Replacement press"))
+        val sessionId = repository.startWorkout("Exact substitution")
+        val originalId = repository.addExerciseToWorkout(sessionId, pressId)
+        val performedSetId = repository.addSet(
+            originalId,
+            WorkoutSetDraft(weight = 70.0, reps = 5, completed = true),
+        )
+        val reviewed = repository.testPlacementBoundary(originalId)
+
+        val replacementId = repository.substituteWorkoutExercise(
+            boundary = reviewed,
+            exerciseId = inclineId,
+            requestedWorkoutExerciseUuid = "replacement-placement",
+            requestedInitialSetUuid = "replacement-set",
+        )
+        val replayId = repository.substituteWorkoutExercise(
+            boundary = reviewed,
+            exerciseId = inclineId,
+            requestedWorkoutExerciseUuid = "replacement-placement",
+            requestedInitialSetUuid = "replacement-set",
+        )
+
+        assertEquals(replacementId, replayId)
+        assertEquals(WorkoutExerciseOutcome.Substituted, repository.workoutExercises.first().single { it.id == originalId }.outcome)
+        assertTrue(repository.sets.first().single { it.id == performedSetId }.completed)
+        assertEquals(70.0, repository.sets.first().single { it.id == performedSetId }.enteredWeight ?: -1.0, 0.0)
+        assertEquals(1, repository.sets.first().count { it.uuid == "replacement-set" })
+    }
+
+    @Test
+    fun createAndAuthorRequestsReplayWithoutDuplicatingCatalogExercises() = runBlocking {
+        val sessionId = repository.startWorkout("Create and author")
+        val addBoundary = repository.testStructureBoundary(sessionId)
+        val zercherDraft = ExerciseDraft(name = "Zercher squat", notes = "Elbows high")
+
+        val addition = repository.createExerciseAndAddToWorkout(
+            addBoundary,
+            zercherDraft,
+            requestedWorkoutExerciseUuid = "created-add-placement",
+            requestedInitialSetUuid = "created-add-set",
+        )
+        val additionReplay = repository.createExerciseAndAddToWorkout(
+            addBoundary,
+            zercherDraft,
+            requestedWorkoutExerciseUuid = "created-add-placement",
+            requestedInitialSetUuid = "created-add-set",
+        )
+        val changedDraftFailure = runCatching {
+            repository.createExerciseAndAddToWorkout(
+                addBoundary,
+                zercherDraft.copy(notes = "Changed after review"),
+                requestedWorkoutExerciseUuid = "created-add-placement",
+                requestedInitialSetUuid = "created-add-set",
+            )
+        }
+
+        val pressId = repository.createExercise(ExerciseDraft(name = "Temporary press"))
+        val originalPlacementId = repository.addExerciseToWorkout(sessionId, pressId)
+        val substitutionBoundary = repository.testPlacementBoundary(originalPlacementId)
+        val customDraft = ExerciseDraft(name = "Custom incline press")
+        val replacementId = repository.createExerciseAndSubstitute(
+            substitutionBoundary,
+            customDraft,
+            requestedWorkoutExerciseUuid = "created-sub-placement",
+            requestedInitialSetUuid = "created-sub-set",
+        )
+        val replacementReplay = repository.createExerciseAndSubstitute(
+            substitutionBoundary,
+            customDraft,
+            requestedWorkoutExerciseUuid = "created-sub-placement",
+            requestedInitialSetUuid = "created-sub-set",
+        )
+
+        assertEquals(addition, additionReplay)
+        assertEquals(replacementId, replacementReplay)
+        assertTrue(changedDraftFailure.isFailure)
+        assertEquals(1, repository.exercises.first().count { it.name == "Zercher squat" })
+        assertEquals(1, repository.exercises.first().count { it.name == "Custom incline press" })
+        assertEquals(addition.workoutExerciseId, repository.workoutExercises.first().single { it.uuid == "created-add-placement" }.id)
+    }
+
+    @Test
+    fun machineAssignmentRollsBackCreationAndCannotRetargetRemovedSetHistory() = runBlocking {
+        val pressId = repository.createExercise(ExerciseDraft(name = "Machine press"))
+        val rowId = repository.createExercise(ExerciseDraft(name = "Machine row"))
+        val originalMachineId = repository.createMachine(
+            GymMachineDraft(exerciseId = pressId, name = "Original stack", loadType = MachineLoadType.Mass),
+        )
+        val sessionId = repository.startWorkout("Atomic machine")
+        val placementId = repository.addExerciseToWorkout(sessionId, pressId, originalMachineId)
+        val removedSetId = repository.addSet(placementId, WorkoutSetDraft(weight = 40.0, reps = 8))
+        repository.deleteSet(removedSetId)
+        val reviewed = repository.testPlacementBoundary(placementId)
+        val machineCountBefore = repository.machines.first().size
+        val setBefore = repository.sets.first().single { it.id == removedSetId }
+        val placementBefore = repository.workoutExercises.first().single { it.id == placementId }
+
+        val failure = runCatching {
+            repository.createMachineAndAssign(
+                reviewed,
+                GymMachineDraft(exerciseId = rowId, name = "Wrong stack", loadType = MachineLoadType.Mass),
+            )
+        }
+
+        val setAfter = repository.sets.first().single { it.id == removedSetId }
+        val placementAfter = repository.workoutExercises.first().single { it.id == placementId }
+        assertTrue(failure.isFailure)
+        assertEquals(machineCountBefore, repository.machines.first().size)
+        assertEquals(setBefore, setAfter)
+        assertEquals(placementBefore, placementAfter)
+    }
+
+    @Test
+    fun groupRequestReplayIsIdempotentButChangedPayloadWithSameIdentityFailsClosed() = runBlocking {
+        val exerciseIds = listOf("Replay A", "Replay B").map { repository.createExercise(ExerciseDraft(name = it)) }
+        val sessionId = repository.startWorkout("Group replay")
+        val placementIds = exerciseIds.map { repository.addExerciseToWorkout(sessionId, it) }
+        val placements = repository.workoutExercises.first().filter { it.id in placementIds }.sortedBy { it.position }
+        val reviewed = repository.testStructureBoundary(sessionId)
+
+        val committed = repository.createGroup(
+            reviewed,
+            requestedGroupUuid = "group-request",
+            name = "Pair",
+            type = WorkoutGroupType.Superset,
+            workoutExerciseUuids = placements.map { it.uuid },
+        )
+        val replay = repository.createGroup(
+            reviewed,
+            requestedGroupUuid = "group-request",
+            name = "Pair",
+            type = WorkoutGroupType.Superset,
+            workoutExerciseUuids = placements.map { it.uuid },
+        )
+        val conflict = runCatching {
+            repository.createGroup(
+                reviewed,
+                requestedGroupUuid = "group-request",
+                name = "Changed name",
+                type = WorkoutGroupType.Circuit,
+                workoutExerciseUuids = placements.map { it.uuid },
+            )
+        }
+
+        assertTrue(committed.changed)
+        assertFalse(replay.changed)
+        assertTrue(conflict.isFailure)
+        assertEquals(1, repository.groups.first().count { it.uuid == "group-request" })
+    }
+
+    @Test
+    fun layoutUndoPreservesNewSetValuesButRejectsLaterStructuralAuthorshipAtomically() = runBlocking {
+        val exerciseIds = listOf("Undo A", "Undo B").map { repository.createExercise(ExerciseDraft(name = it)) }
+        val sessionId = repository.startWorkout("Exact layout undo")
+        val placementIds = exerciseIds.map { repository.addExerciseToWorkout(sessionId, it) }
+        val setIds = placementIds.map { repository.addSet(it, WorkoutSetDraft(weight = 50.0, reps = 5)) }
+        val placements = repository.workoutExercises.first().filter { it.id in placementIds }.associateBy { it.id }
+        val arrangement = repository.applyWorkoutArrangement(
+            repository.testStructureBoundary(sessionId),
+            WorkoutArrangementDraft(
+                activeWorkoutExerciseUuidsInOrder = placementIds.reversed().map { requireNotNull(placements[it]).uuid },
+                setOrders = placementIds.map { id ->
+                    WorkoutSetOrderDraft(
+                        requireNotNull(placements[id]).uuid,
+                        repository.sets.first().filter { it.workoutExerciseId == id }.map { it.uuid },
+                    )
+                },
+            ),
+        )
+        val snapshot = requireNotNull(arrangement.previousLayout)
+        repository.updateSet(
+            repository.testSetBoundary(setIds.first()),
+            WorkoutSetDraft(weight = 62.5, reps = 7),
+        )
+        repository.restoreWorkoutLayout(arrangement.afterBoundary, snapshot)
+
+        assertEquals(62.5, repository.sets.first().single { it.id == setIds.first() }.enteredWeight ?: -1.0, 0.0)
+        assertEquals(placementIds, repository.workoutExercises.first().filter { it.id in placementIds }.sortedBy { it.position }.map { it.id })
+
+        val secondArrangement = repository.applyWorkoutArrangement(
+            repository.testStructureBoundary(sessionId),
+            WorkoutArrangementDraft(
+                activeWorkoutExerciseUuidsInOrder = placementIds.reversed().map { requireNotNull(placements[it]).uuid },
+                setOrders = placementIds.map { id ->
+                    WorkoutSetOrderDraft(
+                        requireNotNull(placements[id]).uuid,
+                        repository.sets.first().filter { it.workoutExerciseId == id }.map { it.uuid },
+                    )
+                },
+            ),
+        )
+        val staleSnapshot = requireNotNull(secondArrangement.previousLayout)
+        repository.addSet(repository.testPlacementBoundary(placementIds.first()))
+        val beforeFailure = repository.workoutSnapshot.first()
+        val failure = runCatching { repository.restoreWorkoutLayout(secondArrangement.afterBoundary, staleSnapshot) }
+        val afterFailure = repository.workoutSnapshot.first()
+
+        assertTrue(failure.isFailure)
+        assertEquals(beforeFailure, afterFailure)
+    }
+
+    @Test
+    fun historyCopyUsesExactSourceAndTargetAuthorshipAndReplaysOnce() = runBlocking {
+        val exerciseId = repository.createExercise(ExerciseDraft(name = "History copy press"))
+        val sourceSessionId = repository.startWorkout("Source history")
+        val sourcePlacementId = repository.addExerciseToWorkout(sourceSessionId, exerciseId)
+        repository.addSet(sourcePlacementId, WorkoutSetDraft(weight = 80.0, reps = 5, completed = true))
+        repository.finishWorkout(sourceSessionId)
+        val sourceSession = repository.sessions.first().single { it.id == sourceSessionId }
+        val sourcePlacement = repository.workoutExercises.first().single { it.id == sourcePlacementId }
+        val sourceSets = repository.sets.first().filter { it.workoutExerciseId == sourcePlacementId }
+        val boundary = com.whip.app.domain.WorkoutExerciseCopyBoundary(
+            sourceSessionId = sourceSession.id,
+            sourceSessionUuid = sourceSession.uuid,
+            sourceWorkoutExerciseId = sourcePlacement.id,
+            sourceWorkoutExerciseUuid = sourcePlacement.uuid,
+            sourceWorkoutExerciseUpdatedAtMillis = sourcePlacement.updatedAtMillis,
+            sourceSets = sourceSets.map {
+                com.whip.app.domain.WorkoutSetCopyBoundary(it.id, it.uuid, it.updatedAtMillis)
+            },
+            target = null,
+        )
+
+        val copiedId = repository.copyWorkoutExerciseToActive(
+            boundary,
+            requestedWorkoutExerciseUuid = "history-copy-placement",
+            requestedSetUuids = listOf("history-copy-set"),
+        )
+        val replayId = repository.copyWorkoutExerciseToActive(
+            boundary,
+            requestedWorkoutExerciseUuid = "history-copy-placement",
+            requestedSetUuids = listOf("history-copy-set"),
+        )
+        val conflictingReplay = runCatching {
+            repository.copyWorkoutExerciseToActive(
+                boundary,
+                requestedWorkoutExerciseUuid = "history-copy-placement",
+                requestedSetUuids = listOf("different-copy-set"),
+            )
+        }
+
+        val activeSession = repository.sessions.first().single { it.state == WorkoutSessionState.Active }
+        assertEquals(copiedId, replayId)
+        assertTrue(conflictingReplay.isFailure)
+        assertEquals(1, repository.workoutExercises.first().count { it.uuid == "history-copy-placement" })
+        assertEquals(1, repository.sets.first().count { it.uuid == "history-copy-set" })
+        assertEquals(1L, activeSession.workoutRevision)
+    }
+
+    @Test
+    fun historyCopyRejectsAnActiveTargetChangedAfterReviewWithoutWrites() = runBlocking {
+        val sourceExerciseId = repository.createExercise(ExerciseDraft(name = "Reviewed history row"))
+        val sourceSessionId = repository.startWorkout("Reviewed source")
+        val sourcePlacementId = repository.addExerciseToWorkout(sourceSessionId, sourceExerciseId)
+        repository.addSet(sourcePlacementId, WorkoutSetDraft(weight = 90.0, reps = 3, completed = true))
+        repository.finishWorkout(sourceSessionId)
+        val sourceSession = repository.sessions.first().single { it.id == sourceSessionId }
+        val sourcePlacement = repository.workoutExercises.first().single { it.id == sourcePlacementId }
+        val sourceSets = repository.sets.first().filter { it.workoutExerciseId == sourcePlacementId }
+
+        val activeSessionId = repository.startWorkout("Changed target")
+        val reviewedTarget = repository.testStructureBoundary(activeSessionId)
+        val otherExerciseId = repository.createExercise(ExerciseDraft(name = "Concurrent target row"))
+        repository.addExerciseToWorkout(activeSessionId, otherExerciseId)
+        val beforeFailure = repository.workoutSnapshot.first()
+        val failure = runCatching {
+            repository.copyWorkoutExerciseToActive(
+                com.whip.app.domain.WorkoutExerciseCopyBoundary(
+                    sourceSessionId = sourceSession.id,
+                    sourceSessionUuid = sourceSession.uuid,
+                    sourceWorkoutExerciseId = sourcePlacement.id,
+                    sourceWorkoutExerciseUuid = sourcePlacement.uuid,
+                    sourceWorkoutExerciseUpdatedAtMillis = sourcePlacement.updatedAtMillis,
+                    sourceSets = sourceSets.map {
+                        com.whip.app.domain.WorkoutSetCopyBoundary(it.id, it.uuid, it.updatedAtMillis)
+                    },
+                    target = reviewedTarget,
+                ),
+                requestedWorkoutExerciseUuid = "stale-target-copy-placement",
+                requestedSetUuids = sourceSets.mapIndexed { index, _ -> "stale-target-copy-set-$index" },
+            )
+        }
+
+        assertTrue(failure.isFailure)
+        assertEquals(beforeFailure, repository.workoutSnapshot.first())
+        assertFalse(
+            repository.workoutExercises.first().any { it.uuid == "stale-target-copy-placement" },
+        )
+        assertFalse(repository.sets.first().any { it.uuid.startsWith("stale-target-copy-set-") })
+    }
+
+    @Test
+    fun discardRejectsAWorkoutChangedAfterConfirmationReview() = runBlocking {
+        val exerciseId = repository.createExercise(ExerciseDraft(name = "Discard review press"))
+        val sessionId = repository.startWorkout("Discard review")
+        val session = repository.sessions.first().single { it.id == sessionId }
+        val reviewed = com.whip.app.domain.WorkoutFinishBoundary(session.id, session.uuid, session.workoutRevision)
+        val placementId = repository.addExerciseToWorkout(sessionId, exerciseId)
+        repository.addSet(placementId)
+        val revisionBeforeFailure = repository.sessions.first().single { it.id == sessionId }.workoutRevision
+
+        val failure = runCatching { repository.discardWorkout(reviewed) }
+
+        assertTrue(failure.isFailure)
+        assertEquals(WorkoutSessionState.Active, repository.sessions.first().single { it.id == sessionId }.state)
+        assertEquals(revisionBeforeFailure, repository.sessions.first().single { it.id == sessionId }.workoutRevision)
+        repository.discardWorkout(sessionId)
+        assertEquals(WorkoutSessionState.Discarded, repository.sessions.first().single { it.id == sessionId }.state)
     }
 
     @Test
@@ -621,7 +1110,10 @@ class GymRepositoryTest {
             WorkoutGroupType.Superset,
             listOf(placements[0], placements[2]),
         )
-        repository.reorderWorkoutExercises(session, listOf(placements[0], placements[1], placements[2]))
+        listOf(placements[0], placements[1], placements[2]).forEachIndexed { index, id ->
+            val row = requireNotNull(database.gymDao().getWorkoutExercise(id))
+            database.gymDao().updateWorkoutExercise(row.copy(position = index))
+        }
 
         repository.normalizeWorkoutGroups(session)
 

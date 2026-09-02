@@ -27,11 +27,21 @@ import com.whip.app.domain.canonicalResistanceKg
 import com.whip.app.domain.loadInterpretationMultiplier
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WorkoutExercise
+import com.whip.app.domain.WorkoutExerciseCopyBoundary
 import com.whip.app.domain.WorkoutGroup
 import com.whip.app.domain.WorkoutGroupType
 import com.whip.app.domain.WorkoutSession
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.WorkoutExerciseOutcome
+import com.whip.app.domain.WorkoutFinishBoundary
+import com.whip.app.domain.WorkoutArrangementDraft
+import com.whip.app.domain.WorkoutGroupLayoutSnapshot
+import com.whip.app.domain.WorkoutLayoutSnapshot
+import com.whip.app.domain.WorkoutPlacementMutationBoundary
+import com.whip.app.domain.WorkoutSetMutationBoundary
+import com.whip.app.domain.WorkoutSetOrderDraft
+import com.whip.app.domain.WorkoutStructureBoundary
+import com.whip.app.domain.WorkoutStructureMutationReceipt
 import com.whip.app.domain.WorkoutSet
 import com.whip.app.domain.WorkoutSetClassification
 import com.whip.app.domain.WorkoutSetDraft
@@ -54,6 +64,8 @@ import com.whip.app.domain.validateWorkoutSetDraft
 import com.whip.app.domain.applyPolicySnapshot
 import com.whip.app.domain.massFromKilograms
 import com.whip.app.domain.massToKilograms
+import com.whip.app.domain.workoutLayoutSnapshot
+import com.whip.app.domain.workoutStructureBoundary
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -85,8 +97,18 @@ interface GymRepository {
     suspend fun setMachineArchived(id: Long, archived: Boolean)
 
     suspend fun createExercise(draft: ExerciseDraft): Long
-    suspend fun createExerciseAndAddToWorkout(sessionId: Long, draft: ExerciseDraft): WorkoutExerciseAdditionReceipt
-    suspend fun createExerciseAndSubstitute(workoutExerciseId: Long, draft: ExerciseDraft): Long
+    suspend fun createExerciseAndAddToWorkout(
+        boundary: WorkoutStructureBoundary,
+        draft: ExerciseDraft,
+        requestedWorkoutExerciseUuid: String,
+        requestedInitialSetUuid: String,
+    ): WorkoutExerciseAdditionReceipt
+    suspend fun createExerciseAndSubstitute(
+        boundary: WorkoutPlacementMutationBoundary,
+        draft: ExerciseDraft,
+        requestedWorkoutExerciseUuid: String,
+        requestedInitialSetUuid: String,
+    ): Long
     suspend fun updateExercise(id: Long, draft: ExerciseDraft)
     suspend fun duplicateExercise(id: Long): Long
     suspend fun setExerciseArchived(id: Long, archived: Boolean)
@@ -119,33 +141,60 @@ interface GymRepository {
         expectedSessionUuid: String? = null,
     ): WorkoutFinishReceipt
     suspend fun resumeWorkout(id: Long)
-    suspend fun discardWorkout(id: Long)
+    suspend fun discardWorkout(boundary: WorkoutFinishBoundary)
     suspend fun restoreWorkout(id: Long)
     suspend fun duplicateWorkout(id: Long, asActive: Boolean = true): Long
-    suspend fun copyWorkoutExerciseToActive(workoutExerciseId: Long): Long
+    suspend fun copyWorkoutExerciseToActive(
+        boundary: WorkoutExerciseCopyBoundary,
+        requestedWorkoutExerciseUuid: String,
+        requestedSetUuids: List<String>,
+    ): Long
 
     suspend fun addExerciseToWorkout(sessionId: Long, exerciseId: Long, machineId: Long? = null): Long
     suspend fun addExerciseWithInitialSetToWorkout(
-        sessionId: Long,
+        boundary: WorkoutStructureBoundary,
         exerciseId: Long,
         machineId: Long? = null,
+        requestedWorkoutExerciseUuid: String,
+        requestedInitialSetUuid: String,
     ): WorkoutExerciseAdditionReceipt
-    suspend fun updateWorkoutExercise(id: Long, notes: String, groupId: Long? = null)
-    suspend fun updateWorkoutExerciseDetails(id: Long, notes: String, groupId: Long?, machineId: Long?)
-    suspend fun setWorkoutExerciseMachine(id: Long, machineId: Long?)
-    suspend fun substituteWorkoutExercise(id: Long, exerciseId: Long, machineId: Long? = null): Long
-    suspend fun removeWorkoutExercise(id: Long)
-    suspend fun removeWorkoutExerciseFromGroup(id: Long)
-    suspend fun reorderWorkoutExercises(sessionId: Long, idsInOrder: List<Long>)
-    suspend fun normalizeWorkoutGroups(sessionId: Long)
+    suspend fun updateWorkoutExerciseDetails(
+        boundary: WorkoutPlacementMutationBoundary,
+        notes: String,
+        groupId: Long?,
+        machineId: Long?,
+    )
+    suspend fun createMachineAndAssign(
+        boundary: WorkoutPlacementMutationBoundary,
+        draft: GymMachineDraft,
+    ): Long
+    suspend fun substituteWorkoutExercise(
+        boundary: WorkoutPlacementMutationBoundary,
+        exerciseId: Long,
+        machineId: Long? = null,
+        requestedWorkoutExerciseUuid: String,
+        requestedInitialSetUuid: String,
+    ): Long
+    suspend fun removeWorkoutExercise(boundary: WorkoutPlacementMutationBoundary): WorkoutStructureMutationReceipt
+    suspend fun removeWorkoutExerciseFromGroup(boundary: WorkoutPlacementMutationBoundary): WorkoutStructureMutationReceipt
+    suspend fun applyWorkoutArrangement(
+        boundary: WorkoutStructureBoundary,
+        draft: WorkoutArrangementDraft,
+    ): WorkoutStructureMutationReceipt
+    suspend fun restoreWorkoutLayout(
+        boundary: WorkoutStructureBoundary,
+        snapshot: WorkoutLayoutSnapshot,
+    ): WorkoutStructureMutationReceipt
+    suspend fun normalizeActiveWorkoutStructure(sessionId: Long): WorkoutStructureMutationReceipt
     suspend fun createGroup(
-        sessionId: Long,
+        boundary: WorkoutStructureBoundary,
+        requestedGroupUuid: String,
         name: String,
         type: WorkoutGroupType,
-        workoutExerciseIds: List<Long>,
-    ): Long
+        workoutExerciseUuids: List<String>,
+    ): WorkoutStructureMutationReceipt
 
-    suspend fun addSet(workoutExerciseId: Long, draft: WorkoutSetDraft? = null): Long
+    suspend fun addSet(boundary: WorkoutPlacementMutationBoundary, draft: WorkoutSetDraft? = null): Long
     suspend fun saveQuickSet(
         id: Long,
         expectedSetUuid: String,
@@ -156,17 +205,19 @@ interface GymRepository {
         autoStartRest: Boolean,
         restOverrideSeconds: Int? = null,
     ): QuickSetCommitReceipt
-    suspend fun updateSet(id: Long, draft: WorkoutSetDraft)
+    suspend fun updateSet(boundary: WorkoutSetMutationBoundary, draft: WorkoutSetDraft)
     suspend fun setSetCompleted(
-        id: Long,
+        boundary: WorkoutSetMutationBoundary,
         completed: Boolean,
         autoStartRest: Boolean = true,
         restOverrideSeconds: Int? = null,
     )
-    suspend fun duplicateSet(id: Long): Long
-    suspend fun deleteSet(id: Long, reason: WorkoutSetRemovalReason = WorkoutSetRemovalReason.Removed)
-    suspend fun undoDeleteSet(id: Long)
-    suspend fun reorderSets(workoutExerciseId: Long, idsInOrder: List<Long>)
+    suspend fun duplicateSet(boundary: WorkoutSetMutationBoundary): Long
+    suspend fun deleteSet(
+        boundary: WorkoutSetMutationBoundary,
+        reason: WorkoutSetRemovalReason = WorkoutSetRemovalReason.Removed,
+    ): WorkoutStructureMutationReceipt
+    suspend fun undoDeleteSet(boundary: WorkoutSetMutationBoundary): WorkoutStructureMutationReceipt
 
     suspend fun startRestTimer(sessionId: Long, seconds: Int)
     suspend fun adjustRestTimer(sessionId: Long, deltaSeconds: Int)
@@ -278,6 +329,10 @@ class RoomGymRepository(
     }
 
     override suspend fun createMachine(draft: GymMachineDraft): Long = database.withTransaction {
+        createMachineInTransaction(draft)
+    }
+
+    private suspend fun createMachineInTransaction(draft: GymMachineDraft): Long {
         validateMachine(draft)
         val exerciseIds = draft.normalizedExerciseIds()
         exerciseIds.forEach { exerciseId ->
@@ -292,6 +347,20 @@ class RoomGymRepository(
             ).toEntity(uuid = uuid, createdAtMillis = now, primaryExerciseId = exerciseIds.firstOrNull()),
         )
         syncMachineExercises(machineId, exerciseIds)
+        return machineId
+    }
+
+    override suspend fun createMachineAndAssign(
+        boundary: WorkoutPlacementMutationBoundary,
+        draft: GymMachineDraft,
+    ): Long = database.withTransaction {
+        val (current, session) = requireExactActivePlacement(boundary)
+        val machineId = createMachineInTransaction(draft)
+        val now = nowMillis()
+        check(updateWorkoutExerciseDetailsInSession(current, session, current.notes, current.groupId, machineId, now)) {
+            "The new machine was not assigned"
+        }
+        bumpWorkoutRevision(session.id, now)
         machineId
     }
 
@@ -384,18 +453,64 @@ class RoomGymRepository(
     }
 
     override suspend fun createExerciseAndAddToWorkout(
-        sessionId: Long,
+        boundary: WorkoutStructureBoundary,
         draft: ExerciseDraft,
+        requestedWorkoutExerciseUuid: String,
+        requestedInitialSetUuid: String,
     ): WorkoutExerciseAdditionReceipt = database.withTransaction {
-        val exerciseId = createExercise(draft)
-        addExerciseWithInitialSetToWorkout(sessionId, exerciseId)
+        val exerciseId = requestedExerciseIdForReplay(requestedWorkoutExerciseUuid, draft) ?: run {
+            requireExactStructure(boundary)
+            createExercise(draft)
+        }
+        addExerciseWithInitialSetToWorkout(
+            boundary,
+            exerciseId,
+            requestedWorkoutExerciseUuid = requestedWorkoutExerciseUuid,
+            requestedInitialSetUuid = requestedInitialSetUuid,
+        )
     }
 
     override suspend fun createExerciseAndSubstitute(
-        workoutExerciseId: Long,
+        boundary: WorkoutPlacementMutationBoundary,
         draft: ExerciseDraft,
+        requestedWorkoutExerciseUuid: String,
+        requestedInitialSetUuid: String,
     ): Long = database.withTransaction {
-        substituteWorkoutExercise(workoutExerciseId, createExercise(draft), null)
+        val exerciseId = requestedExerciseIdForReplay(requestedWorkoutExerciseUuid, draft) ?: run {
+            requireExactActivePlacement(boundary)
+            createExercise(draft)
+        }
+        substituteWorkoutExercise(
+            boundary,
+            exerciseId,
+            requestedWorkoutExerciseUuid = requestedWorkoutExerciseUuid,
+            requestedInitialSetUuid = requestedInitialSetUuid,
+        )
+    }
+
+    private suspend fun requestedExerciseIdForReplay(
+        requestedWorkoutExerciseUuid: String,
+        draft: ExerciseDraft,
+    ): Long? {
+        val requestedPlacement = dao.getWorkoutExerciseByUuid(requestedWorkoutExerciseUuid) ?: return null
+        validateExercise(draft)
+        val existing = requireNotNull(dao.getExercise(requestedPlacement.exerciseId)) {
+            "The exercise created by this request no longer exists"
+        }
+        val expected = draft.toEntity(
+            id = existing.id,
+            uuid = existing.uuid,
+            position = existing.position,
+            favorite = existing.favorite,
+            archived = existing.archived,
+            createdAtMillis = existing.createdAtMillis,
+            updatedAtMillis = existing.updatedAtMillis,
+        )
+        val categoryIds = dao.getCategoryJoins(existing.id).mapTo(mutableSetOf()) { it.categoryId }
+        require(existing == expected && categoryIds == draft.categoryIds) {
+            "This exercise-creation request conflicts with a newer catalog change"
+        }
+        return existing.id
     }
 
     override suspend fun updateExercise(id: Long, draft: ExerciseDraft) = database.withTransaction {
@@ -973,11 +1088,14 @@ class RoomGymRepository(
         check(dao.resumeSession(id, nowMillis()) == 1) { "Workout state changed before it could be resumed" }
     }
 
-    override suspend fun discardWorkout(id: Long) = database.withTransaction {
-        val session = requireNotNull(dao.getSession(id)) { "Workout no longer exists" }
+    override suspend fun discardWorkout(boundary: WorkoutFinishBoundary) = database.withTransaction {
+        val session = requireNotNull(dao.getSession(boundary.sessionId)) { "Workout no longer exists" }
+        require(session.uuid == boundary.sessionUuid && session.workoutRevision == boundary.workoutRevision) {
+            "The workout changed after the discard review opened"
+        }
         if (session.state == WorkoutSessionState.Discarded.name) return@withTransaction
         require(session.state == WorkoutSessionState.Active.name) { "Only an active workout can be discarded" }
-        check(dao.discardActiveSession(id, nowMillis()) == 1) {
+        check(dao.discardActiveSession(boundary.sessionId, nowMillis()) == 1) {
             "Workout changed before it could be discarded"
         }
     }
@@ -1062,15 +1180,59 @@ class RoomGymRepository(
             newSessionId
         }
 
-    override suspend fun copyWorkoutExerciseToActive(workoutExerciseId: Long): Long =
+    override suspend fun copyWorkoutExerciseToActive(
+        boundary: WorkoutExerciseCopyBoundary,
+        requestedWorkoutExerciseUuid: String,
+        requestedSetUuids: List<String>,
+    ): Long =
         database.withTransaction {
-            val source = dao.getWorkoutExercise(workoutExerciseId) ?: error("Workout exercise no longer exists")
+            require(requestedWorkoutExerciseUuid.isNotBlank() && requestedSetUuids.none(String::isBlank)) {
+                "Copy request identity is missing"
+            }
+            dao.getWorkoutExerciseByUuid(requestedWorkoutExerciseUuid)?.let { existing ->
+                val existingSets = dao.getWorkoutSets(existing.id).sortedWith(compareBy({ it.position }, { it.id }))
+                val existingSession = requireNotNull(dao.getSession(existing.sessionId)) { "Copied workout no longer exists" }
+                require(
+                    existing.exerciseId == dao.getWorkoutExercise(boundary.sourceWorkoutExerciseId)?.exerciseId &&
+                        existing.outcome == WorkoutExerciseOutcome.Active.name &&
+                        existingSession.state == WorkoutSessionState.Active.name &&
+                        (boundary.target == null || existing.sessionId == boundary.target.sessionId) &&
+                        existingSets.map { it.uuid } == requestedSetUuids,
+                ) { "This copy request conflicts with a newer workout change" }
+                return@withTransaction existing.id
+            }
+            require(requestedSetUuids.distinct().size == requestedSetUuids.size) {
+                "Each copied Set needs a unique request identity"
+            }
+            val sourceSession = requireNotNull(dao.getSession(boundary.sourceSessionId)) { "Source workout no longer exists" }
+            require(sourceSession.uuid == boundary.sourceSessionUuid) { "Source workout changed after review" }
+            val source = requireNotNull(dao.getWorkoutExercise(boundary.sourceWorkoutExerciseId)) {
+                "Workout exercise no longer exists"
+            }
+            require(
+                source.uuid == boundary.sourceWorkoutExerciseUuid &&
+                    source.updatedAtMillis == boundary.sourceWorkoutExerciseUpdatedAtMillis &&
+                    source.sessionId == sourceSession.id,
+            ) { "Source exercise changed after review" }
+            val sourceSets = dao.getWorkoutSets(source.id)
+                .filter { it.deletedAtMillis == null }
+                .sortedWith(compareBy({ it.position }, { it.id }))
+            require(
+                sourceSets.map { Triple(it.id, it.uuid, it.updatedAtMillis) } ==
+                    boundary.sourceSets.map { Triple(it.setId, it.setUuid, it.setUpdatedAtMillis) },
+            ) { "Source Sets changed after review" }
+            require(requestedSetUuids.size == sourceSets.size) { "Copy Set request count changed" }
             source.requireResolvedEquipmentForNewWorkout()
-            val targetSessionId = dao.getActiveSession()?.id ?: startWorkout(name = "Copied workout")
+            val targetSessionId = boundary.target?.let { target ->
+                requireExactStructure(target).id
+            } ?: run {
+                require(dao.getActiveSession() == null) { "An active workout appeared after this copy was reviewed" }
+                startWorkout(name = "Copied workout")
+            }
             val now = nowMillis()
             val targetId = dao.insertWorkoutExercise(
                 source.copy(
-                    id = 0, uuid = ids.nextId(), sessionId = targetSessionId,
+                    id = 0, uuid = requestedWorkoutExerciseUuid, sessionId = targetSessionId,
                     position = dao.nextWorkoutExercisePosition(targetSessionId), groupId = null,
                     outcome = WorkoutExerciseOutcome.Active.name,
                     outcomeAtMillis = null,
@@ -1078,10 +1240,10 @@ class RoomGymRepository(
                     createdAtMillis = now, updatedAtMillis = now,
                 ),
             )
-            dao.getWorkoutSets(source.id).filter { it.deletedAtMillis == null }.forEachIndexed { index, set ->
+            sourceSets.forEachIndexed { index, set ->
                 dao.insertWorkoutSet(
                     set.asWorkoutOnlyCopy(
-                        id = 0, uuid = ids.nextId(), workoutExerciseId = targetId,
+                        id = 0, uuid = requestedSetUuids[index], workoutExerciseId = targetId,
                         position = index, createdAtMillis = now, updatedAtMillis = now,
                     ),
                 )
@@ -1092,125 +1254,103 @@ class RoomGymRepository(
 
     override suspend fun addExerciseToWorkout(sessionId: Long, exerciseId: Long, machineId: Long?): Long =
         database.withTransaction {
-            val session = requireNotNull(dao.getSession(sessionId)) { "Workout no longer exists" }
-            require(session.state == WorkoutSessionState.Active.name) { "Exercises can only be added to an active workout" }
-            val exercise = requireNotNull(dao.getExercise(exerciseId)) { "Exercise no longer exists" }
-            require(!exercise.archived) { "Restore this exercise before adding it to a workout" }
             val now = nowMillis()
-            val machine = machineId?.let { selected ->
-                requireNotNull(dao.getMachine(selected)) { "Machine no longer exists" }
-                    .also {
-                        require(dao.machineSupportsExercise(it.id, exerciseId) && !it.archived) {
-                            "Machine is not available for this exercise"
-                        }
-                    }
-            }
-            val workoutExerciseId = dao.insertWorkoutExercise(
-                WorkoutExerciseEntity(
-                    uuid = ids.nextId(),
-                    sessionId = sessionId,
-                    exerciseId = exerciseId,
-                    position = dao.nextWorkoutExercisePosition(sessionId),
-                    notes = "",
-                    groupId = null,
-                    createdAtMillis = now,
-                    updatedAtMillis = now,
-                    machineProfileUuidSnapshot = machine?.uuid,
-                    machineId = machine?.id,
-                    machineNameSnapshot = machine?.displayName().orEmpty(),
-                    machineLoadTypeSnapshot = machine?.loadType.orEmpty(),
-                    machineUnitIdSnapshot = machine?.unitId.orEmpty(),
-                    machineLevelLabelSnapshot = machine?.levelLabel.orEmpty(),
-                    loadInterpretationSnapshot = machine?.loadInterpretation ?: exercise.loadInterpretation,
-                    baseLoadKgSnapshot = machine?.baseLoadKg
-                        ?: exercise.barWeightKg.takeIf {
-                            (machine?.loadInterpretation ?: exercise.loadInterpretation) == LoadInterpretation.PerSide.name
-                        },
-                    trackingTypeSnapshot = exercise.trackingType,
-                    bodyweightLoadPolicySnapshot = exercise.bodyweightLoadPolicy,
-                    effectiveBodyweightPercentSnapshot = exercise.effectiveBodyweightPercent,
-                    oneRepMaxFormulaSnapshot = exercise.oneRepMaxFormula,
-                    includeInVolumeSnapshot = exercise.includeInVolume,
-                    includeInPersonalRecordsSnapshot = exercise.includeInPersonalRecords,
-                    exerciseWeightUnitSnapshot = exercise.weightUnitId,
-                    loadMultiplierSnapshot = loadInterpretationMultiplier(
-                        runCatching { LoadInterpretation.valueOf(machine?.loadInterpretation ?: exercise.loadInterpretation) }
-                            .getOrDefault(LoadInterpretation.Total),
-                        machine?.stackMode?.let { runCatching { MachineStackMode.valueOf(it) }.getOrNull() } ?: MachineStackMode.Single,
-                        machine?.pulleyRatio ?: 1.0,
-                    ),
-                    machineConfigurationGroupSnapshot = machine?.configurationGroupId.orEmpty(),
-                    machineConfigurationVersionSnapshot = machine?.configurationVersion ?: 1,
-                    machineConfigurationSnapshot = machine?.configurationSummary().orEmpty(),
-                    machinePulleyRatioSnapshot = machine?.pulleyRatio ?: 1.0,
-                    machineStackModeSnapshot = machine?.stackMode ?: MachineStackMode.Single.name,
-                    machineAddOnPlateKgSnapshot = machine?.addOnPlateKg,
-                    machineMassMappingCsvSnapshot = machine?.massMappingCsv.orEmpty(),
-                ),
+            val (workoutExerciseId, session) = insertWorkoutExerciseToActiveSession(
+                sessionId = sessionId,
+                exerciseId = exerciseId,
+                machineId = machineId,
+                now = now,
+                workoutExerciseUuid = ids.nextId(),
             )
             bumpWorkoutRevision(sessionId, now)
             workoutExerciseId
         }
 
     override suspend fun addExerciseWithInitialSetToWorkout(
-        sessionId: Long,
+        boundary: WorkoutStructureBoundary,
         exerciseId: Long,
         machineId: Long?,
+        requestedWorkoutExerciseUuid: String,
+        requestedInitialSetUuid: String,
     ): WorkoutExerciseAdditionReceipt = database.withTransaction {
-        val workoutExerciseId = addExerciseToWorkout(sessionId, exerciseId, machineId)
-        val initialSetId = addSet(workoutExerciseId)
+        require(requestedWorkoutExerciseUuid.isNotBlank() && requestedInitialSetUuid.isNotBlank()) {
+            "Workout exercise request identity is missing"
+        }
+        dao.getWorkoutExerciseByUuid(requestedWorkoutExerciseUuid)?.let { existing ->
+            val existingSession = requireNotNull(dao.getSession(existing.sessionId)) { "Workout no longer exists" }
+            val existingSet = requireNotNull(dao.getWorkoutSetByUuid(requestedInitialSetUuid)) {
+                "The previous add request is incomplete"
+            }
+            require(
+                existing.sessionId == boundary.sessionId &&
+                    existingSession.uuid == boundary.sessionUuid &&
+                    existing.exerciseId == exerciseId &&
+                    existing.machineId == machineId &&
+                    existing.outcome == WorkoutExerciseOutcome.Active.name &&
+                    existingSet.workoutExerciseId == existing.id,
+            ) { "This add request conflicts with a newer workout change" }
+            return@withTransaction WorkoutExerciseAdditionReceipt(
+                sessionId = existing.sessionId,
+                workoutExerciseId = existing.id,
+                workoutExerciseUuid = existing.uuid,
+                initialSetId = existingSet.id,
+            )
+        }
+        val reviewedSession = requireExactStructure(boundary)
+        val now = nowMillis()
+        val (workoutExerciseId, session) = insertWorkoutExerciseToActiveSession(
+            sessionId = reviewedSession.id,
+            exerciseId = exerciseId,
+            machineId = machineId,
+            now = now,
+            workoutExerciseUuid = requestedWorkoutExerciseUuid,
+        )
         val placement = requireNotNull(dao.getWorkoutExercise(workoutExerciseId))
+        val initialSetId = insertSetForActivePlacement(
+            placement,
+            session,
+            draft = null,
+            now = now,
+            requestedSetUuid = requestedInitialSetUuid,
+        )
+        bumpWorkoutRevision(session.id, now)
         WorkoutExerciseAdditionReceipt(
-            sessionId = sessionId,
+            sessionId = session.id,
             workoutExerciseId = workoutExerciseId,
             workoutExerciseUuid = placement.uuid,
             initialSetId = initialSetId,
         )
     }
 
-    override suspend fun updateWorkoutExercise(id: Long, notes: String, groupId: Long?) = database.withTransaction {
-        val (current, session) = requireActivePlacement(id)
-        if (groupId != null) {
-            require(dao.getWorkoutGroups(session.id).any { it.id == groupId }) {
-                "Exercise group no longer exists in this workout"
-            }
-        }
-        dao.updateWorkoutExercise(
-            current.copy(notes = notes.trim(), groupId = groupId, updatedAtMillis = nowMillis()),
-        )
-        bumpWorkoutRevision(session.id)
-    }
-
-    override suspend fun updateWorkoutExerciseDetails(
-        id: Long,
-        notes: String,
-        groupId: Long?,
+    private suspend fun insertWorkoutExerciseToActiveSession(
+        sessionId: Long,
+        exerciseId: Long,
         machineId: Long?,
-    ) = database.withTransaction {
-        // Notes and equipment share one editor. Keep them in one transaction and sequence
-        // the full-row writes so neither can restore a stale copy of the other.
-        updateWorkoutExercise(id, notes, groupId)
-        setWorkoutExerciseMachine(id, machineId)
-    }
-
-    override suspend fun setWorkoutExerciseMachine(id: Long, machineId: Long?) = database.withTransaction {
-        val (current, session) = requireActivePlacement(id)
-        if (current.machineId == machineId) return@withTransaction
-        val sets = dao.getWorkoutSets(id)
-        require(sets.none { it.completed }) {
-            "Machine cannot be changed after the first set is completed. Add the exercise again to preserve history."
-        }
+        now: Long,
+        workoutExerciseUuid: String,
+    ): Pair<Long, WorkoutSessionEntity> {
+        val session = requireNotNull(dao.getSession(sessionId)) { "Workout no longer exists" }
+        require(session.state == WorkoutSessionState.Active.name) { "Exercises can only be added to an active workout" }
+        val exercise = requireNotNull(dao.getExercise(exerciseId)) { "Exercise no longer exists" }
+        require(!exercise.archived) { "Restore this exercise before adding it to a workout" }
         val machine = machineId?.let { selected ->
             requireNotNull(dao.getMachine(selected)) { "Machine no longer exists" }
                 .also {
-                    require(dao.machineSupportsExercise(it.id, current.exerciseId) && !it.archived) {
+                    require(dao.machineSupportsExercise(it.id, exerciseId) && !it.archived) {
                         "Machine is not available for this exercise"
                     }
                 }
         }
-        val exercise = requireNotNull(dao.getExercise(current.exerciseId)) { "Exercise no longer exists" }
-        val now = nowMillis()
-        val updatedWorkoutExercise = current.copy(
+        val workoutExerciseId = dao.insertWorkoutExercise(
+            WorkoutExerciseEntity(
+                uuid = workoutExerciseUuid,
+                sessionId = sessionId,
+                exerciseId = exerciseId,
+                position = dao.nextWorkoutExercisePosition(sessionId),
+                notes = "",
+                groupId = null,
+                createdAtMillis = now,
+                updatedAtMillis = now,
                 machineProfileUuidSnapshot = machine?.uuid,
                 machineId = machine?.id,
                 machineNameSnapshot = machine?.displayName().orEmpty(),
@@ -1222,11 +1362,18 @@ class RoomGymRepository(
                     ?: exercise.barWeightKg.takeIf {
                         (machine?.loadInterpretation ?: exercise.loadInterpretation) == LoadInterpretation.PerSide.name
                     },
+                trackingTypeSnapshot = exercise.trackingType,
+                bodyweightLoadPolicySnapshot = exercise.bodyweightLoadPolicy,
+                effectiveBodyweightPercentSnapshot = exercise.effectiveBodyweightPercent,
+                oneRepMaxFormulaSnapshot = exercise.oneRepMaxFormula,
+                includeInVolumeSnapshot = exercise.includeInVolume,
+                includeInPersonalRecordsSnapshot = exercise.includeInPersonalRecords,
                 exerciseWeightUnitSnapshot = exercise.weightUnitId,
                 loadMultiplierSnapshot = loadInterpretationMultiplier(
                     runCatching { LoadInterpretation.valueOf(machine?.loadInterpretation ?: exercise.loadInterpretation) }
                         .getOrDefault(LoadInterpretation.Total),
-                    machine?.stackMode?.let { runCatching { MachineStackMode.valueOf(it) }.getOrNull() } ?: MachineStackMode.Single,
+                    machine?.stackMode?.let { runCatching { MachineStackMode.valueOf(it) }.getOrNull() }
+                        ?: MachineStackMode.Single,
                     machine?.pulleyRatio ?: 1.0,
                 ),
                 machineConfigurationGroupSnapshot = machine?.configurationGroupId.orEmpty(),
@@ -1236,35 +1383,139 @@ class RoomGymRepository(
                 machineStackModeSnapshot = machine?.stackMode ?: MachineStackMode.Single.name,
                 machineAddOnPlateKgSnapshot = machine?.addOnPlateKg,
                 machineMassMappingCsvSnapshot = machine?.massMappingCsv.orEmpty(),
-                updatedAtMillis = now,
-            )
-        // A routine start creates planned sets before the lifter performs anything. Those
-        // rows are configuration, not history, so changing an occupied machine must remain
-        // possible until the first completion. Preserve each immutable canonical target and
-        // express it using the replacement equipment's ratio, base load, unit, and choices.
-        // This keeps the session's snapshotted %TM/%e1RM intensity while avoiding a mutable
-        // re-read of the routine or today's personal records.
-        sets.forEach { set ->
-            dao.updateWorkoutSet(
-                set.retargetForMachineChange(
-                    workoutExercise = updatedWorkoutExercise,
-                    machine = machine,
-                    exercise = exercise,
-                    now = now,
-                ),
-            )
-        }
-        dao.updateWorkoutExercise(updatedWorkoutExercise)
-        bumpWorkoutRevision(session.id, now)
+            ),
+        )
+        return workoutExerciseId to session
     }
 
-    override suspend fun substituteWorkoutExercise(id: Long, exerciseId: Long, machineId: Long?): Long =
+    override suspend fun updateWorkoutExerciseDetails(
+        boundary: WorkoutPlacementMutationBoundary,
+        notes: String,
+        groupId: Long?,
+        machineId: Long?,
+    ) = database.withTransaction {
+        val (current, session) = requireExactActivePlacement(boundary)
+        val now = nowMillis()
+        if (updateWorkoutExerciseDetailsInSession(current, session, notes, groupId, machineId, now)) {
+            bumpWorkoutRevision(session.id, now)
+        }
+    }
+
+    private suspend fun updateWorkoutExerciseDetailsInSession(
+        current: WorkoutExerciseEntity,
+        session: WorkoutSessionEntity,
+        notes: String,
+        groupId: Long?,
+        machineId: Long?,
+        now: Long,
+    ): Boolean {
+        if (groupId != null) {
+            require(dao.getWorkoutGroups(session.id).any { it.id == groupId }) {
+                "Exercise group no longer exists in this workout"
+            }
+        }
+        val trimmedNotes = notes.trim()
+        val machineChanged = current.machineId != machineId
+        if (current.notes == trimmedNotes && current.groupId == groupId && !machineChanged) return false
+        val sets = dao.getWorkoutSets(current.id)
+        if (machineChanged) {
+            require(sets.none { it.completed || it.deletedAtMillis != null }) {
+                "Machine cannot be changed after a set is completed or removed. Add the exercise again to preserve history."
+            }
+        }
+        val machine = if (machineChanged) machineId?.let { selected ->
+            requireNotNull(dao.getMachine(selected)) { "Machine no longer exists" }
+                .also {
+                    require(dao.machineSupportsExercise(it.id, current.exerciseId) && !it.archived) {
+                        "Machine is not available for this exercise"
+                    }
+                }
+        } else null
+        val exercise = requireNotNull(dao.getExercise(current.exerciseId)) { "Exercise no longer exists" }
+        val baseUpdated = current.copy(
+            notes = trimmedNotes,
+            groupId = groupId,
+            updatedAtMillis = now,
+        )
+        val updated = if (!machineChanged) baseUpdated else baseUpdated.copy(
+            machineProfileUuidSnapshot = machine?.uuid,
+            machineId = machine?.id,
+            machineNameSnapshot = machine?.displayName().orEmpty(),
+            machineLoadTypeSnapshot = machine?.loadType.orEmpty(),
+            machineUnitIdSnapshot = machine?.unitId.orEmpty(),
+            machineLevelLabelSnapshot = machine?.levelLabel.orEmpty(),
+            loadInterpretationSnapshot = machine?.loadInterpretation ?: exercise.loadInterpretation,
+            baseLoadKgSnapshot = machine?.baseLoadKg ?: exercise.barWeightKg.takeIf {
+                (machine?.loadInterpretation ?: exercise.loadInterpretation) == LoadInterpretation.PerSide.name
+            },
+            exerciseWeightUnitSnapshot = exercise.weightUnitId,
+            loadMultiplierSnapshot = loadInterpretationMultiplier(
+                runCatching { LoadInterpretation.valueOf(machine?.loadInterpretation ?: exercise.loadInterpretation) }
+                    .getOrDefault(LoadInterpretation.Total),
+                machine?.stackMode?.let { runCatching { MachineStackMode.valueOf(it) }.getOrNull() }
+                    ?: MachineStackMode.Single,
+                machine?.pulleyRatio ?: 1.0,
+            ),
+            machineConfigurationGroupSnapshot = machine?.configurationGroupId.orEmpty(),
+            machineConfigurationVersionSnapshot = machine?.configurationVersion ?: 1,
+            machineConfigurationSnapshot = machine?.configurationSummary().orEmpty(),
+            machinePulleyRatioSnapshot = machine?.pulleyRatio ?: 1.0,
+            machineStackModeSnapshot = machine?.stackMode ?: MachineStackMode.Single.name,
+            machineAddOnPlateKgSnapshot = machine?.addOnPlateKg,
+            machineMassMappingCsvSnapshot = machine?.massMappingCsv.orEmpty(),
+        )
+        if (machineChanged) {
+            // Planned rows remain mutable configuration until the first completed Set.
+            sets.filter { it.deletedAtMillis == null }.forEach { set ->
+                dao.updateWorkoutSet(set.retargetForMachineChange(updated, machine, exercise, now))
+            }
+        }
+        dao.updateWorkoutExercise(updated)
+        return true
+    }
+
+    override suspend fun substituteWorkoutExercise(
+        boundary: WorkoutPlacementMutationBoundary,
+        exerciseId: Long,
+        machineId: Long?,
+        requestedWorkoutExerciseUuid: String,
+        requestedInitialSetUuid: String,
+    ): Long =
         database.withTransaction {
-            val (current, session) = requireActivePlacement(id)
+            require(requestedWorkoutExerciseUuid.isNotBlank() && requestedInitialSetUuid.isNotBlank()) {
+                "Substitution request identity is missing"
+            }
+            dao.getWorkoutExerciseByUuid(requestedWorkoutExerciseUuid)?.let { existing ->
+                val original = requireNotNull(dao.getWorkoutExercise(boundary.workoutExerciseId)) {
+                    "Original exercise no longer exists"
+                }
+                val initialSet = requireNotNull(dao.getWorkoutSetByUuid(requestedInitialSetUuid)) {
+                    "The previous substitution request is incomplete"
+                }
+                require(
+                    original.uuid == boundary.workoutExerciseUuid &&
+                        original.sessionId == boundary.structure.sessionId &&
+                        original.outcome == WorkoutExerciseOutcome.Substituted.name &&
+                        original.replacementWorkoutExerciseUuid == existing.uuid &&
+                        existing.sessionId == original.sessionId &&
+                        existing.exerciseId == exerciseId &&
+                        existing.machineId == machineId &&
+                        existing.outcome == WorkoutExerciseOutcome.Active.name &&
+                        initialSet.workoutExerciseId == existing.id,
+                ) { "This substitution request conflicts with a newer workout change" }
+                return@withTransaction existing.id
+            }
+            val (current, session) = requireExactActivePlacement(boundary)
             require(exerciseId != current.exerciseId || machineId != current.machineId) { "Choose a different exercise or machine" }
             val now = nowMillis()
             invalidateRequiredMainWorkIfNeeded(current, session, now)
-            val newId = addExerciseToWorkout(current.sessionId, exerciseId, machineId)
+            val (newId, _) = insertWorkoutExerciseToActiveSession(
+                current.sessionId,
+                exerciseId,
+                machineId,
+                now,
+                workoutExerciseUuid = requestedWorkoutExerciseUuid,
+            )
             val oldName = dao.getExercise(current.exerciseId)?.name.orEmpty()
             val replacement = requireNotNull(dao.getWorkoutExercise(newId))
             dao.updateWorkoutExercise(
@@ -1295,7 +1546,13 @@ class RoomGymRepository(
             )
             // A replacement is immediately loggable. This is workout-only work; it never
             // inherits the retired lift's prescribed Main/Supplemental identity.
-            addSet(newId)
+            insertSetForActivePlacement(
+                requireNotNull(dao.getWorkoutExercise(newId)),
+                session,
+                draft = null,
+                now = now,
+                requestedSetUuid = requestedInitialSetUuid,
+            )
             val orderedIds = dao.getWorkoutExercises(current.sessionId)
                 .filter { it.outcome == WorkoutExerciseOutcome.Active.name }
                 .sortedBy { it.position }
@@ -1308,13 +1565,16 @@ class RoomGymRepository(
                     dao.updateWorkoutExercise(placement.copy(position = index, updatedAtMillis = now))
                 }
             }
-            normalizeWorkoutGroupsInSession(current.sessionId, now)
+            normalizeActiveWorkoutStructureInSession(current.sessionId, now)
             bumpWorkoutRevision(session.id, now)
             newId
         }
 
-    override suspend fun removeWorkoutExercise(id: Long) = database.withTransaction {
-        val (current, session) = requireActivePlacement(id)
+    override suspend fun removeWorkoutExercise(
+        boundary: WorkoutPlacementMutationBoundary,
+    ): WorkoutStructureMutationReceipt = database.withTransaction {
+        val (current, session) = requireExactActivePlacement(boundary)
+        val previousLayout = currentWorkoutLayout(session)
         val now = nowMillis()
         invalidateRequiredMainWorkIfNeeded(current, session, now)
         dao.getWorkoutSets(current.id).filter { !it.completed && it.deletedAtMillis == null }.forEach { set ->
@@ -1335,8 +1595,9 @@ class RoomGymRepository(
                 updatedAtMillis = now,
             ),
         )
-        normalizeWorkoutGroupsInSession(current.sessionId, now)
+        normalizeActiveWorkoutStructureInSession(current.sessionId, now)
         bumpWorkoutRevision(session.id, now)
+        structureReceipt(session.id, boundary.structure.fingerprint, true, previousLayout, current.uuid)
     }
 
     private suspend fun invalidateRequiredMainWorkIfNeeded(
@@ -1367,92 +1628,251 @@ class RoomGymRepository(
         }
     }
 
-    override suspend fun removeWorkoutExerciseFromGroup(id: Long) = database.withTransaction {
-        val (current, session) = requireActivePlacement(id)
-        val groupId = current.groupId ?: return@withTransaction
+    override suspend fun removeWorkoutExerciseFromGroup(
+        boundary: WorkoutPlacementMutationBoundary,
+    ): WorkoutStructureMutationReceipt = database.withTransaction {
+        val session = requireExactStructure(boundary.structure)
+        val current = requireNotNull(dao.getWorkoutExercise(boundary.workoutExerciseId)) {
+            "Exercise is no longer in this workout"
+        }
+        require(
+            current.uuid == boundary.workoutExerciseUuid &&
+                current.sessionId == session.id &&
+                current.outcome == WorkoutExerciseOutcome.Active.name,
+        ) { "This workout exercise changed; review the latest workout and try again" }
+        val currentGroup = current.groupId?.let { groupId ->
+            dao.getWorkoutGroups(session.id).firstOrNull { it.id == groupId }
+        }
+        require(current.updatedAtMillis == boundary.workoutExerciseUpdatedAtMillis) {
+            "This workout exercise changed; review the latest workout and try again"
+        }
+        require(currentGroup?.uuid == boundary.expectedGroupUuid && currentGroup != null) {
+            "This exercise is no longer in the group you reviewed"
+        }
+        val previousLayout = currentWorkoutLayout(session)
         val now = nowMillis()
         dao.updateWorkoutExercise(current.copy(groupId = null, updatedAtMillis = now))
-
-        normalizeWorkoutGroupsInSession(current.sessionId, now)
+        normalizeActiveWorkoutStructureInSession(current.sessionId, now)
         bumpWorkoutRevision(session.id, now)
+        structureReceipt(session.id, boundary.structure.fingerprint, true, previousLayout, current.uuid)
     }
 
-    override suspend fun reorderWorkoutExercises(sessionId: Long, idsInOrder: List<Long>) =
-        database.withTransaction {
-            val session = requireNotNull(dao.getSession(sessionId)) { "Workout no longer exists" }
-            require(session.state == WorkoutSessionState.Active.name) { "This workout is no longer active" }
-            val active = dao.getWorkoutExercises(sessionId)
-                .filter { it.outcome == WorkoutExerciseOutcome.Active.name }
-            require(idsInOrder.distinct().size == idsInOrder.size && idsInOrder.toSet() == active.map { it.id }.toSet()) {
-                "Exercise order is stale; refresh the workout and try again"
+    override suspend fun applyWorkoutArrangement(
+        boundary: WorkoutStructureBoundary,
+        draft: WorkoutArrangementDraft,
+    ): WorkoutStructureMutationReceipt = database.withTransaction {
+        val session = requireExactStructure(boundary)
+        val previousLayout = currentWorkoutLayout(session)
+        val allPlacements = dao.getWorkoutExercises(session.id)
+            .sortedWith(compareBy(WorkoutExerciseEntity::position, WorkoutExerciseEntity::id))
+        val activePlacements = allPlacements.filter { it.outcome == WorkoutExerciseOutcome.Active.name }
+        require(
+            draft.activeWorkoutExerciseUuidsInOrder.distinct().size == draft.activeWorkoutExerciseUuidsInOrder.size &&
+                draft.activeWorkoutExerciseUuidsInOrder.toSet() == activePlacements.map { it.uuid }.toSet(),
+        ) { "Exercise order is stale; review the workout and try again" }
+        val requestedActive = draft.activeWorkoutExerciseUuidsInOrder.map { uuid ->
+            requireNotNull(activePlacements.firstOrNull { it.uuid == uuid }) {
+                "Exercise order is stale; review the workout and try again"
             }
-            val now = nowMillis()
-            idsInOrder.forEachIndexed { index, id ->
-                val item = requireNotNull(active.firstOrNull { it.id == id })
-                dao.updateWorkoutExercise(item.copy(position = index, updatedAtMillis = now))
+        }
+        val groupIds = activePlacements.mapNotNull(WorkoutExerciseEntity::groupId).distinct()
+        groupIds.forEach { groupId ->
+            val indexes = requestedActive.mapIndexedNotNull { index, placement -> index.takeIf { placement.groupId == groupId } }
+            require(indexes.isEmpty() || indexes.last() - indexes.first() + 1 == indexes.size) {
+                "Grouped exercises must stay together"
             }
-            normalizeWorkoutGroupsInSession(sessionId, now)
-            bumpWorkoutRevision(sessionId, now)
         }
 
-    override suspend fun normalizeWorkoutGroups(sessionId: Long) = database.withTransaction {
+        val setOrderByPlacementUuid = draft.setOrders.associateBy(WorkoutSetOrderDraft::workoutExerciseUuid)
+        require(setOrderByPlacementUuid.size == draft.setOrders.size) { "Each exercise can have only one Set order" }
+        require(setOrderByPlacementUuid.keys == activePlacements.map { it.uuid }.toSet()) {
+            "Set order is stale; review the workout and try again"
+        }
+        val now = nowMillis()
+        var changed = false
+        val activeIterator = requestedActive.iterator()
+        allPlacements.forEachIndexed { index, placement ->
+            val target = if (placement.outcome == WorkoutExerciseOutcome.Active.name) activeIterator.next() else placement
+            if (target.position != index) {
+                dao.updateWorkoutExercise(target.copy(position = index, updatedAtMillis = now))
+                changed = true
+            }
+        }
+        activePlacements.forEach { placement ->
+            val currentSets = dao.getWorkoutSets(placement.id)
+                .sortedWith(compareBy(WorkoutSetEntity::position, WorkoutSetEntity::id))
+            val requestedUuids = requireNotNull(setOrderByPlacementUuid[placement.uuid]).setUuidsInOrder
+            require(requestedUuids.distinct().size == requestedUuids.size && requestedUuids.toSet() == currentSets.map { it.uuid }.toSet()) {
+                "Set order is stale; review the workout and try again"
+            }
+            currentSets.forEachIndexed { index, set ->
+                if (set.deletedAtMillis != null) {
+                    require(requestedUuids[index] == set.uuid) {
+                        "Removed Set history must stay in its original slot"
+                    }
+                }
+            }
+            requestedUuids.forEachIndexed { index, uuid ->
+                val set = requireNotNull(currentSets.firstOrNull { it.uuid == uuid })
+                if (set.position != index) {
+                    dao.updateWorkoutSet(set.copy(position = index, updatedAtMillis = now))
+                    changed = true
+                }
+            }
+        }
+        if (normalizeActiveWorkoutStructureInSession(session.id, now)) changed = true
+        if (changed) bumpWorkoutRevision(session.id, now)
+        structureReceipt(session.id, boundary.fingerprint, changed, previousLayout.takeIf { changed })
+    }
+
+    override suspend fun restoreWorkoutLayout(
+        boundary: WorkoutStructureBoundary,
+        snapshot: WorkoutLayoutSnapshot,
+    ): WorkoutStructureMutationReceipt = database.withTransaction {
+        val session = requireExactStructure(boundary)
+        val currentLayout = currentWorkoutLayout(session)
+        if (currentLayout == snapshot) {
+            return@withTransaction structureReceipt(session.id, boundary.fingerprint, false)
+        }
+        val placements = dao.getWorkoutExercises(session.id)
+        require(snapshot.allWorkoutExerciseUuidsInOrder.toSet() == placements.map { it.uuid }.toSet()) {
+            "Undo is no longer safe because exercises were added or removed"
+        }
+        require(snapshot.allWorkoutExerciseUuidsInOrder.distinct().size == placements.size) {
+            "Undo layout is malformed"
+        }
+        val now = nowMillis()
+        placements.filter { it.groupId != null }.forEach { placement ->
+            dao.updateWorkoutExercise(placement.copy(groupId = null, updatedAtMillis = now))
+        }
+        val currentGroups = dao.getWorkoutGroups(session.id)
+        val targetGroupUuids = snapshot.groups.mapTo(mutableSetOf(), WorkoutGroupLayoutSnapshot::uuid)
+        currentGroups.filter { it.uuid !in targetGroupUuids }.forEach { dao.deleteWorkoutGroup(it.id) }
+        val groupIdByUuid = mutableMapOf<String, Long>()
+        snapshot.groups.forEach { target ->
+            val existing = currentGroups.firstOrNull { it.uuid == target.uuid }
+            val entity = WorkoutGroupEntity(
+                id = existing?.id ?: 0,
+                uuid = target.uuid,
+                sessionId = session.id,
+                name = target.name,
+                type = target.type.name,
+                position = target.position,
+                createdAtMillis = existing?.createdAtMillis ?: now,
+                updatedAtMillis = now,
+            )
+            val id = if (existing == null) dao.insertWorkoutGroup(entity) else {
+                dao.updateWorkoutGroup(entity)
+                existing.id
+            }
+            groupIdByUuid[target.uuid] = id
+        }
+        val placementByUuid = placements.associateBy(WorkoutExerciseEntity::uuid)
+        snapshot.allWorkoutExerciseUuidsInOrder.forEachIndexed { index, uuid ->
+            val placement = requireNotNull(placementByUuid[uuid])
+            val targetGroupUuid = snapshot.groupUuidByWorkoutExerciseUuid[uuid]
+            val targetGroupId = targetGroupUuid?.let { requireNotNull(groupIdByUuid[it]) { "Undo group is missing" } }
+            dao.updateWorkoutExercise(
+                placement.copy(position = index, groupId = targetGroupId, updatedAtMillis = now),
+            )
+        }
+        val setOrderByPlacement = snapshot.setOrders.associateBy(WorkoutSetOrderDraft::workoutExerciseUuid)
+        placements.forEach { placement ->
+            val currentSets = dao.getWorkoutSets(placement.id)
+            val targetOrder = requireNotNull(setOrderByPlacement[placement.uuid]) {
+                "Undo is no longer safe because Set structure changed"
+            }.setUuidsInOrder
+            require(targetOrder.toSet() == currentSets.map { it.uuid }.toSet() && targetOrder.distinct().size == currentSets.size) {
+                "Undo is no longer safe because Sets were added or removed"
+            }
+            targetOrder.forEachIndexed { index, uuid ->
+                val set = requireNotNull(currentSets.firstOrNull { it.uuid == uuid })
+                if (set.position != index) dao.updateWorkoutSet(set.copy(position = index, updatedAtMillis = now))
+            }
+        }
+        normalizeActiveWorkoutStructureInSession(session.id, now)
+        bumpWorkoutRevision(session.id, now)
+        structureReceipt(session.id, boundary.fingerprint, true, currentLayout)
+    }
+
+    override suspend fun normalizeActiveWorkoutStructure(sessionId: Long): WorkoutStructureMutationReceipt = database.withTransaction {
         val session = requireNotNull(dao.getSession(sessionId)) { "Workout no longer exists" }
         require(session.state == WorkoutSessionState.Active.name) { "This workout is no longer active" }
+        val before = currentWorkoutBoundary(session)
+        val previousLayout = currentWorkoutLayout(session)
         val now = nowMillis()
-        normalizeWorkoutGroupsInSession(sessionId, now)
-        bumpWorkoutRevision(sessionId, now)
+        val changed = normalizeActiveWorkoutStructureInSession(sessionId, now)
+        if (changed) bumpWorkoutRevision(sessionId, now)
+        structureReceipt(sessionId, before.fingerprint, changed, previousLayout.takeIf { changed })
     }
 
     override suspend fun createGroup(
-        sessionId: Long,
+        boundary: WorkoutStructureBoundary,
+        requestedGroupUuid: String,
         name: String,
         type: WorkoutGroupType,
-        workoutExerciseIds: List<Long>,
-    ): Long = database.withTransaction {
-        val session = requireNotNull(dao.getSession(sessionId)) { "Workout no longer exists" }
-        require(session.state == WorkoutSessionState.Active.name) { "This workout is no longer active" }
-        require(workoutExerciseIds.size >= 2) { "A group needs at least two exercises" }
-        require(workoutExerciseIds.distinct().size == workoutExerciseIds.size) {
-            "Choose each exercise only once"
-        }
-        val now = nowMillis()
-        val ordered = dao.getWorkoutExercises(sessionId)
-            .filter { it.outcome == WorkoutExerciseOutcome.Active.name }
-            .sortedWith(compareBy({ it.position }, { it.id }))
-        val requestedIds = workoutExerciseIds.toSet()
-        val requestedMembers = ordered.filter { it.id in requestedIds }
-        require(requestedMembers.size == requestedIds.size) { "Exercise is not in this workout" }
+        workoutExerciseUuids: List<String>,
+    ): WorkoutStructureMutationReceipt = database.withTransaction {
+        require(requestedGroupUuid.isNotBlank()) { "Group identity is missing" }
         val requestedName = name.trim()
         val normalizedName = requestedName
             .takeIf { candidate ->
                 candidate.isNotBlank() && WorkoutGroupType.entries.none { candidate.equals(it.name, ignoreCase = true) }
             }
             ?: type.name
+        val boundarySession = requireNotNull(dao.getSession(boundary.sessionId)) { "Workout no longer exists" }
+        require(boundarySession.uuid == boundary.sessionUuid && boundarySession.state == WorkoutSessionState.Active.name) {
+            "This workout is no longer the active workout"
+        }
+        dao.getWorkoutGroups(boundary.sessionId).firstOrNull { it.uuid == requestedGroupUuid }?.let { existing ->
+            val memberUuids = dao.getWorkoutExercises(boundary.sessionId)
+                .filter { it.groupId == existing.id }.map { it.uuid }.toSet()
+            require(existing.type == type.name && existing.name == normalizedName && memberUuids == workoutExerciseUuids.toSet()) {
+                "This group request conflicts with a newer workout change"
+            }
+            return@withTransaction structureReceipt(boundary.sessionId, boundary.fingerprint, false, targetUuid = existing.uuid)
+        }
+        val session = requireExactStructure(boundary)
+        require(workoutExerciseUuids.size >= 2) { "A group needs at least two exercises" }
+        require(workoutExerciseUuids.distinct().size == workoutExerciseUuids.size) {
+            "Choose each exercise only once"
+        }
+        val previousLayout = currentWorkoutLayout(session)
+        val now = nowMillis()
+        val ordered = dao.getWorkoutExercises(session.id)
+            .filter { it.outcome == WorkoutExerciseOutcome.Active.name }
+            .sortedWith(compareBy({ it.position }, { it.id }))
+        val requestedUuids = workoutExerciseUuids.toSet()
+        val requestedMembers = ordered.filter { it.uuid in requestedUuids }
+        require(requestedMembers.size == requestedUuids.size) { "Exercise is not in this workout" }
         val groupId = dao.insertWorkoutGroup(
             WorkoutGroupEntity(
-                uuid = ids.nextId(),
-                sessionId = sessionId,
+                uuid = requestedGroupUuid,
+                sessionId = session.id,
                 name = normalizedName,
                 type = type.name,
-                position = 0,
+                position = dao.getWorkoutGroups(session.id).size,
                 createdAtMillis = now,
                 updatedAtMillis = now,
             ),
         )
         ordered.forEach { item ->
-            if (item.id in requestedIds && item.groupId != groupId) {
+            if (item.uuid in requestedUuids && item.groupId != groupId) {
                 dao.updateWorkoutExercise(
                     item.copy(groupId = groupId, updatedAtMillis = now),
                 )
             }
         }
-        normalizeWorkoutGroupsInSession(sessionId, now)
+        normalizeActiveWorkoutStructureInSession(session.id, now)
         bumpWorkoutRevision(session.id, now)
-        groupId
+        structureReceipt(session.id, boundary.fingerprint, true, previousLayout, requestedGroupUuid)
     }
 
-    private suspend fun normalizeWorkoutGroupsInSession(sessionId: Long, now: Long) {
-        var ordered = dao.getWorkoutExercises(sessionId)
+    private suspend fun normalizeActiveWorkoutStructureInSession(sessionId: Long, now: Long): Boolean {
+        var changed = false
+        val allPlacements = dao.getWorkoutExercises(sessionId)
+            .sortedWith(compareBy(WorkoutExerciseEntity::position, WorkoutExerciseEntity::id))
+        var ordered = allPlacements
             .filter { it.outcome == WorkoutExerciseOutcome.Active.name }
             .sortedWith(compareBy({ it.position }, { it.id }))
         val groups = dao.getWorkoutGroups(sessionId)
@@ -1461,14 +1881,17 @@ class RoomGymRepository(
         // Clear dangling or singleton membership and delete empty/singleton group records.
         ordered.filter { it.groupId != null && it.groupId !in knownGroupIds }.forEach { member ->
             dao.updateWorkoutExercise(member.copy(groupId = null, updatedAtMillis = now))
+            changed = true
         }
         groups.forEach { group ->
             val members = ordered.filter { it.groupId == group.id }
             if (members.size < 2) {
                 members.forEach { member ->
                     dao.updateWorkoutExercise(member.copy(groupId = null, updatedAtMillis = now))
+                    changed = true
                 }
                 dao.deleteWorkoutGroup(group.id)
+                changed = true
             }
         }
 
@@ -1485,58 +1908,99 @@ class RoomGymRepository(
                 else if (emittedGroups.add(groupId)) addAll(ordered.filter { it.groupId == groupId })
             }
         }
-        normalized.forEachIndexed { index, item ->
+        val activeIterator = normalized.iterator()
+        allPlacements.forEachIndexed { index, slot ->
+            val item = if (slot.outcome == WorkoutExerciseOutcome.Active.name) activeIterator.next() else slot
             if (item.position != index) {
                 dao.updateWorkoutExercise(item.copy(position = index, updatedAtMillis = now))
+                changed = true
             }
         }
+        dao.getWorkoutExercises(sessionId).forEach { placement ->
+            dao.getWorkoutSets(placement.id)
+                .sortedWith(compareBy(WorkoutSetEntity::position, WorkoutSetEntity::id))
+                .forEachIndexed { index, set ->
+                    if (set.position != index) {
+                        dao.updateWorkoutSet(set.copy(position = index, updatedAtMillis = now))
+                        changed = true
+                    }
+                }
+        }
+        val normalizedPlacements = dao.getWorkoutExercises(sessionId)
+        val firstMemberPositionByGroup = normalizedPlacements
+            .filter { it.groupId != null }
+            .groupBy { requireNotNull(it.groupId) }
+            .mapValues { (_, members) -> members.minOf(WorkoutExerciseEntity::position) }
+        dao.getWorkoutGroups(sessionId)
+            .sortedWith(compareBy<WorkoutGroupEntity> { group ->
+                firstMemberPositionByGroup[group.id] ?: Int.MAX_VALUE
+            }.thenBy(WorkoutGroupEntity::id))
+            .forEachIndexed { index, group ->
+                if (group.position != index) {
+                    dao.updateWorkoutGroup(group.copy(position = index, updatedAtMillis = now))
+                    changed = true
+                }
+            }
+        return changed
     }
 
-    override suspend fun addSet(workoutExerciseId: Long, draft: WorkoutSetDraft?): Long =
+    override suspend fun addSet(boundary: WorkoutPlacementMutationBoundary, draft: WorkoutSetDraft?): Long =
         database.withTransaction {
-            val (workoutExercise, session) = requireActivePlacement(workoutExerciseId)
-            val previous = dao.getWorkoutSets(workoutExerciseId)
-                .lastOrNull { it.deletedAtMillis == null }
-                ?: dao.getLatestCompletedSet(
-                    workoutExercise.exerciseId,
-                    workoutExercise.sessionId,
-                    workoutExercise.machineProfileUuidSnapshot,
-                )
-            val effectiveDraft = draft ?: previous?.toDraft()?.copy(
-                planned = false,
-                completed = false,
-                classification = WorkoutSetClassification.Working,
-                workSection = if (dao.getSession(workoutExercise.sessionId)
-                        ?.sourceRoutineProgramKind != RoutineProgramKind.Static.name
-                ) RoutineWorkSection.Optional else RoutineWorkSection.Unspecified,
-                optionalWorkKind = RoutineOptionalWorkKind.None,
-                mainWorkScheme = null,
-                supplementalScheme = null,
-            ) ?: WorkoutSetDraft()
-            val exercise = dao.getExercise(workoutExercise.exerciseId)?.toDomain()
-                ?: error("Exercise no longer exists")
-            val policyExercise = workoutExercise.toDomain().applyPolicySnapshot(exercise)
-            validateWorkoutSetDraft(
-                effectiveDraft,
-                policyExercise.trackingType,
-                workoutExercise.machineLoadTypeSnapshot.takeIf(String::isNotBlank)?.let(MachineLoadType::valueOf),
-                runCatching { LoadInterpretation.valueOf(workoutExercise.loadInterpretationSnapshot) }
-                    .getOrDefault(LoadInterpretation.Total),
-            )
+            val (workoutExercise, session) = requireExactActivePlacement(boundary)
             val now = nowMillis()
-            val newId = dao.insertWorkoutSet(
-                effectiveDraft.toEntity(
-                    uuid = ids.nextId(),
-                    workoutExerciseId = workoutExerciseId,
-                    position = dao.nextSetPosition(workoutExerciseId),
-                    createdAtMillis = now,
-                    completedAtMillis = now.takeIf { effectiveDraft.completed },
-                    workoutExercise = workoutExercise,
-                ).copy(requiredForProgressionSnapshot = false, removalReason = null),
-            )
+            val newId = insertSetForActivePlacement(workoutExercise, session, draft, now)
             bumpWorkoutRevision(session.id, now)
             newId
         }
+
+    private suspend fun insertSetForActivePlacement(
+        workoutExercise: WorkoutExerciseEntity,
+        session: WorkoutSessionEntity,
+        draft: WorkoutSetDraft?,
+        now: Long,
+        requestedSetUuid: String? = null,
+    ): Long {
+        val previous = dao.getWorkoutSets(workoutExercise.id)
+            .lastOrNull { it.deletedAtMillis == null }
+            ?: dao.getLatestCompletedSet(
+                workoutExercise.exerciseId,
+                workoutExercise.sessionId,
+                workoutExercise.machineProfileUuidSnapshot,
+            )
+        val effectiveDraft = draft ?: previous?.toDraft()?.copy(
+            planned = false,
+            completed = false,
+            classification = WorkoutSetClassification.Working,
+            workSection = if (session.sourceRoutineProgramKind != RoutineProgramKind.Static.name) {
+                RoutineWorkSection.Optional
+            } else {
+                RoutineWorkSection.Unspecified
+            },
+            optionalWorkKind = RoutineOptionalWorkKind.None,
+            mainWorkScheme = null,
+            supplementalScheme = null,
+        ) ?: WorkoutSetDraft()
+        val exercise = dao.getExercise(workoutExercise.exerciseId)?.toDomain()
+            ?: error("Exercise no longer exists")
+        val policyExercise = workoutExercise.toDomain().applyPolicySnapshot(exercise)
+        validateWorkoutSetDraft(
+            effectiveDraft,
+            policyExercise.trackingType,
+            workoutExercise.machineLoadTypeSnapshot.takeIf(String::isNotBlank)?.let(MachineLoadType::valueOf),
+            runCatching { LoadInterpretation.valueOf(workoutExercise.loadInterpretationSnapshot) }
+                .getOrDefault(LoadInterpretation.Total),
+        )
+        return dao.insertWorkoutSet(
+            effectiveDraft.toEntity(
+                uuid = requestedSetUuid ?: ids.nextId(),
+                workoutExerciseId = workoutExercise.id,
+                position = dao.nextSetPosition(workoutExercise.id),
+                createdAtMillis = now,
+                completedAtMillis = now.takeIf { effectiveDraft.completed },
+                workoutExercise = workoutExercise,
+            ).copy(requiredForProgressionSnapshot = false, removalReason = null),
+        )
+    }
 
     override suspend fun saveQuickSet(
         id: Long,
@@ -1650,17 +2114,12 @@ class RoomGymRepository(
         )
     }
 
-    override suspend fun updateSet(id: Long, draft: WorkoutSetDraft) = database.withTransaction {
-        val existing = requireNotNull(dao.getWorkoutSet(id)) { "Set no longer exists" }
-        val workoutExercise = dao.getWorkoutExercise(existing.workoutExerciseId)
-            ?: error("Workout exercise no longer exists")
-        val session = requireNotNull(dao.getSession(workoutExercise.sessionId)) { "Workout no longer exists" }
-        if (session.state == WorkoutSessionState.Active.name) {
-            require(workoutExercise.outcome == WorkoutExerciseOutcome.Active.name) {
-                "Workout exercise is no longer active"
-            }
-            require(existing.deletedAtMillis == null) { "This set has already been removed" }
-        }
+    override suspend fun updateSet(
+        boundary: WorkoutSetMutationBoundary,
+        draft: WorkoutSetDraft,
+    ) = database.withTransaction {
+        val (existing, workoutExercise, session) = requireExactSetMutation(boundary, requireActive = false)
+        require(existing.deletedAtMillis == null) { "This Set has already been removed" }
         val exercise = dao.getExercise(workoutExercise.exerciseId)?.toDomain()
             ?: error("Exercise no longer exists")
         val policyExercise = workoutExercise.toDomain().applyPolicySnapshot(exercise)
@@ -1672,8 +2131,7 @@ class RoomGymRepository(
                 .getOrDefault(LoadInterpretation.Total),
         )
         val now = nowMillis()
-        dao.updateWorkoutSet(
-            draft.toEntity(
+        val updated = draft.toEntity(
                 id = existing.id,
                 uuid = existing.uuid,
                 workoutExerciseId = existing.workoutExerciseId,
@@ -1703,21 +2161,22 @@ class RoomGymRepository(
                 prescribedClassificationSnapshot = existing.prescribedClassificationSnapshot,
                 requiredForProgressionSnapshot = existing.requiredForProgressionSnapshot,
                 removalReason = existing.removalReason,
-            ),
-        )
+            )
+        if (updated.copy(updatedAtMillis = existing.updatedAtMillis) == existing) return@withTransaction
+        dao.updateWorkoutSet(updated)
         if (session.state == WorkoutSessionState.Active.name) bumpWorkoutRevision(session.id, now)
     }
 
     override suspend fun setSetCompleted(
-        id: Long,
+        boundary: WorkoutSetMutationBoundary,
         completed: Boolean,
         autoStartRest: Boolean,
         restOverrideSeconds: Int?,
     ) =
         database.withTransaction {
-            val set = requireNotNull(dao.getWorkoutSet(id)) { "Set no longer exists" }
+            val (set, workoutExercise, session) = requireExactSetMutation(boundary)
             require(set.deletedAtMillis == null) { "This set has already been removed" }
-            val (workoutExercise, session) = requireActivePlacement(set.workoutExerciseId)
+            if (set.completed == completed) return@withTransaction
             if (completed) {
                 val exercise = dao.getExercise(workoutExercise.exerciseId)?.toDomain()
                     ?: error("Exercise no longer exists")
@@ -1757,9 +2216,9 @@ class RoomGymRepository(
             bumpWorkoutRevision(session.id, now)
         }
 
-    override suspend fun duplicateSet(id: Long): Long = database.withTransaction {
-        val source = dao.getWorkoutSet(id) ?: error("Set no longer exists")
-        val placement = requireActivePlacement(source.workoutExerciseId)
+    override suspend fun duplicateSet(boundary: WorkoutSetMutationBoundary): Long = database.withTransaction {
+        val (source, workoutExercise, session) = requireExactSetMutation(boundary)
+        require(source.deletedAtMillis == null) { "Removed Sets cannot be duplicated" }
         val now = nowMillis()
         val newId = dao.insertWorkoutSet(
             source.asWorkoutOnlyCopy(
@@ -1769,46 +2228,47 @@ class RoomGymRepository(
                 position = dao.nextSetPosition(source.workoutExerciseId),
                 createdAtMillis = now,
                 updatedAtMillis = now,
-                programmed = placement.second.sourceRoutineProgramKind != RoutineProgramKind.Static.name,
+                programmed = session.sourceRoutineProgramKind != RoutineProgramKind.Static.name,
                 planned = false,
             ),
         )
-        bumpWorkoutRevision(placement.second.id, now)
+        bumpWorkoutRevision(workoutExercise.sessionId, now)
         newId
     }
 
-    override suspend fun deleteSet(id: Long, reason: WorkoutSetRemovalReason) = database.withTransaction {
-        val set = requireNotNull(dao.getWorkoutSet(id)) { "Set no longer exists" }
-        val (_, session) = requireActivePlacement(set.workoutExerciseId)
-        if (set.deletedAtMillis != null) return@withTransaction
+    override suspend fun deleteSet(
+        boundary: WorkoutSetMutationBoundary,
+        reason: WorkoutSetRemovalReason,
+    ): WorkoutStructureMutationReceipt = database.withTransaction {
+        val (set, _, session) = requireExactSetMutation(boundary)
+        require(set.deletedAtMillis == null) { "This Set has already been removed; review its current status" }
+        if (reason == WorkoutSetRemovalReason.Skipped) {
+            require(!set.completed) { "A completed Set cannot be skipped" }
+            require(
+                set.workSectionSnapshot == RoutineWorkSection.Optional.name ||
+                    set.optionalWorkKindSnapshot == RoutineOptionalWorkKind.Joker.name,
+            ) { "Only optional work can be skipped" }
+        }
+        val before = currentWorkoutBoundary(session)
         val now = nowMillis()
         dao.updateWorkoutSet(set.copy(deletedAtMillis = now, removalReason = reason.name, updatedAtMillis = now))
         bumpWorkoutRevision(session.id, now)
+        structureReceipt(session.id, before.fingerprint, true, targetUuid = set.uuid)
     }
 
-    override suspend fun undoDeleteSet(id: Long) = database.withTransaction {
-        val set = requireNotNull(dao.getWorkoutSet(id)) { "Set no longer exists" }
-        val (_, session) = requireActivePlacement(set.workoutExerciseId)
-        if (set.deletedAtMillis == null) return@withTransaction
+    override suspend fun undoDeleteSet(
+        boundary: WorkoutSetMutationBoundary,
+    ): WorkoutStructureMutationReceipt = database.withTransaction {
+        val (set, _, session) = requireExactSetMutation(boundary)
+        require(set.deletedAtMillis != null && set.removalReason != null) {
+            "This Set is no longer in the removed state you reviewed"
+        }
+        val before = currentWorkoutBoundary(session)
         val now = nowMillis()
         dao.updateWorkoutSet(set.copy(deletedAtMillis = null, removalReason = null, updatedAtMillis = now))
         bumpWorkoutRevision(session.id, now)
+        structureReceipt(session.id, before.fingerprint, true, targetUuid = set.uuid)
     }
-
-    override suspend fun reorderSets(workoutExerciseId: Long, idsInOrder: List<Long>) =
-        database.withTransaction {
-            val (_, session) = requireActivePlacement(workoutExerciseId)
-            val active = dao.getWorkoutSets(workoutExerciseId).filter { it.deletedAtMillis == null }
-            require(idsInOrder.distinct().size == idsInOrder.size && idsInOrder.toSet() == active.map { it.id }.toSet()) {
-                "Set order is stale; refresh the workout and try again"
-            }
-            val now = nowMillis()
-            idsInOrder.forEachIndexed { index, id ->
-                val item = requireNotNull(active.firstOrNull { it.id == id })
-                dao.updateWorkoutSet(item.copy(position = index, updatedAtMillis = now))
-            }
-            bumpWorkoutRevision(session.id, now)
-        }
 
     override suspend fun startRestTimer(sessionId: Long, seconds: Int) = database.withTransaction {
         require(seconds > 0) { "Timer duration must be positive" }
@@ -1867,6 +2327,110 @@ class RoomGymRepository(
         expectedDeadlineMillis = expectedDeadlineMillis,
         updatedAtMillis = nowMillis(),
     ) == 1
+
+    private suspend fun currentWorkoutBoundary(session: WorkoutSessionEntity): WorkoutStructureBoundary {
+        val placements = dao.getWorkoutExercises(session.id)
+        val placementIds = placements.mapTo(mutableSetOf(), WorkoutExerciseEntity::id)
+        return workoutStructureBoundary(
+            session = session.toDomain(),
+            workoutExercises = placements.map(WorkoutExerciseEntity::toDomain),
+            groups = dao.getWorkoutGroups(session.id).map(WorkoutGroupEntity::toDomain),
+            sets = placements.flatMap { placement -> dao.getWorkoutSets(placement.id) }
+                .filter { it.workoutExerciseId in placementIds }
+                .map(WorkoutSetEntity::toDomain),
+        )
+    }
+
+    private suspend fun currentWorkoutLayout(session: WorkoutSessionEntity): WorkoutLayoutSnapshot {
+        val placements = dao.getWorkoutExercises(session.id)
+        return workoutLayoutSnapshot(
+            session = session.toDomain(),
+            workoutExercises = placements.map(WorkoutExerciseEntity::toDomain),
+            groups = dao.getWorkoutGroups(session.id).map(WorkoutGroupEntity::toDomain),
+            sets = placements.flatMap { placement -> dao.getWorkoutSets(placement.id) }
+                .map(WorkoutSetEntity::toDomain),
+        )
+    }
+
+    private suspend fun requireExactStructure(boundary: WorkoutStructureBoundary): WorkoutSessionEntity {
+        val session = requireNotNull(dao.getSession(boundary.sessionId)) { "Workout no longer exists" }
+        require(session.state == WorkoutSessionState.Active.name && session.uuid == boundary.sessionUuid) {
+            "This workout is no longer the active workout"
+        }
+        require(currentWorkoutBoundary(session).fingerprint == boundary.fingerprint) {
+            "The workout layout changed. Review the latest exercises and Sets before trying again."
+        }
+        return session
+    }
+
+    private suspend fun requireExactActivePlacement(
+        boundary: WorkoutPlacementMutationBoundary,
+    ): Pair<WorkoutExerciseEntity, WorkoutSessionEntity> {
+        val session = requireExactStructure(boundary.structure)
+        val placement = requireNotNull(dao.getWorkoutExercise(boundary.workoutExerciseId)) {
+            "Workout exercise no longer exists"
+        }
+        val groupUuid = placement.groupId?.let { groupId ->
+            dao.getWorkoutGroups(session.id).firstOrNull { it.id == groupId }?.uuid
+        }
+        require(
+            placement.sessionId == session.id &&
+                placement.uuid == boundary.workoutExerciseUuid &&
+                placement.updatedAtMillis == boundary.workoutExerciseUpdatedAtMillis &&
+                placement.outcome == WorkoutExerciseOutcome.Active.name &&
+                groupUuid == boundary.expectedGroupUuid,
+        ) { "This workout exercise changed. Review it before trying again." }
+        return placement to session
+    }
+
+    private suspend fun requireExactSetMutation(
+        boundary: WorkoutSetMutationBoundary,
+        requireActive: Boolean = true,
+    ): Triple<WorkoutSetEntity, WorkoutExerciseEntity, WorkoutSessionEntity> {
+        val session = requireNotNull(dao.getSession(boundary.sessionId)) { "Workout no longer exists" }
+        require(
+            (!requireActive || session.state == WorkoutSessionState.Active.name) &&
+                session.uuid == boundary.sessionUuid &&
+                session.workoutRevision == boundary.workoutRevision,
+        ) { "The workout changed. Review the latest Set before trying again." }
+        val placement = requireNotNull(dao.getWorkoutExercise(boundary.workoutExerciseId)) {
+            "Workout exercise no longer exists"
+        }
+        require(
+            placement.sessionId == session.id &&
+                placement.uuid == boundary.workoutExerciseUuid &&
+                (!requireActive || placement.outcome == WorkoutExerciseOutcome.Active.name),
+        ) { "This workout exercise changed. Review it before trying again." }
+        val set = requireNotNull(dao.getWorkoutSet(boundary.setId)) { "Set no longer exists" }
+        val removalReason = set.removalReason?.let(WorkoutSetRemovalReason::valueOf)
+        require(
+            set.workoutExerciseId == placement.id &&
+                set.uuid == boundary.setUuid &&
+                set.updatedAtMillis == boundary.setUpdatedAtMillis &&
+                set.deletedAtMillis == boundary.expectedDeletedAtMillis &&
+                removalReason == boundary.expectedRemovalReason,
+        ) { "This Set changed. Review its latest values and status before trying again." }
+        return Triple(set, placement, session)
+    }
+
+    private suspend fun structureReceipt(
+        sessionId: Long,
+        beforeFingerprint: String,
+        changed: Boolean,
+        previousLayout: WorkoutLayoutSnapshot? = null,
+        targetUuid: String? = null,
+    ): WorkoutStructureMutationReceipt {
+        val session = requireNotNull(dao.getSession(sessionId)) { "Workout no longer exists" }
+        return WorkoutStructureMutationReceipt(
+            sessionId = session.id,
+            sessionUuid = session.uuid,
+            changed = changed,
+            beforeFingerprint = beforeFingerprint,
+            afterBoundary = currentWorkoutBoundary(session),
+            previousLayout = previousLayout,
+            targetUuid = targetUuid,
+        )
+    }
 
     private suspend fun requireActivePlacement(workoutExerciseId: Long): Pair<WorkoutExerciseEntity, WorkoutSessionEntity> {
         val placement = requireNotNull(dao.getWorkoutExercise(workoutExerciseId)) {

@@ -2,6 +2,7 @@ package com.whip.app.domain
 
 import java.time.Instant
 import java.time.LocalDate
+import java.security.MessageDigest
 import kotlin.math.max
 
 enum class ExerciseTrackingType(val label: String) {
@@ -701,6 +702,182 @@ data class WorkoutSet(
     /** Null while executable; otherwise explains why the retained snapshot left the workout lane. */
     val removalReason: WorkoutSetRemovalReason? = null,
 )
+
+/**
+ * Identity of the exact active-workout structure a user reviewed before editing it.
+ *
+ * This is deliberately narrower than [WorkoutSession.workoutRevision]: entering load/reps or
+ * completing a set does not invalidate an open layout editor, while adding, removing, grouping,
+ * or reordering work does. The repository recomputes the fingerprint in the same transaction as
+ * the requested mutation, so stale UI can never silently overwrite a newer layout.
+ */
+data class WorkoutStructureBoundary(
+    val sessionId: Long,
+    val sessionUuid: String,
+    val fingerprint: String,
+)
+
+data class WorkoutFinishBoundary(
+    val sessionId: Long,
+    val sessionUuid: String,
+    val workoutRevision: Long,
+)
+
+data class WorkoutSetOrderDraft(
+    val workoutExerciseUuid: String,
+    /** Includes retained tombstones. Invisible historical slots therefore cannot be collapsed. */
+    val setUuidsInOrder: List<String>,
+)
+
+data class WorkoutArrangementDraft(
+    /** Active placements only. Retired historical placements keep their authored slots. */
+    val activeWorkoutExerciseUuidsInOrder: List<String>,
+    val setOrders: List<WorkoutSetOrderDraft>,
+)
+
+data class WorkoutPlacementMutationBoundary(
+    val structure: WorkoutStructureBoundary,
+    val workoutExerciseId: Long,
+    val workoutExerciseUuid: String,
+    val workoutExerciseUpdatedAtMillis: Long,
+    val expectedGroupUuid: String?,
+)
+
+data class WorkoutSetCopyBoundary(
+    val setId: Long,
+    val setUuid: String,
+    val setUpdatedAtMillis: Long,
+)
+
+data class WorkoutExerciseCopyBoundary(
+    val sourceSessionId: Long,
+    val sourceSessionUuid: String,
+    val sourceWorkoutExerciseId: Long,
+    val sourceWorkoutExerciseUuid: String,
+    val sourceWorkoutExerciseUpdatedAtMillis: Long,
+    val sourceSets: List<WorkoutSetCopyBoundary>,
+    val target: WorkoutStructureBoundary?,
+)
+
+data class WorkoutSetMutationBoundary(
+    val sessionId: Long,
+    val sessionUuid: String,
+    val workoutRevision: Long,
+    val workoutExerciseId: Long,
+    val workoutExerciseUuid: String,
+    val setId: Long,
+    val setUuid: String,
+    val setUpdatedAtMillis: Long,
+    val expectedDeletedAtMillis: Long?,
+    val expectedRemovalReason: WorkoutSetRemovalReason?,
+)
+
+data class WorkoutGroupLayoutSnapshot(
+    val uuid: String,
+    val name: String,
+    val type: WorkoutGroupType,
+    val position: Int,
+)
+
+/** Exact, same-session layout used for the single-level Arrange/Grouping Undo action. */
+data class WorkoutLayoutSnapshot(
+    val allWorkoutExerciseUuidsInOrder: List<String>,
+    val groups: List<WorkoutGroupLayoutSnapshot>,
+    val groupUuidByWorkoutExerciseUuid: Map<String, String?>,
+    val setOrders: List<WorkoutSetOrderDraft>,
+)
+
+data class WorkoutStructureMutationReceipt(
+    val sessionId: Long,
+    val sessionUuid: String,
+    val changed: Boolean,
+    val beforeFingerprint: String,
+    val afterBoundary: WorkoutStructureBoundary,
+    val previousLayout: WorkoutLayoutSnapshot? = null,
+    val targetUuid: String? = null,
+)
+
+/**
+ * Canonical structural identity shared by UI review state and transactional persistence checks.
+ * UUIDs, rather than local row ids, make the identity stable across import/restore boundaries.
+ */
+fun workoutStructureBoundary(
+    session: WorkoutSession,
+    workoutExercises: List<WorkoutExercise>,
+    groups: List<WorkoutGroup>,
+    sets: List<WorkoutSet>,
+): WorkoutStructureBoundary {
+    val placements = workoutExercises.filter { it.sessionId == session.id }
+    val placementIds = placements.mapTo(mutableSetOf(), WorkoutExercise::id)
+    val placementUuidById = placements.associate { it.id to it.uuid }
+    val groupUuidById = groups.filter { it.sessionId == session.id }.associate { it.id to it.uuid }
+    val canonical = buildString {
+        appendCanonicalPart(session.uuid)
+        groups.asSequence().filter { it.sessionId == session.id }.sortedBy(WorkoutGroup::uuid).forEach { group ->
+            appendCanonicalPart("group")
+            appendCanonicalPart(group.uuid)
+            appendCanonicalPart(group.name)
+            appendCanonicalPart(group.type.name)
+            appendCanonicalPart(group.position.toString())
+        }
+        placements.sortedBy(WorkoutExercise::uuid).forEach { placement ->
+            appendCanonicalPart("placement")
+            appendCanonicalPart(placement.uuid)
+            appendCanonicalPart(placement.position.toString())
+            appendCanonicalPart(placement.outcome.name)
+            appendCanonicalPart(placement.groupId?.let(groupUuidById::get).orEmpty())
+            appendCanonicalPart(placement.replacementWorkoutExerciseUuid.orEmpty())
+        }
+        sets.asSequence().filter { it.workoutExerciseId in placementIds }.sortedBy(WorkoutSet::uuid).forEach { set ->
+            appendCanonicalPart("set")
+            appendCanonicalPart(set.uuid)
+            appendCanonicalPart(requireNotNull(placementUuidById[set.workoutExerciseId]))
+            appendCanonicalPart(set.position.toString())
+            appendCanonicalPart((set.deletedAtMillis != null).toString())
+            appendCanonicalPart(set.removalReason?.name.orEmpty())
+        }
+    }
+    val fingerprint = MessageDigest.getInstance("SHA-256")
+        .digest(canonical.toByteArray(Charsets.UTF_8))
+        .joinToString(separator = "") { byte ->
+            (byte.toInt() and 0xff).toString(16).padStart(2, '0')
+        }
+    return WorkoutStructureBoundary(session.id, session.uuid, fingerprint)
+}
+
+fun workoutLayoutSnapshot(
+    session: WorkoutSession,
+    workoutExercises: List<WorkoutExercise>,
+    groups: List<WorkoutGroup>,
+    sets: List<WorkoutSet>,
+): WorkoutLayoutSnapshot {
+    val placements = workoutExercises.filter { it.sessionId == session.id }
+        .sortedWith(compareBy(WorkoutExercise::position, WorkoutExercise::uuid))
+    val placementIds = placements.mapTo(mutableSetOf(), WorkoutExercise::id)
+    val sessionGroups = groups.filter { it.sessionId == session.id }
+    val groupUuidById = sessionGroups.associate { it.id to it.uuid }
+    return WorkoutLayoutSnapshot(
+        allWorkoutExerciseUuidsInOrder = placements.map(WorkoutExercise::uuid),
+        groups = sessionGroups.sortedWith(compareBy(WorkoutGroup::position, WorkoutGroup::uuid)).map { group ->
+            WorkoutGroupLayoutSnapshot(group.uuid, group.name, group.type, group.position)
+        },
+        groupUuidByWorkoutExerciseUuid = placements.associate { placement ->
+            placement.uuid to placement.groupId?.let(groupUuidById::get)
+        },
+        setOrders = placements.map { placement ->
+            WorkoutSetOrderDraft(
+                placement.uuid,
+                sets.asSequence().filter { it.workoutExerciseId == placement.id }
+                    .sortedWith(compareBy(WorkoutSet::position, WorkoutSet::uuid))
+                    .map(WorkoutSet::uuid).toList(),
+            )
+        },
+    )
+}
+
+private fun StringBuilder.appendCanonicalPart(value: String) {
+    append(value.length).append(':').append(value).append('|')
+}
 
 data class WorkoutSummary(
     val exerciseCount: Int,

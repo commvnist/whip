@@ -392,7 +392,7 @@ class RoutineRepositoryTest {
             gym.setWorkoutExerciseMachine(placement.id, originalMachineId)
         }.exceptionOrNull()
         assertTrue(locked is IllegalArgumentException)
-        assertTrue(locked?.message.orEmpty().contains("first set is completed"))
+        assertTrue(locked?.message.orEmpty().contains("after a set is completed"))
     }
 
     @Test
