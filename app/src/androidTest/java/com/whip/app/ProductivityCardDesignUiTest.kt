@@ -20,6 +20,7 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -715,6 +716,52 @@ class ProductivityCardDesignUiTest {
             assertTrue(timerRequested)
             assertTrue(undoSkipRequested)
         }
+    }
+
+    @Test
+    fun compactPausedAndOffScheduleHabitsRemoveAccidentalQuickActions() {
+        val date = LocalDate.of(2026, 8, 24)
+        var quickActions = 0
+        val paused = sampleHabit(date).copy(id = 16, name = "Paused medication", paused = true)
+        val offSchedule = sampleHabit(date).copy(
+            id = 17,
+            name = "Weekend walk",
+            trackingMode = HabitTrackingMode.Count,
+            comparison = TargetComparison.AtLeast,
+            targetMin = 1.0,
+        )
+
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                CompositionLocalProvider(LocalCompactItemLayout provides true) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        HabitProgressCard(
+                            item = HabitDayProgress(paused, date, false, 0.0, null, false, emptyList(), 3, 0.8, dayState = HabitDayState.Paused),
+                            onOpen = {}, onEdit = {}, onQuick = { quickActions++ }, onDecrement = {}, onUndo = {}, onUndoSkip = {},
+                            onChecklist = { _, _, _, _ -> },
+                        )
+                        HabitProgressCard(
+                            item = HabitDayProgress(offSchedule, date, false, 0.0, null, false, emptyList(), 3, 0.8, dayState = HabitDayState.NotScheduled),
+                            onOpen = {}, onEdit = {}, onQuick = { quickActions++ }, onDecrement = {}, onUndo = {}, onUndoSkip = {},
+                            onChecklist = { _, _, _, _ -> },
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithText("Paused · no check-in expected").assertIsDisplayed()
+        compose.onNodeWithText("Not scheduled today").assertIsDisplayed()
+        compose.onAllNodesWithTag("habit-primary-action-16", useUnmergedTree = true).assertCountEquals(0)
+        compose.onAllNodesWithTag("habit-primary-action-17", useUnmergedTree = true).assertCountEquals(0)
+        compose.onNodeWithTag("habit-expand-16", useUnmergedTree = true).performClick()
+        compose.onNodeWithText("Paused · no check-in is expected.", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("habit-expand-17", useUnmergedTree = true).performScrollTo().performClick()
+        compose.onNodeWithText("Not scheduled today. Open details", substring = true).assertIsDisplayed()
+        compose.runOnIdle { assertEquals(0, quickActions) }
     }
 
     @Test

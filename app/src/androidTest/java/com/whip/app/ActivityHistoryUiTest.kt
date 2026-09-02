@@ -48,11 +48,13 @@ import com.whip.app.ui.HabitUiState
 import com.whip.app.ui.HabitViewModel
 import com.whip.app.ui.HabitValueDialog
 import com.whip.app.ui.LocalWhipDialogPlacement
+import com.whip.app.ui.LocalWhipZone
 import com.whip.app.ui.WhipDialogPlacement
 import com.whip.app.ui.theme.WhipTheme
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import org.junit.Assert.assertEquals
@@ -324,6 +326,88 @@ class ActivityHistoryUiTest {
         compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
         compose.onAllNodesWithTag("entity-inspector-action-skip-${skippedDate.toEpochDay()}")
             .assertCountEquals(0)
+    }
+
+    @Test
+    fun scheduledPauseHasNoMisleadingCheckInAction() {
+        var quickRequested = false
+        val paused = progress(HabitTrackingMode.CheckOff).copy(
+            scheduled = false,
+            dayState = HabitDayState.Paused,
+        )
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                HabitActionsDialog(
+                    item = paused,
+                    onDismiss = {}, onEdit = {}, onDuplicate = {}, onPin = {}, onPause = {},
+                    onSchedulePause = {}, onQuick = { quickRequested = true }, onSkip = {}, onUndoSkip = {},
+                    onUndoHistoricalSkip = {}, logs = emptyList(), skips = emptyList(), pauses = emptyList(),
+                    onAddHistoricalLog = {}, onEditLog = {}, onEditPause = {}, onArchive = {}, onDelete = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Paused").assertIsDisplayed()
+        compose.onNodeWithText("Paused today. No check-in is expected.").assertIsDisplayed()
+        compose.onAllNodesWithTag("entity-inspector-primary-check-in").assertCountEquals(0)
+        compose.onAllNodesWithTag("entity-inspector-primary-check-in-outside-schedule").assertCountEquals(0)
+        compose.runOnIdle { assertEquals(false, quickRequested) }
+    }
+
+    @Test
+    fun offScheduleLoggingRequiresAnExplicitInspectorAction() {
+        var quickRequested = false
+        val offSchedule = progress(HabitTrackingMode.Count).copy(
+            scheduled = false,
+            dayState = HabitDayState.NotScheduled,
+        )
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                HabitActionsDialog(
+                    item = offSchedule,
+                    onDismiss = {}, onEdit = {}, onDuplicate = {}, onPin = {}, onPause = {},
+                    onSchedulePause = {}, onQuick = { quickRequested = true }, onSkip = {}, onUndoSkip = {},
+                    onUndoHistoricalSkip = {}, logs = emptyList(), skips = emptyList(), pauses = emptyList(),
+                    onAddHistoricalLog = {}, onEditLog = {}, onEditPause = {}, onArchive = {}, onDelete = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("entity-inspector-primary-check-in-outside-schedule")
+            .assertIsDisplayed()
+            .performClick()
+        compose.runOnIdle { assertEquals(true, quickRequested) }
+    }
+
+    @Test
+    fun timerStartTimeUsesWhipsConfiguredZone() {
+        val zone = ZoneId.of("Asia/Tokyo")
+        val startedAt = Instant.parse("2026-08-30T01:30:00Z")
+        val expectedTime = startedAt.atZone(zone).toLocalTime()
+            .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+        val timer = progress(HabitTrackingMode.Duration).copy(
+            habit = habit(HabitTrackingMode.Duration).copy(
+                dimension = UnitDimension.Duration,
+                unitId = "second",
+                timerStartedAtMillis = startedAt.toEpochMilli(),
+                timerSessionId = "session-1",
+            ),
+        )
+        compose.setContent {
+            CompositionLocalProvider(LocalWhipZone provides zone) {
+                WhipTheme(darkTheme = true, dynamicColor = false) {
+                    HabitActionsDialog(
+                        item = timer,
+                        onDismiss = {}, onEdit = {}, onDuplicate = {}, onPin = {}, onPause = {},
+                        onSchedulePause = {}, onQuick = {}, onSkip = {}, onUndoSkip = {},
+                        onUndoHistoricalSkip = {}, logs = emptyList(), skips = emptyList(), pauses = emptyList(),
+                        onAddHistoricalLog = {}, onEditLog = {}, onEditPause = {}, onArchive = {}, onDelete = {},
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithText("Timer started $expectedTime", substring = true).assertIsDisplayed()
     }
 
     @Test

@@ -4863,24 +4863,24 @@ private fun HomeContent(
     val homePinnedTasks = homeTasks.filter { it.task.pinned }
     val homeOtherTasks = homeTasks.filterNot { it.task.pinned }
     val homeHabitSections = habitState.today.dailyHabitSections()
-    val homePinnedHabits = homeHabitSections.remaining.filter { it.habit.pinned }
-    val homeOtherHabits = homeHabitSections.remaining.filterNot { it.habit.pinned }
+    val homePinnedHabits = homeHabitSections.actionNeeded.filter { it.habit.pinned }
+    val homeOtherHabits = homeHabitSections.actionNeeded.filterNot { it.habit.pinned }
     val homeGoals = pinnedHomeSummary(goalState.active, limit = 3) { it.goal.pinned }
     val homePinnedGoals = homeGoals.filter { it.goal.pinned }
     val homeOtherGoals = homeGoals.filterNot { it.goal.pinned }
     val pinnedRoutines = gymState.routines.filter { it.pinned }
     val gymHomeCount = gymHomeItemCount(gymState.activeSession != null, pinnedRoutines.size)
-    val homeDoneHabitIds = homeHabitSections.done.mapTo(linkedSetOf()) { it.habit.id }
+    val homeFinishedHabitIds = homeHabitSections.finished.mapTo(linkedSetOf()) { it.habit.id }
     val compactItemExpansionState = LocalCompactItemExpansionState.current
-    var homeDoneExpanded by rememberSaveable(habitState.currentDate.toEpochDay()) {
+    var homeFinishedExpanded by rememberSaveable(habitState.currentDate.toEpochDay()) {
         mutableStateOf(false)
     }
-    var knownHomeDoneHabitIds by remember(habitState.currentDate) { mutableStateOf(homeDoneHabitIds) }
+    var knownHomeFinishedHabitIds by remember(habitState.currentDate) { mutableStateOf(homeFinishedHabitIds) }
     var homeCompletionTrackingReady by remember(habitState.currentDate) { mutableStateOf(false) }
-    LaunchedEffect(habitState.loading, homeDoneHabitIds, habitState.currentDate, compactItemExpansionState) {
+    LaunchedEffect(habitState.loading, homeFinishedHabitIds, habitState.currentDate, compactItemExpansionState) {
         if (habitState.loading) return@LaunchedEffect
         if (homeCompletionTrackingReady) {
-            (homeDoneHabitIds - knownHomeDoneHabitIds).forEach { habitId ->
+            (homeFinishedHabitIds - knownHomeFinishedHabitIds).forEach { habitId ->
                 compactItemExpansionState?.collapse(
                     habitCompactExpansionKey(habitId, habitState.currentDate),
                 )
@@ -4888,7 +4888,7 @@ private fun HomeContent(
         } else {
             homeCompletionTrackingReady = true
         }
-        knownHomeDoneHabitIds = homeDoneHabitIds
+        knownHomeFinishedHabitIds = homeFinishedHabitIds
     }
     val visibleHomeSections = appSettings.visibleHomeSections()
     val allVisibleHomeDomainsSettled = visibleHomeSections.all { section ->
@@ -5047,7 +5047,7 @@ private fun HomeContent(
                     }
                 }
                 HomeSection.Habits -> {
-                    item { SectionHeading("Habits", homeHabitSections.remaining.size, onOpenHabits) }
+                    item { SectionHeading("Habits", homeHabitSections.actionNeeded.size, onOpenHabits) }
                     if (habitState.loading) item { HomeDomainLoadingStatus("Habits") }
                     else if (habitState.errorMessage != null) item {
                         HomeDomainLoadNotice("Habits", habitState.errorMessage, onRetryHabitLoading)
@@ -5091,15 +5091,15 @@ private fun HomeContent(
                                 lowPressureMode = appSettings.lowPressureMode,
                             )
                         }
-                        if (homeHabitSections.done.isNotEmpty()) {
+                        if (homeHabitSections.finished.isNotEmpty()) {
                             item {
-                                DoneHabitsDisclosure(
-                                    count = homeHabitSections.done.size,
-                                    expanded = homeDoneExpanded,
-                                    onToggle = { homeDoneExpanded = !homeDoneExpanded },
+                                FinishedHabitsDisclosure(
+                                    count = homeHabitSections.finished.size,
+                                    expanded = homeFinishedExpanded,
+                                    onToggle = { homeFinishedExpanded = !homeFinishedExpanded },
                                 )
                             }
-                            if (homeDoneExpanded) items(homeHabitSections.done, key = { "home-habit-${it.habit.id}" }) { habit ->
+                            if (homeFinishedExpanded) items(homeHabitSections.finished, key = { "home-habit-${it.habit.id}" }) { habit ->
                                 HabitProgressCard(
                                     item = habit,
                                     onOpen = { onOpenHabit(habit) },

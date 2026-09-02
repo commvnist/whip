@@ -267,3 +267,15 @@
 - Related: `FND-20260831-012`, `DEC-20260831-013`.
 - Verification: `VER-20260902-003`.
 - Status: Implemented and fully verified; commit/push is the chunk handoff. Physical release remains deferred while the whole-product goal continues.
+
+### IMP-20260902-004 — Truthful Habit availability and Today resolution
+
+- Paused and off-schedule cards now use explicit availability summaries and suppress ordinary one-tap check-in, numeric, checklist, flexible-schedule, and target controls. Expanded cards explain how to resume/edit a pause or deliberately log outside the schedule. Active timer Stop/Review remains reachable even if a legacy or unusual state is otherwise unavailable.
+- Scheduled-pause inspectors no longer offer a misleading primary check-in. Off-schedule inspectors use mode-specific “Outside Schedule” actions so exceptions are intentional and understandable. Timer start time now follows Whip's configured `LocalWhipZone`.
+- Today and Home now classify completed and skipped Habits as “Finished for Today,” collapse them behind a review/undo disclosure, and exclude them from the action-needed Home count. Skip remains neutral and historically distinct from completion; undo continues to restore it to the attention queue.
+- Added deterministic classification/status tests, focused Compose card and inspector tests, configured-zone coverage, and updated the full skip/history/insights/undo journey to require correct finished placement.
+- Compatibility: UI and derived-presentation logic only. No persistence, schema, migration, backup, scheduling, timer-ledger, check-in, pause, skip, or historical-data format changed.
+- Important files: `HabitScreens.kt`, `WhipApp.kt`, `CompactCollectionStatusTest.kt`, `ProductivityCardDesignUiTest.kt`, `ActivityHistoryUiTest.kt`, and `HabitSkipJourneyE2ETest.kt`.
+- Related: `FND-20260902-002`, `DEC-20260902-003`.
+- Verification: `VER-20260902-004`.
+- Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.

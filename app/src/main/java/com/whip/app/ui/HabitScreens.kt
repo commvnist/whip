@@ -117,7 +117,6 @@ import com.whip.app.domain.successfulPeriodOutcomeDates
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.temporal.TemporalAdjusters
@@ -700,6 +699,8 @@ internal fun HabitDayProgress.compactCollectionStatus(): String {
     val streakLabel = "$streak $streakUnit streak"
     return when {
         dayState == HabitDayState.Skipped -> "Skipped · streak protected"
+        habit.paused || dayState == HabitDayState.Paused -> "Paused · no check-in expected"
+        dayState == HabitDayState.NotScheduled -> "Not scheduled today"
         habit.sourceMetricId != null -> "Synced · Health Connect"
         habit.trackingMode == HabitTrackingMode.Checklist -> {
             val completedItems = checklistItems.count { it.second }
@@ -856,6 +857,8 @@ fun HabitProgressCard(
     val timerElapsedSeconds by rememberHabitTimerElapsedSeconds(habit)
     val compact = LocalCompactItemLayout.current
     val skipped = item.dayState == HabitDayState.Skipped
+    val unavailableForCheckIn = habit.timerStartedAtMillis == null &&
+        (habit.paused || item.dayState in setOf(HabitDayState.Paused, HabitDayState.NotScheduled))
     val disclosure = rememberCompactItemDisclosure(itemKey = habitCompactExpansionKey(habit.id, item.date))
     var showAllQuickValues by rememberSaveable(habit.id) { mutableStateOf(false) }
     val streakUnit = when (habit.scheduleType) {
@@ -874,6 +877,7 @@ fun HabitProgressCard(
     } else item.compactCollectionStatus()
     val primaryAction: (@Composable () -> Unit)? = when {
         reorderMode -> null
+        unavailableForCheckIn -> null
         skipped -> if (compact) {{ ItemPrimaryTextButton("Undo", onUndoSkip) }} else {{ Text("Skipped", color = MaterialTheme.whipColors.warning, fontWeight = FontWeight.SemiBold) }}
         habit.sourceMetricId != null -> if (compact) null else {{ Text("Synced", color = MaterialTheme.whipColors.success, fontWeight = FontWeight.SemiBold) }}
         habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) -> {{
@@ -1029,7 +1033,18 @@ fun HabitProgressCard(
                     }
                 }
             }
-            if (!skipped && habit.sourceMetricId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
+            if (unavailableForCheckIn) {
+                Text(
+                    if (habit.paused || item.dayState == HabitDayState.Paused) {
+                        "Paused · no check-in is expected. Open details to resume or edit pause dates."
+                    } else {
+                        "Not scheduled today. Open details if you intentionally want to log outside the schedule."
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (!skipped && !unavailableForCheckIn && habit.sourceMetricId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
                 val quickValues = (listOf(habit.quickIncrement) + habit.quickActions)
                     .filter { it.isFinite() && it > 0.0 }
                     .distinct()
@@ -1066,7 +1081,7 @@ fun HabitProgressCard(
                     WhipTextButton(enabled = canUndo, onClick = onUndo) { Text("Undo") }
                 }
             }
-            if (!skipped && habit.trackingMode == HabitTrackingMode.Checklist) {
+            if (!skipped && !unavailableForCheckIn && habit.trackingMode == HabitTrackingMode.Checklist) {
                 item.checklistItems.forEach { (checklistItem, completed) ->
                     Row(
                         modifier = Modifier
@@ -1119,7 +1134,7 @@ fun HabitProgressCard(
                     )
                 }
             }
-            if (!skipped && item.flexibleScheduleTarget != null && item.flexibleScheduleProgress != null) {
+            if (!skipped && !unavailableForCheckIn && item.flexibleScheduleTarget != null && item.flexibleScheduleProgress != null) {
                 val target = item.flexibleScheduleTarget
                 val fraction = (item.flexibleScheduleProgress.toFloat() / target).coerceIn(0f, 1f)
                 LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
@@ -1129,6 +1144,7 @@ fun HabitProgressCard(
                 )
             } else if (
                 !skipped &&
+                !unavailableForCheckIn &&
                 habit.trackingMode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) &&
                 habit.comparison != TargetComparison.None
             ) {
@@ -1141,6 +1157,7 @@ fun HabitProgressCard(
                 )
             } else if (
                 !skipped &&
+                !unavailableForCheckIn &&
                 item.value != 0.0 &&
                 habit.trackingMode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)
             ) {
@@ -1176,31 +1193,34 @@ fun quickHabitAction(item: HabitDayProgress, vm: HabitViewModel, openNumeric: ()
 }
 
 internal data class DailyHabitSections(
-    val remaining: List<HabitDayProgress>,
-    val done: List<HabitDayProgress>,
+    val actionNeeded: List<HabitDayProgress>,
+    val finished: List<HabitDayProgress>,
 )
 
 internal fun HabitDayProgress.isDoneForToday(): Boolean =
     dayState == HabitDayState.Completed || successful == true
 
+internal fun HabitDayProgress.isFinishedForToday(): Boolean =
+    dayState == HabitDayState.Skipped || isDoneForToday()
+
 internal fun List<HabitDayProgress>.dailyHabitSections(): DailyHabitSections {
-    val (done, remaining) = partition(HabitDayProgress::isDoneForToday)
-    return DailyHabitSections(remaining = remaining, done = done)
+    val (finished, actionNeeded) = partition(HabitDayProgress::isFinishedForToday)
+    return DailyHabitSections(actionNeeded = actionNeeded, finished = finished)
 }
 
 internal fun habitCompactExpansionKey(habitId: Long, date: LocalDate): String =
     "habit:$habitId:${date.toEpochDay()}"
 
 @Composable
-internal fun DoneHabitsDisclosure(
+internal fun FinishedHabitsDisclosure(
     count: Int,
     expanded: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     DisclosureRow(
-        title = "Done ($count)",
-        supportingText = "Completed today · expand to review or undo.",
+        title = "Finished for Today ($count)",
+        supportingText = "Completed or skipped · expand to review or undo.",
         expanded = expanded,
         onClick = onToggle,
         modifier = modifier.testTag("habit-done-disclosure"),
@@ -1238,18 +1258,18 @@ private fun HabitList(
     var manageOrder by rememberSaveable { mutableStateOf(false) }
     var toolsExpanded by rememberSaveable { mutableStateOf(false) }
     val sections = if (separateCompleted) progress.dailyHabitSections() else DailyHabitSections(progress, emptyList())
-    val doneIds = sections.done.mapTo(linkedSetOf()) { it.habit.id }
+    val finishedIds = sections.finished.mapTo(linkedSetOf()) { it.habit.id }
     val dateKey = progress.firstOrNull()?.date?.toEpochDay() ?: Long.MIN_VALUE
     val compactExpansionState = LocalCompactItemExpansionState.current
-    var doneExpanded by rememberSaveable(title, dateKey) {
+    var finishedExpanded by rememberSaveable(title, dateKey) {
         mutableStateOf(false)
     }
-    var knownDoneIds by remember(title, dateKey) { mutableStateOf(doneIds) }
-    LaunchedEffect(doneIds, dateKey, compactExpansionState) {
-        (doneIds - knownDoneIds).forEach { habitId ->
+    var knownFinishedIds by remember(title, dateKey) { mutableStateOf(finishedIds) }
+    LaunchedEffect(finishedIds, dateKey, compactExpansionState) {
+        (finishedIds - knownFinishedIds).forEach { habitId ->
             compactExpansionState?.collapse(habitCompactExpansionKey(habitId, LocalDate.ofEpochDay(dateKey)))
         }
-        knownDoneIds = doneIds
+        knownFinishedIds = finishedIds
     }
     LaunchedEffect(reorderRequested, onReorder) {
         if (reorderRequested && onReorder != null) {
@@ -1326,18 +1346,18 @@ private fun HabitList(
                 onPrimaryAction = onTemplates,
             )
         }
-        if (separateCompleted && sections.remaining.isEmpty() && sections.done.isNotEmpty()) item {
+        if (separateCompleted && sections.actionNeeded.isEmpty() && sections.finished.isNotEmpty()) item {
             WhipEmptyState(
-                title = "All Done for Today",
-                supportingText = "Your completed habits remain below if you need to review or undo one.",
+                title = "All Set for Today",
+                supportingText = "Completed and skipped Habits remain below if you need to review or undo one.",
             )
         }
-        items(sections.remaining, key = { it.habit.id }) { item ->
-            val index = sections.remaining.indexOfFirst { it.habit.id == item.habit.id }
+        items(sections.actionNeeded, key = { it.habit.id }) { item ->
+            val index = sections.actionNeeded.indexOfFirst { it.habit.id == item.habit.id }
             Column {
                 if (
                     manageOrder &&
-                    (index == 0 || sections.remaining[index - 1].habit.pinned != item.habit.pinned)
+                    (index == 0 || sections.actionNeeded[index - 1].habit.pinned != item.habit.pinned)
                 ) {
                     Text(
                         if (item.habit.pinned) "Pinned Habits" else "Other Habits",
@@ -1364,7 +1384,7 @@ private fun HabitList(
                     )
                 }
                 if (manageOrder && onReorder != null) {
-                    val partition = sections.remaining.filter { it.habit.pinned == item.habit.pinned }
+                    val partition = sections.actionNeeded.filter { it.habit.pinned == item.habit.pinned }
                     val partitionIndex = partition.indexOfFirst { it.habit.id == item.habit.id }
                     val reorderInteraction = rememberWhipReorderInteractionState()
                     Row(
@@ -1388,7 +1408,7 @@ private fun HabitList(
                             onMove = { delta ->
                                 val moved = moveListItem(partition, partitionIndex, delta)
                                 val iterator = moved.iterator()
-                                onReorder(sections.remaining.map { current ->
+                                onReorder(sections.actionNeeded.map { current ->
                                     if (current.habit.pinned == item.habit.pinned) iterator.next().habit.id else current.habit.id
                                 })
                             },
@@ -1398,15 +1418,15 @@ private fun HabitList(
                 } else card()
             }
         }
-        if (!manageOrder && sections.done.isNotEmpty()) {
+        if (!manageOrder && sections.finished.isNotEmpty()) {
             item {
-                DoneHabitsDisclosure(
-                    count = sections.done.size,
-                    expanded = doneExpanded,
-                    onToggle = { doneExpanded = !doneExpanded },
+                FinishedHabitsDisclosure(
+                    count = sections.finished.size,
+                    expanded = finishedExpanded,
+                    onToggle = { finishedExpanded = !finishedExpanded },
                 )
             }
-            if (doneExpanded) items(sections.done, key = { it.habit.id }) { item ->
+            if (finishedExpanded) items(sections.finished, key = { it.habit.id }) { item ->
                 HabitProgressCard(
                     item = item,
                     onOpen = { onOpen(item) },
@@ -2693,6 +2713,7 @@ internal fun HabitActionsDialog(
     mutationSaving: Boolean = false,
     mutationError: String? = null,
 ) {
+    val activeZoneId = LocalWhipZone.current
     var visibleLogs by rememberSaveable(item.habit.id) { mutableIntStateOf(8) }
     val timerElapsedSeconds by rememberHabitTimerElapsedSeconds(item.habit)
     var section by rememberSaveable(item.habit.id) {
@@ -2713,7 +2734,13 @@ internal fun HabitActionsDialog(
         item.habit.archived -> EntityInspectorPrimaryAction("restore", "Restore", onArchive)
         item.habit.sourceMetricId != null -> null
         item.habit.paused -> EntityInspectorPrimaryAction("resume", "Resume Habit", onPause)
+        item.dayState == HabitDayState.Paused -> null
         item.dayState == HabitDayState.Skipped -> EntityInspectorPrimaryAction("undo-skip", "Undo Today's Skip", onUndoSkip)
+        item.dayState == HabitDayState.NotScheduled -> EntityInspectorPrimaryAction(
+            "check-in-outside-schedule",
+            item.inspectorOutsideScheduleActionLabel(),
+            onQuick,
+        )
         else -> EntityInspectorPrimaryAction("check-in", item.inspectorPrimaryActionLabel(), onQuick)
     }
     EntityInspector(
@@ -2736,7 +2763,7 @@ internal fun HabitActionsDialog(
         legacySectionTagPrefix = "habit-detail-section",
         primaryAction = primaryAction,
         inputBlocked = mutationSaving,
-        inputBlockedLabel = "Saving Habit History",
+        inputBlockedLabel = "Updating Habit",
         content = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -2751,7 +2778,7 @@ internal fun HabitActionsDialog(
                                     item.habit.timerStartedAtMillis != null -> if (item.habit.timerNeedsReview) {
                                         "Timer needs review · ${formatElapsedDuration(timerElapsedSeconds)} estimated."
                                     } else {
-                                        "Timer started ${Instant.ofEpochMilli(requireNotNull(item.habit.timerStartedAtMillis)).atZone(ZoneId.systemDefault()).toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))} · ${formatElapsedDuration(timerElapsedSeconds)} elapsed."
+                                        "Timer started ${Instant.ofEpochMilli(requireNotNull(item.habit.timerStartedAtMillis)).atZone(activeZoneId).toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))} · ${formatElapsedDuration(timerElapsedSeconds)} elapsed."
                                     }
                                     item.habit.archived -> "This habit is archived. Use Restore below to resume check-ins."
                                     item.dayState == HabitDayState.Skipped -> if (lowPressureMode) {
@@ -2990,6 +3017,15 @@ private fun HabitDayProgress.inspectorPrimaryActionLabel(): String = when (habit
     HabitTrackingMode.Checklist -> if (successful == true) "Undo Today's Completion" else "Mark Today Complete"
     HabitTrackingMode.Rating -> "Rate Today"
     HabitTrackingMode.LogOnly -> "Add Entry"
+}
+
+private fun HabitDayProgress.inspectorOutsideScheduleActionLabel(): String = when (habit.trackingMode) {
+    HabitTrackingMode.CheckOff -> "Check In Outside Schedule"
+    HabitTrackingMode.Count, HabitTrackingMode.Decimal -> "Log Today Outside Schedule"
+    HabitTrackingMode.Duration -> "Start Timer Outside Schedule"
+    HabitTrackingMode.Checklist -> "Mark Today Complete Outside Schedule"
+    HabitTrackingMode.Rating -> "Rate Outside Schedule"
+    HabitTrackingMode.LogOnly -> "Add Entry Outside Schedule"
 }
 
 internal fun Habit.todayCheckInTitle(): String = when (trackingMode) {

@@ -54,6 +54,41 @@ class CompactCollectionStatusTest {
     }
 
     @Test
+    fun pausedAndOffScheduleHabitsDescribeAvailabilityInsteadOfLookingPending() {
+        val paused = progress(
+            habit = habit(HabitTrackingMode.CheckOff).copy(paused = true),
+            value = 0.0,
+            successful = false,
+            streak = 4,
+            dayState = HabitDayState.Paused,
+        )
+        val offSchedule = progress(
+            habit = habit(HabitTrackingMode.Count),
+            value = 0.0,
+            successful = false,
+            streak = 4,
+            dayState = HabitDayState.NotScheduled,
+        )
+
+        assertEquals("Paused · no check-in expected", paused.compactCollectionStatus())
+        assertEquals("Not scheduled today", offSchedule.compactCollectionStatus())
+    }
+
+    @Test
+    fun todaySectionsTreatSkippedAndCompletedHabitsAsFinishedButKeepThemDistinct() {
+        val pending = progress(habit(HabitTrackingMode.CheckOff).copy(id = 1), 0.0, false, 0, HabitDayState.Pending)
+        val completed = progress(habit(HabitTrackingMode.CheckOff).copy(id = 2), 1.0, true, 1, HabitDayState.Completed)
+        val skipped = progress(habit(HabitTrackingMode.CheckOff).copy(id = 3), 0.0, false, 1, HabitDayState.Skipped)
+
+        val sections = listOf(pending, completed, skipped).dailyHabitSections()
+
+        assertEquals(listOf(1L), sections.actionNeeded.map { it.habit.id })
+        assertEquals(listOf(2L, 3L), sections.finished.map { it.habit.id })
+        assertEquals(false, skipped.isDoneForToday())
+        assertEquals(true, skipped.isFinishedForToday())
+    }
+
+    @Test
     fun elapsedAndMilestoneGoalsNeverFallBackToMisleadingZeroPercentProgress() {
         val nowMillis = 1_800_000_000_000L
         val elapsed = projection(

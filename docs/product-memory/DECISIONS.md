@@ -328,3 +328,12 @@
 - Rationale: This is narrower and more auditable than a generic timer engine, while providing the ownership and historical guarantees required by a productivity app that can be interrupted, restored, and controlled from widgets.
 - Related: `FND-20260902-001`, `IMP-20260902-002`, `VER-20260902-002`.
 - Status: Accepted and implemented.
+
+### DEC-20260902-003 — Habit Today models action needed, finished, and unavailable as different states
+
+- Context: Completion, skipping, pausing, and an off-schedule date have different historical meanings but all affect whether a user should act today. Treating them as one generic pending/done boolean makes Today counts and quick actions misleading.
+- Decision: A completed or skipped Habit is finished for today's attention queue, while skip remains a distinct neutral historical outcome and never becomes completion. Paused and off-schedule Habits are unavailable for ordinary one-tap check-in and state that no check-in is expected. Intentional outside-schedule logging is exposed only as an explicit inspector action. An unresolved active timer overrides availability filtering so Stop/Review cannot disappear. User-visible time conversion uses `LocalWhipZone`.
+- Rationale: The model stays narrow—no new persistence state or generic workflow engine—while matching what users need to decide at a glance. It prevents accidental history without forbidding deliberate exceptions and preserves truthful skip, completion, pause, and timer semantics.
+- Compatibility: Existing Habit rows, schedules, pauses, skips, check-ins, timer sessions, history, Room schema 41, and backup format 18 are unchanged. The legacy `habit-done-disclosure` test tag remains stable while visible language becomes “Finished for Today.”
+- Related: `FND-20260902-002`, `IMP-20260902-004`, `VER-20260902-004`.
+- Status: Accepted and implemented.

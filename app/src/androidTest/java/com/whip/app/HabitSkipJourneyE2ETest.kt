@@ -86,6 +86,10 @@ class HabitSkipJourneyE2ETest {
                 check(app.habitRepository.logs.first().none { it.habitId == habitId })
                 check(app.measurementRepository.entries.first().none { it.sourceId?.contains("$habitId") == true })
             }
+            compose.onNodeWithText("Finished for Today (1)").assertIsDisplayed()
+            compose.onAllNodesWithTag("habit-card-$habitId").assertCountEquals(0)
+            compose.onNodeWithTag("habit-done-disclosure").performSemanticsAction(SemanticsActions.OnClick)
+            compose.onNodeWithTag("habit-list-Today").performScrollToNode(hasTestTag("habit-card-$habitId"))
             compose.onNodeWithText("Skipped Today · Streak Protected").assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Open habit details for Read Today")
@@ -97,6 +101,7 @@ class HabitSkipJourneyE2ETest {
             selectDestination("habit-destination-Insights")
             compose.onNodeWithText("Last 30 Days: 0 Completed · 1 Skipped · 0 Missed/Below Target").assertIsDisplayed()
             selectDestination("habit-destination-Today")
+            compose.onNodeWithTag("habit-done-disclosure").performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithTag("habit-list-Today").performScrollToNode(hasText("Undo Skip"))
             compose.onNodeWithText("Undo Skip").performSemanticsAction(SemanticsActions.OnClick)
 
