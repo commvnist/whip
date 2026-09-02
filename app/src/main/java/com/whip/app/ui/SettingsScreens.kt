@@ -186,6 +186,7 @@ internal fun SettingsContent(
     innerPadding: PaddingValues,
     viewModel: SettingsViewModel,
     onEditAreas: () -> Unit = {},
+    onEditTags: () -> Unit = {},
     onDataReset: () -> Unit = {},
     selectedSection: SettingsSection? = null,
     onSectionChange: (SettingsSection) -> Unit = {},
@@ -205,8 +206,6 @@ internal fun SettingsContent(
     var healthOutcome by rememberSaveable { mutableStateOf<String?>(null) }
     var healthWarning by rememberSaveable { mutableStateOf<String?>(null) }
     var typedSettingWarning by rememberSaveable { mutableStateOf<String?>(null) }
-    var taxonomyEditKind by rememberSaveable { mutableStateOf<String?>(null) }
-    var taxonomyEditId by rememberSaveable { mutableStateOf<String?>(null) }
     var customEmojiEditorOpen by rememberSaveable { mutableStateOf(false) }
     var customEmojiEditorOriginal by rememberSaveable { mutableStateOf<String?>(null) }
     var diagnosticRefresh by rememberSaveable { mutableIntStateOf(0) }
@@ -1087,40 +1086,18 @@ internal fun SettingsContent(
             }
         }
         item {
-            SettingsHeading("Tags")
-            Text("Tags can describe many facets of an item. Areas remain its single primary home.")
-            if (state.tags.isEmpty()) Text("No tags yet.", style = MaterialTheme.typography.bodySmall)
-            state.tags.forEach { tag ->
-                var tagMenuOpen by rememberSaveable(tag.id) { mutableStateOf(false) }
-                Card(Modifier.fillMaxWidth().padding(top = 6.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 8.dp, bottom = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            "#${tag.name}${if (tag.archived) " · Archived" else ""}",
-                            modifier = Modifier.weight(1f).padding(vertical = 4.dp),
-                        )
-                        WhipOverflowMenu(
-                            label = "Options for #${tag.name}",
-                            expanded = tagMenuOpen,
-                            onExpandedChange = { tagMenuOpen = it },
-                            modifier = Modifier.testTag("tag-menu-${tag.id}"),
-                        ) {
-                            WhipMenuItem("Rename", onClick = {
-                                tagMenuOpen = false
-                                taxonomyEditKind = "Tag"
-                                taxonomyEditId = tag.id
-                            })
-                            WhipMenuItem(
-                                if (tag.archived) "Restore" else "Archive",
-                                onClick = {
-                                    tagMenuOpen = false
-                                    viewModel.setTagArchived(tag.id, !tag.archived)
-                                },
-                            )
-                        }
-                    }
+            Card(Modifier.fillMaxWidth().testTag("settings-tags-summary")) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Tags", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Use flexible labels across Tasks, Habits, Goals, and Tracks while each item keeps one primary Area.")
+                    Text(
+                        "${state.tags.count { !it.archived }} active · ${state.tags.count { it.archived }} archived · ${state.tagUsage.values.sumOf(TagUsageCounts::total)} current references",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    WhipButton(
+                        onClick = onEditTags,
+                        modifier = Modifier.fillMaxWidth().testTag("manage-tags-action"),
+                    ) { Text("Manage Tags") }
                 }
             }
         }
@@ -1908,23 +1885,6 @@ internal fun SettingsContent(
             },
         )
     }
-    taxonomyEditKind?.let { kind ->
-        val id = taxonomyEditId
-        val initialName = if (kind == "Area") state.areas.firstOrNull { it.id == id }?.name
-        else state.tags.firstOrNull { it.id == id }?.name
-        if (id != null && initialName != null) {
-            TaxonomyRenameDialog(
-                kind = kind,
-                initialName = initialName,
-                onDismiss = { taxonomyEditKind = null; taxonomyEditId = null },
-                onSave = { name ->
-                    if (kind == "Area") viewModel.renameArea(id, name) else viewModel.renameTag(id, name)
-                    taxonomyEditKind = null
-                    taxonomyEditId = null
-                },
-            )
-        }
-    }
     }
 }
 
@@ -2112,28 +2072,6 @@ internal fun CustomIdentityEmojiDialog(
                 modifier = Modifier.testTag("custom-emoji-editor-save"),
             ) { Text(if (initial == null) "Add" else "Save") }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
-}
-
-@Composable
-private fun TaxonomyRenameDialog(
-    kind: String,
-    initialName: String,
-    onDismiss: () -> Unit,
-    onSave: (String) -> Unit,
-) {
-    var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
-    PaneAwareAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Rename or Merge $kind") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("$kind name") }, singleLine = true)
-                Text("If this name already exists, Whip merges every matching record into it.", style = MaterialTheme.typography.bodySmall)
-            }
-        },
-        confirmButton = { WhipTextButton(enabled = name.isNotBlank(), onClick = { onSave(name.trim()) }) { Text("Apply Everywhere") } },
         dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }

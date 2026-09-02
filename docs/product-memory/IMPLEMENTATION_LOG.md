@@ -342,3 +342,17 @@
 - Related: `FND-20260831-019`, `FND-20260901-027`, `FND-20260902-007`, `DEC-20260902-008`.
 - Verification: `VER-20260902-009`.
 - Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.
+
+### IMP-20260902-010 — Explicit, cross-domain, archive-correct Tag management
+
+- Added a dedicated full-screen Tag manager with active/archived search, usage counts across Tasks/Habits/Goals/Tracks, explicit Create/Rename/Merge/Archive/Restore flows, in-context saving/error states, archive Undo, and narrow/large-text responsive controls.
+- Added typed request-owned Tag mutation receipts. Drafts and destination choices remain in the initiating dialog on failure; every mutating row/menu action, duplicate submission, and dismissal is disabled only while the exact write is active.
+- Split Rename from Merge in the repository. Both are one Room transaction and now update Track tags as well as Task, Habit, and Goal tags. Merge requires an active destination and removes only the source after every replacement succeeds.
+- Made archive state stable: ordinary taxonomy reconciliation reuses an archived identity without restoring it, while explicit Create/Restore can reactivate the same ID. Item references and searchability remain intact. Active-only Tag suggestions no longer advertise archived labels in Task editing and bulk editing.
+- Rejected comma-containing Tag names at both UI and domain boundaries because comma is the current denormalized persistence separator. Deduplication during replacement now uses locale-stable normalization.
+- Added five repository regressions, four request/usage ViewModel regressions, and seven Compose interaction/accessibility regressions. Preserved final manager, merge, and archive evidence under `artifacts/full-product-audit/2026-09-02/tag-management/`.
+- Compatibility: No Room schema, migration, backup format, Tag ID, entity ID, completion/progress fact, Gym record, or measurement history changed. Archive never rewrites item data; Rename/Merge intentionally updates the selected taxonomy label across saved item references.
+- Important files: `MeasurementDao.kt`, `MeasurementRepository.kt`, `SettingsViewModel.kt`, `SettingsScreens.kt`, `TagManagementDialog.kt`, `TaskEditorRouteHost.kt`, `WhipApp.kt`, `MeasurementTaxonomyRepositoryTest.kt`, `TagMutationViewModelTest.kt`, `TagManagementUiTest.kt`, and `docs/testing.md`.
+- Related: `FND-20260831-019`, `FND-20260901-027`, `FND-20260902-008`, `DEC-20260902-009`.
+- Verification: `VER-20260902-010`.
+- Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.

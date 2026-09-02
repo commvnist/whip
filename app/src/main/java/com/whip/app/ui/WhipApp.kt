@@ -993,6 +993,7 @@ fun WhipScreen(
     var openGymSearchId by rememberSaveable { mutableStateOf<Long?>(null) }
     var reviewOpen by rememberSaveable { mutableStateOf(false) }
     var areaManagerOpen by rememberSaveable { mutableStateOf(false) }
+    var tagManagerOpen by rememberSaveable { mutableStateOf(false) }
     var areaMoveNotice by rememberSaveable { mutableStateOf<String?>(null) }
     var areaMoveRestoreScope by rememberSaveable { mutableStateOf<String?>(null) }
     val homeHabitValueItemIdState: MutableState<Long?> = rememberSaveable { mutableStateOf(null) }
@@ -2240,6 +2241,7 @@ fun WhipScreen(
                         )
                     },
                     areas = settingsState.areas,
+                    knownTags = settingsState.tags.filterNot { it.archived }.map { it.name },
                     areaScope = areaScope,
                     onSelectAreaScope = onSelectAreaScope,
                     onTemporarilySelectAreaScope = onTemporarilySelectAreaScope,
@@ -2399,6 +2401,7 @@ fun WhipScreen(
                     innerPadding,
                     settingsViewModel,
                     onEditAreas = { areaManagerOpen = true },
+                    onEditTags = { tagManagerOpen = true },
                     onDataReset = ::returnToHomeAfterDataReset,
                     selectedSection = settingsSection.takeIf {
                         adaptiveLayout in setOf(WhipAdaptiveLayout.ExpandedDashboard, WhipAdaptiveLayout.BookFold, WhipAdaptiveLayout.TabletopFold) &&
@@ -2421,6 +2424,15 @@ fun WhipScreen(
             viewModel = settingsViewModel,
             paneMaxWidth = dialogPaneWidth,
             onDismiss = { areaManagerOpen = false },
+        )
+    }
+
+    if (tagManagerOpen && settingsViewModel != null) {
+        TagManagementDialog(
+            state = settingsState,
+            viewModel = settingsViewModel,
+            paneMaxWidth = dialogPaneWidth,
+            onDismiss = { tagManagerOpen = false },
         )
     }
 
@@ -5750,6 +5762,7 @@ private fun TaskAreaContent(
     onAddDetails: (String) -> Unit,
     modifier: Modifier = Modifier,
     areas: List<Area> = emptyList(),
+    knownTags: List<String> = emptyList(),
     areaScope: AreaScope = AreaScope.All,
     onSelectAreaScope: (AreaScope) -> Unit = {},
     onTemporarilySelectAreaScope: (AreaScope) -> Unit = {},
@@ -7247,7 +7260,7 @@ private fun TaskAreaContent(
             count = targets.map { it.task.id }.distinct().size,
             modifier = dialogModifier,
             knownAreas = availableAreas,
-            knownTags = availableTags,
+            knownTags = knownTags,
             saving = mutationCoordinator.saving,
             persistenceError = mutationCoordinator.errorMessage ?: if (targetChanged) {
                 "One or more selected Tasks changed. Cancel and select them again."

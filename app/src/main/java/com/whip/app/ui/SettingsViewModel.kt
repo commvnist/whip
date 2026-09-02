@@ -52,6 +52,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.CancellationException
+import java.util.Locale
 import java.util.UUID
 
 enum class ExportKind { Backup, EncryptedBackup, TasksCsv, HabitsCsv, GoalsCsv, GymCsv, TracksCsv }
@@ -69,6 +70,7 @@ data class SettingsUiState(
     val unassignedAreaUsage: AreaUsageCounts = AreaUsageCounts(),
     val taxonomyLoaded: Boolean = false,
     val tags: List<WhipTag> = emptyList(),
+    val tagUsage: Map<String, TagUsageCounts> = emptyMap(),
     val portableBackup: PortableBackupState = PortableBackupState(),
     val encryptedRestorePending: Boolean = false,
 )
@@ -79,6 +81,15 @@ data class AreaUsageCounts(
     val goals: Int = 0,
     val tracks: Int = 0,
     val trackEntries: Int = 0,
+) {
+    val total: Int get() = tasks + habits + goals + tracks
+}
+
+data class TagUsageCounts(
+    val tasks: Int = 0,
+    val habits: Int = 0,
+    val goals: Int = 0,
+    val tracks: Int = 0,
 ) {
     val total: Int get() = tasks + habits + goals + tracks
 }
@@ -114,6 +125,14 @@ data class AreaMutationReceipt(
     val warnings: List<String> = emptyList(),
 )
 
+enum class TagMutationKind { Create, Rename, Merge, Archive, Restore }
+
+data class TagMutationReceipt(
+    val kind: TagMutationKind,
+    val tagId: String,
+    val relatedTagId: String? = null,
+)
+
 enum class HealthMutationKind { Policy, Sync, DeleteLocalCopies }
 
 data class HealthMutationReceipt(
@@ -146,6 +165,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _areaMutationState =
         MutableStateFlow<PersistenceRequestState<AreaMutationReceipt>>(PersistenceRequestState.Idle)
     internal val areaMutationState = _areaMutationState.asStateFlow()
+    private val _tagMutationState =
+        MutableStateFlow<PersistenceRequestState<TagMutationReceipt>>(PersistenceRequestState.Idle)
+    internal val tagMutationState = _tagMutationState.asStateFlow()
     private val _healthMutationState =
         MutableStateFlow<PersistenceRequestState<HealthMutationReceipt>>(PersistenceRequestState.Idle)
     internal val healthMutationState = _healthMutationState.asStateFlow()
@@ -166,7 +188,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         )
     }
 
-    private val areaUsage = combine(
+    private val organizationUsage = combine(
         app.taskRepository.tasks,
         app.habitRepository.habits,
         app.goalRepository.goals,
@@ -185,7 +207,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     trackEntries = trackEntries.count { trackAreaIds[it.trackId] == id },
                 )
             }
-        AreaUsageState(
+        OrganizationUsageState(
             assigned = assigned,
             unassigned = AreaUsageCounts(
                 tasks = tasks.count { it.areaId == null },
@@ -193,11 +215,30 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 goals = goals.count { it.areaId == null },
                 tracks = 0,
             ),
+            tagsByName = (
+                tasks.flatMap { it.tags } +
+                    habits.flatMap { it.tags } +
+                    goals.flatMap { it.tags } +
+                    tracks.flatMap { it.tags }
+                ).distinctBy(::tagUsageKey).associate { tagName ->
+                tagUsageKey(tagName) to TagUsageCounts(
+                    tasks = tasks.count { task -> task.tags.any { it.equals(tagName, true) } },
+                    habits = habits.count { habit -> habit.tags.any { it.equals(tagName, true) } },
+                    goals = goals.count { goal -> goal.tags.any { it.equals(tagName, true) } },
+                    tracks = tracks.count { track -> track.tags.any { it.equals(tagName, true) } },
+                )
+            },
         )
     }
 
-    private val taxonomy = combine(taxonomyCore, areaUsage) { taxonomy, usage ->
-        taxonomy.copy(usage = usage.assigned, unassignedUsage = usage.unassigned)
+    private val taxonomy = combine(taxonomyCore, organizationUsage) { taxonomy, usage ->
+        taxonomy.copy(
+            usage = usage.assigned,
+            unassignedUsage = usage.unassigned,
+            tagUsage = taxonomy.tags.associate { tag ->
+                tag.id to (usage.tagsByName[tagUsageKey(tag.name)] ?: TagUsageCounts())
+            },
+        )
     }
 
     val uiState: StateFlow<SettingsUiState> = combine(
@@ -220,6 +261,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             unassignedAreaUsage = taxonomy.unassignedUsage,
             taxonomyLoaded = true,
             tags = taxonomy.tags,
+            tagUsage = taxonomy.tagUsage,
             portableBackup = portableBackup,
             encryptedRestorePending = state.encryptedRestorePending,
         )
@@ -236,6 +278,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 _typedSettingMutationState.value = PersistenceRequestState.Idle
                 _customUnitMutationState.value = PersistenceRequestState.Idle
                 _areaMutationState.value = PersistenceRequestState.Idle
+                _tagMutationState.value = PersistenceRequestState.Idle
                 _healthMutationState.value = PersistenceRequestState.Idle
             }
         }
@@ -301,6 +344,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun consumeAreaMutation(requestId: String) {
         if ((_areaMutationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
             _areaMutationState.value = PersistenceRequestState.Idle
+        }
+    }
+
+    fun consumeTagMutation(requestId: String) {
+        if ((_tagMutationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _tagMutationState.value = PersistenceRequestState.Idle
         }
     }
 
@@ -673,9 +722,60 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             listOf(message)
         }
 
-    fun renameTag(id: String, name: String) = runIo("Tag updated") { app.measurementRepository.renameTag(id, name) }
-    fun setTagArchived(id: String, archived: Boolean) = runIo(if (archived) "Tag archived" else "Tag restored") {
-        app.measurementRepository.setTagArchived(id, archived)
+    fun createTagMutation(requestId: String, name: String): Boolean = runTagMutation(requestId) {
+        TagMutationReceipt(TagMutationKind.Create, app.measurementRepository.createOrRestoreTag(name))
+    }
+
+    fun renameTagMutation(requestId: String, tagId: String, name: String): Boolean = runTagMutation(requestId) {
+        app.measurementRepository.renameTag(tagId, name)
+        TagMutationReceipt(TagMutationKind.Rename, tagId)
+    }
+
+    fun mergeTagsMutation(
+        requestId: String,
+        sourceId: String,
+        targetId: String,
+    ): Boolean = runTagMutation(requestId) {
+        app.measurementRepository.mergeTags(sourceId, targetId)
+        TagMutationReceipt(TagMutationKind.Merge, sourceId, targetId)
+    }
+
+    fun setTagArchivedMutation(
+        requestId: String,
+        tagId: String,
+        archived: Boolean,
+    ): Boolean = runTagMutation(requestId) {
+        app.measurementRepository.setTagArchived(tagId, archived)
+        TagMutationReceipt(if (archived) TagMutationKind.Archive else TagMutationKind.Restore, tagId)
+    }
+
+    private fun runTagMutation(
+        requestId: String,
+        block: suspend () -> TagMutationReceipt,
+    ): Boolean {
+        if (!_tagMutationState.tryStartPersistenceRequest(requestId)) return false
+        viewModelScope.launch(Dispatchers.IO) {
+            val result: WhipResult<TagMutationReceipt> = try {
+                val receipt = checkNotNull(app.withUserDataAccess { block() }) {
+                    "Whip data is temporarily unavailable; review the Tag and try again."
+                }
+                WhipResult.Success(receipt)
+            } catch (cancelled: CancellationException) {
+                if ((_tagMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                    _tagMutationState.value = PersistenceRequestState.Idle
+                }
+                throw cancelled
+            } catch (error: Exception) {
+                WhipResult.Failure(
+                    error.message ?: "Whip could not save this Tag change. Your reviewed choice is still here.",
+                    error,
+                )
+            }
+            if ((_tagMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                _tagMutationState.value = PersistenceRequestState.Finished(requestId, result)
+            }
+        }
+        return true
     }
 
     private fun reconcileAreaReferencesAfterCommittedDeletion(
@@ -1208,12 +1308,16 @@ private data class TaxonomyState(
     val healthImportedEntryCount: Int = 0,
     val usage: Map<String, AreaUsageCounts> = emptyMap(),
     val unassignedUsage: AreaUsageCounts = AreaUsageCounts(),
+    val tagUsage: Map<String, TagUsageCounts> = emptyMap(),
 )
 
-private data class AreaUsageState(
+private data class OrganizationUsageState(
     val assigned: Map<String, AreaUsageCounts>,
     val unassigned: AreaUsageCounts,
+    val tagsByName: Map<String, TagUsageCounts>,
 )
+
+private fun tagUsageKey(value: String): String = value.trim().lowercase(Locale.ROOT)
 
 private data class SettingsRuntime(
     val preview: BackupPreview? = null,

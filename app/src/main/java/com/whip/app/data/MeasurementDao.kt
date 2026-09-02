@@ -26,6 +26,9 @@ interface MeasurementDao {
     @Query("SELECT * FROM tags ORDER BY name")
     fun observeTags(): Flow<List<TagEntity>>
 
+    @Query("SELECT * FROM tags ORDER BY name")
+    suspend fun getTagsSnapshot(): List<TagEntity>
+
     @Query("SELECT * FROM metric_definitions WHERE id = :id")
     suspend fun getMetric(id: String): MetricDefinitionEntity?
 

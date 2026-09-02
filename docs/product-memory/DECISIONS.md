@@ -382,3 +382,12 @@
 - Compatibility: No Room schema, migration, backup format, Area ID, assignment, historical record, or existing saved color is rewritten. Existing archived Area identity is reused on restoration. Atomic deletion and assignment behavior remains in the existing repositories/coordinators.
 - Related: `FND-20260831-019`, `FND-20260901-027`, `FND-20260902-007`, `IMP-20260902-009`, `VER-20260902-009`.
 - Status: Accepted and implemented.
+
+### DEC-20260902-009 — Tags use explicit global operations and a stable archived lifecycle
+
+- Context: Tags are shared labels whose canonical registry row is keyed by ID while Task, Habit, Goal, and Track references are intentionally denormalized names. That makes a rename or merge cross-domain, while archive should hide a reusable choice without rewriting saved items.
+- Decision: Keep the existing schema, but define separate transactional operations: Rename changes one Tag’s spelling and every matching reference; Merge replaces the source spelling with one active destination across all four domains and then removes only the source row; Archive changes only registry visibility and preserves every item reference. Startup/save reconciliation may ensure that a referenced label exists but cannot silently restore an archived Tag. Explicit Create/Restore may reactivate the same identity. Commas remain reserved by current CSV persistence and are rejected in both domain and UI. The manager owns create, rename, merge, archive, restore, search, usage disclosure, and exact request receipts.
+- Rationale: The design fixes demonstrated correctness and usability failures without migrating all four product domains to a speculative tag-link abstraction. Archived state becomes durable and predictable, global operations are falsifiable, and users can see consequences before acting while ordinary item editors remain lightweight.
+- Compatibility: No Room schema or backup-format change. Existing Tag IDs and item records are retained. Archive never rewrites references; explicit Rename/Merge intentionally updates Tag labels on saved Tasks, Habits, Goals, and Tracks while preserving their identities and other history.
+- Related: `FND-20260831-019`, `FND-20260901-027`, `FND-20260902-008`, `IMP-20260902-010`, `VER-20260902-010`.
+- Status: Accepted and implemented.

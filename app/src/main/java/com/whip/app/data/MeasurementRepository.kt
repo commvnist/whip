@@ -20,6 +20,7 @@ import com.whip.app.domain.WhipTag
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.Locale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -93,8 +94,10 @@ interface MeasurementRepository {
 
     suspend fun ensureArea(name: String): String
     suspend fun ensureTag(name: String): String
+    suspend fun createOrRestoreTag(name: String): String
     suspend fun renameArea(id: String, name: String)
     suspend fun renameTag(id: String, name: String)
+    suspend fun mergeTags(sourceId: String, targetId: String)
     suspend fun setAreaArchived(id: String, archived: Boolean)
     suspend fun setTagArchived(id: String, archived: Boolean)
     suspend fun moveArea(id: String, direction: Int)
@@ -211,11 +214,19 @@ class RoomMeasurementRepository(
 
     override suspend fun ensureArea(name: String): String = areaRepository.create(name)
 
-    override suspend fun ensureTag(name: String): String = database.withTransaction {
-        val normalized = name.trim()
-        require(normalized.isNotBlank()) { "Tag name is required" }
-        val existing = dao.observeTags().first().firstOrNull { it.name.equals(normalized, true) }
-        if (existing != null) return@withTransaction existing.id
+    override suspend fun ensureTag(name: String): String = ensureTag(name, restoreArchived = false)
+
+    override suspend fun createOrRestoreTag(name: String): String = ensureTag(name, restoreArchived = true)
+
+    private suspend fun ensureTag(name: String, restoreArchived: Boolean): String = database.withTransaction {
+        val normalized = validateTagName(name)
+        val existing = dao.getTagsSnapshot().firstOrNull { it.name.equals(normalized, true) }
+        if (existing != null) {
+            if (restoreArchived && existing.archived) {
+                dao.upsertTag(existing.copy(archived = false, updatedAtMillis = clock.now().toEpochMilli()))
+            }
+            return@withTransaction existing.id
+        }
         val now = clock.now().toEpochMilli()
         val id = ids.nextId()
         dao.upsertTag(TagEntity(id, normalized, false, now, now))
@@ -226,19 +237,33 @@ class RoomMeasurementRepository(
 
     override suspend fun renameTag(id: String, name: String) = database.withTransaction {
         val existing = requireNotNull(dao.getTag(id)) { "Tag no longer exists" }
-        val normalized = name.trim()
-        require(normalized.isNotBlank()) { "Tag name is required" }
-        val target = dao.observeTags().first().firstOrNull { it.id != id && it.name.equals(normalized, true) }
-        val resolvedName = target?.name ?: normalized
-        replaceTagName(existing.name, resolvedName)
-        if (target == null) dao.upsertTag(existing.copy(name = normalized, updatedAtMillis = clock.now().toEpochMilli()))
-        else dao.deleteTag(id)
-        Unit
+        val normalized = validateTagName(name)
+        val target = dao.getTagsSnapshot().firstOrNull { it.id != id && it.name.equals(normalized, true) }
+        target?.let { existingTarget ->
+            error(
+                if (existingTarget.archived) {
+                    "An archived Tag named #${existingTarget.name} already exists. Restore it before merging, or choose another name."
+                } else {
+                    "A Tag named #${existingTarget.name} already exists. Use Merge instead."
+                },
+            )
+        }
+        replaceTagName(existing.name, normalized)
+        dao.upsertTag(existing.copy(name = normalized, updatedAtMillis = clock.now().toEpochMilli()))
+    }
+
+    override suspend fun mergeTags(sourceId: String, targetId: String) = database.withTransaction {
+        require(sourceId != targetId) { "Choose two different Tags" }
+        val source = requireNotNull(dao.getTag(sourceId)) { "Source Tag no longer exists" }
+        val target = requireNotNull(dao.getTag(targetId)) { "Destination Tag no longer exists" }
+        require(!target.archived) { "Choose an active destination Tag" }
+        replaceTagName(source.name, target.name)
+        check(dao.deleteTag(sourceId) == 1) { "Source Tag could not be removed" }
     }
 
     override suspend fun setAreaArchived(id: String, archived: Boolean) = areaRepository.setArchived(id, archived)
 
-    override suspend fun setTagArchived(id: String, archived: Boolean) {
+    override suspend fun setTagArchived(id: String, archived: Boolean) = database.withTransaction {
         val existing = requireNotNull(dao.getTag(id)) { "Tag no longer exists" }
         dao.upsertTag(existing.copy(archived = archived, updatedAtMillis = clock.now().toEpochMilli()))
     }
@@ -247,7 +272,7 @@ class RoomMeasurementRepository(
 
     private fun replaceTagName(old: String, new: String) {
         val db = database.openHelper.writableDatabase
-        listOf("tasks", "habits", "goals").forEach { table ->
+        listOf("tasks", "habits", "goals", "tracks").forEach { table ->
             db.query("SELECT id, tagsCsv FROM $table").use { cursor ->
                 val idIndex = cursor.getColumnIndexOrThrow("id")
                 val tagsIndex = cursor.getColumnIndexOrThrow("tagsCsv")
@@ -255,11 +280,16 @@ class RoomMeasurementRepository(
                     val tags = cursor.getString(tagsIndex).split(',').map(String::trim).filter(String::isNotBlank)
                     if (tags.none { it.equals(old, true) }) continue
                     val replaced = tags.map { if (it.equals(old, true)) new else it }
-                        .distinctBy(String::lowercase).joinToString(",")
+                        .distinctBy { it.lowercase(Locale.ROOT) }.joinToString(",")
                     db.execSQL("UPDATE $table SET tagsCsv = ? WHERE id = ?", arrayOf<Any>(replaced, cursor.getLong(idIndex)))
                 }
             }
         }
+    }
+
+    private fun validateTagName(name: String): String = name.trim().also { normalized ->
+        require(normalized.isNotBlank()) { "Tag name is required" }
+        require(',' !in normalized) { "Use separate Tags instead of commas" }
     }
 
     override suspend fun ensureCustomUnit(

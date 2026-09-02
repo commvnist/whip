@@ -76,10 +76,7 @@ internal fun TaskEditorRouteHost(
             },
             inheritedAreaFromScope = areaScope is AreaScope.One,
             onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
-            knownTags = (
-                taskState.inbox + taskState.today + taskState.upcoming + taskState.planning +
-                    taskState.completed + taskState.archived
-                ).flatMap { it.task.tags }.distinct().sorted(),
+            knownTags = settingsState.tags.filterNot { it.archived }.map { it.name },
             customIdentityEmojis = settingsState.settings.customIdentityEmojis,
             onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
             onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },

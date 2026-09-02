@@ -10,12 +10,16 @@ import com.whip.app.data.RoomAreaRepository
 import com.whip.app.data.RoomHabitRepository
 import com.whip.app.data.RoomMeasurementRepository
 import com.whip.app.data.RoomTaskRepository
+import com.whip.app.data.RoomTrackRepository
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.MetricValueKind
 import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.TrackDraft
+import com.whip.app.domain.TrackFieldDraft
+import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.UnitDimension
 import java.time.Instant
 import java.time.LocalDate
@@ -39,6 +43,7 @@ class MeasurementTaxonomyRepositoryTest {
     private lateinit var habits: RoomHabitRepository
     private lateinit var goals: RoomGoalRepository
     private lateinit var areas: RoomAreaRepository
+    private lateinit var tracks: RoomTrackRepository
 
     @Before
     fun setUp() {
@@ -52,6 +57,7 @@ class MeasurementTaxonomyRepositoryTest {
         tasks = RoomTaskRepository(database, FixedClock)
         habits = RoomHabitRepository(database, measurements, FixedClock, ids)
         goals = RoomGoalRepository(database, measurements, FixedClock, ids)
+        tracks = RoomTrackRepository(database, FixedClock, ids)
     }
 
     @After fun tearDown() = database.close()
@@ -61,15 +67,25 @@ class MeasurementTaxonomyRepositoryTest {
         val personalId = measurements.ensureArea("Personal")
         val workId = measurements.ensureArea("Work")
         val oldTagId = measurements.ensureTag("Next")
-        measurements.ensureTag("Focus")
+        val focusTagId = measurements.ensureTag("Focus")
         tasks.create(TaskDraft(title = "Task", area = "personal", tags = setOf("Next", "Focus")))
         habits.create(HabitDraft(name = "Habit", area = "Personal", tags = listOf("next"), startDate = FixedClock.today()))
         goals.create(GoalDraft(name = "Goal", type = GoalType.OpenEndedTrend, area = "Personal", tags = listOf("Next"), startDate = FixedClock.today()))
+        val trackId = tracks.create(
+            TrackDraft(
+                name = "Track",
+                areaId = personalId,
+                tags = listOf("Next"),
+                fields = listOf(TrackFieldDraft("Value", TrackFieldType.ShortText, primary = true)),
+            ),
+        )
 
         val renameFailure = runCatching { measurements.renameArea(personalId, "work") }
         assertTrue(renameFailure.isFailure)
         areas.merge(personalId, workId)
-        measurements.renameTag(oldTagId, "focus")
+        val tagRenameFailure = runCatching { measurements.renameTag(oldTagId, "focus") }
+        assertTrue(tagRenameFailure.isFailure)
+        measurements.mergeTags(oldTagId, focusTagId)
 
         assertEquals(listOf("Work"), measurements.areas.first().map { it.name })
         assertEquals(listOf("Focus"), measurements.tags.first().map { it.name })
@@ -82,6 +98,7 @@ class MeasurementTaxonomyRepositoryTest {
         assertEquals("Work", goals.goals.first().single().area)
         assertEquals(workId, goals.goals.first().single().areaId)
         assertEquals(listOf("Focus"), goals.goals.first().single().tags)
+        assertEquals(listOf("Focus"), tracks.tracks.first().single { it.id == trackId }.tags)
     }
 
     @Test
@@ -218,6 +235,70 @@ class MeasurementTaxonomyRepositoryTest {
         assertFalse(restored.archived)
         assertEquals(originalColor, restored.colorArgb)
         assertEquals(2, areas.areas.first().size)
+    }
+
+    @Test
+    fun ensuringAnArchivedTagReusesItsIdentityWithoutSilentlyRestoringIt() = runBlocking {
+        val tagId = measurements.ensureTag("Recovery")
+        measurements.setTagArchived(tagId, true)
+
+        val reusedId = measurements.ensureTag("  recovery  ")
+        val archived = measurements.tags.first().single()
+
+        assertEquals(tagId, reusedId)
+        assertTrue(archived.archived)
+        assertEquals("Recovery", archived.name)
+    }
+
+    @Test
+    fun explicitCreateOrRestoreRestoresTheSameTagIdentity() = runBlocking {
+        val tagId = measurements.ensureTag("Recovery")
+        measurements.setTagArchived(tagId, true)
+
+        val restoredId = measurements.createOrRestoreTag("  recovery  ")
+        val restored = measurements.tags.first().single()
+
+        assertEquals(tagId, restoredId)
+        assertFalse(restored.archived)
+        assertEquals("Recovery", restored.name)
+    }
+
+    @Test
+    fun tagRenameConflictRequiresAnExplicitMergeAndPreservesBothTags() = runBlocking {
+        val firstId = measurements.ensureTag("First")
+        val secondId = measurements.ensureTag("Second")
+
+        val failure = runCatching { measurements.renameTag(firstId, "second") }.exceptionOrNull()
+
+        assertTrue(failure?.message?.contains("Use Merge instead") == true)
+        assertEquals(setOf(firstId, secondId), measurements.tags.first().mapTo(mutableSetOf()) { it.id })
+    }
+
+    @Test
+    fun tagNamesRejectTheCommaReservedByCurrentPersistence() = runBlocking {
+        val firstId = measurements.ensureTag("First")
+
+        val createFailure = runCatching { measurements.ensureTag("Two, Tags") }.exceptionOrNull()
+        val renameFailure = runCatching { measurements.renameTag(firstId, "First, Second") }.exceptionOrNull()
+
+        assertTrue(createFailure?.message?.contains("separate Tags") == true)
+        assertTrue(renameFailure?.message?.contains("separate Tags") == true)
+        assertEquals(listOf("First"), measurements.tags.first().map { it.name })
+    }
+
+    @Test
+    fun tagMergeRejectsAnArchivedDestinationUntilItIsRestored() = runBlocking {
+        val sourceId = measurements.ensureTag("Source")
+        val targetId = measurements.ensureTag("Target")
+        measurements.setTagArchived(targetId, true)
+
+        val failure = runCatching { measurements.mergeTags(sourceId, targetId) }.exceptionOrNull()
+
+        assertTrue(failure?.message?.contains("active destination Tag") == true)
+        assertEquals(setOf(sourceId, targetId), measurements.tags.first().mapTo(mutableSetOf()) { it.id })
+        measurements.setTagArchived(targetId, false)
+        measurements.mergeTags(sourceId, targetId)
+        assertEquals(listOf(targetId), measurements.tags.first().map { it.id })
     }
 
     @Test
