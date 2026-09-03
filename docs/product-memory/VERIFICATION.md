@@ -411,3 +411,14 @@
 - Compatibility/exclusions: The supplied standalone YAML policy is declarative guidance rather than a Codex-native schema, so exact file parity and instruction review—not a nonexistent Codex YAML validator—are the validation boundary. No agent was spawned, no application/test/build/device behavior changed, and the current already-running session did not change models.
 - Related: `FB-20260902-001`, `FB-20260902-002`, `DEC-20260902-012`, `IMP-20260902-013`.
 - Status: Structurally verified; new Codex sessions inherit Terra/medium defaults and the applicable global/project instruction chain.
+
+### VER-20260902-014 — User-directed maximum-quality mission closeout
+
+- Closure boundary: The user explicitly terminated the two-day whole-product goal before its original definition of done. This record closes the run operationally; it does not certify that every screen/use case was exhausted, every P0/P1 was removed, every P2 was decided, or the signed candidate was installed on a physical phone.
+- Last product chunk: Exact, recoverable Machine deletion is committed and pushed as `e09f6cc`. Its exact source passed 47 focused Android tests, then `scripts/check --emulator` with 1,467 product tests and zero failures/skips, followed by `scripts/check --full`; see `VER-20260902-012` for hashes, coverage, accessibility scope, and exclusions.
+- Final configuration chunk: Global and repository VERA-Codex installation is committed and pushed as `a21a65f`; Codex diagnostics passed 17 checks with zero warnings/failures and all configured models/roles were validated. No agent remained running at closeout.
+- Repository state: Both commits were confirmed reachable at `origin/main`. The closeout documentation is its own final commit. The worktree must be clean and upstream reachability rechecked after this record is committed.
+- Release state: `adb devices -l` exposed only disposable emulator `emulator-5554`; no physical phone was connected. The most recent physical-device release therefore remains 0.3.34/version 40 from `VER-20260831-002`. The newer verified signed AAB is a candidate, not a phone release.
+- Preserved residuals: The original exhaustive whole-product completion criteria remain intentionally unmet. Secondary dialog/workflow families, continued real-user validation, and final signed physical-device installation/smoke verification remain future work. `INDEX.md` and the unresolved findings retain the detailed starting points.
+- Related: `FB-20260831-012`, `FB-20260902-003`, `MAXIMUM_QUALITY_GOAL.md`.
+- Status: Mission closed by user direction; not complete against the original definition of done and not eligible to be represented as a finished maximum-quality release.

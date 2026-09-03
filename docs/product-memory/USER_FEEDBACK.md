@@ -84,7 +84,7 @@ These records preserve durable user intent. “Released” means the change reac
 - User need: Run repeated whole-product discovery, remediation, focus-group review, QA, and release without losing detail between sessions.
 - Acceptance criteria: Invoke the memory protocol throughout; leave every finding, decision, implementation, verification result, residual risk, and next action in the repository.
 - Related: `DEC-20260831-006`, `MAXIMUM_QUALITY_GOAL.md`
-- Status: In progress; Iteration 1 inventory, emulator baseline, independent specialist review, cross-challenge, and Director synthesis completed 2026-08-31. P0 foundational remediation is active.
+- Status: Closed by user direction on 2026-09-02 after a two-day run. Substantial remediation and verification landed, but the original exhaustive definition of done and physical-phone release were not completed. Do not resume automatically.
 
 ### FB-20260831-013 — Long-term memory outside chat
 
@@ -114,3 +114,10 @@ These records preserve durable user intent. “Released” means the change reac
 - Source: `/mnt/c/Users/commv/Documents/Codex/2026-09-02/i-wa/outputs/vera-codex.tar.gz`.
 - Related: `DEC-20260902-012`, `IMP-20260902-013`, `VER-20260902-013`.
 - Status: Implemented and structurally verified on 2026-09-02.
+
+### FB-20260902-003 — Stop and close the long-running Whip mission
+
+- User need: Close out the last active Whip work and terminate the two-day maximum-quality goal even though it is not complete.
+- Acceptance criteria: Finish, verify, commit, and push the active coherent change; preserve an honest residual backlog and release state; leave no dirty worktree or running worker; close the goal by user direction without claiming the original definition of done was reached.
+- Related: `FB-20260831-012`, `IMP-20260902-012`, `VER-20260902-012`, `VER-20260902-014`, `MAXIMUM_QUALITY_GOAL.md`.
+- Status: Implemented on 2026-09-02.

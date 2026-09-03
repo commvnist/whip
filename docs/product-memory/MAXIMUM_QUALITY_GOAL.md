@@ -1,5 +1,7 @@
 # Reusable Whip maximum-quality goal
 
+> Run status: **Closed by user direction on 2026-09-02.** The two-day mission stopped before the original definition of done and must not resume automatically. The text below remains a reusable future goal; preserved residual work is indexed in `INDEX.md`.
+
 Copy the text below into a new Codex request when ready to run the whole-product program.
 
 ```text
