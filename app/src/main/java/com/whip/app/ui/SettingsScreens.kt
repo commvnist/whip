@@ -32,6 +32,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -2548,12 +2550,26 @@ internal enum class CustomUnitEditMode { Create, Rename, Version }
     val nameFocus = remember { FocusRequester() }
     val symbolFocus = remember { FocusRequester() }
     val factorFocus = remember { FocusRequester() }
+    val nameValidationTarget = remember { BringIntoViewRequester() }
+    val factorValidationTarget = remember { BringIntoViewRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     val parsedFactor = factor.toWhipDoubleOrNull()
     val nameInvalid = validationRequested && name.isBlank()
     val factorInvalid = validationRequested && mode != CustomUnitEditMode.Rename &&
         (parsedFactor == null || parsedFactor <= 0.0)
     LaunchedEffect(initial?.id, mode) { nameFocus.requestFocus() }
+    LaunchedEffect(nameInvalid, factorInvalid) {
+        when {
+            nameInvalid -> {
+                nameFocus.requestFocus()
+                nameValidationTarget.bringIntoView()
+            }
+            factorInvalid -> {
+                factorFocus.requestFocus()
+                factorValidationTarget.bringIntoView()
+            }
+        }
+    }
     PaneAwareAlertDialog(
         modifier = modifier,
         testTag = testTag,
@@ -2585,7 +2601,11 @@ internal enum class CustomUnitEditMode { Create, Rename, Version }
                     supportingText = if (nameInvalid) {{ Text("Name is required") }} else null,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     keyboardActions = KeyboardActions(onNext = { symbolFocus.requestFocus() }),
-                    modifier = Modifier.fillMaxWidth().focusRequester(nameFocus).testTag("custom-unit-name"),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .bringIntoViewRequester(nameValidationTarget)
+                        .focusRequester(nameFocus)
+                        .testTag("custom-unit-name"),
                 )
                 OutlinedTextField(
                     symbol,
@@ -2625,7 +2645,11 @@ internal enum class CustomUnitEditMode { Create, Rename, Version }
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { keyboard?.hide() }),
-                        modifier = Modifier.fillMaxWidth().focusRequester(factorFocus).testTag("custom-unit-factor"),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .bringIntoViewRequester(factorValidationTarget)
+                            .focusRequester(factorFocus)
+                            .testTag("custom-unit-factor"),
                     )
                     if (mode == CustomUnitEditMode.Version) Text(
                         "The existing unit stays attached to current definitions and history, then is archived from new pickers. This new version becomes available for future selections; Whip does not silently retarget anything.",

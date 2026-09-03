@@ -533,3 +533,14 @@
 - Related: `FND-20260902-018`, `DEC-20260902-023`.
 - Verification: `VER-20260902-027`.
 - Status: Implemented and targeted emulator verified.
+
+### IMP-20260902-027 — Current-only Settings and error-directed Custom Unit validation
+
+- Removed Settings-construction/save cleanup for obsolete preference keys and removed the old Health-enabled-to-all-categories inference. Current explicit values continue to persist normally; unknown keys have no effect.
+- Added Name and conversion-factor bring-into-view targets to Custom Unit create/rename/version. Invalid submit now focuses and scrolls to the first failing field instead of leaving supporting text outside the viewport.
+- Corrected the Settings responsive-suite package in `scripts/qa-targeted`, expanded the profile with non-destructive portable-backup/recovery/data-epoch coverage, and documented that destructive reset runs in its own exact batch.
+- Reconciled the fast UI/UX plan so every confirmed gap is implemented in its family wave and recorded the current completion/final-gate state.
+- Important files: `AppSettings.kt`, `SettingsScreens.kt`, `AppSettingsPersistenceTest.kt`, `SettingsResponsiveUiTest.kt`, `scripts/qa-targeted`, and `UI_UX_REMEDIATION_PLAN.md`.
+- Related: `FND-20260902-019`, `FND-20260902-020`, `DEC-20260902-024`.
+- Verification: `VER-20260902-028`.
+- Status: Implemented and targeted emulator verified.

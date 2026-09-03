@@ -553,3 +553,14 @@
 - Scope: Targeted domain, repository, builder, backup, and destructive-boundary evidence. The frozen-candidate complete emulator, lint/coverage, and release-build gates remain pending.
 - Related: `FND-20260902-018`, `DEC-20260902-023`, `IMP-20260902-026`.
 - Status: Targeted checks passed.
+
+### VER-20260902-028 — Settings clean-contract and validation-recovery verification
+
+- The corrected/expanded `settings --emulator` profile passed its focused JVM checks and all 94 non-destructive API 34 emulator tests with zero failures or skips.
+- `SettingsResponsiveUiTest#customUnitValidationExplainsInvalidFieldsWithoutHidingTheAction` passed three consecutive isolated emulator runs after error-directed focus/scroll was added.
+- The obsolete migration assertion initially failed as expected under the new current-only contract; its replacement verifies that unknown old keys are ignored and that current Smart Capture authorship persists. Health scope now remains empty until explicit current categories exist.
+- A deliberately destructive reset test was removed from the shared profile after it proved capable of erasing process state required by an unrelated lifecycle test. The affected lifecycle method passed in isolation, the 94-test non-destructive batch passed afterward, and `DataEpochResetIntegrationTest` passed in its own one-test instrumentation process.
+- `git diff --check` passed before chunk staging.
+- Scope: Targeted Settings, accessibility, backup, recovery, and test-orchestration evidence. The frozen-candidate complete emulator and release gates remain pending.
+- Related: `FND-20260902-019`, `FND-20260902-020`, `DEC-20260902-024`, `IMP-20260902-027`.
+- Status: Targeted checks passed.

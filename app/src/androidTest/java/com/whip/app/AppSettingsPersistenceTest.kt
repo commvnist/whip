@@ -37,16 +37,13 @@ class AppSettingsPersistenceTest {
     }
 
     @Test
-    fun freshHealthConnectScopeIsLeastPrivilegeAndLegacyEnabledScopeIsPreserved() {
+    fun freshHealthConnectScopeIsLeastPrivilegeAndRequiresExplicitCategories() {
         val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
         preferences.edit().clear().commit()
         assertTrue(SharedPreferencesSettingsRepository(context).current().healthDataTypes.isEmpty())
 
         preferences.edit().clear().putBoolean("healthEnabled", true).commit()
-        assertEquals(
-            HealthDataType.entries.toSet(),
-            SharedPreferencesSettingsRepository(context).current().healthDataTypes,
-        )
+        assertTrue(SharedPreferencesSettingsRepository(context).current().healthDataTypes.isEmpty())
 
         preferences.edit().putBoolean("healthEnabled", false).putStringSet("healthTypes", emptySet()).commit()
         assertTrue(SharedPreferencesSettingsRepository(context).current().healthDataTypes.isEmpty())
@@ -70,7 +67,7 @@ class AppSettingsPersistenceTest {
     }
 
     @Test
-    fun settingsMigrationsRunAndAnExplicitSmartCaptureOptOutPersists() {
+    fun obsoletePreferenceKeysAreIgnoredAndAnExplicitSmartCaptureOptOutPersists() {
         val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
         preferences
             .edit()
@@ -80,13 +77,13 @@ class AppSettingsPersistenceTest {
             .putString("selectedReviewFilterName", "Legacy")
             .commit()
 
-        val migrated = SharedPreferencesSettingsRepository(context)
-        assertTrue(migrated.current().naturalLanguageTaskCapture)
-        assertFalse(preferences.contains("savedReviewFilters"))
-        assertFalse(preferences.contains("selectedReviewFilterName"))
+        val repository = SharedPreferencesSettingsRepository(context)
+        assertFalse(repository.current().naturalLanguageTaskCapture)
+        assertTrue(preferences.contains("savedReviewFilters"))
+        assertTrue(preferences.contains("selectedReviewFilterName"))
 
-        migrated.update { settings -> settings.copy(naturalLanguageTaskCapture = false) }
-        assertFalse(SharedPreferencesSettingsRepository(context).current().naturalLanguageTaskCapture)
+        repository.update { settings -> settings.copy(naturalLanguageTaskCapture = true) }
+        assertTrue(SharedPreferencesSettingsRepository(context).current().naturalLanguageTaskCapture)
     }
 
     @Test

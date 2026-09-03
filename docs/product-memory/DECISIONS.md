@@ -521,3 +521,12 @@
 - Supersedes: The current-boundary values in `DEC-20260902-017`; that decision remains historical evidence for the preceding clean-slate step.
 - Related: `FND-20260902-018`, `IMP-20260902-026`, `VER-20260902-027`.
 - Status: Accepted, implemented, and targeted emulator verified.
+
+### DEC-20260902-024 — Keep current-only Settings and direct users to the first invalid field
+
+- Context: The corrected Settings targeted profile surfaced both leftover preference migration behavior and a Custom Unit form whose inline error could be created outside the visible viewport.
+- Decision: Treat stored Settings as current-epoch data only: ignore unknown old keys, stop deleting them as a migration side effect, and derive Health Connect categories only from the explicit current category set. For Custom Unit validation, retain the enabled explanatory action but focus and bring the first invalid Name or conversion-factor field into view. Keep the destructive epoch-reset integration test in an isolated emulator batch rather than mixing it with lifecycle/UI tests.
+- Rationale: The data-epoch gate owns destructive upgrade behavior; repositories should not carry a second hidden compatibility system. Error-directed focus preserves clear validation without disabling an action whose purpose is to explain what is missing. Isolated destructive QA is both faster and deterministic.
+- Compatibility: Intentionally current-only under the authorized clean reset. No current setting name/value changes; no Room or backup change beyond schema 43. Presentation behavior changes only after an invalid Custom Unit submission.
+- Related: `FND-20260902-019`, `FND-20260902-020`, `IMP-20260902-027`, `VER-20260902-028`.
+- Status: Accepted, implemented, and targeted emulator verified.

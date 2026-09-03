@@ -211,13 +211,6 @@ fun SettingsRepository.currentDateFlow(clock: WhipClock): Flow<LocalDate> =
 class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository {
     private val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
 
-    init {
-        preferences.edit()
-            .remove("savedReviewFilters")
-            .remove("selectedReviewFilterName")
-            .apply()
-    }
-
     override val settings: Flow<AppSettings> = callbackFlow {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> trySend(current()) }
         trySend(current())
@@ -374,12 +367,9 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .putString("activeTaskSortMode", value.activeTaskSortMode)
             .putString("habitWeekStart", value.defaultHabitWeekStart.name)
             .putBoolean("naturalLanguageTaskCapture", value.naturalLanguageTaskCapture)
-            .remove("savedIdentityEmojis")
             .putString("customIdentityEmojis", value.customIdentityEmojis.encodeCustomIdentityEmojis())
             .putString("savedTaskFilters", value.savedTaskFilters.encodeTaskFilters())
             .putNullableString("homeTaskFilterName", value.homeTaskFilterName)
-            .remove("savedReviewFilters")
-            .remove("selectedReviewFilterName")
             .putStringSet("reviewSections", value.reviewSections.mapTo(mutableSetOf(), ReviewSection::name))
             .putBoolean("gymCompactSetRows", value.gymCompactSetRows)
             .putString("platePresets", value.platePresets.encodePlatePresets())
@@ -512,9 +502,7 @@ private fun <T : Enum<T>> SharedPreferences.enumSet(key: String, values: List<T>
 private fun SharedPreferences.healthDataTypes(): Set<HealthDataType> =
     getStringSet("healthTypes", null)
         ?.mapNotNullTo(mutableSetOf()) { runCatching { HealthDataType.valueOf(it) }.getOrNull() }
-        // Preserve an old enabled install that predates stored scope. Fresh and
-        // paused installs begin with no permission category selected.
-        ?: if (getBoolean("healthEnabled", false)) HealthDataType.entries.toSet() else emptySet()
+        ?: emptySet()
 
 private fun SharedPreferences.nullableInt(key: String): Int? = if (contains(key)) getInt(key, 0) else null
 private fun SharedPreferences.nullableLong(key: String): Long? = if (contains(key)) getLong(key, 0L) else null

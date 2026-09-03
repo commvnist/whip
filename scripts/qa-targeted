@@ -200,9 +200,12 @@ add_profile() {
             android_classes+=(
                 'com.whip.app.AppSettingsPersistenceTest'
                 'com.whip.app.BackupRepositoryTest'
+                'com.whip.app.PortableBackupManagerTest'
+                'com.whip.app.RestoreRecoveryManagerTest'
+                'com.whip.app.DataEpochBoundaryTest'
                 'com.whip.app.CustomUnitIntegrityTest'
                 'com.whip.app.HealthReconciliationTest'
-                'com.whip.app.SettingsResponsiveUiTest'
+                'com.whip.app.ui.SettingsResponsiveUiTest'
             )
             ;;
         *)

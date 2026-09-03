@@ -499,3 +499,25 @@
 - Evidence: `GymModels.kt`, `RoutineEntities.kt`, `GymEntities.kt`, `RoutineRepository.kt`, `FiveThreeOneBuilder.kt`, `FiveThreeOneProgramming.kt`, `RoutineBuilder.kt`, `GymScreens.kt`, and schema export 43.
 - Resolution: Implemented in `IMP-20260902-026` under `DEC-20260902-023` and targeted verified in `VER-20260902-027`.
 - Status: Resolved in the schema-43/data-epoch-3 candidate; frozen-candidate release verification remains pending.
+
+### FND-20260902-019 — Settings still performed pre-epoch compatibility work
+
+- Severity/category: P1 clean-slate architecture and permission-scope correctness.
+- Observed: `SharedPreferencesSettingsRepository` still deleted obsolete preference keys on construction/every save and inferred every Health Connect category from an old enabled flag when the current category set was absent.
+- Expected: After the explicit data-epoch reset, Settings reads and writes only the current contract. Enabling Health Connect never silently broadens category scope; users choose categories explicitly.
+- Why it matters: Hidden upgrade behavior contradicts the clean-start promise and can request a broader health-data surface than the current setting represents.
+- Affected users: Updating users crossing the fresh-start boundary and Health Connect users.
+- Evidence: `AppSettings.kt` and `AppSettingsPersistenceTest.kt`.
+- Resolution: Implemented in `IMP-20260902-027` under `DEC-20260902-024` and verified in `VER-20260902-028`.
+- Status: Resolved; frozen-candidate release verification remains pending.
+
+### FND-20260902-020 — Custom-unit validation could leave the invalid field off-screen
+
+- Severity/category: P1 accessibility, form recovery, and narrow/keyboard-open UX.
+- Observed: Create Custom Unit enabled the action so validation could explain missing/invalid values, but submitting from the action area could reveal supporting text outside the visible scroll window without moving the user to it.
+- Expected: Submit focuses and brings the first invalid field into view, including under software keyboard, short-window, and enlarged-text constraints; later invalid fields receive the same treatment.
+- Why it matters: An enabled action followed by no visible explanation looks broken and is especially difficult for screen-reader, keyboard, enlarged-text, and distracted users.
+- Affected users: Custom-unit users across Settings and inline unit creation, especially accessibility and mobile users.
+- Evidence: `SettingsScreens.kt` and `SettingsResponsiveUiTest.kt`.
+- Resolution: Implemented in `IMP-20260902-027` under `DEC-20260902-024` and verified in `VER-20260902-028`.
+- Status: Resolved; frozen-candidate release verification remains pending.

@@ -86,7 +86,10 @@ test. Prioritize with:
 
 Fix the shared token/component/state owner first when it safely resolves three
 or more surfaces. Otherwise make a bounded leaf fix. Do not build a universal
-UI abstraction merely to eliminate similar-looking code.
+UI abstraction merely to eliminate similar-looking code. Every confirmed gap is
+implemented in the same screen-family wave; only false positives or unavoidable
+platform-owned behavior may be closed without a code change, and the evidence
+must say why.
 
 ### 5. Verify proportionately
 
@@ -126,6 +129,21 @@ requested.
 5. Fix P0/P1 issues first, then shared P2 consistency improvements and bounded
    P3 polish.
 6. Execute one final adaptive/accessibility/cross-product acceptance campaign.
+
+## Current execution state — 2026-09-02
+
+- Shared editor chrome, labels, section hierarchy, repeated-control semantics,
+  bounded search, Gym catalog mutation ownership, and compact Routine detail
+  navigation have been remediated and targeted-tested.
+- The Gym screen-family matrix has passed 320 dp/200% text, full-height Routine
+  exercise editing, active-workout composition, timer actions, progressive
+  disclosure, theme/font, and RTL coverage.
+- The breaking model candidate now uses one current persistence contract and one
+  canonical 5/3/1/work-placement vocabulary. Adjacent Settings validation now
+  moves focus and scrolls to the first invalid custom-unit field.
+- The remaining execution step is the frozen-candidate complete emulator,
+  accessibility/lint/coverage, and release-build gate. Physical-device release
+  remains an explicit user action.
 
 ## Definition of done
 
