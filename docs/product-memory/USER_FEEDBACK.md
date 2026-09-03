@@ -248,7 +248,7 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Machine linking uses the complete pane, shared search semantics, result count, actionable no-results creation, a permanent Create action when creation is supported, and a trimmed query seed; unavailable creation never renders a no-op control; creating an Exercise from a Routine's advanced Machine flow returns to and preserves both drafts and auto-links the new Exercise; Rest has one canonical surface owner with the same color/elevation/medium shape contract as Home collection cards, tokenized spacing/type, responsive actions, and accessible ready/running state.
 - Scope boundary: Prefer bounded reusable Exercise-picker and collection-card primitives; do not introduce a generic UI DSL or indiscriminately replace intentional structural/chart surfaces.
 - Related: `FND-20260903-019`, `FND-20260903-020`, `DEC-20260903-011`, `IMP-20260903-017`, `VER-20260903-017`.
-- Status: Implemented, focused-emulator verified, independently accepted, committed, and pushed; not yet included in a physical-phone release.
+- Status: Implemented, focused-emulator verified, independently accepted, committed, pushed, and released to the physical phone in Whip 0.3.44/code 50; see `VER-20260903-019`.
 
 ### FB-20260903-012 — Make fresh inputs start from the semantically easiest useful value
 
@@ -256,4 +256,11 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Fresh Level sets and blank Routine templates respect machine direction; explicit input, same-placement work, and exact Exercise/Profile history remain higher-priority than a configured endpoint; archived profiles remain valid for already assigned workouts and Routines; no authored prescription or completed history is rewritten. Confirmed analogous defects in fresh Track Number fields, the reach-weight Goal template, and reminder creation are corrected without overriding existing drafts.
 - Scope boundary: Add small domain-specific default resolvers at established ownership boundaries; do not create a generic heuristic engine, invent workout performance fields, alter schema, or deploy to a phone without a separate release request.
 - Related: `FND-20260903-021`, `FND-20260903-022`, `DEC-20260903-012`, `IMP-20260903-018`, `VER-20260903-018`.
-- Status: Implemented, targeted-emulator verified, independently accepted, committed, and pushed; not physically released.
+- Status: Implemented, targeted-emulator verified, independently accepted, committed, pushed, and released to the physical phone in Whip 0.3.44/code 50; see `VER-20260903-019`.
+
+### FB-20260903-013 — Release the semantic-default candidate to the phone
+
+- User need: Release the latest verified Whip candidate, including shared Gym UI and semantic-default remediation, to the connected physical phone.
+- Acceptance criteria: Assign a new version/code, run Whip's complete guarded release build, produce correctly signed APK/AAB artifacts, install in place on the explicit Samsung endpoint, verify local/installed artifact identity, preserve Android installation identity and user data, cold-launch successfully, and observe no Whip/runtime/database fatality. Do not run instrumentation, clear data, or confirm the app's fresh-start action on the phone.
+- Related: `FB-20260903-011`, `FB-20260903-012`, `IMP-20260903-019`, `VER-20260903-019`.
+- Status: Released and physically verified as Whip 0.3.44/code 50.

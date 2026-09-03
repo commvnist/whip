@@ -762,7 +762,7 @@
 - Affected users: Machine-profile users, Routine Builder users, new Exercise-library users, large-library users, and phone/fold/large-text users.
 - Evidence: `GymExercisePicker.kt`; `MachineEditorDialog`, `ExercisePickerDialog`, and Gym catalog wiring in `GymScreens.kt`; `GymCatalogMutationUi.kt`; Routine Builder nested-editor state in `RoutineBuilder.kt`; focused regressions in `GymPowerInputUiTest` and `RoutineBuilderUiTest`.
 - Resolution: Extracted one Exercise-specific picker body, made Machine linking a full-pane multi-select consumer, propagated trimmed query seeds, made creation capability nullable, and retained/returned nested Routine and Machine drafts through an exact created-ID handoff.
-- Status: Resolved in `c8286e0`, verified and independently accepted in `VER-20260903-017`; unreleased to a physical phone.
+- Status: Resolved in `c8286e0`, verified in `VER-20260903-017`, and released in Whip 0.3.44/code 50; see `VER-20260903-019`.
 
 ### FND-20260903-020 — Rest bypassed the collection-card design system
 
@@ -773,7 +773,7 @@
 - Affected users: All active-workout users, particularly one-handed, distracted, low-vision, and enlarged-text users.
 - Evidence: `WorkoutContent` and `RestTimerCard` in `GymScreens.kt`, `WhipCollectionCard` in `WhipPagePatterns.kt`, `UiDesignArchitectureTest`, and Rest regressions in `GymPowerInputUiTest`.
 - Resolution: Made the execution lane the sole `WhipCollectionCard` owner, removed the nested Rest surface, locked the primitive to `MaterialTheme.shapes.medium`, adopted shared spacing/type tokens, and exposed ready/running duration through `stateDescription`.
-- Status: Resolved in `c8286e0`, verified and independently accepted in `VER-20260903-017`; unreleased to a physical phone.
+- Status: Resolved in `c8286e0`, verified in `VER-20260903-017`, and released in Whip 0.3.44/code 50; see `VER-20260903-019`.
 
 ### FND-20260903-021 — Fresh numbered-machine work ignored resistance direction
 
@@ -784,7 +784,7 @@
 - Affected users: Machine users, Routine users, one-handed in-gym users, and users whose equipment uses reversed numbered resistance.
 - Evidence: `GymModels.kt`, `GymDao.kt`, `GymRepository.kt`, `RoutineRepository.kt`, `MachineLevelDefaultTest.kt`, `GymRepositoryTest.kt`, and `RoutineRepositoryTest.kt`.
 - Resolution: Added a pure direction-aware endpoint resolver, an exact non-null Exercise/Profile history query, repository-owned Set precedence, and actual-only blank-Routine derivation. Exact UUID matching protects snapshots; archive continues to block new assignment but no longer invalidates an existing binding.
-- Status: Resolved and pushed in `92c25f9`; verified and independently accepted in `VER-20260903-018`.
+- Status: Resolved in `92c25f9`, verified in `VER-20260903-018`, and released in Whip 0.3.44/code 50; see `VER-20260903-019`.
 
 ### FND-20260903-022 — Several fresh inputs used mechanical rather than semantic defaults
 
@@ -795,4 +795,4 @@
 - Affected users: Track, Goal, reminder, metric/imperial, custom-precision, keyboard, screen-reader, and high-frequency authoring users.
 - Evidence: `TrackScreens.kt`, `WhipApp.kt`, `GoalScreens.kt`, `ProductivityEditorComponents.kt`, `SemanticDefaultsTest.kt`, `TrackDefinitionMutationUiTest.kt`, and `EditorDependencyUxTest.kt`.
 - Resolution: Passed live settings into fresh Track Field creation only, converted the 75 kg Goal basis into the selected valid mass unit while retaining the explicit 150 lb template, and selected unused reminder slots in 08:00/hourly/15-minute/minute order with duplicate and fully occupied states disabled and explained.
-- Status: Resolved and pushed in `829c444`; verified and independently accepted in `VER-20260903-018`.
+- Status: Resolved in `829c444`, verified in `VER-20260903-018`, and released in Whip 0.3.44/code 50; see `VER-20260903-019`.

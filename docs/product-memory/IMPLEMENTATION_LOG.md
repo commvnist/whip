@@ -744,7 +744,7 @@
 - Important files: `GymExercisePicker.kt`, `GymScreens.kt`, `GymCatalogMutationUi.kt`, `RoutineBuilder.kt`, `WhipPagePatterns.kt`, `GymPowerInputUiTest.kt`, `RoutineBuilderUiTest.kt`, `UiDesignArchitectureTest.kt`, and `docs/testing.md`.
 - Related: `FB-20260903-011`, `FND-20260903-019`, `FND-20260903-020`, `DEC-20260903-011`.
 - Verification: `VER-20260903-017`.
-- Status: Implemented and pushed in `c8286e0`; not physically released.
+- Status: Implemented in `c8286e0` and released in Whip 0.3.44/code 50; see `VER-20260903-019`.
 
 ### IMP-20260903-018 — Direction-aware machine starts and cross-app semantic defaults
 
@@ -757,4 +757,15 @@
 - Important files: `GymModels.kt`, `GymDao.kt`, `GymRepository.kt`, `RoutineRepository.kt`, `TrackScreens.kt`, `GoalScreens.kt`, `ProductivityEditorComponents.kt`, their focused tests, and `docs/testing.md`.
 - Related: `FB-20260903-012`, `FND-20260903-021`, `FND-20260903-022`, `DEC-20260903-012`.
 - Verification: `VER-20260903-018`.
-- Status: Implemented in `92c25f9` and `829c444`, pushed to `origin/main`, and not physically released.
+- Status: Implemented in `92c25f9` and `829c444` and released in Whip 0.3.44/code 50; see `VER-20260903-019`.
+
+### IMP-20260903-019 — Signed Whip 0.3.44 semantic-default release
+
+- Assigned Whip 0.3.44/code 50 and pushed release-source commit `c01b2ff`.
+- Ran the complete guarded release workflow, produced minified signed APK and Play bundle artifacts, and installed the release in place on the explicitly selected Samsung endpoint.
+- Verified package version, local/installed APK identity, single-signer release certificate, preserved first-install identity, successful cold launch, foreground activity, and absence of Whip/runtime/database fatal errors.
+- Preserved user data; no physical-device instrumentation, uninstall, package clear, fresh-start confirmation, or unrestricted device-artifact write occurred.
+- Important files: `app/build.gradle.kts`, signed APK/AAB, `scripts/check`, and `scripts/device`.
+- Related: `FB-20260903-011` through `FB-20260903-013`, `IMP-20260903-017`, `IMP-20260903-018`.
+- Verification: `VER-20260903-019`.
+- Status: Released and physically verified; release source `c01b2ff`.

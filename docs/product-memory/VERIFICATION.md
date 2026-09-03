@@ -774,7 +774,7 @@
 - Scope: Focused compilation, architecture, and affected UI interaction coverage on the disposable emulator. The complete JVM/Android/lint/release gate and physical-device visual validation were not run; no phone package or user data changed.
 - Source: `c8286e0`.
 - Related: `FB-20260903-011`, `FND-20260903-019`, `FND-20260903-020`, `DEC-20260903-011`, `IMP-20260903-017`.
-- Status: Passed and independently accepted in the stated scope; implementation is pushed but not physically released.
+- Status: Passed and independently accepted in the stated scope; subsequently included in the physical release recorded by `VER-20260903-019`.
 
 ### VER-20260903-018 — Semantic-default targeted verification
 
@@ -785,4 +785,16 @@
 - Scope: Narrow deterministic domain and affected persistence/UI coverage on the disposable emulator. No complete release/lint/shrinker gate, physical-phone installation, user-data mutation, or physical-device instrumentation was performed.
 - Source: `92c25f9` and `829c444`.
 - Related: `FB-20260903-012`, `FND-20260903-021`, `FND-20260903-022`, `DEC-20260903-012`, `IMP-20260903-018`.
-- Status: Passed and independently accepted; both code chunks are pushed and remain unreleased to the physical phone.
+- Status: Passed and independently accepted; both code chunks were subsequently included in the physical release recorded by `VER-20260903-019`.
+
+### VER-20260903-019 — Whip 0.3.44 semantic-default physical release
+
+- `WHIP_DEVICE=192.168.2.187:44401 scripts/device release-deploy` selected the physical Samsung SM-F976W rather than the connected emulator. The guarded gate passed Play assets, all 598 JVM tests, Android-test compilation, debug and release-vital lint, deterministic coverage (79.89% domain lines, 56.84% domain branches, and 68.31% Settings/policy lines), R8/resource optimization, debug/release/benchmark assembly, and signed APK/AAB generation.
+- Release APK SHA-256 is `6b8219677776a6e29a9eddd53f0a4060ad45bb2d1cdb201d1ad932a680c57c03`; AAB SHA-256 is `cf8df168e2e78d49d1855bff4018943e1c591b34245a6a68cc7bbeb74216f6ec`. APK verification reports v2 signing, exactly one signer, and certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`; the AAB reports the same certificate.
+- Streamed `adb install -r` returned `Success`. Android reports `commvne.com.whip.app` version 0.3.44/code 50, min SDK 26, target SDK 37, and an installed base APK hash exactly matching the signed local artifact. `firstInstallTime=2026-08-26 17:59:24` remained unchanged.
+- A forced cold launch returned `Status: ok` in 134 ms (`TotalTime`) / 136 ms (`WaitTime`), left `MainActivity` top-resumed, and retained a live application process. PID-scoped error logs contained only Samsung/Qualcomm vendor diagnostics and no fatal exception, AndroidRuntime crash, Room/SQLite failure, or Whip application error.
+- No application data was cleared, no fresh-start confirmation was pressed, and no instrumentation or unrestricted debug-artifact write occurred on the physical phone. Installation identity is preserved; no content-level before/after data audit was performed.
+- A fresh Sol release review inspected source, retained build/test/lint/signing artifacts, and current device state, reported no blocker, and approved release acceptance.
+- Source: implementation `c8286e0`, `92c25f9`, and `829c444`; memory `1b339cf`; release source `c01b2ff`.
+- Related: `FB-20260903-011` through `FB-20260903-013`, `IMP-20260903-017` through `IMP-20260903-019`, `VER-20260903-017`, `VER-20260903-018`.
+- Status: Signed release installed and independently accepted on the physical phone.
