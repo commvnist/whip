@@ -98,7 +98,6 @@ internal fun FiveThreeOneBuilder(
     suggestedTrainingMax: Double?,
     initialTrainingMax: Double? = null,
     initialCycleIncrement: Double? = null,
-    initialProgramKind: RoutineProgramKind? = null,
     initialMainWorkScheme: RoutineMainWorkScheme = RoutineMainWorkScheme.Unspecified,
     initialSupplementalScheme: RoutineSupplementalScheme = RoutineSupplementalScheme.None,
     initialJokerSetsEnabled: Boolean = false,
@@ -111,7 +110,6 @@ internal fun FiveThreeOneBuilder(
     val inferredMainScheme = when {
         initialMainWorkScheme == RoutineMainWorkScheme.FivesPro -> FiveThreeOneMainScheme.FivesPro
         initialMainWorkScheme != RoutineMainWorkScheme.Unspecified -> FiveThreeOneMainScheme.Classic
-        initialProgramKind == RoutineProgramKind.FiveSPro -> FiveThreeOneMainScheme.FivesPro
         currentSets.any { it.classification == com.whip.app.domain.WorkoutSetClassification.Amrap.name } -> FiveThreeOneMainScheme.Classic
         currentSets.filter { it.routinePhaseIndex != null && it.classification != com.whip.app.domain.WorkoutSetClassification.BackOff.name }
             .takeIf(List<RoutineBuilderSetState>::isNotEmpty)
@@ -123,10 +121,10 @@ internal fun FiveThreeOneBuilder(
         initialSupplementalScheme == RoutineSupplementalScheme.FirstSetLast -> FiveThreeOneSupplement.FirstSetLast
         initialSupplementalScheme == RoutineSupplementalScheme.SecondSetLast -> FiveThreeOneSupplement.SecondSetLast
         initialSupplementalScheme == RoutineSupplementalScheme.BoringButStrong -> FiveThreeOneSupplement.BoringButStrong
-        initialProgramKind == RoutineProgramKind.BoringButBig || currentSets.any {
+        currentSets.any {
             it.routinePhaseIndex == null && it.classification == com.whip.app.domain.WorkoutSetClassification.BackOff.name && it.repetitionsMin == "10"
         } -> FiveThreeOneSupplement.BoringButBig
-        initialProgramKind == RoutineProgramKind.FirstSetLast || currentSets.any {
+        currentSets.any {
             it.routinePhaseIndex != null && it.classification == com.whip.app.domain.WorkoutSetClassification.BackOff.name
         } -> FiveThreeOneSupplement.FirstSetLast
         else -> FiveThreeOneSupplement.None

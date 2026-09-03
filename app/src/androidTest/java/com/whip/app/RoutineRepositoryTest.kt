@@ -27,7 +27,6 @@ import com.whip.app.domain.RoutineProgressionMode
 import com.whip.app.domain.RoutineSupplementalScheme
 import com.whip.app.domain.RoutineWorkSection
 import com.whip.app.domain.RoutineTrainingMaxSource
-import com.whip.app.domain.RoutineAssistanceRole
 import com.whip.app.domain.RoutineAssistanceCategory
 import com.whip.app.domain.RoutinePlacementKind
 import com.whip.app.domain.TrainingMaxCycleDecision
@@ -671,7 +670,7 @@ class RoutineRepositoryTest {
                             cycleIncrementValue = 5.0,
                             trainingMaxSource = RoutineTrainingMaxSource.Explicit,
                             mainWorkScheme = RoutineMainWorkScheme.FivesPro,
-                            assistanceRole = RoutineAssistanceRole.MainLift,
+                            placementKind = RoutinePlacementKind.MainLift,
                             plannedSets = labels.indices.map { phase ->
                                 WorkoutSetDraft(
                                     weightUnitId = "pound",
@@ -940,7 +939,7 @@ class RoutineRepositoryTest {
             RoutineDraft(
                 name = "Two-phase strength program",
                 program = RoutineProgramDraft(
-                    kind = RoutineProgramKind.FiveThreeOneClassic,
+                    kind = RoutineProgramKind.FiveThreeOne,
                     phaseCount = 2,
                     phaseLabels = listOf("Fives", "Threes"),
                     trainingMaxAdvanceAfterPhaseIndices = setOf(1),
@@ -1102,7 +1101,7 @@ class RoutineRepositoryTest {
             cycleIncrementValue = increment,
             trainingMaxSource = RoutineTrainingMaxSource.Explicit,
             mainWorkScheme = RoutineMainWorkScheme.FivesPro,
-            assistanceRole = RoutineAssistanceRole.MainLift,
+            placementKind = RoutinePlacementKind.MainLift,
             plannedSets = listOf(
                 WorkoutSetDraft(
                     weightUnitId = "pound",
@@ -1130,11 +1129,12 @@ class RoutineRepositoryTest {
                             RoutineExerciseDraft(
                                 exerciseId = rowId,
                                 // Simulates a former Main placement reclassified as assistance.
-                                // Hidden legacy TM fields must not progress at a boundary.
+                                // TM fields on Assistance work must not progress at a boundary.
                                 trainingMaxValue = 100.0,
                                 trainingMaxUnitId = "pound",
                                 cycleIncrementValue = 20.0,
-                                assistanceRole = RoutineAssistanceRole.Pull,
+                                placementKind = RoutinePlacementKind.Assistance,
+                                assistanceCategory = RoutineAssistanceCategory.Pull,
                                 plannedSets = listOf(
                                     WorkoutSetDraft(
                                         weight = 80.0,
@@ -1465,7 +1465,7 @@ class RoutineRepositoryTest {
                                 weightUnitId = "pound",
                                 reps = 3,
                                 loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
-                                loadPercentage = 100.0,
+                                loadPercentage = 95.0,
                                 workSection = RoutineWorkSection.Optional,
                                 optionalWorkKind = RoutineOptionalWorkKind.Joker,
                             ),
@@ -1515,7 +1515,7 @@ class RoutineRepositoryTest {
         gym.finishWorkout(earlierSessionId)
         val storedEarlier = requireNotNull(database.gymDao().getSession(earlierSessionId))
         database.gymDao().updateSession(
-            storedEarlier.copy(sourceRoutineProgramKind = RoutineProgramKind.FiveSPro.name),
+            storedEarlier.copy(sourceRoutineProgramKind = RoutineProgramKind.Custom.name),
         )
 
         val boundarySessionId = routines.startRoutine(routineId)
@@ -1799,7 +1799,7 @@ class RoutineRepositoryTest {
     }
 
     @Test
-    fun assistanceRoleAndWorkSectionRoundTripIntoWorkoutSnapshots() = runBlocking {
+    fun assistanceCategoryAndWorkSectionRoundTripIntoWorkoutSnapshots() = runBlocking {
         val rowId = gym.createExercise(ExerciseDraft("Chest-supported row", weightUnitId = "pound"))
         val routineId = routines.createRoutine(
             RoutineDraft(
@@ -1810,7 +1810,8 @@ class RoutineRepositoryTest {
                         listOf(
                             RoutineExerciseDraft(
                                 exerciseId = rowId,
-                                assistanceRole = RoutineAssistanceRole.Pull,
+                                placementKind = RoutinePlacementKind.Assistance,
+                                assistanceCategory = RoutineAssistanceCategory.Pull,
                                 plannedSets = listOf(
                                     WorkoutSetDraft(
                                         weight = 100.0,
@@ -1827,10 +1828,6 @@ class RoutineRepositoryTest {
         )
 
         assertEquals(
-            RoutineAssistanceRole.Pull,
-            routines.exercises.first().single { it.exerciseId == rowId }.assistanceRole,
-        )
-        assertEquals(
             RoutinePlacementKind.Assistance,
             routines.exercises.first().single { it.exerciseId == rowId }.placementKind,
         )
@@ -1845,7 +1842,6 @@ class RoutineRepositoryTest {
 
         val sessionId = routines.startRoutine(routineId)
         val placement = gym.workoutExercises.first().single { it.sessionId == sessionId }
-        assertEquals(RoutineAssistanceRole.Pull, placement.assistanceRoleSnapshot)
         assertEquals(RoutinePlacementKind.Assistance, placement.placementKindSnapshot)
         assertEquals(RoutineAssistanceCategory.Pull, placement.assistanceCategorySnapshot)
         assertEquals(
@@ -1879,7 +1875,7 @@ class RoutineRepositoryTest {
                                     cycleIncrementValue = 5.0,
                                     trainingMaxSource = RoutineTrainingMaxSource.Explicit,
                                     mainWorkScheme = RoutineMainWorkScheme.FivesPro,
-                                    assistanceRole = RoutineAssistanceRole.MainLift,
+                                    placementKind = RoutinePlacementKind.MainLift,
                                     plannedSets = listOf(65.0, 75.0).map { percentage ->
                                         WorkoutSetDraft(
                                             weightUnitId = "pound",
@@ -1973,7 +1969,7 @@ class RoutineRepositoryTest {
                                 cycleIncrementValue = 5.0,
                                 trainingMaxSource = RoutineTrainingMaxSource.Explicit,
                                 mainWorkScheme = RoutineMainWorkScheme.FivesPro,
-                                assistanceRole = RoutineAssistanceRole.MainLift,
+                                placementKind = RoutinePlacementKind.MainLift,
                                 plannedSets = listOf(
                                     WorkoutSetDraft(
                                         weightUnitId = "pound",
@@ -2013,7 +2009,7 @@ class RoutineRepositoryTest {
             cycleIncrementValue = 10.0,
             trainingMaxSource = RoutineTrainingMaxSource.Explicit,
             mainWorkScheme = RoutineMainWorkScheme.FivesPro,
-            assistanceRole = RoutineAssistanceRole.MainLift,
+            placementKind = RoutinePlacementKind.MainLift,
             plannedSets = listOf(
                 WorkoutSetDraft(
                     reps = 5,
@@ -2066,7 +2062,7 @@ class RoutineRepositoryTest {
                                 cycleIncrementValue = 10.0,
                                 trainingMaxSource = RoutineTrainingMaxSource.Explicit,
                                 mainWorkScheme = RoutineMainWorkScheme.FivesPro,
-                                assistanceRole = RoutineAssistanceRole.MainLift,
+                                placementKind = RoutinePlacementKind.MainLift,
                                 plannedSets = listOf(
                                     WorkoutSetDraft(
                                         reps = 5,
@@ -2207,7 +2203,7 @@ class RoutineRepositoryTest {
                                 // These placement summaries intentionally describe only the Anchor.
                                 mainWorkScheme = RoutineMainWorkScheme.ClassicPrSet,
                                 supplementalScheme = RoutineSupplementalScheme.FirstSetLast,
-                                assistanceRole = RoutineAssistanceRole.MainLift,
+                                placementKind = RoutinePlacementKind.MainLift,
                                 jokerSetsEnabled = true,
                                 plannedSets = leaderMain +
                                     supplementalSets(0, 5, 10, 50.0, RoutineSupplementalScheme.BoringButBig) +

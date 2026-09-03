@@ -1130,8 +1130,8 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 
 private const val BACKUP_FORMAT = "whip-backup"
 internal const val ENVELOPE_VERSION = 3
-internal const val CURRENT_DATA_MODEL_EPOCH = 2
-internal const val BACKUP_DATABASE_VERSION = 19
+internal const val CURRENT_DATA_MODEL_EPOCH = 3
+internal const val BACKUP_DATABASE_VERSION = 20
 
 internal fun validateBackupContract(
     envelopeVersion: Int,

@@ -171,10 +171,6 @@ enum class RoutineProgramKind {
     Static,
     Custom,
     FiveThreeOne,
-    FiveThreeOneClassic,
-    FiveSPro,
-    BoringButBig,
-    FirstSetLast,
 }
 
 enum class RoutineTrainingMaxSource {
@@ -317,7 +313,6 @@ enum class RoutineAssistanceCategory {
 /** Stable provenance for a generated program; notes remain editable user content. */
 enum class RoutineProgramTemplateKey {
     None,
-    LegacyFiveThreeOne,
     FiveThreeOneFourDay,
     FiveThreeOneBeginners,
     FiveThreeOneCustom,
@@ -328,10 +323,7 @@ enum class RoutineProgramTemplateKey {
 /** Template semantics from this revision execute 7th Week protocols once per logical lift. */
 const val FIVE_THREE_ONE_ONCE_PER_LIFT_PROTOCOL_REVISION = 2
 
-/**
- * Legacy combined field kept for deterministic backup/database compatibility. New authoring
- * code writes [RoutinePlacementKind] and [RoutineAssistanceCategory] explicitly.
- */
+/** Builder choice used while assigning a structural placement or assistance category. */
 enum class RoutineAssistanceRole {
     Unspecified,
     MainLift,
@@ -339,42 +331,6 @@ enum class RoutineAssistanceRole {
     Pull,
     SingleLegCore,
     Other,
-}
-
-fun RoutineAssistanceRole.toPlacementKind(): RoutinePlacementKind = when (this) {
-    RoutineAssistanceRole.MainLift -> RoutinePlacementKind.MainLift
-    RoutineAssistanceRole.Push,
-    RoutineAssistanceRole.Pull,
-    RoutineAssistanceRole.SingleLegCore,
-    RoutineAssistanceRole.Other,
-    -> RoutinePlacementKind.Assistance
-    RoutineAssistanceRole.Unspecified -> RoutinePlacementKind.General
-}
-
-fun RoutineAssistanceRole.toAssistanceCategory(): RoutineAssistanceCategory = when (this) {
-    RoutineAssistanceRole.Push -> RoutineAssistanceCategory.Push
-    RoutineAssistanceRole.Pull -> RoutineAssistanceCategory.Pull
-    RoutineAssistanceRole.SingleLegCore -> RoutineAssistanceCategory.SingleLegCore
-    RoutineAssistanceRole.Other -> RoutineAssistanceCategory.Other
-    RoutineAssistanceRole.Unspecified,
-    RoutineAssistanceRole.MainLift,
-    -> RoutineAssistanceCategory.Unspecified
-}
-
-fun legacyRoutineAssistanceRole(
-    placementKind: RoutinePlacementKind,
-    assistanceCategory: RoutineAssistanceCategory,
-): RoutineAssistanceRole = when (placementKind) {
-    RoutinePlacementKind.MainLift -> RoutineAssistanceRole.MainLift
-    RoutinePlacementKind.Supplemental -> RoutineAssistanceRole.Unspecified
-    RoutinePlacementKind.General -> RoutineAssistanceRole.Unspecified
-    RoutinePlacementKind.Assistance -> when (assistanceCategory) {
-        RoutineAssistanceCategory.Push -> RoutineAssistanceRole.Push
-        RoutineAssistanceCategory.Pull -> RoutineAssistanceRole.Pull
-        RoutineAssistanceCategory.SingleLegCore -> RoutineAssistanceRole.SingleLegCore
-        RoutineAssistanceCategory.Other -> RoutineAssistanceRole.Other
-        RoutineAssistanceCategory.Unspecified -> RoutineAssistanceRole.Other
-    }
 }
 
 enum class RoutineWorkSection {
@@ -597,7 +553,6 @@ data class WorkoutExercise(
     val trainingMaxSourceSnapshot: RoutineTrainingMaxSource = RoutineTrainingMaxSource.EstimatedOneRepMaxPercent,
     val mainWorkSchemeSnapshot: RoutineMainWorkScheme = RoutineMainWorkScheme.Unspecified,
     val supplementalSchemeSnapshot: RoutineSupplementalScheme = RoutineSupplementalScheme.None,
-    val assistanceRoleSnapshot: RoutineAssistanceRole = RoutineAssistanceRole.Unspecified,
     val placementKindSnapshot: RoutinePlacementKind = RoutinePlacementKind.General,
     val assistanceCategorySnapshot: RoutineAssistanceCategory = RoutineAssistanceCategory.Unspecified,
     val jokerSetsEnabledSnapshot: Boolean = false,
@@ -964,7 +919,7 @@ data class RoutineDraft(
     val name: String,
     val notes: String = "",
     val days: List<RoutineDayDraft>,
-    /** Null keeps legacy/static behavior on create and preserves the stored program on update. */
+    /** Null selects a static routine on create and preserves the stored program on update. */
     val program: RoutineProgramDraft? = null,
     /** Edit-only hint used to preserve the same next day when the routine days are reordered. */
     val nextProgramDayPositionHint: Int? = null,
@@ -973,7 +928,7 @@ data class RoutineDraft(
 data class RoutineDayDraft(
     val name: String,
     val exercises: List<RoutineExerciseDraft>,
-    /** Null lets repository updates preserve the stored per-day legacy progression cursor. */
+    /** Null lets repository updates preserve the stored per-day progression cursor. */
     val progressionIndex: Int? = null,
 )
 
@@ -1001,11 +956,15 @@ data class RoutineExerciseDraft(
     val trainingMaxPercent: Double = 90.0,
     val progressionPercentages: List<Double> = emptyList(),
     val alternativeExerciseIds: List<Long> = emptyList(),
-    /** Explicit, auditable training max. Null retains legacy e1RM-percentage resolution. */
+    /** Explicit, auditable training max. Null means no Training Max has been applied. */
     val trainingMaxValue: Double? = null,
     val trainingMaxUnitId: String = "kilogram",
     val cycleIncrementValue: Double? = null,
-    val trainingMaxSource: RoutineTrainingMaxSource = RoutineTrainingMaxSource.EstimatedOneRepMaxPercent,
+    val trainingMaxSource: RoutineTrainingMaxSource = if (trainingMaxValue == null) {
+        RoutineTrainingMaxSource.EstimatedOneRepMaxPercent
+    } else {
+        RoutineTrainingMaxSource.Explicit
+    },
     val trainingMaxBasisKind: TrainingMaxBasisKind = TrainingMaxBasisKind.Unspecified,
     val trainingMaxBasisValue: Double? = null,
     val trainingMaxBasisUnitId: String = "",
@@ -1013,7 +972,6 @@ data class RoutineExerciseDraft(
     val trainingMaxIncreaseEligible: Boolean = true,
     val mainWorkScheme: RoutineMainWorkScheme = RoutineMainWorkScheme.Unspecified,
     val supplementalScheme: RoutineSupplementalScheme = RoutineSupplementalScheme.None,
-    val assistanceRole: RoutineAssistanceRole = RoutineAssistanceRole.Unspecified,
     val placementKind: RoutinePlacementKind = RoutinePlacementKind.General,
     val assistanceCategory: RoutineAssistanceCategory = RoutineAssistanceCategory.Unspecified,
     val jokerSetsEnabled: Boolean = false,
@@ -1101,7 +1059,6 @@ data class RoutineExercise(
     val trainingMaxIncreaseEligible: Boolean = true,
     val mainWorkScheme: RoutineMainWorkScheme = RoutineMainWorkScheme.Unspecified,
     val supplementalScheme: RoutineSupplementalScheme = RoutineSupplementalScheme.None,
-    val assistanceRole: RoutineAssistanceRole = RoutineAssistanceRole.Unspecified,
     val placementKind: RoutinePlacementKind = RoutinePlacementKind.General,
     val assistanceCategory: RoutineAssistanceCategory = RoutineAssistanceCategory.Unspecified,
     val jokerSetsEnabled: Boolean = false,

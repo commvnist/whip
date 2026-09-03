@@ -118,7 +118,6 @@ data class RoutineExerciseEntity(
     val trainingMaxIncreaseEligible: Boolean = true,
     val mainWorkScheme: String = "Unspecified",
     val supplementalScheme: String = "None",
-    val assistanceRole: String = "Unspecified",
     val placementKind: String = "General",
     val assistanceCategory: String = "Unspecified",
     val jokerSetsEnabled: Boolean = false,

@@ -5,7 +5,7 @@ import org.junit.Test
 
 class DataEpochPolicyTest {
     @Test fun freshInstallEstablishesCurrentEpoch() {
-        assertEquals(DataEpochState.Current(2), DataEpochPolicy.resolve(null, hasAppOwnedState = false))
+        assertEquals(DataEpochState.Current(3), DataEpochPolicy.resolve(null, hasAppOwnedState = false))
     }
 
     @Test fun markerlessInstallWithAnyOwnedStateRequiresReset() {
@@ -13,20 +13,20 @@ class DataEpochPolicyTest {
     }
 
     @Test fun onlyExactCurrentMarkerOpensAndOldOrMalformedMarkersFailClosed() {
-        assertEquals(DataEpochState.Current(2), DataEpochPolicy.resolve("current:2", true))
+        assertEquals(DataEpochState.Current(3), DataEpochPolicy.resolve("current:3", true))
         assertEquals(DataEpochState.ResetRequired, DataEpochPolicy.resolve("current:1", false))
         assertEquals(DataEpochState.ResetRequired, DataEpochPolicy.resolve("invalid", false))
     }
 
     @Test fun interruptedCurrentResetResumesButForeignResetMarkerRequiresConfirmation() {
-        assertEquals(DataEpochState.ResetInProgress(2), DataEpochPolicy.resolve("reset-in-progress:2", true))
+        assertEquals(DataEpochState.ResetInProgress(3), DataEpochPolicy.resolve("reset-in-progress:3", true))
         assertEquals(DataEpochState.ResetRequired, DataEpochPolicy.resolve("reset-in-progress:1", true))
     }
 
     @Test fun everyDurableStateHasStableEncoding() {
-        assertEquals("current:2", DataEpochPolicy.encode(DataEpochState.Current(2)))
+        assertEquals("current:3", DataEpochPolicy.encode(DataEpochState.Current(3)))
         assertEquals("reset-required", DataEpochPolicy.encode(DataEpochState.ResetRequired))
-        assertEquals("reset-in-progress:2", DataEpochPolicy.encode(DataEpochState.ResetInProgress(2)))
+        assertEquals("reset-in-progress:3", DataEpochPolicy.encode(DataEpochState.ResetInProgress(3)))
     }
 
     @Test fun unrelatedPlatformArtifactsDoNotMakeFreshInstallLookOld() {

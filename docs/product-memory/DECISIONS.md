@@ -511,3 +511,13 @@
 - Compatibility: No schema, backup, catalog identity, Routine definition, active Workout, or completed History change.
 - Related: `FND-20260902-017`, `IMP-20260902-025`, `VER-20260902-026`.
 - Status: Accepted, implemented, and targeted emulator verified.
+
+### DEC-20260902-023 — Make schema 43 the canonical structured-Gym model
+
+- Context: The user authorized a breaking clean slate specifically to remove migratory and legacy behavior. Schema 42 still carried old program-kind aliases and a duplicated assistance-role representation even though current 5/3/1 generation already expresses Classic/5s PRO and BBB/FSL/SSL/BBS as independent executable policies.
+- Decision: Persist only `Static`, `Custom`, or canonical `FiveThreeOne` program identity. Persist work structure only as `placementKind` plus `assistanceCategory`; keep the assistance-role picker as transient builder state. Require applied Training Max values to declare the `Explicit` source and require every Joker candidate, including a single Joker, to follow the ordered 5-point ladder above the final Main percentage. Cross a new explicit fresh-start boundary at Room schema 43, data epoch 3, and portable-backup data version 20; retain only the current schema and accept no migration or older backup.
+- Rationale: Main work, supplemental work, optional work, and assistance are orthogonal program concepts, not alternate program identities. One source of truth prevents impossible combinations while retaining full customization. A new epoch is safer and more truthful than pretending a schema-shape removal is compatible.
+- Compatibility: Deliberately breaking as previously authorized. Updating installations must confirm the fresh-start gate; historical schema 42 and portable-backup version 19 are rejected rather than transformed. No released history is silently recomputed.
+- Supersedes: The current-boundary values in `DEC-20260902-017`; that decision remains historical evidence for the preceding clean-slate step.
+- Related: `FND-20260902-018`, `IMP-20260902-026`, `VER-20260902-027`.
+- Status: Accepted, implemented, and targeted emulator verified.

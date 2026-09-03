@@ -54,7 +54,6 @@ import com.whip.app.domain.RoutineMainWorkScheme
 import com.whip.app.domain.RoutineOptionalWorkKind
 import com.whip.app.domain.RoutineSupplementalScheme
 import com.whip.app.domain.RoutineTrainingMaxSource
-import com.whip.app.domain.RoutineAssistanceRole
 import com.whip.app.domain.RoutineAssistanceCategory
 import com.whip.app.domain.RoutinePlacementKind
 import com.whip.app.domain.RoutineWorkSection
@@ -742,13 +741,12 @@ class RoomGymRepository(
         val finalPhase = phase == routine.programPhaseCount - 1
         val invalidatedExerciseIds = session.invalidatedMainExerciseIdsCsv
             .split(',').mapNotNull(String::toLongOrNull).toSet()
-        val legacyUnknownInvalidation = session.requiredMainWorkInvalidated && invalidatedExerciseIds.isEmpty()
         val mainOutcomeByExerciseId = dao.getWorkoutExercises(session.id).mapNotNull { workoutExercise ->
             val mainSets = dao.getWorkoutSets(workoutExercise.id).filter {
                 it.workSectionSnapshot == RoutineWorkSection.Main.name
             }
             if (mainSets.isEmpty()) return@mapNotNull null
-            val completed = !legacyUnknownInvalidation && workoutExercise.exerciseId !in invalidatedExerciseIds &&
+            val completed = workoutExercise.exerciseId !in invalidatedExerciseIds &&
                 mainSets.all { set ->
                     val repetitionsMet = set.prescribedRepetitions == null ||
                         (set.repetitions ?: Int.MIN_VALUE) >= set.prescribedRepetitions
@@ -1903,8 +1901,8 @@ class RoomGymRepository(
             }
         }
 
-        // Flatten every surviving group at its first authored position. This repairs
-        // legacy sessions and prevents regrouping one member from splitting its old group.
+        // Flatten every surviving group at its first authored position. This repairs malformed
+        // grouping and prevents regrouping one member from splitting its old group.
         ordered = dao.getWorkoutExercises(sessionId)
             .filter { it.outcome == WorkoutExerciseOutcome.Active.name }
             .sortedWith(compareBy({ it.position }, { it.id }))
@@ -2910,8 +2908,6 @@ private fun WorkoutExerciseEntity.toDomain() = WorkoutExercise(
         .getOrDefault(RoutineMainWorkScheme.Unspecified),
     supplementalSchemeSnapshot = runCatching { RoutineSupplementalScheme.valueOf(supplementalSchemeSnapshot) }
         .getOrDefault(RoutineSupplementalScheme.None),
-    assistanceRoleSnapshot = runCatching { RoutineAssistanceRole.valueOf(assistanceRoleSnapshot) }
-        .getOrDefault(RoutineAssistanceRole.Unspecified),
     placementKindSnapshot = runCatching { RoutinePlacementKind.valueOf(placementKindSnapshot) }
         .getOrDefault(RoutinePlacementKind.General),
     assistanceCategorySnapshot = runCatching { RoutineAssistanceCategory.valueOf(assistanceCategorySnapshot) }

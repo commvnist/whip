@@ -854,14 +854,14 @@ class RoutineBuilderStateTest {
             RoutineMainWorkScheme.ClassicPrSet,
             perLift.fiveThreeOnePhasePolicy(1, secondLiftId)?.mainWorkScheme,
         )
-        val legacyCompatible = initial.copy(programKind = RoutineProgramKind.FiveSPro.name)
+        val structuredProgram = initial.copy(programKind = RoutineProgramKind.FiveThreeOne.name)
             .applyFiveThreeOnePhasePolicy(
                 phaseIndex = 0,
                 mainWorkScheme = RoutineMainWorkScheme.FivesPro,
                 supplementalScheme = RoutineSupplementalScheme.FirstSetLast,
                 jokerEnabled = false,
             )
-        assertEquals(RoutineMainWorkScheme.FivesPro, legacyCompatible.fiveThreeOnePhasePolicy(0)?.mainWorkScheme)
+        assertEquals(RoutineMainWorkScheme.FivesPro, structuredProgram.fiveThreeOnePhasePolicy(0)?.mainWorkScheme)
 
         assertEquals(
             FiveThreeOnePhasePolicyState(

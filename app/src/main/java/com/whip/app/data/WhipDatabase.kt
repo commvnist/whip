@@ -62,7 +62,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TrackEntrySearchEntity::class,
         TrackCsvImportReceiptEntity::class,
     ],
-    version = 42,
+    version = 43,
     exportSchema = true,
 )
 abstract class WhipDatabase : RoomDatabase() {

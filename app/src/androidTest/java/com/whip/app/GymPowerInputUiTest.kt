@@ -44,9 +44,9 @@ import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.GymRoutine
 import com.whip.app.domain.RoutineDay
 import com.whip.app.domain.RoutineExercise
-import com.whip.app.domain.RoutineAssistanceRole
 import com.whip.app.domain.RoutineLoadPrescriptionType
 import com.whip.app.domain.RoutineMainWorkScheme
+import com.whip.app.domain.RoutinePlacementKind
 import com.whip.app.domain.RoutineProgramKind
 import com.whip.app.domain.RoutineProgramPhaseRole
 import com.whip.app.domain.RoutineSet
@@ -118,7 +118,7 @@ class GymPowerInputUiTest {
             pinned = false,
             createdAtMillis = 1,
             updatedAtMillis = 2,
-            programKind = RoutineProgramKind.FiveThreeOneClassic,
+            programKind = RoutineProgramKind.FiveThreeOne,
             programPhaseCount = 4,
             programPhaseLabels = listOf("5s", "3s", "5/3/1", "Deload"),
             currentProgramPhaseIndex = 2,
@@ -153,7 +153,7 @@ class GymPowerInputUiTest {
             trainingMaxSource = RoutineTrainingMaxSource.Explicit,
             mainWorkScheme = RoutineMainWorkScheme.ClassicPrSet,
             supplementalScheme = RoutineSupplementalScheme.FirstSetLast,
-            assistanceRole = RoutineAssistanceRole.MainLift,
+            placementKind = RoutinePlacementKind.MainLift,
             jokerSetsEnabled = true,
         )
         val plannedSet = RoutineSet(
@@ -194,10 +194,10 @@ class GymPowerInputUiTest {
         assertEquals(RoutineTrainingMaxSource.Explicit, reconstructedPlacement.trainingMaxSource)
         assertEquals(RoutineMainWorkScheme.ClassicPrSet, reconstructedPlacement.mainWorkScheme)
         assertEquals(RoutineSupplementalScheme.FirstSetLast, reconstructedPlacement.supplementalScheme)
-        assertEquals(RoutineAssistanceRole.MainLift, reconstructedPlacement.assistanceRole)
+        assertEquals(RoutinePlacementKind.MainLift, reconstructedPlacement.placementKind)
         assertTrue(reconstructedPlacement.jokerSetsEnabled)
         assertEquals(4, reconstructed.days.single().progressionIndex)
-        assertEquals(RoutineProgramKind.FiveThreeOneClassic, reconstructed.program?.kind)
+        assertEquals(RoutineProgramKind.FiveThreeOne, reconstructed.program?.kind)
         assertEquals(listOf("5s", "3s", "5/3/1", "Deload"), reconstructed.program?.phaseLabels)
         assertEquals(
             listOf(
@@ -1474,7 +1474,7 @@ class GymPowerInputUiTest {
             }
         }
         val session = testHistorySession().copy(
-            sourceRoutineProgramKind = RoutineProgramKind.FiveThreeOneClassic,
+            sourceRoutineProgramKind = RoutineProgramKind.FiveThreeOne,
             sourceRoutinePhaseIndex = 2,
             sourceRoutinePhaseLabel = "Anchor 1",
             sourceRoutinePhaseRole = RoutineProgramPhaseRole.Anchor,

@@ -521,3 +521,15 @@
 - Related: `FND-20260902-017`, `DEC-20260902-022`.
 - Verification: `VER-20260902-026`.
 - Status: Implemented and targeted emulator verified.
+
+### IMP-20260902-026 — Canonical 5/3/1 identity and structural work model
+
+- Removed obsolete 5/3/1 program-kind aliases and the unknown-template key; current programs use canonical `FiveThreeOne` plus explicit phase, Main-work, supplemental, optional-work, and progression policies.
+- Removed persisted routine/workout assistance-role columns and their inference paths. Routine and historical workout records now use `placementKind` plus `assistanceCategory`; the familiar Push/Pull/Single-leg or Core/Other picker remains transient builder state.
+- Tightened program validation so an applied Training Max has an explicit source and every one-to-three Joker ladder uses ordered 5-point percentage steps without a compatibility exception.
+- Established Room schema 43, data epoch 3, backup data version 20, and app 0.3.37/version code 43. Removed schema 42 and updated current-boundary and backup contracts; older installations/backups require the already-authored clean-start path.
+- Updated the current 5/3/1 support matrix to reflect one-tap Leader/Anchor plans, all three 7th Week presets, alternate-lift BBB, multi-Jokers, automatic assistance drafts, and Training Max decision history.
+- Important files: `GymModels.kt`, `RoutineEntities.kt`, `GymEntities.kt`, `RoutineRepository.kt`, `FiveThreeOneBuilder.kt`, `FiveThreeOneProgramming.kt`, `RoutineBuilder.kt`, `GymScreens.kt`, `WhipDatabase.kt`, `DataEpochGate.kt`, `BackupRepository.kt`, and schema 43.
+- Related: `FND-20260902-018`, `DEC-20260902-023`.
+- Verification: `VER-20260902-027`.
+- Status: Implemented and targeted emulator verified.

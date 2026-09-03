@@ -301,7 +301,6 @@ data class WorkoutExerciseEntity(
     val trainingMaxSourceSnapshot: String = "EstimatedOneRepMaxPercent",
     val mainWorkSchemeSnapshot: String = "Unspecified",
     val supplementalSchemeSnapshot: String = "None",
-    val assistanceRoleSnapshot: String = "Unspecified",
     val placementKindSnapshot: String = "General",
     val assistanceCategorySnapshot: String = "Unspecified",
     val jokerSetsEnabledSnapshot: Boolean = false,

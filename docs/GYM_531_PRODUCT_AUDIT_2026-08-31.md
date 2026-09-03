@@ -378,12 +378,12 @@ simulations, not recruited human usability research.
 | 5s PRO | First-class | Independent Main policy, composable with every supported supplement; every active Main set must be five reps without AMRAP. |
 | FSL 5×5 | First-class | Typed phase-aware Supplemental sets validated against the active first Main percentage; generated Deload is Main-only unless explicitly customized. |
 | SSL 5×5 | First-class | Typed phase-aware Supplemental sets validated against the active second Main percentage; generated Deload is Main-only unless explicitly customized. |
-| BBB 5×10 | First-class, same-lift wizard path | Configurable percentage, exactly 5×10, including the documented standard-BBB Deload default and phase materialization on divergence. Alternate-lift BBB remains an advanced/custom routine edit. |
+| BBB 5×10 | First-class | Configurable percentage, exactly 5×10, same-lift or alternate programmed lift, independent TM ownership, and phase synchronization. |
 | Boring But Strong 10×5 | First-class | Typed generator and exact set-shape validation; generated Deload is Main-only unless explicitly customized. |
-| Joker Sets | Intentional optional support | One starting candidate per enabled phase, independent recording, explicit perform/skip, never required. No automated multi-Joker ladder or readiness decision. |
+| Joker Sets | First-class optional support | One to three +5% or +10% candidates, independent recording, prerequisite/readiness gating, explicit perform/skip, and no effect on required Supplemental work. |
 | 5/3/1 for Beginners | First-class layout | Exact public three-day main-lift/FSL structure and assistance category guidance; the app-added Deload is conservatively Main-only because the public article does not define its Deload FSL. Exercise choice remains user-owned. |
-| Leader / Anchor | Clean structured representation, not a canonical preset | Named/typed phases can independently change PR/5s PRO, supplement, and Joker policy across multiple cycles. The app does not invent book-specific prescriptions. |
-| 7th Week deload / TM test / PR test | Clean structured representation, not a canonical preset | Distinct phase roles and explicit TM boundary; lifter reviews/customizes sets for the intended protocol. |
+| Leader / Anchor | First-class for two named structures | One-tap BBB Leader → FSL Anchor and FSL Leader → FSL Anchor blocks; every generated phase remains reviewable/editable. No claim of exhaustive book-template coverage. |
+| 7th Week deload / TM test / PR test | First-class | One-tap explicit matrices, semantic roles, exact once-per-logical-lift execution, and deliberate TM boundaries. |
 | Custom chosen-lift schedules | First-class guided support | Any distinct Weight + Reps exercises can be added, removed, reordered, and assigned independent TMs/increments; each becomes one training day. More complex mixed-lift schedules remain editable in Advanced. |
 
 ### Final answers to the twenty key questions
@@ -391,12 +391,14 @@ simulations, not recruited human usability research.
 1. **Is 5/3/1 genuinely first-class?** Yes for the supported templates and execution model;
    it now has a visible whole-program path, typed semantics, and central validation.
 2. **Which major variants are truly supported?** Classic, PR/minimum reps, 5s PRO, FSL,
-   SSL, BBB, BBS, Beginners, and one-candidate optional Jokers.
-3. **Which remain manual/custom?** Exact proprietary Leader/Anchor and 7th Week
-   prescriptions, alternate-lift BBB, multi-Joker ladders, and complex mixed-lift schedules.
+   SSL, same/alternate-lift BBB, BBS, Beginners, two Leader/Anchor structures, all three
+   7th Week uses, and one-to-three-candidate optional Joker ladders.
+3. **Which remain manual/custom?** Book structures outside the two deliberately named
+   Leader/Anchor presets and complex mixed-lift schedules remain custom. Whip does not claim
+   an exhaustive licensed edition-by-edition template catalog.
 4. **Are TM semantics correct?** Yes for explicit TM versus working load, rounding,
-   snapshots, gated increases, unit conversion, and stable suggestions. There is not yet a
-   separate queryable TM-change ledger.
+   snapshots, gated increases/decreases/holds, unit conversion, stable e1RM-derived setup,
+   adjustable TM percentage, and immutable cycle-decision history.
 5. **Are work types distinct?** Yes: Main, Supplemental, Assistance, and Optional are typed
    and snapshotted.
 6. **Can Jokers be naturally enabled and used?** Yes, per phase, as visibly optional work
@@ -404,17 +406,17 @@ simulations, not recruited human usability research.
 7. **Can users configure PR sets versus 5s PRO?** Yes, independently of supplemental work,
    including per-phase Leader/Anchor differences.
 8. **Can Leader/Anchor be represented cleanly?** Yes as typed, named multi-phase blocks with
-   phase-authoritative prescriptions; not as a misleading one-click canonical preset.
-9. **Is 7th Week representable?** Yes with distinct Deload/TM Test/PR Test roles, explicit
-   sets, and TM boundary; exact protocol selection remains deliberate/custom.
+   phase-authoritative prescriptions and two one-tap editable structures.
+9. **Is 7th Week representable?** Yes with one-tap Deload/TM Test/PR Test matrices, exact
+   once-per-logical-lift execution, and explicit TM boundaries.
 10. **Can a novice create a valid program?** Yes through the top-level standard, custom-lift,
     or Beginners setup, stable TM help, clear defaults, and preview.
 11. **Can an expert customize without fighting it?** Substantially yes through selected-phase
     policies, copy/remove/reindex, explicit boundaries, and low-level set editing.
 12. **Is supplemental work obvious?** Yes in setup, phase policy, routine rows, and workout
     labels.
-13. **Is assistance work obvious?** Yes as Push/Pull/Single-leg-or-Core roles and guidance,
-    though exercise selection intentionally remains manual.
+13. **Is assistance work obvious?** Yes as Push/Pull/Single-leg-or-Core categories, guidance,
+    and a transparent draft generated from compatible exercises in the user's Library.
 14. **Does customization preserve progression?** Yes; prescriptions carry phase indices and
     policy tags, repeated-lift drift is blocked, and boundaries are explicit.
 15. **Is active workout fast enough?** Yes: required next action remains dominant; section
@@ -427,9 +429,9 @@ simulations, not recruited human usability research.
 18. **Are semantics central or scattered?** Calculations, active-policy resolution,
     validation, and progression are central. Compose edits typed drafts rather than owning
     the business rules.
-19. **What remains missing?** A TM-change ledger, canonical licensed/book-specific presets,
-    automatic assistance exercise programming, alternate-lift BBB setup, and multi-Joker
-    autoregulation.
+19. **What remains missing?** Exhaustive licensed/book-specific presets and automatic coaching
+    beyond bounded, explainable cycle suggestions. The former assistance, alternate-BBB,
+    multi-Joker, and 7th Week gaps are implemented.
 20. **What was present but undiscoverable?** The former deep per-placement 5/3/1 generator is
     now superseded by a top-level whole-program entry; low-level editing remains available
     under advanced disclosure.

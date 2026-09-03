@@ -2868,10 +2868,6 @@ private fun WorkoutContent(
                     RoutineProgramKind.Static -> "Routine"
                     RoutineProgramKind.Custom -> "Program"
                     RoutineProgramKind.FiveThreeOne -> "5/3/1"
-                    RoutineProgramKind.FiveThreeOneClassic -> "Classic 5/3/1"
-                    RoutineProgramKind.FiveSPro -> "5s PRO"
-                    RoutineProgramKind.BoringButBig -> "Boring But Big"
-                    RoutineProgramKind.FirstSetLast -> "First Set Last"
                 }
                 val phaseLabel = session.sourceRoutinePhaseLabel.takeIf(String::isNotBlank)
                     ?: session.sourceRoutinePhaseIndex?.let { "Phase ${it + 1}" }
@@ -7092,10 +7088,6 @@ internal fun workoutProgramSnapshotLabel(session: WorkoutSession): String? {
         RoutineProgramKind.Static -> return null
         RoutineProgramKind.Custom -> "Program"
         RoutineProgramKind.FiveThreeOne -> "5/3/1"
-        RoutineProgramKind.FiveThreeOneClassic -> "Classic 5/3/1"
-        RoutineProgramKind.FiveSPro -> "5s PRO"
-        RoutineProgramKind.BoringButBig -> "Boring But Big"
-        RoutineProgramKind.FirstSetLast -> "First Set Last"
     }
     return buildList {
         add("Program snapshot · $program")
@@ -7206,26 +7198,8 @@ private fun HistoricalWorkoutSetRow(
 }
 
 private fun WorkoutExercise.assistanceLabel(): String? {
-    if (placementKindSnapshot != RoutinePlacementKind.Assistance &&
-        assistanceRoleSnapshot !in setOf(
-            RoutineAssistanceRole.Push,
-            RoutineAssistanceRole.Pull,
-            RoutineAssistanceRole.SingleLegCore,
-            RoutineAssistanceRole.Other,
-        )
-    ) return null
-    val category = if (assistanceCategorySnapshot != RoutineAssistanceCategory.Unspecified) {
-        assistanceCategorySnapshot
-    } else {
-        when (assistanceRoleSnapshot) {
-            RoutineAssistanceRole.Push -> RoutineAssistanceCategory.Push
-            RoutineAssistanceRole.Pull -> RoutineAssistanceCategory.Pull
-            RoutineAssistanceRole.SingleLegCore -> RoutineAssistanceCategory.SingleLegCore
-            RoutineAssistanceRole.Other -> RoutineAssistanceCategory.Other
-            else -> RoutineAssistanceCategory.Unspecified
-        }
-    }
-    return when (category) {
+    if (placementKindSnapshot != RoutinePlacementKind.Assistance) return null
+    return when (assistanceCategorySnapshot) {
         RoutineAssistanceCategory.Push -> "Assistance · Push"
         RoutineAssistanceCategory.Pull -> "Assistance · Pull"
         RoutineAssistanceCategory.SingleLegCore -> "Assistance · Single-leg / Core"
@@ -9155,10 +9129,6 @@ internal fun routineProgramStatusLabel(routine: GymRoutine, nextDayName: String?
         RoutineProgramKind.Static -> "Static Routine"
         RoutineProgramKind.Custom -> "Program"
         RoutineProgramKind.FiveThreeOne -> "5/3/1"
-        RoutineProgramKind.FiveThreeOneClassic -> "Classic 5/3/1"
-        RoutineProgramKind.FiveSPro -> "5s PRO"
-        RoutineProgramKind.BoringButBig -> "Boring But Big"
-        RoutineProgramKind.FirstSetLast -> "First Set Last"
     }
     val phase = routine.programPhaseLabels.getOrNull(routine.currentProgramPhaseIndex)
         ?.takeIf(String::isNotBlank)
@@ -9206,7 +9176,6 @@ internal fun routineDraftForEditing(state: GymUiState, routine: GymRoutine): Rou
                     trainingMaxSource = routineExercise.trainingMaxSource,
                     mainWorkScheme = routineExercise.mainWorkScheme,
                     supplementalScheme = routineExercise.supplementalScheme,
-                    assistanceRole = routineExercise.assistanceRole,
                     placementKind = routineExercise.placementKind,
                     assistanceCategory = routineExercise.assistanceCategory,
                     jokerSetsEnabled = routineExercise.jokerSetsEnabled,

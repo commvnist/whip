@@ -69,7 +69,7 @@ class FiveThreeOneCycleReviewTest {
     @Test
     fun evidenceFromDifferentProgramKindIsExcludedFromCycleReview() {
         val mismatchedEarlier = session(9, WorkoutSessionState.Finished).copy(
-            sourceRoutineProgramKind = RoutineProgramKind.FiveSPro,
+            sourceRoutineProgramKind = RoutineProgramKind.Custom,
         )
         val active = session(10, WorkoutSessionState.Active)
         val earlierMain = set(91, 901, WorkoutSetClassification.Amrap, RoutineWorkSection.Main, reps = 10)
@@ -91,7 +91,7 @@ class FiveThreeOneCycleReviewTest {
     @Test
     fun activeSessionMustMatchCurrentRoutineProgramKind() {
         val mismatched = session(10, WorkoutSessionState.Active).copy(
-            sourceRoutineProgramKind = RoutineProgramKind.FiveSPro,
+            sourceRoutineProgramKind = RoutineProgramKind.Custom,
         )
         val main = set(101, 1001, WorkoutSetClassification.Amrap, RoutineWorkSection.Main, reps = 9)
         val state = state(
@@ -206,7 +206,7 @@ class FiveThreeOneCycleReviewTest {
     }
 
     @Test
-    fun legacyUnknownInvalidationConservativelyHoldsLift() {
+    fun malformedUnknownInvalidationConservativelyHoldsLift() {
         val active = session(10, WorkoutSessionState.Active).copy(
             requiredMainWorkInvalidated = true,
             invalidatedMainExerciseIds = emptySet(),

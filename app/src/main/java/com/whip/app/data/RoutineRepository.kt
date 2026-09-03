@@ -35,7 +35,6 @@ import com.whip.app.domain.RoutineProgramPhaseRole
 import com.whip.app.domain.RoutineSet
 import com.whip.app.domain.RoutineSupplementalScheme
 import com.whip.app.domain.RoutineTrainingMaxSource
-import com.whip.app.domain.RoutineAssistanceRole
 import com.whip.app.domain.RoutineAssistanceCategory
 import com.whip.app.domain.RoutinePlacementKind
 import com.whip.app.domain.RoutineProgramTemplateKey
@@ -54,9 +53,6 @@ import com.whip.app.domain.effectiveLoadKg
 import com.whip.app.domain.paceSecondsPerKilometre
 import com.whip.app.domain.speedMetresPerSecond
 import com.whip.app.domain.volumeKg
-import com.whip.app.domain.legacyRoutineAssistanceRole
-import com.whip.app.domain.toAssistanceCategory
-import com.whip.app.domain.toPlacementKind
 import com.whip.app.domain.balancedOncePerLiftDayOwners
 import com.whip.app.domain.FIVE_THREE_ONE_ONCE_PER_LIFT_PROTOCOL_REVISION
 import java.time.ZoneId
@@ -397,8 +393,7 @@ class RoomRoutineRepository(
         val protocolOwnerDayIdByExerciseId = if (programmed && oncePerLiftProtocolPhase) {
             val mainExercisesByDay = days.map { day ->
                 dao.getExercises(day.id).filter { exercise ->
-                    exercise.placementKind == RoutinePlacementKind.MainLift.name ||
-                        exercise.assistanceRole == RoutineAssistanceRole.MainLift.name
+                    exercise.placementKind == RoutinePlacementKind.MainLift.name
                 }
             }
             val owners = balancedOncePerLiftDayOwners(
@@ -498,8 +493,7 @@ class RoomRoutineRepository(
             } else {
                 allPlanned.filter { it.routinePhaseIndex == null }
             }
-            val mainPlacement = routineExercise.placementKind == RoutinePlacementKind.MainLift.name ||
-                routineExercise.assistanceRole == RoutineAssistanceRole.MainLift.name
+            val mainPlacement = routineExercise.placementKind == RoutinePlacementKind.MainLift.name
             if (
                 oncePerLiftProtocolPhase && mainPlacement &&
                 protocolOwnerDayIdByExerciseId[routineExercise.exerciseId] != selectedDay.id
@@ -578,7 +572,6 @@ class RoomRoutineRepository(
                     trainingMaxSourceSnapshot = routineExercise.trainingMaxSource,
                     mainWorkSchemeSnapshot = activePolicy.mainWorkScheme.name,
                     supplementalSchemeSnapshot = activePolicy.supplementalScheme.name,
-                    assistanceRoleSnapshot = routineExercise.assistanceRole,
                     placementKindSnapshot = routineExercise.placementKind,
                     assistanceCategorySnapshot = routineExercise.assistanceCategory,
                     jokerSetsEnabledSnapshot = activePolicy.jokerSetsEnabled,
@@ -671,7 +664,6 @@ class RoomRoutineRepository(
                 machineConfigurationSnapshot = workoutExercise.machineConfigurationSnapshot,
                 mainWorkScheme = RoutineMainWorkScheme.Unspecified,
                 supplementalScheme = RoutineSupplementalScheme.None,
-                assistanceRole = RoutineAssistanceRole.Unspecified,
                 placementKind = RoutinePlacementKind.General,
                 assistanceCategory = RoutineAssistanceCategory.Unspecified,
                 jokerSetsEnabled = false,
@@ -937,17 +929,17 @@ class RoomRoutineRepository(
                     else -> RoutineEquipmentBindingState.None
                 }
                 // RoutineExerciseDraft is a complete edit contract. Null clears an explicit TM;
-                // a non-null value is normalized to Explicit for compatibility with older callers
-                // that predate the source enum.
+                // a non-null value must state that it is the applied explicit Training Max.
                 val explicitTrainingMaxValue = exercise.trainingMaxValue
+                require(
+                    explicitTrainingMaxValue == null || exercise.trainingMaxSource == RoutineTrainingMaxSource.Explicit,
+                ) { "An applied Training Max must use the Explicit source" }
                 val explicitTrainingMaxUnit = exercise.trainingMaxUnitId
                 val explicitTrainingMaxKg = explicitTrainingMaxValue?.let { value ->
                     massToKilograms(value, explicitTrainingMaxUnit)
                 }
                 val cycleIncrementValue = exercise.cycleIncrementValue.takeIf { explicitTrainingMaxValue != null }
-                val trainingMaxSource = if (explicitTrainingMaxValue != null) {
-                    RoutineTrainingMaxSource.Explicit.name
-                } else exercise.trainingMaxSource.name
+                val trainingMaxSource = exercise.trainingMaxSource.name
                 val routineExerciseId = dao.insertExercise(
                     RoutineExerciseEntity(
                         uuid = ids.nextId(), routineDayId = dayId, exerciseId = exercise.exerciseId,
@@ -983,10 +975,6 @@ class RoomRoutineRepository(
                         trainingMaxIncreaseEligible = exercise.trainingMaxIncreaseEligible,
                         mainWorkScheme = exercise.mainWorkScheme.name,
                         supplementalScheme = exercise.supplementalScheme.name,
-                        assistanceRole = legacyRoutineAssistanceRole(
-                            exercise.resolvedPlacementKind(),
-                            exercise.resolvedAssistanceCategory(),
-                        ).name,
                         placementKind = exercise.resolvedPlacementKind().name,
                         assistanceCategory = exercise.resolvedAssistanceCategory().name,
                         jokerSetsEnabled = exercise.jokerSetsEnabled,
@@ -1043,8 +1031,6 @@ class RoomRoutineRepository(
                             .getOrDefault(RoutineMainWorkScheme.Unspecified),
                         supplementalScheme = runCatching { RoutineSupplementalScheme.valueOf(exercise.supplementalScheme) }
                             .getOrDefault(RoutineSupplementalScheme.None),
-                        assistanceRole = runCatching { RoutineAssistanceRole.valueOf(exercise.assistanceRole) }
-                            .getOrDefault(RoutineAssistanceRole.Unspecified),
                         placementKind = runCatching { RoutinePlacementKind.valueOf(exercise.placementKind) }
                             .getOrDefault(RoutinePlacementKind.General),
                         assistanceCategory = runCatching { RoutineAssistanceCategory.valueOf(exercise.assistanceCategory) }
@@ -1082,7 +1068,6 @@ class RoomRoutineRepository(
 
 private fun RoutineExerciseDraft.resolvedPlacementKind(): RoutinePlacementKind = when {
     placementKind != RoutinePlacementKind.General || assistanceCategory != RoutineAssistanceCategory.Unspecified -> placementKind
-    assistanceRole != RoutineAssistanceRole.Unspecified -> assistanceRole.toPlacementKind()
     plannedSets.isNotEmpty() && plannedSets.all { it.workSection == RoutineWorkSection.Assistance } -> RoutinePlacementKind.Assistance
     plannedSets.isNotEmpty() && plannedSets.all { it.workSection == RoutineWorkSection.Supplemental } -> RoutinePlacementKind.Supplemental
     plannedSets.any { it.workSection == RoutineWorkSection.Main } -> RoutinePlacementKind.MainLift
@@ -1091,11 +1076,6 @@ private fun RoutineExerciseDraft.resolvedPlacementKind(): RoutinePlacementKind =
 
 private fun RoutineExerciseDraft.resolvedAssistanceCategory(): RoutineAssistanceCategory = when {
     assistanceCategory != RoutineAssistanceCategory.Unspecified -> assistanceCategory
-    assistanceRole != RoutineAssistanceRole.Unspecified -> assistanceRole.toAssistanceCategory().let {
-        if (it == RoutineAssistanceCategory.Unspecified && resolvedPlacementKind() == RoutinePlacementKind.Assistance) {
-            RoutineAssistanceCategory.Other
-        } else it
-    }
     resolvedPlacementKind() == RoutinePlacementKind.Assistance -> RoutineAssistanceCategory.Other
     else -> RoutineAssistanceCategory.Unspecified
 }
@@ -1117,13 +1097,7 @@ private fun validateRoutine(draft: RoutineDraft) {
         "Training-max advance boundaries must reference a program phase"
     }
     require(program.phaseLabels.none { ',' in it }) { "Program phase labels cannot contain commas" }
-    val fiveThreeOneProgram = program.kind in setOf(
-        RoutineProgramKind.FiveThreeOne,
-        RoutineProgramKind.FiveThreeOneClassic,
-        RoutineProgramKind.FiveSPro,
-        RoutineProgramKind.BoringButBig,
-        RoutineProgramKind.FirstSetLast,
-    )
+    val fiveThreeOneProgram = program.kind == RoutineProgramKind.FiveThreeOne
     require(program.progressionMode != RoutineProgressionMode.PerformanceInformed || fiveThreeOneProgram) {
         "Performance-informed Training Max review is only available for 5/3/1 programs"
     }
@@ -1412,9 +1386,7 @@ private fun validateFiveThreeOnePhasePolicy(
         it.workSection == RoutineWorkSection.Optional && it.optionalWorkKind == RoutineOptionalWorkKind.Joker
     }
     require(jokers.size <= 3) { "A 5/3/1 phase may contain at most three Joker candidates" }
-    // Legacy routines could store one arbitrary Joker candidate. Preserve those edits; the new
-    // ordered-step invariant applies only when the user opts into an actual ladder.
-    if (jokers.size > 1) {
+    if (jokers.isNotEmpty()) {
         val topMain = requireNotNull(mainSets.lastOrNull()?.loadPercentage) {
             "Joker candidates require programmed Main work in $phaseLabel"
         }
@@ -1503,8 +1475,6 @@ private fun RoutineExerciseEntity.toDomain() = RoutineExercise(
         .getOrDefault(RoutineMainWorkScheme.Unspecified),
     supplementalScheme = runCatching { RoutineSupplementalScheme.valueOf(supplementalScheme) }
         .getOrDefault(RoutineSupplementalScheme.None),
-    assistanceRole = runCatching { RoutineAssistanceRole.valueOf(assistanceRole) }
-        .getOrDefault(RoutineAssistanceRole.Unspecified),
     placementKind = runCatching { RoutinePlacementKind.valueOf(placementKind) }
         .getOrDefault(RoutinePlacementKind.General),
     assistanceCategory = runCatching { RoutineAssistanceCategory.valueOf(assistanceCategory) }

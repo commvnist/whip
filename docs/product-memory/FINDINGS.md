@@ -488,3 +488,14 @@
 - Evidence: `GymViewModel.kt`, `GymScreens.kt`, `GymCatalogMutationUi.kt`, `RoutineBuilder.kt`, and `EditorStateRecreationTest.kt`.
 - Resolution: Implemented in `IMP-20260902-025` and verified in `VER-20260902-026`.
 - Status: Resolved for standalone and nested Machine/Exercise catalog editors; Routine Builder's independent quick-create callbacks remain a separately bounded builder workflow.
+
+### FND-20260902-018 — Clean-slate Gym still persisted overlapping 5/3/1 and work-role identities
+
+- Severity/category: P1 program-domain correctness, schema clarity, and maintainability.
+- Observed: The fresh-start candidate still retained five historical `RoutineProgramKind` values for behaviors already expressed by main-work and supplemental policies, plus both a legacy assistance role and the newer placement/category pair in routine and workout records. Repository and UI code therefore contained fallback inference, a single arbitrary-Joker exception, and silent normalization of non-null Training Max values to an explicit source.
+- Expected: A fresh-start schema has one canonical 5/3/1 identity, compositional program policies, one structural work-placement source of truth, deterministic Joker steps, and an honest source for every applied Training Max.
+- Why it matters: Redundant identities can disagree, make editing change program meaning accidentally, and force every future Gym feature to preserve branches that no current user data needs after the authorized reset.
+- Affected users: All Gym users, especially experienced 5/3/1 lifters, users who customize supplemental/assistance work, and developers extending structured programs.
+- Evidence: `GymModels.kt`, `RoutineEntities.kt`, `GymEntities.kt`, `RoutineRepository.kt`, `FiveThreeOneBuilder.kt`, `FiveThreeOneProgramming.kt`, `RoutineBuilder.kt`, `GymScreens.kt`, and schema export 43.
+- Resolution: Implemented in `IMP-20260902-026` under `DEC-20260902-023` and targeted verified in `VER-20260902-027`.
+- Status: Resolved in the schema-43/data-epoch-3 candidate; frozen-candidate release verification remains pending.

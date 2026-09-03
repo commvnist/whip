@@ -1998,14 +1998,7 @@ private fun RoutineProgramStructurePage(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (builder.programKind in setOf(
-                RoutineProgramKind.FiveThreeOne.name,
-                RoutineProgramKind.FiveThreeOneClassic.name,
-                RoutineProgramKind.FiveSPro.name,
-                RoutineProgramKind.BoringButBig.name,
-                RoutineProgramKind.FirstSetLast.name,
-            )
-        ) item {
+        if (builder.programKind == RoutineProgramKind.FiveThreeOne.name) item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Cycle progression", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -2787,7 +2780,6 @@ private fun RoutineOutlinePane(
                             RoutineProgramTemplateKey.FiveThreeOneFourDay.name -> "Based on 4-Day 5/3/1 · template v${builder.programTemplateRevision}"
                             RoutineProgramTemplateKey.FiveThreeOneBeginners.name -> "Based on 5/3/1 for Beginners · template v${builder.programTemplateRevision}"
                             RoutineProgramTemplateKey.FiveThreeOneCustom.name -> "Based on Custom 5/3/1 · template v${builder.programTemplateRevision}"
-                            RoutineProgramTemplateKey.LegacyFiveThreeOne.name -> "Existing 5/3/1 program · original template is unknown"
                             else -> "Structured 5/3/1 program"
                         },
                         style = MaterialTheme.typography.labelMedium,
@@ -3327,17 +3319,9 @@ private fun RoutinePlacementEditor(
         }.getOrNull()
     }
     val isStructuredFiveThreeOne = programKind.isFiveThreeOneProgramKindName()
-    val legacySingleLiftConversionCompatible = allDays.size == 1
+    val singleLiftConversionAvailable = allDays.size == 1
     val placementKind = runCatching { RoutinePlacementKind.valueOf(placement.placementKind) }
-        .getOrDefault(
-            if (placement.assistanceRole == RoutineAssistanceRole.MainLift.name) {
-                RoutinePlacementKind.MainLift
-            } else if (placement.assistanceRole != RoutineAssistanceRole.Unspecified.name) {
-                RoutinePlacementKind.Assistance
-            } else {
-                RoutinePlacementKind.General
-            },
-        )
+        .getOrDefault(RoutinePlacementKind.General)
     val hasTrainingMaxPrescription = placement.sets.any {
         it.loadPrescriptionType == RoutineLoadPrescriptionType.PercentTrainingMax.name
     }
@@ -3467,7 +3451,7 @@ private fun RoutinePlacementEditor(
                 }
             }
         }
-        if (supportsFiveThreeOne && !isStructuredFiveThreeOne && legacySingleLiftConversionCompatible) item {
+        if (supportsFiveThreeOne && !isStructuredFiveThreeOne && singleLiftConversionAvailable) item {
             WhipOutlinedButton(
                 onClick = { showFiveThreeOneBuilder = !showFiveThreeOneBuilder },
                 modifier = Modifier.fillMaxWidth().testTag("routine-five-three-one-toggle"),
@@ -3490,7 +3474,6 @@ private fun RoutinePlacementEditor(
                     suggestedTrainingMax = suggestedTrainingMax,
                     initialTrainingMax = placement.trainingMaxValue.toWhipDoubleOrNull(),
                     initialCycleIncrement = placement.cycleIncrementValue.toWhipDoubleOrNull(),
-                    initialProgramKind = programKind?.let { runCatching { RoutineProgramKind.valueOf(it) }.getOrNull() },
                     initialMainWorkScheme = runCatching { RoutineMainWorkScheme.valueOf(placement.mainWorkScheme) }
                         .getOrDefault(RoutineMainWorkScheme.Unspecified),
                     initialSupplementalScheme = runCatching { RoutineSupplementalScheme.valueOf(placement.supplementalScheme) }
@@ -3500,7 +3483,7 @@ private fun RoutinePlacementEditor(
                 )
             }
         }
-        if (supportsFiveThreeOne && !isStructuredFiveThreeOne && !legacySingleLiftConversionCompatible) item {
+        if (supportsFiveThreeOne && !isStructuredFiveThreeOne && !singleLiftConversionAvailable) item {
             OutlinedCard(Modifier.fillMaxWidth().testTag("routine-five-three-one-whole-program-required")) {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Build the whole 5/3/1 program", fontWeight = FontWeight.Bold)
@@ -4634,17 +4617,9 @@ private fun buildInitialRoutineState(
                     trainingMaxIncreaseEligible = placement.trainingMaxIncreaseEligible,
                     mainWorkScheme = placement.mainWorkScheme.name,
                     supplementalScheme = placement.supplementalScheme.name,
-                    assistanceRole = placement.assistanceRole.name,
-                    placementKind = when {
-                        placement.placementKind != RoutinePlacementKind.General -> placement.placementKind
-                        placement.assistanceRole == RoutineAssistanceRole.MainLift -> RoutinePlacementKind.MainLift
-                        placement.assistanceRole != RoutineAssistanceRole.Unspecified -> RoutinePlacementKind.Assistance
-                        else -> RoutinePlacementKind.General
-                    }.name,
-                    assistanceCategory = when {
-                        placement.assistanceCategory != RoutineAssistanceCategory.Unspecified -> placement.assistanceCategory
-                        else -> placement.assistanceRole.toBuilderAssistanceCategory()
-                    }.name,
+                    assistanceRole = placement.toBuilderAssistanceRole().name,
+                    placementKind = placement.placementKind.name,
+                    assistanceCategory = placement.assistanceCategory.name,
                     jokerSetsEnabled = placement.jokerSetsEnabled,
                     sets = placement.plannedSets.map { set ->
                         RoutineBuilderSetState(
@@ -4792,8 +4767,6 @@ private fun RoutineBuilderState.toRoutineDraft(gymState: GymUiState): RoutineDra
                             .getOrDefault(RoutineMainWorkScheme.Unspecified),
                         supplementalScheme = runCatching { RoutineSupplementalScheme.valueOf(placement.supplementalScheme) }
                             .getOrDefault(RoutineSupplementalScheme.None),
-                        assistanceRole = runCatching { RoutineAssistanceRole.valueOf(placement.assistanceRole) }
-                            .getOrDefault(RoutineAssistanceRole.Unspecified),
                         placementKind = runCatching { RoutinePlacementKind.valueOf(placement.placementKind) }
                             .getOrDefault(RoutinePlacementKind.General),
                         assistanceCategory = runCatching { RoutineAssistanceCategory.valueOf(placement.assistanceCategory) }
@@ -5245,6 +5218,21 @@ private fun RoutineAssistanceRole.toBuilderAssistanceCategory(): RoutineAssistan
     -> RoutineAssistanceCategory.Unspecified
 }
 
+private fun RoutineExerciseDraft.toBuilderAssistanceRole(): RoutineAssistanceRole = when (placementKind) {
+    RoutinePlacementKind.MainLift -> RoutineAssistanceRole.MainLift
+    RoutinePlacementKind.Assistance -> when (assistanceCategory) {
+        RoutineAssistanceCategory.Push -> RoutineAssistanceRole.Push
+        RoutineAssistanceCategory.Pull -> RoutineAssistanceRole.Pull
+        RoutineAssistanceCategory.SingleLegCore -> RoutineAssistanceRole.SingleLegCore
+        RoutineAssistanceCategory.Other,
+        RoutineAssistanceCategory.Unspecified,
+        -> RoutineAssistanceRole.Other
+    }
+    RoutinePlacementKind.General,
+    RoutinePlacementKind.Supplemental,
+    -> RoutineAssistanceRole.Unspecified
+}
+
 private fun RoutineAssistanceRole.assistanceUiLabel(): String = when (this) {
     RoutineAssistanceRole.Push -> "Push"
     RoutineAssistanceRole.Pull -> "Pull"
@@ -5272,7 +5260,7 @@ internal fun RoutineBuilderPlacementState.withAssistanceCategory(
 ): RoutineBuilderPlacementState {
     val normalizedCategory = category ?: RoutineAssistanceCategory.Unspecified
     val isAssistance = category != null
-    val legacyRole = when (normalizedCategory) {
+    val selectionRole = when (normalizedCategory) {
         RoutineAssistanceCategory.Push -> RoutineAssistanceRole.Push
         RoutineAssistanceCategory.Pull -> RoutineAssistanceRole.Pull
         RoutineAssistanceCategory.SingleLegCore -> RoutineAssistanceRole.SingleLegCore
@@ -5282,7 +5270,7 @@ internal fun RoutineBuilderPlacementState.withAssistanceCategory(
     return copy(
         placementKind = if (isAssistance) RoutinePlacementKind.Assistance.name else RoutinePlacementKind.General.name,
         assistanceCategory = normalizedCategory.name,
-        assistanceRole = legacyRole.name,
+        assistanceRole = selectionRole.name,
         sets = sets.filterNot { isAssistance && it.optionalWorkKind == RoutineOptionalWorkKind.Joker.name }.map { set ->
             set.copy(
                 workSection = if (isAssistance) RoutineWorkSection.Assistance.name else RoutineWorkSection.Unspecified.name,
@@ -5433,7 +5421,7 @@ internal fun RoutineBuilderState.fiveThreeOnePhasePrescriptionSummary(
     return summaries
 }
 
-/** Reads policy from the executable sets for one phase; placement fields are legacy fallback only. */
+/** Reads the explicitly tagged policy from the executable sets for one phase. */
 internal fun RoutineBuilderState.fiveThreeOnePhasePolicy(
     phaseIndex: Int,
     exerciseId: Long? = null,
@@ -5466,33 +5454,13 @@ internal fun RoutineBuilderState.fiveThreeOnePhasePolicy(
     val explicitMain = main.mapNotNull { set ->
         set.mainWorkScheme?.let { runCatching { RoutineMainWorkScheme.valueOf(it) }.getOrNull() }
     }.distinct()
-    val mainScheme = explicitMain.singleOrNull() ?: when {
-        main.any { it.classification == WorkoutSetClassification.Amrap.name } -> RoutineMainWorkScheme.ClassicPrSet
-        main.isNotEmpty() && main.all { it.repetitionsMin == "5" } &&
-            placement.mainWorkScheme == RoutineMainWorkScheme.FivesPro.name -> RoutineMainWorkScheme.FivesPro
-        main.isNotEmpty() -> RoutineMainWorkScheme.ClassicMinimumReps
-        else -> RoutineMainWorkScheme.Unspecified
-    }
+    val mainScheme = explicitMain.singleOrNull() ?: RoutineMainWorkScheme.Unspecified
     val explicitSupplemental = supplemental.mapNotNull { set ->
         set.supplementalScheme?.let { runCatching { RoutineSupplementalScheme.valueOf(it) }.getOrNull() }
     }.distinct()
-    val supplementalScheme = explicitSupplemental.singleOrNull() ?: when {
+    val supplementalScheme = when {
         supplemental.isEmpty() -> RoutineSupplementalScheme.None
-        supplemental.size == 5 && supplemental.all { it.repetitionsMin == "10" } ->
-            RoutineSupplementalScheme.BoringButBig
-        supplemental.size == 10 && supplemental.all { it.repetitionsMin == "5" } ->
-            RoutineSupplementalScheme.BoringButStrong
-        supplemental.size == 5 && supplemental.all { it.repetitionsMin == "5" } -> {
-            val mainPercentages = main.map(RoutineBuilderSetState::loadPercentage)
-            when {
-                supplemental.all { it.loadPercentage == mainPercentages.getOrNull(0) } ->
-                    RoutineSupplementalScheme.FirstSetLast
-                supplemental.all { it.loadPercentage == mainPercentages.getOrNull(1) } ->
-                    RoutineSupplementalScheme.SecondSetLast
-                else -> RoutineSupplementalScheme.Custom
-            }
-        }
-        else -> RoutineSupplementalScheme.Custom
+        else -> explicitSupplemental.singleOrNull() ?: RoutineSupplementalScheme.Custom
     }
     val jokers = active.filter {
         it.workSection == RoutineWorkSection.Optional.name &&

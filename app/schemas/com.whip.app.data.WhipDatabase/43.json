@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 42,
-    "identityHash": "900c2d354dff270bde4c116aaf0b47d9",
+    "version": 43,
+    "identityHash": "4fa66f83bbf9ed3d37dea82e8e19a353",
     "entities": [
       {
         "tableName": "tasks",
@@ -2035,7 +2035,7 @@
       },
       {
         "tableName": "workout_exercises",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `sessionId` INTEGER NOT NULL, `exerciseId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `notes` TEXT NOT NULL, `groupId` INTEGER, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `machineProfileUuidSnapshot` TEXT, `machineId` INTEGER, `machineNameSnapshot` TEXT NOT NULL, `machineLoadTypeSnapshot` TEXT NOT NULL, `machineUnitIdSnapshot` TEXT NOT NULL, `machineLevelLabelSnapshot` TEXT NOT NULL, `loadInterpretationSnapshot` TEXT NOT NULL, `baseLoadKgSnapshot` REAL, `trackingTypeSnapshot` TEXT NOT NULL, `bodyweightLoadPolicySnapshot` TEXT NOT NULL, `effectiveBodyweightPercentSnapshot` REAL NOT NULL, `oneRepMaxFormulaSnapshot` TEXT NOT NULL, `includeInVolumeSnapshot` INTEGER NOT NULL, `includeInPersonalRecordsSnapshot` INTEGER NOT NULL, `exerciseWeightUnitSnapshot` TEXT NOT NULL, `loadMultiplierSnapshot` REAL NOT NULL, `machineConfigurationGroupSnapshot` TEXT NOT NULL, `machineConfigurationVersionSnapshot` INTEGER NOT NULL, `machineConfigurationSnapshot` TEXT NOT NULL, `machinePulleyRatioSnapshot` REAL NOT NULL, `machineStackModeSnapshot` TEXT NOT NULL, `machineAddOnPlateKgSnapshot` REAL, `machineMassMappingCsvSnapshot` TEXT NOT NULL, `alternativeExerciseIdsCsvSnapshot` TEXT NOT NULL, `trainingMaxKgSnapshot` REAL, `trainingMaxValueSnapshot` REAL, `trainingMaxUnitIdSnapshot` TEXT NOT NULL, `cycleIncrementValueSnapshot` REAL, `trainingMaxSourceSnapshot` TEXT NOT NULL, `mainWorkSchemeSnapshot` TEXT NOT NULL, `supplementalSchemeSnapshot` TEXT NOT NULL, `assistanceRoleSnapshot` TEXT NOT NULL, `placementKindSnapshot` TEXT NOT NULL, `assistanceCategorySnapshot` TEXT NOT NULL, `jokerSetsEnabledSnapshot` INTEGER NOT NULL, `outcome` TEXT NOT NULL, `outcomeAtMillis` INTEGER, `replacementWorkoutExerciseUuid` TEXT, FOREIGN KEY(`sessionId`) REFERENCES `workout_sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`exerciseId`) REFERENCES `exercises`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`groupId`) REFERENCES `workout_groups`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `sessionId` INTEGER NOT NULL, `exerciseId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `notes` TEXT NOT NULL, `groupId` INTEGER, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `machineProfileUuidSnapshot` TEXT, `machineId` INTEGER, `machineNameSnapshot` TEXT NOT NULL, `machineLoadTypeSnapshot` TEXT NOT NULL, `machineUnitIdSnapshot` TEXT NOT NULL, `machineLevelLabelSnapshot` TEXT NOT NULL, `loadInterpretationSnapshot` TEXT NOT NULL, `baseLoadKgSnapshot` REAL, `trackingTypeSnapshot` TEXT NOT NULL, `bodyweightLoadPolicySnapshot` TEXT NOT NULL, `effectiveBodyweightPercentSnapshot` REAL NOT NULL, `oneRepMaxFormulaSnapshot` TEXT NOT NULL, `includeInVolumeSnapshot` INTEGER NOT NULL, `includeInPersonalRecordsSnapshot` INTEGER NOT NULL, `exerciseWeightUnitSnapshot` TEXT NOT NULL, `loadMultiplierSnapshot` REAL NOT NULL, `machineConfigurationGroupSnapshot` TEXT NOT NULL, `machineConfigurationVersionSnapshot` INTEGER NOT NULL, `machineConfigurationSnapshot` TEXT NOT NULL, `machinePulleyRatioSnapshot` REAL NOT NULL, `machineStackModeSnapshot` TEXT NOT NULL, `machineAddOnPlateKgSnapshot` REAL, `machineMassMappingCsvSnapshot` TEXT NOT NULL, `alternativeExerciseIdsCsvSnapshot` TEXT NOT NULL, `trainingMaxKgSnapshot` REAL, `trainingMaxValueSnapshot` REAL, `trainingMaxUnitIdSnapshot` TEXT NOT NULL, `cycleIncrementValueSnapshot` REAL, `trainingMaxSourceSnapshot` TEXT NOT NULL, `mainWorkSchemeSnapshot` TEXT NOT NULL, `supplementalSchemeSnapshot` TEXT NOT NULL, `placementKindSnapshot` TEXT NOT NULL, `assistanceCategorySnapshot` TEXT NOT NULL, `jokerSetsEnabledSnapshot` INTEGER NOT NULL, `outcome` TEXT NOT NULL, `outcomeAtMillis` INTEGER, `replacementWorkoutExerciseUuid` TEXT, FOREIGN KEY(`sessionId`) REFERENCES `workout_sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`exerciseId`) REFERENCES `exercises`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`groupId`) REFERENCES `workout_groups`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "id",
@@ -2266,12 +2266,6 @@
           {
             "fieldPath": "supplementalSchemeSnapshot",
             "columnName": "supplementalSchemeSnapshot",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "assistanceRoleSnapshot",
-            "columnName": "assistanceRoleSnapshot",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -2958,7 +2952,7 @@
       },
       {
         "tableName": "routine_exercises",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `routineDayId` INTEGER NOT NULL, `exerciseId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `notes` TEXT NOT NULL, `groupKey` TEXT, `copyPreviousWorkout` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `machineId` INTEGER, `equipmentBindingState` TEXT NOT NULL, `machineProfileUuidSnapshot` TEXT, `machineNameSnapshot` TEXT NOT NULL, `machineLoadTypeSnapshot` TEXT NOT NULL, `machineUnitIdSnapshot` TEXT NOT NULL, `machineLevelLabelSnapshot` TEXT NOT NULL, `machineLoadInterpretationSnapshot` TEXT NOT NULL, `machineConfigurationGroupSnapshot` TEXT NOT NULL, `machineConfigurationVersionSnapshot` INTEGER NOT NULL, `machineConfigurationSnapshot` TEXT NOT NULL, `trainingMaxPercent` REAL NOT NULL, `progressionPercentagesCsv` TEXT NOT NULL, `alternativeExerciseIdsCsv` TEXT NOT NULL, `trainingMaxKg` REAL, `trainingMaxValue` REAL, `trainingMaxUnitId` TEXT NOT NULL, `cycleIncrementValue` REAL, `trainingMaxSource` TEXT NOT NULL, `trainingMaxBasisKind` TEXT NOT NULL, `trainingMaxBasisValue` REAL, `trainingMaxBasisUnitId` TEXT NOT NULL, `trainingMaxIncreaseEligible` INTEGER NOT NULL, `mainWorkScheme` TEXT NOT NULL, `supplementalScheme` TEXT NOT NULL, `assistanceRole` TEXT NOT NULL, `placementKind` TEXT NOT NULL, `assistanceCategory` TEXT NOT NULL, `jokerSetsEnabled` INTEGER NOT NULL, FOREIGN KEY(`routineDayId`) REFERENCES `routine_days`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`exerciseId`) REFERENCES `exercises`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `routineDayId` INTEGER NOT NULL, `exerciseId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `notes` TEXT NOT NULL, `groupKey` TEXT, `copyPreviousWorkout` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `machineId` INTEGER, `equipmentBindingState` TEXT NOT NULL, `machineProfileUuidSnapshot` TEXT, `machineNameSnapshot` TEXT NOT NULL, `machineLoadTypeSnapshot` TEXT NOT NULL, `machineUnitIdSnapshot` TEXT NOT NULL, `machineLevelLabelSnapshot` TEXT NOT NULL, `machineLoadInterpretationSnapshot` TEXT NOT NULL, `machineConfigurationGroupSnapshot` TEXT NOT NULL, `machineConfigurationVersionSnapshot` INTEGER NOT NULL, `machineConfigurationSnapshot` TEXT NOT NULL, `trainingMaxPercent` REAL NOT NULL, `progressionPercentagesCsv` TEXT NOT NULL, `alternativeExerciseIdsCsv` TEXT NOT NULL, `trainingMaxKg` REAL, `trainingMaxValue` REAL, `trainingMaxUnitId` TEXT NOT NULL, `cycleIncrementValue` REAL, `trainingMaxSource` TEXT NOT NULL, `trainingMaxBasisKind` TEXT NOT NULL, `trainingMaxBasisValue` REAL, `trainingMaxBasisUnitId` TEXT NOT NULL, `trainingMaxIncreaseEligible` INTEGER NOT NULL, `mainWorkScheme` TEXT NOT NULL, `supplementalScheme` TEXT NOT NULL, `placementKind` TEXT NOT NULL, `assistanceCategory` TEXT NOT NULL, `jokerSetsEnabled` INTEGER NOT NULL, FOREIGN KEY(`routineDayId`) REFERENCES `routine_days`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`exerciseId`) REFERENCES `exercises`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
         "fields": [
           {
             "fieldPath": "id",
@@ -3160,12 +3154,6 @@
           {
             "fieldPath": "supplementalScheme",
             "columnName": "supplementalScheme",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "assistanceRole",
-            "columnName": "assistanceRole",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -7457,7 +7445,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '900c2d354dff270bde4c116aaf0b47d9')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4fa66f83bbf9ed3d37dea82e8e19a353')"
     ]
   }
 }

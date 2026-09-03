@@ -174,13 +174,7 @@ internal fun suggestFiveThreeOneAssistance(
         .toList()
 }
 
-internal fun RoutineProgramKind.isFiveThreeOneProgramKind(): Boolean = this in setOf(
-    RoutineProgramKind.FiveThreeOne,
-    RoutineProgramKind.FiveThreeOneClassic,
-    RoutineProgramKind.FiveSPro,
-    RoutineProgramKind.BoringButBig,
-    RoutineProgramKind.FirstSetLast,
-)
+internal fun RoutineProgramKind.isFiveThreeOneProgramKind(): Boolean = this == RoutineProgramKind.FiveThreeOne
 
 internal fun String?.isFiveThreeOneProgramKindName(): Boolean =
     runCatching { RoutineProgramKind.valueOf(this.orEmpty()) }.getOrNull()?.isFiveThreeOneProgramKind() == true

@@ -178,7 +178,7 @@ class BackupRepositoryTest {
         val recovery = JSONObject(backups.exportRecoveryBackup())
         val portableSession = portable.getJSONObject("tables").getJSONArray("habit_timer_sessions").getJSONObject(0)
         val recoverySession = recovery.getJSONObject("tables").getJSONArray("habit_timer_sessions").getJSONObject(0)
-        assertEquals(19, portable.getInt("databaseVersion"))
+        assertEquals(20, portable.getInt("databaseVersion"))
         assertEquals("ReviewRequired", portableSession.getString("state"))
         assertTrue(portableSession.isNull("anchorElapsedRealtimeMillis"))
         assertTrue(portableSession.isNull("anchorBootId"))
@@ -326,8 +326,8 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val preview = backups.previewBackup(json)
         assertEquals(3, preview.envelopeVersion)
-        assertEquals(2, preview.dataModelEpoch)
-        assertEquals(19, preview.databaseVersion)
+        assertEquals(3, preview.dataModelEpoch)
+        assertEquals(20, preview.databaseVersion)
         assertTrue(preview.checksumValid)
         assertTrue(preview.settingsIncluded)
         assertTrue(preview.totalRecords >= 3)
@@ -375,7 +375,7 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val root = JSONObject(json)
 
-        assertEquals(19, root.getInt("databaseVersion"))
+        assertEquals(20, root.getInt("databaseVersion"))
         assertEquals(false, root.getJSONObject("tables").has("track_csv_import_receipts"))
         assertEquals(1, csvReceiptCount(committed.batchUuid))
 
@@ -1025,7 +1025,7 @@ class BackupRepositoryTest {
     @Test fun nonCurrentBackupVersionsOrTableSetsCannotBePreviewedOrRestored() = runBlocking {
         habits.create(HabitDraft(name = "Keep local", startDate = FixedClock.today()))
         val current = backups.exportBackup()
-        val wrongDatabase = JSONObject(current).put("databaseVersion", 20).toString()
+        val wrongDatabase = JSONObject(current).put("databaseVersion", 19).toString()
         val wrongEnvelope = JSONObject(current).put("envelopeVersion", 1).toString()
         val oldEpoch = JSONObject(current).put("dataModelEpoch", 1).toString()
         val incompleteTables = JSONObject(current).also {

@@ -44,7 +44,6 @@ import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
-import com.whip.app.domain.RoutineAssistanceRole
 import com.whip.app.domain.RoutinePlacementKind
 import com.whip.app.domain.RoutineLoadPrescriptionType
 import com.whip.app.domain.RoutineMainWorkScheme
@@ -249,7 +248,6 @@ class RoutineBuilderUiTest {
                                         cycleIncrementValue = 5.0,
                                         trainingMaxSource = RoutineTrainingMaxSource.Explicit,
                                         mainWorkScheme = RoutineMainWorkScheme.FivesPro,
-                                        assistanceRole = RoutineAssistanceRole.MainLift,
                                         placementKind = RoutinePlacementKind.MainLift,
                                         plannedSets = listOf(
                                             WorkoutSetDraft(
@@ -661,7 +659,6 @@ class RoutineBuilderUiTest {
                                         trainingMaxBasisKind = TrainingMaxBasisKind.ActualOneRepMax,
                                         trainingMaxBasisValue = 200.0,
                                         trainingMaxBasisUnitId = "pound",
-                                        assistanceRole = RoutineAssistanceRole.MainLift,
                                         placementKind = RoutinePlacementKind.MainLift,
                                         plannedSets = listOf(
                                             WorkoutSetDraft(
@@ -1314,9 +1311,10 @@ class RoutineBuilderUiTest {
         ).assertIsDisplayed()
         compose.onNodeWithTag("routine-saved-in-place").assertIsDisplayed()
         compose.onNodeWithText("Routine saved. Continue editing Zercher.").assertIsDisplayed()
-        compose.onNodeWithText("Close").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Back to routine outline").assertIsDisplayed()
         compose.onNodeWithTag("routine-builder-save").assertIsNotEnabled()
-        compose.onNodeWithText("Close").performClick()
+        compose.onNodeWithContentDescription("Back to routine outline").performClick()
+        compose.onNodeWithContentDescription("Close routine editor").performClick()
         compose.runOnIdle { assertEquals(1, dismissals) }
     }
 

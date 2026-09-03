@@ -543,3 +543,13 @@
 - Scope: Focused development/emulator evidence; frozen-candidate full emulator and release gates remain pending.
 - Related: `FND-20260902-017`, `DEC-20260902-022`, `IMP-20260902-025`.
 - Status: Targeted checks passed.
+
+### VER-20260902-027 — Canonical Gym schema and clean-boundary verification
+
+- `scripts/qa-targeted gym531 --emulator` passed the focused JVM profile and all 71 selected API 34 emulator tests with zero failures or skips after the canonical program/work-placement changes.
+- The initial emulator run falsified seven stale assumptions in fixtures: one arbitrary Joker percentage, one mismatched program identity, five non-null Training Maxes without an explicit source, and one old Routine child-navigation label. The production default/source contract and fixtures were corrected, then the complete 71-test batch passed.
+- The non-destructive Settings/backup boundary profile passed all 94 selected emulator tests, including current backup export/preview/restore and data-epoch gating. `DataEpochResetIntegrationTest` passed separately in an isolated instrumentation process so its intentional application-state deletion could not contaminate lifecycle tests.
+- Schema inspection found only `43.json`; it contains neither assistance-role columns nor historical 5/3/1 program aliases. Backup contract tests accept only data epoch 3/data version 20, and `git diff --check` passed.
+- Scope: Targeted domain, repository, builder, backup, and destructive-boundary evidence. The frozen-candidate complete emulator, lint/coverage, and release-build gates remain pending.
+- Related: `FND-20260902-018`, `DEC-20260902-023`, `IMP-20260902-026`.
+- Status: Targeted checks passed.
