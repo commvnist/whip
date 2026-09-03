@@ -126,6 +126,21 @@ interface GymDao {
         machineProfileUuidSnapshot: String?,
     ): WorkoutSetEntity?
 
+    @Query(
+        "SELECT ws.* FROM workout_sets ws " +
+            "INNER JOIN workout_exercises we ON we.id = ws.workoutExerciseId " +
+            "INNER JOIN workout_sessions session ON session.id = we.sessionId " +
+            "WHERE we.exerciseId = :exerciseId AND we.machineProfileUuidSnapshot = :machineProfileUuidSnapshot " +
+            "AND ws.completed = 1 AND ws.machineLoadValue IS NOT NULL " +
+            "AND ws.deletedAtMillis IS NULL AND session.id != :excludingSessionId " +
+            "ORDER BY session.startedAtMillis DESC, ws.position DESC, ws.id DESC LIMIT 1",
+    )
+    suspend fun getLatestCompletedSetWithMachineLoad(
+        exerciseId: Long,
+        excludingSessionId: Long,
+        machineProfileUuidSnapshot: String,
+    ): WorkoutSetEntity?
+
     @Query("SELECT * FROM workout_exercises WHERE machineProfileUuidSnapshot = :scopeUuid")
     suspend fun getWorkoutExercisesForMachineScope(scopeUuid: String): List<WorkoutExerciseEntity>
 

@@ -12,6 +12,8 @@ import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.LoadInterpretation
 import com.whip.app.domain.MachineStackMode
+import com.whip.app.domain.configuredMachineLevelDefault
+import com.whip.app.domain.resolveMachineLevelDefault
 import com.whip.app.domain.canonicalResistanceKg
 import com.whip.app.domain.loadInterpretationMultiplier
 import com.whip.app.domain.supportsRoutinePercentagePrescription
@@ -1661,6 +1663,30 @@ private fun RoutineSetEntity.toWorkoutSet(
         explicitTrainingMaxKg = explicitTrainingMaxKg,
     )
     val effectiveWeight = resolvedLoad?.displayValue ?: enteredWeight.takeUnless { machineType == MachineLoadType.Level }
+    val explicitMachineSetting = machineLoadValue.takeIf { machineType == MachineLoadType.Level }
+    val configuredMachineSetting = machine
+        ?.takeIf { candidate ->
+            machineType == MachineLoadType.Level &&
+                candidate.uuid == workoutExercise.machineProfileUuidSnapshot &&
+                candidate.loadType == MachineLoadType.Level.name
+        }
+        ?.let { candidate ->
+            configuredMachineLevelDefault(
+                candidate.availableLoadsCsv.parseDoubleCsv(),
+                runCatching { MachineLevelDirection.valueOf(candidate.levelDirection) }
+                    .getOrDefault(MachineLevelDirection.HigherNumberMoreResistance),
+            )
+        }
+    // Routine templates have no current-placement or completed-history context. A blank level
+    // field therefore receives only the same live-profile endpoint used by ad-hoc workout adds.
+    val actualMachineSetting = if (machineType == MachineLoadType.Level) {
+        resolveMachineLevelDefault(
+            explicitValue = explicitMachineSetting,
+            latestSamePlacementValue = null,
+            latestCompletedProfileValue = null,
+            configuredEndpointValue = configuredMachineSetting,
+        )
+    } else null
     val weightUnit = BuiltInUnits.get(effectiveWeightUnitId)
     val distanceUnit = enteredDistanceUnitId?.let(BuiltInUnits::get)
     return WorkoutSetEntity(
@@ -1669,7 +1695,7 @@ private fun RoutineSetEntity.toWorkoutSet(
         canonicalWeightKg = canonicalResistanceKg(
             enteredValue = effectiveWeight,
             enteredUnitId = effectiveWeightUnitId,
-            machineSetting = machineLoadValue.takeIf { machineType == MachineLoadType.Level },
+            machineSetting = actualMachineSetting,
             interpretation = runCatching { LoadInterpretation.valueOf(workoutExercise.loadInterpretationSnapshot) }
                 .getOrDefault(LoadInterpretation.Total),
             baseLoadKg = workoutExercise.baseLoadKgSnapshot,
@@ -1688,12 +1714,14 @@ private fun RoutineSetEntity.toWorkoutSet(
         rpe = rpe, rir = rir, tempo = tempo, restSeconds = restSeconds,
         completedAtMillis = null, deletedAtMillis = null,
         createdAtMillis = now, updatedAtMillis = now,
-        machineLoadValue = if (machineType == MachineLoadType.Level) machineLoadValue else effectiveWeight.takeIf { workoutExercise.machineId != null },
+        machineLoadValue = actualMachineSetting ?: effectiveWeight.takeIf { workoutExercise.machineId != null },
         unilateral = unilateral,
-        prescribedCanonicalWeightKg = canonicalResistanceKg(
+        prescribedCanonicalWeightKg = if (
+            machineType == MachineLoadType.Level && explicitMachineSetting == null
+        ) null else canonicalResistanceKg(
             enteredValue = effectiveWeight,
             enteredUnitId = effectiveWeightUnitId,
-            machineSetting = machineLoadValue.takeIf { machineType == MachineLoadType.Level },
+            machineSetting = explicitMachineSetting,
             interpretation = runCatching { LoadInterpretation.valueOf(workoutExercise.loadInterpretationSnapshot) }
                 .getOrDefault(LoadInterpretation.Total),
             baseLoadKg = workoutExercise.baseLoadKgSnapshot,
@@ -1711,7 +1739,7 @@ private fun RoutineSetEntity.toWorkoutSet(
         prescribedRpe = rpe,
         prescribedRir = rir,
         prescribedDurationSeconds = durationSeconds,
-        prescribedMachineLoadValue = if (machineType == MachineLoadType.Level) machineLoadValue else effectiveWeight.takeIf { workoutExercise.machineId != null },
+        prescribedMachineLoadValue = explicitMachineSetting ?: effectiveWeight.takeIf { workoutExercise.machineId != null },
         prescriptionSourceLabel = resolvedLoad?.label.orEmpty(),
         workSectionSnapshot = workSection,
         optionalWorkKindSnapshot = optionalWorkKind,

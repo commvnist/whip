@@ -26,6 +26,7 @@ import com.whip.app.domain.withLoadSemantics
 import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.MachineStackMode
+import com.whip.app.domain.configuredMachineLevelDefault
 import com.whip.app.domain.LoadInterpretation
 import com.whip.app.domain.canonicalResistanceKg
 import com.whip.app.domain.loadInterpretationMultiplier
@@ -64,6 +65,7 @@ import com.whip.app.domain.RoutineWorkSection
 import com.whip.app.domain.TrainingMaxCycleDecision
 import com.whip.app.domain.TrainingMaxDecisionAction
 import com.whip.app.domain.validateWorkoutSetDraft
+import com.whip.app.domain.resolveMachineLevelDefault
 import com.whip.app.domain.applyPolicySnapshot
 import com.whip.app.domain.massFromKilograms
 import com.whip.app.domain.massToKilograms
@@ -1992,14 +1994,15 @@ class RoomGymRepository(
         now: Long,
         requestedSetUuid: String? = null,
     ): Long {
-        val previous = dao.getWorkoutSets(workoutExercise.id)
+        val placementSets = dao.getWorkoutSets(workoutExercise.id)
+        val previous = placementSets
             .lastOrNull { it.deletedAtMillis == null }
             ?: dao.getLatestCompletedSet(
                 workoutExercise.exerciseId,
                 workoutExercise.sessionId,
                 workoutExercise.machineProfileUuidSnapshot,
             )
-        val effectiveDraft = draft ?: previous?.toDraft()?.copy(
+        val baseDraft = draft ?: previous?.toDraft()?.copy(
             planned = false,
             completed = false,
             classification = WorkoutSetClassification.Working,
@@ -2012,13 +2015,48 @@ class RoomGymRepository(
             mainWorkScheme = null,
             supplementalScheme = null,
         ) ?: WorkoutSetDraft()
+        val machineType = workoutExercise.machineLoadTypeSnapshot.takeIf(String::isNotBlank)
+            ?.let(MachineLoadType::valueOf)
+        val liveMatchedMachine = workoutExercise.machineId?.let { machineId -> dao.getMachine(machineId) }
+            ?.takeIf { machine ->
+                machine.uuid == workoutExercise.machineProfileUuidSnapshot
+            }
+        val configuredEndpoint = liveMatchedMachine
+            ?.takeIf { machineType == MachineLoadType.Level && it.loadType == MachineLoadType.Level.name }
+            ?.let { machine ->
+                configuredMachineLevelDefault(
+                    machine.availableLoadsCsv.split(',').mapNotNull(String::toDoubleOrNull),
+                    runCatching { MachineLevelDirection.valueOf(machine.levelDirection) }
+                        .getOrDefault(MachineLevelDirection.HigherNumberMoreResistance),
+                )
+            }
+        val effectiveDraft = if (machineType == MachineLoadType.Level && baseDraft.machineLoadValue == null) {
+            baseDraft.copy(
+                machineLoadValue = resolveMachineLevelDefault(
+                    explicitValue = draft?.machineLoadValue,
+                    latestSamePlacementValue = placementSets.lastOrNull {
+                        it.deletedAtMillis == null && it.machineLoadValue != null
+                    }?.machineLoadValue,
+                    latestCompletedProfileValue = workoutExercise.machineProfileUuidSnapshot?.let { profileUuid ->
+                        dao.getLatestCompletedSetWithMachineLoad(
+                            workoutExercise.exerciseId,
+                            workoutExercise.sessionId,
+                            profileUuid,
+                        )?.machineLoadValue
+                    },
+                    configuredEndpointValue = configuredEndpoint,
+                ),
+            )
+        } else {
+            baseDraft
+        }
         val exercise = dao.getExercise(workoutExercise.exerciseId)?.toDomain()
             ?: error("Exercise no longer exists")
         val policyExercise = workoutExercise.toDomain().applyPolicySnapshot(exercise)
         validateWorkoutSetDraft(
             effectiveDraft,
             policyExercise.trackingType,
-            workoutExercise.machineLoadTypeSnapshot.takeIf(String::isNotBlank)?.let(MachineLoadType::valueOf),
+            machineType,
             runCatching { LoadInterpretation.valueOf(workoutExercise.loadInterpretationSnapshot) }
                 .getOrDefault(LoadInterpretation.Total),
         )

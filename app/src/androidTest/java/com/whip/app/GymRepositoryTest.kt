@@ -1270,6 +1270,85 @@ class GymRepositoryTest {
     }
 
     @Test
+    fun freshLevelSetsUseProfileScopedHistoryThenPlacementAndConfiguredEndpoints() = runBlocking {
+        val exerciseId = repository.createExercise(ExerciseDraft(name = "Scoped level press"))
+        val normalMachineId = repository.createMachine(
+            GymMachineDraft(
+                exerciseId = exerciseId,
+                name = "Normal stack",
+                loadType = MachineLoadType.Level,
+                availableLoads = listOf(8.0, 2.0, 5.0),
+            ),
+        )
+        val reverseMachineId = repository.createMachine(
+            GymMachineDraft(
+                exerciseId = exerciseId,
+                name = "Reverse stack",
+                loadType = MachineLoadType.Level,
+                availableLoads = listOf(2.0, 8.0, 5.0),
+                levelDirection = MachineLevelDirection.HigherNumberLessResistance,
+            ),
+        )
+
+        val archivedProfileSession = repository.startWorkout("Archived profile")
+        val archivedProfilePlacement = repository.addExerciseToWorkout(
+            archivedProfileSession,
+            exerciseId,
+            reverseMachineId,
+        )
+        repository.setMachineArchived(reverseMachineId, true)
+        repository.addSet(archivedProfilePlacement)
+        assertEquals(
+            8.0,
+            repository.sets.first { sets -> sets.any { it.workoutExerciseId == archivedProfilePlacement } }
+                .single { it.workoutExerciseId == archivedProfilePlacement }.machineLoadValue!!,
+            0.0,
+        )
+        repository.finishWorkout(archivedProfileSession)
+        repository.setMachineArchived(reverseMachineId, false)
+
+        val normalHistorySession = repository.startWorkout("Normal history")
+        val normalHistoryPlacement = repository
+            .addExerciseWithInitialSetToWorkout(normalHistorySession, exerciseId, normalMachineId)
+            .workoutExerciseId
+        assertEquals(
+            2.0,
+            repository.sets.first { sets -> sets.any { it.workoutExerciseId == normalHistoryPlacement } }
+                .single { it.workoutExerciseId == normalHistoryPlacement }.machineLoadValue!!,
+            0.0,
+        )
+        repository.addSet(normalHistoryPlacement, WorkoutSetDraft(machineLoadValue = 7.0, reps = 8, completed = true))
+        repository.finishWorkout(normalHistorySession)
+
+        val reverseHistorySession = repository.startWorkout("Reverse history")
+        val reverseHistoryPlacement = repository
+            .addExerciseWithInitialSetToWorkout(reverseHistorySession, exerciseId, reverseMachineId)
+            .workoutExerciseId
+        assertEquals(
+            8.0,
+            repository.sets.first { sets -> sets.any { it.workoutExerciseId == reverseHistoryPlacement } }
+                .first { it.workoutExerciseId == reverseHistoryPlacement }.machineLoadValue!!,
+            0.0,
+        )
+        repository.addSet(reverseHistoryPlacement, WorkoutSetDraft(machineLoadValue = 4.0, reps = 8, completed = true))
+        repository.finishWorkout(reverseHistorySession)
+
+        val freshSession = repository.startWorkout("Fresh normal")
+        val freshPlacement = repository
+            .addExerciseWithInitialSetToWorkout(freshSession, exerciseId, normalMachineId)
+            .workoutExerciseId
+        val historyDefault = repository.sets.first { sets -> sets.any { it.workoutExerciseId == freshPlacement } }
+            .first { it.workoutExerciseId == freshPlacement }
+        assertEquals(7.0, historyDefault.machineLoadValue!!, 0.0)
+
+        repository.addSet(freshPlacement, WorkoutSetDraft(machineLoadValue = 9.0, reps = 8))
+        repository.addSet(freshPlacement, WorkoutSetDraft(reps = 8))
+        val freshSets = repository.sets.first { sets -> sets.count { it.workoutExerciseId == freshPlacement } >= 3 }
+            .filter { it.workoutExerciseId == freshPlacement }
+        assertEquals(9.0, freshSets.last().machineLoadValue!!, 0.0)
+    }
+
+    @Test
     fun perHandAndPerSideLoadsNormalizeOnceAndKeepPlacementMeaning() = runBlocking {
         val dumbbellDraft = ExerciseDraft(
             name = "Dumbbell press",

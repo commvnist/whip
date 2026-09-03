@@ -102,6 +102,57 @@ class RoutineRepositoryTest {
     }
 
     @Test
+    fun levelRoutineDefaultsAreActualOnlyWhileExplicitSettingsRemainPrescribed() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Level machine press"))
+        val machineId = gym.createMachine(
+            GymMachineDraft(
+                exerciseId = exerciseId,
+                name = "Numbered press",
+                loadType = MachineLoadType.Level,
+                availableLoads = listOf(8.0, 2.0, 5.0),
+                massMappingKg = mapOf(2.0 to 20.0, 5.0 to 50.0),
+            ),
+        )
+        val routineId = routines.createRoutine(
+            RoutineDraft(
+                name = "Machine routine",
+                days = listOf(
+                    RoutineDayDraft(
+                        "Day A",
+                        listOf(
+                            RoutineExerciseDraft(
+                                exerciseId = exerciseId,
+                                machineId = machineId,
+                                plannedSets = listOf(WorkoutSetDraft(reps = 8)),
+                            ),
+                            RoutineExerciseDraft(
+                                exerciseId = exerciseId,
+                                machineId = machineId,
+                                plannedSets = listOf(WorkoutSetDraft(machineLoadValue = 5.0, reps = 10)),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        gym.setMachineArchived(machineId, true)
+
+        routines.startRoutine(routineId)
+        val liveSets = gym.sets.first { sets -> sets.size == 2 }
+        val blankTemplateSet = liveSets.single { it.repetitions == 8 }
+        val explicitTemplateSet = liveSets.single { it.repetitions == 10 }
+
+        assertEquals(2.0, blankTemplateSet.machineLoadValue!!, 0.0)
+        assertEquals(20.0, blankTemplateSet.canonicalWeightKg!!, 0.0)
+        assertEquals(null, blankTemplateSet.prescribedMachineLoadValue)
+        assertEquals(null, blankTemplateSet.prescribedCanonicalWeightKg)
+        assertEquals(5.0, explicitTemplateSet.machineLoadValue!!, 0.0)
+        assertEquals(50.0, explicitTemplateSet.canonicalWeightKg!!, 0.0)
+        assertEquals(5.0, explicitTemplateSet.prescribedMachineLoadValue!!, 0.0)
+        assertEquals(50.0, explicitTemplateSet.prescribedCanonicalWeightKg!!, 0.0)
+    }
+
+    @Test
     fun exerciseAddedDuringRoutineWorkoutStaysSessionScopedAndRemainsInHistoryAndRecords() = runBlocking {
         val benchId = gym.createExercise(ExerciseDraft("Bench"))
         val curlsId = gym.createExercise(ExerciseDraft("Hammer curls"))

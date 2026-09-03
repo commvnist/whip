@@ -73,6 +73,32 @@ enum class MachineLevelDirection(val label: String) {
     HigherNumberLessResistance("Higher number = less resistance"),
 }
 
+/**
+ * The safe starting setting for a numbered machine. This treats configured values as a set, so
+ * their storage/display order never decides which endpoint is selected.
+ */
+fun configuredMachineLevelDefault(
+    availableLoads: List<Double>,
+    direction: MachineLevelDirection,
+): Double? {
+    val usable = availableLoads.filter { it.isFinite() && it >= 0.0 }
+    return when (direction) {
+        MachineLevelDirection.HigherNumberMoreResistance -> usable.minOrNull()
+        MachineLevelDirection.HigherNumberLessResistance -> usable.maxOrNull()
+    }
+}
+
+/** Field-level precedence for a fresh numbered-machine setting. */
+fun resolveMachineLevelDefault(
+    explicitValue: Double?,
+    latestSamePlacementValue: Double?,
+    latestCompletedProfileValue: Double?,
+    configuredEndpointValue: Double?,
+): Double? = explicitValue
+    ?: latestSamePlacementValue
+    ?: latestCompletedProfileValue
+    ?: configuredEndpointValue
+
 data class GymMachineDraft(
     val exerciseId: Long? = null,
     val name: String,
