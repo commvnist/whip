@@ -545,6 +545,23 @@ class HabitRepositoryTest {
         assertEquals(keys.id, repository.checklistStates.first().single { it.completed }.itemId)
     }
 
+    @Test fun checklistPersistenceDiscardsIrrelevantNumericQuickAdds() = runBlocking {
+        val id = repository.create(
+            HabitDraft(
+                name = "Pack",
+                trackingMode = HabitTrackingMode.Checklist,
+                quickIncrement = Double.NaN,
+                quickActions = listOf(-1.0, 5.0, 10.0),
+                startDate = FixedClock.today(),
+                checklistItems = listOf(HabitChecklistItemDraft("Keys", 0)),
+            ),
+        )
+
+        val saved = requireNotNull(repository.get(id))
+        assertEquals(1.0, saved.quickIncrement, 0.0)
+        assertTrue(saved.quickActions.isEmpty())
+    }
+
     @Test fun archivedChecklistHistoryDoesNotCompleteTheRemainingActiveChecklist() = runBlocking {
         val today = FixedClock.today()
         val id = repository.create(

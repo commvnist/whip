@@ -89,14 +89,20 @@ data class HabitDraft(
     val sourceMetricId: String? = null,
 ) : java.io.Serializable
 
+/** Numeric quick-add amounts only have meaning for manually accumulated values. */
+fun HabitTrackingMode.supportsQuickAddAmounts(): Boolean =
+    this == HabitTrackingMode.Count || this == HabitTrackingMode.Decimal
+
 /** One validation contract shared by the editor and persistence layer. */
 fun HabitDraft.validationErrors(): List<String> = buildList {
     if (name.isBlank()) add("Habit name is required")
     if (name.length > 100) add("Habit names can be at most 100 characters")
     if (tags.any { ',' in it }) add("Use separate Tags instead of commas")
     if (scheduleInterval <= 0) add("Schedule interval must be a positive whole number")
-    if (!quickIncrement.isFinite() || quickIncrement <= 0.0) add("Quick increment must be a positive number")
-    if (quickActions.any { !it.isFinite() || it < 0.0 }) add("Quick actions must be non-negative numbers")
+    if (sourceMetricId == null && trackingMode.supportsQuickAddAmounts()) {
+        if (!quickIncrement.isFinite() || quickIncrement <= 0.0) add("Quick increment must be a positive number")
+        if (quickActions.any { !it.isFinite() || it < 0.0 }) add("Quick actions must be non-negative numbers")
+    }
     if (precision !in 0..6) add("Decimal places must be between 0 and 6")
     if (reminderMinutes.any { it !in 0..1439 } || weekdayReminderMinutes.values.flatten().any { it !in 0..1439 }) {
         add("Reminder times must be valid times of day")

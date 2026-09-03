@@ -35,6 +35,7 @@ import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.toWeekdayMask
 import com.whip.app.domain.toWeekdays
 import com.whip.app.domain.isScheduledOn
+import com.whip.app.domain.supportsQuickAddAmounts
 import com.whip.app.domain.valueForPeriod
 import com.whip.app.domain.validationErrors
 import java.time.Instant
@@ -974,7 +975,9 @@ private fun HabitDraft.toEntity(
     weekdays.toWeekdayMask(), flexibleTimesPerWeek, startDate.toEpochDay(), endType.name,
     endDate?.takeIf { endType == HabitEndType.OnDate }?.toEpochDay(),
     endValue?.takeIf { endType in setOf(HabitEndType.AfterStreak, HabitEndType.AfterCompletions, HabitEndType.AfterTotal) },
-    quickIncrement, quickActions.joinToString(","), reminderMinutes.joinToString(","),
+    if (sourceMetricId == null && trackingMode.supportsQuickAddAmounts()) quickIncrement else 1.0,
+    if (sourceMetricId == null && trackingMode.supportsQuickAddAmounts()) quickActions.joinToString(",") else "",
+    reminderMinutes.joinToString(","),
     weekdayReminderMinutes.toReminderCsv(), weekStart.name, timerStartedAtMillis, pinned, position,
     archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId, autoCompleteFromItems,
     timerSessionId, timerNeedsReview, timerAccumulatedSeconds, timerAnchorElapsedRealtimeMillis,

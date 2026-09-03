@@ -37,7 +37,9 @@ import com.whip.app.core.WhipResult
 import com.whip.app.domain.Area
 import com.whip.app.domain.AreaScope
 import com.whip.app.domain.HabitDraft
+import com.whip.app.domain.HabitChecklistItemDraft
 import com.whip.app.domain.HabitEndType
+import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.TaskDraft
 import com.whip.app.ui.theme.WhipTheme
 import java.time.DayOfWeek
@@ -555,6 +557,45 @@ class EntitySaveCoordinatorUiTest {
         compose.onNodeWithText("End Condition").assertIsDisplayed()
         compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("First Day of Week"))
         compose.onNodeWithText("First Day of Week").assertIsDisplayed()
+    }
+
+    @Test
+    fun checklistModeRemovesNumericQuickButtonsAndSavesCanonicalValues() {
+        var savedDraft: HabitDraft? = null
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                HabitEditorDialog(
+                    habit = null,
+                    initialDraft = HabitDraft(
+                        name = "Pack",
+                        trackingMode = HabitTrackingMode.Count,
+                        quickIncrement = 5.0,
+                        quickActions = listOf(5.0, 10.0, 15.0),
+                        startDate = LocalDate.of(2026, 9, 3),
+                        checklistItems = listOf(HabitChecklistItemDraft("Keys", 0)),
+                    ),
+                    initialChecklist = emptyList(),
+                    today = LocalDate.of(2026, 9, 3),
+                    onDismiss = {},
+                    onSave = { savedDraft = it },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Quick Buttons"))
+        compose.onNodeWithText("Quick Buttons").assertIsDisplayed()
+        compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Checklist"))
+        compose.onNodeWithText("Checklist").performClick()
+        compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Additional Details"))
+        compose.onAllNodesWithText("Quick Buttons").assertCountEquals(0)
+        compose.onAllNodesWithText("Build a Range").assertCountEquals(0)
+        compose.onAllNodesWithText("Quick increment").assertCountEquals(0)
+
+        compose.onNodeWithText("Save").performClick()
+        compose.runOnIdle {
+            assertEquals(1.0, requireNotNull(savedDraft).quickIncrement, 0.0)
+            assertTrue(requireNotNull(savedDraft).quickActions.isEmpty())
+        }
     }
 
     @Test

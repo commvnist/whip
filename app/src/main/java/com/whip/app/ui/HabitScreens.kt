@@ -115,6 +115,7 @@ import com.whip.app.domain.valueInUnit
 import com.whip.app.domain.validationErrors
 import com.whip.app.domain.dayStateOn
 import com.whip.app.domain.successfulPeriodOutcomeDates
+import com.whip.app.domain.supportsQuickAddAmounts
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -1946,6 +1947,7 @@ internal fun HabitEditorDialog(
     var autoCompleteFromItems by rememberSaveable(editorKey) {
         mutableStateOf(initial.autoCompleteFromItems)
     }
+    val quickAddsEnabled = sourceMetricId == null && mode.supportsQuickAddAmounts()
     val quickActionResult = parseNumericSequence(
         specification = quickActions,
         rangeIncrement = quickIncrement.toWhipDoubleOrNull(),
@@ -1977,8 +1979,8 @@ internal fun HabitEditorDialog(
         endType = endType,
         endDate = endDate,
         endValue = endValue.toWhipDoubleOrNull(),
-        quickIncrement = quickIncrement.toWhipDoubleOrNull() ?: Double.NaN,
-        quickActions = quickActionResult.values,
+        quickIncrement = if (quickAddsEnabled) quickIncrement.toWhipDoubleOrNull() ?: Double.NaN else 1.0,
+        quickActions = if (quickAddsEnabled) quickActionResult.values else emptyList(),
         reminderMinutes = reminders.split(',').mapNotNull { parseClockMinutes(it.trim()) },
         weekdayReminderMinutes = parseWeekdayReminderMap(weekdayReminders),
         weekStart = weekStart,
@@ -1995,7 +1997,7 @@ internal fun HabitEditorDialog(
         if (rollingDays.isNotBlank() && rollingDays.toIntOrNull() == null) add("Rolling window must be a positive whole number")
         if (flexible.isNotBlank() && flexible.toIntOrNull() == null) add("Flexible schedule count must be a positive whole number")
         if (endValue.isNotBlank() && endValue.toWhipDoubleOrNull() == null) add("Ending threshold must be a valid number")
-        quickActionResult.error?.let(::add)
+        if (quickAddsEnabled) quickActionResult.error?.let(::add)
         if (habit == null && areas.count { !it.archived } > 1 && areaId == null) add("Choose an Area for this Habit")
     }
     val validationMessages = (rawFieldProblems + currentDraft.validationErrors()).distinct()
@@ -2019,7 +2021,7 @@ internal fun HabitEditorDialog(
     var showAdditionalDetails by rememberSaveable(editorKey) {
         mutableStateOf(
             defaults.powerMode || initial.notes.isNotBlank() || initial.tags.isNotEmpty() ||
-                initial.quickActions.isNotEmpty(),
+                initial.trackingMode.supportsQuickAddAmounts() && initial.quickActions.isNotEmpty(),
         )
     }
     LaunchedEffect(validationRequested, validationMessages) {
@@ -2241,7 +2243,7 @@ internal fun HabitEditorDialog(
                         }
                     }
                 }
-                if (sourceMetricId == null && mode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
+                if (quickAddsEnabled) {
                     item {
                         NumberTextField(quickIncrement, { quickIncrement = it }, "Quick increment")
                         Text(
@@ -2458,9 +2460,15 @@ internal fun HabitEditorDialog(
                     )
                 }
                 if (showAdditionalDetails) {
-                    item { EditorSectionHeader("Details", "Add reusable tags, quick actions, and notes only when they help.") }
+                    item {
+                        EditorSectionHeader(
+                            "Details",
+                            if (quickAddsEnabled) "Add reusable tags, quick actions, and notes only when they help."
+                            else "Add reusable tags and notes only when they help.",
+                        )
+                    }
                     item { OutlinedTextField(tags, { tags = it }, label = { Text("Tags, comma-separated") }, modifier = Modifier.fillMaxWidth()) }
-                    if (sourceMetricId == null) item {
+                    if (quickAddsEnabled) item {
                         NumericQuickActionBuilder(
                             values = quickActionResult.values,
                             increment = quickIncrement,

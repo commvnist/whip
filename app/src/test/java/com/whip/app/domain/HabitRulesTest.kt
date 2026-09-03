@@ -44,12 +44,35 @@ class HabitRulesTest {
 
         assertTrue(problems.contains("Habit name is required"))
         assertTrue(problems.contains("Schedule interval must be a positive whole number"))
-        assertTrue(problems.contains("Quick increment must be a positive number"))
+        assertFalse(problems.contains("Quick increment must be a positive number"))
         assertTrue(problems.contains("Decimal places must be between 0 and 6"))
         assertTrue(problems.contains("Add at least one checklist item"))
         assertTrue(problems.contains("Pick at least one weekday"))
         assertTrue(problems.contains("Enter a valid target range"))
         assertTrue(problems.contains("Choose an end date on or after the start date"))
+    }
+
+    @Test
+    fun quickAddValidationOnlyAppliesToManualCountAndDecimalHabits() {
+        val invalidQuickAdds = HabitDraft(
+            name = "Track",
+            trackingMode = HabitTrackingMode.Count,
+            quickIncrement = Double.NaN,
+            quickActions = listOf(-1.0),
+            startDate = monday,
+        )
+
+        assertTrue(invalidQuickAdds.validationErrors().contains("Quick increment must be a positive number"))
+        assertTrue(invalidQuickAdds.validationErrors().contains("Quick actions must be non-negative numbers"))
+        assertFalse(
+            invalidQuickAdds.copy(
+                trackingMode = HabitTrackingMode.Checklist,
+                checklistItems = listOf(HabitChecklistItemDraft("Done", 0)),
+            ).validationErrors().any { it.startsWith("Quick ") },
+        )
+        assertFalse(
+            invalidQuickAdds.copy(sourceMetricId = "health-steps").validationErrors().any { it.startsWith("Quick ") },
+        )
     }
 
     @Test
