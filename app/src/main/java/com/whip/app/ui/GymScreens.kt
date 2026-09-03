@@ -13,6 +13,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -632,6 +633,7 @@ fun GymAreaContent(
     val orphanedGymDeletionRequestId by viewModel.orphanedGymDeletionRequestId.collectAsStateWithLifecycle()
     var exerciseEditorId by rememberSaveable { mutableStateOf<Long?>(null) }
     var creatingExercise by rememberSaveable { mutableStateOf(false) }
+    var exerciseEditorNameSeed by rememberSaveable { mutableStateOf("") }
     var createExerciseAddBoundary by rememberSaveable(stateSaver = WorkoutStructureBoundarySaver) {
         mutableStateOf<WorkoutStructureBoundary?>(null)
     }
@@ -768,6 +770,7 @@ fun GymAreaContent(
                     exercisePickerAddBoundary = null
                     substituteWorkoutExerciseBoundary = null
                     creatingExercise = false
+                    exerciseEditorNameSeed = ""
                     createExerciseAddBoundary = null
                     createForSubstitutionBoundary = null
                     requestedWorkoutExerciseUuid = null
@@ -867,6 +870,7 @@ fun GymAreaContent(
             createdExerciseForMachineId = createdId
             creatingExercise = false
             creatingExerciseForMachine = false
+            exerciseEditorNameSeed = ""
         },
         onCatalogSaved = {
             creatingMachine = false
@@ -875,6 +879,7 @@ fun GymAreaContent(
             machineEditorId = null
             machineVersionSourceId = null
             creatingExercise = false
+            exerciseEditorNameSeed = ""
             exerciseEditorId = null
         },
     )
@@ -1114,7 +1119,10 @@ fun GymAreaContent(
                     inlineMachineEditorOpen = inlineMachineEditorOpen,
                     creatingExerciseForMachine = creatingExerciseForMachine,
                 )
-            ) creatingExercise = false
+            ) {
+                creatingExercise = false
+                exerciseEditorNameSeed = ""
+            }
             if (inlineMachineEditorOpen) {
                 creatingMachine = false
                 creatingExerciseForMachine = false
@@ -1143,6 +1151,7 @@ fun GymAreaContent(
         inlineMachineBoundary = null
         inlineMachineExerciseId = null
         creatingExercise = false
+        exerciseEditorNameSeed = ""
         exerciseEditorId = null
         createExerciseAddBoundary = null
         createForSubstitutionBoundary = null
@@ -1163,7 +1172,10 @@ fun GymAreaContent(
                 workoutAuthorshipGeneration = viewModel.currentDataGeneration()
                 showExercisePicker = exercisePickerAddBoundary != null
             }
-            GymAddRequest.CreateExercise -> creatingExercise = true
+            GymAddRequest.CreateExercise -> {
+                exerciseEditorNameSeed = ""
+                creatingExercise = true
+            }
             GymAddRequest.CreateMachine -> creatingMachine = true
             GymAddRequest.CreateCategory,
             GymAddRequest.CreateRoutine,
@@ -1295,6 +1307,7 @@ fun GymAreaContent(
                     onCreateExercise = {
                         if (!workoutMutationBusy) {
                             sessionMutationCoordinator.clear()
+                            exerciseEditorNameSeed = ""
                             creatingExercise = true
                         }
                     },
@@ -1384,7 +1397,10 @@ fun GymAreaContent(
             )
             GymDestination.Exercises -> ExerciseLibraryContent(
                 state = state,
-                onCreate = { creatingExercise = true },
+                onCreate = {
+                    exerciseEditorNameSeed = ""
+                    creatingExercise = true
+                },
                 onOpen = { exerciseActionsId = it.id },
                 onEdit = { exerciseEditorId = it.id },
                 onReorder = viewModel::reorderExercises,
@@ -1485,6 +1501,7 @@ fun GymAreaContent(
         onCreatedExerciseConsumed = { createdExerciseForMachineId = null },
         onCreateExercise = {
             creatingExerciseForMachine = true
+            exerciseEditorNameSeed = ""
             creatingExercise = true
         },
         onCreateVersion = { machineId ->
@@ -1499,6 +1516,7 @@ fun GymAreaContent(
         modifier = dialogModifier,
         state = state,
         exerciseEditor = exerciseEditor,
+        initialName = exerciseEditorNameSeed,
         creatingExerciseForMachine = creatingExerciseForMachine,
         createExerciseAddBoundary = createExerciseAddBoundary,
         createForSubstitutionBoundary = createForSubstitutionBoundary,
@@ -1510,6 +1528,7 @@ fun GymAreaContent(
         onDismissMachineExercise = {
             creatingExercise = false
             creatingExerciseForMachine = false
+            exerciseEditorNameSeed = ""
         },
         onDismissCatalog = { closeCatalogEditors() },
     )
@@ -1833,9 +1852,10 @@ fun GymAreaContent(
                     showExercisePicker = false
                 }
             },
-            onCreate = {
+            onCreate = { nameSeed ->
                 createForSubstitutionBoundary = substituteWorkoutExerciseBoundary
                 createExerciseAddBoundary = exercisePickerAddBoundary.takeIf { createForSubstitutionBoundary == null }
+                exerciseEditorNameSeed = nameSeed
                 creatingExercise = true
                 showExercisePicker = false
             },
@@ -10168,78 +10188,156 @@ internal fun ExercisePickerDialog(
     preferredIds: List<Long> = emptyList(),
     title: String = "Add Exercise",
     supportingText: String? = null,
+    itemLabel: String = "exercise",
     saving: Boolean = false,
     errorMessage: String? = null,
     onDismiss: () -> Unit,
     onPick: (Exercise) -> Unit,
-    onCreate: () -> Unit,
+    onCreate: (String) -> Unit,
 ) {
-    var query by rememberSaveable { mutableStateOf("") }
-    PaneAwareAlertDialog(
-        modifier = modifier,
+    var query by rememberSaveable(title) { mutableStateOf("") }
+    val normalizedQuery = query.trim()
+    val visible = exercises.filter { exerciseMatchesQuery(it, query) }
+        .sortedWith(compareByDescending<Exercise> { it.id in preferredIds }.thenBy { it.name.lowercase() })
+    val dialogPlacement = LocalWhipDialogPlacement.current
+    val resolvedModifier = if (modifier == Modifier) {
+        Modifier.absoluteOffset(x = dialogPlacement.offsetX).width(dialogPlacement.maxWidth)
+    } else {
+        modifier
+    }
+    val displayLabel = itemLabel.uiTitleCase()
+    ProductivityEditorDialog(
+        modifier = resolvedModifier,
+        testTag = "exercise-picker-dialog",
         onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(title) },
         text = {
-            LazyColumn(
-                modifier = Modifier.testTag("workout-exercise-picker-list"),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 supportingText?.let { message ->
-                    item {
-                        Text(
-                            message,
-                            modifier = Modifier.testTag("workout-exercise-picker-scope"),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                errorMessage?.let { message ->
-                    item {
-                        Text(
-                            message,
-                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                }
-                item {
-                    OutlinedTextField(
-                        query,
-                        { query = it },
-                        enabled = !saving,
-                        label = { Text("Search") },
-                        modifier = Modifier.fillMaxWidth().testTag("exercise-picker-search"),
-                        singleLine = true,
+                    Text(
+                        message,
+                        modifier = Modifier.testTag("workout-exercise-picker-scope"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                val visible = exercises.filter { exerciseMatchesQuery(it, query) }
-                    .sortedWith(compareByDescending<Exercise> { it.id in preferredIds }.thenBy { it.name.lowercase() })
-                if (preferredIds.isNotEmpty()) item {
-                    Text("Routine alternatives are shown first", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                errorMessage?.let { message ->
+                    Text(
+                        message,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                 }
-                items(visible, key = Exercise::id) { exercise ->
-                    WhipTextButton(
-                        onClick = { onPick(exercise) },
+                OutlinedTextField(
+                    query,
+                    { query = it },
+                    enabled = !saving,
+                    label = { Text("Search ${displayLabel.lowercase()}s") },
+                    modifier = Modifier.fillMaxWidth().testTag("exercise-picker-search"),
+                    singleLine = true,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        quantityLabel(visible.size, itemLabel),
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    WhipOutlinedButton(
+                        onClick = { onCreate(normalizedQuery) },
                         enabled = !saving,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.testTag("exercise-picker-create"),
                     ) {
-                        Text(
-                            exercise.name + if (exercise.id in preferredIds) " · Planned alternative" else "",
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                        Icon(Icons.Filled.Add, contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Create $displayLabel")
                     }
                 }
-                if (exercises.isEmpty()) item { Text("Your library is empty.") }
+                LazyColumn(
+                    modifier = Modifier.weight(1f).fillMaxWidth().testTag("workout-exercise-picker-list"),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(bottom = 12.dp),
+                ) {
+                    if (preferredIds.isNotEmpty() && visible.any { it.id in preferredIds }) item {
+                        Text(
+                            "Routine alternatives are shown first",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    items(visible, key = Exercise::id) { exercise ->
+                        WhipTextButton(
+                            onClick = { onPick(exercise) },
+                            enabled = !saving,
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        ) {
+                            Text(
+                                exercise.name + if (exercise.id in preferredIds) " · Planned alternative" else "",
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+                    if (visible.isEmpty()) item {
+                        OutlinedCard(
+                            modifier = Modifier.fillMaxWidth().testTag("exercise-picker-empty"),
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text(
+                                    if (normalizedQuery.isBlank() && exercises.isEmpty()) {
+                                        "No ${displayLabel.lowercase()}s yet"
+                                    } else {
+                                        "No matching ${displayLabel.lowercase()}"
+                                    },
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    if (normalizedQuery.isBlank()) {
+                                        "Create a $itemLabel without leaving this screen. It will be saved to your Exercise Library."
+                                    } else {
+                                        "Nothing matches “$normalizedQuery”. Create it as a new $itemLabel without leaving this screen."
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                WhipButton(
+                                    onClick = { onCreate(normalizedQuery) },
+                                    enabled = !saving,
+                                    modifier = Modifier.fillMaxWidth().testTag("exercise-picker-create-empty"),
+                                ) {
+                                    Text(
+                                        if (normalizedQuery.isBlank()) "Create $displayLabel"
+                                        else "Create “$normalizedQuery”",
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
-        confirmButton = {
-            WhipTextButton(onClick = onCreate, enabled = !saving) {
-                Text(if (saving) "Adding…" else "Create New")
-            }
+        confirmButton = {},
+        dismissButton = {
+            WhipBackAction(
+                label = "Close $title",
+                onClick = { if (!saving) onDismiss() },
+            )
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss, enabled = !saving) { Text("Cancel") } },
+        primary = true,
+        paneTitle = title,
+        inputBlocked = saving,
+        inputBlockedLabel = "Adding $itemLabel",
+        dismissOnClickOutside = false,
     )
 }
 

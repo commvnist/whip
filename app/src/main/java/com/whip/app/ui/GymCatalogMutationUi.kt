@@ -117,6 +117,7 @@ internal fun GymExerciseEditorOverlay(
     modifier: Modifier,
     state: GymUiState,
     exerciseEditor: Exercise?,
+    initialName: String,
     creatingExerciseForMachine: Boolean,
     createExerciseAddBoundary: WorkoutStructureBoundary?,
     createForSubstitutionBoundary: WorkoutPlacementMutationBoundary?,
@@ -132,6 +133,7 @@ internal fun GymExerciseEditorOverlay(
     ExerciseEditorDialog(
         modifier = modifier,
         exercise = exerciseEditor,
+        initialName = initialName,
         categories = state.categories,
         selectedCategoryIds = state.categoryLinks.filter { it.exerciseId == exerciseEditor?.id }
             .mapTo(mutableSetOf()) { it.categoryId },

@@ -60,6 +60,7 @@ import com.whip.app.domain.WorkoutSetClassification
 import com.whip.app.domain.WorkoutSetDraft
 import com.whip.app.domain.massToKilograms
 import com.whip.app.ui.GymUiState
+import com.whip.app.ui.ExercisePickerDialog
 import com.whip.app.ui.LocalWhipDialogPlacement
 import com.whip.app.ui.RoutineBuilderScreen
 import com.whip.app.ui.WhipDialogPlacement
@@ -75,6 +76,32 @@ import org.junit.runner.RunWith
 class RoutineBuilderUiTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun sharedExercisePickerAlwaysOffersSearchAndSeededCreation() {
+        var createdSeed: String? = null
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                ExercisePickerDialog(
+                    exercises = listOf(exercise(1, "Bench Press")),
+                    title = "Add Exercise",
+                    onDismiss = {},
+                    onPick = {},
+                    onCreate = { createdSeed = it },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("exercise-picker-dialog").assertIsDisplayed()
+        compose.onNodeWithTag("exercise-picker-create").assertIsDisplayed()
+        compose.onNodeWithTag("exercise-picker-search").performTextInput("Zercher Squat")
+        compose.onNodeWithTag("exercise-picker-empty").assertIsDisplayed()
+        compose.onNodeWithText("Nothing matches “Zercher Squat”. Create it as a new exercise without leaving this screen.")
+            .assertIsDisplayed()
+        compose.onNodeWithTag("exercise-picker-create-empty").assertTextEquals("Create “Zercher Squat”").performClick()
+
+        compose.runOnIdle { assertEquals("Zercher Squat", createdSeed) }
+    }
 
     @Test
     fun blankRoutineSurfacesTopLevelFiveThreeOneEntry() {
@@ -106,6 +133,77 @@ class RoutineBuilderUiTest {
             .assertTextContains("Still needed · Enter a Training Max and cycle increase above zero for every selected lift.")
         compose.onNode(hasText("Choose Your Lifts") and hasClickAction()).assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-create-standard-lifts").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun emptyCustomFiveThreeOneCanCreateAndAddSeveralLiftsWithoutLeavingSetup() {
+        val exercises = mutableStateOf<List<Exercise>>(emptyList())
+        var nextId = 1L
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                RoutineBuilderScreen(
+                    routineId = null,
+                    gymState = GymUiState(exercises = exercises.value, loading = false),
+                    initial = null,
+                    onDismiss = {},
+                    onSave = { _, complete -> complete(true) },
+                    onCreateExercise = { draft, complete ->
+                        val id = nextId++
+                        exercises.value = exercises.value + exercise(id, draft.name)
+                        complete(id)
+                    },
+                    onCreateMachine = { _, _ -> },
+                )
+            }
+        }
+
+        compose.onNode(
+            hasText("Set Up 5/3/1") and hasClickAction() and
+                hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
+        ).performClick()
+        compose.onNode(hasText("Choose Your Lifts") and hasClickAction()).performClick()
+        compose.onNodeWithTag("five-three-one-create-custom-lift").performScrollTo().performClick()
+
+        compose.onNodeWithTag("exercise-picker-empty").assertIsDisplayed()
+        compose.onNodeWithTag("exercise-picker-search").performTextInput("Bench Press")
+        compose.onNodeWithTag("exercise-picker-create-empty").performClick()
+        compose.onNodeWithTag("exercise-editor-name").assertTextContains("Bench Press")
+        compose.onNode(
+            hasText("Save") and hasAnyAncestor(hasTestTag("exercise-editor-surface")),
+        ).performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodes(
+                hasText("Bench Press", substring = true) and hasAnyAncestor(hasTestTag("workout-exercise-picker-list")),
+                useUnmergedTree = true,
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNode(
+            hasText("Bench Press", substring = true) and hasAnyAncestor(hasTestTag("workout-exercise-picker-list")),
+            useUnmergedTree = true,
+        ).performClick()
+
+        compose.onNodeWithTag("five-three-one-add-custom-lift").performScrollTo().performClick()
+        compose.onNodeWithTag("exercise-picker-empty").assertIsDisplayed()
+        compose.onNodeWithTag("exercise-picker-search").performTextInput("Deadlift")
+        compose.onNodeWithTag("exercise-picker-create-empty").performClick()
+        compose.onNodeWithTag("exercise-editor-name").assertTextContains("Deadlift")
+        compose.onNode(
+            hasText("Save") and hasAnyAncestor(hasTestTag("exercise-editor-surface")),
+        ).performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodes(
+                hasText("Deadlift", substring = true) and hasAnyAncestor(hasTestTag("workout-exercise-picker-list")),
+                useUnmergedTree = true,
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNode(
+            hasText("Deadlift", substring = true) and hasAnyAncestor(hasTestTag("workout-exercise-picker-list")),
+            useUnmergedTree = true,
+        ).performClick()
+
+        compose.onNodeWithContentDescription("Lift 1 exercise: Bench Press").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Lift 2 exercise: Deadlift").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("five-three-one-add-custom-lift").performScrollTo().assertIsDisplayed()
     }
 
     @Test

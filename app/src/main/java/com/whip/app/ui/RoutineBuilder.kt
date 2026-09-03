@@ -840,8 +840,8 @@ internal fun RoutineBuilderScreen(
             standardLiftCreationInFlight = standardLiftCreationInFlight,
             standardLiftCreationError = standardLiftCreationError,
             onCreateMissingStandardLifts = ::createMissingStandardLifts,
-            onCreateLift = {
-                exerciseNameSeed = ""
+            onCreateLift = { nameSeed ->
+                exerciseNameSeed = nameSeed
                 createExerciseForProgramSetup = true
                 showCreateExercise = true
             },
@@ -922,7 +922,7 @@ private fun FiveThreeOneProgramSetupDialog(
     standardLiftCreationInFlight: Boolean,
     standardLiftCreationError: String?,
     onCreateMissingStandardLifts: () -> Unit,
-    onCreateLift: () -> Unit,
+    onCreateLift: (String) -> Unit,
     onApply: (FiveThreeOneProgramRequest) -> Unit,
 ) {
     val eligible = exercises.filter { it.trackingType == ExerciseTrackingType.WeightReps }
@@ -1226,6 +1226,27 @@ private fun FiveThreeOneProgramSetupDialog(
     }
 
     fun selectLift(index: Int, exercise: Exercise) {
+        if (layout == FiveThreeOneProgramLayout.Custom && index == exerciseIds.size) {
+            exerciseIds = exerciseIds + exercise.id
+            trainingMaxes = trainingMaxes + ""
+            useRecentMaxSuggestion = useRecentMaxSuggestion + false
+            recentMaxes = recentMaxes + ""
+            trainingMaxPercentages = trainingMaxPercentages + "85"
+            trainingMaxBasisKinds = trainingMaxBasisKinds + TrainingMaxBasisKind.ActualOneRepMax.name
+            appliedSourceMaxes = appliedSourceMaxes + ""
+            appliedTrainingMaxPercentages = appliedTrainingMaxPercentages + ""
+            appliedTrainingMaxBasisKinds = appliedTrainingMaxBasisKinds + ""
+            appliedDerivedTrainingMaxes = appliedDerivedTrainingMaxes + ""
+            increments = increments + editableNumericValue(
+                defaultFiveThreeOneCycleIncrease(
+                    unitId = exercise.weightUnitId,
+                    exerciseName = exercise.name,
+                ),
+            )
+            bbbTargetIds = bbbTargetIds + exercise.id
+            return
+        }
+        if (index !in exerciseIds.indices) return
         val previousExerciseId = exerciseIds.getOrNull(index)
         val role = activeRoles.getOrNull(index)
         exerciseIds = exerciseIds.toMutableList().also { it[index] = exercise.id }
@@ -1372,16 +1393,16 @@ private fun FiveThreeOneProgramSetupDialog(
                 }
                 if (layout == FiveThreeOneProgramLayout.Custom && eligible.isEmpty()) {
                     Text(
-                        "Create at least one Weight + Reps lift without leaving this setup.",
+                        "Add at least one Weight + Reps lift. You can search or create it without leaving this setup.",
                         color = MaterialTheme.colorScheme.error,
                     )
                     WhipButton(
-                        onClick = onCreateLift,
+                        onClick = { liftPickerIndex = 0 },
                         modifier = Modifier.fillMaxWidth().testTag("five-three-one-create-custom-lift"),
                     ) {
                         Icon(Icons.Filled.Add, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Create a Lift")
+                        Text("Add a Lift")
                     }
                 } else if (layout != FiveThreeOneProgramLayout.Custom && eligible.size < roles.size) {
                     Text("Create at least four weight-and-reps exercises before setting up this program.", color = MaterialTheme.colorScheme.error)
@@ -1698,27 +1719,9 @@ private fun FiveThreeOneProgramSetupDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    if (layout == FiveThreeOneProgramLayout.Custom && exerciseIds.size < eligible.size) {
+                    if (layout == FiveThreeOneProgramLayout.Custom) {
                         WhipOutlinedButton(
-                            onClick = {
-                                val nextExercise = eligible.first { candidate -> candidate.id !in exerciseIds }
-                                exerciseIds = exerciseIds + nextExercise.id
-                                trainingMaxes = trainingMaxes + ""
-                                useRecentMaxSuggestion = useRecentMaxSuggestion + false
-                                recentMaxes = recentMaxes + ""
-                                trainingMaxPercentages = trainingMaxPercentages + "85"
-                                trainingMaxBasisKinds = trainingMaxBasisKinds + TrainingMaxBasisKind.ActualOneRepMax.name
-                                appliedSourceMaxes = appliedSourceMaxes + ""
-                                appliedTrainingMaxPercentages = appliedTrainingMaxPercentages + ""
-                                appliedTrainingMaxBasisKinds = appliedTrainingMaxBasisKinds + ""
-                                appliedDerivedTrainingMaxes = appliedDerivedTrainingMaxes + ""
-                                increments = increments + editableNumericValue(
-                                    defaultFiveThreeOneCycleIncrease(
-                                        unitId = nextExercise.weightUnitId,
-                                        exerciseName = nextExercise.name,
-                                    ),
-                                )
-                            },
+                            onClick = { liftPickerIndex = exerciseIds.size },
                             modifier = Modifier.fillMaxWidth().testTag("five-three-one-add-custom-lift"),
                         ) {
                             Icon(Icons.Filled.Add, contentDescription = null)
@@ -2045,6 +2048,7 @@ private fun FiveThreeOneProgramSetupDialog(
             preferredIds = listOfNotNull(selected?.id),
             title = "Choose ${activeRoles.getOrNull(index)?.label ?: "Lift ${index + 1}"}",
             supportingText = "Only active Weight + Reps exercises are shown. Search by name, equipment, or muscle.",
+            itemLabel = "lift",
             onDismiss = { liftPickerIndex = null },
             onPick = { exercise ->
                 selectLift(index, exercise)
