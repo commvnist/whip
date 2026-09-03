@@ -436,3 +436,12 @@
 - Related: `FB-20260902-009`, `docs/quality/UI_UX_REMEDIATION_PLAN.md`.
 - Verification: `VER-20260902-018`.
 - Status: Implemented and targeted-tool verified.
+
+### IMP-20260902-018 — Exact-signature instrumentation batch resume
+
+- Extended the complete emulator gate with a local successful-batch cache keyed by production source, build configuration, the emulator image, shared Android-test support, the exact requested class set, and the source files for those classes.
+- A production-source change invalidates every device batch. A correction confined to one test batch reruns that batch while unchanged successful batches retain their exact executed-class, test-count, and zero-skip evidence.
+- Added `--fresh-emulator` as an explicit cache bypass. JVM tests, Android-test compilation, lint, coverage, artifact checks, complete source-test accounting, and zero-skip enforcement always run and cannot be satisfied by the cache.
+- Related: `FB-20260902-009`, `docs/quality/UI_UX_REMEDIATION_PLAN.md`.
+- Verification: `VER-20260902-019`.
+- Status: Implemented and structurally verified; its first frozen-candidate emulator run remains the integration gate.

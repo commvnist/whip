@@ -467,3 +467,12 @@
 - Safety/scope: The script retains an explicit `ro.boot.qemu` guard and never runs instrumentation on physical hardware. It does not replace the existing full execution-accounting, coverage, lint, release, or benchmark gates.
 - Related: `FB-20260902-009`, `IMP-20260902-017`.
 - Status: Verified for targeted development use.
+
+### VER-20260902-019 — Instrumentation resume structural verification
+
+- `bash -n scripts/check` passed after the signature/cache implementation.
+- `scripts/check --fresh-emulator` fails closed with exit 2 and the exact message that `--fresh-emulator` requires `--emulator`; the cache bypass cannot silently become a no-op.
+- Source review confirmed cache admission requires a current signature marker, matching class counts, a positive executed-test count, and zero skips. Every reused count still participates in the complete current source-count comparison.
+- Scope limit: This is structural/tool-policy evidence. The first frozen-candidate `scripts/check --emulator` run must populate and integrate the cache before the optimization is treated as final runtime evidence.
+- Related: `FB-20260902-009`, `IMP-20260902-018`.
+- Status: Structurally verified; emulator integration pending the frozen candidate.

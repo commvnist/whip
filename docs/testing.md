@@ -11,6 +11,7 @@ ANDROID_SERIAL=emulator-5554 scripts/coverage --emulator
 scripts/qa-targeted gym531
 ANDROID_SERIAL=emulator-5554 scripts/qa-targeted gym531 --emulator
 ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android com.whip.app.RoutineRepositoryTest#testName --repeat 3
+ANDROID_SERIAL=emulator-5554 scripts/check --emulator --fresh-emulator
 ```
 
 Use `scripts/qa-targeted` for the development loop. Its named subsystem profiles
@@ -21,6 +22,15 @@ reproduction, and `--repeat` is reserved for confirming timing-sensitive tests.
 This targeted evidence is a chunk gate, not a release claim. Run `scripts/check
 --emulator` once after product source freezes and `scripts/check --full` once for
 the release artifacts.
+
+The complete emulator gate resumes successful instrumentation batches only when
+the production source, build configuration, emulator image, shared test support,
+requested class set, and those class files have the same signatures. A product
+source change invalidates every device batch; a test-only correction reruns its
+own batch while retaining exact evidence for unaffected batches. Use
+`--fresh-emulator` to deliberately ignore the local cache. Cached batches never
+replace JVM, compilation, lint, coverage, artifact, class-accounting, or
+zero-skip checks.
 
 `scripts/check` is the required pre-commit gate: deterministic JVM tests with
 an enforced coverage floor,

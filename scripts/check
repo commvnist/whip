@@ -7,6 +7,7 @@ readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
 run_emulator_tests=false
 build_release=false
+resume_emulator_batches=true
 
 usage() {
     printf '%s\n' \
@@ -15,6 +16,7 @@ usage() {
         'Usage:' \
         '  scripts/check             Unit tests, Android-test compilation, lint, debug APK' \
         '  scripts/check --emulator  Also run instrumentation tests on one disposable emulator' \
+        '  scripts/check --emulator --fresh-emulator  Ignore successful exact-source batch cache' \
         '  scripts/check --device    Backwards-compatible alias for --emulator' \
         '  scripts/check --full      Also build release and the optimized benchmark harness' \
         '' \
@@ -25,12 +27,18 @@ usage() {
 while (($#)); do
     case "$1" in
         --device|--emulator) run_emulator_tests=true ;;
+        --fresh-emulator) resume_emulator_batches=false ;;
         --full) build_release=true ;;
         -h|--help) usage; exit 0 ;;
         *) usage >&2; printf 'error: unknown option %s\n' "$1" >&2; exit 2 ;;
     esac
     shift
 done
+
+if [[ "$resume_emulator_batches" == false && "$run_emulator_tests" != true ]]; then
+    printf 'error: --fresh-emulator requires --emulator\n' >&2
+    exit 2
+fi
 
 tasks=(
     :app:createDebugUnitTestCoverageReport
@@ -149,6 +157,8 @@ if [[ "$run_emulator_tests" == true ]]; then
     fi
 
     mapfile -t instrumentation_test_files < <(find app/src/androidTest -name '*Test.kt' -type f | sort)
+    mapfile -t instrumentation_shared_files < <(find app/src/androidTest -type f ! -name '*Test.kt' | sort)
+    declare -A instrumentation_class_files=()
     instrumentation_classes=()
     for test_file in "${instrumentation_test_files[@]}"; do
         test_package="$(sed -nE 's/^package[[:space:]]+([^[:space:]]+).*/\1/p' "$test_file" | head -n 1)"
@@ -157,7 +167,9 @@ if [[ "$run_emulator_tests" == true ]]; then
             printf 'error: instrumentation test file must declare its filename as a top-level class: %s\n' "$test_file" >&2
             exit 1
         fi
-        instrumentation_classes+=("${test_package}.${test_class}")
+        qualified_test_class="${test_package}.${test_class}"
+        instrumentation_classes+=("$qualified_test_class")
+        instrumentation_class_files["$qualified_test_class"]="$test_file"
     done
     if [[ "${#instrumentation_classes[@]}" -eq 0 ]]; then
         printf 'error: no instrumentation test classes found\n' >&2
@@ -187,6 +199,81 @@ if [[ "$run_emulator_tests" == true ]]; then
     printf 'batch\texpected_classes\texecuted_classes\texecuted\tskipped\n' > "$aggregate_result"
     executed_test_total=0
     skipped_test_total=0
+    reused_batch_total=0
+
+    signature_for_files() {
+        local namespace="$1"
+        shift
+        {
+            printf 'namespace:%s\n' "$namespace"
+            local source_file
+            for source_file in "$@"; do
+                printf 'path:%s\n' "$source_file"
+                sha256sum "$source_file"
+            done
+        } | sha256sum | awk '{ print $1 }'
+    }
+
+    mapfile -t production_signature_files < <(
+        {
+            find app/src -type f ! -path '*/test/*' ! -path '*/androidTest/*'
+            find gradle -type f
+            printf '%s\n' app/build.gradle.kts build.gradle.kts settings.gradle.kts gradle.properties scripts/check
+        } | sort -u
+    )
+    production_signature="$(signature_for_files 'whip-instrumentation-production-v1' "${production_signature_files[@]}")"
+    shared_test_signature="$(signature_for_files 'whip-instrumentation-shared-tests-v1' "${instrumentation_shared_files[@]}")"
+    emulator_fingerprint="$(adb -s "$test_serial" shell getprop ro.build.fingerprint | tr -d '\r')"
+    emulator_abi="$(adb -s "$test_serial" shell getprop ro.product.cpu.abi | tr -d '\r')"
+    emulator_signature="$(printf '%s\n' "$emulator_api" "$emulator_fingerprint" "$emulator_abi" | sha256sum | awk '{ print $1 }')"
+    instrumentation_cache_dir="${PROJECT_ROOT}/build/instrumentation-batch-cache"
+    mkdir -p "$instrumentation_cache_dir"
+
+    instrumentation_batch_signature() {
+        local expected_class_argument="$1"
+        local batch_source_files=()
+        local expected_class
+        while IFS= read -r expected_class; do
+            [[ -n "$expected_class" ]] || continue
+            batch_source_files+=("${instrumentation_class_files[$expected_class]}")
+        done < <(tr ',' '\n' <<< "$expected_class_argument" | sort -u)
+        signature_for_files \
+            "production=${production_signature};shared=${shared_test_signature};emulator=${emulator_signature};classes=${expected_class_argument}" \
+            "${batch_source_files[@]}"
+    }
+
+    reuse_instrumentation_batch() {
+        local batch_number="$1"
+        local class_argument="$2"
+        local batch_signature="$3"
+        local cache_file="${instrumentation_cache_dir}/${batch_signature}.tsv"
+        [[ "$resume_emulator_batches" == true && -s "$cache_file" ]] || return 1
+
+        local cached_signature expected_class_count executed_class_count executed skipped
+        IFS=$'\t' read -r cached_signature expected_class_count executed_class_count executed skipped < "$cache_file"
+        if [[ "$cached_signature" != "$batch_signature" ||
+            ! "$expected_class_count" =~ ^[1-9][0-9]*$ ||
+            ! "$executed_class_count" =~ ^[1-9][0-9]*$ ||
+            ! "$executed" =~ ^[1-9][0-9]*$ ||
+            ! "$skipped" =~ ^[0-9]+$ ||
+            "$skipped" -ne 0 ]]; then
+            return 1
+        fi
+
+        local current_expected_class_count
+        current_expected_class_count="$(tr ',' '\n' <<< "$class_argument" | sed '/^$/d' | sort -u | wc -l | tr -d ' ')"
+        [[ "$expected_class_count" -eq "$current_expected_class_count" &&
+            "$executed_class_count" -eq "$current_expected_class_count" ]] || return 1
+
+        executed_test_total="$((executed_test_total + executed))"
+        skipped_test_total="$((skipped_test_total + skipped))"
+        reused_batch_total="$((reused_batch_total + 1))"
+        printf '%s\t%s\t%s\t%s\t%s\n' \
+            "$batch_number" "$expected_class_count" "$executed_class_count" "$executed" "$skipped" >> "$aggregate_result"
+        printf 'Instrumentation batch %s reused (%s tests, exact source/device signature %s)\n' \
+            "$batch_number" "$executed" "${batch_signature:0:12}"
+        return 0
+    }
 
     capture_instrumentation_batch() {
         local batch_number="$1"
@@ -224,6 +311,10 @@ if [[ "$run_emulator_tests" == true ]]; then
         fi
         executed_test_total="$((executed_test_total + executed))"
         skipped_test_total="$((skipped_test_total + skipped))"
+        captured_expected_class_count="$expected_class_count"
+        captured_executed_class_count="$executed_class_count"
+        captured_executed="$executed"
+        captured_skipped="$skipped"
         printf '%s\t%s\t%s\t%s\t%s\n' \
             "$batch_number" "$expected_class_count" "$executed_class_count" "$executed" "$skipped" >> "$aggregate_result"
     }
@@ -231,6 +322,11 @@ if [[ "$run_emulator_tests" == true ]]; then
     run_instrumentation_batch() {
         local batch_number="$1"
         local class_argument="$2"
+        local batch_signature
+        batch_signature="$(instrumentation_batch_signature "$class_argument")"
+        if reuse_instrumentation_batch "$batch_number" "$class_argument" "$batch_signature"; then
+            return
+        fi
         local gradle_status
         set +e
         ANDROID_SERIAL="$test_serial" ./gradlew :app:connectedDebugAndroidTest \
@@ -241,6 +337,12 @@ if [[ "$run_emulator_tests" == true ]]; then
         if [[ "$gradle_status" -ne 0 ]]; then
             printf 'error: instrumentation batch %s failed; results retained in %s\n' "$batch_number" "$instrumentation_run_dir" >&2
             exit "$gradle_status"
+        fi
+        if [[ "$captured_skipped" -eq 0 ]]; then
+            printf '%s\t%s\t%s\t%s\t%s\n' \
+                "$batch_signature" "$captured_expected_class_count" "$captured_executed_class_count" \
+                "$captured_executed" "$captured_skipped" \
+                > "${instrumentation_cache_dir}/${batch_signature}.tsv"
         fi
         adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug >/dev/null
         adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug.test >/dev/null
@@ -271,6 +373,6 @@ if [[ "$run_emulator_tests" == true ]]; then
         printf 'error: %s Android tests were skipped; see %s\n' "$skipped_test_total" "$aggregate_result" >&2
         exit 1
     fi
-    printf 'All %s Android instrumentation tests executed with zero skips across %s batches. Aggregate: %s\n' \
-        "$executed_test_total" "$batch_total" "$aggregate_result"
+    printf 'All %s Android instrumentation tests executed or reused with zero skips across %s exact-signature batches (%s reused). Aggregate: %s\n' \
+        "$executed_test_total" "$batch_total" "$reused_batch_total" "$aggregate_result"
 fi
