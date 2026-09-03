@@ -1,0 +1,276 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+
+profile=""
+run_emulator=false
+repeat_count=1
+jvm_patterns=()
+android_classes=()
+
+usage() {
+    printf '%s\n' \
+        'Run a narrow Whip development QA profile.' \
+        '' \
+        'Usage:' \
+        '  scripts/qa-targeted PROFILE [--emulator] [--repeat N]' \
+        '  scripts/qa-targeted --jvm PATTERN [--jvm PATTERN ...]' \
+        '  scripts/qa-targeted --android CLASS[#METHOD] [--android ...] [--repeat N]' \
+        '  scripts/qa-targeted --list' \
+        '' \
+        'Profiles: shell, tasks, habits, goals, tracks, gym, gym531, settings' \
+        'Without --emulator, profiles run their JVM tests and compile Android tests.' \
+        'Android execution refuses physical devices. Use scripts/check for final gates.'
+}
+
+list_profiles() {
+    printf '%s\n' \
+        'shell     App shell, navigation, shared interaction and visual language' \
+        'tasks     Task rules, persistence, mutation, editor and journey coverage' \
+        'habits    Habit rules, timers, persistence, mutation and journey coverage' \
+        'goals     Goal rules, persistence, mutation, history and UI coverage' \
+        'tracks    Track schema, entry, CSV, search and workspace coverage' \
+        'gym       Gym calculations, persistence, routines and active-workout UI' \
+        'gym531    5/3/1 planning, progression, routine persistence and builder UI' \
+        'settings  Settings, backup/reset, units, Health and responsive UI'
+}
+
+while (($#)); do
+    case "$1" in
+        --emulator)
+            run_emulator=true
+            ;;
+        --repeat)
+            shift
+            (($#)) || { printf 'error: --repeat requires a count\n' >&2; exit 2; }
+            repeat_count="$1"
+            ;;
+        --jvm)
+            shift
+            (($#)) || { printf 'error: --jvm requires a Gradle test pattern\n' >&2; exit 2; }
+            jvm_patterns+=("$1")
+            ;;
+        --android)
+            shift
+            (($#)) || { printf 'error: --android requires a class or class#method\n' >&2; exit 2; }
+            android_classes+=("$1")
+            run_emulator=true
+            ;;
+        --list)
+            list_profiles
+            exit 0
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        --*)
+            usage >&2
+            printf 'error: unknown option %s\n' "$1" >&2
+            exit 2
+            ;;
+        *)
+            [[ -z "$profile" ]] || { printf 'error: only one profile may be selected\n' >&2; exit 2; }
+            profile="$1"
+            ;;
+    esac
+    shift
+done
+
+[[ "$repeat_count" =~ ^[1-9][0-9]*$ ]] || {
+    printf 'error: --repeat must be a positive integer\n' >&2
+    exit 2
+}
+
+add_profile() {
+    case "$1" in
+        shell)
+            jvm_patterns+=(
+                'com.whip.app.ui.UiDesignArchitectureTest'
+                'com.whip.app.ui.InteractionConsistencyTest'
+                'com.whip.app.ui.WhipNavigationPolicyTest'
+                'com.whip.app.ui.theme.WhipVisualLanguageTest'
+            )
+            android_classes+=(
+                'com.whip.app.VisualAcceptanceMatrixTest'
+                'com.whip.app.AdaptiveWhipScreenTest'
+                'com.whip.app.WhipNavigationTest'
+                'com.whip.app.WhipAccessibilityChecksTest'
+                'com.whip.app.ui.InteractionControlUiTest'
+            )
+            ;;
+        tasks)
+            jvm_patterns+=(
+                'com.whip.app.domain.RecurrenceEngineTest'
+                'com.whip.app.domain.TaskProgressTest'
+                'com.whip.app.domain.TaskQuickCaptureParserTest'
+                'com.whip.app.ui.TaskMutationCommitTest'
+                'com.whip.app.ui.TaskWorkspacePolicyTest'
+            )
+            android_classes+=(
+                'com.whip.app.TaskRepositoryTest'
+                'com.whip.app.TaskDeletionUiTest'
+                'com.whip.app.TaskBulkSelectionUiTest'
+                'com.whip.app.ProductivityCreationJourneyE2ETest'
+            )
+            ;;
+        habits)
+            jvm_patterns+=(
+                'com.whip.app.domain.HabitRulesTest'
+                'com.whip.app.core.HabitTimerClockTest'
+                'com.whip.app.domain.HabitTimerDomainTest'
+                'com.whip.app.ui.HabitMutationCommitTest'
+                'com.whip.app.ui.HabitTimerPresentationTest'
+            )
+            android_classes+=(
+                'com.whip.app.HabitRepositoryTest'
+                'com.whip.app.HabitSkipJourneyE2ETest'
+                'com.whip.app.ActivityHistoryUiTest'
+                'com.whip.app.ProductivityCardDesignUiTest'
+            )
+            ;;
+        goals)
+            jvm_patterns+=(
+                'com.whip.app.domain.GoalRulesTest'
+                'com.whip.app.ui.GoalMutationCommitTest'
+                'com.whip.app.ui.ElapsedGoalPresentationTest'
+            )
+            android_classes+=(
+                'com.whip.app.GoalRepositoryTest'
+                'com.whip.app.GoalSecondaryMutationUiTest'
+                'com.whip.app.ElapsedGoalTimeUiTest'
+                'com.whip.app.ProductivityCardDesignUiTest'
+            )
+            ;;
+        tracks)
+            jvm_patterns+=(
+                'com.whip.app.domain.TrackDomainTest'
+                'com.whip.app.domain.TrackCsvBatchIdentityTest'
+                'com.whip.app.ui.TrackEditorStateTest'
+                'com.whip.app.ui.TrackCsvReliabilityPolicyTest'
+                'com.whip.app.ui.UnifiedSearchRulesTest'
+            )
+            android_classes+=(
+                'com.whip.app.TrackRepositoryTest'
+                'com.whip.app.TrackDefinitionIntegrityTest'
+                'com.whip.app.TrackEntryIntegrityTest'
+                'com.whip.app.TrackCsvImportIntegrityTest'
+                'com.whip.app.TrackWorkspaceUiTest'
+            )
+            ;;
+        gym)
+            jvm_patterns+=(
+                'com.whip.app.domain.GymCalculationsTest'
+                'com.whip.app.domain.GymAnalyticsTest'
+                'com.whip.app.ui.GymQuickSetFlowTest'
+                'com.whip.app.ui.GymUxRulesTest'
+                'com.whip.app.ui.RoutineBuilderStateTest'
+            )
+            android_classes+=(
+                'com.whip.app.GymRepositoryTest'
+                'com.whip.app.RoutineRepositoryTest'
+                'com.whip.app.GymPowerInputUiTest'
+                'com.whip.app.RoutineBuilderUiTest'
+            )
+            ;;
+        gym531)
+            jvm_patterns+=(
+                'com.whip.app.domain.FiveThreeOneProgressionTest'
+                'com.whip.app.ui.FiveThreeOneCycleReviewTest'
+                'com.whip.app.ui.RoutineBuilderStateTest'
+                'com.whip.app.ui.GymUxRulesTest'
+                'com.whip.app.data.RoutineProgrammingTest'
+            )
+            android_classes+=(
+                'com.whip.app.RoutineRepositoryTest'
+                'com.whip.app.RoutineBuilderUiTest'
+                'com.whip.app.FiveThreeOneCycleReviewUiTest'
+            )
+            ;;
+        settings)
+            jvm_patterns+=(
+                'com.whip.app.core.AppSettingsTest'
+                'com.whip.app.core.SettingsCauseEffectContractTest'
+                'com.whip.app.data.PortableBackupPolicyTest'
+                'com.whip.app.ui.SettingsPresentationPolicyTest'
+            )
+            android_classes+=(
+                'com.whip.app.AppSettingsPersistenceTest'
+                'com.whip.app.BackupRepositoryTest'
+                'com.whip.app.CustomUnitIntegrityTest'
+                'com.whip.app.HealthReconciliationTest'
+                'com.whip.app.SettingsResponsiveUiTest'
+            )
+            ;;
+        *)
+            usage >&2
+            printf 'error: unknown profile %s\n' "$1" >&2
+            exit 2
+            ;;
+    esac
+}
+
+if [[ -n "$profile" ]]; then
+    add_profile "$profile"
+fi
+
+if [[ "${#jvm_patterns[@]}" -eq 0 && "${#android_classes[@]}" -eq 0 ]]; then
+    usage >&2
+    exit 2
+fi
+
+cd "$PROJECT_ROOT"
+
+if [[ "${#jvm_patterns[@]}" -gt 0 ]]; then
+    gradle_test_filters=()
+    for pattern in "${jvm_patterns[@]}"; do
+        gradle_test_filters+=(--tests "$pattern")
+    done
+    ./gradlew :app:testDebugUnitTest "${gradle_test_filters[@]}"
+    ./gradlew :app:compileDebugAndroidTestKotlin
+else
+    ./gradlew :app:compileDebugAndroidTestKotlin
+fi
+
+if [[ "$run_emulator" != true ]]; then
+    printf 'Targeted JVM checks passed; Android tests compiled. Add --emulator to execute %s selected Android classes.\n' \
+        "${#android_classes[@]}"
+    exit 0
+fi
+
+if [[ "${#android_classes[@]}" -eq 0 ]]; then
+    printf 'No Android classes were selected.\n'
+    exit 0
+fi
+
+command -v adb >/dev/null 2>&1 || { printf 'error: adb is required for Android tests\n' >&2; exit 1; }
+if [[ -n "${ANDROID_SERIAL:-}" ]]; then
+    test_serial="$ANDROID_SERIAL"
+else
+    mapfile -t connected_serials < <(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }')
+    [[ "${#connected_serials[@]}" -eq 1 ]] || {
+        printf 'error: set ANDROID_SERIAL to one disposable emulator; found %s devices\n' \
+            "${#connected_serials[@]}" >&2
+        exit 1
+    }
+    test_serial="${connected_serials[0]}"
+fi
+adb -s "$test_serial" get-state 2>/dev/null | grep -qx device || {
+    printf 'error: selected Android target is not connected: %s\n' "$test_serial" >&2
+    exit 1
+}
+[[ "$(adb -s "$test_serial" shell getprop ro.boot.qemu | tr -d '\r')" == "1" ]] || {
+    printf 'error: refusing to run destructive instrumentation on physical device %s\n' "$test_serial" >&2
+    exit 1
+}
+
+class_argument="$(IFS=,; printf '%s' "${android_classes[*]}")"
+for ((run_index = 1; run_index <= repeat_count; run_index++)); do
+    printf 'Targeted Android run %s/%s: %s selector(s)\n' \
+        "$run_index" "$repeat_count" "${#android_classes[@]}"
+    ANDROID_SERIAL="$test_serial" ./gradlew :app:connectedDebugAndroidTest \
+        "-Pandroid.testInstrumentationRunnerArguments.class=${class_argument}"
+done

@@ -427,3 +427,12 @@
 - Related: `FB-20260902-006`, `DEC-20260902-015`.
 - Verification: `VER-20260902-017`.
 - Status: Implemented and fully verified after final-review remediation; not yet released to a physical phone.
+
+### IMP-20260902-017 — Targeted subsystem QA runner
+
+- Added `scripts/qa-targeted` as the normal development-loop entry point. Named profiles cover the app shell, Tasks, Habits, Goals, Tracks, Gym, 5/3/1, and Settings; each runs its bounded JVM suites and compiles Android tests.
+- Added exact repeatable `--jvm` patterns and `--android Class#method` selectors. Android execution retains the emulator-only guard and refuses physical devices; `--repeat` supports isolated timing-sensitive verification.
+- Kept `scripts/check --emulator` and `scripts/check --full` unchanged as the complete acceptance/release authorities. Targeted results are explicitly described as chunk evidence, not a whole-product release claim.
+- Related: `FB-20260902-009`, `docs/quality/UI_UX_REMEDIATION_PLAN.md`.
+- Verification: `VER-20260902-018`.
+- Status: Implemented and targeted-tool verified.

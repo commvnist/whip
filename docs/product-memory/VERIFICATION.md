@@ -458,3 +458,12 @@
 - Counts: Current baseline is 1,481 product tests—560 JVM and 921 Android—plus 9 Macrobenchmark/Baseline Profile scenarios.
 - Related: `FB-20260902-006`, `DEC-20260902-015`, `IMP-20260902-016`.
 - Status: Fully verified and independently accepted; not installed on a physical phone.
+
+### VER-20260902-018 — Targeted QA runner verification
+
+- Structural checks: `bash -n scripts/qa-targeted` passed and `scripts/qa-targeted --list` returned all eight named subsystem profiles.
+- Profile check: `scripts/qa-targeted gym531` ran the five selected JVM suites successfully and compiled the complete Android-test source in 3 seconds after warm configuration/cache.
+- Exact-device check: `ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android com.whip.app.RoutineRepositoryTest#applyingProtocolToOneLegacyPhaseDoesNotChangeAnotherPhasesRepeatedExposures` compiled Android tests, selected exactly one method, and passed it on the disposable API 34 emulator in 7 seconds.
+- Safety/scope: The script retains an explicit `ro.boot.qemu` guard and never runs instrumentation on physical hardware. It does not replace the existing full execution-accounting, coverage, lint, release, or benchmark gates.
+- Related: `FB-20260902-009`, `IMP-20260902-017`.
+- Status: Verified for targeted development use.

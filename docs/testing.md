@@ -8,7 +8,19 @@ scripts/check --full
 scripts/check --emulator
 scripts/coverage
 ANDROID_SERIAL=emulator-5554 scripts/coverage --emulator
+scripts/qa-targeted gym531
+ANDROID_SERIAL=emulator-5554 scripts/qa-targeted gym531 --emulator
+ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android com.whip.app.RoutineRepositoryTest#testName --repeat 3
 ```
+
+Use `scripts/qa-targeted` for the development loop. Its named subsystem profiles
+run the relevant deterministic JVM suites and compile Android tests; `--emulator`
+executes only the selected Android classes on a disposable emulator. Exact
+`--jvm` patterns and `--android Class#method` selectors support one-regression
+reproduction, and `--repeat` is reserved for confirming timing-sensitive tests.
+This targeted evidence is a chunk gate, not a release claim. Run `scripts/check
+--emulator` once after product source freezes and `scripts/check --full` once for
+the release artifacts.
 
 `scripts/check` is the required pre-commit gate: deterministic JVM tests with
 an enforced coverage floor,
