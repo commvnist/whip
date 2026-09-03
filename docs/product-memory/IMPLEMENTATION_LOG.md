@@ -477,3 +477,13 @@
 - Related: `FND-20260902-013`, `DEC-20260902-018`.
 - Verification: `VER-20260902-022`.
 - Status: Implemented and targeted-test verified; not released to a physical phone.
+
+### IMP-20260902-022 — One-pass bounded historical search selection
+
+- Replaced full-history sorting with a stable bounded priority queue. Search now evaluates each timestamp/rank selector once and retains only the requested newest 100/500 values before final ordering.
+- Preserved independent per-domain limits and incomplete-source disclosure so a large Task, Habit, Track, or Gym history cannot consume another domain's result budget.
+- Added deterministic 10,000-value and dual-domain 20,000-result regressions and reconciled the prior section/internal-label/search audit statuses.
+- Important files: `UnifiedSearchDialog.kt`, `UnifiedSearchRulesTest.kt`, and `TOP_DOWN_UX_UI_FUNCTIONAL_QA_AUDIT_2026-08-27.md`.
+- Related: `FND-20260902-014`, `DEC-20260902-019`.
+- Verification: `VER-20260902-023`.
+- Status: Implemented and targeted-test verified.

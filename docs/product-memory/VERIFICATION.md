@@ -486,6 +486,15 @@
 - Related: `FND-20260902-011`, `DEC-20260902-016`, `IMP-20260902-019`.
 - Status: Targeted checks passed.
 
+### VER-20260902-023 — Bounded search verification
+
+- `scripts/qa-targeted --jvm com.whip.app.ui.UnifiedSearchRulesTest` passed and compiled the complete Android-test source against the changed search implementation.
+- The 10,000-value regression proves the selector is evaluated exactly once per input and returns exactly the newest 100 values in order. The 20,000-result regression proves two domains each retain exactly their 2,000-result budget and both disclose truncation.
+- Existing tests continue to prove newest-order independence, structured filters, ranking, area-scope behavior, source readiness, per-domain fairness, and active-zone date semantics.
+- Scope: Deterministic algorithmic/compile evidence; no flaky time threshold or frozen-candidate full emulator gate was claimed.
+- Related: `FND-20260902-014`, `DEC-20260902-019`, `IMP-20260902-022`.
+- Status: Targeted checks passed.
+
 ### VER-20260902-021 — Clean-slate data epoch verification
 
 - JVM/compile: Focused `DataEpochPolicyTest`, `FreshStartRetryPolicyTest`, `BackupContractTest`, `LaunchRequestQueueTest`, `E2ECoverageContractTest`, `AppSettingsTest`, and `UiDesignArchitectureTest` passed; the complete Android-test source compiled against schema 42. The Settings targeted profile also passed.

@@ -39,6 +39,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import java.time.LocalDate
+import java.util.PriorityQueue
 import com.whip.app.R
 import com.whip.app.domain.AreaScope
 import com.whip.app.domain.formatTrackScaleValue
@@ -85,7 +86,36 @@ internal fun <T, C : Comparable<C>> newestSearchValues(
     values: List<T>,
     limit: Int,
     selector: (T) -> C,
-): List<T> = values.asSequence().sortedByDescending(selector).take(limit).toList()
+): List<T> {
+    require(limit >= 0)
+    if (limit == 0 || values.isEmpty()) return emptyList()
+
+    val worstFirst = Comparator<RankedSearchValue<T, C>> { left, right ->
+        val rankOrder = left.rank.compareTo(right.rank)
+        if (rankOrder != 0) rankOrder else right.inputIndex.compareTo(left.inputIndex)
+    }
+    val retained = PriorityQueue(limit, worstFirst)
+    values.forEachIndexed { inputIndex, value ->
+        val candidate = RankedSearchValue(value, selector(value), inputIndex)
+        when {
+            retained.size < limit -> retained += candidate
+            worstFirst.compare(candidate, retained.peek()) > 0 -> {
+                retained.remove()
+                retained += candidate
+            }
+        }
+    }
+    return retained.sortedWith { left, right ->
+        val rankOrder = right.rank.compareTo(left.rank)
+        if (rankOrder != 0) rankOrder else left.inputIndex.compareTo(right.inputIndex)
+    }.map(RankedSearchValue<T, C>::value)
+}
+
+private data class RankedSearchValue<T, C : Comparable<C>>(
+    val value: T,
+    val rank: C,
+    val inputIndex: Int,
+)
 
 private fun SearchDomain.uiLabel(): String = if (this == SearchDomain.TrackEntry) "Track Entry" else name
 

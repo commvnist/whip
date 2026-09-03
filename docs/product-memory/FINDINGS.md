@@ -444,3 +444,14 @@
 - Evidence: `AppSettings.kt`, `TaskModels.kt`, `GoalModels.kt`, `MeasurementModels.kt`, `GymModels.kt`, `HabitScreens.kt`, `SettingsScreens.kt`, `GymScreens.kt`, `WhipApp.kt`, and `UiDesignArchitectureTest.kt`.
 - Resolution: Implemented in `IMP-20260902-021` and targeted verified in `VER-20260902-022`.
 - Status: Resolved for the audited visible choices and shared section families; later features must use the same explicit-label contract.
+
+### FND-20260902-014 — Historical search selection was bounded only after a full sort
+
+- Severity/category: P1 scalability/perceived performance and P2 deterministic QA.
+- Observed: Unified Search moved index work off the UI thread and capped displayed history, but `newestSearchValues` still sorted every value for an entity before taking 100 or 500. A long-lived Track/Habit could therefore allocate and compare the entire history to show a small bounded subset.
+- Expected: Work and retained memory scale with the explicit result cap; selection remains newest-first and stable for ties; large histories from one domain cannot crowd another domain out.
+- Why it matters: Search is a global recovery tool and should not stutter or allocate proportionally to years of logging, especially on lower-memory phones.
+- Affected users: Long-term Track/Habit/Gym users, frequent loggers, older phones, and users relying on search during interrupted workflows.
+- Evidence: `UnifiedSearchDialog.kt` and `UnifiedSearchRulesTest.kt`.
+- Resolution: Implemented in `IMP-20260902-022` and verified in `VER-20260902-023`.
+- Status: Resolved at current product scale; query-backed indexing remains a measured future option rather than an unproven architecture requirement.

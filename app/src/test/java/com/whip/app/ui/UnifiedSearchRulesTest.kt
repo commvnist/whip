@@ -65,6 +65,35 @@ class UnifiedSearchRulesTest {
     }
 
     @Test
+    fun tenThousandHistoryValuesUseOneBoundedSelectorPass() {
+        val history = (0 until 10_000).map { index -> (index * 7_919) % 10_000 }
+        var selectorCalls = 0
+
+        val newest = newestSearchValues(history, 100) { value ->
+            selectorCalls++
+            value
+        }
+
+        assertEquals(10_000, selectorCalls)
+        assertEquals((9_999 downTo 9_900).toList(), newest)
+    }
+
+    @Test
+    fun tenThousandResultsPerDomainStayIndependentlyBounded() {
+        val tasks = (1L..10_000L).map { id -> task.copy(id = id, title = "Task $id") }
+        val habits = (1L..10_000L).map { id ->
+            task.copy(domain = SearchDomain.Habit, id = id, title = "Habit $id")
+        }
+
+        val index = boundSearchIndex(tasks + habits, maxResultsPerDomain = 2_000)
+
+        assertEquals(4_000, index.results.size)
+        assertEquals(setOf(SearchDomain.Task, SearchDomain.Habit), index.limitedDomains)
+        assertEquals(2_000, index.results.count { it.domain == SearchDomain.Task })
+        assertEquals(2_000, index.results.count { it.domain == SearchDomain.Habit })
+    }
+
+    @Test
     fun adaptiveWorkspaceRequiresBothWideWidthAndAdequateHeight() {
         assertEquals(
             UnifiedSearchWorkspaceLayout.Compact,

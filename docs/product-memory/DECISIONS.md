@@ -457,6 +457,15 @@
 - Related: `FND-20260902-011`, `IMP-20260902-019`, `VER-20260902-020`.
 - Status: Accepted, implemented, and targeted-test verified.
 
+### DEC-20260902-019 — Bound in-memory search before introducing a persistent index
+
+- Context: Unified Search already builds off-main and caps each domain, but per-entity newest-history selection still performed a full sort. A persistent full-text/index schema would add synchronization and migration complexity without evidence that the bounded in-memory source set is insufficient.
+- Decision: Select the newest N values with a stable bounded priority queue: one selector evaluation per input, O(N) retained memory, O(total log N) work, descending output, and original-order stability for equal timestamps. Keep the existing independent 2,000-result domain cap and explicit limited-source state. Add deterministic 10,000-value and 10,000-results-per-domain contracts without flaky wall-clock thresholds.
+- Rationale: This removes the demonstrated unbounded intermediate work while retaining simple, inspectable search semantics. Operation-count contracts catch algorithmic regressions on any CI host; a persistent index remains available if real measurements later justify it.
+- Compatibility: Search projection only; no schema, backup, query syntax, result identity, navigation, or historical data changes.
+- Related: `FND-20260902-014`, `IMP-20260902-022`, `VER-20260902-023`.
+- Status: Accepted, implemented, and targeted-test verified.
+
 ### DEC-20260902-017 — Cross the breaking persistence boundary with a durable data epoch
 
 - Context: The user explicitly authorized an update-time local-data wipe so Whip could stop carrying migratory and compatibility architecture. Room destructive fallback alone cannot coordinate preferences, restore journals, widgets, work, notifications, or stale launch requests and cannot provide an authored confirmation boundary.
