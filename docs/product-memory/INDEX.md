@@ -13,12 +13,12 @@ This is the canonical cross-session entry point for Whip product and engineering
 
 ## Current product snapshot
 
-- Latest device-verified release: **0.3.37 (version code 43)**, installed in place on 2026-09-03 with Android installation identity preserved. It is visibly waiting for the user's explicit schema-43 fresh-start confirmation. See `VER-20260903-001`.
-- Signed and installed release APK SHA-256: `175c7453b6a3362ebf72f3d2aa7528c644e2e64c1df60bb8f9317ce441e137e6`.
-- Released source/ledger commit: `614ab10` on `origin/main`; production candidate source is unchanged since `25eeac3`.
+- Latest device-verified release: **0.3.38 (version code 44)**, installed in place on 2026-09-03 with Android installation identity preserved and no automated data reset. See `VER-20260903-004`.
+- Signed and installed release APK SHA-256: `4fdda968fc8638a1d85919b37a02cf9aee230c242f0a84a515a1228e0e23d996`.
+- Released production source: `c535af7` on `origin/main`.
 - Declared and freshly executed test baseline: **1,485 product tests: 581 JVM and 904 Android**. The complete schema-43 candidate passed with zero failures/skips across 11 fresh emulator batches, followed by successful release/minification and benchmark builds. See `VER-20260902-031`; the separate continuous E2E coverage campaign remains `VER-20260901-022`.
 - The latest Gym release includes arbitrary-lift 5/3/1 creation, explicit/derived Training Max controls inside and outside 5/3/1, performance-informed cycle review, workout-only exercise addition, contextual routine return, adaptive routine editing, timer-boundary correction, and additive Joker behavior.
-- The unreleased source correction after 0.3.37 preserves Performance review and its higher-suggestion policy when a saved 5/3/1 routine is reopened for editing. See `FND-20260903-001` and `VER-20260903-002`.
+- Release 0.3.38 preserves Performance review and its higher-suggestion policy when a saved 5/3/1 routine is reopened for editing. See `FND-20260903-001` and `VER-20260903-004`.
 - The same edit boundary now also preserves per-lift Training Max basis kind/value/unit and held increase eligibility; a full field-by-field audit found no other unintended Routine-setting omissions. See `FND-20260903-002` and `VER-20260903-003`.
 - Release 0.3.37 adds two editable one-tap Leader/Anchor structures, explicit once-per-logical-lift Deload/TM Test/PR Test presets, editable alternate-lift BBB with independent TM ownership, performance-gated one-to-three Joker ladders, and transparent automatic assistance drafts. See `FB-20260902-006`, `DEC-20260902-015`, `IMP-20260902-016`, and `VER-20260903-001`.
 - The released Gym implementation additionally has exact quick-set/finish and structure boundaries, immutable required Main-work outcomes, retained retired/tombstone history, transactionally coherent active projections, an explicit responsive Arrange editor with value-preserving Undo, recoverable History Copy identities, request-owned lifecycle results, and durable PR/Link/rest-timer reconciliation. See `VER-20260901-018`, `VER-20260901-020`, and `VER-20260903-001`.

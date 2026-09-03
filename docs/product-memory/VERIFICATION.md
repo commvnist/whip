@@ -621,4 +621,17 @@
 - The audit compared every Routine, program, day, placement, and prescribed-set property across saved domain models, edit drafts, builder state, and repository persistence. These four placement values were the remaining unintended omissions; runtime IDs/timestamps, derived kilograms, completed-state flags, and separately preserved routine progress are intentionally outside the edit contract.
 - Scope: Exact regression and focused 5/3/1 verification. Complete release/minification/packaging and physical-device verification remain pending.
 - Related: `FB-20260903-003`, `FND-20260903-002`, `DEC-20260903-003`, `IMP-20260903-003`.
-- Status: Targeted verification passed; signed physical release pending.
+- Status: Targeted verification passed and released in `VER-20260903-004`.
+
+### VER-20260903-004 — Whip 0.3.38 lossless-Routine-edit physical release
+
+- `WHIP_DEVICE=192.168.2.187:44401 scripts/device release-deploy` selected the physical Samsung SM-F976W rather than the connected emulator. The guarded gate passed Play assets, the complete JVM suite, Android-test compilation, debug and release lint, deterministic coverage (78.56% domain lines, 56.46% domain branches, 68.07% core settings/policy lines), R8/resource optimization, release APK/AAB assembly, and benchmark assembly.
+- The first bundle-packaging attempt exhausted the former 2 GB Gradle heap after its other work completed. Raising the project heap to 4 GB produced a clean cached gate and signed package build; no product or test source changed between the focused emulator pass and release.
+- The release-key build produced APK SHA-256 `4fdda968fc8638a1d85919b37a02cf9aee230c242f0a84a515a1228e0e23d996` and AAB SHA-256 `02fe8b085f5021e5b06aa57610d9e30eaa1533f6bfd1d2e91dae15fe89dcafa3`. `apksigner` verified v2 signing, exactly one signer, and the established certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`.
+- `adb install -r` returned `Success`. Android reports 0.3.38/code 44, the installed base APK hash exactly matches the signed local APK, and `firstInstallTime=2026-08-26 17:59:24` remains unchanged.
+- A forced cold launch completed in 113 ms and left `commvne.com.whip.app/com.whip.app.MainActivity` as the resumed activity with a live process. Its PID-scoped logs contained no fatal exception, AndroidRuntime, Room/SQLite, or activity-start failure.
+- The phone was keyguard-locked during final visual verification. The permitted UI dump and screenshot therefore contain the lock screen, so no claim is made about post-launch in-app pixels. No unlock bypass, data reset, or physical-device instrumentation was attempted.
+- Scope: Focused 71-test 5/3/1 emulator profile plus complete JVM/build/lint/coverage/release gate and non-destructive physical deployment. The complete 904-test Android instrumentation inventory was not rerun for this narrow projection-only source change.
+- Source: production/release commit `c535af7`; app repair commits `e474c8f` and `52da004`.
+- Related: `FB-20260903-003`, `FND-20260903-001`, `FND-20260903-002`, `IMP-20260903-004`.
+- Status: Signed release installed and verified on the physical phone.

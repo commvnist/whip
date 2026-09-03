@@ -180,11 +180,11 @@ These records preserve durable user intent. “Released” means the change reac
 - User need: A 5/3/1 routine created and saved with Performance review must still show Performance review when reopened for editing instead of reverting to Standard 5/3/1 progression.
 - Acceptance criteria: Routine editing round-trips both the saved progression mode and its higher-suggestion policy; opening and saving an existing routine never substitutes new-routine defaults for persisted program choices.
 - Related: `FND-20260903-001`, `DEC-20260903-002`, `IMP-20260903-002`, `VER-20260903-002`.
-- Status: Implemented and targeted verified; not yet released to the physical phone.
+- Status: Implemented, verified, and released to the physical phone in 0.3.38/code 44.
 
 ### FB-20260903-003 — Repair every remaining Routine edit-projection omission and release it
 
 - User need: Fix the additional Gym Routine values found by the follow-up audit, then release the corrected build to the connected phone.
 - Acceptance criteria: Editing round-trips Training Max basis kind/value/unit and per-lift increase eligibility; the regression uses non-default values; the focused 5/3/1 and complete release gates pass; the signed package is installed without automated data erasure and verified on the explicit physical endpoint.
 - Related: `FND-20260903-002`, `DEC-20260903-003`, `IMP-20260903-003`, `VER-20260903-003`.
-- Status: Edit-projection repair implemented and targeted verified; signed physical release pending.
+- Status: Implemented, verified, and released to the physical phone in `VER-20260903-004`.

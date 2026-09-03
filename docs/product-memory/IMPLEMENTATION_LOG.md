@@ -582,7 +582,7 @@
 - Important files: `GymScreens.kt` and `GymPowerInputUiTest.kt`.
 - Related: `FB-20260903-002`, `FND-20260903-001`, `DEC-20260903-002`.
 - Verification: `VER-20260903-002`.
-- Status: Implemented and targeted verified; physical release pending an explicit request.
+- Status: Implemented, verified, and released in `VER-20260903-004`.
 
 ### IMP-20260903-003 — Complete per-lift Routine edit hydration
 
@@ -591,4 +591,14 @@
 - Important files: `GymScreens.kt` and `GymPowerInputUiTest.kt`.
 - Related: `FB-20260903-003`, `FND-20260903-002`, `DEC-20260903-003`.
 - Verification: `VER-20260903-003`.
-- Status: Implemented and targeted verified; signed physical release pending.
+- Status: Implemented, verified, and released in `VER-20260903-004`.
+
+### IMP-20260903-004 — Signed lossless-Routine-edit physical release
+
+- Bumped Whip to 0.3.38/code 44 and provisioned a 4 GB Gradle heap after the otherwise-green release gate proved 2 GB insufficient for Android bundle packaging.
+- Reused the completed successful gate work, rebuilt the APK/AAB with the established release key, installed the release in place on the explicitly selected Samsung endpoint, and cold-launched `MainActivity`.
+- Preserved package installation identity and did not clear application data, bypass the keyguard, run instrumentation on the phone, or invoke Whip's pending destructive fresh-start action.
+- Important files: `app/build.gradle.kts`, `gradle.properties`, signed APK/AAB, and `scripts/device`.
+- Related: `FB-20260903-003`, `FND-20260903-001`, `FND-20260903-002`.
+- Verification: `VER-20260903-004`.
+- Status: Released and physically verified within the non-destructive/keyguard-visible boundary.

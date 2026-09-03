@@ -574,7 +574,7 @@
 - Rationale: Default constructor values are appropriate for creation, not hydration. An explicit complete projection prevents the editor from visually or durably changing authored program policy.
 - Compatibility: No schema, backup, historical Workout, or calculation change. Existing correctly persisted routines immediately reopen with their actual configuration after updating.
 - Related: `FB-20260903-002`, `FND-20260903-001`, `IMP-20260903-002`, `VER-20260903-002`.
-- Status: Accepted, implemented, and targeted emulator verified.
+- Status: Accepted, implemented, verified, and released in 0.3.38/code 44.
 
 ### DEC-20260903-003 — Make the Routine edit projection lossless for complete per-lift state
 
@@ -583,4 +583,4 @@
 - Rationale: The edit draft is a complete replacement contract for child placements. Preserving these fields at its only UI hydration boundary is smaller and safer than repository exceptions that guess whether a default was intentional.
 - Compatibility: No schema, backup, completed Workout, Training Max calculation, or current-cycle change. Existing routines retain their already-stored values after updating.
 - Related: `FB-20260903-003`, `FND-20260903-002`, `IMP-20260903-003`, `VER-20260903-003`.
-- Status: Accepted, implemented, and targeted emulator verified.
+- Status: Accepted, implemented, verified, and released in 0.3.38/code 44.

@@ -564,7 +564,7 @@
 - Affected users: Any 5/3/1 user who chooses Performance review and later edits the routine, especially lifters relying on AMRAP/Joker-informed cycle suggestions.
 - Evidence: `GymScreens.kt`, `GymModels.kt`, `RoutineRepository.kt`, and `GymPowerInputUiTest.kt`.
 - Resolution: Implemented in `IMP-20260903-002` under `DEC-20260903-002` and verified in `VER-20260903-002`.
-- Status: Resolved in source; not yet released to the physical phone.
+- Status: Resolved and released in 0.3.38/code 44; see `VER-20260903-004`.
 
 ### FND-20260903-002 — Routine editing discarded per-lift Training Max provenance and eligibility
 
@@ -575,4 +575,4 @@
 - Affected users: 5/3/1 and custom-Routine users deriving a Training Max from actual/estimated 1RM or a manual source, plus programmed lifters with held TM increases.
 - Evidence: `GymModels.kt`, `GymScreens.kt`, `RoutineBuilder.kt`, `RoutineRepository.kt`, and `GymPowerInputUiTest.kt`.
 - Resolution: Implemented in `IMP-20260903-003` under `DEC-20260903-003` and verified in `VER-20260903-003`.
-- Status: Resolved in source; signed physical release pending.
+- Status: Resolved and released in 0.3.38/code 44; see `VER-20260903-004`.
