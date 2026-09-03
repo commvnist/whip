@@ -498,7 +498,7 @@
 - Affected users: All Gym users, especially experienced 5/3/1 lifters, users who customize supplemental/assistance work, and developers extending structured programs.
 - Evidence: `GymModels.kt`, `RoutineEntities.kt`, `GymEntities.kt`, `RoutineRepository.kt`, `FiveThreeOneBuilder.kt`, `FiveThreeOneProgramming.kt`, `RoutineBuilder.kt`, `GymScreens.kt`, and schema export 43.
 - Resolution: Implemented in `IMP-20260902-026` under `DEC-20260902-023` and targeted verified in `VER-20260902-027`.
-- Status: Resolved in the schema-43/data-epoch-3 candidate; frozen-candidate release verification remains pending.
+- Status: Resolved in the schema-43/data-epoch-3 candidate and complete-candidate verified in `VER-20260902-031`.
 
 ### FND-20260902-019 — Settings still performed pre-epoch compatibility work
 
@@ -509,7 +509,7 @@
 - Affected users: Updating users crossing the fresh-start boundary and Health Connect users.
 - Evidence: `AppSettings.kt` and `AppSettingsPersistenceTest.kt`.
 - Resolution: Implemented in `IMP-20260902-027` under `DEC-20260902-024` and verified in `VER-20260902-028`.
-- Status: Resolved; frozen-candidate release verification remains pending.
+- Status: Resolved and complete-candidate verified in `VER-20260902-031`.
 
 ### FND-20260902-020 — Custom-unit validation could leave the invalid field off-screen
 
@@ -520,7 +520,7 @@
 - Affected users: Custom-unit users across Settings and inline unit creation, especially accessibility and mobile users.
 - Evidence: `SettingsScreens.kt` and `SettingsResponsiveUiTest.kt`.
 - Resolution: Implemented in `IMP-20260902-027` under `DEC-20260902-024` and verified in `VER-20260902-028`.
-- Status: Resolved; frozen-candidate release verification remains pending.
+- Status: Resolved and complete-candidate verified in `VER-20260902-031`.
 
 ### FND-20260902-021 — Habit weekday labels did not observe runtime locale changes
 
@@ -531,7 +531,7 @@
 - Affected users: Habit users in non-default locales and users changing system language while Whip remains open.
 - Evidence: `HabitScreens.kt`, `SettingsScreens.kt`, and the Compose `NonObservableLocale` lint rule.
 - Resolution: Implemented in `IMP-20260902-028` under `DEC-20260902-025` and targeted verified in `VER-20260902-029`.
-- Status: Resolved; complete frozen-candidate verification is rerunning.
+- Status: Resolved and complete-candidate verified in `VER-20260902-031`.
 
 ### FND-20260902-022 — Recovery operations could return before application state published their terminal outcome
 
@@ -542,7 +542,7 @@
 - Affected users: Backup/restore/reset users and any surface entering while recovery changes state.
 - Evidence: `WhipApplication.kt`, `StartupRecoveryGate.kt`, and `RecoveryBoundaryIntegrationTest.kt`.
 - Resolution: Implemented in `IMP-20260902-028` under `DEC-20260902-026` and verified repeatedly in `VER-20260902-029`.
-- Status: Resolved; complete frozen-candidate verification is rerunning.
+- Status: Resolved and complete-candidate verified in `VER-20260902-031`.
 
 ### FND-20260902-023 — Habit navigation identity changed with visible copy
 
@@ -553,4 +553,4 @@
 - Affected users: Indirectly all users through navigation-regression coverage; directly developers and release verification.
 - Evidence: `HabitScreens.kt` and `WhipNavigationTest.kt`.
 - Resolution: Implemented in `IMP-20260902-029` under `DEC-20260902-027` and verified in `VER-20260902-030`.
-- Status: Resolved; complete frozen-candidate verification is restarting from the corrected production-source signature.
+- Status: Resolved and complete-candidate verified in `VER-20260902-031`.

@@ -141,9 +141,16 @@ requested.
 - The breaking model candidate now uses one current persistence contract and one
   canonical 5/3/1/work-placement vocabulary. Adjacent Settings validation now
   moves focus and scrolls to the first invalid custom-unit field.
-- The remaining execution step is the frozen-candidate complete emulator,
-  accessibility/lint/coverage, and release-build gate. Physical-device release
-  remains an explicit user action.
+- The frozen gate found and closed one final shared-identity defect: Habit
+  navigation test identity had been derived from mutable display copy. Loading
+  and ready states now use stable enum identity while preserving “All Habits”.
+- The final source-signature candidate passed 581 JVM tests and all 904 Android
+  tests across 11 fresh exact-signature batches with zero skips. Lint, debug,
+  deterministic coverage thresholds, minified release APK/AAB, release-vital
+  lint, R8, and the optimized benchmark build also passed.
+- Every confirmed gap in this execution inventory is implemented and linked to
+  regression evidence. No unresolved P0/P1 remains in this run. Physical-device
+  release remains an explicit user action and was not performed.
 
 ## Definition of done
 

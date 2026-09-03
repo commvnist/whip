@@ -497,7 +497,7 @@
 - Important files: `ItemControlPatterns.kt`, `RoutineBuilder.kt`, `GymScreens.kt`, `RoutineBuilderUiTest.kt`, and `FirstClassWorkflowE2ETest.kt`.
 - Related: `FND-20260902-015`, `DEC-20260902-020`.
 - Verification: `VER-20260902-024`.
-- Status: Implemented and targeted emulator verified.
+- Status: Implemented and complete-candidate verified in `VER-20260902-031`.
 
 ### IMP-20260902-024 — Request-owned Category save and exact Track deletion
 
@@ -508,7 +508,7 @@
 - Important files: `DomainDeletionCoordinator.kt`, `TrackViewModel.kt`, `TrackScreens.kt`, `GymViewModel.kt`, `GymScreens.kt`, `DomainDeletionCoordinatorTest.kt`, `TrackDeletionUiTest.kt`, and `EditorStateRecreationTest.kt`.
 - Related: `FND-20260831-019`, `FND-20260901-027`, `FND-20260902-016`, `DEC-20260902-021`.
 - Verification: `VER-20260902-025`.
-- Status: Implemented and targeted emulator verified.
+- Status: Implemented and complete-candidate verified in `VER-20260902-031`.
 
 ### IMP-20260902-025 — Request-owned Gym catalog editors and contextual Routine Back
 
@@ -520,7 +520,7 @@
 - Important files: `GymCatalogMutationUi.kt`, `GymViewModel.kt`, `GymScreens.kt`, `RoutineBuilder.kt`, and `EditorStateRecreationTest.kt`.
 - Related: `FND-20260902-017`, `DEC-20260902-022`.
 - Verification: `VER-20260902-026`.
-- Status: Implemented and targeted emulator verified.
+- Status: Implemented and complete-candidate verified in `VER-20260902-031`.
 
 ### IMP-20260902-026 — Canonical 5/3/1 identity and structural work model
 
@@ -532,7 +532,7 @@
 - Important files: `GymModels.kt`, `RoutineEntities.kt`, `GymEntities.kt`, `RoutineRepository.kt`, `FiveThreeOneBuilder.kt`, `FiveThreeOneProgramming.kt`, `RoutineBuilder.kt`, `GymScreens.kt`, `WhipDatabase.kt`, `DataEpochGate.kt`, `BackupRepository.kt`, and schema 43.
 - Related: `FND-20260902-018`, `DEC-20260902-023`.
 - Verification: `VER-20260902-027`.
-- Status: Implemented and targeted emulator verified.
+- Status: Implemented and complete-candidate verified in `VER-20260902-031`.
 
 ### IMP-20260902-027 — Current-only Settings and error-directed Custom Unit validation
 
@@ -543,7 +543,7 @@
 - Important files: `AppSettings.kt`, `SettingsScreens.kt`, `AppSettingsPersistenceTest.kt`, `SettingsResponsiveUiTest.kt`, `scripts/qa-targeted`, and `UI_UX_REMEDIATION_PLAN.md`.
 - Related: `FND-20260902-019`, `FND-20260902-020`, `DEC-20260902-024`.
 - Verification: `VER-20260902-028`.
-- Status: Implemented and targeted emulator verified.
+- Status: Implemented and complete-candidate verified in `VER-20260902-031`.
 
 ### IMP-20260902-028 — Frozen-gate localization, recovery-state, and evidence reconciliation
 
@@ -553,7 +553,7 @@
 - Important files: `HabitScreens.kt`, `SettingsScreens.kt`, `WhipApplication.kt`, `GymPowerInputUiTest.kt`, `DataEpochBoundaryTest.kt`, `testing.md`, `e2e-coverage.tsv`, and `QA_CAUSE_EFFECT_MATRIX_2026-08-27.tsv`.
 - Related: `FND-20260902-021`, `FND-20260902-022`, `DEC-20260902-025`, `DEC-20260902-026`.
 - Verification: `VER-20260902-029`.
-- Status: Implemented and targeted emulator/lint verified.
+- Status: Implemented and complete-candidate verified in `VER-20260902-031`.
 
 ### IMP-20260902-029 — Stable Habit destination identity
 
@@ -562,4 +562,4 @@
 - Important files: `HabitScreens.kt` and `WhipNavigationTest.kt`.
 - Related: `FND-20260902-023`, `DEC-20260902-027`.
 - Verification: `VER-20260902-030`.
-- Status: Implemented and targeted emulator verified.
+- Status: Implemented and complete-candidate verified in `VER-20260902-031`.

@@ -583,3 +583,13 @@
 - Scope: Exact failure reproduction and repeated targeted repair evidence. The complete frozen-candidate gate must restart because production source changed.
 - Related: `FND-20260902-023`, `DEC-20260902-027`, `IMP-20260902-029`.
 - Status: Targeted checks passed; complete gate pending.
+
+### VER-20260902-031 — Complete schema-43 UI/UX remediation candidate verification
+
+- Candidate production source through `25eeac3` passed `scripts/check --emulator`: all 581 JVM tests and all 904 Android instrumentation tests completed with zero failures and zero skips across 11 fresh exact-signature batches (`0 reused`).
+- The gate passed Play Store asset validation, debug assembly, complete Android-test compilation, Compose/Android lint, and deterministic coverage thresholds: 78.56% domain lines, 56.46% domain branches, and 68.07% core Settings/policy lines.
+- `scripts/check --full` then passed release-vital lint, R8/resource optimization, signed release APK/AAB assembly, and optimized benchmark APK assembly on the same production candidate. Only known Android widget API deprecation warnings remained; no build or lint failure occurred.
+- The formerly failing recovery publication and Habit navigation identity journeys passed inside their full class batches, not only in isolated repeats. The destructive data-epoch reset remained isolated as the final one-test batch and passed.
+- Scope: Complete frozen-candidate automated verification on the disposable API 34 emulator plus release/minification/benchmark builds. No physical-device installation or live-phone inspection was performed.
+- Related: `VER-20260902-027`, `VER-20260902-028`, `VER-20260902-029`, `VER-20260902-030`, and `UI_UX_REMEDIATION_PLAN.md`.
+- Status: Complete automated candidate gate passed; physical release awaits an explicit user request.
