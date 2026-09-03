@@ -528,6 +528,7 @@ data class WorkoutExercise(
     val machineLoadTypeSnapshot: MachineLoadType? = null,
     val machineUnitIdSnapshot: String = "",
     val machineLevelLabelSnapshot: String = "",
+    val machineLevelDirectionSnapshot: MachineLevelDirection = MachineLevelDirection.HigherNumberMoreResistance,
     val loadInterpretationSnapshot: LoadInterpretation = LoadInterpretation.Total,
     val baseLoadKgSnapshot: Double? = null,
     val trackingTypeSnapshot: ExerciseTrackingType = ExerciseTrackingType.WeightReps,

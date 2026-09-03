@@ -170,8 +170,6 @@ fun buildWeeklyGymSummary(
     val workoutExerciseById = weekWorkoutExercises.associateBy(WorkoutExercise::id)
     val exerciseById = exercises.associateBy(Exercise::id)
     val eligibleSets = sets.filter { it.workoutExerciseId in workoutExerciseById && it.completed && it.deletedAtMillis == null }
-    val startMillis = weekStart.atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
-    val endMillis = end.plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
     return GymWeeklySummary(
         weekStart = weekStart,
         workouts = weekSessions.size,
@@ -185,7 +183,7 @@ fun buildWeeklyGymSummary(
             val exercise = exerciseById[exerciseId]
             if (exercise == null || placement == null) 0.0 else set.volumeKg(placement.applyPolicySnapshot(exercise))
         },
-        newPersonalRecords = personalRecords.count { it.achievedAtMillis in startMillis until endMillis },
+        newPersonalRecords = personalRecords.count { it.sourceSessionId in sessionIds },
     )
 }
 

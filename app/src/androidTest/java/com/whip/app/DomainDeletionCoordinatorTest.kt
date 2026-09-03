@@ -41,6 +41,8 @@ import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.LinkRuleDraft
 import com.whip.app.domain.LinkSourceMetric
 import com.whip.app.domain.LinkSourceType
+import com.whip.app.domain.MachineLevelDirection
+import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.MetricSourceType
 import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
@@ -1306,6 +1308,49 @@ class DomainDeletionCoordinatorTest {
         assertTrue(runCatching { coordinator.deleteMachine(machineId, impact.revisionToken) }.isFailure)
         assertEquals(1, gym.machines.first().size)
         assertEquals(machineId, gym.workoutExercises.first().single().machineId)
+    }
+
+    @Test fun deletedNumberedMachineKeepsItsHistoricalStrengthDirection() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Assistance machine"))
+        val machineId = gym.createMachine(
+            GymMachineDraft(
+                exerciseId = exerciseId,
+                name = "Counterbalanced machine",
+                loadType = MachineLoadType.Level,
+                levelLabel = "assistance",
+                levelDirection = MachineLevelDirection.HigherNumberLessResistance,
+            ),
+        )
+        val sessionId = gym.startWorkout("Machine work")
+        val placementId = gym.addExerciseToWorkout(sessionId, exerciseId, machineId)
+        gym.addSet(placementId, WorkoutSetDraft(machineLoadValue = 8.0, reps = 8, completed = true))
+        gym.addSet(placementId, WorkoutSetDraft(machineLoadValue = 5.0, reps = 8, completed = true))
+        gym.finishWorkout(sessionId)
+        routines.rebuildPersonalRecords(exerciseId)
+        assertEquals(
+            5.0,
+            routines.personalRecords.first().single {
+                it.type == com.whip.app.domain.PersonalRecordType.MaxMachineSetting && it.current
+            }.value,
+            0.0,
+        )
+
+        coordinator.deleteMachine(machineId)
+        val historicalPlacement = gym.workoutExercises.first().single()
+        assertNull(historicalPlacement.machineId)
+        assertEquals(
+            MachineLevelDirection.HigherNumberLessResistance,
+            historicalPlacement.machineLevelDirectionSnapshot,
+        )
+
+        routines.rebuildPersonalRecords(exerciseId)
+        assertEquals(
+            5.0,
+            routines.personalRecords.first().single {
+                it.type == com.whip.app.domain.PersonalRecordType.MaxMachineSetting && it.current
+            }.value,
+            0.0,
+        )
     }
 
     @Test fun machineDeleteRejectsAStaleImpactPreview() = runBlocking {

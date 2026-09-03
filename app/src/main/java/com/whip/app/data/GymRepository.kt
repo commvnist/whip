@@ -142,7 +142,7 @@ interface GymRepository {
     suspend fun resumeWorkout(id: Long)
     suspend fun discardWorkout(boundary: WorkoutFinishBoundary)
     suspend fun restoreWorkout(id: Long)
-    suspend fun duplicateWorkout(id: Long, asActive: Boolean = true): Long
+    suspend fun duplicateWorkout(id: Long): Long
     suspend fun copyWorkoutExerciseToActive(
         boundary: WorkoutExerciseCopyBoundary,
         requestedWorkoutExerciseUuid: String,
@@ -364,14 +364,21 @@ class RoomGymRepository(
     }
 
     override suspend fun createMachineVersion(id: Long, draft: GymMachineDraft): Long {
-        val source = dao.getMachine(id) ?: error("Machine no longer exists")
-        val siblings = dao.getAllMachines().filter { it.configurationGroupId == source.configurationGroupId }
-        return createMachine(
-            draft.copy(
-                configurationGroupId = source.configurationGroupId.ifBlank { source.uuid },
-                configurationVersion = (siblings.maxOfOrNull { it.configurationVersion } ?: source.configurationVersion) + 1,
-            ),
-        )
+        return database.withTransaction {
+            val source = dao.getMachine(id) ?: error("Machine no longer exists")
+            val configurationGroupId = source.configurationGroupId.ifBlank { source.uuid }
+            val siblings = dao.getAllMachines().filter {
+                it.configurationGroupId.ifBlank { it.uuid } == configurationGroupId
+            }
+            createMachineInTransaction(
+                draft.copy(
+                    configurationGroupId = configurationGroupId,
+                    configurationVersion = (
+                        siblings.maxOfOrNull { it.configurationVersion } ?: source.configurationVersion
+                    ) + 1,
+                ),
+            )
+        }
     }
 
     override suspend fun updateMachine(id: Long, draft: GymMachineDraft) = database.withTransaction {
@@ -564,10 +571,10 @@ class RoomGymRepository(
         }
     }
 
-    override suspend fun createCategory(name: String, kind: String): Long {
+    override suspend fun createCategory(name: String, kind: String): Long = database.withTransaction {
         require(name.isNotBlank()) { "Category name is required" }
         val now = nowMillis()
-        return dao.insertCategory(ExerciseCategoryEntity(uuid = ids.nextId(), name = name.trim(), kind = kind.trim().ifBlank { "Category" }, position = dao.nextCategoryPosition(), archived = false, createdAtMillis = now, updatedAtMillis = now))
+        dao.insertCategory(ExerciseCategoryEntity(uuid = ids.nextId(), name = name.trim(), kind = kind.trim().ifBlank { "Category" }, position = dao.nextCategoryPosition(), archived = false, createdAtMillis = now, updatedAtMillis = now))
     }
 
     override suspend fun updateCategory(id: Long, name: String, kind: String) {
@@ -1115,9 +1122,9 @@ class RoomGymRepository(
         }
     }
 
-    override suspend fun duplicateWorkout(id: Long, asActive: Boolean): Long =
+    override suspend fun duplicateWorkout(id: Long): Long =
         database.withTransaction {
-            if (asActive) require(dao.getActiveSession() == null) { "Another workout is active" }
+            require(dao.getActiveSession() == null) { "Another workout is active" }
             val source = dao.getSession(id) ?: error("Workout no longer exists")
             val sourceWorkoutExercises = dao.getWorkoutExercises(id).mapNotNull { workoutExercise ->
                 workoutExercise.toWorkoutReuseProjection(dao.getWorkoutSets(workoutExercise.id))
@@ -1135,7 +1142,7 @@ class RoomGymRepository(
                     endedAtMillis = null,
                     localEpochDay = clock.today().toEpochDay(),
                     zoneId = clock.zoneId().id,
-                    state = if (asActive) WorkoutSessionState.Active.name else WorkoutSessionState.Finished.name,
+                    state = WorkoutSessionState.Active.name,
                     restTimerDeadlineMillis = null,
                     archived = false,
                     createdAtMillis = now,
@@ -1149,9 +1156,13 @@ class RoomGymRepository(
                     sourceRoutineDayProgressionIndex = null,
                     programProgressAdvanced = false,
                     requiredMainWorkInvalidated = false,
+                    invalidatedMainExerciseIdsCsv = "",
                     workoutRevision = 0,
                     sourceRoutinePhaseLabel = "",
                     sourceRoutinePhaseRole = RoutineProgramPhaseRole.Standard.name,
+                    restTimerDurationSeconds = null,
+                    restTimerRevision = 0,
+                    restTimerCleanupPending = false,
                 ),
             )
             sourceWorkoutExercises.forEachIndexed { position, projection ->
@@ -1363,6 +1374,8 @@ class RoomGymRepository(
                 machineLoadTypeSnapshot = machine?.loadType.orEmpty(),
                 machineUnitIdSnapshot = machine?.unitId.orEmpty(),
                 machineLevelLabelSnapshot = machine?.levelLabel.orEmpty(),
+                machineLevelDirectionSnapshot = machine?.levelDirection
+                    ?: MachineLevelDirection.HigherNumberMoreResistance.name,
                 loadInterpretationSnapshot = machine?.loadInterpretation ?: exercise.loadInterpretation,
                 baseLoadKgSnapshot = machine?.baseLoadKg
                     ?: exercise.barWeightKg.takeIf {
@@ -1450,6 +1463,8 @@ class RoomGymRepository(
             machineLoadTypeSnapshot = machine?.loadType.orEmpty(),
             machineUnitIdSnapshot = machine?.unitId.orEmpty(),
             machineLevelLabelSnapshot = machine?.levelLabel.orEmpty(),
+            machineLevelDirectionSnapshot = machine?.levelDirection
+                ?: MachineLevelDirection.HigherNumberMoreResistance.name,
             loadInterpretationSnapshot = machine?.loadInterpretation ?: exercise.loadInterpretation,
             baseLoadKgSnapshot = machine?.baseLoadKg ?: exercise.barWeightKg.takeIf {
                 (machine?.loadInterpretation ?: exercise.loadInterpretation) == LoadInterpretation.PerSide.name
@@ -2880,6 +2895,8 @@ private fun WorkoutExerciseEntity.toDomain() = WorkoutExercise(
     machineLoadTypeSnapshot = machineLoadTypeSnapshot.takeIf(String::isNotBlank)?.let(MachineLoadType::valueOf),
     machineUnitIdSnapshot = machineUnitIdSnapshot,
     machineLevelLabelSnapshot = machineLevelLabelSnapshot,
+    machineLevelDirectionSnapshot = runCatching { MachineLevelDirection.valueOf(machineLevelDirectionSnapshot) }
+        .getOrDefault(MachineLevelDirection.HigherNumberMoreResistance),
     loadInterpretationSnapshot = runCatching { LoadInterpretation.valueOf(loadInterpretationSnapshot) }.getOrDefault(LoadInterpretation.Total),
     baseLoadKgSnapshot = baseLoadKgSnapshot,
     trackingTypeSnapshot = runCatching { ExerciseTrackingType.valueOf(trackingTypeSnapshot) }.getOrDefault(ExerciseTrackingType.WeightReps),

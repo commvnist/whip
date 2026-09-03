@@ -235,7 +235,7 @@ class PortableBackupManagerTest {
         override suspend fun previewBackup(json: String) = BackupPreview(
             envelopeVersion = 3,
             dataModelEpoch = 3,
-            databaseVersion = 20,
+            databaseVersion = 21,
             exportedAt = FIXED_NOW,
             tableCounts = mapOf("test" to records),
             totalRecords = records,

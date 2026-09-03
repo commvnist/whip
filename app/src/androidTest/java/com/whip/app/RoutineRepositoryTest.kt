@@ -5,6 +5,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
+import com.whip.app.core.AppSettings
+import com.whip.app.core.SettingsRepository
 import com.whip.app.data.RoomGymRepository
 import com.whip.app.data.RoomRoutineRepository
 import com.whip.app.data.WhipDatabase
@@ -39,6 +41,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -53,6 +56,7 @@ class RoutineRepositoryTest {
     private lateinit var database: WhipDatabase
     private lateinit var gym: RoomGymRepository
     private lateinit var routines: RoomRoutineRepository
+    private lateinit var settings: MutableSettingsRepository
 
     @Before
     fun setUp() {
@@ -61,8 +65,9 @@ class RoutineRepositoryTest {
             WhipDatabase::class.java,
         ).build()
         val ids = SequentialIds()
-        gym = RoomGymRepository(database, FixedClock, ids)
-        routines = RoomRoutineRepository(database, FixedClock, ids)
+        settings = MutableSettingsRepository(AppSettings())
+        gym = RoomGymRepository(database, FixedClock, ids, settings)
+        routines = RoomRoutineRepository(database, FixedClock, ids, settings)
     }
 
     @After fun tearDown() = database.close()
@@ -226,11 +231,16 @@ class RoutineRepositoryTest {
         gym.finishWorkout(finishedSession)
         routines.updateRoutine(routineId, draft("After finish"))
         assertEquals("After finish", routines.routines.first().single { it.id == routineId }.name)
+        val preservedFinishedSession = gym.sessions.first().single { it.id == finishedSession }
+        assertEquals(routineId, preservedFinishedSession.sourceRoutineId)
+        assertEquals(null, preservedFinishedSession.sourceRoutineDayId)
+        assertEquals(0, preservedFinishedSession.sourceRoutineDayPosition)
 
         val discardedSession = routines.startRoutine(routineId)
         gym.discardWorkout(discardedSession)
         routines.updateRoutine(routineId, draft("After discard"))
         assertEquals("After discard", routines.routines.first().single { it.id == routineId }.name)
+        assertEquals(null, gym.sessions.first().single { it.id == discardedSession }.sourceRoutineDayId)
     }
 
     @Test
@@ -768,6 +778,85 @@ class RoutineRepositoryTest {
         routines.rebuildPersonalRecords(exerciseId)
 
         assertFalse(routines.personalRecords.first().any { it.exerciseId == exerciseId })
+    }
+
+    @Test
+    fun recordRebuildHonorsWarmupRecordAndVolumePolicies() = runBlocking {
+        val includedId = gym.createExercise(ExerciseDraft("Bench"))
+        val excludedId = gym.createExercise(
+            ExerciseDraft("Technique bench", includeInPersonalRecords = false),
+        )
+        val noVolumeId = gym.createExercise(
+            ExerciseDraft("Low-volume bench", includeInVolume = false),
+        )
+        val sessionId = gym.startWorkout()
+        val includedPlacementId = gym.addExerciseToWorkout(sessionId, includedId)
+        gym.addSet(
+            includedPlacementId,
+            WorkoutSetDraft(
+                weight = 200.0,
+                reps = 1,
+                completed = true,
+                classification = WorkoutSetClassification.WarmUp,
+            ),
+        )
+        gym.addSet(includedPlacementId, WorkoutSetDraft(weight = 100.0, reps = 5, completed = true))
+        val excludedPlacementId = gym.addExerciseToWorkout(sessionId, excludedId)
+        gym.addSet(excludedPlacementId, WorkoutSetDraft(weight = 150.0, reps = 5, completed = true))
+        val noVolumePlacementId = gym.addExerciseToWorkout(sessionId, noVolumeId)
+        gym.addSet(noVolumePlacementId, WorkoutSetDraft(weight = 120.0, reps = 5, completed = true))
+
+        listOf(includedId, excludedId, noVolumeId).forEach { routines.rebuildPersonalRecords(it) }
+
+        val records = routines.personalRecords.first()
+        assertEquals(
+            100.0,
+            records.single { it.exerciseId == includedId && it.type == PersonalRecordType.MaxWeight }.value,
+            0.0,
+        )
+        assertEquals(
+            500.0,
+            records.single {
+                it.exerciseId == includedId && it.type == PersonalRecordType.ExerciseWorkoutVolume
+            }.value,
+            0.0,
+        )
+        assertFalse(records.any { it.exerciseId == excludedId })
+        assertTrue(records.any { it.exerciseId == noVolumeId && it.type == PersonalRecordType.MaxWeight })
+        assertFalse(records.any {
+            it.exerciseId == noVolumeId && it.type in setOf(
+                PersonalRecordType.SetVolume,
+                PersonalRecordType.ExerciseWorkoutVolume,
+            )
+        })
+    }
+
+    @Test
+    fun recordRebuildExcludesAssistedWorkUnlessEnabledAndDropsDiscardedSessions() = runBlocking {
+        val assistedId = gym.createExercise(
+            ExerciseDraft(
+                name = "Assisted pull-up",
+                trackingType = com.whip.app.domain.ExerciseTrackingType.AssistedBodyweightReps,
+                loadInterpretation = LoadInterpretation.AssistedSubtraction,
+            ),
+        )
+        val sessionId = gym.startWorkout()
+        val placementId = gym.addExerciseToWorkout(sessionId, assistedId)
+        gym.addSet(
+            placementId,
+            WorkoutSetDraft(weight = 20.0, bodyweightKg = 80.0, reps = 8, completed = true),
+        )
+
+        routines.rebuildPersonalRecords(assistedId)
+        assertFalse(routines.personalRecords.first().any { it.exerciseId == assistedId })
+
+        settings.update { it.copy(includeAssistedInPersonalRecords = true) }
+        routines.rebuildPersonalRecords(assistedId)
+        assertTrue(routines.personalRecords.first().any { it.exerciseId == assistedId })
+
+        gym.discardWorkout(sessionId)
+        routines.rebuildPersonalRecords(assistedId)
+        assertFalse(routines.personalRecords.first().any { it.exerciseId == assistedId })
     }
 
     @Test
@@ -2766,6 +2855,31 @@ class RoutineRepositoryTest {
         assertTrue(routines.graphPresets.first().isEmpty())
     }
 
+    @Test
+    fun graphPresetNormalizesExerciseIdsAndRejectsDanglingOrUnsupportedData() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Preset bench"))
+
+        val id = routines.saveGraphPreset(
+            "Bench trend",
+            listOf(exerciseId, exerciseId),
+            "MaxWeight",
+            "All",
+            "Workout",
+        )
+
+        assertEquals(listOf(exerciseId), routines.graphPresets.first().single { it.id == id }.exerciseIds)
+        assertTrue(runCatching {
+            routines.saveGraphPreset("Dangling", listOf(Long.MAX_VALUE), "MaxWeight", "All", "Workout")
+        }.isFailure)
+        assertTrue(runCatching {
+            routines.saveGraphPreset("Bad metric", listOf(exerciseId), "NotAMetric", "All", "Workout")
+        }.isFailure)
+        assertTrue(runCatching {
+            routines.updateGraphPreset(id, "Empty", emptyList(), "MaxWeight", "All", "Workout")
+        }.isFailure)
+        assertEquals(listOf(exerciseId), routines.graphPresets.first().single { it.id == id }.exerciseIds)
+    }
+
     private object FixedClock : WhipClock {
         override fun now(): Instant = Instant.parse("2026-08-17T16:00:00Z")
         override fun today(zoneId: ZoneId): LocalDate = LocalDate.of(2026, 8, 17)
@@ -2774,5 +2888,14 @@ class RoutineRepositoryTest {
     private class SequentialIds : WhipIdGenerator {
         private val count = AtomicInteger()
         override fun nextId(): String = "routine-test-${count.incrementAndGet()}"
+    }
+
+    private class MutableSettingsRepository(initial: AppSettings) : SettingsRepository {
+        private val mutable = MutableStateFlow(initial)
+        override val settings = mutable
+        override fun current(): AppSettings = mutable.value
+        override fun update(transform: (AppSettings) -> AppSettings) {
+            mutable.value = transform(mutable.value)
+        }
     }
 }

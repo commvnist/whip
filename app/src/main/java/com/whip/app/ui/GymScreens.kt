@@ -7970,6 +7970,7 @@ internal fun GymProgressContent(
             machineScopeUuids = compatibleMachineScopes,
             restrictToMachine = machineScoped,
             machineLevelDirection = selectedMachine?.levelDirection
+                ?: selectedPlacement?.machineLevelDirectionSnapshot
                 ?: MachineLevelDirection.HigherNumberMoreResistance,
         ).map { point -> point.copy(value = metric.displayValue(point.value, displayWeightUnitId, state.appSettings.distanceUnitId)) }
     }.orEmpty()

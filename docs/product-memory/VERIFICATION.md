@@ -635,3 +635,14 @@
 - Source: production/release commit `c535af7`; app repair commits `e474c8f` and `52da004`.
 - Related: `FB-20260903-003`, `FND-20260903-001`, `FND-20260903-002`, `IMP-20260903-004`.
 - Status: Signed release installed and verified on the physical phone.
+
+### VER-20260903-005 — Gym data-integrity targeted and subsystem verification
+
+- Production and complete Android-test Kotlin compilation passed against generated Room schema 44.
+- Five exact Android regressions covering record eligibility/discard, graph-preset validation, clean workout duplication, and deleted numbered-machine history passed three consecutive runs on the disposable API 34 emulator: 15/15 executions, zero failures/skips.
+- The follow-up exact batch passed routine-day reference cleanup, machine-direction backup round-trip, all data-epoch boundary methods, and destructive reset integration: 6 tests, zero failures/skips.
+- The focused Gym profile passed all five selected JVM suites and all 152 selected Android repository/UI tests with zero failures/skips. Separate `GymAnalyticsTest` and `DataEpochPolicyTest` runs also passed after adding source-session weekly attribution and epoch-4 contracts.
+- `git diff --check` passed and schema 44 contains the non-null `machineLevelDirectionSnapshot` column.
+- Scope: Focused implementation and full Gym-subsystem evidence on the disposable emulator. Release lint, minification, signed APK/AAB, and physical phone verification remain pending.
+- Related: `FB-20260903-004`, `FND-20260903-003`, `FND-20260903-004`, `FND-20260903-005`, `DEC-20260903-004`, `IMP-20260903-005`.
+- Status: Focused checks passed; release pending.

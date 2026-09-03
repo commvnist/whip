@@ -602,3 +602,16 @@
 - Related: `FB-20260903-003`, `FND-20260903-001`, `FND-20260903-002`.
 - Verification: `VER-20260903-004`.
 - Status: Released and physically verified within the non-destructive/keyguard-visible boundary.
+
+### IMP-20260903-005 — Gym historical-data and derived-record integrity repair
+
+- Reworked personal-record reconstruction to exclude discarded/archived sessions and consistently honor immutable per-workout record/volume policy, warm-up preference, assisted-record preference, and positive-volume requirements. Discard/restore now reconcile affected exercise records immediately.
+- Added immutable numbered-machine direction to workout placements, populated it for routine/free-workout creation and equipment changes, used it after machine deletion in records/graphs, exported it to Gym CSV, and validated/round-tripped it in backups.
+- Made repeated workouts start with clean timer, cleanup, invalidation, and revision state; removed the unused API path that could create a finished workout with unfinished copied sets.
+- Cleared historical routine-day numeric references before routine child replacement/deletion while retaining stable routine association and authored day position. Serialized machine-version/category position allocation and validated graph preset exercise/enum data transactionally.
+- Changed weekly PR attribution to included finished source-session identity, preserving authored local-date semantics for backdated and time-zoned workouts.
+- Established Room schema 44, data epoch 4, and backup data version 21 with no migration from the intentionally current-only preceding epoch.
+- Important files: `RoutineRepository.kt`, `GymRepository.kt`, `GymDao.kt`, `GymEntities.kt`, `GymModels.kt`, `GymAnalytics.kt`, `GymViewModel.kt`, `GymScreens.kt`, `BackupRepository.kt`, startup epoch files, schema 44, and focused JVM/Android regressions.
+- Related: `FB-20260903-004`, `FND-20260903-003`, `FND-20260903-004`, `FND-20260903-005`, `DEC-20260903-004`.
+- Verification: `VER-20260903-005`.
+- Status: Implemented and focused verified; signed release pending.

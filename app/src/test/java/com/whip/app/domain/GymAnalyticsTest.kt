@@ -79,6 +79,44 @@ class GymAnalyticsTest {
         assertEquals(2, week.single().sourceCount)
     }
 
+    @Test fun weeklySummaryCountsRecordsOnlyFromIncludedFinishedWorkouts() {
+        val weekStart = LocalDate.of(2026, 8, 17)
+        val finished = session(1, weekStart)
+        val active = session(2, weekStart).copy(state = WorkoutSessionState.Active, endedAt = null)
+        fun record(uuid: String, sessionId: Long?) = PersonalRecord(
+            uuid = uuid,
+            exerciseId = 1,
+            type = PersonalRecordType.MaxWeight,
+            value = 100.0,
+            secondaryValue = null,
+            unitId = "kilogram",
+            sourceSetId = null,
+            sourceSessionId = sessionId,
+            // The authored workout date, not this UTC instant, owns weekly attribution.
+            achievedAtMillis = Instant.parse("2025-01-01T12:00:00Z").toEpochMilli(),
+            current = true,
+            imported = sessionId == null,
+            createdAtMillis = 1,
+            updatedAtMillis = 1,
+        )
+
+        val summary = buildWeeklyGymSummary(
+            weekStart = weekStart,
+            sessions = listOf(finished, active),
+            workoutExercises = emptyList(),
+            sets = emptyList(),
+            exercises = listOf(exercise()),
+            personalRecords = listOf(
+                record("finished", finished.id),
+                record("active", active.id),
+                record("imported", null),
+            ),
+        )
+
+        assertEquals(1, summary.workouts)
+        assertEquals(1, summary.newPersonalRecords)
+    }
+
     @Test fun weeklyAggregationUsesTheConfiguredFirstDay() {
         val exercise = exercise()
         val sessions = listOf(session(1, LocalDate.of(2026, 8, 16)), session(2, LocalDate.of(2026, 8, 17)))

@@ -188,3 +188,11 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Editing round-trips Training Max basis kind/value/unit and per-lift increase eligibility; the regression uses non-default values; the focused 5/3/1 and complete release gates pass; the signed package is installed without automated data erasure and verified on the explicit physical endpoint.
 - Related: `FND-20260903-002`, `DEC-20260903-003`, `IMP-20260903-003`, `VER-20260903-003`.
 - Status: Implemented, verified, and released to the physical phone in `VER-20260903-004`.
+
+### FB-20260903-004 — Audit and repair Gym data integrity, then release
+
+- User need: Move outward from the Routine edit defect, inspect Gym data behavior across the subsystem, fix every concrete error found, and release the corrected build to the connected phone.
+- Acceptance criteria: Derived records honor historical exercise policy and user settings; discarded/archived work cannot remain in records; copied workouts cannot inherit timer or progression-invalidity state; retained machine history remains interpretable after profile deletion; routine edits/deletion leave no dangling day references; graph presets cannot persist dangling/unsupported definitions; weekly PR attribution follows included workout identity/local date; backup/schema contracts match the corrected model; focused and broader Gym tests pass before a signed in-place phone deployment.
+- Destructive boundary: The user previously authorized a current-only clean slate. This correction therefore establishes a new explicit schema/data epoch instead of adding a compatibility migration; deployment must not press the on-device erase confirmation automatically.
+- Related: `FND-20260903-003`, `FND-20260903-004`, `DEC-20260903-004`, `IMP-20260903-005`, `VER-20260903-005`.
+- Status: Implementation and focused emulator verification complete; release verification pending.

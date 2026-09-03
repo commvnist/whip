@@ -276,6 +276,8 @@ data class WorkoutExerciseEntity(
     val machineLoadTypeSnapshot: String = "",
     val machineUnitIdSnapshot: String = "",
     val machineLevelLabelSnapshot: String = "",
+    /** Immutable direction for interpreting numbered-setting history after profile deletion. */
+    val machineLevelDirectionSnapshot: String = "HigherNumberMoreResistance",
     val loadInterpretationSnapshot: String = "Total",
     val baseLoadKgSnapshot: Double? = null,
     val trackingTypeSnapshot: String = "WeightReps",

@@ -10,22 +10,32 @@ class BackupContractTest {
     }
 
     @Test fun oldEpochIsRejectedClearly() {
-        val message = rejected { validateBackupContract(ENVELOPE_VERSION, 2, BACKUP_DATABASE_VERSION) }
+        val message = rejected {
+            validateBackupContract(ENVELOPE_VERSION, CURRENT_DATA_MODEL_EPOCH - 1, BACKUP_DATABASE_VERSION)
+        }
         assertTrue(message.contains("older Whip data epoch"))
     }
 
     @Test fun futureEpochIsRejectedClearly() {
-        val message = rejected { validateBackupContract(ENVELOPE_VERSION, 4, BACKUP_DATABASE_VERSION) }
+        val message = rejected {
+            validateBackupContract(ENVELOPE_VERSION, CURRENT_DATA_MODEL_EPOCH + 1, BACKUP_DATABASE_VERSION)
+        }
         assertTrue(message.contains("newer Whip data epoch"))
     }
 
     @Test fun oldAndFutureDataVersionsAreRejected() {
-        assertTrue(rejected { validateBackupContract(ENVELOPE_VERSION, 3, 19) }.contains("old data version"))
-        assertTrue(rejected { validateBackupContract(ENVELOPE_VERSION, 3, 21) }.contains("future data version"))
+        assertTrue(rejected {
+            validateBackupContract(ENVELOPE_VERSION, CURRENT_DATA_MODEL_EPOCH, BACKUP_DATABASE_VERSION - 1)
+        }.contains("old data version"))
+        assertTrue(rejected {
+            validateBackupContract(ENVELOPE_VERSION, CURRENT_DATA_MODEL_EPOCH, BACKUP_DATABASE_VERSION + 1)
+        }.contains("future data version"))
     }
 
     @Test fun envelopeMustAlsoMatchExactly() {
-        assertTrue(rejected { validateBackupContract(2, 3, 20) }.contains("unsupported envelope version"))
+        assertTrue(rejected {
+            validateBackupContract(ENVELOPE_VERSION + 1, CURRENT_DATA_MODEL_EPOCH, BACKUP_DATABASE_VERSION)
+        }.contains("unsupported envelope version"))
     }
 
     private fun rejected(block: () -> Unit): String = try {

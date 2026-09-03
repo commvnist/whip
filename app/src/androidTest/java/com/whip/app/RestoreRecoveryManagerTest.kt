@@ -196,7 +196,7 @@ class RestoreRecoveryManagerTest {
         override suspend fun previewBackup(json: String) = BackupPreview(
             envelopeVersion = 3,
             dataModelEpoch = 3,
-            databaseVersion = 20,
+            databaseVersion = 21,
             exportedAt = Instant.EPOCH,
             tableCounts = emptyMap(),
             totalRecords = 1,

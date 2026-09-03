@@ -1549,6 +1549,7 @@ class GymViewModel @JvmOverloads constructor(
             commit = { repository.discardWorkout(boundary) },
             followUp = {
                 reconcilePersistedRestTimer(boundary.sessionId)
+                rebuildPersonalRecordsForSession(boundary.sessionId)
                 app.linkRepository.rebuildAll()
             },
             onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
@@ -1569,11 +1570,21 @@ class GymViewModel @JvmOverloads constructor(
             commit = { repository.restoreWorkout(id) },
             followUp = {
                 reconcilePersistedRestTimer(id)
+                rebuildPersonalRecordsForSession(id)
                 app.linkRepository.rebuildAll()
             },
             onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
             onOrdinaryFailure = { },
         )
+    }
+
+    private suspend fun rebuildPersonalRecordsForSession(sessionId: Long) {
+        repository.workoutExercises.first()
+            .asSequence()
+            .filter { it.sessionId == sessionId }
+            .map(WorkoutExercise::exerciseId)
+            .distinct()
+            .forEach { exerciseId -> routineRepository.rebuildPersonalRecords(exerciseId) }
     }
 
     fun previewWorkoutDeletion(id: Long, expectedUuid: String? = null) {
@@ -1664,7 +1675,7 @@ class GymViewModel @JvmOverloads constructor(
     }
 
     fun duplicateWorkout(id: Long) = runOperation("Copying workout…", "Workout copied into today") {
-        repository.duplicateWorkout(id, asActive = true)
+        repository.duplicateWorkout(id)
     }
 
     fun copyWorkoutExercise(

@@ -1404,6 +1404,37 @@ class GymRepositoryTest {
     }
 
     @Test
+    fun duplicatedWorkoutStartsWithCleanTimerAndProgressionState() = runBlocking {
+        val sourceId = repository.startWorkout(name = "Previously invalidated")
+        val source = requireNotNull(database.gymDao().getSession(sourceId))
+        database.gymDao().updateSession(
+            source.copy(
+                state = WorkoutSessionState.Finished.name,
+                endedAtMillis = FixedClock.now().toEpochMilli(),
+                restTimerDeadlineMillis = FixedClock.now().plusSeconds(90).toEpochMilli(),
+                restTimerDurationSeconds = 90,
+                restTimerRevision = 7,
+                restTimerCleanupPending = true,
+                requiredMainWorkInvalidated = true,
+                invalidatedMainExerciseIdsCsv = "42,73",
+                workoutRevision = 9,
+            ),
+        )
+
+        val duplicateId = repository.duplicateWorkout(sourceId)
+        val duplicate = repository.sessions.first().single { it.id == duplicateId }
+
+        assertEquals(WorkoutSessionState.Active, duplicate.state)
+        assertEquals(null, duplicate.restTimerDeadlineMillis)
+        assertEquals(null, duplicate.restTimerDurationSeconds)
+        assertEquals(0, duplicate.restTimerRevision)
+        assertFalse(duplicate.restTimerCleanupPending)
+        assertFalse(duplicate.requiredMainWorkInvalidated)
+        assertTrue(duplicate.invalidatedMainExerciseIds.isEmpty())
+        assertEquals(0, duplicate.workoutRevision)
+    }
+
+    @Test
     fun duplicateWorkoutExcludesEmptyRetiredPlacementsAndReusesRetainedPerformedWork() = runBlocking {
         val pressId = repository.createExercise(ExerciseDraft(name = "Press"))
         val inclineId = repository.createExercise(ExerciseDraft(name = "Incline press"))

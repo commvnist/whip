@@ -18,6 +18,9 @@ import com.whip.app.domain.supportsRoutinePercentagePrescription
 import com.whip.app.domain.massFromKilograms
 import com.whip.app.domain.massToKilograms
 import com.whip.app.domain.GraphPreset
+import com.whip.app.domain.GymGraphAggregation
+import com.whip.app.domain.GymGraphMetric
+import com.whip.app.domain.GymGraphRange
 import com.whip.app.domain.PersonalRecord
 import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.RoutineDay
@@ -212,6 +215,9 @@ class RoomRoutineRepository(
                 trainingMaxIncreaseEligible = if (initializesProgram) true else existing.trainingMaxIncreaseEligible,
             ),
         )
+        // Day rows are replaced below. Historical sessions retain the routine UUID/ID and their
+        // authored day position, but must not retain a numeric pointer to a deleted day row.
+        gymDao.clearSourceRoutineDayReferences(id)
         dao.deleteDays(id)
         insertRoutineChildren(id, draft.days, now, existingDays)
         val previousByExercise = existingMainPlacements.groupBy(RoutineExerciseEntity::exerciseId)
@@ -533,6 +539,8 @@ class RoomRoutineRepository(
                     machineLoadTypeSnapshot = machine?.loadType.orEmpty(),
                     machineUnitIdSnapshot = machine?.unitId.orEmpty(),
                     machineLevelLabelSnapshot = machine?.levelLabel.orEmpty(),
+                    machineLevelDirectionSnapshot = machine?.levelDirection
+                        ?: MachineLevelDirection.HigherNumberMoreResistance.name,
                     loadInterpretationSnapshot = machine?.loadInterpretation ?: sourceExercise.loadInterpretation,
                     baseLoadKgSnapshot = machine?.baseLoadKg
                         ?: sourceExercise.barWeightKg.takeIf {
@@ -688,6 +696,9 @@ class RoomRoutineRepository(
         val sourceMachineBySetId = mutableMapOf<Long, Long?>()
         val sourceMachineScopeBySetId = mutableMapOf<Long, String?>()
         val policyExerciseBySetId = mutableMapOf<Long, Exercise>()
+        val volumeEligibleSetIds = mutableSetOf<Long>()
+        val settings = settingsRepository?.current()
+        val includeWarmups = settings?.includeWarmupsInGymStats == true
 
         fun consider(
             set: WorkoutSetEntity,
@@ -727,30 +738,34 @@ class RoomRoutineRepository(
 
         sets.forEach { entity ->
             val set = entity.toDomainForRecords()
-            val sourceWorkoutExercise = gymDao.getWorkoutExercise(entity.workoutExerciseId)
-            val sourceSessionId = sourceWorkoutExercise?.sessionId
-            val machineId = sourceWorkoutExercise?.machineId
-            val machineScope = sourceWorkoutExercise?.machineProfileUuidSnapshot
+            val sourceWorkoutExercise = gymDao.getWorkoutExercise(entity.workoutExerciseId) ?: return@forEach
+            val sourceSession = gymDao.getSession(sourceWorkoutExercise.sessionId) ?: return@forEach
+            if (sourceSession.archived || sourceSession.state == WorkoutSessionState.Discarded.name) return@forEach
+            val sourceSessionId = sourceWorkoutExercise.sessionId
+            val machineId = sourceWorkoutExercise.machineId
+            val machineScope = sourceWorkoutExercise.machineProfileUuidSnapshot
+            val policyExercise = sourceWorkoutExercise.applyPolicySnapshot(exercise)
+            val assistedAllowed = settings?.includeAssistedInPersonalRecords == true ||
+                policyExercise.trackingType != com.whip.app.domain.ExerciseTrackingType.AssistedBodyweightReps
+            if (!policyExercise.includeInPersonalRecords ||
+                (!includeWarmups && set.classification == WorkoutSetClassification.WarmUp) ||
+                !assistedAllowed
+            ) return@forEach
             sourceSessionBySetId[entity.id] = sourceSessionId
             sourceMachineBySetId[entity.id] = machineId
             sourceMachineScopeBySetId[entity.id] = machineScope
-            val policyExercise = sourceWorkoutExercise?.applyPolicySnapshot(exercise) ?: exercise
             policyExerciseBySetId[entity.id] = policyExercise
-            val settings = settingsRepository?.current()
-            val includeWarmups = settings?.includeWarmupsInGymStats == true
-            val assistedAllowed = settings?.includeAssistedInPersonalRecords == true ||
-                policyExercise.trackingType != com.whip.app.domain.ExerciseTrackingType.AssistedBodyweightReps
-            consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxWeight, set.effectiveLoadKg(policyExercise).takeIf { assistedAllowed }, "kilogram")
-            consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxRepetitions, set.repetitions?.toDouble().takeIf { assistedAllowed }, "count")
+            consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxWeight, set.effectiveLoadKg(policyExercise), "kilogram")
+            consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxRepetitions, set.repetitions?.toDouble(), "count")
             consider(
                 entity,
                 sourceSessionId,
                 machineId,
                 machineScope,
                 PersonalRecordType.MaxRepetitionsForWeight,
-                set.repetitions?.toDouble().takeIf { assistedAllowed },
+                set.repetitions?.toDouble(),
                 "count",
-                set.effectiveLoadKg(policyExercise).takeIf { assistedAllowed },
+                set.effectiveLoadKg(policyExercise),
             )
             consider(
                 entity,
@@ -773,17 +788,18 @@ class RoomRoutineRepository(
                     settings?.oneRepMaxRepCutoff ?: 10,
                     includeWarmups,
                     settings?.adjustE1rmForEffort == true,
-                ).takeIf { assistedAllowed },
+                ),
                 "kilogram",
             )
-            consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.SetVolume, set.volumeKg(policyExercise, includeWarmups).takeIf { assistedAllowed }, "kilogram")
+            val setVolume = set.volumeKg(policyExercise, includeWarmups).takeIf { it > 0.0 }
+            consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.SetVolume, setVolume, "kilogram")
+            if (setVolume != null) volumeEligibleSetIds += entity.id
             consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxDistance, set.canonicalDistanceMetres, "distance_m")
             consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxDuration, set.durationSeconds?.toDouble(), "second")
             consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxSpeed, set.speedMetresPerSecond(), "distance_m/second")
             consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MinPace, set.paceSecondsPerKilometre(), "second/kilometre", lowerIsBetter = true)
-            if (sourceWorkoutExercise?.machineLoadTypeSnapshot == MachineLoadType.Level.name) {
-                val lowerSettingIsStronger = machineId != null &&
-                    gymDao.getMachine(machineId)?.levelDirection ==
+            if (sourceWorkoutExercise.machineLoadTypeSnapshot == MachineLoadType.Level.name) {
+                val lowerSettingIsStronger = sourceWorkoutExercise.machineLevelDirectionSnapshot ==
                     MachineLevelDirection.HigherNumberLessResistance.name
                 consider(
                     entity,
@@ -797,25 +813,28 @@ class RoomRoutineRepository(
                 )
             }
         }
-        sets.groupBy { Triple(sourceSessionBySetId[it.id], sourceMachineBySetId[it.id], sourceMachineScopeBySetId[it.id]) }.forEach { (scope, sessionSets) ->
-            val (sessionId, machineId, machineScope) = scope
-            if (sessionId == null || sessionSets.isEmpty()) return@forEach
-            val settings = settingsRepository?.current()
-            val includeWarmups = settings?.includeWarmupsInGymStats == true
-            val volume = sessionSets.sumOf { entity ->
-                entity.toDomainForRecords().volumeKg(policyExerciseBySetId[entity.id] ?: exercise, includeWarmups)
+        sets.filter { it.id in volumeEligibleSetIds }
+            .groupBy { Triple(sourceSessionBySetId[it.id], sourceMachineBySetId[it.id], sourceMachineScopeBySetId[it.id]) }
+            .forEach { (scope, sessionSets) ->
+                val (sessionId, machineId, machineScope) = scope
+                if (sessionId == null || sessionSets.isEmpty()) return@forEach
+                val volume = sessionSets.sumOf { entity ->
+                    entity.toDomainForRecords().volumeKg(
+                        policyExerciseBySetId[entity.id] ?: exercise,
+                        includeWarmups,
+                    )
+                }
+                val representative = sessionSets.maxBy { it.completedAtMillis ?: it.updatedAtMillis }
+                consider(
+                    representative,
+                    sessionId,
+                    machineId,
+                    machineScope,
+                    PersonalRecordType.ExerciseWorkoutVolume,
+                    volume.takeIf { it > 0.0 },
+                    "kilogram",
+                )
             }
-            val representative = sessionSets.maxBy { it.completedAtMillis ?: it.updatedAtMillis }
-            consider(
-                representative,
-                sessionId,
-                machineId,
-                machineScope,
-                PersonalRecordType.ExerciseWorkoutVolume,
-                volume,
-                "kilogram",
-            )
-        }
         val latestByKey = records.groupBy { "${it.machineProfileUuidSnapshot ?: "none"}:${it.type}:${it.secondaryValue ?: ""}" }
             .mapValues { (_, values) -> values.last().uuid }
         records.forEach { record ->
@@ -831,15 +850,15 @@ class RoomRoutineRepository(
         metric: String,
         dateRange: String,
         aggregation: String,
-    ): Long {
-        require(name.isNotBlank()) { "Preset name is required" }
+    ): Long = database.withTransaction {
+        val normalizedExerciseIds = validateGraphPreset(name, exerciseIds, metric, dateRange, aggregation)
         val now = clock.now().toEpochMilli()
         val entity = GraphPresetEntity(
-            uuid = ids.nextId(), name = name.trim(), exerciseIdsCsv = exerciseIds.joinToString(","),
+            uuid = ids.nextId(), name = name.trim(), exerciseIdsCsv = normalizedExerciseIds.joinToString(","),
             metric = metric, dateRange = dateRange, aggregation = aggregation,
             archived = false, createdAtMillis = now, updatedAtMillis = now,
         )
-        return dao.insertGraphPreset(entity)
+        dao.insertGraphPreset(entity)
     }
 
     override suspend fun updateGraphPreset(
@@ -849,20 +868,39 @@ class RoomRoutineRepository(
         metric: String,
         dateRange: String,
         aggregation: String,
-    ) {
-        require(name.isNotBlank()) { "Preset name is required" }
+    ) = database.withTransaction {
+        val normalizedExerciseIds = validateGraphPreset(name, exerciseIds, metric, dateRange, aggregation)
         val existing = dao.getGraphPresets().firstOrNull { it.id == id }
             ?: error("Graph preset no longer exists")
         dao.updateGraphPreset(
             existing.copy(
                 name = name.trim(),
-                exerciseIdsCsv = exerciseIds.distinct().joinToString(","),
+                exerciseIdsCsv = normalizedExerciseIds.joinToString(","),
                 metric = metric,
                 dateRange = dateRange,
                 aggregation = aggregation,
                 updatedAtMillis = clock.now().toEpochMilli(),
             ),
         )
+    }
+
+    private suspend fun validateGraphPreset(
+        name: String,
+        exerciseIds: List<Long>,
+        metric: String,
+        dateRange: String,
+        aggregation: String,
+    ): List<Long> {
+        require(name.isNotBlank()) { "Preset name is required" }
+        val normalizedExerciseIds = exerciseIds.distinct()
+        require(normalizedExerciseIds.isNotEmpty()) { "Select at least one exercise" }
+        normalizedExerciseIds.forEach { exerciseId ->
+            requireNotNull(gymDao.getExercise(exerciseId)) { "Exercise no longer exists" }
+        }
+        require(runCatching { GymGraphMetric.valueOf(metric) }.isSuccess) { "Graph metric is not supported" }
+        require(runCatching { GymGraphRange.valueOf(dateRange) }.isSuccess) { "Graph date range is not supported" }
+        require(runCatching { GymGraphAggregation.valueOf(aggregation) }.isSuccess) { "Graph aggregation is not supported" }
+        return normalizedExerciseIds
     }
 
     override suspend fun deleteGraphPreset(id: Long) {

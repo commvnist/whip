@@ -576,3 +576,36 @@
 - Evidence: `GymModels.kt`, `GymScreens.kt`, `RoutineBuilder.kt`, `RoutineRepository.kt`, and `GymPowerInputUiTest.kt`.
 - Resolution: Implemented in `IMP-20260903-003` under `DEC-20260903-003` and verified in `VER-20260903-003`.
 - Status: Resolved and released in 0.3.38/code 44; see `VER-20260903-004`.
+
+### FND-20260903-003 — Gym record reconstruction ignored several authoritative eligibility boundaries
+
+- Severity/category: P0 derived-data correctness and historical truth.
+- Observed: `rebuildPersonalRecords` applied warm-up and `includeInPersonalRecords` policy only to estimated 1RM, applied the assisted-record setting inconsistently, admitted zero-volume record rows, and read completed sets from discarded/archived sessions. Discard/restore also did not request a record rebuild. A heavier warm-up could therefore become Max Weight, an excluded exercise or assisted movement could create records, a discarded workout could retain PRs, and a non-volume exercise could receive zero-valued volume records.
+- Expected: A completed set is considered for any record only when its immutable workout policy snapshot permits records, the current warm-up/assisted settings permit it, and its session is included. Volume records additionally require the immutable volume policy and positive volume. Discard and restore immediately reconcile every affected exercise.
+- Why it matters: PRs and progression evidence must be trustworthy; invalid derived rows can influence user decisions and contradict settings/history.
+- Affected users: All Gym users, especially 5/3/1 lifters using AMRAP evidence, assisted-exercise users, and users who discard or restore a workout.
+- Evidence: `RoutineRepository.kt`, `GymViewModel.kt`, `GymModels.kt`, and the record-policy regressions in `RoutineRepositoryTest.kt`.
+- Resolution: Implemented in `IMP-20260903-005` under `DEC-20260903-004`; verified in `VER-20260903-005`.
+- Status: Resolved; release pending.
+
+### FND-20260903-004 — Historical and copied Gym rows retained unstable or stale state
+
+- Severity/category: P1 historical data integrity, snapshot completeness, and reference validity.
+- Observed: Workout duplication copied timer duration/revision/cleanup and invalidated-main exercise IDs even while resetting their paired booleans/deadline. Routine editing deleted and recreated day rows without clearing historical `sourceRoutineDayId`. Numbered machine history snapshotted the machine identity and label but not whether lower or higher numbers meant greater resistance, so deleting the live profile changed later PR reconstruction and graph interpretation. Weekly PR counts used raw UTC achievement timestamps rather than membership in included finished workouts, misclassifying backdated/time-zoned work.
+- Expected: A repeated workout begins with clean active-session metadata; deleted/replaced routine day IDs are never retained as numeric references; every fact required to interpret completed machine work is immutable in the workout placement; weekly summaries attribute PRs through the included source workout and its authored local date.
+- Why it matters: These defects create internally contradictory rows and allow later edits/deletion/time-zone differences to reinterpret historical facts.
+- Affected users: Users repeating workouts, editing/deleting routines, using counterbalanced/assistance machines, backdating workouts, or training near time-zone/day boundaries.
+- Evidence: `GymRepository.kt`, `GymDao.kt`, `RoutineRepository.kt`, `GymEntities.kt`, `GymAnalytics.kt`, `GymScreens.kt`, and regressions in `GymRepositoryTest.kt`, `RoutineRepositoryTest.kt`, `DomainDeletionCoordinatorTest.kt`, `BackupRepositoryTest.kt`, and `GymAnalyticsTest.kt`.
+- Resolution: Implemented in `IMP-20260903-005` under `DEC-20260903-004`; verified in `VER-20260903-005`.
+- Status: Resolved in schema 44/data epoch 4; release pending.
+
+### FND-20260903-005 — Graph presets accepted dangling and unsupported authored data
+
+- Severity/category: P1 authored-data validation and transactional consistency.
+- Observed: New graph presets could store duplicate, nonexistent, or empty exercise ID sets and arbitrary metric/range/aggregation strings. Updates normalized duplicates but still admitted dangling IDs and unsupported enum names.
+- Expected: Create and update share one transactionally checked contract: nonblank name, at least one distinct existing exercise, and supported metric/range/aggregation identities. A rejected update leaves the prior preset unchanged.
+- Why it matters: Invalid presets become dead ends, can collide with deletion repair, and push malformed strings into presentation code.
+- Affected users: Progress-chart users and backup/restore flows containing graph presets.
+- Evidence: `RoutineRepository.kt` and `RoutineRepositoryTest.kt`.
+- Resolution: Implemented in `IMP-20260903-005`; verified in `VER-20260903-005`.
+- Status: Resolved; release pending.

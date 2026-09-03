@@ -298,7 +298,7 @@ class SafetyChoiceUiTest {
     private fun preview() = BackupPreview(
         envelopeVersion = 3,
         dataModelEpoch = 3,
-        databaseVersion = 20,
+        databaseVersion = 21,
         exportedAt = Instant.parse("2026-08-29T12:00:00Z"),
         tableCounts = mapOf("tasks" to 3),
         totalRecords = 3,

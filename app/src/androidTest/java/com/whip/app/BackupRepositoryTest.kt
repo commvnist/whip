@@ -475,7 +475,7 @@ class BackupRepositoryTest {
     @Test fun machineExerciseLinksAndLevelDirectionRoundTrip() = runBlocking {
         val rowId = gym.createExercise(ExerciseDraft(name = "Cable row"))
         val pressId = gym.createExercise(ExerciseDraft(name = "Cable press"))
-        gym.createMachine(
+        val machineId = gym.createMachine(
             GymMachineDraft(
                 name = "Shared cable tower",
                 exerciseIds = setOf(rowId, pressId),
@@ -485,6 +485,10 @@ class BackupRepositoryTest {
                 levelDirection = MachineLevelDirection.HigherNumberLessResistance,
             ),
         )
+        val sessionId = gym.startWorkout("Cable work")
+        val placementId = gym.addExerciseToWorkout(sessionId, rowId, machineId)
+        gym.addSet(placementId, WorkoutSetDraft(machineLoadValue = 2.0, reps = 8, completed = true))
+        gym.finishWorkout(sessionId)
 
         val json = backups.exportBackup()
         backups.deleteAllData()
@@ -493,6 +497,10 @@ class BackupRepositoryTest {
         val restored = gym.machines.first().single()
         assertEquals(setOf("Cable row", "Cable press"), gym.exercises.first().filter { it.id in restored.exerciseIds }.mapTo(mutableSetOf()) { it.name })
         assertEquals(MachineLevelDirection.HigherNumberLessResistance, restored.levelDirection)
+        assertEquals(
+            MachineLevelDirection.HigherNumberLessResistance,
+            gym.workoutExercises.first().single().machineLevelDirectionSnapshot,
+        )
     }
 
     @Test fun areaIdentityAndScopeRoundTripAcrossEveryProductivityDomain() = runBlocking {

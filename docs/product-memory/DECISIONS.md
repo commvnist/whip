@@ -584,3 +584,12 @@
 - Compatibility: No schema, backup, completed Workout, Training Max calculation, or current-cycle change. Existing routines retain their already-stored values after updating.
 - Related: `FB-20260903-003`, `FND-20260903-002`, `IMP-20260903-003`, `VER-20260903-003`.
 - Status: Accepted, implemented, verified, and released in 0.3.38/code 44.
+
+### DEC-20260903-004 — Derive Gym summaries from eligible immutable history
+
+- Context: The Gym-wide follow-up found that record eligibility, machine-setting direction, copied-session state, routine-day references, graph-preset validity, and weekly attribution were enforced in different layers or not enforced at all.
+- Decision: Centralize record eligibility in the rebuild transaction using the workout placement’s immutable exercise-policy snapshot plus current warm-up/assisted preferences and session inclusion. Store numbered-machine direction in every workout placement and use that snapshot for PR reconstruction and deleted-machine graph fallback. Reset every timer/progression-invalidity field when repeating a workout, remove the unused invalid “finished copy” mode, clear routine-day numeric references before replacing/deleting their rows, validate graph presets atomically, and count weekly records by included source-session identity. Establish current-only Room schema 44, data epoch 4, and backup data version 21 rather than migrating incomplete historical snapshots.
+- Rationale: Completed history must remain self-describing, while current user preferences should control whether that history participates in derived records. Session identity/local date is a safer attribution boundary than UTC timestamps, and rejecting malformed authored data is safer than downstream fallback.
+- Compatibility: Intentionally breaking under the user-authorized clean slate. Older local data/backups are rejected through the explicit existing reset boundary; the release process installs in place but never confirms erasure for the user.
+- Related: `FB-20260903-004`, `FND-20260903-003`, `FND-20260903-004`, `FND-20260903-005`, `IMP-20260903-005`, `VER-20260903-005`.
+- Status: Accepted, implemented, and focused verified; physical release pending.

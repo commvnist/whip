@@ -22,8 +22,8 @@ class DataEpochBoundaryTest {
         val name = "test-fresh-data-epoch-${System.nanoTime()}"
         val base = File(context.noBackupFilesDir, name)
         try {
-            assertEquals(DataEpochState.Current(3), DataEpochGate(context, name) { false }.evaluate())
-            assertEquals("current:3", base.readText())
+            assertEquals(DataEpochState.Current(4), DataEpochGate(context, name) { false }.evaluate())
+            assertEquals("current:4", base.readText())
         } finally {
             base.delete()
             File(base.path + ".bak").delete()
@@ -37,25 +37,25 @@ class DataEpochBoundaryTest {
         try {
             assertEquals(DataEpochState.ResetRequired, gate.evaluate())
             gate.markResetInProgress()
-            assertEquals(DataEpochState.ResetInProgress(3), DataEpochGate(context, name) { true }.evaluate())
+            assertEquals(DataEpochState.ResetInProgress(4), DataEpochGate(context, name) { true }.evaluate())
             gate.markCurrent()
-            assertEquals(DataEpochState.Current(3), DataEpochGate(context, name) { true }.evaluate())
+            assertEquals(DataEpochState.Current(4), DataEpochGate(context, name) { true }.evaluate())
         } finally {
             base.delete()
             File(base.path + ".bak").delete()
         }
     }
 
-    @Test fun schemaFortyTwoCannotBeOpenedDirectlyAsCanonicalSchemaFortyThree() {
+    @Test fun schemaFortyThreeCannotBeOpenedDirectlyAsCanonicalSchemaFortyFour() {
         val name = "schema-42-direct-open-${System.nanoTime()}"
         SQLiteDatabase.openOrCreateDatabase(context.getDatabasePath(name), null).use { legacy ->
             legacy.execSQL("CREATE TABLE pre_epoch_marker (id INTEGER PRIMARY KEY NOT NULL)")
-            legacy.execSQL("PRAGMA user_version = 42")
+            legacy.execSQL("PRAGMA user_version = 43")
         }
         val database = Room.databaseBuilder(context, WhipDatabase::class.java, name).build()
         try {
             val failure = runCatching { database.openHelper.writableDatabase }.exceptionOrNull()
-            assertTrue("Room must reject schema 42 without a migration", failure != null)
+            assertTrue("Room must reject schema 43 without a migration", failure != null)
         } finally {
             database.close()
             context.deleteDatabase(name)

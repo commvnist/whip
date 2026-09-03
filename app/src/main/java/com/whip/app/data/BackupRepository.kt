@@ -30,6 +30,7 @@ import com.whip.app.domain.CustomIdentityEmoji
 import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.LoadInterpretation
+import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineStackMode
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.UnitDimension
@@ -310,7 +311,7 @@ class RoomBackupRepository(
     )
 
     override suspend fun exportGymCsv(): String = queryCsv(
-        "SELECT s.uuid AS workoutUuid, s.localEpochDay, s.name AS workout, e.uuid AS exerciseUuid, e.name AS exercise, e.trackingType, e.archived AS exerciseArchived, we.machineProfileUuidSnapshot AS machineScopeUuid, we.machineNameSnapshot AS machine, we.machineConfigurationGroupSnapshot AS machineConfigurationFamily, we.machineConfigurationVersionSnapshot AS machineConfigurationVersion, we.machineConfigurationSnapshot AS machineConfiguration, we.machineLoadTypeSnapshot AS machineLoadType, ws.uuid AS setUuid, ws.position, ws.classification, ws.machineLoadValue, ws.enteredWeight, ws.enteredWeightUnitId, ws.repetitions, ws.enteredDistance, ws.enteredDistanceUnitId, ws.durationSeconds, ws.rpe, ws.rir, ws.tempo, ws.note FROM exercises e LEFT JOIN workout_exercises we ON we.exerciseId = e.id LEFT JOIN workout_sessions s ON s.id = we.sessionId LEFT JOIN workout_sets ws ON ws.workoutExerciseId = we.id AND ws.deletedAtMillis IS NULL ORDER BY e.position, s.startedAtMillis, we.position, ws.position",
+        "SELECT s.uuid AS workoutUuid, s.localEpochDay, s.name AS workout, e.uuid AS exerciseUuid, e.name AS exercise, e.trackingType, e.archived AS exerciseArchived, we.machineProfileUuidSnapshot AS machineScopeUuid, we.machineNameSnapshot AS machine, we.machineConfigurationGroupSnapshot AS machineConfigurationFamily, we.machineConfigurationVersionSnapshot AS machineConfigurationVersion, we.machineConfigurationSnapshot AS machineConfiguration, we.machineLoadTypeSnapshot AS machineLoadType, we.machineLevelDirectionSnapshot AS machineLevelDirection, ws.uuid AS setUuid, ws.position, ws.classification, ws.machineLoadValue, ws.enteredWeight, ws.enteredWeightUnitId, ws.repetitions, ws.enteredDistance, ws.enteredDistanceUnitId, ws.durationSeconds, ws.rpe, ws.rir, ws.tempo, ws.note FROM exercises e LEFT JOIN workout_exercises we ON we.exerciseId = e.id LEFT JOIN workout_sessions s ON s.id = we.sessionId LEFT JOIN workout_sets ws ON ws.workoutExerciseId = we.id AND ws.deletedAtMillis IS NULL ORDER BY e.position, s.startedAtMillis, we.position, ws.position",
     )
 
     override suspend fun exportTracksCsv(): String = queryCsv(
@@ -517,6 +518,9 @@ class RoomBackupRepository(
             requireCompatibleBackupUnit(builtInUnits, row.getString("weightUnitId"), mass, "Exercise")
         }
         tables.getJSONArray("gym_machines").forEachObject { row ->
+            require(runCatching { MachineLevelDirection.valueOf(row.getString("levelDirection")) }.isSuccess) {
+                "Backup Gym Machine has an unsupported numbered-setting direction"
+            }
             if (row.optString("loadType") == "Mass") {
                 val unitId = row.nonBlankString("unitId")
                     ?: error("Backup Gym Machine has no mass unit")
@@ -566,6 +570,11 @@ class RoomBackupRepository(
         val workoutPlacements = mutableMapOf<Long, JSONObject>()
         tables.getJSONArray("workout_exercises").forEachObject { row ->
             workoutPlacements[row.getLong("id")] = row
+            require(
+                runCatching {
+                    MachineLevelDirection.valueOf(row.getString("machineLevelDirectionSnapshot"))
+                }.isSuccess,
+            ) { "Backup Workout Exercise has an unsupported numbered-setting direction" }
             row.requireOptionalBackupUnit(builtInUnits, "machineUnitIdSnapshot", mass, "Workout machine snapshot")
             if (row.optString("machineLoadTypeSnapshot") == "Mass") {
                 require(row.nonBlankString("machineUnitIdSnapshot") != null) {
@@ -1130,8 +1139,8 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 
 private const val BACKUP_FORMAT = "whip-backup"
 internal const val ENVELOPE_VERSION = 3
-internal const val CURRENT_DATA_MODEL_EPOCH = 3
-internal const val BACKUP_DATABASE_VERSION = 20
+internal const val CURRENT_DATA_MODEL_EPOCH = 4
+internal const val BACKUP_DATABASE_VERSION = 21
 
 internal fun validateBackupContract(
     envelopeVersion: Int,

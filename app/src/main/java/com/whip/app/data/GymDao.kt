@@ -286,8 +286,14 @@ interface GymDao {
     @Query("DELETE FROM workout_sessions WHERE id = :id")
     suspend fun permanentlyDeleteSession(id: Long): Int
 
-    @Query("UPDATE workout_sessions SET sourceRoutineId = NULL WHERE sourceRoutineId = :routineId")
+    @Query(
+        "UPDATE workout_sessions SET sourceRoutineId = NULL, sourceRoutineDayId = NULL " +
+            "WHERE sourceRoutineId = :routineId",
+    )
     suspend fun clearSourceRoutine(routineId: Long): Int
+
+    @Query("UPDATE workout_sessions SET sourceRoutineDayId = NULL WHERE sourceRoutineId = :routineId")
+    suspend fun clearSourceRoutineDayReferences(routineId: Long): Int
 
     @Query("DELETE FROM exercises WHERE id = :id")
     suspend fun deleteExercise(id: Long): Int
