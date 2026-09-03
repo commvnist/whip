@@ -563,3 +563,14 @@
 - Related: `FND-20260902-023`, `DEC-20260902-027`.
 - Verification: `VER-20260902-030`.
 - Status: Implemented and complete-candidate verified in `VER-20260902-031`.
+
+### IMP-20260903-001 — Signed schema-43 physical release
+
+- Revalidated the frozen candidate through `scripts/check --full`, then rebuilt the release APK/AAB with the configured Whip release key.
+- Installed 0.3.37/code 43 over 0.3.35/code 41 on the explicitly selected Samsung endpoint using the non-clearing release path and cold-launched `MainActivity`.
+- Verified the local and installed APK hashes, established signing certificate, preserved Android installation identity, foreground process, absence of fatal/database startup errors, and visible explicit fresh-start boundary.
+- Left the destructive “Erase all Whip data” action untouched for the user to confirm on-device.
+- Important files: `scripts/device`, `scripts/device-artifacts`, release APK/AAB, and the schema-43 startup recovery surface.
+- Related: `FB-20260903-001`, `DEC-20260903-001`.
+- Verification: `VER-20260903-001`.
+- Status: Released and physically verified.

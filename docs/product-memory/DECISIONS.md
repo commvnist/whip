@@ -557,3 +557,12 @@
 - Compatibility: Semantics/test identity only. No Habit, schedule, log, setting, database, or backup data changes.
 - Related: `FND-20260902-023`, `IMP-20260902-029`, `VER-20260902-030`.
 - Status: Accepted, implemented, and repeatedly emulator verified.
+
+### DEC-20260903-001 — Release the breaking epoch without silently erasing phone data
+
+- Context: Version 0.3.37/code 43 intentionally accepts only Room schema 43, data epoch 3, and backup version 20. The connected phone still held the released 0.3.35/code 41 installation and older local-data epoch.
+- Decision: Upgrade the signed package in place with `adb install -r`, cold-launch it, and verify that the explicit two-step fresh-start boundary is presented. Do not invoke the in-app erase action as part of deployment or automated smoke verification.
+- Rationale: Android package identity and the established signer remain continuous while the product truthfully requires direct user confirmation before the authorized breaking local reset. This keeps deployment and destructive data erasure distinct and auditable.
+- Compatibility: The installed application is upgraded, but existing Whip local data remains untouched until the user confirms “Erase all Whip data”. Older backups remain intentionally unsupported by the current epoch.
+- Related: `FB-20260903-001`, `IMP-20260903-001`, `VER-20260903-001`.
+- Status: Accepted, released, and physically verified.

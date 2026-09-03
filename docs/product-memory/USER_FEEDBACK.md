@@ -152,17 +152,25 @@ These records preserve durable user intent. “Released” means the change reac
 - User need: Remove transitional, migratory, and obsolete legacy behavior instead of preserving architecture that exists only for old data. The next breaking update may require existing users to erase local data.
 - Acceptance criteria: Define one canonical current schema/model; distinguish true compatibility code from current product concepts that happen to have legacy names; show an explicit destructive reset boundary; atomically clear database, preferences, work, reminders, widgets, caches, and private recovery journals; reject old backups clearly; and remove obsolete migrations/adapters/tests without weakening current integrity or fail-closed behavior.
 - Risk/approval: Critical and intentionally destructive. The user explicitly authorizes a forced data reset on update; physical-device deployment remains separately gated.
-- Status: Architecture investigation in progress under the required VERA risk gate.
+- Status: Implemented, complete-candidate verified, and released as 0.3.37/code 43. The installed app is waiting at the explicit destructive fresh-start confirmation; no erase was performed automatically.
 
 ### FB-20260902-008 — Complete the residual whole-product audit backlog
 
 - User need: Finish the remaining findings preserved when the two-day maximum-quality mission was stopped.
 - Acceptance criteria: Reconcile the durable ledgers against current code, enumerate the concrete unresolved members of the two partial umbrella findings, retire stale backlog wording, implement real remaining gaps in coherent prioritized chunks, and finish with one cross-product acceptance campaign.
-- Status: Accepted and inventoried; implementation follows the clean-slate boundary and targeted-QA tooling.
+- Status: Implemented and complete-candidate verified in `VER-20260902-031`; released to the physical phone in `VER-20260903-001`.
 
 ### FB-20260902-009 — Make UI/UX gap discovery and QA fast and consistent
 
 - User need: Spend less development time repeatedly running the entire suite; quickly identify and implement UI, UX, usability, accessibility, and visual-consistency fixes across every route/dialog/state.
 - Acceptance criteria: Use a complete surface inventory, one canonical design contract, shared-code outlier scans, screen-family audits, evidence/priority scoring, exact targeted tests during development, signature-aware instrumentation batch reuse, and only one full gate after source freezes.
 - Plan: `docs/quality/UI_UX_REMEDIATION_PLAN.md`.
-- Status: Plan recorded; targeted tooling and the first screen-family inventory are next.
+- Status: Plan executed, all confirmed gaps in the run implemented, complete candidate verified in `VER-20260902-031`, and released in `VER-20260903-001`.
+
+### FB-20260903-001 — Release schema-43 Whip to the phone
+
+- User need: Install the latest fully verified Whip release on the physical phone exposed through Android wireless debugging at `192.168.2.187:44401`.
+- Acceptance criteria: Select the exact physical endpoint despite the connected emulator; rerun the guarded release gate; build with the established Whip release key; install with `adb install -r` without clearing data; verify version, signer, artifact hash, installation identity, cold launch, foreground activity, fatal/database logs, and the explicit clean-start boundary.
+- Destructive boundary: Installation and launch are authorized. The in-app “Erase all Whip data” confirmation remains a separate destructive user action and must not be pressed during release verification.
+- Related: `DEC-20260903-001`, `IMP-20260903-001`, `VER-20260903-001`.
+- Status: Released and verified on 2026-09-03; the phone is waiting at the explicit fresh-start confirmation.

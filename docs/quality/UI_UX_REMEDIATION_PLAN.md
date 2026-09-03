@@ -149,8 +149,10 @@ requested.
   deterministic coverage thresholds, minified release APK/AAB, release-vital
   lint, R8, and the optimized benchmark build also passed.
 - Every confirmed gap in this execution inventory is implemented and linked to
-  regression evidence. No unresolved P0/P1 remains in this run. Physical-device
-  release remains an explicit user action and was not performed.
+  regression evidence. No unresolved P0/P1 remains in this run. Release
+  0.3.37/code 43 was installed and smoke-verified on the physical phone on
+  2026-09-03; its explicit destructive fresh-start action remains for the user
+  to confirm on-device.
 
 ## Definition of done
 

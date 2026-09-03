@@ -593,3 +593,15 @@
 - Scope: Complete frozen-candidate automated verification on the disposable API 34 emulator plus release/minification/benchmark builds. No physical-device installation or live-phone inspection was performed.
 - Related: `VER-20260902-027`, `VER-20260902-028`, `VER-20260902-029`, `VER-20260902-030`, and `UI_UX_REMEDIATION_PLAN.md`.
 - Status: Complete automated candidate gate passed; physical release awaits an explicit user request.
+
+### VER-20260903-001 — Whip 0.3.37 schema-43 physical release
+
+- Endpoint preflight identified `192.168.2.187:44401` as a physical Samsung SM-F976W on API 37 (`ro.boot.qemu` empty), distinct from the connected disposable emulator. Before deployment it held Whip 0.3.35/code 41 with `firstInstallTime=2026-08-26 17:59:24`.
+- `WHIP_DEVICE=192.168.2.187:44401 scripts/device release-deploy` reran `scripts/check --full` successfully, including Play assets, 581 JVM tests, debug/Android-test compilation, lint, deterministic coverage, release-vital lint, R8, signed APK/AAB, and optimized benchmark assembly.
+- The release-key build produced APK SHA-256 `175c7453b6a3362ebf72f3d2aa7528c644e2e64c1df60bb8f9317ce441e137e6` and AAB SHA-256 `3a5845004839c614025393c374470b70c71f43b8aef75a037028b95eb3088b49`. `apksigner` verified APK Signature Scheme v2, exactly one signer, and certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`.
+- `adb install -r` returned `Success`. Android reports version 0.3.37/code 43, installed base APK hash exactly matches the local release APK, and the original `firstInstallTime` remains `2026-08-26 17:59:24`.
+- A forced cold launch completed in 81 ms, made `commvne.com.whip.app/com.whip.app.MainActivity` the top resumed activity, and left a live process. Its PID-scoped log scan found no `FATAL EXCEPTION`, `AndroidRuntime`, Room/SQLite exception, or activity-start failure.
+- The permitted debug-artifact path `/storage/emulated/0/whip-debug/ui/release-schema43-launch.xml` confirms the visible release state says “Whip needs a fresh start,” explains the permanent local-data impact, and exposes “Erase all Whip data”. That destructive action was not pressed.
+- Source/release ledger: `origin/main` at `614ab10`; production candidate through `25eeac3`.
+- Related: `FB-20260903-001`, `DEC-20260903-001`, `IMP-20260903-001`, `VER-20260902-031`.
+- Status: Signed physical release installed and smoke-verified; explicit on-device data erasure awaits the user.
