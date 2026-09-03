@@ -401,3 +401,13 @@
 - Counts: Current baseline is 1,467 product tests—552 JVM and 915 Android—plus 9 Macrobenchmark/Baseline Profile scenarios.
 - Related: `FND-20260902-010`, `DEC-20260902-011`, `IMP-20260902-012`.
 - Status: Fully verified for this coherent Machine-deletion chunk.
+
+### VER-20260902-013 — VERA-Codex global and repository configuration verification
+
+- Scope/environment: Windows Codex home `/mnt/c/Users/commv/.codex`; trusted Whip repository `/root/repos/whip`; Codex CLI `0.146.0-alpha.9.2`; global/project configuration layering; five custom role files; model catalog; bounded routing instructions; preservation of existing integrations and Whip's conventional-development override.
+- Codex-native validation: `codex doctor --summary --no-color` loaded the layered configuration and reported 17 healthy checks, 1 expected idle app-server check, 2 informational environment notes, and zero warnings/failures. `codex debug models` confirmed `gpt-5.6-luna`, `gpt-5.6-terra`, and `gpt-5.6-sol` are available.
+- Structural validation: Python's standard-library `tomllib` parsed the project `config.toml` and all five agent TOML files. Every project agent file and `routing-policy.yaml` are byte-for-byte identical to the installed global counterparts. `git diff --check` passed.
+- Official contract check: Current Codex documentation confirms trusted projects load `.codex/config.toml`; personal/project custom agents live in `~/.codex/agents/` and `.codex/agents/`; the chosen `[agents]` keys are documented; and nearer project `AGENTS.md` guidance overrides global guidance. This supports the deliberate Whip no-unrequested-delegation override.
+- Compatibility/exclusions: The supplied standalone YAML policy is declarative guidance rather than a Codex-native schema, so exact file parity and instruction review—not a nonexistent Codex YAML validator—are the validation boundary. No agent was spawned, no application/test/build/device behavior changed, and the current already-running session did not change models.
+- Related: `FB-20260902-001`, `FB-20260902-002`, `DEC-20260902-012`, `IMP-20260902-013`.
+- Status: Structurally verified; new Codex sessions inherit Terra/medium defaults and the applicable global/project instruction chain.

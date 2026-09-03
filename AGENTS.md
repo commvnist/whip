@@ -1,5 +1,13 @@
 # Whip workspace instructions
 
+## VERA-Codex routing
+
+- The repository carries the VERA-Codex model roles and routing policy in `.codex/` and `routing-policy.yaml` so explicitly requested agent work is bounded, evidence-driven, and stops when its required checks pass.
+- Whip's conventional-development preference overrides VERA's default delegation suggestions: do not spawn subagents, panels, debates, or recursive review loops unless the user explicitly requests delegation or multi-agent work.
+- When delegation is explicitly requested, keep trivial work in the parent; use `luna_scout` only for bounded read-only discovery, `terra_builder` for ordinary localized implementation, `terra_reviewer` for an independent medium-risk review, and Sol roles only for the high-risk gates named in `routing-policy.yaml`.
+- Spawn at most three non-overlapping agents, serialize overlapping edits, allow at most one same-tier repair, require compact evidence capsules, and stop after the stated deterministic checks and risk-appropriate review pass.
+- This policy does not broaden authority for destructive, production, credential, deployment, or physical-device actions.
+
 ## Durable product memory
 
 - For every non-trivial Whip investigation, user-feedback item, design decision, implementation, bug fix, migration, QA campaign, or release, use the personal `$maintain-whip-memory` skill when available.

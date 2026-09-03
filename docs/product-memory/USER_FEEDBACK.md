@@ -106,3 +106,11 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: One primary developer verifies the problem, implements the smallest coherent fix, adds proportionate tests, exercises affected UI, records concise durable facts, commits and pushes the chunk, and moves on. Subagents or specialist reviews are used only when the user explicitly requests them.
 - Related: `DEC-20260902-001`, `MAXIMUM_QUALITY_GOAL.md`
 - Status: Implemented in the active working protocol on 2026-09-02.
+
+### FB-20260902-002 — Install VERA-Codex globally and inside Whip
+
+- User need: Install the provided VERA-Codex agent system in the global Codex configuration and in the Whip repository.
+- Acceptance criteria: Preserve existing global integrations and project trust; install the Luna/Terra/Sol role definitions and bounded routing policy in both scopes; keep Whip's explicit conventional-development/no-unrequested-subagents preference; validate configuration loading and model availability; commit and push the repository layer separately.
+- Source: `/mnt/c/Users/commv/Documents/Codex/2026-09-02/i-wa/outputs/vera-codex.tar.gz`.
+- Related: `DEC-20260902-012`, `IMP-20260902-013`, `VER-20260902-013`.
+- Status: Implemented and structurally verified on 2026-09-02.

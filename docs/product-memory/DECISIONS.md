@@ -410,3 +410,12 @@
 - Compatibility: No Room schema, migration, backup-format, completed-set, workout snapshot, Exercise, or Routine identity change. Only the reviewed Machine profile is removed; existing affected routines retain identity and are marked for repair.
 - Related: `FND-20260902-010`, `IMP-20260902-012`, `VER-20260902-012`.
 - Status: Accepted, implemented, and fully verified.
+
+### DEC-20260902-012 — Adopt bounded VERA routing without restoring recursive Whip process
+
+- Context: The provided VERA bundle defines cheap-first Luna/Terra/Sol routing, explicit risk gates, bounded retries, and deterministic stopping. The user separately directed Whip back to a conventional primary-developer process with no recursive panels or unrequested subagents.
+- Decision: Install VERA globally and in Whip, including all five roles, a three-agent cap, one same-tier repair, deterministic verification order, and selective Sol escalation. Global defaults become Terra/medium for new sessions. Whip retains a repository-level override: roles are available, but delegation occurs only when the user explicitly requests it. Preserve all existing global notify, MCP, plugin, trust, desktop, approval, and sandbox settings.
+- Rationale: This makes the requested agent system available and reproducible while honoring the more specific Whip workflow preference and preventing the unbounded debate/retry behavior the user rejected.
+- Compatibility: No application source, build, persistence, user data, release artifact, or device state changes. The current already-running Codex session keeps its existing model; new sessions load the new defaults.
+- Related: `FB-20260902-001`, `FB-20260902-002`, `IMP-20260902-013`, `VER-20260902-013`.
+- Status: Accepted and implemented.

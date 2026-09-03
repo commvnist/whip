@@ -382,3 +382,13 @@
 - Related: `FND-20260902-010`, `DEC-20260902-011`.
 - Verification: `VER-20260902-012`.
 - Status: Implemented and fully verified; physical release remains deferred at user-directed mission closeout.
+
+### IMP-20260902-013 — VERA-Codex global and Whip routing installation
+
+- Installed the five provided Luna/Terra/Sol role definitions, bounded routing policy, Terra/medium primary default, Luna default subagent, three-agent cap, and interrupt behavior in the Windows Codex home at `/mnt/c/Users/commv/.codex`.
+- Merged VERA guidance into the existing global `AGENTS.md` while preserving the ATIS-specific policy and every unrelated global configuration section.
+- Added the matching repository-owned `.codex/config.toml`, five `.codex/agents/*.toml` definitions, `routing-policy.yaml`, and a concise Whip policy section. The Whip section explicitly preserves `FB-20260902-001`: no agents or recursive review unless the user requests them.
+- Compatibility: Configuration/instructions only. No Whip application code, schema, data, build output, device state, or release artifact changed.
+- Related: `FB-20260902-002`, `DEC-20260902-012`.
+- Verification: `VER-20260902-013`.
+- Status: Implemented and structurally verified.

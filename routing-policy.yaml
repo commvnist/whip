@@ -1,0 +1,92 @@
+version: 1
+name: vera-codex
+purpose: "Verified cheap-first routing with selective premium escalation"
+
+defaults:
+  orchestrator:
+    model: gpt-5.6-terra
+    reasoning_effort: medium
+  max_parallel_subagents: 3
+  max_same_tier_repairs: 1
+  evidence_capsule_max_words: 250
+  stop_when_required_checks_pass: true
+
+tiers:
+  support:
+    model: gpt-5.6-luna
+    reasoning_effort: medium
+    allowed_work: [bounded_read_only_search, symbol_mapping, documentation_extraction, log_reduction, status_summarization]
+  standard:
+    model: gpt-5.6-terra
+    reasoning_effort: medium
+    allowed_work: [localized_bug_fix, test_generation, routine_refactor, ordinary_multi_file_change]
+  standard_review:
+    model: gpt-5.6-terra
+    reasoning_effort: high
+    allowed_work: [medium_risk_review, conflicting_evidence_review]
+  premium:
+    model: gpt-5.6-sol
+    reasoning_effort: xhigh
+    allowed_work: [high_risk_architecture, high_risk_implementation, critical_final_review, recovery_after_lower_tier_failure]
+
+hard_premium_gates:
+  any_of:
+    - security_boundary_change
+    - authentication_or_authorization
+    - secrets_or_cryptography
+    - schema_or_data_migration
+    - destructive_or_irreversible_operation
+    - deployment_or_billing_control
+    - public_api_or_protocol_compatibility
+    - concurrency_or_distributed_state
+    - three_or_more_tightly_coupled_subsystems
+    - conflicting_requirements
+    - missing_reproduction_and_weak_verification
+    - two_material_lower_tier_failures
+  required_stages: [premium_read_only_plan, deterministic_verification, independent_premium_final_review]
+
+routing_rules:
+  - when: "trivial and delegation_overhead_exceeds_work"
+    route: direct_parent
+  - when: "read_only and bounded and independent"
+    route: support
+  - when: "mechanical_change and strong_deterministic_oracle"
+    route: support_or_standard
+  - when: "localized_change and risk in [low, medium]"
+    route: standard
+  - when: "risk == medium and checks_pass"
+    route: standard_review
+  - when: "hard_premium_gate"
+    route: premium
+  - when: "same_tier_material_failures > 1"
+    action: escalate_one_tier_with_fresh_failure_capsule
+
+parallelism:
+  allow: [non_overlapping_read_only_questions, independent_test_or_build_jobs, file_disjoint_writes_with_stable_interfaces]
+  deny: [overlapping_file_ownership, duplicate_uncertainty_search, write_branches_with_shared_mutable_state]
+  cancel_duplicate_work_when_evidence_sufficient: true
+
+verification_order:
+  - reproduce_failure_or_define_observable
+  - targeted_tests
+  - type_lint_build_for_affected_scope
+  - regression_or_contract_tests
+  - diff_scope_and_generated_artifact_check
+  - risk_appropriate_independent_review
+
+initial_call_mix_hypothesis:
+  support_percent: "50-65"
+  standard_percent: "25-40"
+  premium_percent: "5-15"
+  note: "Not a quota; recalibrate from local outcomes and severity-weighted risk."
+
+promotion_targets:
+  overall_quality_noninferiority_margin_percentage_points: 1
+  high_or_critical_severity_weighted_failure_increase: 0
+  minimum_median_cost_reduction_percent: 30
+  minimum_median_latency_reduction_percent: 20
+  maximum_p95_latency_regression_percent: 10
+  note: "Proposed operating targets, not published universal constants."
+
+telemetry:
+  required_fields: [task_id, risk_class, subsystem, route, model, reasoning_effort, input_tokens, cached_input_tokens, output_and_reasoning_tokens, tool_runtime, wall_clock_latency, retry_count, checks_run, review_outcome, final_acceptance, escaped_defect_severity]
