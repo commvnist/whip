@@ -407,8 +407,8 @@
 
 - Advanced the Android release identity from `0.3.34`/40 to `0.3.35`/41 so the current source is distinguishable from the previously installed physical release.
 - Kept application ID `commvne.com.whip.app`, release signing configuration, Room schema, backup format, and user-data semantics unchanged.
-- Release installation remains pending the deterministic build/signing gate and a reachable, verified physical wireless-debugging endpoint.
+- Built the signed release APK/AAB after the complete deterministic gate, paired and connected the exact requested physical phone, and upgraded it in place with `adb install -r`. The app was cold-launched without clearing data or running physical-device instrumentation.
 - Important file: `app/build.gradle.kts`.
 - Related: `FB-20260902-005`, `DEC-20260902-014`.
-- Verification: Pending; do not interpret this implementation record as a successful build or installation.
-- Status: Implemented as release preparation; installation not yet complete.
+- Verification: `VER-20260902-016`.
+- Status: Released and verified on the physical phone.

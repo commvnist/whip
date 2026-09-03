@@ -135,4 +135,4 @@ These records preserve durable user intent. “Released” means the change reac
 - User need: Build, sign, and install the current `origin/main` Whip application on the phone exposed through Android wireless debugging at `192.168.2.187:42785`.
 - Acceptance criteria: Give the candidate a unique monotonically increasing release identity; run the complete deterministic release gate; verify package, signer, version, and artifact hash; upgrade with `adb install -r` without clearing user data; launch successfully; and confirm the installed artifact and preserved installation identity. Never run destructive instrumentation or write debug artifacts to unrestricted physical-device storage.
 - Related: `DEC-20260902-014`, `IMP-20260902-015`.
-- Status: In progress. Release candidate `0.3.35` (version code 41) is being prepared; the supplied wireless-debugging endpoint initially refused the connection, so no device mutation has occurred yet.
+- Status: Released and verified on the physical phone on 2026-09-02. See `VER-20260902-016`.

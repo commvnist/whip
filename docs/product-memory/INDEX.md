@@ -13,9 +13,8 @@ This is the canonical cross-session entry point for Whip product and engineering
 
 ## Current product snapshot
 
-- Latest device-verified release: **0.3.34 (version code 40)**, installed 2026-08-31 with existing data preserved. See `VER-20260831-002`.
-- Current release candidate: **0.3.35 (version code 41)**. It has a unique upgrade identity but is not device-verified until the release gate and physical installation complete. See `FB-20260902-005`, `DEC-20260902-014`, and `IMP-20260902-015`.
-- Signed release APK SHA-256: `7ddc4bfb209fef541530602420d8daa316f2e74c9b3d19f2c433f02624d7edfe`.
+- Latest device-verified release: **0.3.35 (version code 41)**, installed as an in-place upgrade on 2026-09-02 with Android installation identity preserved. See `VER-20260902-016`.
+- Signed and installed release APK SHA-256: `c2a5774ef5a07d62dcdad193d0ed9794c1960137c3f530be39c6afa996ed53aa`.
 - Released Gym/5/3/1 implementation and audit commit: `5fc98dd` on `origin/main`.
 - Declared test-source baseline: **1,467 product tests: 552 JVM and 915 Android**. The complete current baseline was freshly executed for `VER-20260902-012`; the most recent separate continuous E2E coverage campaign remains `VER-20260901-022`.
 - The latest Gym release includes arbitrary-lift 5/3/1 creation, explicit/derived Training Max controls inside and outside 5/3/1, performance-informed cycle review, workout-only exercise addition, contextual routine return, adaptive routine editing, timer-boundary correction, and additive Joker behavior.
