@@ -262,7 +262,44 @@ enum class RoutineSupplementalScheme {
 enum class RoutinePlacementKind {
     General,
     MainLift,
+    /** Programmed Supplemental work performed with a lift other than the day's Main lift. */
+    Supplemental,
     Assistance,
+}
+
+/**
+ * Assigns one execution day to each logical lift while covering as many scheduled days as
+ * possible. Unique lifts are fixed first; repeated lifts then fill uncovered days in schedule
+ * order. The result is deterministic and keeps once-per-lift protocol weeks from producing an
+ * avoidable empty day.
+ */
+fun balancedOncePerLiftDayOwners(exerciseIdsByDay: List<List<Long>>): Map<Long, Int> {
+    val occurrences = linkedMapOf<Long, MutableList<Int>>()
+    exerciseIdsByDay.forEachIndexed { dayIndex, exerciseIds ->
+        exerciseIds.distinct().forEach { exerciseId ->
+            occurrences.getOrPut(exerciseId) { mutableListOf() } += dayIndex
+        }
+    }
+    val owners = linkedMapOf<Long, Int>()
+    val occupiedDays = mutableSetOf<Int>()
+    occurrences.forEach { (exerciseId, days) ->
+        if (days.size == 1) {
+            owners[exerciseId] = days.single()
+            occupiedDays += days.single()
+        }
+    }
+    exerciseIdsByDay.indices.forEach { dayIndex ->
+        if (dayIndex !in occupiedDays) {
+            exerciseIdsByDay[dayIndex].firstOrNull { it !in owners }?.let { exerciseId ->
+                owners[exerciseId] = dayIndex
+                occupiedDays += dayIndex
+            }
+        }
+    }
+    occurrences.forEach { (exerciseId, days) ->
+        owners.putIfAbsent(exerciseId, days.first())
+    }
+    return owners
 }
 
 /**
@@ -284,7 +321,12 @@ enum class RoutineProgramTemplateKey {
     FiveThreeOneFourDay,
     FiveThreeOneBeginners,
     FiveThreeOneCustom,
+    FiveThreeOneForeverBbbLeaderAnchor,
+    FiveThreeOneForeverFslLeaderAnchor,
 }
+
+/** Template semantics from this revision execute 7th Week protocols once per logical lift. */
+const val FIVE_THREE_ONE_ONCE_PER_LIFT_PROTOCOL_REVISION = 2
 
 /**
  * Legacy combined field kept for deterministic backup/database compatibility. New authoring
@@ -324,6 +366,7 @@ fun legacyRoutineAssistanceRole(
     assistanceCategory: RoutineAssistanceCategory,
 ): RoutineAssistanceRole = when (placementKind) {
     RoutinePlacementKind.MainLift -> RoutineAssistanceRole.MainLift
+    RoutinePlacementKind.Supplemental -> RoutineAssistanceRole.Unspecified
     RoutinePlacementKind.General -> RoutineAssistanceRole.Unspecified
     RoutinePlacementKind.Assistance -> when (assistanceCategory) {
         RoutineAssistanceCategory.Push -> RoutineAssistanceRole.Push
@@ -354,6 +397,33 @@ enum class RoutineProgramPhaseRole {
     Deload,
     TrainingMaxTest,
     PersonalRecordTest,
+    /** Revision-2 7th Week phases whose repeated lift placements execute once per logical lift. */
+    OncePerLiftDeload,
+    OncePerLiftTrainingMaxTest,
+    OncePerLiftPersonalRecordTest,
+    ;
+
+    fun semanticRole(): RoutineProgramPhaseRole = when (this) {
+        OncePerLiftDeload -> Deload
+        OncePerLiftTrainingMaxTest -> TrainingMaxTest
+        OncePerLiftPersonalRecordTest -> PersonalRecordTest
+        else -> this
+    }
+
+    fun usesOncePerLiftProtocol(): Boolean = when (this) {
+        OncePerLiftDeload,
+        OncePerLiftTrainingMaxTest,
+        OncePerLiftPersonalRecordTest,
+        -> true
+        else -> false
+    }
+
+    fun asOncePerLiftProtocol(): RoutineProgramPhaseRole = when (semanticRole()) {
+        Deload -> OncePerLiftDeload
+        TrainingMaxTest -> OncePerLiftTrainingMaxTest
+        PersonalRecordTest -> OncePerLiftPersonalRecordTest
+        else -> this
+    }
 }
 
 data class RoutineProgramDraft(

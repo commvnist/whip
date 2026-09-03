@@ -197,6 +197,7 @@ class ActivityHistoryUiTest {
         compose.onNodeWithText("Saving sets this total; it does not add to it.", substring = true)
             .assertIsDisplayed()
         compose.onNodeWithTag("habit-value-input").performTextReplacement("3")
+        compose.onNodeWithTag("habit-value-input").assertTextContains("3")
         compose.onNodeWithText("Save").performClick()
 
         compose.runOnIdle { assertEquals(3.0, savedValue ?: -1.0, 0.0) }

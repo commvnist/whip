@@ -107,7 +107,7 @@ internal fun GymUiState.activeFiveThreeOneCycleReview(): FiveThreeOneCycleReview
         val evidence = buildList {
             workoutPlacementsByExercise[exerciseId].orEmpty().forEach { workoutExercise ->
                 val evidenceSession = sourceSessions[workoutExercise.sessionId] ?: return@forEach
-                if (evidenceSession.sourceRoutinePhaseRole == RoutineProgramPhaseRole.Deload) return@forEach
+                if (evidenceSession.sourceRoutinePhaseRole.semanticRole() == RoutineProgramPhaseRole.Deload) return@forEach
                 val snapshotTm = workoutExercise.trainingMaxValueSnapshot
                 if (snapshotTm == null || workoutExercise.trainingMaxUnitIdSnapshot != representative.trainingMaxUnitId ||
                     kotlin.math.abs(snapshotTm - currentTm) > 1e-9
@@ -117,7 +117,7 @@ internal fun GymUiState.activeFiveThreeOneCycleReview(): FiveThreeOneCycleReview
                         set.workSectionSnapshot == RoutineWorkSection.Optional &&
                             set.optionalWorkKindSnapshot.name == "Joker" -> FiveThreeOneEvidenceKind.Joker
                         set.workSectionSnapshot != RoutineWorkSection.Main -> return@forEach
-                        evidenceSession.sourceRoutinePhaseRole == RoutineProgramPhaseRole.TrainingMaxTest &&
+                        evidenceSession.sourceRoutinePhaseRole.semanticRole() == RoutineProgramPhaseRole.TrainingMaxTest &&
                             set.prescribedClassificationSnapshot == WorkoutSetClassification.TrainingMaxTest ->
                             FiveThreeOneEvidenceKind.TrainingMaxTest
                         set.prescribedClassificationSnapshot == WorkoutSetClassification.Amrap ->

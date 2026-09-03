@@ -57,6 +57,8 @@ import com.whip.app.domain.volumeKg
 import com.whip.app.domain.legacyRoutineAssistanceRole
 import com.whip.app.domain.toAssistanceCategory
 import com.whip.app.domain.toPlacementKind
+import com.whip.app.domain.balancedOncePerLiftDayOwners
+import com.whip.app.domain.FIVE_THREE_ONE_ONCE_PER_LIFT_PROTOCOL_REVISION
 import java.time.ZoneId
 import kotlin.math.round
 import kotlinx.coroutines.flow.Flow
@@ -381,6 +383,42 @@ class RoomRoutineRepository(
         val programKind = runCatching { RoutineProgramKind.valueOf(routine.programKind) }
             .getOrDefault(RoutineProgramKind.Static)
         val programmed = programKind != RoutineProgramKind.Static
+        val authoredProgramPhaseRole = routine.programPhaseRolesCsv.parseCsvStrings()
+            .getOrNull(routine.currentProgramPhaseIndex)
+            ?.let { runCatching { RoutineProgramPhaseRole.valueOf(it) }.getOrNull() }
+            ?: RoutineProgramPhaseRole.Standard
+        val activeProgramPhaseRole = authoredProgramPhaseRole.semanticRole()
+        val templateKey = runCatching { RoutineProgramTemplateKey.valueOf(routine.programTemplateKey) }
+            .getOrDefault(RoutineProgramTemplateKey.None)
+        val oncePerLiftProtocolPhase =
+            templateKey != RoutineProgramTemplateKey.None &&
+                routine.programTemplateRevision >= FIVE_THREE_ONE_ONCE_PER_LIFT_PROTOCOL_REVISION &&
+                authoredProgramPhaseRole.usesOncePerLiftProtocol()
+        val protocolOwnerDayIdByExerciseId = if (programmed && oncePerLiftProtocolPhase) {
+            val mainExercisesByDay = days.map { day ->
+                dao.getExercises(day.id).filter { exercise ->
+                    exercise.placementKind == RoutinePlacementKind.MainLift.name ||
+                        exercise.assistanceRole == RoutineAssistanceRole.MainLift.name
+                }
+            }
+            val owners = balancedOncePerLiftDayOwners(
+                mainExercisesByDay.map { exercises -> exercises.map { it.exerciseId } },
+            ).mapValuesTo(mutableMapOf()) { (_, dayIndex) -> days[dayIndex].id }
+            if (activeProgramPhaseRole == RoutineProgramPhaseRole.TrainingMaxTest) {
+                mainExercisesByDay.forEachIndexed { dayIndex, exercises ->
+                    exercises.forEach { exercise ->
+                        if (dao.getSets(exercise.id).any { set ->
+                                set.routinePhaseIndex == routine.currentProgramPhaseIndex &&
+                                    set.classification == WorkoutSetClassification.TrainingMaxTest.name
+                            }
+                        ) owners[exercise.exerciseId] = days[dayIndex].id
+                    }
+                }
+            }
+            owners
+        } else {
+            emptyMap()
+        }
         val selectedDay = dayId?.let { selected -> days.firstOrNull { it.id == selected } }
             ?: days.getOrNull(if (programmed) routine.nextProgramDayPosition else 0)
             ?: error("Routine has no days")
@@ -432,10 +470,7 @@ class RoomRoutineRepository(
                 },
                 sourceRoutinePhaseLabel = routine.programPhaseLabelsCsv.parseCsvStrings()
                     .getOrNull(routine.currentProgramPhaseIndex).orEmpty(),
-                sourceRoutinePhaseRole = routine.programPhaseRolesCsv.parseCsvStrings()
-                    .getOrNull(routine.currentProgramPhaseIndex)
-                    ?.let { runCatching { RoutineProgramPhaseRole.valueOf(it) }.getOrNull() }
-                    ?.name ?: RoutineProgramPhaseRole.Standard.name,
+            sourceRoutinePhaseRole = activeProgramPhaseRole.name,
             ),
         )
         val validGroupKeys = routineExercises.mapNotNull { it.groupKey }
@@ -463,6 +498,20 @@ class RoomRoutineRepository(
             } else {
                 allPlanned.filter { it.routinePhaseIndex == null }
             }
+            val mainPlacement = routineExercise.placementKind == RoutinePlacementKind.MainLift.name ||
+                routineExercise.assistanceRole == RoutineAssistanceRole.MainLift.name
+            if (
+                oncePerLiftProtocolPhase && mainPlacement &&
+                protocolOwnerDayIdByExerciseId[routineExercise.exerciseId] != selectedDay.id
+            ) return@forEach
+            // Phase-scoped Main or Supplemental placements can intentionally have no work in
+            // this phase (for example an alternate BBB lift outside a Leader).
+            // Do not create an empty exercise card in the active workout.
+            if (programmed && planned.isEmpty() && routineExercise.placementKind in setOf(
+                    RoutinePlacementKind.MainLift.name,
+                    RoutinePlacementKind.Supplemental.name,
+                )
+            ) return@forEach
             val activePolicy = if (programmed) {
                 resolveActiveProgramPolicy(
                     baseMainWorkScheme = routineExercise.mainWorkScheme.toMainWorkScheme(),
@@ -1035,6 +1084,7 @@ private fun RoutineExerciseDraft.resolvedPlacementKind(): RoutinePlacementKind =
     placementKind != RoutinePlacementKind.General || assistanceCategory != RoutineAssistanceCategory.Unspecified -> placementKind
     assistanceRole != RoutineAssistanceRole.Unspecified -> assistanceRole.toPlacementKind()
     plannedSets.isNotEmpty() && plannedSets.all { it.workSection == RoutineWorkSection.Assistance } -> RoutinePlacementKind.Assistance
+    plannedSets.isNotEmpty() && plannedSets.all { it.workSection == RoutineWorkSection.Supplemental } -> RoutinePlacementKind.Supplemental
     plannedSets.any { it.workSection == RoutineWorkSection.Main } -> RoutinePlacementKind.MainLift
     else -> RoutinePlacementKind.General
 }
@@ -1081,7 +1131,7 @@ private fun validateRoutine(draft: RoutineDraft) {
         fiveThreeOneProgram && program.progressionMode == RoutineProgressionMode.PerformanceInformed
     ) { "Higher Training Max alternatives require performance-informed 5/3/1 review" }
     val phasesThatDisallowJokers = (0 until program.phaseCount).filterTo(mutableSetOf()) { phase ->
-        program.phaseRoles.getOrNull(phase) in setOf(
+        program.phaseRoles.getOrNull(phase)?.semanticRole() in setOf(
             RoutineProgramPhaseRole.Deload,
             RoutineProgramPhaseRole.TrainingMaxTest,
             RoutineProgramPhaseRole.PersonalRecordTest,
@@ -1098,6 +1148,9 @@ private fun validateRoutine(draft: RoutineDraft) {
             RoutinePlacementKind.MainLift -> require(exercise.plannedSets.none {
                 it.workSection in setOf(RoutineWorkSection.Assistance, RoutineWorkSection.Unspecified)
             }) { "Main-lift placements may only contain Main, Supplemental, or Optional work" }
+            RoutinePlacementKind.Supplemental -> require(exercise.plannedSets.all {
+                it.workSection == RoutineWorkSection.Supplemental
+            }) { "Supplemental placements may only contain Supplemental work" }
             RoutinePlacementKind.Assistance -> require(exercise.plannedSets.all {
                 it.workSection == RoutineWorkSection.Assistance
             }) { "Assistance placements may only contain Assistance work" }
@@ -1144,7 +1197,10 @@ private fun validateRoutine(draft: RoutineDraft) {
                 val phase = requireNotNull(set.routinePhaseIndex) {
                     "Training Max test sets must belong to one explicit program phase"
                 }
-                require(fiveThreeOneProgram && program.phaseRoles.getOrNull(phase) == RoutineProgramPhaseRole.TrainingMaxTest) {
+                require(
+                    fiveThreeOneProgram &&
+                        program.phaseRoles.getOrNull(phase)?.semanticRole() == RoutineProgramPhaseRole.TrainingMaxTest,
+                ) {
                     "Training Max test sets are only allowed in a 5/3/1 Training Max Test phase"
                 }
                 require(set.workSection == RoutineWorkSection.Main &&
@@ -1189,7 +1245,7 @@ private fun validateRoutine(draft: RoutineDraft) {
             .filter { it.resolvedPlacementKind() == RoutinePlacementKind.MainLift }
             .groupBy(RoutineExerciseDraft::exerciseId)
         program.phaseRoles.forEachIndexed { phaseIndex, role ->
-            if (role == RoutineProgramPhaseRole.TrainingMaxTest) {
+            if (role.semanticRole() == RoutineProgramPhaseRole.TrainingMaxTest) {
                 mainPlacementsByLift.forEach { (_, placements) ->
                     require(placements.sumOf { placement ->
                         placement.plannedSets.count { set ->
@@ -1351,6 +1407,24 @@ private fun validateFiveThreeOnePhasePolicy(
             }
         }
         RoutineSupplementalScheme.Custom -> Unit
+    }
+    val jokers = activeSets.filter {
+        it.workSection == RoutineWorkSection.Optional && it.optionalWorkKind == RoutineOptionalWorkKind.Joker
+    }
+    require(jokers.size <= 3) { "A 5/3/1 phase may contain at most three Joker candidates" }
+    // Legacy routines could store one arbitrary Joker candidate. Preserve those edits; the new
+    // ordered-step invariant applies only when the user opts into an actual ladder.
+    if (jokers.size > 1) {
+        val topMain = requireNotNull(mainSets.lastOrNull()?.loadPercentage) {
+            "Joker candidates require programmed Main work in $phaseLabel"
+        }
+        val percentages = jokers.map { joker ->
+            requireNotNull(joker.loadPercentage) { "Joker candidates require a Training Max percentage" }
+        }
+        val steps = (listOf(topMain) + percentages).zipWithNext { previous, next -> next - previous }
+        require(steps.all { step -> kotlin.math.abs(step - steps.first()) <= 1e-9 } &&
+            steps.first().let { step -> kotlin.math.abs(step - 5.0) <= 1e-9 || kotlin.math.abs(step - 10.0) <= 1e-9 }
+        ) { "Joker candidates must form ordered 5% or 10% Training Max steps in $phaseLabel" }
     }
 }
 

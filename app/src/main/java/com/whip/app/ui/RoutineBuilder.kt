@@ -97,6 +97,8 @@ import com.whip.app.domain.RoutineWorkSection
 import com.whip.app.domain.WorkoutSession
 import com.whip.app.domain.WorkoutSetClassification
 import com.whip.app.domain.WorkoutSetDraft
+import com.whip.app.domain.balancedOncePerLiftDayOwners
+import com.whip.app.domain.FIVE_THREE_ONE_ONCE_PER_LIFT_PROTOCOL_REVISION
 import com.whip.app.domain.convertPracticalMassValue
 import com.whip.app.domain.editableNumericValue
 import com.whip.app.domain.massFromKilograms
@@ -819,19 +821,9 @@ internal fun RoutineBuilderScreen(
             standardLiftCreationInFlight = standardLiftCreationInFlight,
             standardLiftCreationError = standardLiftCreationError,
             onCreateMissingStandardLifts = ::createMissingStandardLifts,
-            onApply = { layout, lifts, mainScheme, supplement, joker, classicFinalSetAmrap, bbbPercent, progressionMode ->
+            onApply = { request ->
                 stateHolder.update { current ->
-                    buildFiveThreeOneProgramState(
-                        current,
-                        layout,
-                        lifts,
-                        mainScheme,
-                        supplement,
-                        joker,
-                        classicFinalSetAmrap,
-                        bbbPercent,
-                        progressionMode,
-                    )
+                    buildFiveThreeOneProgramState(current, request)
                 }
                 showFiveThreeOneProgramSetup = false
             },
@@ -921,16 +913,7 @@ private fun FiveThreeOneProgramSetupDialog(
     standardLiftCreationInFlight: Boolean,
     standardLiftCreationError: String?,
     onCreateMissingStandardLifts: () -> Unit,
-    onApply: (
-        FiveThreeOneProgramLayout,
-        List<FiveThreeOneProgramLift>,
-        FiveThreeOneMainScheme,
-        FiveThreeOneSupplement,
-        Boolean,
-        Boolean,
-        Double,
-        RoutineProgressionMode,
-    ) -> Unit,
+    onApply: (FiveThreeOneProgramRequest) -> Unit,
 ) {
     val eligible = exercises.filter { it.trackingType == ExerciseTrackingType.WeightReps }
     val roles = FiveThreeOneLiftRole.entries
@@ -969,14 +952,31 @@ private fun FiveThreeOneProgramSetupDialog(
         })
     }
     var layoutName by rememberSaveable { mutableStateOf(FiveThreeOneProgramLayout.FourDay.name) }
+    var planName by rememberSaveable { mutableStateOf(FiveThreeOneProgramPlan.SingleCycle.name) }
+    var closingProtocolName by rememberSaveable { mutableStateOf(FiveThreeOneSeventhWeekProtocol.Deload.name) }
     var mainSchemeName by rememberSaveable { mutableStateOf(FiveThreeOneMainScheme.Classic.name) }
     var supplementName by rememberSaveable { mutableStateOf(FiveThreeOneSupplement.FirstSetLast.name) }
     var classicFinalSetAmrap by rememberSaveable { mutableStateOf(true) }
     var boringButBigPercentText by rememberSaveable { mutableStateOf("50") }
     var previewPhaseName by rememberSaveable { mutableStateOf(FiveThreeOnePhase.Fives.name) }
-    var jokerEnabled by rememberSaveable { mutableStateOf(false) }
+    var jokerCount by rememberSaveable { mutableStateOf(0) }
+    var jokerStepPercent by rememberSaveable { mutableStateOf(5) }
+    var bbbTargetIds by rememberSaveable { mutableStateOf(initialIds) }
+    var automaticAssistanceEnabled by rememberSaveable { mutableStateOf(true) }
+    var assistanceExerciseIds by rememberSaveable { mutableStateOf(List(3) { 0L }) }
+    var manuallyChangedAssistanceIndices by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) }
     var progressionModeName by rememberSaveable { mutableStateOf(RoutineProgressionMode.Standard.name) }
     val layout = FiveThreeOneProgramLayout.valueOf(layoutName)
+    val plan = FiveThreeOneProgramPlan.valueOf(planName)
+    val closingProtocol = FiveThreeOneSeventhWeekProtocol.valueOf(closingProtocolName)
+    LaunchedEffect(plan) {
+        if (plan != FiveThreeOneProgramPlan.SingleCycle && layoutName == FiveThreeOneProgramLayout.Beginners.name) {
+            layoutName = FiveThreeOneProgramLayout.FourDay.name
+        }
+        if (plan != FiveThreeOneProgramPlan.SingleCycle && closingProtocolName == FiveThreeOneSeventhWeekProtocol.Deload.name) {
+            closingProtocolName = FiveThreeOneSeventhWeekProtocol.TrainingMaxTest.name
+        }
+    }
     LaunchedEffect(eligible.map(Exercise::id), layout) {
         val previousIds = exerciseIds
         val eligibleIds = eligible.map(Exercise::id).toSet()
@@ -1019,6 +1019,9 @@ private fun FiveThreeOneProgramSetupDialog(
                 )
             }
         }
+        bbbTargetIds = List(count) { index ->
+            bbbTargetIds.getOrNull(index)?.takeIf { it in reconciledIds } ?: reconciledIds.getOrElse(index) { 0L }
+        }
         exerciseIds = reconciledIds
     }
     LaunchedEffect(exerciseIds, personalRecords) {
@@ -1048,11 +1051,20 @@ private fun FiveThreeOneProgramSetupDialog(
             }
         }
     }
-    val mainScheme = FiveThreeOneMainScheme.valueOf(mainSchemeName)
-    val supplement = if (layout == FiveThreeOneProgramLayout.Beginners) {
-        FiveThreeOneSupplement.FirstSetLast
-    } else {
-        FiveThreeOneSupplement.valueOf(supplementName)
+    val mainScheme = when (plan) {
+        FiveThreeOneProgramPlan.SingleCycle -> FiveThreeOneMainScheme.valueOf(mainSchemeName)
+        FiveThreeOneProgramPlan.ForeverBbbLeaderAnchor,
+        FiveThreeOneProgramPlan.ForeverFslLeaderAnchor,
+        -> FiveThreeOneMainScheme.FivesPro
+    }
+    val supplement = when (plan) {
+        FiveThreeOneProgramPlan.ForeverBbbLeaderAnchor -> FiveThreeOneSupplement.BoringButBig
+        FiveThreeOneProgramPlan.ForeverFslLeaderAnchor -> FiveThreeOneSupplement.FirstSetLast
+        FiveThreeOneProgramPlan.SingleCycle -> if (layout == FiveThreeOneProgramLayout.Beginners) {
+            FiveThreeOneSupplement.FirstSetLast
+        } else {
+            FiveThreeOneSupplement.valueOf(supplementName)
+        }
     }
     val boringButBigPercent = boringButBigPercentText.toWhipDoubleOrNull()
     val previewPhase = FiveThreeOnePhase.valueOf(previewPhaseName)
@@ -1090,7 +1102,58 @@ private fun FiveThreeOneProgramSetupDialog(
             }.orEmpty(),
         )
     }
+    val assistanceCategories = listOf(
+        RoutineAssistanceCategory.Push,
+        RoutineAssistanceCategory.Pull,
+        RoutineAssistanceCategory.SingleLegCore,
+    )
+    val assistanceSuggestions = suggestFiveThreeOneAssistance(
+        exercises = exercises,
+        excludedExerciseIds = exerciseIds.toSet(),
+    )
+    val compatibleAssistanceExercises = exercises.filter {
+        it.isFiveThreeOneAssistanceCompatible(exerciseIds.toSet())
+    }
+    LaunchedEffect(
+        automaticAssistanceEnabled,
+        exerciseIds,
+        assistanceSuggestions.mapValues { (_, candidates) -> candidates.map(Exercise::id) },
+    ) {
+        if (!automaticAssistanceEnabled) return@LaunchedEffect
+        val used = mutableSetOf<Long>()
+        assistanceExerciseIds = assistanceCategories.mapIndexed { index, category ->
+            val candidates = assistanceSuggestions[category].orEmpty().filter { it.id !in used }
+            val selected = assistanceExerciseIds.getOrNull(index) ?: 0L
+            val resolved = when {
+                index in manuallyChangedAssistanceIndices && selected == 0L -> 0L
+                selected in candidates.map(Exercise::id) -> selected
+                else -> candidates.firstOrNull()?.id ?: 0L
+            }
+            if (resolved > 0L) used += resolved
+            resolved
+        }
+    }
+    val assistanceChoices = if (automaticAssistanceEnabled) {
+        assistanceCategories.mapIndexedNotNull { index, category ->
+            exercises.firstOrNull { it.id == assistanceExerciseIds.getOrNull(index) }?.let { exercise ->
+                FiveThreeOneAssistanceChoice(category, exercise.id, exercise.name)
+            }
+        }
+    } else {
+        emptyList()
+    }
     val requiredLiftCount = if (layout == FiveThreeOneProgramLayout.Custom) exerciseIds.size else roles.size
+    val bbbLiftByMainExerciseId = if (
+        supplement == FiveThreeOneSupplement.BoringButBig && layout != FiveThreeOneProgramLayout.Beginners
+    ) {
+        exerciseIds.mapIndexedNotNull { index, mainId ->
+            bbbTargetIds.getOrNull(index)?.takeIf { it in exerciseIds }?.let { targetId -> mainId to targetId }
+        }.toMap()
+    } else {
+        emptyMap()
+    }
+    val bbbMappingsValid = supplement != FiveThreeOneSupplement.BoringButBig ||
+        layout == FiveThreeOneProgramLayout.Beginners || bbbLiftByMainExerciseId.size == exerciseIds.size
     val standardSelectionsConfirmed = layout == FiveThreeOneProgramLayout.Custom ||
         exerciseIds.indices.all { index ->
             val selected = selectedExercises.getOrNull(index)
@@ -1113,6 +1176,7 @@ private fun FiveThreeOneProgramSetupDialog(
     val valid = requiredLiftCount > 0 && lifts.size == requiredLiftCount &&
         lifts.map(FiveThreeOneProgramLift::exerciseId).distinct().size == requiredLiftCount &&
         standardSelectionsConfirmed && everyDerivedTrainingMaxIsApplied &&
+        bbbMappingsValid &&
         lifts.all { it.trainingMax > 0.0 && it.cycleIncrement > 0.0 } &&
         (supplement != FiveThreeOneSupplement.BoringButBig ||
             boringButBigPercent?.let { it.isFinite() && it in 1.0..100.0 } == true)
@@ -1121,6 +1185,7 @@ private fun FiveThreeOneProgramSetupDialog(
         requiredLiftCount <= 0 || lifts.size != requiredLiftCount -> "Enter a Training Max and cycle increase above zero for every selected lift."
         lifts.map(FiveThreeOneProgramLift::exerciseId).distinct().size != requiredLiftCount -> "Choose each main lift only once."
         !standardSelectionsConfirmed -> "Confirm or replace every prefilled standard lift."
+        !bbbMappingsValid -> "Choose the BBB lift used after every Main lift."
         lifts.any { it.trainingMax <= 0.0 || it.cycleIncrement <= 0.0 } -> "Enter a Training Max and cycle increase above zero for every selected lift."
         supplement == FiveThreeOneSupplement.BoringButBig &&
             boringButBigPercent?.let { it.isFinite() && it in 1.0..100.0 } != true ->
@@ -1146,6 +1211,7 @@ private fun FiveThreeOneProgramSetupDialog(
         appliedTrainingMaxBasisKinds = appliedTrainingMaxBasisKinds.moved(fromIndex, toIndex)
         appliedDerivedTrainingMaxes = appliedDerivedTrainingMaxes.moved(fromIndex, toIndex)
         increments = increments.moved(fromIndex, toIndex)
+        bbbTargetIds = bbbTargetIds.moved(fromIndex, toIndex)
     }
 
     PaneAwareAlertDialog(
@@ -1156,7 +1222,7 @@ private fun FiveThreeOneProgramSetupDialog(
                 Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text("Choose a layout and enter an explicit Training Max for each main lift. A Training Max is not your actual or estimated 1RM; start around 80–85% of a strong recent max and err lighter.")
+                Text("Choose a program structure, then review its lifts, Training Maxes, optional work, assistance, and exact phase timeline before building.")
                 if (replacingExistingRoutine) {
                     Text(
                         "Building replaces this draft's current days with the complete program shown below. Nothing is persisted until you use the routine Save action.",
@@ -1165,8 +1231,34 @@ private fun FiveThreeOneProgramSetupDialog(
                         modifier = Modifier.testTag("five-three-one-program-replacement-warning"),
                     )
                 }
+                Text("1 · Program preset", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                FiveThreeOneProgramPlan.entries.forEach { choice ->
+                    OutlinedCard(
+                        onClick = { planName = choice.name },
+                        modifier = Modifier.fillMaxWidth().testTag("five-three-one-plan-${choice.name}"),
+                        colors = CardDefaults.outlinedCardColors(
+                            containerColor = if (plan == choice) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
+                        ),
+                    ) {
+                        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(choice.label, fontWeight = FontWeight.SemiBold)
+                            Text(choice.supportingText, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+                if (plan != FiveThreeOneProgramPlan.SingleCycle) {
+                    Text(
+                        "Book-guided editable structure. Whip shows every generated percentage; verify it against the edition and exact template you follow.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("five-three-one-book-guided-note"),
+                    )
+                }
+                Text("2 · Schedule and lifts", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FiveThreeOneProgramLayout.entries.forEach { choice ->
+                    FiveThreeOneProgramLayout.entries.filter { choice ->
+                        plan == FiveThreeOneProgramPlan.SingleCycle || choice != FiveThreeOneProgramLayout.Beginners
+                    }.forEach { choice ->
                         WhipFilterChip(layout == choice, { layoutName = choice.name }, { Text(choice.label) })
                     }
                 }
@@ -1252,6 +1344,12 @@ private fun FiveThreeOneProgramSetupDialog(
                                         appliedTrainingMaxBasisKinds = appliedTrainingMaxBasisKinds.filterIndexed { itemIndex, _ -> itemIndex != index }
                                         appliedDerivedTrainingMaxes = appliedDerivedTrainingMaxes.filterIndexed { itemIndex, _ -> itemIndex != index }
                                         increments = increments.filterIndexed { itemIndex, _ -> itemIndex != index }
+                                        val remainingExerciseIds = exerciseIds
+                                        bbbTargetIds = bbbTargetIds.filterIndexed { itemIndex, _ -> itemIndex != index }
+                                            .mapIndexed { remainingIndex, targetId ->
+                                                targetId.takeIf { it in remainingExerciseIds }
+                                                    ?: remainingExerciseIds.getOrElse(remainingIndex) { remainingExerciseIds.first() }
+                                            }
                                         manuallySelectedRoleIndices = emptyList()
                                     },
                                     modifier = Modifier
@@ -1542,13 +1640,22 @@ private fun FiveThreeOneProgramSetupDialog(
                             Text("Add another lift")
                         }
                     }
-                    Text("Main Work", style = MaterialTheme.typography.labelLarge)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        FiveThreeOneMainScheme.entries.forEach { choice ->
-                            WhipFilterChip(mainScheme == choice, { mainSchemeName = choice.name }, { Text(choice.label) })
+                    Text("3 · Programming", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    if (plan == FiveThreeOneProgramPlan.SingleCycle) {
+                        Text("Main Work", style = MaterialTheme.typography.labelLarge)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FiveThreeOneMainScheme.entries.forEach { choice ->
+                                WhipFilterChip(mainScheme == choice, { mainSchemeName = choice.name }, { Text(choice.label) })
+                            }
                         }
+                    } else {
+                        Text(
+                            "Leaders use 5s PRO without PR sets. The Anchor uses Classic Main work with PR sets and FSL.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.testTag("five-three-one-leader-anchor-policy"),
+                        )
                     }
-                    if (mainScheme == FiveThreeOneMainScheme.Classic) {
+                    if (plan == FiveThreeOneProgramPlan.SingleCycle && mainScheme == FiveThreeOneMainScheme.Classic) {
                         RoutineLabeledSwitchRow(
                             label = "Final main set is a PR set",
                             checked = classicFinalSetAmrap,
@@ -1560,39 +1667,198 @@ private fun FiveThreeOneProgramSetupDialog(
                             },
                             testTag = "five-three-one-program-pr-set",
                         )
-                    } else {
+                    } else if (plan == FiveThreeOneProgramPlan.SingleCycle) {
                         Text(
                             "5s PRO prescribes five reps for every Main set and no PR set.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    if (layout != FiveThreeOneProgramLayout.Beginners) {
+                    if (layout != FiveThreeOneProgramLayout.Beginners && plan == FiveThreeOneProgramPlan.SingleCycle) {
                         Text("Supplemental Work", style = MaterialTheme.typography.labelLarge)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             FiveThreeOneSupplement.entries.forEach { choice ->
                                 WhipFilterChip(supplement == choice, { supplementName = choice.name }, { Text(choice.label) })
                             }
                         }
-                        if (supplement == FiveThreeOneSupplement.BoringButBig) {
-                            OutlinedTextField(
-                                value = boringButBigPercentText,
-                                onValueChange = { boringButBigPercentText = it.numericInput().take(6) },
-                                label = { Text("BBB percentage of Training Max") },
-                                supportingText = { Text("Creates five sets of 10 at this percentage.") },
-                                isError = boringButBigPercent?.let { it !in 1.0..100.0 } != false,
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth().testTag("five-three-one-program-bbb-percent"),
+                    }
+                    if (supplement == FiveThreeOneSupplement.BoringButBig) {
+                        OutlinedTextField(
+                            value = boringButBigPercentText,
+                            onValueChange = { boringButBigPercentText = it.numericInput().take(6) },
+                            label = { Text("BBB percentage of Training Max") },
+                            supportingText = { Text("Creates five Supplemental sets of 10 at this percentage.") },
+                            isError = boringButBigPercent?.let { it !in 1.0..100.0 } != false,
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().testTag("five-three-one-program-bbb-percent"),
+                        )
+                        if (layout != FiveThreeOneProgramLayout.Beginners && lifts.isNotEmpty()) {
+                            Text("BBB lift mapping", style = MaterialTheme.typography.labelLarge)
+                            Text(
+                                "Use the Main lift again or choose another selected program lift. The alternate uses its own Training Max.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            lifts.forEachIndexed { index, mainLift ->
+                                val selectedTarget = lifts.firstOrNull { it.exerciseId == bbbTargetIds.getOrNull(index) }
+                                    ?: mainLift
+                                SelectionField(
+                                    label = "BBB after ${mainLift.exerciseName}",
+                                    values = lifts,
+                                    selected = selectedTarget,
+                                    valueText = { target ->
+                                        if (target.exerciseId == mainLift.exerciseId) "${target.exerciseName} · same lift"
+                                        else target.exerciseName
+                                    },
+                                    onSelect = { target ->
+                                        bbbTargetIds = List(exerciseIds.size) { slot ->
+                                            if (slot == index) target.exerciseId
+                                            else bbbTargetIds.getOrNull(slot)?.takeIf { it in exerciseIds } ?: exerciseIds[slot]
+                                        }
+                                    },
+                                    modifier = Modifier.testTag("five-three-one-bbb-lift-${mainLift.exerciseId}"),
+                                )
+                            }
+                        }
+                    }
+                    Text("7th Week protocol", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        if (plan == FiveThreeOneProgramPlan.SingleCycle) {
+                            "This closes the cycle."
+                        } else {
+                            "The Leader transition uses Deload. Choose the protocol that closes the full block."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    FiveThreeOneSeventhWeekProtocol.entries.forEach { protocol ->
+                        OutlinedCard(
+                            onClick = { closingProtocolName = protocol.name },
+                            modifier = Modifier.fillMaxWidth().testTag("five-three-one-protocol-${protocol.name}"),
+                            colors = CardDefaults.outlinedCardColors(
+                                containerColor = if (closingProtocol == protocol) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
+                            ),
+                        ) {
+                            Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(protocol.label, fontWeight = FontWeight.SemiBold)
+                                Text(protocol.supportingText, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                    Text("4 · Optional work", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Joker ladder", style = MaterialTheme.typography.labelLarge)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        (0..3).forEach { count ->
+                            WhipFilterChip(
+                                selected = jokerCount == count,
+                                onClick = { jokerCount = count },
+                                label = { Text(if (count == 0) "Off" else "$count ${if (count == 1) "set" else "sets"}") },
+                                modifier = Modifier.testTag("five-three-one-joker-count-$count"),
                             )
                         }
                     }
+                    if (jokerCount > 0) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf(5, 10).forEach { step ->
+                                WhipFilterChip(
+                                    selected = jokerStepPercent == step,
+                                    onClick = { jokerStepPercent = step },
+                                    label = { Text("+$step% TM steps") },
+                                    modifier = Modifier.testTag("five-three-one-joker-step-$step"),
+                                )
+                            }
+                        }
+                        Text(
+                            "Each candidate is optional. Whip offers the next only after successful prerequisite work; a skip, failed target, RPE 9+, or RIR 1 or lower ends the ladder. Supplemental work remains afterward.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text("5 · Assistance", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     RoutineLabeledSwitchRow(
-                        label = "Offer an optional Joker set",
-                        checked = jokerEnabled,
-                        onCheckedChange = { jokerEnabled = it },
-                        supportingText = "Creates one optional starting candidate after main work. Use it only when readiness and bar speed justify it; it never blocks the workout.",
+                        label = "Build a balanced assistance draft",
+                        checked = automaticAssistanceEnabled,
+                        onCheckedChange = { automaticAssistanceEnabled = it },
+                        supportingText = "Uses compatible exercises already in your Library. Nothing is created silently, and every choice remains editable.",
+                        testTag = "five-three-one-assistance-enabled",
                     )
+                    if (automaticAssistanceEnabled) {
+                        val perCategoryTarget = if (layout == FiveThreeOneProgramLayout.Beginners) "5 × 10 · 50 reps" else "3 × 10 · 30 reps"
+                        assistanceCategories.forEachIndexed { index, category ->
+                            val categoryLabel = when (category) {
+                                RoutineAssistanceCategory.Push -> "Push"
+                                RoutineAssistanceCategory.Pull -> "Pull"
+                                RoutineAssistanceCategory.SingleLegCore -> "Single-leg / Core"
+                                else -> "Assistance"
+                            }
+                            val selectedId = assistanceExerciseIds.getOrNull(index) ?: 0L
+                            val rankedCandidates = assistanceSuggestions[category].orEmpty() +
+                                compatibleAssistanceExercises.filterNot { candidate ->
+                                    assistanceSuggestions[category].orEmpty().any { it.id == candidate.id }
+                                }
+                            val candidates = rankedCandidates.filter { candidate ->
+                                candidate.id == selectedId || candidate.id !in assistanceExerciseIds.filterIndexed { otherIndex, _ -> otherIndex != index }
+                            }
+                            val selected = candidates.firstOrNull { it.id == selectedId }
+                            Text("$categoryLabel · $perCategoryTarget", style = MaterialTheme.typography.labelLarge)
+                            if (selected != null) {
+                                SelectionField(
+                                    label = "$categoryLabel exercise",
+                                    values = candidates,
+                                    selected = selected,
+                                    valueText = Exercise::name,
+                                    onSelect = { exercise ->
+                                        assistanceExerciseIds = assistanceExerciseIds.toMutableList().also { it[index] = exercise.id }
+                                        manuallyChangedAssistanceIndices = (manuallyChangedAssistanceIndices + index).distinct()
+                                    },
+                                    modifier = Modifier.testTag("five-three-one-assistance-${category.name}"),
+                                )
+                                WhipTextButton(
+                                    onClick = {
+                                        assistanceExerciseIds = assistanceExerciseIds.toMutableList().also { it[index] = 0L }
+                                        manuallyChangedAssistanceIndices = (manuallyChangedAssistanceIndices + index).distinct()
+                                    },
+                                    modifier = Modifier.testTag("five-three-one-assistance-omit-${category.name}"),
+                                ) { Text("Omit $categoryLabel") }
+                            } else {
+                                Text(
+                                    if (candidates.isEmpty()) "No compatible active rep-based Library exercise is available. Add this category later in the routine editor."
+                                    else "$categoryLabel is omitted. Choose any compatible Library exercise or leave it out.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                candidates.firstOrNull()?.let { candidate ->
+                                    WhipOutlinedButton(
+                                        onClick = {
+                                            assistanceExerciseIds = assistanceExerciseIds.toMutableList().also { it[index] = candidate.id }
+                                            manuallyChangedAssistanceIndices = manuallyChangedAssistanceIndices.filterNot { it == index }
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) { Text("Use ${candidate.name}") }
+                                }
+                            }
+                        }
+                    }
                     HorizontalDivider()
+                    Text("6 · Review", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (plan == FiveThreeOneProgramPlan.SingleCycle) {
+                            "4 weeks · 5s → 3s → 5/3/1 → ${closingProtocol.label}"
+                        } else {
+                            "11 weeks · Leader 1 (3) → Leader 2 (3) → Deload → Anchor (3) → ${closingProtocol.label}"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.testTag("five-three-one-program-timeline"),
+                    )
+                    if (assistanceChoices.isNotEmpty()) {
+                        Text(
+                            "Assistance · " + assistanceChoices.joinToString(" · ") { choice ->
+                                "${choice.category.fiveThreeOneUiLabel()}: ${choice.exerciseName}"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                     Text("Rounded working-load review", style = MaterialTheme.typography.labelLarge)
                     Text(
                         "Inspect any week before building. Loads round to each exercise's configured increment.",
@@ -1619,7 +1885,9 @@ private fun FiveThreeOneProgramSetupDialog(
                             } else supplement,
                             classicFinalSetAmrap = classicFinalSetAmrap,
                             boringButBigPercent = boringButBigPercent ?: 50.0,
-                            jokerSetsEnabled = jokerEnabled,
+                            jokerSetsEnabled = jokerCount > 0 && plan == FiveThreeOneProgramPlan.SingleCycle,
+                            jokerSetCount = if (plan == FiveThreeOneProgramPlan.SingleCycle) jokerCount else 0,
+                            jokerStepPercent = jokerStepPercent.toDouble(),
                         )
                         val mainPreview = runCatching {
                             previewFiveThreeOneSets(previewConfig, lift.loadIncrement)
@@ -1651,14 +1919,20 @@ private fun FiveThreeOneProgramSetupDialog(
                 enabled = valid,
                 onClick = {
                     onApply(
-                        layout,
-                        lifts,
-                        mainScheme,
-                        supplement,
-                        jokerEnabled,
-                        classicFinalSetAmrap,
-                        boringButBigPercent ?: 50.0,
-                        RoutineProgressionMode.valueOf(progressionModeName),
+                        FiveThreeOneProgramRequest(
+                            layout = layout,
+                            plan = plan,
+                            lifts = lifts,
+                            mainScheme = mainScheme,
+                            supplement = supplement,
+                            closingProtocol = closingProtocol,
+                            jokerLadder = FiveThreeOneJokerLadder(jokerCount, jokerStepPercent.toDouble()),
+                            classicFinalSetAmrap = classicFinalSetAmrap,
+                            boringButBigPercent = boringButBigPercent ?: 50.0,
+                            progressionMode = RoutineProgressionMode.valueOf(progressionModeName),
+                            bbbLiftByMainExerciseId = bbbLiftByMainExerciseId,
+                            assistance = assistanceChoices,
+                        ),
                     )
                 },
                 modifier = Modifier.testTag("five-three-one-program-create"),
@@ -1702,7 +1976,14 @@ private fun RoutineProgramStructurePage(
     val policiesByExercise = mainLifts.mapNotNull { lift ->
         builder.fiveThreeOnePhasePolicy(selectedPhase, lift.exerciseId)?.let { lift.exerciseId to it }
     }
-    val uniformPolicy = policiesByExercise.map(Pair<Long, FiveThreeOnePhasePolicyState>::second).distinct().singleOrNull()
+    val exactUniformPolicy = policiesByExercise.map(Pair<Long, FiveThreeOnePhasePolicyState>::second)
+        .distinct().singleOrNull()
+    val uniformPolicy = exactUniformPolicy ?: policiesByExercise.map { (_, candidate) ->
+        candidate.copy(
+            alternateSupplementalExerciseId = null,
+            alternateSupplementalExerciseName = null,
+        )
+    }.distinct().singleOrNull()
     val policy = prescriptionExerciseId?.let { id -> policiesByExercise.firstOrNull { it.first == id }?.second }
         ?: uniformPolicy
     val mixedProgramPolicy = prescriptionExerciseId == null && policiesByExercise.isNotEmpty() && uniformPolicy == null
@@ -2101,12 +2382,13 @@ private fun RoutineProgramStructurePage(
         item {
             SelectionField(
                 label = "Phase role",
-                values = RoutineProgramPhaseRole.entries,
-                selected = selectedRole,
+                values = RoutineProgramPhaseRole.entries.filterNot(RoutineProgramPhaseRole::usesOncePerLiftProtocol),
+                selected = selectedRole.semanticRole(),
                 valueText = RoutineProgramPhaseRole::uiLabel,
                 onSelect = { role ->
                     onBuilderChange { current ->
-                        val metadata = current.updateProgramPhaseMetadata(selectedPhase, role = role)
+                        val storedRole = if (role == selectedRole.semanticRole()) selectedRole else role
+                        val metadata = current.updateProgramPhaseMetadata(selectedPhase, role = storedRole)
                         if (role.disallowsJokers()) {
                             metadata.removeFiveThreeOneJokers(selectedPhase)
                         } else metadata
@@ -2115,14 +2397,43 @@ private fun RoutineProgramStructurePage(
                 modifier = Modifier.testTag("routine-program-phase-role-$selectedPhase"),
             )
             Text(
-                if (selectedRole == RoutineProgramPhaseRole.TrainingMaxTest) {
+                if (selectedRole.semanticRole() == RoutineProgramPhaseRole.TrainingMaxTest) {
                     "Mark exactly one Main set as Training Max test and prescribe 100% TM for 3–5 reps. Other build-up sets remain ordinary Main work; record RPE or RIR to describe rep quality."
                 } else {
-                    "Leader and Anchor describe block membership. Deload and PR Test describe intent; they do not invent a proprietary prescription. Review the executable work below."
+                    "Leader and Anchor describe block membership. Use a 7th Week preset below when you want Whip to replace this phase with a complete reviewable protocol."
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+        item {
+            Text("Apply 7th Week preset", style = MaterialTheme.typography.labelLarge)
+            Text(
+                "One tap replaces only this phase's Main, Supplemental, and Joker prescription. Other phases and completed workouts are unchanged.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                FiveThreeOneSeventhWeekProtocol.entries.forEach { protocol ->
+                    OutlinedCard(
+                        onClick = {
+                            onBuilderChange { current ->
+                                current.applyFiveThreeOneSeventhWeekProtocol(selectedPhase, protocol)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                            .testTag("routine-program-apply-seventh-week-${protocol.name}"),
+                    ) {
+                        Column(
+                            Modifier.fillMaxWidth().padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(protocol.label, fontWeight = FontWeight.SemiBold)
+                            Text(protocol.supportingText, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
         }
         if (mainLifts.isNotEmpty()) {
             item {
@@ -2166,7 +2477,8 @@ private fun RoutineProgramStructurePage(
                     } ?: "All main lifts"
                     Text(
                         "$scopeLabel · ${policy.mainWorkScheme.uiLabel()} · ${policy.supplementalScheme.uiLabel()}" +
-                            if (policy.jokerEnabled) " · Optional Joker" else "",
+                            policy.alternateSupplementalExerciseName?.let { " · alternate lift: $it" }.orEmpty() +
+                            if (policy.jokerEnabled) " · ${policy.jokerCount} optional ${if (policy.jokerCount == 1) "Joker" else "Jokers"}" else "",
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.testTag("routine-program-policy-summary"),
                     )
@@ -2208,7 +2520,9 @@ private fun RoutineProgramStructurePage(
                                 scheme,
                                 currentPolicy.supplementalScheme,
                                 currentPolicy.jokerEnabled && !selectedRole.disallowsJokers(),
-                                prescriptionExerciseId,
+                                jokerCount = currentPolicy.jokerCount,
+                                jokerStepPercent = currentPolicy.jokerStepPercent,
+                                exerciseId = prescriptionExerciseId,
                             )
                         }
                     },
@@ -2230,33 +2544,73 @@ private fun RoutineProgramStructurePage(
                                 currentPolicy.mainWorkScheme,
                                 scheme,
                                 currentPolicy.jokerEnabled && !selectedRole.disallowsJokers(),
-                                prescriptionExerciseId,
+                                jokerCount = currentPolicy.jokerCount,
+                                jokerStepPercent = currentPolicy.jokerStepPercent,
+                                exerciseId = prescriptionExerciseId,
                             )
                         }
                     },
                     modifier = Modifier.testTag("routine-program-phase-supplemental-$selectedPhase"),
                 )
+                policy.alternateSupplementalExerciseName?.let { alternateName ->
+                    Text(
+                        "Alternate-lift BBB uses $alternateName and its own Training Max. Selecting another Supplemental scheme replaces this phase's alternate BBB; Main-work and Joker edits preserve it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("routine-program-alternate-bbb-summary"),
+                    )
+                }
             }
             item {
-                RoutineLabeledSwitchRow(
-                    label = "Offer an optional Joker in this phase",
-                    checked = policy.jokerEnabled && !selectedRole.disallowsJokers(),
-                    onCheckedChange = { enabled ->
-                        onBuilderChange { current ->
-                            current.setFiveThreeOneJokerEnabled(
-                                phaseIndex = selectedPhase,
-                                enabled = enabled && !selectedRole.disallowsJokers(),
-                                exerciseId = prescriptionExerciseId,
+                Text("Optional Joker ladder", style = MaterialTheme.typography.labelLarge)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    (0..3).forEach { count ->
+                        WhipFilterChip(
+                            selected = policy.jokerCount == count && !selectedRole.disallowsJokers(),
+                            enabled = !selectedRole.disallowsJokers(),
+                            onClick = {
+                                onBuilderChange { current ->
+                                    current.setFiveThreeOneJokerLadder(
+                                        selectedPhase,
+                                        count,
+                                        policy.jokerStepPercent,
+                                        prescriptionExerciseId,
+                                    )
+                                }
+                            },
+                            label = { Text(if (count == 0) "Off" else count.toString()) },
+                            modifier = Modifier.testTag("routine-program-phase-joker-count-$selectedPhase-$count"),
+                        )
+                    }
+                }
+                if (policy.jokerCount > 0 && !selectedRole.disallowsJokers()) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(5.0, 10.0).forEach { step ->
+                            WhipFilterChip(
+                                selected = policy.jokerStepPercent == step,
+                                onClick = {
+                                    onBuilderChange { current ->
+                                        current.setFiveThreeOneJokerLadder(
+                                            selectedPhase,
+                                            policy.jokerCount,
+                                            step,
+                                            prescriptionExerciseId,
+                                        )
+                                    }
+                                },
+                                label = { Text("+${step.toInt()}% TM") },
                             )
                         }
-                    },
-                    enabled = !selectedRole.disallowsJokers(),
-                    supportingText = if (selectedRole.disallowsJokers()) {
+                    }
+                }
+                Text(
+                    if (selectedRole.disallowsJokers()) {
                         "Joker candidates are removed from deload and test phases."
                     } else {
-                        "Adds one optional starting candidate after Main work. It never replaces or removes BBB, FSL, SSL, BBS, or custom Supplemental work."
+                        "Each candidate remains Optional and additive. Supplemental work stays after the ladder."
                     },
-                    testTag = "routine-program-phase-joker-$selectedPhase",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -2343,16 +2697,20 @@ private fun RoutineProgramStructurePage(
     }
 }
 
-private fun RoutineProgramPhaseRole.uiLabel(): String = when (this) {
+private fun RoutineProgramPhaseRole.uiLabel(): String = when (semanticRole()) {
     RoutineProgramPhaseRole.Standard -> "Standard"
     RoutineProgramPhaseRole.Leader -> "Leader"
     RoutineProgramPhaseRole.Anchor -> "Anchor"
     RoutineProgramPhaseRole.Deload -> "Deload"
     RoutineProgramPhaseRole.TrainingMaxTest -> "Training Max Test"
     RoutineProgramPhaseRole.PersonalRecordTest -> "PR Test"
+    RoutineProgramPhaseRole.OncePerLiftDeload,
+    RoutineProgramPhaseRole.OncePerLiftTrainingMaxTest,
+    RoutineProgramPhaseRole.OncePerLiftPersonalRecordTest,
+    -> error("semanticRole() must return a public phase role")
 }
 
-private fun RoutineProgramPhaseRole.disallowsJokers(): Boolean = this in setOf(
+private fun RoutineProgramPhaseRole.disallowsJokers(): Boolean = semanticRole() in setOf(
     RoutineProgramPhaseRole.Deload,
     RoutineProgramPhaseRole.TrainingMaxTest,
     RoutineProgramPhaseRole.PersonalRecordTest,
@@ -2899,6 +3257,7 @@ private fun RoutinePlacementCard(
 
 private fun RoutineBuilderPlacementState.routineRoleSummary(): String? = when (placementKind) {
     RoutinePlacementKind.MainLift.name -> "Program main lift"
+    RoutinePlacementKind.Supplemental.name -> "Program supplemental work"
     RoutinePlacementKind.Assistance.name -> {
         val label = when (assistanceCategory) {
             RoutineAssistanceCategory.Push.name -> "Push"
@@ -3048,6 +3407,17 @@ private fun RoutinePlacementEditor(
                     )
                 }
             }
+        } else if (placementKind == RoutinePlacementKind.Supplemental) item {
+            OutlinedCard(Modifier.fillMaxWidth().testTag("routine-supplemental-provenance")) {
+                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Program supplemental lift", fontWeight = FontWeight.Bold)
+                    Text(
+                        "This lift is programmed separately from the day's Main lift and uses its own Training Max. Change the mapping by rebuilding the preset or edit its executable sets below.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         } else if (isStructuredFiveThreeOne || placementKind == RoutinePlacementKind.Assistance) item {
             val selectedCategory = runCatching {
                 RoutineAssistanceCategory.valueOf(placement.assistanceCategory)
@@ -3085,7 +3455,10 @@ private fun RoutinePlacementEditor(
                 }
             }
         }
-        if (supportsFiveThreeOne && isStructuredFiveThreeOne) item {
+        if (
+            supportsFiveThreeOne && isStructuredFiveThreeOne &&
+            placementKind == RoutinePlacementKind.MainLift
+        ) item {
             OutlinedCard(Modifier.fillMaxWidth().testTag("routine-five-three-one-program-controlled")) {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Program-controlled main work", fontWeight = FontWeight.Bold)
@@ -3441,6 +3814,7 @@ private fun RoutinePlacementEditor(
                                 workSection = when (placementKind) {
                                     RoutinePlacementKind.Assistance -> RoutineWorkSection.Assistance.name
                                     RoutinePlacementKind.MainLift -> RoutineWorkSection.Optional.name
+                                    RoutinePlacementKind.Supplemental -> RoutineWorkSection.Supplemental.name
                                     RoutinePlacementKind.General -> RoutineWorkSection.Unspecified.name
                                 },
                             ),
@@ -5003,6 +5377,10 @@ internal data class FiveThreeOnePhasePolicyState(
     val mainWorkScheme: RoutineMainWorkScheme,
     val supplementalScheme: RoutineSupplementalScheme,
     val jokerEnabled: Boolean,
+    val jokerCount: Int = if (jokerEnabled) 1 else 0,
+    val jokerStepPercent: Double = 5.0,
+    val alternateSupplementalExerciseId: Long? = null,
+    val alternateSupplementalExerciseName: String? = null,
 )
 
 internal fun RoutineBuilderState.fiveThreeOnePhasePrescriptionSummary(
@@ -5010,10 +5388,25 @@ internal fun RoutineBuilderState.fiveThreeOnePhasePrescriptionSummary(
     exerciseId: Long?,
 ): List<String> {
     if (phaseIndex !in 0 until programPhaseCount || exerciseId == null) return emptyList()
-    val placement = days.asSequence().flatMap { it.placements.asSequence() }.firstOrNull {
-        it.exerciseId == exerciseId && it.placementKind == RoutinePlacementKind.MainLift.name
+    val day = days.firstOrNull { candidate ->
+        candidate.placements.any {
+            it.exerciseId == exerciseId && it.placementKind == RoutinePlacementKind.MainLift.name
+        }
     } ?: return emptyList()
+    val placement = day.placements.first {
+        it.exerciseId == exerciseId && it.placementKind == RoutinePlacementKind.MainLift.name
+    }
     val active = placement.sets.filter { it.routinePhaseIndex == null || it.routinePhaseIndex == phaseIndex }
+    val alternate = day.placements.firstOrNull { candidate ->
+        candidate.placementKind == RoutinePlacementKind.Supplemental.name && candidate.sets.any { set ->
+            (set.routinePhaseIndex == null || set.routinePhaseIndex == phaseIndex) &&
+                set.workSection == RoutineWorkSection.Supplemental.name
+        }
+    }
+    val alternateActive = alternate?.sets.orEmpty().filter {
+        (it.routinePhaseIndex == null || it.routinePhaseIndex == phaseIndex) &&
+            it.workSection == RoutineWorkSection.Supplemental.name
+    }
     fun RoutineBuilderSetState.shortPrescription(): String {
         val percent = loadPercentage.toWhipDoubleOrNull()?.let { "${editableNumericValue(it)}% TM" }
             ?: load.takeIf(String::isNotBlank)
@@ -5023,14 +5416,24 @@ internal fun RoutineBuilderState.fiveThreeOnePhasePrescriptionSummary(
         } ?: "?"
         return "$percent × $reps"
     }
-    return listOf(
+    val summaries = listOf(
         RoutineWorkSection.Main to "Main",
         RoutineWorkSection.Supplemental to "Supplemental",
         RoutineWorkSection.Optional to "Optional",
     ).mapNotNull { (section, label) ->
         active.filter { it.workSection == section.name }.takeIf(List<RoutineBuilderSetState>::isNotEmpty)
             ?.joinToString(prefix = "$label · ", separator = " · ") { it.shortPrescription() }
+    }.toMutableList()
+    if (alternate != null && alternateActive.isNotEmpty()) {
+        summaries.add(
+            1.coerceAtMost(summaries.size),
+            alternateActive.joinToString(
+                prefix = "Supplemental · ${alternate.exerciseNameSnapshot} (alternate lift) · ",
+                separator = " · ",
+            ) { it.shortPrescription() },
+        )
     }
+    return summaries
 }
 
 /** Reads policy from the executable sets for one phase; placement fields are legacy fallback only. */
@@ -5039,14 +5442,30 @@ internal fun RoutineBuilderState.fiveThreeOnePhasePolicy(
     exerciseId: Long? = null,
 ): FiveThreeOnePhasePolicyState? {
     if (phaseIndex !in 0 until programPhaseCount) return null
-    val placement = days.asSequence().flatMap { it.placements.asSequence() }
-        .firstOrNull {
+    val day = days.firstOrNull { candidate ->
+        candidate.placements.any {
             it.placementKind == RoutinePlacementKind.MainLift.name &&
                 (exerciseId == null || it.exerciseId == exerciseId)
-        } ?: return null
+        }
+    } ?: return null
+    val placement = day.placements.first {
+        it.placementKind == RoutinePlacementKind.MainLift.name &&
+            (exerciseId == null || it.exerciseId == exerciseId)
+    }
     val active = placement.sets.filter { it.routinePhaseIndex == null || it.routinePhaseIndex == phaseIndex }
     val main = active.filter { it.workSection == RoutineWorkSection.Main.name }
-    val supplemental = active.filter { it.workSection == RoutineWorkSection.Supplemental.name }
+    val mainPlacementSupplemental = active.filter { it.workSection == RoutineWorkSection.Supplemental.name }
+    val alternatePlacement = day.placements.firstOrNull { candidate ->
+        candidate.placementKind == RoutinePlacementKind.Supplemental.name && candidate.sets.any { set ->
+            (set.routinePhaseIndex == null || set.routinePhaseIndex == phaseIndex) &&
+                set.workSection == RoutineWorkSection.Supplemental.name
+        }
+    }
+    val alternateSupplemental = alternatePlacement?.sets.orEmpty().filter {
+        (it.routinePhaseIndex == null || it.routinePhaseIndex == phaseIndex) &&
+            it.workSection == RoutineWorkSection.Supplemental.name
+    }
+    val supplemental = mainPlacementSupplemental.ifEmpty { alternateSupplemental }
     val explicitMain = main.mapNotNull { set ->
         set.mainWorkScheme?.let { runCatching { RoutineMainWorkScheme.valueOf(it) }.getOrNull() }
     }.distinct()
@@ -5078,12 +5497,23 @@ internal fun RoutineBuilderState.fiveThreeOnePhasePolicy(
         }
         else -> RoutineSupplementalScheme.Custom
     }
+    val jokers = active.filter {
+        it.workSection == RoutineWorkSection.Optional.name &&
+            it.optionalWorkKind == RoutineOptionalWorkKind.Joker.name
+    }.sortedBy { it.loadPercentage.toWhipDoubleOrNull() ?: Double.MAX_VALUE }
+    val topMainPercentage = main.lastOrNull()?.loadPercentage?.toWhipDoubleOrNull()
+    val jokerStep = jokers.firstOrNull()?.loadPercentage?.toWhipDoubleOrNull()?.let { first ->
+        (first - (topMainPercentage ?: first - 5.0)).takeIf { it == 10.0 } ?: 5.0
+    } ?: 5.0
     return FiveThreeOnePhasePolicyState(
         mainWorkScheme = mainScheme,
         supplementalScheme = supplementalScheme,
-        jokerEnabled = active.any {
-            it.workSection == RoutineWorkSection.Optional.name &&
-                it.optionalWorkKind == RoutineOptionalWorkKind.Joker.name
+        jokerEnabled = jokers.isNotEmpty(),
+        jokerCount = jokers.size.coerceAtMost(3),
+        jokerStepPercent = jokerStep,
+        alternateSupplementalExerciseId = alternatePlacement?.exerciseId?.takeIf { alternateSupplemental.isNotEmpty() },
+        alternateSupplementalExerciseName = alternatePlacement?.exerciseNameSnapshot?.takeIf {
+            alternateSupplemental.isNotEmpty()
         },
     )
 }
@@ -5098,9 +5528,13 @@ internal fun RoutineBuilderState.applyFiveThreeOnePhasePolicy(
     mainWorkScheme: RoutineMainWorkScheme,
     supplementalScheme: RoutineSupplementalScheme,
     jokerEnabled: Boolean,
+    jokerCount: Int = if (jokerEnabled) 1 else 0,
+    jokerStepPercent: Double = 5.0,
     exerciseId: Long? = null,
 ): RoutineBuilderState {
     if (!programKind.isFiveThreeOneProgramKindName() || phaseIndex !in 0 until programPhaseCount) return this
+    require(jokerCount in 0..3)
+    require(jokerStepPercent == 5.0 || jokerStepPercent == 10.0)
     var next = nextKey
     fun nextSetKey(): Long = next++
 
@@ -5127,7 +5561,39 @@ internal fun RoutineBuilderState.applyFiveThreeOnePhasePolicy(
     }
 
     val updatedDays = days.map { day ->
+        val targetedMainInDay = day.placements.any { placement ->
+            placement.placementKind == RoutinePlacementKind.MainLift.name &&
+                (exerciseId == null || placement.exerciseId == exerciseId)
+        }
+        val activeAlternatePlacement = day.placements.firstOrNull { placement ->
+            placement.placementKind == RoutinePlacementKind.Supplemental.name && placement.sets.any { set ->
+                (set.routinePhaseIndex == null || set.routinePhaseIndex == phaseIndex) &&
+                    set.workSection == RoutineWorkSection.Supplemental.name
+            }
+        }
+        val activeAlternateScheme = activeAlternatePlacement?.sets?.firstNotNullOfOrNull { set ->
+            if ((set.routinePhaseIndex == null || set.routinePhaseIndex == phaseIndex) &&
+                set.workSection == RoutineWorkSection.Supplemental.name
+            ) {
+                set.supplementalScheme?.let { runCatching { RoutineSupplementalScheme.valueOf(it) }.getOrNull() }
+            } else null
+        } ?: activeAlternatePlacement?.supplementalScheme?.let { value ->
+            runCatching { RoutineSupplementalScheme.valueOf(value) }.getOrNull()
+        }
         day.copy(placements = day.placements.map { placement ->
+            if (targetedMainInDay && placement.placementKind == RoutinePlacementKind.Supplemental.name) {
+                if (
+                    placement.key == activeAlternatePlacement?.key &&
+                    supplementalScheme == activeAlternateScheme
+                ) return@map placement
+                val retained = materializeGlobalSupplemental(placement.sets).filterNot { set ->
+                    set.routinePhaseIndex == phaseIndex && set.workSection == RoutineWorkSection.Supplemental.name
+                }
+                return@map placement.copy(
+                    sets = retained,
+                    supplementalScheme = RoutineSupplementalScheme.Custom.name,
+                )
+            }
             if (
                 placement.placementKind != RoutinePlacementKind.MainLift.name ||
                 (exerciseId != null && placement.exerciseId != exerciseId)
@@ -5145,12 +5611,13 @@ internal fun RoutineBuilderState.applyFiveThreeOnePhasePolicy(
                 .getOrDefault(RoutineMainWorkScheme.Unspecified)
             val existingSupplementalScheme = selectedSupplemental.firstNotNullOfOrNull { set ->
                 set.supplementalScheme?.let { runCatching { RoutineSupplementalScheme.valueOf(it) }.getOrNull() }
-            } ?: if (selectedSupplemental.isEmpty()) {
-                RoutineSupplementalScheme.None
-            } else {
-                runCatching { RoutineSupplementalScheme.valueOf(placement.supplementalScheme) }
-                    .getOrDefault(RoutineSupplementalScheme.Custom)
-            }
+            } ?: activeAlternateScheme?.takeIf { selectedSupplemental.isEmpty() }
+                ?: if (selectedSupplemental.isEmpty()) {
+                    RoutineSupplementalScheme.None
+                } else {
+                    runCatching { RoutineSupplementalScheme.valueOf(placement.supplementalScheme) }
+                        .getOrDefault(RoutineSupplementalScheme.Custom)
+                }
             val mainSchemeChanged = existingMainWorkScheme != mainWorkScheme
             val supplementalSchemeChanged = existingSupplementalScheme != supplementalScheme
             val retained = materialized.filterNot { set ->
@@ -5221,22 +5688,22 @@ internal fun RoutineBuilderState.applyFiveThreeOnePhasePolicy(
                     }
                 }
             }
-            val rewrittenJoker = if (jokerEnabled && rewrittenMain.isNotEmpty()) {
+            val rewrittenJoker = if (jokerEnabled && jokerCount > 0 && rewrittenMain.isNotEmpty()) {
                 val top = rewrittenMain.last()
-                val percentage = (top.loadPercentage.toWhipDoubleOrNull() ?: 95.0) + 5.0
-                listOf(
+                List(jokerCount) { index ->
+                    val percentage = (top.loadPercentage.toWhipDoubleOrNull() ?: 95.0) + jokerStepPercent * (index + 1)
                     RoutineBuilderSetState(
                         key = nextSetKey(),
                         repetitionsMin = top.repetitionsMin.ifBlank { "1" },
                         classification = WorkoutSetClassification.Working.name,
-                        note = "Optional Joker candidate · ${editableNumericValue(percentage)}% TM",
+                        note = "Optional Joker ${index + 1} of $jokerCount · ${editableNumericValue(percentage)}% TM",
                         loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax.name,
                         loadPercentage = editableNumericValue(percentage),
                         routinePhaseIndex = phaseIndex,
                         workSection = RoutineWorkSection.Optional.name,
                         optionalWorkKind = RoutineOptionalWorkKind.Joker.name,
-                    ),
-                )
+                    )
+                }
             } else emptyList()
             val combined = retained + rewrittenMain + rewrittenJoker + rewrittenSupplemental
             val phaseMainSchemes = (0 until programPhaseCount).mapNotNull { phase ->
@@ -5272,8 +5739,23 @@ internal fun RoutineBuilderState.setFiveThreeOneJokerEnabled(
     phaseIndex: Int,
     enabled: Boolean,
     exerciseId: Long? = null,
+): RoutineBuilderState = setFiveThreeOneJokerLadder(
+    phaseIndex = phaseIndex,
+    count = if (enabled) 1 else 0,
+    stepPercent = 5.0,
+    exerciseId = exerciseId,
+)
+
+/** Replaces only a phase's ordered optional Joker rows; Main and Supplemental objects are retained. */
+internal fun RoutineBuilderState.setFiveThreeOneJokerLadder(
+    phaseIndex: Int,
+    count: Int,
+    stepPercent: Double,
+    exerciseId: Long? = null,
 ): RoutineBuilderState {
     if (!programKind.isFiveThreeOneProgramKindName() || phaseIndex !in 0 until programPhaseCount) return this
+    require(count in 0..3) { "Joker ladder must contain from zero to three candidates" }
+    require(stepPercent == 5.0 || stepPercent == 10.0) { "Joker steps must be 5% or 10% of Training Max" }
     val highestExistingKey = days.asSequence()
         .flatMap { it.placements.asSequence() }
         .flatMap { it.sets.asSequence() }
@@ -5291,31 +5773,27 @@ internal fun RoutineBuilderState.setFiveThreeOneJokerEnabled(
                     set.workSection == RoutineWorkSection.Optional.name &&
                     set.optionalWorkKind == RoutineOptionalWorkKind.Joker.name
             }
-            val existingJokers = placement.sets.filter(isPhaseJoker)
-            val updatedSets = when {
-                !enabled -> placement.sets.filterNot(isPhaseJoker)
-                existingJokers.isNotEmpty() -> placement.sets
-                else -> {
-                    val topMainIndex = placement.sets.indexOfLast { set ->
-                        set.routinePhaseIndex == phaseIndex &&
-                            set.workSection == RoutineWorkSection.Main.name
-                    }
-                    val topMain = placement.sets.getOrNull(topMainIndex)
-                        ?: return@map placement
-                    val percentage = (topMain.loadPercentage.toWhipDoubleOrNull() ?: 95.0) + 5.0
-                    val joker = RoutineBuilderSetState(
-                        key = next++,
-                        repetitionsMin = topMain.repetitionsMin.ifBlank { "1" },
-                        classification = WorkoutSetClassification.Working.name,
-                        note = "Optional Joker candidate · ${editableNumericValue(percentage)}% TM",
-                        loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax.name,
-                        loadPercentage = editableNumericValue(percentage),
-                        routinePhaseIndex = phaseIndex,
-                        workSection = RoutineWorkSection.Optional.name,
-                        optionalWorkKind = RoutineOptionalWorkKind.Joker.name,
-                    )
-                    placement.sets.toMutableList().also { sets -> sets.add(topMainIndex + 1, joker) }
-                }
+            val retained = placement.sets.filterNot(isPhaseJoker)
+            val topMainIndex = retained.indexOfLast { set ->
+                set.routinePhaseIndex == phaseIndex && set.workSection == RoutineWorkSection.Main.name
+            }
+            val topMain = retained.getOrNull(topMainIndex)
+            val jokers = if (count == 0 || topMain == null) emptyList() else List(count) { index ->
+                val percentage = (topMain.loadPercentage.toWhipDoubleOrNull() ?: 95.0) + stepPercent * (index + 1)
+                RoutineBuilderSetState(
+                    key = next++,
+                    repetitionsMin = topMain.repetitionsMin.ifBlank { "1" },
+                    classification = WorkoutSetClassification.Working.name,
+                    note = "Optional Joker ${index + 1} of $count · ${editableNumericValue(percentage)}% TM",
+                    loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax.name,
+                    loadPercentage = editableNumericValue(percentage),
+                    routinePhaseIndex = phaseIndex,
+                    workSection = RoutineWorkSection.Optional.name,
+                    optionalWorkKind = RoutineOptionalWorkKind.Joker.name,
+                )
+            }
+            val updatedSets = if (jokers.isEmpty()) retained else retained.toMutableList().also { sets ->
+                sets.addAll(topMainIndex + 1, jokers)
             }
             placement.copy(
                 sets = updatedSets,
@@ -5338,6 +5816,106 @@ internal fun RoutineBuilderState.removeFiveThreeOneJokers(
     enabled = false,
     exerciseId = exerciseId,
 )
+
+/** Applies one complete 7th Week prescription to a phase without touching other phases/history. */
+internal fun RoutineBuilderState.applyFiveThreeOneSeventhWeekProtocol(
+    phaseIndex: Int,
+    protocol: FiveThreeOneSeventhWeekProtocol,
+): RoutineBuilderState {
+    if (!programKind.isFiveThreeOneProgramKindName() || phaseIndex !in 0 until programPhaseCount) return this
+    val highestKey = days.asSequence().flatMap { it.placements.asSequence() }
+        .flatMap { it.sets.asSequence() }.maxOfOrNull(RoutineBuilderSetState::key) ?: 0L
+    var next = maxOf(nextKey, highestKey + 1L)
+    val protocolOwnerDayByExerciseId = balancedOncePerLiftDayOwners(
+        days.map { day ->
+            day.placements.filter { it.placementKind == RoutinePlacementKind.MainLift.name }
+                .map(RoutineBuilderPlacementState::exerciseId)
+        },
+    )
+
+    fun materializeGlobalSupplemental(sets: List<RoutineBuilderSetState>): List<RoutineBuilderSetState> {
+        val global = sets.filter {
+            it.workSection == RoutineWorkSection.Supplemental.name && it.routinePhaseIndex == null
+        }
+        if (global.isEmpty()) return sets
+        return sets.filterNot(global::contains) + (0 until programPhaseCount).flatMap { phase ->
+            global.map { set -> set.copy(key = next++, routinePhaseIndex = phase) }
+        }
+    }
+
+    val protocolMainScheme = if (protocol == FiveThreeOneSeventhWeekProtocol.PersonalRecordTest) {
+        RoutineMainWorkScheme.ClassicPrSet
+    } else {
+        RoutineMainWorkScheme.ClassicMinimumReps
+    }
+    val updated = days.mapIndexed { dayIndex, day ->
+        day.copy(placements = day.placements.map { placement ->
+            val kind = runCatching { RoutinePlacementKind.valueOf(placement.placementKind) }
+                .getOrDefault(RoutinePlacementKind.General)
+            when (kind) {
+                RoutinePlacementKind.MainLift -> {
+                    val materialized = materializeGlobalSupplemental(placement.sets)
+                    val retained = materialized.filterNot { set ->
+                        set.routinePhaseIndex == phaseIndex && (
+                            set.workSection == RoutineWorkSection.Main.name ||
+                                set.workSection == RoutineWorkSection.Supplemental.name ||
+                                set.optionalWorkKind == RoutineOptionalWorkKind.Joker.name
+                            )
+                    }
+                    val plans = fiveThreeOneSeventhWeekSetPlans(protocol).filterNot { plan ->
+                        protocol == FiveThreeOneSeventhWeekProtocol.TrainingMaxTest &&
+                            protocolOwnerDayByExerciseId[placement.exerciseId] != dayIndex &&
+                            plan.classification == WorkoutSetClassification.TrainingMaxTest
+                    }
+                    val generated = fiveThreeOneBuilderSets(
+                        existingSets = emptyList(),
+                        previews = plans.map { FiveThreeOnePreviewSet(it, 0.0) },
+                        mainWorkScheme = protocolMainScheme,
+                        supplementalScheme = RoutineSupplementalScheme.None,
+                        routinePhaseIndexOverride = phaseIndex,
+                    ).map { set -> set.copy(key = next++) }
+                    val combined = retained + generated
+                    placement.copy(
+                        sets = combined,
+                        mainWorkScheme = RoutineMainWorkScheme.Unspecified.name,
+                        supplementalScheme = RoutineSupplementalScheme.Custom.name,
+                        jokerSetsEnabled = combined.any {
+                            it.optionalWorkKind == RoutineOptionalWorkKind.Joker.name
+                        },
+                    )
+                }
+                RoutinePlacementKind.Supplemental -> {
+                    val retained = materializeGlobalSupplemental(placement.sets).filterNot { set ->
+                        set.routinePhaseIndex == phaseIndex && set.workSection == RoutineWorkSection.Supplemental.name
+                    }
+                    placement.copy(
+                        sets = retained,
+                        supplementalScheme = RoutineSupplementalScheme.Custom.name,
+                    )
+                }
+                RoutinePlacementKind.General,
+                RoutinePlacementKind.Assistance,
+                -> placement
+            }
+        })
+    }
+    return copy(
+        days = updated,
+        nextKey = next,
+        programTemplateKey = programTemplateKey.takeUnless { it == RoutineProgramTemplateKey.None.name }
+            ?: RoutineProgramTemplateKey.FiveThreeOneCustom.name,
+        programTemplateRevision = maxOf(
+            programTemplateRevision,
+            FIVE_THREE_ONE_ONCE_PER_LIFT_PROTOCOL_REVISION,
+        ),
+    )
+        .updateProgramPhaseMetadata(
+            phaseIndex = phaseIndex,
+            label = "7th Week · ${protocol.label}",
+            role = protocol.phaseRole().asOncePerLiftProtocol(),
+            advancesTrainingMax = true,
+        )
+}
 
 internal fun RoutineBuilderState.updateProgramPhaseMetadata(
     phaseIndex: Int,
@@ -5484,6 +6062,14 @@ internal fun RoutineBuilderState.updateProgramPlacement(
     val shouldSync = programKind.isFiveThreeOneProgramKindName() &&
         after.placementKind == RoutinePlacementKind.MainLift.name &&
         before.fiveThreeOneProjection() != after.fiveThreeOneProjection()
+    val trainingMaxChanged = before.trainingMaxValue != after.trainingMaxValue ||
+        before.trainingMaxUnitId != after.trainingMaxUnitId ||
+        before.cycleIncrementValue != after.cycleIncrementValue ||
+        before.trainingMaxSource != after.trainingMaxSource ||
+        before.trainingMaxPercent != after.trainingMaxPercent ||
+        before.trainingMaxBasisKind != after.trainingMaxBasisKind ||
+        before.trainingMaxBasisValue != after.trainingMaxBasisValue ||
+        before.trainingMaxBasisUnitId != after.trainingMaxBasisUnitId
     val repeatedPlacements = days.asSequence()
         .flatMap { it.placements.asSequence() }
         .filter {
@@ -5536,6 +6122,18 @@ internal fun RoutineBuilderState.updateProgramPlacement(
                         jokerSetsEnabled = after.jokerSetsEnabled,
                     )
                 }
+                trainingMaxChanged && placement.exerciseId == after.exerciseId &&
+                    placement.placementKind == RoutinePlacementKind.Supplemental.name -> placement.copy(
+                    trainingMaxValue = after.trainingMaxValue,
+                    trainingMaxUnitId = after.trainingMaxUnitId,
+                    cycleIncrementValue = after.cycleIncrementValue,
+                    trainingMaxSource = after.trainingMaxSource,
+                    trainingMaxPercent = after.trainingMaxPercent,
+                    trainingMaxBasisKind = after.trainingMaxBasisKind,
+                    trainingMaxBasisValue = after.trainingMaxBasisValue,
+                    trainingMaxBasisUnitId = after.trainingMaxBasisUnitId,
+                    trainingMaxIncreaseEligible = after.trainingMaxIncreaseEligible,
+                )
                 else -> placement
             }
         })

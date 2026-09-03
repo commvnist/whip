@@ -15,6 +15,12 @@ import com.whip.app.domain.RoutineSupplementalScheme
 import com.whip.app.domain.RoutineWorkSection
 import com.whip.app.domain.TrainingMaxBasisKind
 import com.whip.app.domain.WorkoutSetClassification
+import com.whip.app.domain.BodyweightLoadPolicy
+import com.whip.app.domain.EstimatedOneRepMaxFormula
+import com.whip.app.domain.Exercise
+import com.whip.app.domain.ExerciseTrackingType
+import com.whip.app.domain.LoadInterpretation
+import com.whip.app.domain.balancedOncePerLiftDayOwners
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -1006,4 +1012,425 @@ class RoutineBuilderStateTest {
         assertEquals("50", converted.sets.first().load)
         assertEquals("85", converted.sets.last().loadPercentage)
     }
+
+    @Test
+    fun seventhWeekPresetsHaveExactEditableMatrices() {
+        val deload = fiveThreeOneSeventhWeekSetPlans(FiveThreeOneSeventhWeekProtocol.Deload)
+        assertEquals(listOf(70.0, 80.0, 90.0, 100.0), deload.map(FiveThreeOneSetPlan::percentageOfTrainingMax))
+        assertEquals(listOf(5, 3, 1, 1), deload.map(FiveThreeOneSetPlan::repetitions))
+        assertEquals(5, deload[1].repetitionsMax)
+
+        val tmTest = fiveThreeOneSeventhWeekSetPlans(FiveThreeOneSeventhWeekProtocol.TrainingMaxTest)
+        assertEquals(listOf(5, 5, 5, 3), tmTest.map(FiveThreeOneSetPlan::repetitions))
+        assertEquals(5, tmTest.last().repetitionsMax)
+        assertEquals(WorkoutSetClassification.TrainingMaxTest, tmTest.last().classification)
+
+        val prTest = fiveThreeOneSeventhWeekSetPlans(FiveThreeOneSeventhWeekProtocol.PersonalRecordTest)
+        assertTrue(prTest.last().amrap)
+        assertEquals(100.0, prTest.last().percentageOfTrainingMax, 0.0001)
+    }
+
+    @Test
+    fun applyingSeventhWeekPresetOptsInOnlyTheSelectedLegacyPhase() {
+        val legacy = RoutineBuilderState(
+            programKind = RoutineProgramKind.FiveThreeOne.name,
+            programPhaseCount = 2,
+            programPhaseLabels = listOf("Legacy deload A", "Legacy deload B"),
+            programPhaseRoles = listOf(
+                RoutineProgramPhaseRole.Deload.name,
+                RoutineProgramPhaseRole.Deload.name,
+            ),
+            programTemplateKey = RoutineProgramTemplateKey.FiveThreeOneBeginners.name,
+            programTemplateRevision = 1,
+        )
+
+        val updated = legacy.applyFiveThreeOneSeventhWeekProtocol(
+            phaseIndex = 0,
+            protocol = FiveThreeOneSeventhWeekProtocol.Deload,
+        )
+
+        assertEquals(2, updated.programTemplateRevision)
+        assertEquals(
+            listOf(
+                RoutineProgramPhaseRole.OncePerLiftDeload.name,
+                RoutineProgramPhaseRole.Deload.name,
+            ),
+            updated.programPhaseRoles,
+        )
+        assertEquals("Legacy deload B", updated.programPhaseLabels[1])
+    }
+
+    @Test
+    fun programStructureJokerLadderAndSeventhWeekPresetAreAdditiveAndPhaseScoped() {
+        val initial = buildFiveThreeOneProgramState(
+            current = RoutineBuilderState(nextKey = 1),
+            layout = FiveThreeOneProgramLayout.Custom,
+            lifts = listOf(testProgramLift(1, "Zercher Squat", 200.0)),
+            mainScheme = FiveThreeOneMainScheme.Classic,
+            supplement = FiveThreeOneSupplement.FirstSetLast,
+            jokerSetsEnabled = false,
+        )
+        val ladder = initial.setFiveThreeOneJokerLadder(
+            phaseIndex = 0,
+            count = 3,
+            stepPercent = 10.0,
+        )
+        val ladderSets = ladder.days.single().placements.single().sets
+        val jokers = ladderSets.filter {
+            it.routinePhaseIndex == 0 && it.optionalWorkKind == RoutineOptionalWorkKind.Joker.name
+        }
+        assertEquals(listOf("95", "105", "115"), jokers.map(RoutineBuilderSetState::loadPercentage))
+        assertEquals(5, ladderSets.count {
+            it.routinePhaseIndex == 0 && it.workSection == RoutineWorkSection.Supplemental.name
+        })
+        assertTrue(ladderSets.indexOf(jokers.last()) < ladderSets.indexOfFirst {
+            it.routinePhaseIndex == 0 && it.workSection == RoutineWorkSection.Supplemental.name
+        })
+
+        val phaseOneBefore = ladderSets.filter { it.routinePhaseIndex == 1 }
+        val prTest = ladder.applyFiveThreeOneSeventhWeekProtocol(
+            phaseIndex = 0,
+            protocol = FiveThreeOneSeventhWeekProtocol.PersonalRecordTest,
+        )
+        val after = prTest.days.single().placements.single().sets
+        assertEquals(phaseOneBefore, after.filter { it.routinePhaseIndex == 1 })
+        assertEquals(
+            listOf("70", "80", "90", "100"),
+            after.filter { it.routinePhaseIndex == 0 }.map(RoutineBuilderSetState::loadPercentage),
+        )
+        assertFalse(after.any {
+            it.routinePhaseIndex == 0 && (
+                it.workSection == RoutineWorkSection.Supplemental.name ||
+                    it.optionalWorkKind == RoutineOptionalWorkKind.Joker.name
+                )
+        })
+        assertEquals("7th Week · PR Test", prTest.programPhaseLabels.first())
+        assertEquals(RoutineProgramPhaseRole.OncePerLiftPersonalRecordTest.name, prTest.programPhaseRoles.first())
+        assertTrue(0 in prTest.trainingMaxAdvanceAfterPhaseIndices)
+    }
+
+    @Test
+    fun leaderAnchorPresetSupportsArbitraryLiftsAlternateBbbAndJokerLadder() {
+        val bench = testProgramLift(1, "Bench Press", 200.0)
+        val deadlift = testProgramLift(2, "Deadlift", 300.0)
+        val zercher = testProgramLift(3, "Zercher Squat", 240.0)
+        val built = buildFiveThreeOneProgramState(
+            RoutineBuilderState(nextKey = 1),
+            FiveThreeOneProgramRequest(
+                layout = FiveThreeOneProgramLayout.Custom,
+                plan = FiveThreeOneProgramPlan.ForeverBbbLeaderAnchor,
+                lifts = listOf(bench, deadlift, zercher),
+                mainScheme = FiveThreeOneMainScheme.Classic,
+                supplement = FiveThreeOneSupplement.BoringButBig,
+                closingProtocol = FiveThreeOneSeventhWeekProtocol.TrainingMaxTest,
+                jokerLadder = FiveThreeOneJokerLadder(count = 3, stepPercent = 5.0),
+                classicFinalSetAmrap = true,
+                boringButBigPercent = 50.0,
+                progressionMode = com.whip.app.domain.RoutineProgressionMode.PerformanceInformed,
+                bbbLiftByMainExerciseId = mapOf(
+                    bench.exerciseId to deadlift.exerciseId,
+                    deadlift.exerciseId to zercher.exerciseId,
+                    zercher.exerciseId to bench.exerciseId,
+                ),
+            ),
+        )
+
+        assertEquals(11, built.programPhaseCount)
+        assertEquals(setOf(2, 6, 10), built.trainingMaxAdvanceAfterPhaseIndices)
+        assertEquals(
+            listOf(
+                "Leader",
+                "Leader",
+                "Leader",
+                "Leader",
+                "Leader",
+                "Leader",
+                "OncePerLiftDeload",
+                "Anchor",
+                "Anchor",
+                "Anchor",
+                "OncePerLiftTrainingMaxTest",
+            ),
+            built.programPhaseRoles,
+        )
+        assertEquals(listOf("Bench Press", "Deadlift", "Zercher Squat"), built.days.map(RoutineBuilderDayState::name))
+
+        val benchDay = built.days.first()
+        val benchMain = benchDay.placements.first { it.placementKind == RoutinePlacementKind.MainLift.name }
+        val alternateBbb = benchDay.placements.first { it.placementKind == RoutinePlacementKind.Supplemental.name }
+        assertEquals(deadlift.exerciseId, alternateBbb.exerciseId)
+        assertEquals("300", alternateBbb.trainingMaxValue)
+        assertEquals(30, alternateBbb.sets.count { it.workSection == RoutineWorkSection.Supplemental.name })
+        assertTrue(benchMain.sets.none {
+            it.routinePhaseIndex in 0..5 && it.workSection == RoutineWorkSection.Supplemental.name
+        })
+        assertEquals(3, benchMain.sets.count {
+            it.routinePhaseIndex == 7 && it.optionalWorkKind == RoutineOptionalWorkKind.Joker.name
+        })
+        assertEquals(listOf("90", "95", "100"), benchMain.sets.filter {
+            it.routinePhaseIndex == 7 && it.optionalWorkKind == RoutineOptionalWorkKind.Joker.name
+        }.map(RoutineBuilderSetState::loadPercentage))
+        assertEquals(5, benchMain.sets.count {
+            it.routinePhaseIndex == 7 && it.supplementalScheme == RoutineSupplementalScheme.FirstSetLast.name
+        })
+        assertTrue(benchMain.sets.none {
+            it.routinePhaseIndex == 6 && it.optionalWorkKind == RoutineOptionalWorkKind.Joker.name
+        })
+        assertEquals(
+            listOf("70", "80", "90", "100"),
+            benchMain.sets.filter { it.routinePhaseIndex == 6 }.map(RoutineBuilderSetState::loadPercentage),
+        )
+
+        val leaderPolicy = built.fiveThreeOnePhasePolicy(0, bench.exerciseId)
+        assertEquals(RoutineSupplementalScheme.BoringButBig, leaderPolicy?.supplementalScheme)
+        assertEquals(deadlift.exerciseId, leaderPolicy?.alternateSupplementalExerciseId)
+        assertEquals("Deadlift", leaderPolicy?.alternateSupplementalExerciseName)
+        assertTrue(
+            built.fiveThreeOnePhasePrescriptionSummary(0, bench.exerciseId)
+                .any { it.startsWith("Supplemental · Deadlift (alternate lift)") },
+        )
+
+        val alternatePhaseBefore = alternateBbb.sets.filter { it.routinePhaseIndex == 0 }
+        val mainEdited = built.applyFiveThreeOnePhasePolicy(
+            phaseIndex = 0,
+            mainWorkScheme = RoutineMainWorkScheme.ClassicMinimumReps,
+            supplementalScheme = RoutineSupplementalScheme.BoringButBig,
+            jokerEnabled = false,
+            exerciseId = bench.exerciseId,
+        )
+        val preservedAlternate = mainEdited.days.first().placements.first {
+            it.placementKind == RoutinePlacementKind.Supplemental.name
+        }
+        assertEquals(alternatePhaseBefore, preservedAlternate.sets.filter { it.routinePhaseIndex == 0 })
+        assertEquals(
+            deadlift.exerciseId,
+            mainEdited.fiveThreeOnePhasePolicy(0, bench.exerciseId)?.alternateSupplementalExerciseId,
+        )
+
+        val changedSupplemental = mainEdited.applyFiveThreeOnePhasePolicy(
+            phaseIndex = 0,
+            mainWorkScheme = RoutineMainWorkScheme.ClassicMinimumReps,
+            supplementalScheme = RoutineSupplementalScheme.FirstSetLast,
+            jokerEnabled = false,
+            exerciseId = bench.exerciseId,
+        )
+        assertTrue(changedSupplemental.days.first().placements.first {
+            it.placementKind == RoutinePlacementKind.Supplemental.name
+        }.sets.none { it.routinePhaseIndex == 0 })
+        assertEquals(
+            RoutineSupplementalScheme.FirstSetLast,
+            changedSupplemental.fiveThreeOnePhasePolicy(0, bench.exerciseId)?.supplementalScheme,
+        )
+        assertNull(changedSupplemental.fiveThreeOnePhasePolicy(0, bench.exerciseId)?.alternateSupplementalExerciseId)
+    }
+
+    @Test
+    fun beginnersSeventhWeekProtocolsKeepRepeatedTemplatesSynchronizedAndBalanceExecutionOwners() {
+        val lifts = FiveThreeOneLiftRole.entries.mapIndexed { index, role ->
+            FiveThreeOneProgramLift(
+                role = role,
+                exerciseId = (index + 1).toLong(),
+                exerciseName = role.label,
+                trainingMax = 200.0 + index * 20.0,
+                unitId = "pound",
+                loadIncrement = 5.0,
+                cycleIncrement = 5.0,
+            )
+        }
+
+        FiveThreeOneSeventhWeekProtocol.entries.forEach { protocol ->
+            val built = buildFiveThreeOneProgramState(
+                RoutineBuilderState(nextKey = 1),
+                FiveThreeOneProgramRequest(
+                    layout = FiveThreeOneProgramLayout.Beginners,
+                    plan = FiveThreeOneProgramPlan.SingleCycle,
+                    lifts = lifts,
+                    mainScheme = FiveThreeOneMainScheme.Classic,
+                    supplement = FiveThreeOneSupplement.FirstSetLast,
+                    closingProtocol = protocol,
+                    jokerLadder = FiveThreeOneJokerLadder(),
+                    classicFinalSetAmrap = true,
+                    boringButBigPercent = 50.0,
+                    progressionMode = com.whip.app.domain.RoutineProgressionMode.Standard,
+                ),
+            )
+
+            assertEquals(
+                mapOf(1L to 0, 2L to 2, 3L to 1, 4L to 1),
+                balancedOncePerLiftDayOwners(
+                    built.days.map { day ->
+                        day.placements.filter { it.placementKind == RoutinePlacementKind.MainLift.name }
+                            .map(RoutineBuilderPlacementState::exerciseId)
+                    },
+                ),
+            )
+            lifts.forEach { lift ->
+                val placements = built.days.flatMap(RoutineBuilderDayState::placements)
+                    .filter {
+                        it.exerciseId == lift.exerciseId &&
+                            it.placementKind == RoutinePlacementKind.MainLift.name
+                    }
+                val activeByPlacement = placements.map { placement ->
+                    placement.sets.filter { it.routinePhaseIndex == 3 }
+                }
+                assertTrue(activeByPlacement.all { sets ->
+                    sets.map { it.loadPercentage } == if (
+                        protocol == FiveThreeOneSeventhWeekProtocol.TrainingMaxTest &&
+                        sets.none { it.classification == WorkoutSetClassification.TrainingMaxTest.name }
+                    ) listOf("70", "80", "90") else listOf("70", "80", "90", "100")
+                })
+                val nonTestTemplates = activeByPlacement.map { sets ->
+                    sets.filterNot { it.classification == WorkoutSetClassification.TrainingMaxTest.name }
+                        .map { it.copy(key = 0) }
+                }
+                assertEquals(1, nonTestTemplates.distinct().size)
+                if (protocol == FiveThreeOneSeventhWeekProtocol.TrainingMaxTest) {
+                    assertEquals(1, activeByPlacement.flatten().count {
+                        it.classification == WorkoutSetClassification.TrainingMaxTest.name
+                    })
+                }
+            }
+
+            val reapplied = built.applyFiveThreeOneSeventhWeekProtocol(3, protocol)
+            assertEquals(2, reapplied.programTemplateRevision)
+            assertEquals(RoutineProgramTemplateKey.FiveThreeOneBeginners.name, reapplied.programTemplateKey)
+            lifts.forEach { lift ->
+                val repeated = reapplied.days.flatMap(RoutineBuilderDayState::placements)
+                    .filter {
+                        it.exerciseId == lift.exerciseId &&
+                            it.placementKind == RoutinePlacementKind.MainLift.name
+                    }
+                val nonTestTemplates = repeated.map { placement ->
+                    placement.sets.filter {
+                        it.routinePhaseIndex == 3 &&
+                            it.classification != WorkoutSetClassification.TrainingMaxTest.name
+                    }.map { it.copy(key = 0) }
+                }
+                assertEquals(1, nonTestTemplates.distinct().size)
+            }
+
+            val firstSquat = reapplied.days.first().placements.first { it.exerciseId == 1L }
+            val tmEdited = reapplied.updateProgramPlacement(firstSquat.key) {
+                it.copy(trainingMaxValue = "205")
+            }
+            val repeatedSquat = tmEdited.days.flatMap(RoutineBuilderDayState::placements)
+                .filter { it.exerciseId == 1L && it.placementKind == RoutinePlacementKind.MainLift.name }
+            assertTrue(repeatedSquat.all { it.trainingMaxValue == "205" })
+            assertEquals(1, repeatedSquat.map { placement ->
+                placement.sets.filterNot {
+                    it.classification == WorkoutSetClassification.TrainingMaxTest.name
+                }.map { it.copy(key = 0) }
+            }.distinct().size)
+        }
+    }
+
+    @Test
+    fun generatedAssistanceIsDistinctEditableWorkOnEveryDay() {
+        val built = buildFiveThreeOneProgramState(
+            RoutineBuilderState(),
+            FiveThreeOneProgramRequest(
+                layout = FiveThreeOneProgramLayout.Custom,
+                plan = FiveThreeOneProgramPlan.SingleCycle,
+                lifts = listOf(testProgramLift(1, "Zercher Squat", 200.0)),
+                mainScheme = FiveThreeOneMainScheme.Classic,
+                supplement = FiveThreeOneSupplement.FirstSetLast,
+                closingProtocol = FiveThreeOneSeventhWeekProtocol.Deload,
+                jokerLadder = FiveThreeOneJokerLadder(),
+                classicFinalSetAmrap = true,
+                boringButBigPercent = 50.0,
+                progressionMode = com.whip.app.domain.RoutineProgressionMode.Standard,
+                assistance = listOf(
+                    FiveThreeOneAssistanceChoice(RoutineAssistanceCategory.Push, 10, "Push-up"),
+                    FiveThreeOneAssistanceChoice(RoutineAssistanceCategory.Pull, 11, "Row"),
+                    FiveThreeOneAssistanceChoice(RoutineAssistanceCategory.SingleLegCore, 12, "Ab Wheel"),
+                ),
+            ),
+        )
+
+        val assistance = built.days.single().placements.filter {
+            it.placementKind == RoutinePlacementKind.Assistance.name
+        }
+        assertEquals(3, assistance.size)
+        assertTrue(assistance.all { placement ->
+            placement.sets.size == 3 && placement.sets.all {
+                it.workSection == RoutineWorkSection.Assistance.name && it.repetitionsMin == "10"
+            }
+        })
+    }
+
+    @Test
+    fun assistanceSuggestionsUseSignalsAndNeverInventMissingCategories() {
+        val push = testExercise(10, "Dumbbell Press", "chest shoulders", favorite = true)
+        val pull = testExercise(11, "Chest Supported Row", "upper back")
+        val core = testExercise(12, "Ab Wheel", "core")
+        val archived = testExercise(13, "Pull-up", "lats", archived = true)
+        val unsupported = testExercise(
+            14,
+            "Plank",
+            "core",
+            trackingType = ExerciseTrackingType.DurationOnly,
+        )
+        val unselectedMainLift = testExercise(15, "Overhead Press", "shoulders triceps")
+
+        val suggested = suggestFiveThreeOneAssistance(
+            listOf(push, pull, core, archived, unsupported, unselectedMainLift),
+            excludedExerciseIds = setOf(core.id),
+        )
+
+        assertEquals(push.id, suggested.getValue(RoutineAssistanceCategory.Push).first().id)
+        assertEquals(pull.id, suggested.getValue(RoutineAssistanceCategory.Pull).first().id)
+        assertTrue(suggested.getValue(RoutineAssistanceCategory.SingleLegCore).isEmpty())
+        assertTrue(suggested.values.flatten().none {
+            it.archived || it.id == core.id || it.id == unsupported.id || it.id == unselectedMainLift.id
+        })
+    }
+
+    private fun testProgramLift(id: Long, name: String, trainingMax: Double) = FiveThreeOneProgramLift(
+        role = null,
+        exerciseId = id,
+        exerciseName = name,
+        trainingMax = trainingMax,
+        unitId = "pound",
+        loadIncrement = 5.0,
+        cycleIncrement = 5.0,
+    )
+
+    private fun testExercise(
+        id: Long,
+        name: String,
+        muscles: String,
+        favorite: Boolean = false,
+        archived: Boolean = false,
+        trackingType: ExerciseTrackingType = ExerciseTrackingType.WeightReps,
+    ) = Exercise(
+        id = id,
+        uuid = "exercise-$id",
+        name = name,
+        trackingType = trackingType,
+        notes = "",
+        equipment = "",
+        primaryMuscles = muscles,
+        secondaryMuscles = "",
+        weightUnitId = "pound",
+        weightIncrement = 5.0,
+        repetitionIncrement = 1,
+        defaultRestSeconds = 60,
+        defaultGraphMetric = "EstimatedOneRepMax",
+        oneRepMaxFormula = EstimatedOneRepMaxFormula.Epley,
+        barWeightKg = null,
+        availablePlatesKg = emptyList(),
+        includeInVolume = true,
+        includeInPersonalRecords = true,
+        bodyweightLoadPolicy = BodyweightLoadPolicy.ExternalWeightOnly,
+        effectiveBodyweightPercent = 100.0,
+        showRpe = null,
+        showRir = null,
+        showTempo = null,
+        favorite = favorite,
+        position = id.toInt(),
+        archived = archived,
+        createdAtMillis = 1,
+        updatedAtMillis = 1,
+        loadInterpretation = LoadInterpretation.Total,
+    )
 }

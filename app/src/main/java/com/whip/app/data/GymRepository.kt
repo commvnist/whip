@@ -768,6 +768,14 @@ class RoomGymRepository(
                 routineDao.getSets(exercise.id).any { it.workSection == RoutineWorkSection.Main.name }
             }
         }
+        val programmedPlacementsByExerciseId = days.flatMap { day -> routineDao.getExercises(day.id) }
+            .filter { placement ->
+                runCatching { RoutinePlacementKind.valueOf(placement.placementKind) }.getOrNull() in setOf(
+                    RoutinePlacementKind.MainLift,
+                    RoutinePlacementKind.Supplemental,
+                )
+            }
+            .groupBy(RoutineExerciseEntity::exerciseId)
         val mainPlacementsByExerciseId = mainPlacements.groupBy(RoutineExerciseEntity::exerciseId)
         val eligibilityByExerciseId = mainPlacementsByExerciseId.mapValues { (exerciseId, placements) ->
             placements.all(RoutineExerciseEntity::trainingMaxIncreaseEligible) &&
@@ -889,7 +897,7 @@ class RoomGymRepository(
                         "An above-standard Training Max change requires enabled, corroborated higher evidence"
                     }
                 }
-                placements.forEach { placement ->
+                programmedPlacementsByExerciseId[exerciseId].orEmpty().forEach { placement ->
                     val updatedValue = current + requestedDelta
                     routineDao.updateExercise(
                         placement.copy(
@@ -1007,7 +1015,7 @@ class RoomGymRepository(
                 val evidenceSession = sessionsById.getValue(placement.sessionId)
                 val phaseRole = runCatching { RoutineProgramPhaseRole.valueOf(evidenceSession.sourceRoutinePhaseRole) }
                     .getOrDefault(RoutineProgramPhaseRole.Standard)
-                if (phaseRole == RoutineProgramPhaseRole.Deload) return@forEach
+                if (phaseRole.semanticRole() == RoutineProgramPhaseRole.Deload) return@forEach
                 setsByPlacement[placement.id].orEmpty().forEach { set ->
                     val workSection = runCatching { RoutineWorkSection.valueOf(set.workSectionSnapshot) }
                         .getOrDefault(RoutineWorkSection.Unspecified)
@@ -1022,7 +1030,7 @@ class RoomGymRepository(
                         workSection == RoutineWorkSection.Optional && optionalKind == RoutineOptionalWorkKind.Joker ->
                             FiveThreeOneEvidenceKind.Joker
                         workSection != RoutineWorkSection.Main -> return@forEach
-                        phaseRole == RoutineProgramPhaseRole.TrainingMaxTest &&
+                        phaseRole.semanticRole() == RoutineProgramPhaseRole.TrainingMaxTest &&
                             prescribedClassification == WorkoutSetClassification.TrainingMaxTest ->
                             FiveThreeOneEvidenceKind.TrainingMaxTest
                         prescribedClassification == WorkoutSetClassification.Amrap -> FiveThreeOneEvidenceKind.PrSet

@@ -2369,6 +2369,17 @@ internal fun selectRequestedWorkoutSet(
 internal fun WorkoutSet.isIncompleteRequiredWork(): Boolean =
     !completed && deletedAtMillis == null && workSectionSnapshot != RoutineWorkSection.Optional
 
+internal fun WorkoutSet.meetsJokerPrerequisite(): Boolean {
+    if (!completed || deletedAtMillis != null || classification == WorkoutSetClassification.Failure) return false
+    val repsMet = prescribedRepetitions == null || (repetitions ?: Int.MIN_VALUE) >= prescribedRepetitions
+    val loadMet = prescribedCanonicalWeightKg == null ||
+        (canonicalWeightKg ?: Double.NEGATIVE_INFINITY) + 1e-9 >= prescribedCanonicalWeightKg
+    return repsMet && loadMet
+}
+
+internal fun WorkoutSet.effortStopsJokerLadder(): Boolean =
+    (rpe?.let { it >= 9.0 } == true) || (rir?.let { it <= 1.0 } == true)
+
 internal fun WorkoutSession.matchesFinishReview(boundary: WorkoutFinishBoundary?): Boolean =
     boundary != null && id == boundary.sessionId && uuid == boundary.sessionUuid &&
         workoutRevision == boundary.workoutRevision
@@ -2380,15 +2391,29 @@ internal fun selectPendingOptionalWorkoutSet(
     .flatMap(WorkoutExerciseBlock::exercises)
     .asSequence()
     .mapNotNull { item ->
-        val mainWorkComplete = item.sets.none { set ->
-            set.workSectionSnapshot == RoutineWorkSection.Main && !set.completed && set.deletedAtMillis == null
+        val main = item.sets.filter { it.workSectionSnapshot == RoutineWorkSection.Main }
+            .sortedBy(WorkoutSet::position)
+        if (main.isEmpty() || main.any { !it.meetsJokerPrerequisite() } || main.last().effortStopsJokerLadder()) {
+            return@mapNotNull null
         }
-        if (!mainWorkComplete) return@mapNotNull null
-        item.sets.sortedBy(WorkoutSet::position).firstOrNull { set ->
-            set.workSectionSnapshot == RoutineWorkSection.Optional &&
-                set.optionalWorkKindSnapshot == RoutineOptionalWorkKind.Joker &&
-                !set.completed && set.deletedAtMillis == null && set.id !in acceptedOptionalSetIds
-        }?.let { set -> item to set }
+        val jokers = item.sets.filter {
+            it.workSectionSnapshot == RoutineWorkSection.Optional &&
+                it.optionalWorkKindSnapshot == RoutineOptionalWorkKind.Joker
+        }.sortedBy(WorkoutSet::position)
+        for ((index, set) in jokers.withIndex()) {
+            if (set.deletedAtMillis != null || (set.completed && !set.meetsJokerPrerequisite())) return@mapNotNull null
+            if (set.completed) {
+                if (set.effortStopsJokerLadder()) return@mapNotNull null
+                continue
+            }
+            if (set.id in acceptedOptionalSetIds) return@mapNotNull null
+            val previous = jokers.getOrNull(index - 1)
+            if (previous == null || previous.meetsJokerPrerequisite() && !previous.effortStopsJokerLadder()) {
+                return@mapNotNull item to set
+            }
+            return@mapNotNull null
+        }
+        null
     }
     .firstOrNull()
 
@@ -2923,13 +2948,17 @@ private fun WorkoutContent(
                 }
                 val phaseLabel = session.sourceRoutinePhaseLabel.takeIf(String::isNotBlank)
                     ?: session.sourceRoutinePhaseIndex?.let { "Phase ${it + 1}" }
-                val phaseRole = when (session.sourceRoutinePhaseRole) {
+                val phaseRole = when (session.sourceRoutinePhaseRole.semanticRole()) {
                     RoutineProgramPhaseRole.Standard -> null
                     RoutineProgramPhaseRole.Leader -> "Leader"
                     RoutineProgramPhaseRole.Anchor -> "Anchor"
                     RoutineProgramPhaseRole.Deload -> "Deload"
                     RoutineProgramPhaseRole.TrainingMaxTest -> "Training Max Test"
                     RoutineProgramPhaseRole.PersonalRecordTest -> "PR Test"
+                    RoutineProgramPhaseRole.OncePerLiftDeload,
+                    RoutineProgramPhaseRole.OncePerLiftTrainingMaxTest,
+                    RoutineProgramPhaseRole.OncePerLiftPersonalRecordTest,
+                    -> null
                 }
                 Text(
                     listOfNotNull(
@@ -2967,7 +2996,7 @@ private fun WorkoutContent(
                             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text("Optional Joker skipped", modifier = Modifier.weight(1f))
+                            Text("Optional Joker skipped · ladder ended", modifier = Modifier.weight(1f))
                             WhipTextButton(
                                 onClick = {
                                     onUndoDeleteSet(skippedId)
@@ -2977,12 +3006,19 @@ private fun WorkoutContent(
                         }
                     }
                     pendingOptionalSet?.let { (exerciseItem, set) ->
+                        val jokerSets = exerciseItem.sets.filter {
+                            it.workSectionSnapshot == RoutineWorkSection.Optional &&
+                                it.optionalWorkKindSnapshot == RoutineOptionalWorkKind.Joker
+                        }.sortedBy(WorkoutSet::position)
+                        val jokerOrdinal = jokerSets.indexOfFirst { it.id == set.id }.let { index ->
+                            if (index >= 0) index + 1 else 1
+                        }
                         Column(
                             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Text(
-                                "OPTIONAL · ${exerciseItem.exercise.name} · Joker candidate",
+                                "OPTIONAL · ${exerciseItem.exercise.name} · Joker $jokerOrdinal of ${jokerSets.size.coerceAtLeast(1)}",
                                 color = MaterialTheme.colorScheme.tertiary,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -2992,7 +3028,7 @@ private fun WorkoutContent(
                                     state.appSettings.numberPrecision,
                                     exerciseItem.workoutExercise,
                                 )?.let { "Target · $it · Perform only if readiness and bar speed justify it." }
-                                    ?: "Perform only if readiness and bar speed justify it.",
+                                    ?: "Perform only if readiness and bar speed justify it. The next Joker appears only after this target is met.",
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -3003,7 +3039,7 @@ private fun WorkoutContent(
                                             acceptedOptionalSetIds = acceptedOptionalSetIds + set.id
                                         },
                                         modifier = buttonModifier.testTag("perform-optional-set"),
-                                    ) { Text("Perform Joker") }
+                                    ) { Text("Perform Joker $jokerOrdinal") }
                                 }
                                 val skip: @Composable (Modifier) -> Unit = { buttonModifier ->
                                     WhipOutlinedButton(
@@ -3597,7 +3633,11 @@ internal fun WorkoutExerciseCard(
                     }
                 }
             }
-            item.workoutExercise.assistanceLabel()?.let { roleLabel ->
+            val placementRoleLabel = when (item.workoutExercise.placementKindSnapshot) {
+                RoutinePlacementKind.Supplemental -> "Supplemental · alternate programmed lift"
+                else -> item.workoutExercise.assistanceLabel()
+            }
+            placementRoleLabel?.let { roleLabel ->
                 Text(
                     roleLabel,
                     style = MaterialTheme.typography.labelLarge,
@@ -7069,13 +7109,17 @@ internal fun workoutProgramSnapshotLabel(session: WorkoutSession): String? {
         session.sourceRoutineCycle?.let { add("Cycle $it") }
         session.sourceRoutinePhaseIndex?.let { phaseIndex ->
             val label = session.sourceRoutinePhaseLabel.takeIf(String::isNotBlank) ?: "Phase ${phaseIndex + 1}"
-            val role = when (session.sourceRoutinePhaseRole) {
+            val role = when (session.sourceRoutinePhaseRole.semanticRole()) {
                 RoutineProgramPhaseRole.Standard -> null
                 RoutineProgramPhaseRole.Leader -> "Leader"
                 RoutineProgramPhaseRole.Anchor -> "Anchor"
                 RoutineProgramPhaseRole.Deload -> "Deload"
                 RoutineProgramPhaseRole.TrainingMaxTest -> "Training Max Test"
                 RoutineProgramPhaseRole.PersonalRecordTest -> "PR Test"
+                RoutineProgramPhaseRole.OncePerLiftDeload,
+                RoutineProgramPhaseRole.OncePerLiftTrainingMaxTest,
+                RoutineProgramPhaseRole.OncePerLiftPersonalRecordTest,
+                -> null
             }
             add(listOfNotNull(label, role).distinct().joinToString(" · "))
         }
@@ -8833,7 +8877,9 @@ private fun RoutineContent(
                                 if (phaseRoadmapExpanded) {
                                     val phaseLabel = routine.programPhaseLabels.getOrNull(roadmapPhaseIndex)
                                         ?.takeIf(String::isNotBlank) ?: "Phase ${roadmapPhaseIndex + 1}"
-                                    val phaseRole = when (routine.programPhaseRoles.getOrNull(roadmapPhaseIndex)) {
+                                    val phaseRole = when (
+                                        routine.programPhaseRoles.getOrNull(roadmapPhaseIndex)?.semanticRole()
+                                    ) {
                                         RoutineProgramPhaseRole.Leader -> "Leader"
                                         RoutineProgramPhaseRole.Anchor -> "Anchor"
                                         RoutineProgramPhaseRole.Deload -> "Deload"

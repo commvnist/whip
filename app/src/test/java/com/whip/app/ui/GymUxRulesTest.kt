@@ -455,7 +455,24 @@ class GymUxRulesTest {
 
         val optional = item(3, 2, RoutineWorkSection.Optional)
         assertEquals(supplemental.workoutExercise.id, selectNextWorkoutSet(listOf(supplemental, optional))?.first?.workoutExercise?.id)
-        assertEquals(optional.workoutExercise.id, selectPendingOptionalWorkoutSet(listOf(optional))?.first?.workoutExercise?.id)
+        val optionalWithCompletedMain = optional.copy(
+            sets = listOf(
+                optional.sets.single().copy(
+                    id = 29L,
+                    position = 0,
+                    completed = true,
+                    completedAtMillis = 2L,
+                    workSectionSnapshot = RoutineWorkSection.Main,
+                    optionalWorkKindSnapshot = RoutineOptionalWorkKind.None,
+                ),
+                optional.sets.single().copy(position = 1),
+            ),
+        )
+        assertEquals(
+            optional.workoutExercise.id,
+            selectPendingOptionalWorkoutSet(listOf(optionalWithCompletedMain))?.first?.workoutExercise?.id,
+        )
+        assertNull(selectPendingOptionalWorkoutSet(listOf(optional)))
         assertNull(selectNextWorkoutSet(listOf(optional)))
         assertEquals(optional.workoutExercise.id, selectNextWorkoutSet(listOf(optional), acceptedOptionalSetIds = setOf(30L))?.first?.workoutExercise?.id)
         assertTrue(!optional.sets.single().isIncompleteRequiredWork())
@@ -474,6 +491,74 @@ class GymUxRulesTest {
                 workoutOnlyOptional.workoutExercise.id,
             )?.first?.workoutExercise?.id,
         )
+    }
+
+    @Test
+    fun jokerLadderRequiresTargetsAndStopsOnSkipFailureOrHighEffort() {
+        val exercise = testExercise(1, "Squat", "Barbell", "Legs")
+        val placement = WorkoutExercise(
+            id = 1,
+            uuid = "placement-1",
+            sessionId = 1,
+            exerciseId = 1,
+            position = 0,
+            notes = "",
+            groupId = null,
+            createdAtMillis = 1,
+            updatedAtMillis = 1,
+        )
+        fun set(
+            id: Long,
+            position: Int,
+            section: RoutineWorkSection,
+            completed: Boolean,
+            deleted: Boolean = false,
+            actualReps: Int = 5,
+            rpe: Double? = null,
+            failure: Boolean = false,
+        ) = WorkoutSet(
+            id = id,
+            uuid = "set-$id",
+            workoutExerciseId = 1,
+            position = position,
+            classification = if (failure) WorkoutSetClassification.Failure else WorkoutSetClassification.Working,
+            planned = true,
+            completed = completed,
+            canonicalWeightKg = 100.0,
+            enteredWeight = 100.0,
+            enteredWeightUnitId = "kilogram",
+            repetitions = actualReps,
+            canonicalDistanceMetres = null,
+            enteredDistance = null,
+            enteredDistanceUnitId = null,
+            durationSeconds = null,
+            bodyweightKg = null,
+            note = "",
+            rpe = rpe,
+            rir = null,
+            tempo = "",
+            restSeconds = null,
+            completedAtMillis = 2L.takeIf { completed },
+            deletedAtMillis = 3L.takeIf { deleted },
+            createdAtMillis = 1,
+            updatedAtMillis = 1,
+            prescribedCanonicalWeightKg = 100.0,
+            prescribedRepetitions = 5,
+            workSectionSnapshot = section,
+            optionalWorkKindSnapshot = if (section == RoutineWorkSection.Optional) RoutineOptionalWorkKind.Joker else RoutineOptionalWorkKind.None,
+        )
+        val main = set(1, 0, RoutineWorkSection.Main, completed = true)
+        val first = set(2, 1, RoutineWorkSection.Optional, completed = false)
+        val second = set(3, 2, RoutineWorkSection.Optional, completed = false)
+        fun item(sets: List<WorkoutSet>) = WorkoutExerciseUi(placement, exercise, sets, emptyList(), 0, null, null)
+
+        assertEquals(2L, selectPendingOptionalWorkoutSet(listOf(item(listOf(main, first, second))))?.second?.id)
+        assertNull(selectPendingOptionalWorkoutSet(listOf(item(listOf(main, first.copy(deletedAtMillis = 3L), second)))))
+        assertNull(selectPendingOptionalWorkoutSet(listOf(item(listOf(main, first.copy(completed = true, repetitions = 4), second)))))
+        assertNull(selectPendingOptionalWorkoutSet(listOf(item(listOf(main, first.copy(completed = true, classification = WorkoutSetClassification.Failure), second)))))
+        assertNull(selectPendingOptionalWorkoutSet(listOf(item(listOf(main, first.copy(completed = true, rpe = 9.0), second)))))
+        assertEquals(3L, selectPendingOptionalWorkoutSet(listOf(item(listOf(main, first.copy(completed = true), second))))?.second?.id)
+        assertNull(selectPendingOptionalWorkoutSet(listOf(item(listOf(main.copy(repetitions = 4), first, second)))))
     }
 
     @Test

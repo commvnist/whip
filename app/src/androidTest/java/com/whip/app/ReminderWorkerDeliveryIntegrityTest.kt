@@ -43,6 +43,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -548,14 +549,20 @@ class ReminderWorkerDeliveryIntegrityTest {
                 .setContentTitle("Goal reminder")
                 .build(),
         )
-        assertEquals(4, notifications.activeNotifications.size)
+        assertTrue(awaitActiveNotificationCount(4))
 
         app.taskDeletionCoordinator.delete(taskId)
         app.domainDeletionCoordinator.deleteHabit(habitId)
         app.domainDeletionCoordinator.deleteGoal(goalId)
 
-        assertTrue(notifications.activeNotifications.isEmpty())
+        assertTrue(awaitActiveNotificationCount(0))
     }
+
+    private suspend fun awaitActiveNotificationCount(expected: Int): Boolean =
+        withTimeoutOrNull(5_000) {
+            while (notifications.activeNotifications.size != expected) delay(10)
+            true
+        } == true
 
     @Test
     fun rejectedTaskDeletionKeepsTheValidNotificationAndClearsItsCleanupJournal() = runBlocking {

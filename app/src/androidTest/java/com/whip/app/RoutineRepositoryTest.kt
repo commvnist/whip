@@ -22,6 +22,7 @@ import com.whip.app.domain.RoutineOptionalWorkKind
 import com.whip.app.domain.RoutineProgramDraft
 import com.whip.app.domain.RoutineProgramKind
 import com.whip.app.domain.RoutineProgramPhaseRole
+import com.whip.app.domain.RoutineProgramTemplateKey
 import com.whip.app.domain.RoutineProgressionMode
 import com.whip.app.domain.RoutineSupplementalScheme
 import com.whip.app.domain.RoutineWorkSection
@@ -2360,6 +2361,373 @@ class RoutineRepositoryTest {
             )
         }.exceptionOrNull()
         assertTrue(requireNotNull(bbbMismatch).message.orEmpty().contains("BBB requires exactly 5"))
+    }
+
+    @Test
+    fun alternateBbbUsesOwnTrainingMaxSkipsEmptyPhasesAndStaysSynchronized() = runBlocking {
+        val benchId = gym.createExercise(ExerciseDraft("Bench", weightUnitId = "pound", weightIncrement = 5.0))
+        val deadliftId = gym.createExercise(ExerciseDraft("Deadlift", weightUnitId = "pound", weightIncrement = 5.0))
+        fun mainSets() = listOf(65.0, 75.0, 85.0).mapIndexed { index, percentage ->
+            WorkoutSetDraft(
+                reps = 5,
+                classification = if (index == 2) WorkoutSetClassification.Amrap else WorkoutSetClassification.Working,
+                loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                loadPercentage = percentage,
+                routinePhaseIndex = 0,
+                workSection = RoutineWorkSection.Main,
+                mainWorkScheme = RoutineMainWorkScheme.ClassicPrSet,
+            )
+        } + listOf(65.0, 75.0, 85.0).mapIndexed { index, percentage ->
+            WorkoutSetDraft(
+                reps = 5,
+                classification = if (index == 2) WorkoutSetClassification.Amrap else WorkoutSetClassification.Working,
+                loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                loadPercentage = percentage,
+                routinePhaseIndex = 1,
+                workSection = RoutineWorkSection.Main,
+                mainWorkScheme = RoutineMainWorkScheme.ClassicPrSet,
+            )
+        } + List(5) {
+            WorkoutSetDraft(
+                reps = 5,
+                classification = WorkoutSetClassification.BackOff,
+                loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                loadPercentage = 65.0,
+                routinePhaseIndex = 1,
+                workSection = RoutineWorkSection.Supplemental,
+                supplementalScheme = RoutineSupplementalScheme.FirstSetLast,
+            )
+        }
+        fun main(exerciseId: Long, tm: Double) = RoutineExerciseDraft(
+            exerciseId = exerciseId,
+            trainingMaxValue = tm,
+            trainingMaxUnitId = "pound",
+            trainingMaxSource = RoutineTrainingMaxSource.Explicit,
+            cycleIncrementValue = 5.0,
+            placementKind = RoutinePlacementKind.MainLift,
+            mainWorkScheme = RoutineMainWorkScheme.ClassicPrSet,
+            supplementalScheme = RoutineSupplementalScheme.Custom,
+            plannedSets = mainSets(),
+        )
+        fun alternate(exerciseId: Long, tm: Double) = RoutineExerciseDraft(
+            exerciseId = exerciseId,
+            notes = "Alternate BBB",
+            trainingMaxValue = tm,
+            trainingMaxUnitId = "pound",
+            trainingMaxSource = RoutineTrainingMaxSource.Explicit,
+            cycleIncrementValue = 5.0,
+            placementKind = RoutinePlacementKind.Supplemental,
+            supplementalScheme = RoutineSupplementalScheme.BoringButBig,
+            plannedSets = List(5) {
+                WorkoutSetDraft(
+                    reps = 10,
+                    classification = WorkoutSetClassification.BackOff,
+                    loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                    loadPercentage = 50.0,
+                    routinePhaseIndex = 0,
+                    workSection = RoutineWorkSection.Supplemental,
+                    supplementalScheme = RoutineSupplementalScheme.BoringButBig,
+                )
+            },
+        )
+        val routineId = routines.createRoutine(
+            RoutineDraft(
+                name = "Alternate BBB",
+                program = RoutineProgramDraft(
+                    kind = RoutineProgramKind.FiveThreeOne,
+                    phaseCount = 2,
+                    phaseLabels = listOf("Leader", "Anchor"),
+                    phaseRoles = listOf(RoutineProgramPhaseRole.Leader, RoutineProgramPhaseRole.Anchor),
+                    trainingMaxAdvanceAfterPhaseIndices = setOf(0),
+                ),
+                days = listOf(
+                    RoutineDayDraft("Bench", listOf(main(benchId, 200.0), alternate(deadliftId, 300.0))),
+                    RoutineDayDraft("Deadlift", listOf(main(deadliftId, 300.0), alternate(benchId, 200.0))),
+                ),
+            ),
+        )
+
+        repeat(2) {
+            val sessionId = routines.startRoutine(routineId)
+            val placements = gym.workoutExercises.first().filter { it.sessionId == sessionId }
+            assertEquals(2, placements.size)
+            placements.forEach { placement ->
+                gym.sets.first().filter {
+                    it.workoutExerciseId == placement.id && it.workSectionSnapshot == RoutineWorkSection.Main
+                }.forEach { set -> gym.setSetCompleted(set.id, completed = true, autoStartRest = false) }
+            }
+            gym.finishWorkout(sessionId)
+        }
+
+        val savedByExercise = routines.exercises.first().groupBy { it.exerciseId }
+        assertTrue(savedByExercise.getValue(benchId).all { it.trainingMaxValue == 205.0 })
+        assertTrue(savedByExercise.getValue(deadliftId).all { it.trainingMaxValue == 305.0 })
+
+        val anchorSession = routines.startRoutine(routineId)
+        val anchorPlacements = gym.workoutExercises.first().filter { it.sessionId == anchorSession }
+        assertEquals(1, anchorPlacements.size)
+        assertEquals(benchId, anchorPlacements.single().exerciseId)
+    }
+
+    @Test
+    fun beginnersProtocolsSaveEditAndRunOncePerLiftWithoutEmptyDays() = runBlocking {
+        val squatId = gym.createExercise(ExerciseDraft("Squat", weightUnitId = "pound", weightIncrement = 5.0))
+        val benchId = gym.createExercise(ExerciseDraft("Bench", weightUnitId = "pound", weightIncrement = 5.0))
+        val deadliftId = gym.createExercise(ExerciseDraft("Deadlift", weightUnitId = "pound", weightIncrement = 5.0))
+        val pressId = gym.createExercise(ExerciseDraft("Press", weightUnitId = "pound", weightIncrement = 5.0))
+        data class ProtocolCase(
+            val name: String,
+            val role: RoutineProgramPhaseRole,
+            val mainScheme: RoutineMainWorkScheme,
+            val repetitions: List<Int>,
+        )
+        val protocols = listOf(
+            ProtocolCase(
+                "Deload",
+                RoutineProgramPhaseRole.Deload,
+                RoutineMainWorkScheme.ClassicMinimumReps,
+                listOf(5, 3, 1, 1),
+            ),
+            ProtocolCase(
+                "Training Max Test",
+                RoutineProgramPhaseRole.TrainingMaxTest,
+                RoutineMainWorkScheme.ClassicMinimumReps,
+                listOf(5, 5, 5, 3),
+            ),
+            ProtocolCase(
+                "PR Test",
+                RoutineProgramPhaseRole.PersonalRecordTest,
+                RoutineMainWorkScheme.ClassicPrSet,
+                listOf(5, 5, 5, 1),
+            ),
+        )
+        val expectedByDay = listOf(listOf(squatId), listOf(deadliftId, pressId), listOf(benchId))
+
+        protocols.forEach { protocol ->
+            fun ownsProtocol(dayIndex: Int, exerciseId: Long): Boolean = when (exerciseId) {
+                squatId -> dayIndex == 0
+                benchId -> dayIndex == 2
+                deadliftId, pressId -> dayIndex == 1
+                else -> false
+            }
+            fun main(dayIndex: Int, exerciseId: Long) = RoutineExerciseDraft(
+                exerciseId = exerciseId,
+                trainingMaxValue = 200.0,
+                trainingMaxUnitId = "pound",
+                trainingMaxSource = RoutineTrainingMaxSource.Explicit,
+                cycleIncrementValue = 5.0,
+                placementKind = RoutinePlacementKind.MainLift,
+                mainWorkScheme = protocol.mainScheme,
+                plannedSets = listOf(70.0, 80.0, 90.0, 100.0).mapIndexedNotNull { index, percentage ->
+                    if (
+                        protocol.role == RoutineProgramPhaseRole.TrainingMaxTest && index == 3 &&
+                        !ownsProtocol(dayIndex, exerciseId)
+                    ) return@mapIndexedNotNull null
+                    WorkoutSetDraft(
+                        reps = protocol.repetitions[index],
+                        classification = when {
+                            protocol.role == RoutineProgramPhaseRole.TrainingMaxTest && index == 3 ->
+                                WorkoutSetClassification.TrainingMaxTest
+                            protocol.role == RoutineProgramPhaseRole.PersonalRecordTest && index == 3 ->
+                                WorkoutSetClassification.Amrap
+                            else -> WorkoutSetClassification.Working
+                        },
+                        loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                        loadPercentage = percentage,
+                        routinePhaseIndex = 0,
+                        workSection = RoutineWorkSection.Main,
+                        mainWorkScheme = protocol.mainScheme,
+                    )
+                },
+            )
+            fun draft(trainingMax: Double) = RoutineDraft(
+                name = "Beginners ${protocol.name}",
+                program = RoutineProgramDraft(
+                    kind = RoutineProgramKind.FiveThreeOne,
+                    phaseCount = 1,
+                    phaseLabels = listOf("7th Week · ${protocol.name}"),
+                    phaseRoles = listOf(protocol.role.asOncePerLiftProtocol()),
+                    templateKey = RoutineProgramTemplateKey.FiveThreeOneBeginners,
+                    templateRevision = 2,
+                ),
+                days = listOf(
+                    RoutineDayDraft("Monday", listOf(main(0, squatId), main(0, benchId))),
+                    RoutineDayDraft("Wednesday", listOf(main(1, deadliftId), main(1, pressId))),
+                    RoutineDayDraft("Friday", listOf(main(2, benchId), main(2, squatId))),
+                ).map { day ->
+                    day.copy(exercises = day.exercises.map { exercise ->
+                        if (exercise.exerciseId == squatId) exercise.copy(trainingMaxValue = trainingMax) else exercise
+                    })
+                },
+            )
+
+            val routineId = routines.createRoutine(draft(200.0))
+            routines.updateRoutine(routineId, draft(205.0))
+            val executedExercises = mutableListOf<Long>()
+            repeat(3) { dayIndex ->
+                val sessionId = routines.startRoutine(routineId)
+                val placements = gym.workoutExercises.first().filter { it.sessionId == sessionId }
+                assertEquals("${protocol.name} day ${dayIndex + 1}", expectedByDay[dayIndex], placements.map { it.exerciseId })
+                assertTrue("${protocol.name} day ${dayIndex + 1} must not be empty", placements.isNotEmpty())
+                executedExercises += placements.map { it.exerciseId }
+                val placementIds = placements.map { it.id }.toSet()
+                val sets = gym.sets.first().filter { it.workoutExerciseId in placementIds }
+                assertEquals(placements.size * 4, sets.size)
+                sets.forEach { set -> gym.setSetCompleted(set.id, completed = true, autoStartRest = false) }
+                gym.finishWorkout(sessionId)
+            }
+            assertEquals(setOf(squatId, benchId, deadliftId, pressId), executedExercises.toSet())
+            assertEquals(4, executedExercises.size)
+        }
+    }
+
+    @Test
+    fun legacyBeginnersDeloadKeepsEverySavedRepeatedLiftExposure() = runBlocking {
+        val squatId = gym.createExercise(ExerciseDraft("Squat", weightUnitId = "pound", weightIncrement = 5.0))
+        val benchId = gym.createExercise(ExerciseDraft("Bench", weightUnitId = "pound", weightIncrement = 5.0))
+        val deadliftId = gym.createExercise(ExerciseDraft("Deadlift", weightUnitId = "pound", weightIncrement = 5.0))
+        val pressId = gym.createExercise(ExerciseDraft("Press", weightUnitId = "pound", weightIncrement = 5.0))
+        fun main(exerciseId: Long) = RoutineExerciseDraft(
+            exerciseId = exerciseId,
+            trainingMaxValue = 200.0,
+            trainingMaxUnitId = "pound",
+            trainingMaxSource = RoutineTrainingMaxSource.Explicit,
+            cycleIncrementValue = 5.0,
+            placementKind = RoutinePlacementKind.MainLift,
+            mainWorkScheme = RoutineMainWorkScheme.ClassicMinimumReps,
+            plannedSets = listOf(40.0, 50.0, 60.0).map { percentage ->
+                WorkoutSetDraft(
+                    reps = 5,
+                    loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                    loadPercentage = percentage,
+                    routinePhaseIndex = 0,
+                    workSection = RoutineWorkSection.Main,
+                    mainWorkScheme = RoutineMainWorkScheme.ClassicMinimumReps,
+                )
+            },
+        )
+        val expectedByDay = listOf(
+            listOf(squatId, benchId),
+            listOf(deadliftId, pressId),
+            listOf(benchId, squatId),
+        )
+        val routineId = routines.createRoutine(
+            RoutineDraft(
+                name = "Legacy Beginners deload",
+                program = RoutineProgramDraft(
+                    kind = RoutineProgramKind.FiveThreeOne,
+                    phaseCount = 1,
+                    phaseLabels = listOf("Deload"),
+                    phaseRoles = listOf(RoutineProgramPhaseRole.Deload),
+                    templateKey = RoutineProgramTemplateKey.FiveThreeOneBeginners,
+                    templateRevision = 1,
+                ),
+                days = listOf(
+                    RoutineDayDraft("Monday", listOf(main(squatId), main(benchId))),
+                    RoutineDayDraft("Wednesday", listOf(main(deadliftId), main(pressId))),
+                    RoutineDayDraft("Friday", listOf(main(benchId), main(squatId))),
+                ),
+            ),
+        )
+
+        val executedExercises = mutableListOf<Long>()
+        repeat(3) { dayIndex ->
+            val sessionId = routines.startRoutine(routineId)
+            val placements = gym.workoutExercises.first().filter { it.sessionId == sessionId }
+            assertEquals(expectedByDay[dayIndex], placements.map { it.exerciseId })
+            executedExercises += placements.map { it.exerciseId }
+            val placementIds = placements.mapTo(mutableSetOf()) { it.id }
+            gym.sets.first().filter { it.workoutExerciseId in placementIds }.forEach { set ->
+                gym.setSetCompleted(set.id, completed = true, autoStartRest = false)
+            }
+            gym.finishWorkout(sessionId)
+        }
+
+        assertEquals(2, executedExercises.count { it == squatId })
+        assertEquals(2, executedExercises.count { it == benchId })
+        assertEquals(1, executedExercises.count { it == deadliftId })
+        assertEquals(1, executedExercises.count { it == pressId })
+    }
+
+    @Test
+    fun applyingProtocolToOneLegacyPhaseDoesNotChangeAnotherPhasesRepeatedExposures() = runBlocking {
+        val squatId = gym.createExercise(ExerciseDraft("Squat", weightUnitId = "pound", weightIncrement = 5.0))
+        val benchId = gym.createExercise(ExerciseDraft("Bench", weightUnitId = "pound", weightIncrement = 5.0))
+        val deadliftId = gym.createExercise(ExerciseDraft("Deadlift", weightUnitId = "pound", weightIncrement = 5.0))
+        val pressId = gym.createExercise(ExerciseDraft("Press", weightUnitId = "pound", weightIncrement = 5.0))
+        fun main(exerciseId: Long) = RoutineExerciseDraft(
+            exerciseId = exerciseId,
+            trainingMaxValue = 200.0,
+            trainingMaxUnitId = "pound",
+            trainingMaxSource = RoutineTrainingMaxSource.Explicit,
+            cycleIncrementValue = 5.0,
+            placementKind = RoutinePlacementKind.MainLift,
+            mainWorkScheme = RoutineMainWorkScheme.ClassicMinimumReps,
+            plannedSets = listOf(70.0, 80.0, 90.0, 100.0).mapIndexed { index, percentage ->
+                WorkoutSetDraft(
+                    reps = listOf(5, 3, 1, 1)[index],
+                    loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                    loadPercentage = percentage,
+                    routinePhaseIndex = 0,
+                    workSection = RoutineWorkSection.Main,
+                    mainWorkScheme = RoutineMainWorkScheme.ClassicMinimumReps,
+                )
+            } + listOf(40.0, 50.0, 60.0).map { percentage ->
+                WorkoutSetDraft(
+                    reps = 5,
+                    loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                    loadPercentage = percentage,
+                    routinePhaseIndex = 1,
+                    workSection = RoutineWorkSection.Main,
+                    mainWorkScheme = RoutineMainWorkScheme.ClassicMinimumReps,
+                )
+            },
+        )
+        val expectedByDay = listOf(
+            listOf(squatId, benchId),
+            listOf(deadliftId, pressId),
+            listOf(benchId, squatId),
+        )
+        val routineId = routines.createRoutine(
+            RoutineDraft(
+                name = "Partially upgraded legacy Beginners",
+                program = RoutineProgramDraft(
+                    kind = RoutineProgramKind.FiveThreeOne,
+                    phaseCount = 2,
+                    phaseLabels = listOf("7th Week · Deload", "Untouched legacy deload"),
+                    phaseRoles = listOf(
+                        RoutineProgramPhaseRole.OncePerLiftDeload,
+                        RoutineProgramPhaseRole.Deload,
+                    ),
+                    templateKey = RoutineProgramTemplateKey.FiveThreeOneBeginners,
+                    templateRevision = 2,
+                ),
+                days = listOf(
+                    RoutineDayDraft("Monday", listOf(main(squatId), main(benchId))),
+                    RoutineDayDraft("Wednesday", listOf(main(deadliftId), main(pressId))),
+                    RoutineDayDraft("Friday", listOf(main(benchId), main(squatId))),
+                ),
+            ),
+        )
+        routines.setRoutineProgramPosition(routineId, phaseIndex = 1, dayPosition = 0, cycle = 1)
+
+        val executedExercises = mutableListOf<Long>()
+        repeat(3) { dayIndex ->
+            val sessionId = routines.startRoutine(routineId)
+            val placements = gym.workoutExercises.first().filter { it.sessionId == sessionId }
+            assertEquals(expectedByDay[dayIndex], placements.map { it.exerciseId })
+            executedExercises += placements.map { it.exerciseId }
+            val placementIds = placements.mapTo(mutableSetOf()) { it.id }
+            val sets = gym.sets.first().filter { it.workoutExerciseId in placementIds }
+            assertEquals(placements.size * 3, sets.size)
+            sets.forEach { set -> gym.setSetCompleted(set.id, completed = true, autoStartRest = false) }
+            gym.finishWorkout(sessionId)
+        }
+
+        assertEquals(2, executedExercises.count { it == squatId })
+        assertEquals(2, executedExercises.count { it == benchId })
+        assertEquals(1, executedExercises.count { it == deadliftId })
+        assertEquals(1, executedExercises.count { it == pressId })
     }
 
     @Test

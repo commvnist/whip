@@ -805,3 +805,50 @@ simulation rather than recruited human-subject research.
   `lastUpdateTime` (`2026-08-31 20:23:58`). The installed APK's SHA-256 matched the signed local
   artifact byte-for-byte. A cold launch placed `MainActivity` in `ResumedActivity`, and the
   launch log contained no fatal, AndroidRuntime, SQLite, Room, or migration failure.
+
+## Advanced 5/3/1 expansion: 2026-09-02
+
+The former optional backlog is now an emulator- and release-build-verified implementation:
+
+- One-tap BBB Leader → FSL Anchor and FSL Leader → FSL Anchor structures generate two
+  three-week 5s PRO Leaders, a 7th Week transition, one three-week PR-set/FSL Anchor, and a
+  closing selectable 7th Week protocol. Arbitrary ordered Weight + Reps lifts remain supported.
+- Deload, Training Max Test, and PR Test are one-tap, reviewable prescriptions in both initial
+  setup and Program Structure. The app shows all generated percentages and calls the presets
+  book-guided/editable rather than claiming unsupported official-edition parity.
+- BBB can use the day's Main lift or another selected program lift. Alternate BBB is a distinct
+  Supplemental placement, uses the alternate lift's own TM, and stays synchronized when that
+  lift's TM advances.
+- Jokers support one to three optional +5% or +10% TM candidates. Each candidate is logged
+  independently and appears only after successful prerequisite work; skip, failure, missed
+  targets, RPE 9+, or RIR 1 or lower ends the ladder without removing Supplemental work.
+- Setup can draft Push/Pull/Single-leg-Core assistance from compatible existing Library
+  exercises, with visible 3×10 targets (5×10 for Beginners), deterministic suggestions, and
+  explicit replacement/omission. It never creates an exercise or demotes a canonical main lift
+  silently.
+- Repeated-lift Beginners schedules keep synchronized editable protocol templates and assign
+  one balanced runtime owner per logical lift. Squat executes Monday, Deadlift + Press execute
+  Wednesday, and Bench executes Friday, so every protocol runs each lift exactly once without
+  an invalid save, duplicated test, TM-edit drift, or empty training day.
+- That once-per-lift runtime rule is provenance-gated to 5/3/1 template revision 2. Existing
+  revision-1 Beginners deloads continue to execute both saved Squat and Bench exposures; using
+  an explicit new protocol action durably opts the routine into revision-2 semantics.
+- Program Structure identifies alternate-lift BBB by exercise, includes it in the phase policy
+  and prescription summary, preserves it when Main/Joker controls change, and replaces it only
+  when the user explicitly selects another Supplemental scheme. Existing-program 7th Week
+  actions show their percentage/rep matrices before applying.
+
+Current support status:
+
+| Capability | Status after expansion |
+| --- | --- |
+| Leader / Anchor | First-class for the two named generated structures; every phase remains editable. |
+| 7th Week Deload / TM Test / PR Test | First-class one-tap explicit matrices and phase roles. |
+| Alternate-lift BBB | First-class within generated one-main-lift-per-day programs. |
+| Multi-Joker ladder | First-class optional 1–3 candidates with bounded workout gating. |
+| Automatic assistance | First-class transparent draft from the user's compatible active Library. |
+
+Verification is recorded in `VER-20260902-017`: 560 JVM and 921 Android tests passed with
+zero failures/skips, followed by the complete release/R8/benchmark gate. No Room/backup format
+changed, no existing routine or completed workout was recomputed, and this candidate has not
+been installed on a physical phone.
