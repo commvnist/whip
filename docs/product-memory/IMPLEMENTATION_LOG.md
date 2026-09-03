@@ -699,7 +699,7 @@
 - Important files: `HabitModels.kt`, `HabitRepository.kt`, `HabitScreens.kt`, `HabitRulesTest.kt`, `HabitRepositoryTest.kt`, `EntitySaveCoordinatorUiTest.kt`, and `docs/testing.md`.
 - Related: `FB-20260903-008`, `FND-20260903-015`, `DEC-20260903-008`, `VER-20260903-013`.
 - Verification: `VER-20260903-013`.
-- Status: Implemented and pushed in `bc3de02`; not yet released to the phone.
+- Status: Implemented in `bc3de02`, verified, and released in `VER-20260903-015`.
 
 ### IMP-20260903-014 — Cross-app conditional-control and semantic remediation
 
@@ -711,4 +711,14 @@
 - Important files: `HabitModels.kt`, `HabitRepository.kt`, `HabitScreens.kt`, `GoalModels.kt`, `GoalScreens.kt`, `GymModels.kt`, `GymAnalytics.kt`, `GymRepository.kt`, `GymScreens.kt`, `SettingsScreens.kt`, `AppSettings.kt`, and their focused tests.
 - Related: `FB-20260903-009`, `FND-20260903-016` through `FND-20260903-018`, `DEC-20260903-009`.
 - Verification: `VER-20260903-014`.
-- Status: Implemented and pushed in `9e09457`; numbered phone release pending.
+- Status: Implemented in `9e09457`, verified, and released in `VER-20260903-015`.
+
+### IMP-20260903-015 — Signed Whip 0.3.43 conditional-semantics release
+
+- Assigned Whip 0.3.43/code 49, reran the guarded release gate, and built the minified signed APK and Play bundle with the established release signer.
+- Installed the signed package in place on the explicitly selected physical Samsung endpoint, confirmed that the installed APK matched the local release artifact, and cold-launched `MainActivity`.
+- Preserved Android installation identity and user data; did not run instrumentation on the phone, clear application state, or invoke Whip's destructive fresh-start action.
+- Important files: `app/build.gradle.kts`, signed APK/AAB, `scripts/check`, and `scripts/device`.
+- Related: `FB-20260903-008`, `FB-20260903-009`, `IMP-20260903-013`, `IMP-20260903-014`.
+- Verification: `VER-20260903-015`.
+- Status: Released and physically verified; version/release source `c770132`.

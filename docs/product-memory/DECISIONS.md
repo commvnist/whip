@@ -629,7 +629,7 @@
 - Rationale: Visibility alone would leave hidden invalid state and alternate repository callers inconsistent. One small capability rule keeps UI, validation, and persistence aligned without introducing a generic behavior framework.
 - Compatibility: No schema or historical-log change. Existing irrelevant presets on a nonnumeric Habit become invisible immediately and are removed the next time that Habit is saved; Count/Decimal behavior is unchanged.
 - Related: `FB-20260903-008`, `FND-20260903-015`, `IMP-20260903-013`, `VER-20260903-013`.
-- Status: Accepted, implemented, and pushed in `bc3de02`.
+- Status: Accepted, implemented, verified, and released in Whip 0.3.43/code 49.
 
 ### DEC-20260903-009 — Conditional UI and durable semantics share one capability authority
 
@@ -638,4 +638,4 @@
 - Rationale: Presentation-only conditionals cannot protect alternate callers, restored drafts, type changes, or legacy-shaped rows. A compact capability layer aligns UI, validation, and persistence without introducing a generic rules DSL.
 - Compatibility: No schema or completed-history rewrite. Former At Most rows are interpreted correctly on read and canonicalized when edited; new writes remove irrelevant current-definition fields.
 - Related: `FB-20260903-009`, `FND-20260903-016` through `FND-20260903-018`, `IMP-20260903-014`, `VER-20260903-014`.
-- Status: Accepted, implemented, and focused-regression verified.
+- Status: Accepted, implemented, verified, and released in Whip 0.3.43/code 49.

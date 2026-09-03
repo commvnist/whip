@@ -226,11 +226,11 @@ These records preserve durable user intent. “Released” means the change reac
 - User need: Checklist Habit creation must not show “Quick Buttons,” preset numeric adds, or range generation because those amounts have no relationship to checking named items.
 - Acceptance criteria: Switching a Habit from Count to Checklist immediately removes Quick increment and the complete preset/range builder; saving cannot be blocked by stale quick-add text; the resulting Checklist persists no numeric presets; manual Count and Decimal Habits retain the feature.
 - Related: `FND-20260903-015`, `DEC-20260903-008`, `IMP-20260903-013`, `VER-20260903-013`.
-- Status: Implemented, regression verified, and pushed in `bc3de02`; not yet included in a numbered phone release.
+- Status: Implemented, verified, and released to the physical phone in Whip 0.3.43/code 49; see `VER-20260903-015`.
 
 ### FB-20260903-009 — Make every conditional control match the active configuration
 
 - User need: Audit Whip top to bottom so settings, toggles, flags, and selected types expose only controls and dialogs that can actually affect the configured item; fix any UI, UX, design, or functional defect found and release the result to the phone.
 - Acceptance criteria: Hidden fields cannot block saves or leak stale data; Habit target/schedule semantics are correct; Goal windows match Goal types; Gym exercise/machine options and Progress metrics match their input contracts; Settings expose available capabilities and omit unavailable subordinate controls; domain, repository, and UI tests agree; release without physical-device instrumentation or automatic data erasure.
 - Related: `FND-20260903-016` through `FND-20260903-018`, `DEC-20260903-009`, `IMP-20260903-014`, `VER-20260903-014`.
-- Status: Implementation and focused verification complete in `9e09457`; numbered phone release pending.
+- Status: Implemented, verified, and released to the physical phone as Whip 0.3.43/code 49; see `VER-20260903-015`.

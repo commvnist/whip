@@ -728,7 +728,7 @@
 - Production Kotlin, Android-test Kotlin, and the focused `HabitRulesTest` compiled/passed after the capability change.
 - The exact editor switch/save regression and repository canonicalization regression passed three consecutive disposable-emulator runs: 6/6 executions with zero failures/skips.
 - The broader Habit profile passed all selected JVM Habit rule/timer/mutation/presentation suites and 68/68 Android repository, skip journey, history, and card-design tests with zero failures/skips.
-- `git diff --check` passed before the implementation commit. No instrumentation ran on the physical phone, and this change has not yet been installed there.
+- `git diff --check` passed before the implementation commit. No instrumentation ran on the physical phone during development; the signed release is recorded separately in `VER-20260903-015`.
 - Source: `bc3de02`.
 - Related: `FB-20260903-008`, `FND-20260903-015`, `DEC-20260903-008`, `IMP-20260903-013`.
 - Status: Passed in the stated targeted and broader Habit scopes.
@@ -742,4 +742,15 @@
 - Scope: Complete JVM coverage plus exact and broad high-risk Android subsets. The complete release, packaging, signing, and physical-install gate is recorded separately.
 - Source: `9e09457`.
 - Related: `FB-20260903-009`, `FND-20260903-016` through `FND-20260903-018`, `DEC-20260903-009`, `IMP-20260903-014`.
-- Status: Passed in every stated reconciled scope; numbered phone release pending.
+- Status: Passed in every stated reconciled scope; included in the physical release recorded in `VER-20260903-015`.
+
+### VER-20260903-015 — Whip 0.3.43 conditional-semantics physical release
+
+- `WHIP_DEVICE=192.168.2.187:44401 scripts/device release-deploy` selected the explicit physical endpoint. The guarded gate passed Play assets, all 593 JVM tests, Android-test compilation, debug/release lint, deterministic coverage (79.87% domain lines, 56.70% domain branches, and 68.31% Settings/policy lines), R8/resource optimization, release APK/AAB assembly, and benchmark assembly.
+- The release-key build produced APK SHA-256 `7661caecdaf9d870975762601d0ab241a2e44097d7e3e4a8394aba6800fbe977` and AAB SHA-256 `b46066de3e91c9c19a194d41264d7c506673028bb8a499b022fa7c204cc8b3c4`. APK verification reports v2 signing, exactly one signer, and certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`.
+- Streamed `adb install -r` returned `Success`. Android reports `commvne.com.whip.app` version 0.3.43/code 49, min SDK 26, target SDK 37, and an installed base APK hash exactly matching the local artifact. `firstInstallTime=2026-08-26 17:59:24` remains unchanged.
+- The forced cold launch completed in 169 ms (`TotalTime`) / 171 ms (`WaitTime`) and left `MainActivity` top-resumed with a live process. PID-scoped error logs contained only Samsung/Qualcomm graphics/performance diagnostics and no fatal exception, AndroidRuntime crash, Room/SQLite failure, or Whip application error.
+- No application data was cleared, no fresh-start confirmation was pressed, and no instrumentation or unrestricted artifact write occurred on the physical phone.
+- Source: implementation `9e09457`; memory `daffe81`; version/release source `c770132`.
+- Related: `FB-20260903-008`, `FB-20260903-009`, `DEC-20260903-008`, `DEC-20260903-009`, `IMP-20260903-013` through `IMP-20260903-015`, `VER-20260903-013`, `VER-20260903-014`.
+- Status: Signed release installed and verified on the physical phone.

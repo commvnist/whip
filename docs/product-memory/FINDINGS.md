@@ -718,7 +718,7 @@
 - Affected users: Checklist and Check-off Habit users, especially anyone who changes an existing numeric Habit’s tracking mode.
 - Evidence: `HabitScreens.kt`, `HabitModels.kt`, `HabitRepository.kt`, `HabitRulesTest.kt`, `HabitRepositoryTest.kt`, and `EntitySaveCoordinatorUiTest.kt`.
 - Resolution: Added one domain capability rule, used it in editor visibility/draft validation and repository persistence, canonicalized unsupported modes to increment `1.0` with no presets, and added exact switch/save/persistence regressions.
-- Status: Resolved in `IMP-20260903-013`, verified in `VER-20260903-013`, and pushed in `bc3de02`; awaiting a future phone release.
+- Status: Resolved in `IMP-20260903-013`, verified in `VER-20260903-013`, and released in Whip 0.3.43/code 49; see `VER-20260903-015`.
 
 ### FND-20260903-016 — Habit target and hidden-field contracts contradicted runtime behavior
 
@@ -729,7 +729,7 @@
 - Affected users: At Most, Checklist, Check-off, and any Habit users who revise tracking, target, schedule, or ending choices.
 - Evidence: `HabitScreens.kt`, `HabitModels.kt`, `HabitRepository.kt`, `HabitRulesTest.kt`, `HabitRepositoryTest.kt`, and `EntitySaveCoordinatorUiTest.kt`.
 - Resolution: Added centralized configuration semantics, canonicalized repository writes and former At Most read shapes, corrected maximum labeling/binding, and scoped validation to active controls.
-- Status: Resolved in `9e09457`; focused verification passed in `VER-20260903-014`.
+- Status: Resolved in `9e09457`, verified in `VER-20260903-014`, and released in Whip 0.3.43/code 49; see `VER-20260903-015`.
 
 ### FND-20260903-017 — Gym editors and Progress exposed capabilities their data could not produce
 
@@ -740,7 +740,7 @@
 - Affected users: All Gym users, especially cardio/duration/repetition-only exercise users and users changing a machine resistance type.
 - Evidence: `GymScreens.kt`, `GymModels.kt`, `GymAnalytics.kt`, `GymRepository.kt`, `GymAnalyticsTest.kt`, `GymRepositoryTest.kt`, and `GymPowerInputUiTest.kt`.
 - Resolution: Centralized load/rep/graph capabilities, filtered editor and chart choices, pruned incompatible comparisons, normalized Exercise/Machine drafts, and added actionable machine validation summaries.
-- Status: Resolved in `9e09457`; focused verification passed in `VER-20260903-014`.
+- Status: Resolved in `9e09457`, verified in `VER-20260903-014`, and released in Whip 0.3.43/code 49; see `VER-20260903-015`.
 
 ### FND-20260903-018 — Goal and Settings presentation retained unrelated or undiscoverable controls
 
@@ -751,4 +751,4 @@
 - Affected users: Goal, Settings, hardware-keyboard, older-Android, Home-customization, and structured Gym users.
 - Evidence: `GoalModels.kt`, `GoalScreens.kt`, `SettingsScreens.kt`, `AppSettings.kt`, and focused unit/repository tests.
 - Resolution: Extended Goal type semantics, made keyboard help unconditional, gated dynamic color at Android 12, omitted hidden Home detail controls, and derived hard-set choices from the classification enum.
-- Status: Resolved in `9e09457`; focused verification passed in `VER-20260903-014`.
+- Status: Resolved in `9e09457`, verified in `VER-20260903-014`, and released in Whip 0.3.43/code 49; see `VER-20260903-015`.
