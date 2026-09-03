@@ -564,3 +564,13 @@
 - Scope: Targeted Settings, accessibility, backup, recovery, and test-orchestration evidence. The frozen-candidate complete emulator and release gates remain pending.
 - Related: `FND-20260902-019`, `FND-20260902-020`, `DEC-20260902-024`, `IMP-20260902-027`.
 - Status: Targeted checks passed.
+
+### VER-20260902-029 — Frozen-gate remediation verification
+
+- `E2ECoverageContractTest` passed after schema-43 evidence names and current boundary wording were reconciled.
+- `:app:lintDebug` passed after observable locale state replaced the Habit weekday process-locale read; production and complete Android-test Kotlin compilation also passed after the recovery publication change.
+- The two canonical 5/3/1 history/status assertions that initially expected “Classic 5/3/1” passed together after adopting the current product label.
+- `RecoveryBoundaryIntegrationTest#failedLiveRestoreRebuildsCurrentReminderStateAndReturnsReady` and `#blockedRecoveryPreventsWorkerNotificationAndWidgetDataAccess` passed together three consecutive times after terminal-state publication became an operation postcondition.
+- Scope: Exact failure reproduction and targeted repair evidence. The complete 581-JVM/904-Android frozen-candidate gate is restarting from the new production-source signature.
+- Related: `FND-20260902-021`, `FND-20260902-022`, `DEC-20260902-025`, `DEC-20260902-026`, `IMP-20260902-028`.
+- Status: Targeted checks passed; complete gate pending.

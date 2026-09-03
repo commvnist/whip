@@ -530,3 +530,21 @@
 - Compatibility: Intentionally current-only under the authorized clean reset. No current setting name/value changes; no Room or backup change beyond schema 43. Presentation behavior changes only after an invalid Custom Unit submission.
 - Related: `FND-20260902-019`, `FND-20260902-020`, `IMP-20260902-027`, `VER-20260902-028`.
 - Status: Accepted, implemented, and targeted emulator verified.
+
+### DEC-20260902-025 — Locale-sensitive composables read observable configuration
+
+- Context: The design-consistency pass intentionally localized weekday labels, but one Habit schedule path read the Java process default directly during composition.
+- Decision: Capture the current Android configuration locale in the owning composable and pass that value into weekday label functions. Apply the same explicit observable locale to the corresponding Settings weekday selectors.
+- Rationale: Configuration is Compose-observable and preserves the explicit-label contract across runtime language changes without moving presentation concerns into persistence identifiers.
+- Compatibility: Presentation-only; no setting, Habit schedule, stored weekday, database, or backup changes.
+- Related: `FND-20260902-021`, `IMP-20260902-028`, `VER-20260902-029`.
+- Status: Accepted, implemented, and lint verified.
+
+### DEC-20260902-026 — Recovery operation completion includes terminal-state publication
+
+- Context: The core recovery gate updates its own state before returning, while Whip's application-facing aggregate copied that state asynchronously for pre-gate/fresh-start support.
+- Decision: In addition to continuous collection, copy the underlying gate's current state in `finally` after replace restore and exclusive reset, directly after pending-recovery blocking, and after retry settles. The gate remains the authority; the application aggregate cannot lag beyond the operation boundary.
+- Rationale: This preserves fail-closed access during transitions while giving callers a deterministic postcondition. Waiting or polling in every consumer would spread lifecycle races through UI, workers, widgets, and tests.
+- Compatibility: Runtime synchronization only; no persisted data, schema, backup format, or recovery decision changes.
+- Related: `FND-20260902-022`, `IMP-20260902-028`, `VER-20260902-029`.
+- Status: Accepted, implemented, and repeated emulator verified.

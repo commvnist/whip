@@ -211,7 +211,7 @@ class GymPowerInputUiTest {
         assertEquals(setOf(3), reconstructed.program?.trainingMaxAdvanceAfterPhaseIndices)
         assertEquals(plannedSet.draft, reconstructedPlacement.plannedSets.single())
         assertEquals(
-            "Classic 5/3/1 · Cycle 3 · 5/3/1 · Next · Upper",
+            "5/3/1 · Cycle 3 · 5/3/1 · Next · Upper",
             routineProgramStatusLabel(routine, "Upper"),
         )
     }
@@ -1519,7 +1519,7 @@ class GymPowerInputUiTest {
         compose.onNodeWithTag("history-workout-toggle-${session.id}").performClick()
         compose.onNodeWithTag("history-program-snapshot-${session.id}")
             .assertTextContains(
-                "Program snapshot · Classic 5/3/1 · Cycle 3 · Anchor 1 · Anchor · Day 2 · Day progression 5 · Did not advance program progress",
+                "Program snapshot · 5/3/1 · Cycle 3 · Anchor 1 · Anchor · Day 2 · Day progression 5 · Did not advance program progress",
             )
         compose.onAllNodesWithText("Use Again").assertCountEquals(3)
         compose.onNodeWithText("Repeat Workout").assertExists()
@@ -1549,7 +1549,7 @@ class GymPowerInputUiTest {
         compose.onNodeWithText("Resume Original Workout").assertIsDisplayed()
         compose.onNodeWithText("Save as Routine").assertIsDisplayed()
         assertEquals(
-            "Program snapshot · Classic 5/3/1 · Cycle 3 · Anchor 1 · Anchor · Day 2 · Day progression 5 · Did not advance program progress",
+            "Program snapshot · 5/3/1 · Cycle 3 · Anchor 1 · Anchor · Day 2 · Day progression 5 · Did not advance program progress",
             workoutProgramSnapshotLabel(session),
         )
     }

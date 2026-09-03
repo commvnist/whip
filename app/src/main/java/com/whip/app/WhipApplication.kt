@@ -303,7 +303,9 @@ class WhipApplication : Application(), Configuration.Provider {
             FreshStartRetryAction.RetryStartupRecovery -> {
                 if (state !is StartupRecoveryState.Blocked) return
                 applicationScope.launch(Dispatchers.IO) {
-                    startupRecoveryGate.retry()?.let(::logStartupRecoveryFailure)
+                    val error = startupRecoveryGate.retry()
+                    mutableStartupState.value = startupRecoveryGate.state.value
+                    error?.let(::logStartupRecoveryFailure)
                 }
             }
         }
@@ -362,38 +364,50 @@ class WhipApplication : Application(), Configuration.Provider {
      * used at process startup before a recovery snapshot or repository can be
      * touched, and it leaves the process blocked if rollback remains pending.
      */
-    suspend fun restoreBackup(targetJson: String) = startupRecoveryGate.runRestore(
-        prepareForRestore = ::quiesceNormalRuntime,
-        restore = {
-            restoreRecoveryManager.restore(
-                targetJson = targetJson,
-                rebuildBackgroundState = ::rebuildBackgroundState,
-                onRecoveryPrepared = { advanceUserDataGeneration() },
+    suspend fun restoreBackup(targetJson: String) {
+        try {
+            startupRecoveryGate.runRestore(
+                prepareForRestore = ::quiesceNormalRuntime,
+                restore = {
+                    restoreRecoveryManager.restore(
+                        targetJson = targetJson,
+                        rebuildBackgroundState = ::rebuildBackgroundState,
+                        onRecoveryPrepared = { advanceUserDataGeneration() },
+                    )
+                },
+                hasPendingRecovery = restoreRecoveryManager::hasPendingRecovery,
+                resumeNormalRuntime = ::resumeAfterRestoreMaintenance,
             )
-        },
-        hasPendingRecovery = restoreRecoveryManager::hasPendingRecovery,
-        resumeNormalRuntime = ::resumeAfterRestoreMaintenance,
-    )
+        } finally {
+            mutableStartupState.value = startupRecoveryGate.state.value
+        }
+    }
 
     /**
      * Whole-app reset is exclusive with every repository lease, worker, and
      * editor. Old ownership is invalidated before any table can be cleared.
      */
-    suspend fun resetAllData() = startupRecoveryGate.runExclusiveMaintenance(
-        prepareForMaintenance = ::quiesceNormalRuntime,
-        maintenance = {
-            portableBackupManager.clearFolder()
-            healthConnectManager.withMutationBoundary {
-                reminderDeliveryCoordinator.withStateBoundary {
-                    NotificationManagerCompat.from(this).cancelAll()
-                    advanceUserDataGeneration()
-                    backupRepository.deleteAllData()
-                    NotificationManagerCompat.from(this).cancelAll()
-                }
-            }
-        },
-        resumeNormalRuntime = ::resumeAfterRestoreMaintenance,
-    )
+    suspend fun resetAllData() {
+        try {
+            startupRecoveryGate.runExclusiveMaintenance(
+                prepareForMaintenance = ::quiesceNormalRuntime,
+                maintenance = {
+                    portableBackupManager.clearFolder()
+                    healthConnectManager.withMutationBoundary {
+                        reminderDeliveryCoordinator.withStateBoundary {
+                            NotificationManagerCompat.from(this).cancelAll()
+                            advanceUserDataGeneration()
+                            backupRepository.deleteAllData()
+                            NotificationManagerCompat.from(this).cancelAll()
+                        }
+                    }
+                },
+                resumeNormalRuntime = ::resumeAfterRestoreMaintenance,
+            )
+        } finally {
+            mutableStartupState.value = startupRecoveryGate.state.value
+        }
+    }
 
     fun currentUserDataGeneration(): Long = mutableUserDataGeneration.value
 
@@ -418,6 +432,7 @@ class WhipApplication : Application(), Configuration.Provider {
             hasPendingRecovery = restoreRecoveryManager::hasPendingRecovery,
             prepareForRecovery = ::quiesceNormalRuntime,
         )
+        mutableStartupState.value = startupRecoveryGate.state.value
     }
 
     internal suspend fun reconcileReminderTimeInvalidation(action: String): ReminderTimeInvalidationPlan? {

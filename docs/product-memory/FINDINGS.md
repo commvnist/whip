@@ -521,3 +521,25 @@
 - Evidence: `SettingsScreens.kt` and `SettingsResponsiveUiTest.kt`.
 - Resolution: Implemented in `IMP-20260902-027` under `DEC-20260902-024` and verified in `VER-20260902-028`.
 - Status: Resolved; frozen-candidate release verification remains pending.
+
+### FND-20260902-021 — Habit weekday labels did not observe runtime locale changes
+
+- Severity/category: P2 localization, accessibility, and UI consistency.
+- Observed: Habit schedule chips formatted weekdays with `Locale.getDefault()` during composition. Compose lint proved that this is not observable state, so a locale change could leave stale labels until an unrelated recomposition/process restart.
+- Expected: User-facing weekday labels read locale from observable configuration and update with the rest of the interface.
+- Why it matters: Schedule choices must stay legible and truthful after system-language changes, especially for users relying on localized weekday abbreviations.
+- Affected users: Habit users in non-default locales and users changing system language while Whip remains open.
+- Evidence: `HabitScreens.kt`, `SettingsScreens.kt`, and the Compose `NonObservableLocale` lint rule.
+- Resolution: Implemented in `IMP-20260902-028` under `DEC-20260902-025` and targeted verified in `VER-20260902-029`.
+- Status: Resolved; complete frozen-candidate verification is rerunning.
+
+### FND-20260902-022 — Recovery operations could return before application state published their terminal outcome
+
+- Severity/category: P1 recovery integrity, lifecycle state, and interaction certainty.
+- Observed: `StartupRecoveryGate` reached `Ready` or `Blocked` synchronously, but `WhipApplication.startupRecoveryState` mirrored it on another coroutine. `restoreBackup`, whole-app reset, and pending-recovery blocking could therefore return while observers still saw transient `Checking`.
+- Expected: When a suspending recovery/maintenance operation returns or throws, its application-facing state already exposes the authoritative terminal result; retry publication follows the same rule.
+- Why it matters: UI, workers, widgets, tests, and repository-access guards should never have to guess whether a completed operation is still checking. A transient false state can strand recovery UI or delay valid access unpredictably.
+- Affected users: Backup/restore/reset users and any surface entering while recovery changes state.
+- Evidence: `WhipApplication.kt`, `StartupRecoveryGate.kt`, and `RecoveryBoundaryIntegrationTest.kt`.
+- Resolution: Implemented in `IMP-20260902-028` under `DEC-20260902-026` and verified repeatedly in `VER-20260902-029`.
+- Status: Resolved; complete frozen-candidate verification is rerunning.

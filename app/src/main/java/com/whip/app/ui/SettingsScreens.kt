@@ -195,6 +195,7 @@ internal fun SettingsContent(
     onSectionChange: (SettingsSection) -> Unit = {},
 ) {
     val context = LocalContext.current
+    val currentLocale = LocalConfiguration.current.locales[0]
     var pendingExport by rememberSaveable { mutableStateOf(ExportKind.Backup) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var confirmHealthDelete by rememberSaveable { mutableStateOf(false) }
@@ -682,7 +683,7 @@ internal fun SettingsContent(
         if (section == SettingsSection.Planning) {
         item { SettingsHeading("Date and Number Defaults") }
         item {
-            SettingsDropdown("First day of week", DayOfWeek.entries, settings.firstDayOfWeek, { it.getDisplayName(TextStyle.FULL, Locale.getDefault()) }) { selected -> viewModel.update { it.copy(firstDayOfWeek = selected) } }
+            SettingsDropdown("First day of week", DayOfWeek.entries, settings.firstDayOfWeek, { it.getDisplayName(TextStyle.FULL, currentLocale) }) { selected -> viewModel.update { it.copy(firstDayOfWeek = selected) } }
             Text("Sets weekday order in calendars and editors, and groups weekly Review and Gym analytics. Existing Habit schedules keep their own week start.", style = MaterialTheme.typography.bodySmall)
         }
         item {
@@ -895,7 +896,7 @@ internal fun SettingsContent(
         }
         item { SettingsHeading("Habit Defaults") }
         item {
-            SettingsDropdown("Default week start for new Habits", DayOfWeek.entries, settings.defaultHabitWeekStart, { it.getDisplayName(TextStyle.FULL, Locale.getDefault()) }) { value -> viewModel.update { it.copy(defaultHabitWeekStart = value) } }
+            SettingsDropdown("Default week start for new Habits", DayOfWeek.entries, settings.defaultHabitWeekStart, { it.getDisplayName(TextStyle.FULL, currentLocale) }) { value -> viewModel.update { it.copy(defaultHabitWeekStart = value) } }
             Text("Existing Habits keep their own saved week start.", style = MaterialTheme.typography.bodySmall)
         }
         }

@@ -544,3 +544,13 @@
 - Related: `FND-20260902-019`, `FND-20260902-020`, `DEC-20260902-024`.
 - Verification: `VER-20260902-028`.
 - Status: Implemented and targeted emulator verified.
+
+### IMP-20260902-028 — Frozen-gate localization, recovery-state, and evidence reconciliation
+
+- Replaced non-observable process-locale reads in Habit/Settings weekday composables with the current observable Android configuration locale.
+- Made restore, reset, pending-recovery block, and recovery retry publish the underlying gate's terminal state to `WhipApplication.startupRecoveryState` before the operation boundary completes.
+- Updated the 1,485-test inventory, schema-43 cause/effect evidence references, and canonical 5/3/1 history/status expectations discovered by the complete gate.
+- Important files: `HabitScreens.kt`, `SettingsScreens.kt`, `WhipApplication.kt`, `GymPowerInputUiTest.kt`, `DataEpochBoundaryTest.kt`, `testing.md`, `e2e-coverage.tsv`, and `QA_CAUSE_EFFECT_MATRIX_2026-08-27.tsv`.
+- Related: `FND-20260902-021`, `FND-20260902-022`, `DEC-20260902-025`, `DEC-20260902-026`.
+- Verification: `VER-20260902-029`.
+- Status: Implemented and targeted emulator/lint verified.

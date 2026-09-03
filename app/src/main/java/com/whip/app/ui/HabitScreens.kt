@@ -60,6 +60,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -1872,6 +1873,7 @@ internal fun HabitEditorDialog(
     onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
 ) {
+    val currentLocale = LocalConfiguration.current.locales[0]
     val baseInitial = initialDraft ?: habit?.toEditorDraft(initialChecklist) ?: HabitDraft(
         name = "",
         startDate = today,
@@ -2355,7 +2357,7 @@ internal fun HabitEditorDialog(
                                 WhipFilterChip(
                                     selected = day in weekdays,
                                     onClick = { weekdays = if (day in weekdays) weekdays - day else weekdays + day },
-                                    label = { Text(day.getDisplayName(TextStyle.SHORT, Locale.getDefault())) },
+                                    label = { Text(day.getDisplayName(TextStyle.SHORT, currentLocale)) },
                                 )
                             }
                         }
