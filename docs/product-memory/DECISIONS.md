@@ -484,3 +484,12 @@
 - Compatibility: Presentation/model metadata only. Enum constants and storage names remain unchanged; no schema, backup, existing setting, routine, workout, or history is rewritten.
 - Related: `FND-20260902-013`, `IMP-20260902-021`, `VER-20260902-022`.
 - Status: Accepted, implemented, and targeted-test verified.
+
+### DEC-20260902-020 — Give repeated controls intent-specific semantics
+
+- Context: A repeated visible label can be clear within a visual column while remaining ambiguous to accessibility services and automation once the same action appears for several lifts, fields, or work sections.
+- Decision: Shared selection options announce `field label + option value`; repeated 5/3/1 Training Max mode controls expose lift-specific descriptions and stable lift-role tags; workout-only exercise actions are scoped to a named active-workout empty-state region. Retain ordinal selectors only for noninteractive duplicate display assertions where order itself is the contract.
+- Rationale: Contextual semantics improve actual assistive use and make regression tests describe intent. They are more durable than globally unique copy or layout-position assumptions and do not add visible noise.
+- Compatibility: Semantics and tests only; no schema, backup, routine, prescription, workout, or historical-data changes.
+- Related: `FND-20260902-015`, `IMP-20260902-023`, `VER-20260902-024`.
+- Status: Accepted, implemented, and targeted-test verified.

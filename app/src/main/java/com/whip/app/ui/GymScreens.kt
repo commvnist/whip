@@ -3102,14 +3102,16 @@ private fun WorkoutContent(
         }
         if (state.activeWorkoutExercises.isEmpty()) {
             item {
-                WhipEmptyState(
-                    title = "Add Your First Exercise",
-                    supportingText = "Choose a reusable exercise from your library or create one without leaving this workout. This changes only this workout; logged work remains in History.",
-                    primaryActionLabel = "Add Exercise to This Workout",
-                    onPrimaryAction = onAddExercise,
-                    secondaryActionLabel = "Create New Exercise",
-                    onSecondaryAction = onCreateExercise,
-                )
+                Box(Modifier.testTag("active-workout-empty-state")) {
+                    WhipEmptyState(
+                        title = "Add Your First Exercise",
+                        supportingText = "Choose a reusable exercise from your library or create one without leaving this workout. This changes only this workout; logged work remains in History.",
+                        primaryActionLabel = "Add Exercise to This Workout",
+                        onPrimaryAction = onAddExercise,
+                        secondaryActionLabel = "Create New Exercise",
+                        onSecondaryAction = onCreateExercise,
+                    )
+                }
             }
         } else {
             item {

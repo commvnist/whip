@@ -1427,11 +1427,21 @@ private fun FiveThreeOneProgramSetupDialog(
                                 selected = !useRecentMaxSuggestion[index],
                                 onClick = { useRecentMaxSuggestion = useRecentMaxSuggestion.toMutableList().also { it[index] = false } },
                                 label = { Text("Enter Training Max") },
+                                modifier = Modifier
+                                    .testTag("five-three-one-enter-tm-${role?.name ?: index}")
+                                    .semantics {
+                                        contentDescription = "${role?.label ?: selected.name}: Enter Training Max"
+                                    },
                             )
                             WhipFilterChip(
                                 selected = useRecentMaxSuggestion[index],
                                 onClick = { useRecentMaxSuggestion = useRecentMaxSuggestion.toMutableList().also { it[index] = true } },
                                 label = { Text("Calculate from max / e1RM") },
+                                modifier = Modifier
+                                    .testTag("five-three-one-calculate-tm-${role?.name ?: index}")
+                                    .semantics {
+                                        contentDescription = "${role?.label ?: selected.name}: Calculate from max or estimated 1RM"
+                                    },
                             )
                         }
                         if (useRecentMaxSuggestion[index]) {

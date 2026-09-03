@@ -180,7 +180,7 @@ class RoutineBuilderUiTest {
         compose.onNodeWithTag("routine-program-structure-page")
             .performScrollToNode(hasTestTag("routine-program-phase-role-0"))
         compose.onNodeWithContentDescription("Phase role: Standard").performClick()
-        compose.onAllNodesWithText("Deload")[1].performClick()
+        compose.onNodeWithContentDescription("Phase role option: Deload").performClick()
         compose.onNodeWithTag("routine-program-structure-page")
             .performScrollToNode(hasTestTag("routine-program-phase-joker-count-0-1"))
         compose.onNodeWithTag("routine-program-phase-joker-count-0-1")
@@ -199,7 +199,7 @@ class RoutineBuilderUiTest {
         compose.onNodeWithTag("routine-program-remove-phase").performClick()
         compose.onNodeWithTag("routine-program-confirm-remove-phase").performClick()
         compose.onAllNodes(hasTestTag("routine-program-phase-select-4")).assertCountEquals(0)
-        compose.onNodeWithContentDescription("Back in routine builder").performClick()
+        compose.onNodeWithContentDescription("Back to routine outline").performClick()
         compose.onNodeWithTag("routine-selected-exercises")
             .performScrollToNode(hasTestTag("routine-add-assistance-Push"))
         compose.onNodeWithTag("routine-add-assistance-Push").assertIsDisplayed()
@@ -211,7 +211,7 @@ class RoutineBuilderUiTest {
         compose.onNodeWithText("For Squat · every exercise selected here will be assigned as Pull in this routine.")
             .assertIsDisplayed()
         compose.onNodeWithTag("routine-add-selected").assertTextEquals("Add 0 as Pull to Squat")
-        compose.onNodeWithContentDescription("Back in routine builder").performClick()
+        compose.onNodeWithContentDescription("Back to routine outline").performClick()
         compose.onNodeWithTag("routine-builder-save").performClick()
 
         compose.runOnIdle {
@@ -402,7 +402,7 @@ class RoutineBuilderUiTest {
             }
         compose.onNodeWithTag("five-three-one-bbb-lift-1").performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("BBB after Squat: Squat · same lift").performClick()
-        compose.onAllNodesWithText("Bench Press")[2].performClick()
+        compose.onNodeWithContentDescription("BBB after Squat option: Bench Press").performClick()
         compose.onNodeWithContentDescription("BBB after Squat: Bench Press").assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-joker-count-3").performScrollTo().performClick()
         compose.onNodeWithTag("five-three-one-assistance-Push").performScrollTo().assertIsDisplayed()
@@ -473,7 +473,7 @@ class RoutineBuilderUiTest {
             hasText("Set Up 5/3/1") and hasClickAction() and
                 hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
         ).performClick()
-        compose.onAllNodes(hasText("Calculate from max / e1RM") and hasClickAction())[0]
+        compose.onNodeWithTag("five-three-one-calculate-tm-Squat")
             .performScrollTo()
             .performClick()
         compose.onNodeWithTag("five-three-one-recent-max-Squat")
@@ -621,7 +621,7 @@ class RoutineBuilderUiTest {
             hasText("Set Up 5/3/1") and hasClickAction() and
                 hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
         ).performClick()
-        compose.onAllNodes(hasText("Calculate from max / e1RM") and hasClickAction())[0]
+        compose.onNodeWithTag("five-three-one-calculate-tm-Squat")
             .performScrollTo()
             .performClick()
         compose.onNodeWithTag("five-three-one-recent-max-Squat").performScrollTo().assertTextContains("200")
@@ -698,7 +698,7 @@ class RoutineBuilderUiTest {
         // 201 × 85% still rounds to 170 lb, but it is different provenance and remains pending.
         compose.onNodeWithTag("routine-program-tm-source-1").performTextReplacement("201")
         compose.onNodeWithTag("routine-program-apply-tm-1").assertTextContains("Apply 170 lb Training Max")
-        compose.onNodeWithContentDescription("Back in routine builder").performClick()
+        compose.onNodeWithContentDescription("Back to routine outline").performClick()
         compose.onNodeWithTag("routine-builder-save").assertIsNotEnabled().performClick()
         compose.runOnIdle { assertNull(savedDraft) }
 
@@ -709,7 +709,7 @@ class RoutineBuilderUiTest {
         compose.onNodeWithTag("routine-program-structure-page")
             .performScrollToNode(hasTestTag("routine-program-apply-tm-1"))
         compose.onNodeWithTag("routine-program-apply-tm-1").performClick()
-        compose.onNodeWithContentDescription("Back in routine builder").performClick()
+        compose.onNodeWithContentDescription("Back to routine outline").performClick()
         compose.onNodeWithTag("routine-builder-save").assertIsEnabled().performClick()
 
         compose.runOnIdle {
@@ -1155,7 +1155,7 @@ class RoutineBuilderUiTest {
         compose.onNodeWithTag("routine-add-selected").assertTextEquals("Add 1 Exercise to Day A").performClick()
 
         compose.onNodeWithTag("routine-placement-editor").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Back in routine builder").performClick()
+        compose.onNodeWithContentDescription("Back to routine outline").performClick()
         compose.onNode(
             hasText("Exercise 200") and hasAnyAncestor(hasTestTag("routine-selected-exercises")),
             useUnmergedTree = true,
@@ -1199,7 +1199,7 @@ class RoutineBuilderUiTest {
             hasText("Incline press") and hasAnyAncestor(hasTestTag("routine-placement-editor")),
             useUnmergedTree = true,
         ).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Back in routine builder").performClick()
+        compose.onNodeWithContentDescription("Back to routine outline").performClick()
         compose.onNode(
             hasText("Incline press") and hasAnyAncestor(hasTestTag("routine-selected-exercises")),
             useUnmergedTree = true,

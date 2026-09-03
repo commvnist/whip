@@ -513,3 +513,12 @@
 - Scope: Targeted development verification. The frozen candidate still requires full emulator, accessibility, lint, and release gates.
 - Related: `FND-20260902-013`, `DEC-20260902-018`, `IMP-20260902-021`.
 - Status: Targeted checks passed.
+
+### VER-20260902-024 — Repeated-control semantics verification
+
+- `:app:compileDebugAndroidTestKotlin` and `UiDesignArchitectureTest` passed against the shared semantics changes.
+- The focused API 34 emulator batch passed the 5/3/1 Training Max mode, alternate BBB selector, Deload phase-role selector, active-workout empty-state addition, and Routine Builder navigation journeys. The initially exposed stale navigation assertion was corrected and its exact failing test then passed independently.
+- Static inspection found no remaining ordinal action selector in the modified Routine Builder or active-workout paths. Remaining indexed selectors target duplicate display content or separate, lower-risk feature families and are retained as explicit continuous cleanup rather than hidden completion claims.
+- Scope: Targeted compile and emulator evidence; no frozen-candidate full gate is claimed.
+- Related: `FND-20260902-015`, `DEC-20260902-020`, `IMP-20260902-023`.
+- Status: Targeted checks passed.

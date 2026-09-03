@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -140,7 +141,10 @@ class FirstClassWorkflowE2ETest {
                 }
             }
             checkNotNull(session) { "Workout start did not reach the repository" }
-            compose.onAllNodesWithText("Add Exercise to This Workout")[0].performScrollTo().performClick()
+            compose.onNode(
+                hasText("Add Exercise to This Workout") and
+                    hasAnyAncestor(hasTestTag("active-workout-empty-state")),
+            ).performScrollTo().performClick()
             compose.onNodeWithTag("workout-exercise-picker-list").performScrollToNode(hasText("Goblet Squat"))
             compose.onNodeWithText("Goblet Squat").performClick()
             val exerciseAdded = runBlocking {

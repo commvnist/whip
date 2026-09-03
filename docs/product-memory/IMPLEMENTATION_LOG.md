@@ -487,3 +487,14 @@
 - Related: `FND-20260902-014`, `DEC-20260902-019`.
 - Verification: `VER-20260902-023`.
 - Status: Implemented and targeted-test verified.
+
+### IMP-20260902-023 — Intent-specific Gym control semantics
+
+- Added field-qualified semantics to every shared `SelectionField` menu option so identical values in different controls remain distinguishable.
+- Added lift-qualified descriptions and stable tags to repeated 5/3/1 Training Max entry/calculation controls.
+- Added a named active-workout empty-state region and scoped the workout-only exercise regression to it.
+- Removed high-risk positional action selectors from the Routine Builder workflows and synchronized their navigation assertions with the shared editor chrome.
+- Important files: `ItemControlPatterns.kt`, `RoutineBuilder.kt`, `GymScreens.kt`, `RoutineBuilderUiTest.kt`, and `FirstClassWorkflowE2ETest.kt`.
+- Related: `FND-20260902-015`, `DEC-20260902-020`.
+- Verification: `VER-20260902-024`.
+- Status: Implemented and targeted emulator verified.

@@ -455,3 +455,14 @@
 - Evidence: `UnifiedSearchDialog.kt` and `UnifiedSearchRulesTest.kt`.
 - Resolution: Implemented in `IMP-20260902-022` and verified in `VER-20260902-023`.
 - Status: Resolved at current product scale; query-backed indexing remains a measured future option rather than an unproven architecture requirement.
+
+### FND-20260902-015 — Repeated Gym controls exposed ambiguous actions to users and tests
+
+- Severity/category: P1 accessibility/interaction certainty and P2 regression reliability.
+- Observed: Repeated 5/3/1 Training Max mode actions and shared selection-menu options exposed identical visible and semantic labels. High-value Gym workflows therefore selected controls by list position, and the active-workout empty state had no stable contextual boundary.
+- Expected: Repeated interactive choices identify both their field/lift context and action; tests target user intent or a named region rather than an ordinal that changes when layout or optional work changes.
+- Why it matters: Screen-reader users cannot distinguish identical actions, and a layout change can silently make an automated journey press the wrong control while still finding matching text.
+- Affected users: 5/3/1 lifters configuring several lifts, screen-reader and switch users, customization-heavy users, and maintainers changing responsive Gym layouts.
+- Evidence: `ItemControlPatterns.kt`, `RoutineBuilder.kt`, `GymScreens.kt`, `RoutineBuilderUiTest.kt`, and `FirstClassWorkflowE2ETest.kt`.
+- Resolution: Implemented in `IMP-20260902-023` and verified in `VER-20260902-024`.
+- Status: Resolved for repeated high-risk Gym actions; positional assertions for duplicated, noninteractive display content remain a lower-risk continuous-cleanup item.

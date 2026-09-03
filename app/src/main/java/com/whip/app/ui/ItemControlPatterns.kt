@@ -1581,6 +1581,9 @@ internal fun <T> SelectionField(
                     DropdownMenuItem(
                         text = { Text(valueText(value)) },
                         leadingIcon = if (isSelected) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
+                        modifier = Modifier.semantics {
+                            contentDescription = "$label option: ${valueText(value)}"
+                        },
                         onClick = {
                             onSelect(value)
                             expanded = false
