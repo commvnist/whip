@@ -565,3 +565,14 @@
 - Evidence: `GymScreens.kt`, `GymModels.kt`, `RoutineRepository.kt`, and `GymPowerInputUiTest.kt`.
 - Resolution: Implemented in `IMP-20260903-002` under `DEC-20260903-002` and verified in `VER-20260903-002`.
 - Status: Resolved in source; not yet released to the physical phone.
+
+### FND-20260903-002 — Routine editing discarded per-lift Training Max provenance and eligibility
+
+- Severity/category: P1 Gym authored-state integrity, 5/3/1 auditability, and progression-state consistency.
+- Observed: The saved Routine Exercise model contains Training Max basis kind/value/unit and per-lift increase eligibility, but `routineDraftForEditing` omitted all four. Opening the builder therefore substituted `Unspecified`, null, blank, and eligible defaults; saving persisted those defaults. An actual/estimated-1RM-derived Training Max lost its derivation record, while a held lift could become eligible even though the routine-level hold remained in place.
+- Expected: Every persisted per-lift program value survives the saved-model → edit-draft → builder → save round trip. Creation defaults never hydrate an existing Routine.
+- Why it matters: Lifters must be able to trust how a Training Max was derived and whether an increase is currently permitted. Contradictory routine/lift eligibility can corrupt the next cycle-review decision.
+- Affected users: 5/3/1 and custom-Routine users deriving a Training Max from actual/estimated 1RM or a manual source, plus programmed lifters with held TM increases.
+- Evidence: `GymModels.kt`, `GymScreens.kt`, `RoutineBuilder.kt`, `RoutineRepository.kt`, and `GymPowerInputUiTest.kt`.
+- Resolution: Implemented in `IMP-20260903-003` under `DEC-20260903-003` and verified in `VER-20260903-003`.
+- Status: Resolved in source; signed physical release pending.

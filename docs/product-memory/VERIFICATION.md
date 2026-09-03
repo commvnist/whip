@@ -613,3 +613,12 @@
 - Scope: Exact regression plus the focused 5/3/1 creation, persistence, progression-review, and builder surface. The complete 1,485-test release gate and physical-phone deployment were not rerun for this source change.
 - Related: `FB-20260903-002`, `FND-20260903-001`, `DEC-20260903-002`, `IMP-20260903-002`.
 - Status: Targeted verification passed; corrected physical release pending an explicit request.
+
+### VER-20260903-003 — Complete per-lift edit round-trip verification
+
+- `GymPowerInputUiTest#routineEditReconstructionPreservesAdvancedProgrammingFields` passed three consecutive times on the disposable API 34 emulator with non-default actual-1RM basis kind/value/unit and held per-lift increase eligibility.
+- The focused `gym531` profile passed all five JVM programming/builder suites and all 71 Android tests across Routine persistence, Routine Builder, and cycle-review UI with zero failures and zero skips.
+- The audit compared every Routine, program, day, placement, and prescribed-set property across saved domain models, edit drafts, builder state, and repository persistence. These four placement values were the remaining unintended omissions; runtime IDs/timestamps, derived kilograms, completed-state flags, and separately preserved routine progress are intentionally outside the edit contract.
+- Scope: Exact regression and focused 5/3/1 verification. Complete release/minification/packaging and physical-device verification remain pending.
+- Related: `FB-20260903-003`, `FND-20260903-002`, `DEC-20260903-003`, `IMP-20260903-003`.
+- Status: Targeted verification passed; signed physical release pending.

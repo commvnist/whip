@@ -54,6 +54,7 @@ import com.whip.app.domain.RoutineSet
 import com.whip.app.domain.RoutineSupplementalScheme
 import com.whip.app.domain.RoutineTrainingMaxSource
 import com.whip.app.domain.RoutineWorkSection
+import com.whip.app.domain.TrainingMaxBasisKind
 import com.whip.app.domain.WorkoutExercise
 import com.whip.app.domain.WorkoutExerciseOutcome
 import com.whip.app.domain.WorkoutGroup
@@ -154,6 +155,10 @@ class GymPowerInputUiTest {
             trainingMaxUnitId = "pound",
             cycleIncrementValue = 5.0,
             trainingMaxSource = RoutineTrainingMaxSource.Explicit,
+            trainingMaxBasisKind = TrainingMaxBasisKind.ActualOneRepMax,
+            trainingMaxBasisValue = 265.0,
+            trainingMaxBasisUnitId = "pound",
+            trainingMaxIncreaseEligible = false,
             mainWorkScheme = RoutineMainWorkScheme.ClassicPrSet,
             supplementalScheme = RoutineSupplementalScheme.FirstSetLast,
             placementKind = RoutinePlacementKind.MainLift,
@@ -195,6 +200,10 @@ class GymPowerInputUiTest {
         assertEquals("pound", reconstructedPlacement.trainingMaxUnitId)
         assertEquals(5.0, reconstructedPlacement.cycleIncrementValue!!, 0.0)
         assertEquals(RoutineTrainingMaxSource.Explicit, reconstructedPlacement.trainingMaxSource)
+        assertEquals(TrainingMaxBasisKind.ActualOneRepMax, reconstructedPlacement.trainingMaxBasisKind)
+        assertEquals(265.0, reconstructedPlacement.trainingMaxBasisValue!!, 0.0)
+        assertEquals("pound", reconstructedPlacement.trainingMaxBasisUnitId)
+        assertFalse(reconstructedPlacement.trainingMaxIncreaseEligible)
         assertEquals(RoutineMainWorkScheme.ClassicPrSet, reconstructedPlacement.mainWorkScheme)
         assertEquals(RoutineSupplementalScheme.FirstSetLast, reconstructedPlacement.supplementalScheme)
         assertEquals(RoutinePlacementKind.MainLift, reconstructedPlacement.placementKind)

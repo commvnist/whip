@@ -583,3 +583,12 @@
 - Related: `FB-20260903-002`, `FND-20260903-001`, `DEC-20260903-002`.
 - Verification: `VER-20260903-002`.
 - Status: Implemented and targeted verified; physical release pending an explicit request.
+
+### IMP-20260903-003 — Complete per-lift Routine edit hydration
+
+- Added the saved Training Max basis kind/value/unit and increase-eligibility state to every Routine Exercise edit draft.
+- Expanded the reconstruction regression with an actual-1RM basis, non-default source value/unit, and held eligibility, covering the four defaults that previously masked the loss.
+- Important files: `GymScreens.kt` and `GymPowerInputUiTest.kt`.
+- Related: `FB-20260903-003`, `FND-20260903-002`, `DEC-20260903-003`.
+- Verification: `VER-20260903-003`.
+- Status: Implemented and targeted verified; signed physical release pending.
