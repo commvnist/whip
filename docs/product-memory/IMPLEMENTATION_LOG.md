@@ -745,3 +745,16 @@
 - Related: `FB-20260903-011`, `FND-20260903-019`, `FND-20260903-020`, `DEC-20260903-011`.
 - Verification: `VER-20260903-017`.
 - Status: Implemented and pushed in `c8286e0`; not physically released.
+
+### IMP-20260903-018 — Direction-aware machine starts and cross-app semantic defaults
+
+- Added pure numbered-machine endpoint and field-precedence resolvers; Set insertion now consults the latest non-null exact Exercise/Profile history before a matched Profile endpoint. Existing archived bindings remain usable, while new archived assignment stays rejected.
+- Made blank Level Routine templates derive an actual machine setting without fabricating prescribed machine or canonical load. Explicit template settings remain both actual and prescribed.
+- Made fresh Track Number Fields honor the current dimension-specific unit and decimal precision while preserving every authored value when reopening/editing a Field.
+- Corrected the reach-weight Goal template to use 150 lb or a canonical 75 kg converted into the selected valid mass unit, including 75,000 g.
+- Made reminder creation choose an unused conventional time, disable duplicate confirmation with explanatory error text, and expose a truthful fully occupied state.
+- Added five JVM and six Android regressions; declared baseline is now 1,532 product tests: 598 JVM and 934 Android.
+- Important files: `GymModels.kt`, `GymDao.kt`, `GymRepository.kt`, `RoutineRepository.kt`, `TrackScreens.kt`, `GoalScreens.kt`, `ProductivityEditorComponents.kt`, their focused tests, and `docs/testing.md`.
+- Related: `FB-20260903-012`, `FND-20260903-021`, `FND-20260903-022`, `DEC-20260903-012`.
+- Verification: `VER-20260903-018`.
+- Status: Implemented in `92c25f9` and `829c444`, pushed to `origin/main`, and not physically released.

@@ -774,3 +774,25 @@
 - Evidence: `WorkoutContent` and `RestTimerCard` in `GymScreens.kt`, `WhipCollectionCard` in `WhipPagePatterns.kt`, `UiDesignArchitectureTest`, and Rest regressions in `GymPowerInputUiTest`.
 - Resolution: Made the execution lane the sole `WhipCollectionCard` owner, removed the nested Rest surface, locked the primitive to `MaterialTheme.shapes.medium`, adopted shared spacing/type tokens, and exposed ready/running duration through `stateDescription`.
 - Status: Resolved in `c8286e0`, verified and independently accepted in `VER-20260903-017`; unreleased to a physical phone.
+
+### FND-20260903-021 — Fresh numbered-machine work ignored resistance direction
+
+- Severity/category: P1 Gym interaction correctness, Routine semantics, and one-handed usability.
+- Observed: A newly inserted Level-machine Set could remain blank even when the Profile defined valid settings, and blank Routine templates did not derive an actual starting setting. The system already understood that some machines become lighter as their displayed number increases, but Set creation did not use that direction. A first implementation also treated an archived Profile as invalid even though Whip intentionally keeps archived Profiles usable by already assigned workouts and Routines.
+- Expected: Resolve each fresh Level value by field-level precedence: explicit input, latest non-null value in the same placement, latest completed non-null value for the exact Exercise/Profile snapshot, the matched Profile's direction-aware endpoint, then null. Higher-number/more-resistance uses the minimum endpoint; higher-number/less-resistance uses the maximum. A derived Routine start is actual work, not an authored prescription.
+- Why it matters: The first interaction on a machine should begin at its lowest resistance and later Sets should preserve useful context. A wrong or blank starting value creates avoidable taps and can misstate planned work or silently break when a Profile is archived.
+- Affected users: Machine users, Routine users, one-handed in-gym users, and users whose equipment uses reversed numbered resistance.
+- Evidence: `GymModels.kt`, `GymDao.kt`, `GymRepository.kt`, `RoutineRepository.kt`, `MachineLevelDefaultTest.kt`, `GymRepositoryTest.kt`, and `RoutineRepositoryTest.kt`.
+- Resolution: Added a pure direction-aware endpoint resolver, an exact non-null Exercise/Profile history query, repository-owned Set precedence, and actual-only blank-Routine derivation. Exact UUID matching protects snapshots; archive continues to block new assignment but no longer invalidates an existing binding.
+- Status: Resolved and pushed in `92c25f9`; verified and independently accepted in `VER-20260903-018`.
+
+### FND-20260903-022 — Several fresh inputs used mechanical rather than semantic defaults
+
+- Severity/category: P1 cross-app usability, unit correctness, and interaction truth.
+- Observed: A newly added Track Number Field selected the first active compatible unit and precision `1` instead of the user's configured unit/precision; the reach-weight Goal template assigned `75` to every non-pound unit, producing a `75 g` target when grams were preferred; reminder Add reused an occupied last time, after which deduplication could silently make the action a no-op.
+- Expected: Fresh authoring should use current preferences and valid canonical conversions, while opening/editing existing drafts remains authoritative. Reminder creation should select a deterministic unused conventional time and prevent a duplicate confirmation with an accessible explanation.
+- Why it matters: Defaults are part of the product's cause/effect contract. Wrong units create materially wrong goals, reused reminder times make Save appear broken, and ignored preferences force repetitive correction.
+- Affected users: Track, Goal, reminder, metric/imperial, custom-precision, keyboard, screen-reader, and high-frequency authoring users.
+- Evidence: `TrackScreens.kt`, `WhipApp.kt`, `GoalScreens.kt`, `ProductivityEditorComponents.kt`, `SemanticDefaultsTest.kt`, `TrackDefinitionMutationUiTest.kt`, and `EditorDependencyUxTest.kt`.
+- Resolution: Passed live settings into fresh Track Field creation only, converted the 75 kg Goal basis into the selected valid mass unit while retaining the explicit 150 lb template, and selected unused reminder slots in 08:00/hourly/15-minute/minute order with duplicate and fully occupied states disabled and explained.
+- Status: Resolved and pushed in `829c444`; verified and independently accepted in `VER-20260903-018`.

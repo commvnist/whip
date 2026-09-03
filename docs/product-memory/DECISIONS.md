@@ -658,3 +658,13 @@
 - Compatibility: No database, schema, backup, completed-workout, Routine prescription, or timer calculation change. Existing Machine and Routine drafts retain their current save boundaries.
 - Related: `FB-20260903-011`, `FND-20260903-019`, `FND-20260903-020`, `IMP-20260903-017`, `VER-20260903-017`.
 - Status: Accepted, implemented, and independently approved.
+
+### DEC-20260903-012 — Fresh defaults follow domain meaning and never overwrite authorship
+
+- Context: Numbered machines, measurement Fields, Goal templates, and reminder times each had enough domain information to choose a useful safe starting value, but several creation paths used blank, first-in-list, literal, or already-occupied values instead.
+- Decision: Keep semantic defaults small and domain-owned. Level Set insertion uses explicit → same placement → exact completed Exercise/Profile history → direction-aware endpoint precedence. Blank Routine Level templates may derive only their actual setting, never a prescription. Fresh Track Number Fields use live unit/precision preferences; saved/opening drafts remain unchanged. Goal templates convert a canonical basis into the chosen valid unit. Reminder creation chooses and validates an unused conventional slot.
+- Rationale: A default is correct only when the product can explain why it is appropriate for that field. Applying it at the creation/persistence boundary keeps quick and full editors consistent, while authorship/history guards prevent convenience behavior from becoming data mutation.
+- Rejected alternatives: UI-only picker initialization would leave repository callers inconsistent; always forcing a machine endpoint would discard useful prior work; a generic cross-product heuristic framework would hide unrelated rules and be harder to test; recomputing saved prescriptions or history would falsify authored facts.
+- Compatibility: No schema, backup, migration, completed-history, or existing-draft rewrite. Archived Profiles remain valid only for existing bindings; new assignment still rejects them.
+- Related: `FB-20260903-012`, `FND-20260903-021`, `FND-20260903-022`, `IMP-20260903-018`, `VER-20260903-018`.
+- Status: Accepted, implemented, verified, and independently approved.

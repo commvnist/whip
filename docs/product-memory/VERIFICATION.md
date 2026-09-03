@@ -775,3 +775,14 @@
 - Source: `c8286e0`.
 - Related: `FB-20260903-011`, `FND-20260903-019`, `FND-20260903-020`, `DEC-20260903-011`, `IMP-20260903-017`.
 - Status: Passed and independently accepted in the stated scope; implementation is pushed but not physically released.
+
+### VER-20260903-018 — Semantic-default targeted verification
+
+- `git diff --check`, production Kotlin compilation, Android-test Kotlin compilation, `MachineLevelDefaultTest`, and `SemanticDefaultsTest` passed. Pure coverage verifies direction, unordered/invalid Profile settings, value precedence, kg/lb/g Goal values, reminder slot selection/full occupancy, and preferred/fallback Track units.
+- Six exact API 34 emulator regressions passed: direction/history/placement-aware Level Set insertion; actual-only versus explicit prescribed Routine Level work; fresh Track unit/precision preference; existing Track authorship retention; and duplicate general/weekday reminder confirmation states.
+- The first combined emulator attempt waited in a test fixture that created only a placement and then observed a Set it never inserted. The fixture was corrected to exercise the same atomic placement-plus-initial-Set route used by the workout UI; the exact production-path rerun passed.
+- A fresh Sol review rejected the first candidate because endpoint fallback incorrectly excluded archived Profiles. Both repository paths were repaired to accept only exact UUID-matched existing bindings regardless of archive state, Gym and Routine regressions added archived-binding evidence, and the post-repair exact emulator run passed 2/2. The independent re-review reported no remaining blocker and approved the change.
+- Scope: Narrow deterministic domain and affected persistence/UI coverage on the disposable emulator. No complete release/lint/shrinker gate, physical-phone installation, user-data mutation, or physical-device instrumentation was performed.
+- Source: `92c25f9` and `829c444`.
+- Related: `FB-20260903-012`, `FND-20260903-021`, `FND-20260903-022`, `DEC-20260903-012`, `IMP-20260903-018`.
+- Status: Passed and independently accepted; both code chunks are pushed and remain unreleased to the physical phone.

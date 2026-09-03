@@ -249,3 +249,11 @@ These records preserve durable user intent. “Released” means the change reac
 - Scope boundary: Prefer bounded reusable Exercise-picker and collection-card primitives; do not introduce a generic UI DSL or indiscriminately replace intentional structural/chart surfaces.
 - Related: `FND-20260903-019`, `FND-20260903-020`, `DEC-20260903-011`, `IMP-20260903-017`, `VER-20260903-017`.
 - Status: Implemented, focused-emulator verified, independently accepted, committed, and pushed; not yet included in a physical-phone release.
+
+### FB-20260903-012 — Make fresh inputs start from the semantically easiest useful value
+
+- User need: A fresh set for a numbered Machine marked “Higher number = less resistance” should start at its maximum configured level because that is the lightest setting. Apply the same kind of sensible, context-aware defaulting across Whip instead of making users repeatedly correct mechanically chosen values.
+- Acceptance criteria: Fresh Level sets and blank Routine templates respect machine direction; explicit input, same-placement work, and exact Exercise/Profile history remain higher-priority than a configured endpoint; archived profiles remain valid for already assigned workouts and Routines; no authored prescription or completed history is rewritten. Confirmed analogous defects in fresh Track Number fields, the reach-weight Goal template, and reminder creation are corrected without overriding existing drafts.
+- Scope boundary: Add small domain-specific default resolvers at established ownership boundaries; do not create a generic heuristic engine, invent workout performance fields, alter schema, or deploy to a phone without a separate release request.
+- Related: `FND-20260903-021`, `FND-20260903-022`, `DEC-20260903-012`, `IMP-20260903-018`, `VER-20260903-018`.
+- Status: Implemented, targeted-emulator verified, independently accepted, committed, and pushed; not physically released.
