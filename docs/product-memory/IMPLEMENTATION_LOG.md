@@ -402,3 +402,13 @@
 - Related: `FB-20260902-004`, `DEC-20260902-013`.
 - Verification: `VER-20260902-015`.
 - Status: Implemented and verified.
+
+### IMP-20260902-015 — Prepare Whip 0.3.35 for physical-device release
+
+- Advanced the Android release identity from `0.3.34`/40 to `0.3.35`/41 so the current source is distinguishable from the previously installed physical release.
+- Kept application ID `commvne.com.whip.app`, release signing configuration, Room schema, backup format, and user-data semantics unchanged.
+- Release installation remains pending the deterministic build/signing gate and a reachable, verified physical wireless-debugging endpoint.
+- Important file: `app/build.gradle.kts`.
+- Related: `FB-20260902-005`, `DEC-20260902-014`.
+- Verification: Pending; do not interpret this implementation record as a successful build or installation.
+- Status: Implemented as release preparation; installation not yet complete.

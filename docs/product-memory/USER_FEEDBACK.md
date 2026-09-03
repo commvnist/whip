@@ -129,3 +129,10 @@ These records preserve durable user intent. “Released” means the change reac
 - Source: `/mnt/c/Users/commv/Documents/Codex/2026-09-02/i-wa/outputs/vera-codex.tar.gz`.
 - Related: `DEC-20260902-013`, `IMP-20260902-014`, `VER-20260902-015`.
 - Status: Implemented and verified on 2026-09-02.
+
+### FB-20260902-005 — Release the latest Whip build to the physical phone
+
+- User need: Build, sign, and install the current `origin/main` Whip application on the phone exposed through Android wireless debugging at `192.168.2.187:42785`.
+- Acceptance criteria: Give the candidate a unique monotonically increasing release identity; run the complete deterministic release gate; verify package, signer, version, and artifact hash; upgrade with `adb install -r` without clearing user data; launch successfully; and confirm the installed artifact and preserved installation identity. Never run destructive instrumentation or write debug artifacts to unrestricted physical-device storage.
+- Related: `DEC-20260902-014`, `IMP-20260902-015`.
+- Status: In progress. Release candidate `0.3.35` (version code 41) is being prepared; the supplied wireless-debugging endpoint initially refused the connection, so no device mutation has occurred yet.

@@ -428,3 +428,12 @@
 - Compatibility: No Whip application source, schema, data, build artifact, or device state changes. Historical product-memory records remain as an audit trail but are not active Codex instruction sources. New Codex sessions load the reset instruction chain; this already-running session retains the instructions it began with.
 - Related: `FB-20260902-004`, `IMP-20260902-014`, `VER-20260902-015`.
 - Status: Accepted and implemented.
+
+### DEC-20260902-014 — Give every physical release a unique upgrade identity
+
+- Context: The latest source is newer than the phone-verified `0.3.34` release, but the build metadata still reused version code 40 and version name 0.3.34. Reinstalling materially different code under the same identity would make upgrade diagnosis, rollback tracking, and installed-artifact evidence ambiguous.
+- Decision: Release the current candidate as version `0.3.35` with monotonically increasing version code 41. Require the full release gate and signing verification before a data-preserving `adb install -r`; verify the exact endpoint is a physical device and capture installed version, signer, hash, and `firstInstallTime` before and after installation. Do not clear application data or run instrumentation on the phone.
+- Rationale: A unique release identity makes support and provenance falsifiable while retaining Android's normal in-place upgrade and Room migration path for existing users.
+- Compatibility: The version change does not alter application data. The candidate includes Room schema 41 and its explicit migrations; previously completed records remain governed by their existing compatibility guarantees.
+- Related: `FB-20260902-005`, `IMP-20260902-015`.
+- Status: Accepted for the requested physical-device release.
