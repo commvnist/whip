@@ -1504,9 +1504,9 @@ fun GymAreaContent(
         sessionCoordinator = sessionMutationCoordinator,
         viewModel = viewModel,
         onCreatedExerciseConsumed = { createdExerciseForMachineId = null },
-        onCreateExercise = {
+        onCreateExercise = { seed ->
             creatingExerciseForMachine = true
-            exerciseEditorNameSeed = ""
+            exerciseEditorNameSeed = seed
             creatingExercise = true
         },
         onCreateVersion = { machineId ->
@@ -2933,12 +2933,10 @@ private fun WorkoutContent(
             }
         }
         if (!arrangingWorkout) stickyHeader {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 3.dp,
-                modifier = Modifier.fillMaxWidth().testTag("workout-execution-lane"),
+            WhipCollectionCard(
+                modifier = Modifier.testTag("workout-execution-lane"),
             ) {
-                Column(Modifier.padding(vertical = 4.dp)) {
+                Column(Modifier.padding(vertical = WhipSpacing.micro)) {
                     skippedOptionalSetId?.let { skippedId ->
                         Row(
                             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
@@ -4354,14 +4352,21 @@ internal fun RestTimerCard(
     val notificationAvailable = NotificationManagerCompat.from(context).areNotificationsEnabled() &&
         (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+    val displayedDuration = formatDuration((remaining ?: selectedSeconds).coerceAtLeast(1).toLong())
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("rest-timer-card")
+            .semantics {
+                stateDescription = if (remaining == null) {
+                    "Rest timer ready, $displayedDuration selected"
+                } else {
+                    "Rest timer running, $displayedDuration remaining"
+                }
+            }
+            .padding(horizontal = WhipSpacing.compact, vertical = WhipSpacing.sibling),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val stackActions = LocalDensity.current.fontScale >= 1.5f || maxWidth < 330.dp
                 val timerActions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {
@@ -4396,8 +4401,9 @@ internal fun RestTimerCard(
                 if (stackActions) {
                     Column(Modifier.fillMaxWidth()) {
                         Text(
-                            "Rest · ${formatDuration((remaining ?: selectedSeconds).coerceAtLeast(1).toLong())}",
-                            fontWeight = FontWeight.Bold,
+                            "Rest · $displayedDuration",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -4409,11 +4415,12 @@ internal fun RestTimerCard(
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
                     ) {
                         Text(
-                            "Rest · ${formatDuration((remaining ?: selectedSeconds).coerceAtLeast(1).toLong())}",
-                            fontWeight = FontWeight.Bold,
+                            "Rest · $displayedDuration",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.weight(1f),
                         )
                         timerActions()
@@ -4427,7 +4434,6 @@ internal fun RestTimerCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
     }
     if (showDurationEditor) {
         RestDurationDialog(
@@ -5757,7 +5763,7 @@ internal fun MachineEditorDialog(
     initialExerciseId: Long? = null,
     createdExerciseIdRequest: Long? = null,
     onCreatedExerciseRequestConsumed: () -> Unit = {},
-    onCreateExercise: () -> Unit = {},
+    onCreateExercise: ((String) -> Unit)? = null,
     onCreateVersion: (() -> Unit)? = null,
     onDismiss: () -> Unit,
     onSave: (GymMachineDraft) -> Unit,
@@ -5934,7 +5940,7 @@ internal fun MachineEditorDialog(
     BackHandler(enabled = !showDiscardConfirmation, onBack = requestDismiss)
     ProductivityEditorDialog(
         modifier = modifier,
-        testTag = "exercise-editor-surface",
+        testTag = "machine-editor-surface",
         primary = true,
         paneTitle = if (machine == null) "Create Machine Profile" else "Edit Machine Profile",
         inputBlocked = saving,
@@ -6238,52 +6244,46 @@ internal fun MachineEditorDialog(
         )
     }
     if (exercisePickerOpen) {
-        var query by rememberSaveable(editorKey) { mutableStateOf("") }
-        val visibleExercises = exercises.filter { it.name.contains(query, ignoreCase = true) }
-        PaneAwareAlertDialog(
+        ProductivityEditorDialog(
             modifier = modifier.testTag("machine-exercise-picker"),
+            testTag = "machine-exercise-picker",
+            primary = true,
+            paneTitle = "Linked Exercises",
             onDismissRequest = { exercisePickerOpen = false },
             title = { Text("Linked Exercises") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        label = { Text("Search exercises") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag("machine-exercise-search"),
-                    )
-                    WhipOutlinedButton(
-                        onClick = {
+                GymExercisePickerBody(
+                    exercises = exercises,
+                    queryKey = "$editorKey-linked-exercises",
+                    listTag = "machine-exercise-picker-list",
+                    searchTag = "machine-exercise-search",
+                    createTag = "machine-create-exercise",
+                    onCreate = onCreateExercise?.let { create ->
+                        { query ->
                             exercisePickerOpen = false
-                            onCreateExercise()
+                            create(query)
+                        }
+                    },
+                ) { exercise ->
+                    val selected = exercise.id in exerciseIds
+                    WhipMultiChoiceRow(
+                        label = exercise.name,
+                        supportingText = exercise.equipment.takeIf(String::isNotBlank),
+                        checked = selected,
+                        onCheckedChange = {
+                            exerciseIds = if (selected) {
+                                exerciseIds - exercise.id
+                            } else {
+                                (exerciseIds + exercise.id).distinct()
+                            }
                         },
-                        modifier = Modifier.fillMaxWidth().testTag("machine-create-exercise"),
-                    ) { Text("Create New Exercise") }
-                    LazyColumn(
-                        modifier = Modifier.heightIn(min = 96.dp, max = 320.dp).testTag("machine-exercise-picker-list"),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        items(visibleExercises, key = Exercise::id) { exercise ->
-                            val selected = exercise.id in exerciseIds
-                            WhipMultiChoiceRow(
-                                label = exercise.name,
-                                supportingText = exercise.equipment.takeIf(String::isNotBlank),
-                                checked = selected,
-                                onCheckedChange = {
-                                    exerciseIds = if (selected) exerciseIds - exercise.id else (exerciseIds + exercise.id).distinct()
-                                },
-                            )
-                        }
-                        if (visibleExercises.isEmpty()) item {
-                            Text("No matching exercises. Create one without leaving this machine profile.")
-                        }
-                    }
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    )
                 }
             },
-            confirmButton = {
-                WhipTextButton(onClick = { exercisePickerOpen = false }) { Text("Done") }
-            },
+            confirmButton = { WhipTextButton(onClick = { exercisePickerOpen = false }) { Text("Done") } },
+            dismissButton = { WhipBackAction(label = "Close linked exercises", onClick = { exercisePickerOpen = false }) },
+            dismissOnClickOutside = false,
         )
     }
     if (showDiscardConfirmation) {
@@ -10302,134 +10302,38 @@ internal fun ExercisePickerDialog(
     onPick: (Exercise) -> Unit,
     onCreate: (String) -> Unit,
 ) {
-    var query by rememberSaveable(title) { mutableStateOf("") }
-    val normalizedQuery = query.trim()
-    val visible = exercises.filter { exerciseMatchesQuery(it, query) }
-        .sortedWith(compareByDescending<Exercise> { it.id in preferredIds }.thenBy { it.name.lowercase() })
     val dialogPlacement = LocalWhipDialogPlacement.current
     val resolvedModifier = if (modifier == Modifier) {
         Modifier.absoluteOffset(x = dialogPlacement.offsetX).width(dialogPlacement.maxWidth)
     } else {
         modifier
     }
-    val displayLabel = itemLabel.uiTitleCase()
     ProductivityEditorDialog(
         modifier = resolvedModifier,
         testTag = "exercise-picker-dialog",
         onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(title) },
         text = {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                supportingText?.let { message ->
-                    Text(
-                        message,
-                        modifier = Modifier.testTag("workout-exercise-picker-scope"),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                errorMessage?.let { message ->
-                    Text(
-                        message,
-                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                OutlinedTextField(
-                    query,
-                    { query = it },
+            GymExercisePickerBody(
+                exercises = exercises,
+                itemLabel = itemLabel,
+                saving = saving,
+                queryKey = title,
+                listTag = "workout-exercise-picker-list",
+                preferredIds = preferredIds,
+                supportingText = supportingText,
+                errorMessage = errorMessage,
+                onCreate = onCreate,
+            ) { exercise ->
+                WhipTextButton(
+                    onClick = { onPick(exercise) },
                     enabled = !saving,
-                    label = { Text("Search ${displayLabel.lowercase()}s") },
-                    modifier = Modifier.fillMaxWidth().testTag("exercise-picker-search"),
-                    singleLine = true,
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) {
                     Text(
-                        quantityLabel(visible.size, itemLabel),
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        exercise.name + if (exercise.id in preferredIds) " · Planned alternative" else "",
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                    WhipOutlinedButton(
-                        onClick = { onCreate(normalizedQuery) },
-                        enabled = !saving,
-                        modifier = Modifier.testTag("exercise-picker-create"),
-                    ) {
-                        Icon(Icons.Filled.Add, contentDescription = null)
-                        Spacer(Modifier.width(6.dp))
-                        Text("Create $displayLabel")
-                    }
-                }
-                LazyColumn(
-                    modifier = Modifier.weight(1f).fillMaxWidth().testTag("workout-exercise-picker-list"),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    contentPadding = PaddingValues(bottom = 12.dp),
-                ) {
-                    if (preferredIds.isNotEmpty() && visible.any { it.id in preferredIds }) item {
-                        Text(
-                            "Routine alternatives are shown first",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                    items(visible, key = Exercise::id) { exercise ->
-                        WhipTextButton(
-                            onClick = { onPick(exercise) },
-                            enabled = !saving,
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                        ) {
-                            Text(
-                                exercise.name + if (exercise.id in preferredIds) " · Planned alternative" else "",
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    }
-                    if (visible.isEmpty()) item {
-                        OutlinedCard(
-                            modifier = Modifier.fillMaxWidth().testTag("exercise-picker-empty"),
-                        ) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Text(
-                                    if (normalizedQuery.isBlank() && exercises.isEmpty()) {
-                                        "No ${displayLabel.lowercase()}s yet"
-                                    } else {
-                                        "No matching ${displayLabel.lowercase()}"
-                                    },
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                Text(
-                                    if (normalizedQuery.isBlank()) {
-                                        "Create a $itemLabel without leaving this screen. It will be saved to your Exercise Library."
-                                    } else {
-                                        "Nothing matches “$normalizedQuery”. Create it as a new $itemLabel without leaving this screen."
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                WhipButton(
-                                    onClick = { onCreate(normalizedQuery) },
-                                    enabled = !saving,
-                                    modifier = Modifier.fillMaxWidth().testTag("exercise-picker-create-empty"),
-                                ) {
-                                    Text(
-                                        if (normalizedQuery.isBlank()) "Create $displayLabel"
-                                        else "Create “$normalizedQuery”",
-                                    )
-                                }
-                            }
-                        }
-                    }
                 }
             }
         },

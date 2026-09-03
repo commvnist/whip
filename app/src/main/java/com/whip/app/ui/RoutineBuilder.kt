@@ -192,6 +192,8 @@ internal fun RoutineBuilderScreen(
     var pendingAssistanceRole by rememberSaveable(token) { mutableStateOf<RoutineAssistanceRole?>(null) }
     var showCreateExercise by rememberSaveable(token) { mutableStateOf(false) }
     var createExerciseForProgramSetup by rememberSaveable(token) { mutableStateOf(false) }
+    var createExerciseForMachineProfile by rememberSaveable(token) { mutableStateOf(false) }
+    var createdExerciseForMachineId by rememberSaveable(token) { mutableStateOf<Long?>(null) }
     var exerciseNameSeed by rememberSaveable(token) { mutableStateOf("") }
     var librarySaveInFlight by rememberSaveable(token) { mutableStateOf(false) }
     var routineSaveInFlight by rememberSaveable(token) { mutableStateOf(false) }
@@ -730,6 +732,44 @@ internal fun RoutineBuilderScreen(
         }
     }
 
+    machineEditorPlacementKey?.let { placementKey ->
+        val placement = builder.days.flatMap { it.placements }.firstOrNull { it.key == placementKey }
+        if (placement != null) {
+            MachineEditorDialog(
+                modifier = dialogModifier,
+                machine = null,
+                exercises = gymState.exercises,
+                definitionLocked = false,
+                initialExerciseId = placement.exerciseId,
+                createdExerciseIdRequest = createdExerciseForMachineId,
+                onCreatedExerciseRequestConsumed = { createdExerciseForMachineId = null },
+                onCreateExercise = { seed ->
+                    exerciseNameSeed = seed
+                    createExerciseForMachineProfile = true
+                    showCreateExercise = true
+                },
+                onDismiss = {
+                    createdExerciseForMachineId = null
+                    machineEditorPlacementKey = null
+                },
+                saving = librarySaveInFlight,
+                onSave = { draft ->
+                    createdExerciseForMachineId = null
+                    machineEditorPlacementKey = null
+                    librarySaveInFlight = true
+                    onCreateMachine(draft) { id ->
+                        librarySaveInFlight = false
+                        if (id != null) {
+                            updatePlacement(placementKey) { it.withMachine(id, draft) }
+                            stateHolder.noteIndependentLibrarySave()
+                            equipmentPickerPlacementKey = null
+                        }
+                    }
+                },
+            )
+        }
+    }
+
     if (showCreateExercise) {
         ExerciseEditorDialog(
             modifier = dialogModifier,
@@ -746,16 +786,22 @@ internal fun RoutineBuilderScreen(
             onDismiss = {
                 showCreateExercise = false
                 createExerciseForProgramSetup = false
+                createExerciseForMachineProfile = false
             },
             onSave = { draft ->
                 val targetDay = selectedDay?.key
                 val belongsToProgramSetup = createExerciseForProgramSetup
+                val belongsToMachineProfile = createExerciseForMachineProfile
                 showCreateExercise = false
                 librarySaveInFlight = true
                 onCreateExercise(draft) { id ->
                     librarySaveInFlight = false
                     createExerciseForProgramSetup = false
-                    if (id != null && belongsToProgramSetup) {
+                    createExerciseForMachineProfile = false
+                    if (id != null && belongsToMachineProfile) {
+                        createdExerciseForMachineId = id
+                        stateHolder.noteIndependentLibrarySave()
+                    } else if (id != null && belongsToProgramSetup) {
                         stateHolder.noteIndependentLibrarySave()
                     } else if (id != null && targetDay != null) {
                         addCreatedExercise(targetDay, id, draft.name.trim(), pendingAssistanceRole)
@@ -765,32 +811,6 @@ internal fun RoutineBuilderScreen(
                 }
             },
         )
-    }
-
-    machineEditorPlacementKey?.let { placementKey ->
-        val placement = builder.days.flatMap { it.placements }.firstOrNull { it.key == placementKey }
-        if (placement != null) {
-            MachineEditorDialog(
-                modifier = dialogModifier,
-                machine = null,
-                exercises = gymState.exercises,
-                definitionLocked = false,
-                initialExerciseId = placement.exerciseId,
-                onDismiss = { machineEditorPlacementKey = null },
-                onSave = { draft ->
-                    machineEditorPlacementKey = null
-                    librarySaveInFlight = true
-                    onCreateMachine(draft) { id ->
-                        librarySaveInFlight = false
-                        if (id != null) {
-                            updatePlacement(placementKey) { it.withMachine(id, draft) }
-                            stateHolder.noteIndependentLibrarySave()
-                            equipmentPickerPlacementKey = null
-                        }
-                    }
-                },
-            )
-        }
     }
 
     quickMachinePlacementKey?.let { placementKey ->

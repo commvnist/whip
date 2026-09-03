@@ -388,5 +388,15 @@ class UiDesignArchitectureTest {
                 assertTrue("The design system is missing its canonical $primitive role", patterns.contains("fun $primitive("))
             }
         assertTrue("Notices must express semantic tone instead of local color guesses", patterns.contains("enum class WhipNoticeTone"))
+
+        val gymScreens = File(sourceRoot, "com/whip/app/ui/GymScreens.kt").readText()
+        val picker = File(sourceRoot, "com/whip/app/ui/GymExercisePicker.kt").readText()
+        assertTrue("Exercise pickers must share the bounded exercise-specific body", picker.contains("fun GymExercisePickerBody("))
+        assertTrue(
+            "Single-select and Machine linked exercises must both consume the shared picker",
+            Regex("GymExercisePickerBody\\(").findAll(gymScreens).count() == 2,
+        )
+        assertTrue("The rest execution lane must use the canonical collection card", gymScreens.contains("WhipCollectionCard(\n                modifier = Modifier.testTag(\"workout-execution-lane\")"))
+        assertTrue("Collection cards must lock their canonical shape", patterns.contains("val shape = MaterialTheme.shapes.medium"))
     }
 }

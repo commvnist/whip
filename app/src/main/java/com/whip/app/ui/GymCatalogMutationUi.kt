@@ -56,7 +56,7 @@ internal fun GymMachineEditorOverlay(
     sessionCoordinator: EntitySaveCoordinator,
     viewModel: GymViewModel,
     onCreatedExerciseConsumed: () -> Unit,
-    onCreateExercise: () -> Unit,
+    onCreateExercise: (String) -> Unit,
     onCreateVersion: (Long) -> Unit,
     onDismiss: () -> Unit,
 ) {

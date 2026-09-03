@@ -1402,6 +1402,60 @@ class RoutineBuilderUiTest {
     }
 
     @Test
+    fun advancedMachineCreationReturnsFromSeededExerciseCreationWithBothDraftsPreserved() {
+        val bench = exercise(1, "Machine bench")
+        val createdExercise = exercise(2, "Cable extension")
+        val gymState = mutableStateOf(GymUiState(exercises = listOf(bench), loading = false))
+        var createdName: String? = null
+        var savedExerciseIds: Set<Long>? = null
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                RoutineBuilderScreen(
+                    routineId = 42,
+                    gymState = gymState.value,
+                    initial = RoutineDraft(
+                        name = "Machine push",
+                        days = listOf(RoutineDayDraft("A", listOf(RoutineExerciseDraft(bench.id)))),
+                    ),
+                    onDismiss = {},
+                    onSave = { _, complete -> complete(true) },
+                    onCreateExercise = { draft, complete ->
+                        createdName = draft.name
+                        gymState.value = gymState.value.copy(exercises = listOf(bench, createdExercise))
+                        complete(createdExercise.id)
+                    },
+                    onCreateMachine = { draft, complete ->
+                        savedExerciseIds = draft.exerciseIds
+                        complete(88)
+                    },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Machine bench", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("routine-equipment-picker").performClick()
+        compose.onNodeWithText("Create Advanced Machine Profile").performClick()
+        compose.onNodeWithTag("machine-editor-name").performTextInput("Shared cable")
+        compose.onNodeWithTag("machine-editor-list").performScrollToNode(hasTestTag("machine-choose-exercises"))
+        compose.onNodeWithTag("machine-choose-exercises").performClick()
+        compose.onNodeWithTag("machine-exercise-search").performTextInput("  Cable extension  ")
+        compose.onNodeWithTag("machine-create-exercise-empty").performClick()
+        compose.onNodeWithTag("exercise-editor-name").assertTextContains("Cable extension")
+        compose.onNode(
+            hasText("Save") and hasAnyAncestor(hasTestTag("exercise-editor-surface")),
+        ).performClick()
+
+        compose.onNodeWithTag("machine-editor-name").assertTextContains("Shared cable")
+        compose.onNode(
+            hasText("Save") and hasAnyAncestor(hasTestTag("machine-editor-surface")),
+        ).performClick()
+        compose.runOnIdle {
+            assertEquals("Cable extension", createdName)
+            assertEquals(setOf(bench.id, createdExercise.id), savedExerciseIds)
+        }
+    }
+
+    @Test
     fun machineCanBeQuickCreatedForAPlacementWithoutLeavingBuilder() {
         val bench = exercise(1, "Machine bench")
         var createdMachineName = ""

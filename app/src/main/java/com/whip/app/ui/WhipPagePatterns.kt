@@ -475,8 +475,10 @@ internal fun WhipCollectionCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+    val elevation = CardDefaults.cardElevation()
+    val shape = MaterialTheme.shapes.medium
     if (onClick == null) {
-        Card(modifier = modifier.fillMaxWidth(), colors = colors, content = content)
+        Card(modifier = modifier.fillMaxWidth(), colors = colors, elevation = elevation, shape = shape, content = content)
     } else {
         Card(
             onClick = onClick,
@@ -485,6 +487,8 @@ internal fun WhipCollectionCard(
                 .fillMaxWidth()
                 .semantics { onClickLabel?.let { contentDescription = it } },
             colors = colors,
+            elevation = elevation,
+            shape = shape,
             content = content,
         )
     }

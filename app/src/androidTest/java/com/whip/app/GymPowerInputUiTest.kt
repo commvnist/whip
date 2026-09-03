@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onNodeWithTag
@@ -443,6 +444,11 @@ class GymPowerInputUiTest {
         }
 
         compose.onNodeWithTag("machine-editor-name").performTextInput("Standalone cable")
+        compose.onNodeWithTag("machine-editor-list").performScrollToNode(hasTestTag("machine-choose-exercises"))
+        compose.onNodeWithTag("machine-choose-exercises").performClick()
+        compose.onNodeWithTag("machine-exercise-picker").assertIsDisplayed()
+        compose.onAllNodesWithTag("machine-create-exercise").assertCountEquals(0)
+        compose.onNodeWithText("Done").performClick()
         compose.onNodeWithText("Save").assertIsEnabled().performClick()
 
         compose.runOnIdle { assertEquals(emptySet<Long>(), saved?.exerciseIds) }
@@ -453,6 +459,7 @@ class GymPowerInputUiTest {
         val existing = testExercise().copy(id = 1, name = "Cable row")
         val created = testExercise().copy(id = 2, name = "Cable press")
         var createdRequest by mutableStateOf<Long?>(null)
+        var createdName: String? = null
         var saved: GymMachineDraft? = null
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
@@ -462,7 +469,7 @@ class GymPowerInputUiTest {
                     definitionLocked = false,
                     createdExerciseIdRequest = createdRequest,
                     onCreatedExerciseRequestConsumed = { createdRequest = null },
-                    onCreateExercise = { createdRequest = created.id },
+                    onCreateExercise = { seed -> createdName = seed; createdRequest = created.id },
                     onDismiss = {},
                     onSave = { saved = it },
                 )
@@ -472,7 +479,11 @@ class GymPowerInputUiTest {
         compose.onNodeWithTag("machine-editor-name").performTextInput("Shared cable")
         compose.onNodeWithTag("machine-editor-list").performScrollToNode(hasTestTag("machine-choose-exercises"))
         compose.onNodeWithTag("machine-choose-exercises").performClick()
-        compose.onNodeWithTag("machine-create-exercise").performClick()
+        compose.onNodeWithTag("machine-exercise-search").performTextInput("  Cable fly  ")
+        compose.onNodeWithTag("machine-exercise-picker").assertIsDisplayed()
+        compose.onNodeWithTag("machine-exercise-picker-list").assertIsDisplayed()
+        compose.onNodeWithTag("machine-create-exercise-empty").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals("Cable fly", createdName) }
         compose.onNodeWithTag("machine-editor-name").assertTextContains("Shared cable")
         compose.onNodeWithTag("machine-editor-list").performScrollToNode(hasTestTag("machine-choose-exercises"))
         compose.onNodeWithTag("machine-choose-exercises").performClick()
@@ -885,6 +896,9 @@ class GymPowerInputUiTest {
         }
 
         compose.onNodeWithText("Rest · 2:00").assertIsDisplayed()
+        compose.onNode(
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Rest timer ready, 2:00 selected"),
+        ).assertIsDisplayed()
         compose.onNodeWithContentDescription("Adjust rest time for this workout").performClick()
         compose.onNodeWithText("Rest Time for This Workout").assertIsDisplayed()
         listOf("1:00", "1:30", "2:00", "2:30", "3:00", "5:00").forEach { preset ->
