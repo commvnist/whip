@@ -18,9 +18,9 @@ enum class ExerciseTrackingType(val label: String) {
     DurationOnly("Duration only"),
 }
 
-enum class EstimatedOneRepMaxFormula {
-    Epley,
-    Brzycki,
+enum class EstimatedOneRepMaxFormula(val label: String) {
+    Epley("Epley"),
+    Brzycki("Brzycki"),
 }
 
 enum class BodyweightLoadPolicy {
@@ -120,10 +120,10 @@ data class GymMachine(
     fun supportsExercise(exerciseId: Long): Boolean = exerciseId in exerciseIds
 }
 
-enum class WorkoutSessionState {
-    Active,
-    Finished,
-    Discarded,
+enum class WorkoutSessionState(val label: String) {
+    Active("In progress"),
+    Finished("Finished"),
+    Discarded("Discarded"),
 }
 
 /** What happened to an exercise placement after it was snapshotted into a workout. */
@@ -152,9 +152,9 @@ enum class WorkoutSetClassification {
     Failure,
 }
 
-enum class WorkoutGroupType {
-    Superset,
-    Circuit,
+enum class WorkoutGroupType(val label: String) {
+    Superset("Superset"),
+    Circuit("Circuit"),
 }
 
 enum class RoutineLoadPrescriptionType(val label: String) {

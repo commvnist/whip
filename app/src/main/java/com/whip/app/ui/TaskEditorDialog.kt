@@ -991,7 +991,7 @@ fun TaskEditorDialog(
                             WhipFilterChip(
                                 selected = priority == value,
                                 onClick = { priority = value },
-                                label = { Text(value.name) },
+                                label = { Text(value.label) },
                             )
                         }
                     }

@@ -345,7 +345,7 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         requestId: String? = null,
     ): Boolean = runAuthoredGoalMutation(
         running = "Updating goal…",
-        success = "Goal ${status.name.lowercase()}",
+        success = "Goal ${status.label.lowercase()}",
         requestId = requestId,
         savedDescription = "lifecycle change",
     ) {

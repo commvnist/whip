@@ -799,7 +799,7 @@ internal fun GoalProjection.collectionStatus(
             "${milestones.count { it.completed }}/${milestones.size} milestones"
         progress != null -> "${(progress * 100).toInt()}% complete"
         consistency != null -> with(requireNotNull(consistency)) {
-            "$successfulPeriods/$requiredPeriods ${period.name.lowercase()} periods"
+            "$successfulPeriods/$requiredPeriods ${period.periodLabel} periods"
         }
         currentValue != null ->
             "Current ${formatGoalValue(goal.displayValue(currentValue, customUnits), goal.precision)} ${goal.unitId.goalUnitLabel(customUnits)}".trim()
@@ -922,7 +922,7 @@ fun GoalCard(
             }
         } else projection.consistency?.let { consistency ->
             Text(
-                "${consistency.successfulPeriods}/${consistency.requiredPeriods} successful ${consistency.period.name.lowercase()} periods · " +
+                "${consistency.successfulPeriods}/${consistency.requiredPeriods} successful ${consistency.period.periodLabel} periods · " +
                     "${formatGoalValue(consistency.currentPeriodValue, goal.precision)}/${formatGoalValue(consistency.targetPerPeriod, goal.precision)} this period",
             )
         } ?: projection.currentValue?.let { canonical ->
@@ -1641,7 +1641,7 @@ internal fun GoalEditorDialog(
                     } else {
                         item {
                             ResponsiveFieldPair(
-                                first = { field -> Column(field) { GoalEnumDropdown("Period", GoalConsistencyPeriod.entries, consistencyPeriod, { it.name }) { consistencyPeriod = it } } },
+                                first = { field -> Column(field) { GoalEnumDropdown("Period", GoalConsistencyPeriod.entries, consistencyPeriod, { it.periodLabel.replaceFirstChar(Char::uppercase) }) { consistencyPeriod = it } } },
                                 second = { field ->
                                     GoalNumberField(
                                         consistencyRequiredPeriods,
@@ -2345,7 +2345,7 @@ internal fun GoalActionsDialog(
                                 color = MaterialTheme.colorScheme.primary,
                             )
                             Text(
-                                "Recorded when this Goal was ${terminal.status.name.lowercase()}.",
+                                "Recorded when this Goal was ${terminal.status.label.lowercase()}.",
                             )
                         } else if (terminal != null) {
                             Text(
@@ -2560,7 +2560,7 @@ private fun GoalProjection.inspectorOutcome(
         "${milestones.count { it.completed }} of ${milestones.size} milestones complete"
     progress != null -> "${(progress * 100).toInt()}% complete"
     consistency != null -> with(requireNotNull(consistency)) {
-        "$successfulPeriods of $requiredPeriods ${period.name.lowercase()} periods complete"
+        "$successfulPeriods of $requiredPeriods ${period.periodLabel} periods complete"
     }
     currentValue != null -> {
         val displayed = goal.displayValue(currentValue, customUnits)

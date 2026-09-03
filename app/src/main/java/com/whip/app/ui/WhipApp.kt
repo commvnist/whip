@@ -6031,7 +6031,7 @@ private fun TaskAreaContent(
     } else emptyMap()
     val activeFilters = buildList {
         if (priorities.isNotEmpty()) add(
-            WhipActiveFilter("priority", "Priority: ${priorities.joinToString { it.name }}") {
+            WhipActiveFilter("priority", "Priority: ${priorities.joinToString { it.label }}") {
                 priorities = emptySet()
             },
         )
@@ -6424,7 +6424,7 @@ private fun TaskAreaContent(
                         selected = planningView,
                         choices = planningViews,
                         onSelect = { planningView = workspaceDestination.normalizePlanningView(it) },
-                        label = TaskPlanningView::name,
+                        label = TaskPlanningView::label,
                         modifier = Modifier.fillMaxWidth(),
                         resetCompactItemExpansionOnChange = true,
                     )
@@ -6650,7 +6650,7 @@ private fun TaskAreaContent(
                                         Text(candidate.task.title)
                                         Text(
                                             if (checked) {
-                                                "Selected · ${candidate.estimatedDurationMinutes()} min${if (candidate.task.durationMinutes == null) " assumed" else ""} · ${candidate.task.priority.name.lowercase()} Priority"
+                                                "Selected · ${candidate.estimatedDurationMinutes()} min${if (candidate.task.durationMinutes == null) " assumed" else ""} · ${candidate.task.priority.label} priority"
                                             } else if (totalMinutes + candidate.estimatedDurationMinutes() > capacity) {
                                                 "Skipped · would exceed capacity"
                                             } else {
@@ -6920,7 +6920,7 @@ private fun TaskAreaContent(
                             WhipFilterChip(
                                 selected = value in priorities,
                                 onClick = { priorities = if (value in priorities) priorities - value else priorities + value },
-                                label = { Text(value.name) },
+                                label = { Text(value.label) },
                             )
                         }
                     }
@@ -7484,7 +7484,7 @@ private fun TaskBulkEditDialog(
                 Text("Priority · ${priority.ifBlank { "Keep existing" }}", fontWeight = FontWeight.SemiBold)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling)) {
                     WhipFilterChip(priority.isBlank(), { priority = "" }, { Text("Keep") })
-                    TaskPriority.entries.forEach { value -> WhipFilterChip(priority == value.name, { priority = value.name }, { Text(value.name) }) }
+                    TaskPriority.entries.forEach { value -> WhipFilterChip(priority == value.name, { priority = value.name }, { Text(value.label) }) }
                 }
                 val selectedEffortLabel = effort.takeIf(String::isNotBlank)
                     ?.let { stored -> TaskEffort.entries.firstOrNull { it.name == stored }?.label }
@@ -7560,7 +7560,7 @@ private fun ScheduledTask.groupingLabel(mode: String, zoneId: java.time.ZoneId):
     "Scheduled Date", "Completion Date", "Archived Date" ->
         groupingDate(mode, zoneId)?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "No Date"
     "Area" -> task.area.ifBlank { "Main" }
-    "Priority" -> "${task.priority.name} priority"
+    "Priority" -> "${task.priority.label} priority"
     else -> "Tasks"
 }
 

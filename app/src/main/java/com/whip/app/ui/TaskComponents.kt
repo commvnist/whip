@@ -63,6 +63,8 @@ import com.whip.app.domain.WhipTask
 import com.whip.app.data.TaskDeletionImpact
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.time.format.TextStyle
+import java.util.Locale
 import com.whip.app.ui.theme.whipColors
 
 @Composable
@@ -874,7 +876,7 @@ private fun ScheduledTask.detailSegments(completed: Boolean): List<String> {
             "Deadline · ${task.deadline.format(shortDateFormatter)}"
         }
     }
-    if (task.priority != TaskPriority.None) parts += "${task.priority.name} priority"
+    if (task.priority != TaskPriority.None) parts += "${task.priority.label} priority"
     task.durationMinutes?.let { parts += "$it min" }
     if (task.effort != TaskEffort.Unspecified) parts += "${task.effort.label} effort"
     task.tags.sorted().forEach { parts += "#$it" }
@@ -899,7 +901,7 @@ private fun WhipTask.repeatLabel(): String {
         rule.unit == RecurrenceUnit.Months -> "Every ${rule.interval} month${if (rule.interval == 1) "" else "s"}"
         rule.unit == RecurrenceUnit.Years -> "Every ${rule.interval} year${if (rule.interval == 1) "" else "s"}"
         rule.interval == 1 && rule.weekdays.isNotEmpty() -> {
-            rule.weekdays.sorted().joinToString(", ") { it.name.take(3).lowercase().replaceFirstChar(Char::uppercase) }
+            rule.weekdays.sorted().joinToString(", ") { it.getDisplayName(TextStyle.SHORT, Locale.getDefault()) }
         }
         rule.weekdays.isNotEmpty() -> "Every ${rule.interval} weeks"
         else -> "Weekly"
@@ -925,7 +927,7 @@ private fun WhipTask.scheduleExplanation(): String {
         rule.unit == RecurrenceUnit.Days -> "every ${rule.interval} days from ${rule.startDate.format(shortDateFormatter)}"
         rule.unit == RecurrenceUnit.Months -> "every ${rule.interval} month${if (rule.interval == 1) "" else "s"}"
         rule.unit == RecurrenceUnit.Years -> "every ${rule.interval} year${if (rule.interval == 1) "" else "s"}"
-        rule.weekdays.isNotEmpty() -> "on ${rule.weekdays.sorted().joinToString(", ") { it.name.take(3).lowercase().replaceFirstChar(Char::uppercase) }}"
+        rule.weekdays.isNotEmpty() -> "on ${rule.weekdays.sorted().joinToString(", ") { it.getDisplayName(TextStyle.SHORT, Locale.getDefault()) }}"
         else -> "every ${rule.interval} week${if (rule.interval == 1) "" else "s"} from ${rule.startDate.format(shortDateFormatter)}"
     }
     return if (rule.anchor == RecurrenceAnchor.Completion) {

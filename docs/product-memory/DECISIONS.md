@@ -466,3 +466,12 @@
 - Compatibility: Deliberately breaking. Updating users must explicitly erase local Whip data before entering schema 42; pre-epoch backups are rejected. This is the requested clean slate, not a data-preserving migration.
 - Related: `FND-20260902-012`, `IMP-20260902-020`, `VER-20260902-021`.
 - Status: Accepted, implemented, and targeted/emulator verified.
+
+### DEC-20260902-018 — Separate persisted enum identity from deliberate interface language
+
+- Context: Kotlin enum names were convenient stable identifiers, but several were also rendered as UI copy. That coupled persistence/programming names to capitalization, spacing, localization, and product terminology.
+- Decision: Give every audited user-visible enum an explicit `label` (or purpose-specific `periodLabel`) while continuing to serialize by enum `name` where the current schema requires it. Render localized weekdays through `DayOfWeek.getDisplayName`. Reuse `EditorSectionHeader` for Settings and Gym section hierarchy instead of repeating divider/type/spacing recipes.
+- Rationale: Explicit labels allow “In progress”, “All Habits”, “Exercise sessions”, and similar product language without changing stored identities. One section primitive makes hierarchy consistent while keeping each screen's content independent.
+- Compatibility: Presentation/model metadata only. Enum constants and storage names remain unchanged; no schema, backup, existing setting, routine, workout, or history is rewritten.
+- Related: `FND-20260902-013`, `IMP-20260902-021`, `VER-20260902-022`.
+- Status: Accepted, implemented, and targeted-test verified.

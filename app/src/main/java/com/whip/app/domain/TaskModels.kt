@@ -52,12 +52,12 @@ enum class MissedOccurrencePolicy {
     CurrentOnly,
 }
 
-enum class TaskPriority {
-    None,
-    Low,
-    Medium,
-    High,
-    Urgent,
+enum class TaskPriority(val label: String) {
+    None("None"),
+    Low("Low"),
+    Medium("Medium"),
+    High("High"),
+    Urgent("Urgent"),
 }
 
 enum class TaskEffort(val label: String) {

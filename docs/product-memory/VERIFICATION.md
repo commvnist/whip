@@ -495,3 +495,12 @@
 - Scope: Targeted destructive and current-backup evidence, not a frozen-candidate full emulator/release/physical-phone result. Installing 0.3.36 over an older release will intentionally require explicit local-data erasure.
 - Related: `FND-20260902-012`, `DEC-20260902-017`, `IMP-20260902-020`.
 - Status: Targeted and emulator verification passed; complete release gates remain pending.
+
+### VER-20260902-022 — Explicit-label and section-hierarchy verification
+
+- `scripts/qa-targeted --jvm com.whip.app.ui.UiDesignArchitectureTest --jvm com.whip.app.core.AppSettingsTest --jvm com.whip.app.ui.TaskWorkspacePolicyTest` passed and compiled the complete Android-test source against the changed production code.
+- Static inspection found no remaining direct enum-name rendering in the audited Settings/Home/Review/Task-priority/Goal-state/Habit-destination/weekday/Gym-destination/workout-state/group-type surfaces; remaining `.name` hits in the scanned UI are user-authored entity names, storage/test keys, or intentionally named formulas/categories.
+- The architecture test now requires explicit labels, localized weekday usage, and `EditorSectionHeader` ownership for Settings and the audited Gym sections.
+- Scope: Targeted development verification. The frozen candidate still requires full emulator, accessibility, lint, and release gates.
+- Related: `FND-20260902-013`, `DEC-20260902-018`, `IMP-20260902-021`.
+- Status: Targeted checks passed.

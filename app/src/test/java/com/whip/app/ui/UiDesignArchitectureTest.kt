@@ -111,6 +111,48 @@ class UiDesignArchitectureTest {
     }
 
     @Test
+    fun userFacingChoicesUseExplicitLabelsAndSharedSectionHierarchy() {
+        val settingsModel = File(sourceRoot, "com/whip/app/core/AppSettings.kt").readText()
+        val taskModel = File(sourceRoot, "com/whip/app/domain/TaskModels.kt").readText()
+        val measurementModel = File(sourceRoot, "com/whip/app/domain/MeasurementModels.kt").readText()
+        val gymModel = File(sourceRoot, "com/whip/app/domain/GymModels.kt").readText()
+        val habits = File(sourceRoot, "com/whip/app/ui/HabitScreens.kt").readText()
+        val firstRun = File(sourceRoot, "com/whip/app/ui/FirstRunSetupDialog.kt").readText()
+        val review = File(sourceRoot, "com/whip/app/ui/ReviewDialog.kt").readText()
+        val settings = File(sourceRoot, "com/whip/app/ui/SettingsScreens.kt").readText()
+        val tasks = File(sourceRoot, "com/whip/app/ui/TaskComponents.kt").readText()
+        val gym = File(sourceRoot, "com/whip/app/ui/GymScreens.kt").readText()
+
+        listOf(
+            "enum class AppThemeMode(val label: String)",
+            "enum class HomeSection(val label: String)",
+            "enum class ReviewSection(val label: String)",
+            "enum class HealthDataType(val label: String)",
+            "enum class ReviewPeriod(val label: String)",
+        ).forEach { contract -> assertTrue("Settings choices are missing $contract", settingsModel.contains(contract)) }
+        assertTrue(taskModel.contains("enum class TaskPriority(val label: String)"))
+        assertTrue(measurementModel.contains("enum class UnitDimension(val label: String)"))
+        assertTrue(gymModel.contains("enum class WorkoutSessionState(val label: String)"))
+        assertTrue(gymModel.contains("enum class WorkoutGroupType(val label: String)"))
+        assertTrue(habits.contains("enum class HabitDestination(val label: String)"))
+        assertFalse(firstRun.contains("Text(section.name)"))
+        assertFalse(review.contains("Text(value.name)"))
+        assertFalse(review.contains("Text(section.name)"))
+        assertFalse(settings.contains("Show ${'$'}{section.name} on Home"))
+        assertFalse(settings.contains("${'$'}{type.name} · sync paused"))
+        assertFalse(tasks.contains("it.name.take(3).lowercase()"))
+        assertFalse(habits.contains("label = { it.name }"))
+        assertFalse(habits.contains("day.name.take(2)"))
+        assertTrue("Settings subsections must use the shared editor hierarchy", settings.contains("EditorSectionHeader(text)"))
+        assertTrue("Gym navigation must use explicit UI labels", gym.contains("label = GymDestination::label"))
+        listOf("Resistance", "Exercises (Optional)", "Explore a Trend", "1RM and Percentage Calculator", "Plate Calculator")
+            .forEach { heading ->
+                assertTrue("Gym heading '$heading' is missing", gym.contains("\"$heading\""))
+                assertFalse("Gym heading '$heading' bypasses EditorSectionHeader", gym.contains("Text(\"$heading\""))
+            }
+    }
+
+    @Test
     fun themeDoesNotCollapseSuccessWarningAndActionIntoOneAccent() {
         val theme = File(sourceRoot, "com/whip/app/ui/theme/Theme.kt").readText()
         assertFalse(theme.contains("withUnifiedHighlights"))

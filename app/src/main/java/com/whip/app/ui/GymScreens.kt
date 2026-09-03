@@ -200,16 +200,16 @@ import com.whip.app.data.MachineDeletionImpact
 import com.whip.app.domain.RoutineEquipmentBindingState
 import com.whip.app.domain.equipmentScopeKey
 
-enum class GymDestination {
-    Workout,
-    History,
-    Progress,
-    Library,
-    Routines,
-    Exercises,
-    Machines,
-    Categories,
-    Tools,
+enum class GymDestination(val label: String) {
+    Workout("Workout"),
+    History("History"),
+    Progress("Progress"),
+    Library("Library"),
+    Routines("Routines"),
+    Exercises("Exercises"),
+    Machines("Machines"),
+    Categories("Categories"),
+    Tools("Tools"),
 }
 
 internal fun gymPersistenceResult(succeeded: Boolean, status: OperationStatus): WhipResult<Unit> =
@@ -603,7 +603,7 @@ fun GymAreaContent(
                 selected = destination.takeUnless { it in libraryGymDestinations } ?: GymDestination.Library,
                 destinations = primaryGymDestinations,
                 onSelect = { destination = it },
-                label = GymDestination::name,
+                label = GymDestination::label,
                 testTagPrefix = "gym-destination",
                 barTestTag = "gym-workspace-navigation",
             )
@@ -1213,7 +1213,7 @@ fun GymAreaContent(
                 focusedWorkoutId = null
                 focusedRoutineId = null
             },
-            label = GymDestination::name,
+            label = GymDestination::label,
             testTagPrefix = "gym-destination",
             barTestTag = "gym-workspace-navigation",
         )
@@ -2291,7 +2291,7 @@ private fun GymLibraryLanding(onOpen: (GymDestination) -> Unit) {
         }
         items(libraryGymDestinations, key = GymDestination::name) { destination ->
             NavigationRow(
-                title = destination.name,
+                title = destination.label,
                 supportingText = when (destination) {
                     GymDestination.Routines -> "Workout templates and training days"
                     GymDestination.Exercises -> "Exercise catalog and tracking setup"
@@ -5994,8 +5994,7 @@ internal fun MachineEditorDialog(
                     }
                 }
                 item {
-                    Text("Resistance", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("How This Machine Labels Resistance", style = MaterialTheme.typography.labelMedium)
+                    EditorSectionHeader("Resistance", "Choose how this machine labels resistance.")
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -6128,11 +6127,9 @@ internal fun MachineEditorDialog(
                     )
                 }
                 item {
-                    Text("Exercises (Optional)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(
+                    EditorSectionHeader(
+                        "Exercises (Optional)",
                         "Link every movement that uses this machine, or save the profile now and add exercises later.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     val linkedNames = exerciseIds.mapNotNull { id -> exercises.firstOrNull { it.id == id }?.name }
                     Text(
@@ -8076,13 +8073,10 @@ internal fun GymProgressContent(
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                HorizontalDivider()
-                Text("Explore a Trend", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(
+                EditorSectionHeader(
+                    "Explore a Trend",
                     if (state.history.isEmpty()) "Finish a workout to create your first progress data point."
                     else "Choose an exercise and metric. Every point keeps its source workout.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (state.history.isEmpty()) {
                     WhipTextButton(onClick = onOpenWorkout) { Text("Open Workout") }
@@ -8144,7 +8138,7 @@ internal fun GymProgressContent(
                 Text(
                     buildString {
                         append("Formula: ")
-                        append(formulas.joinToString(" and ") { it.name })
+                        append(formulas.joinToString(" and ") { it.label })
                         append(" · eligible sets up to ${state.appSettings.oneRepMaxRepCutoff} reps")
                         if (state.appSettings.adjustE1rmForEffort) append(" · adjusted using recorded RIR or RPE")
                         if (formulas.size > 1) append(". Each point uses the formula saved with its source workout.")
@@ -8446,7 +8440,7 @@ private fun GymToolsContent(
             )
         }
         if (activeTool == "1RM") {
-        item { Text("1RM and Percentage Calculator", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
+        item { EditorSectionHeader("1RM and Percentage Calculator") }
         item { ToggleRow("Weight is a known 1RM", knownOneRepMax) { knownOneRepMax = it } }
         item {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -8491,7 +8485,7 @@ private fun GymToolsContent(
         }
         }
         if (activeTool == "Plate") {
-        item { Text("Plate Calculator", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
+        item { EditorSectionHeader("Plate Calculator") }
         if (state.appSettings.platePresets.isNotEmpty()) {
             item {
                 Text("Saved Plate Presets", fontWeight = FontWeight.Bold)
@@ -10616,11 +10610,11 @@ internal fun WorkoutGroupDialog(
                 item { Text(stringResource(R.string.gym_workout_group_type), style = MaterialTheme.typography.labelLarge) }
                 items(WorkoutGroupType.entries, key = WorkoutGroupType::name) { option ->
                     WhipSingleChoiceRow(
-                        label = option.name,
+                        label = option.label,
                         selected = type == option,
                         onSelect = { type = option },
                         enabled = !saving,
-                        accessibilityLabel = stringResource(R.string.gym_workout_group_type_accessibility, option.name),
+                        accessibilityLabel = stringResource(R.string.gym_workout_group_type_accessibility, option.label),
                     )
                 }
                 item {

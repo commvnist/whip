@@ -11,10 +11,20 @@ import kotlin.math.abs
 enum class GoalType { ReachValue, ReduceValue, AccumulateTotal, MaintainRange, MeetAverage, Consistency, WeightedMilestones, OpenEndedTrend, ElapsedSince }
 enum class GoalAggregation { Latest, Sum, Average, Minimum, Maximum, CompletionCount, TimeInRange }
 enum class GoalAggregationPeriod { All, Day, Week, Month, RollingDays }
-enum class GoalConsistencyPeriod { Day, Week, Month }
+enum class GoalConsistencyPeriod(val periodLabel: String) {
+    Day("day"),
+    Week("week"),
+    Month("month"),
+}
 enum class GoalPaceType { Linear, None }
 enum class GoalDirection { Increase, Decrease, Neutral }
-enum class GoalStatus { Active, Paused, Completed, Abandoned, Archived }
+enum class GoalStatus(val label: String) {
+    Active("Active"),
+    Paused("Paused"),
+    Completed("Completed"),
+    Abandoned("Abandoned"),
+    Archived("Archived"),
+}
 enum class ElapsedDisplayUnit { Auto, Minutes, Hours, Days, Weeks, Years }
 
 /** The goal type is the user-facing promise; storage and calculation choices

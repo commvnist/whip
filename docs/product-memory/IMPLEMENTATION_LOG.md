@@ -467,3 +467,13 @@
 - Related: `FND-20260902-012`, `DEC-20260902-017`.
 - Verification: `VER-20260902-021`.
 - Status: Implemented and targeted/emulator verified; not released to a physical phone.
+
+### IMP-20260902-021 — Explicit interface labels and shared section hierarchy
+
+- Added deliberate labels for theme/Home/Review/Health choices, Task priorities, Goal states/consistency periods, measurement dimensions, Habit destinations, workout state/group types, 1RM formulas, and Gym destinations.
+- Replaced visible enum-name rendering in onboarding, Review, Settings, Task filters/editors, Goal flows/search, Habit navigation, Gym navigation/history/grouping, and unified search. An active workout now reads “In progress”; Habit “All” now reads “All Habits”.
+- Replaced hand-built Settings and major Gym section headings with `EditorSectionHeader`; changed Task/Habit/Settings weekday labels to locale-aware display names.
+- Added architecture regressions that reject direct internal-name rendering for these audited surfaces and require the shared heading contract.
+- Related: `FND-20260902-013`, `DEC-20260902-018`.
+- Verification: `VER-20260902-022`.
+- Status: Implemented and targeted-test verified; not released to a physical phone.

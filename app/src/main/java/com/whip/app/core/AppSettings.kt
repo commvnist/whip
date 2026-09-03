@@ -24,12 +24,37 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.isActive
 
-enum class AppThemeMode { System, Light, Dark }
+enum class AppThemeMode(val label: String) {
+    System("Follow device"),
+    Light("Light"),
+    Dark("Dark"),
+}
 enum class AreaOpeningMode { LastUsed, Chosen }
-enum class HomeSection { Tasks, Habits, Goals, Tracks, Gym }
-enum class ReviewSection { Tasks, Habits, Goals, Gym }
-enum class HealthDataType { Weight, Steps, Distance, Hydration, Sleep, Exercise }
-enum class ReviewPeriod { Weekly, Monthly }
+enum class HomeSection(val label: String) {
+    Tasks("Tasks"),
+    Habits("Habits"),
+    Goals("Goals"),
+    Tracks("Tracks"),
+    Gym("Gym"),
+}
+enum class ReviewSection(val label: String) {
+    Tasks("Tasks"),
+    Habits("Habits"),
+    Goals("Goals"),
+    Gym("Gym"),
+}
+enum class HealthDataType(val label: String) {
+    Weight("Weight"),
+    Steps("Steps"),
+    Distance("Distance"),
+    Hydration("Hydration"),
+    Sleep("Sleep"),
+    Exercise("Exercise sessions"),
+}
+enum class ReviewPeriod(val label: String) {
+    Weekly("Weekly"),
+    Monthly("Monthly"),
+}
 
 val DEFAULT_REST_TIMER_PRESET_SECONDS: List<Int> = listOf(60, 90, 120, 150, 180, 300)
 

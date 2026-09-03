@@ -16,22 +16,22 @@ enum class MetricValueKind {
     Checklist,
 }
 
-enum class UnitDimension {
-    Count,
-    Duration,
-    Distance,
-    Volume,
-    Mass,
-    Length,
-    Money,
-    Energy,
-    Temperature,
-    Speed,
-    Pace,
-    Frequency,
-    Percentage,
-    Unitless,
-    Custom,
+enum class UnitDimension(val label: String) {
+    Count("count"),
+    Duration("duration"),
+    Distance("distance"),
+    Volume("volume"),
+    Mass("mass"),
+    Length("length"),
+    Money("money"),
+    Energy("energy"),
+    Temperature("temperature"),
+    Speed("speed"),
+    Pace("pace"),
+    Frequency("frequency"),
+    Percentage("percentage"),
+    Unitless("unitless"),
+    Custom("custom"),
 }
 
 enum class MetricEntryStatus {

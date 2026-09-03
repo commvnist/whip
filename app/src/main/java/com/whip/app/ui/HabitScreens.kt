@@ -119,12 +119,18 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 import kotlinx.coroutines.delay
 import com.whip.app.ui.theme.whipColors
 
-enum class HabitDestination { Today, All, Archived, Insights }
+enum class HabitDestination(val label: String) {
+    Today("Today"),
+    All("All Habits"),
+    Archived("Archived"),
+    Insights("Insights"),
+}
 
 internal fun preferredHealthMetricUnitId(
     metric: MetricDefinition,
@@ -184,7 +190,7 @@ fun HabitAreaContent(
                 selected = destination,
                 destinations = HabitDestination.entries,
                 onSelect = { destination = it },
-                label = { it.name },
+                label = HabitDestination::label,
                 testTagPrefix = "habit-destination",
                 barTestTag = "habit-workspace-navigation",
             )
@@ -341,7 +347,7 @@ fun HabitAreaContent(
             selected = destination,
             destinations = HabitDestination.entries,
             onSelect = { destination = it; focusedArchivedHabitId = null },
-            label = { it.name },
+            label = HabitDestination::label,
             testTagPrefix = "habit-destination",
             barTestTag = "habit-workspace-navigation",
         )
@@ -2346,7 +2352,11 @@ internal fun HabitEditorDialog(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             orderedHabitWeekdays(weekStart).forEach { day ->
-                                WhipFilterChip(selected = day in weekdays, onClick = { weekdays = if (day in weekdays) weekdays - day else weekdays + day }, label = { Text(day.name.take(2)) })
+                                WhipFilterChip(
+                                    selected = day in weekdays,
+                                    onClick = { weekdays = if (day in weekdays) weekdays - day else weekdays + day },
+                                    label = { Text(day.getDisplayName(TextStyle.SHORT, Locale.getDefault())) },
+                                )
                             }
                         }
                     }

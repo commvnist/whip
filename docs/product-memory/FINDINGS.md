@@ -433,3 +433,14 @@
 - Evidence: `DataEpochGate.kt`, `LocalDataResetter.kt`, `WhipApplication.kt`, `MainActivity.kt`, `WhipDatabase.kt`, `BackupRepository.kt`, schema exports, startup/reset UI, and the focused tests recorded in `VER-20260902-021`.
 - Resolution: Implemented in `IMP-20260902-020`; independent review found no remaining P0/P1 blocker after reset serialization, launch-request invalidation, exact-current backup enforcement, removal of schema 1–41 and ignored pre-epoch backup tests, and twice-run destructive reset integration coverage.
 - Status: Resolved and targeted/emulator verified; the frozen candidate still requires the complete release gate before distribution.
+
+### FND-20260902-013 — User-facing enum names and section headings drifted across product areas
+
+- Severity/category: P2 understandability, localization, visual consistency, and accessibility.
+- Observed: Settings, Home/Review choices, Task priority filters, Goal status/periods, Habit navigation/weekdays, Gym destinations/session state/group types, and measurement dimensions often rendered Kotlin enum `.name` values directly. Section titles in Settings and Gym also rebuilt typography/dividers ad hoc. This made labels dependent on internal identifiers, produced unclear terms such as `Active` for an in-progress workout, and bypassed locale-aware weekday names.
+- Expected: Every user-facing choice owns an explicit product label; storage keys remain separate. Repeated form/analysis sections use one shared heading hierarchy, and weekday labels follow the user's locale.
+- Why it matters: Internal naming leaks make UI copy fragile, block intentional wording, hinder localization, and force users to reinterpret the same hierarchy on each screen.
+- Affected users: All Whip users, especially screen-reader, enlarged-text, non-English-locale, ADHD/interruption-prone, and new Gym users.
+- Evidence: `AppSettings.kt`, `TaskModels.kt`, `GoalModels.kt`, `MeasurementModels.kt`, `GymModels.kt`, `HabitScreens.kt`, `SettingsScreens.kt`, `GymScreens.kt`, `WhipApp.kt`, and `UiDesignArchitectureTest.kt`.
+- Resolution: Implemented in `IMP-20260902-021` and targeted verified in `VER-20260902-022`.
+- Status: Resolved for the audited visible choices and shared section families; later features must use the same explicit-label contract.

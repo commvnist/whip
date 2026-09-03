@@ -126,6 +126,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.time.format.TextStyle
 import java.util.Locale
 import java.util.UUID
 
@@ -521,7 +522,7 @@ internal fun SettingsContent(
                 Text("Ctrl+H Home · Ctrl+K Search · Ctrl+N contextual add · Ctrl+1–5 switch Tasks, Habits, Goals, Tracks, Gym", style = MaterialTheme.typography.bodySmall)
             }
         }
-        item { SettingsDropdown("Theme", AppThemeMode.entries, settings.themeMode, { it.name }) { selected -> viewModel.update { it.copy(themeMode = selected) } } }
+        item { SettingsDropdown("Theme", AppThemeMode.entries, settings.themeMode, AppThemeMode::label) { selected -> viewModel.update { it.copy(themeMode = selected) } } }
         item {
             SettingsToggle(
                 "Use Android dynamic colors",
@@ -620,7 +621,7 @@ internal fun SettingsContent(
                 ) {
                     Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                         WhipSettingsRow(
-                            title = "Show ${section.name} on Home",
+                            title = "Show ${section.label} on Home",
                             supportingText = when {
                                 !visible -> "Hidden from the Home overview and its empty-day shortcuts."
                                 expanded -> "Visible with its Home details expanded."
@@ -657,7 +658,7 @@ internal fun SettingsContent(
                             )
                             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
                                 WhipReorderHandle(
-                                    label = "${section.name} Home section",
+                                    label = "${section.label} Home section",
                                     canMovePrevious = index > 0,
                                     canMoveNext = index < settings.homeSections.lastIndex,
                                     position = index + 1,
@@ -679,7 +680,7 @@ internal fun SettingsContent(
         if (section == SettingsSection.Planning) {
         item { SettingsHeading("Date and Number Defaults") }
         item {
-            SettingsDropdown("First day of week", DayOfWeek.entries, settings.firstDayOfWeek, { it.name.lowercase().replaceFirstChar(Char::uppercase) }) { selected -> viewModel.update { it.copy(firstDayOfWeek = selected) } }
+            SettingsDropdown("First day of week", DayOfWeek.entries, settings.firstDayOfWeek, { it.getDisplayName(TextStyle.FULL, Locale.getDefault()) }) { selected -> viewModel.update { it.copy(firstDayOfWeek = selected) } }
             Text("Sets weekday order in calendars and editors, and groups weekly Review and Gym analytics. Existing Habit schedules keep their own week start.", style = MaterialTheme.typography.bodySmall)
         }
         item {
@@ -826,7 +827,7 @@ internal fun SettingsContent(
             ) { Text("Create Custom Unit") }
         }
         item { SettingsHeading("Review Defaults") }
-        item { SettingsDropdown("Default review period", ReviewPeriod.entries, settings.reviewPeriod, { it.name }) { value -> viewModel.update { it.copy(reviewPeriod = value) } } }
+        item { SettingsDropdown("Default review period", ReviewPeriod.entries, settings.reviewPeriod, ReviewPeriod::label) { value -> viewModel.update { it.copy(reviewPeriod = value) } } }
 
         }
 
@@ -892,7 +893,7 @@ internal fun SettingsContent(
         }
         item { SettingsHeading("Habit Defaults") }
         item {
-            SettingsDropdown("Default week start for new Habits", DayOfWeek.entries, settings.defaultHabitWeekStart, { it.name.lowercase().replaceFirstChar(Char::uppercase) }) { value -> viewModel.update { it.copy(defaultHabitWeekStart = value) } }
+            SettingsDropdown("Default week start for new Habits", DayOfWeek.entries, settings.defaultHabitWeekStart, { it.getDisplayName(TextStyle.FULL, Locale.getDefault()) }) { value -> viewModel.update { it.copy(defaultHabitWeekStart = value) } }
             Text("Existing Habits keep their own saved week start.", style = MaterialTheme.typography.bodySmall)
         }
         }
@@ -1482,7 +1483,7 @@ internal fun SettingsContent(
                     settings.healthDataTypes.isEmpty() -> stringResource(R.string.settings_health_sync_paused_empty)
                     else -> stringResource(
                         R.string.settings_health_sync_paused_saved,
-                        settings.healthDataTypes.joinToString { it.name },
+                        settings.healthDataTypes.joinToString { it.label },
                     )
                 },
                 enabled = !settings.healthConnectDeletionPending && !healthCoordinator.saving &&
@@ -2078,13 +2079,7 @@ internal fun CustomIdentityEmojiDialog(
 
 @Composable
 private fun SettingsHeading(text: String) {
-    HorizontalDivider()
-    Text(
-        text.uiTitleCase(),
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(top = 8.dp).semantics { heading() },
-    )
+    EditorSectionHeader(text)
 }
 
 /** Action pairs stay thumb-friendly without squeezing labels at compact widths or large text. */
@@ -2137,9 +2132,9 @@ internal fun HealthDataTypeSetting(
 ) {
     WhipSettingsRow(
         title = if (!syncEnabled) {
-            "${type.name} · sync paused"
+            "${type.label} · sync paused"
         } else {
-            "${type.name} · ${if (accessGranted) "Android access allowed" else "Android access not allowed"}"
+            "${type.label} · ${if (accessGranted) "Android access allowed" else "Android access not allowed"}"
         },
         modifier = Modifier.testTag("health-type-${type.name}"),
         checked = selected,
@@ -2612,7 +2607,7 @@ internal enum class CustomUnitEditMode { Create, Rename, Version }
                 } else Text("Dimension: ${dimension.uiLabel()}", style = MaterialTheme.typography.bodySmall)
                 if (mode != CustomUnitEditMode.Rename) {
                     Text(
-                        "Whip stores ${dimension.name.lowercase()} values in $canonicalLabel so compatible units can be compared and linked.",
+                        "Whip stores ${dimension.label} values in $canonicalLabel so compatible units can be compared and linked.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                     OutlinedTextField(

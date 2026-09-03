@@ -376,7 +376,7 @@ private fun ReviewControlPanel(
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
             ReviewPeriod.entries.forEach { value ->
-                WhipFilterChip(value == period, { onPeriodChange(value) }, { Text(value.name) })
+                WhipFilterChip(value == period, { onPeriodChange(value) }, { Text(value.label) })
             }
         }
         Text(
@@ -398,7 +398,7 @@ private fun ReviewControlPanel(
                         val changed = if (section in sections) sections - section else sections + section
                         if (changed.isNotEmpty()) onSectionsChange(changed)
                     },
-                    label = { Text(section.name) },
+                    label = { Text(section.label) },
                 )
             }
         }

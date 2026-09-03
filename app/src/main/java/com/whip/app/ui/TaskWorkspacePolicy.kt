@@ -34,7 +34,11 @@ internal enum class TaskHistorySection(val label: String) {
     Archived("Archived"),
 }
 
-internal enum class TaskPlanningView { List, Agenda, Calendar }
+internal enum class TaskPlanningView(val label: String) {
+    List("List"),
+    Agenda("Agenda"),
+    Calendar("Calendar"),
+}
 
 internal data class TaskWorkspaceRoute(
     val destination: TaskWorkspaceDestination,

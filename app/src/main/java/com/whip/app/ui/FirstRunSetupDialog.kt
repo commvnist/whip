@@ -110,7 +110,7 @@ fun FirstRunSetupDialog(
                                         selectedSections + section
                                     }
                                 },
-                                label = { Text(section.name) },
+                                label = { Text(section.label) },
                             )
                         }
                     }
