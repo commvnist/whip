@@ -501,16 +501,11 @@ internal fun ProductivityEditorDialog(
                             .fillMaxSize()
                             .then(if (inputBlocked) Modifier.clearAndSetSemantics {} else Modifier),
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            dismissButton()
-                            Box(Modifier.weight(1f).semantics { heading() }) { title() }
-                            confirmButton()
-                        }
-                        HorizontalDivider()
+                        WhipEditorHeader(
+                            navigationAction = dismissButton,
+                            title = title,
+                            actions = { confirmButton() },
+                        )
                         Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
                             text()
                         }

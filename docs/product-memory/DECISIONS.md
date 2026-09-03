@@ -447,3 +447,12 @@
 - Compatibility: Once-per-lift runtime protocol ownership requires a phase-specific once-per-lift role plus recognized 5/3/1 template revision 2 or later. Legacy revision-1 Beginners deloads keep every saved repeated exposure; explicitly applying a new protocol upgrades the routine's durable template provenance but opts in only that edited phase. A second untouched legacy protocol phase retains its base role and saved runtime behavior. Template revisions otherwise apply only to newly built or explicitly replaced drafts. Eligibility continues to derive solely from Main work, while Training Max changes synchronize to Supplemental placements for the same exercise. Existing Boolean Joker snapshots remain a correct summary of whether any Joker rows exist.
 - Related: `FB-20260902-006`.
 - Status: Accepted, implemented, and independently approved after the VERA architecture gates.
+
+### DEC-20260902-016 — Primary editors share one responsive chrome contract
+
+- Context: Full-screen authoring surfaces had independently evolved title, dismissal, navigation, divider, and commit controls, producing inconsistent hierarchy and fragile compact layouts.
+- Decision: Use `WhipEditorHeader` for primary Task, Habit, Goal, Track, Track Entry, Routine, Machine, Exercise, tracked-record, and Set editors. The title and one exit/up action own the first row; the filled commit action stays visually primary and moves to a trailing second row when the available width cannot support enlarged text. Routine child pages use Back to the outline; the outline uses one X exit and no duplicate Back/Close actions.
+- Rationale: One small shared primitive fixes the visible cross-product inconsistency without coupling form bodies or persistence rules to a generic editor framework. Width-and-font-scale adaptation preserves identity and actions rather than hiding either.
+- Compatibility: Presentation only; no domain, Room, backup, routine, workout, or historical data changes.
+- Related: `FND-20260902-011`, `IMP-20260902-019`, `VER-20260902-020`.
+- Status: Accepted, implemented, and targeted-test verified.

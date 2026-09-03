@@ -411,3 +411,14 @@
 - Evidence: `GymViewModel.kt`, `GymScreens.kt`, `GymDeletionViewModelIntegrationTest.kt`, `GymPowerInputUiTest.kt`, and `artifacts/full-product-audit/2026-09-02/machine-deletion/`.
 - Resolution: Implemented in `IMP-20260902-012` and fully verified in `VER-20260902-012` through the shared exact Gym-deletion lifecycle.
 - Status: Resolved and emulator/release-build verified; no schema, backup format, Machine identity outside the selected target, Routine identity, or completed-workout history was rewritten.
+
+### FND-20260902-011 — Full-screen editors had no consistent action hierarchy
+
+- Severity/category: P1 cross-product interaction consistency and large-text accessibility.
+- Observed: Task, Track, Track Entry, Routine, and shared Productivity/Gym editors independently composed their title, exit action, divider, and Save action. Some used a filled primary action, others a text action; compact behavior differed; Routine exposed both Back and Close for the outline.
+- Expected: Every primary editor keeps one stable title/exit row, one visually primary commit action, predictable nested Back behavior, and an action row that wraps below the identity at narrow widths or enlarged text.
+- Why it matters: Relearning basic editor controls increases errors and cognitive load, while crowded headers can truncate the editor identity or hide the action users need.
+- Affected users: All authoring users, especially one-handed, ADHD/interruption-prone, narrow-phone, and enlarged-text users.
+- Evidence: `WhipPagePatterns.kt`, `ProductivityEditorComponents.kt`, `TaskEditorDialog.kt`, `TrackScreens.kt`, `RoutineBuilder.kt`, `GymScreens.kt`, `UiDesignArchitectureTest.kt`, and `InteractionControlUiTest.kt`.
+- Resolution: Implemented in `IMP-20260902-019` and verified in `VER-20260902-020`.
+- Status: Resolved for primary editor chrome; request-owned persistence and dirty-state behavior remain independently audited functional concerns.

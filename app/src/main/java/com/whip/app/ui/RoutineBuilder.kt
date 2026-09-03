@@ -61,6 +61,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -846,52 +847,36 @@ private fun RoutineBuilderHeader(
         RoutineBuilderPage.ExercisePicker -> "Add exercises"
         RoutineBuilderPage.WorkoutPicker -> "Add from workout"
     }.uiTitleCase()
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val stackActions = maxWidth < 430.dp || LocalDensity.current.fontScale > 1.2f
-        if (page == RoutineBuilderPage.Outline && stackActions) {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back in routine builder")
-                    }
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f).semantics { heading() },
-                    )
-                }
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                ) {
-                    WhipTextButton(onClick = onCancel) { Text(if (editing) "Close" else "Cancel") }
-                    WhipButton(enabled = canSave, onClick = onSave, modifier = Modifier.testTag("routine-builder-save")) { Text("Save") }
-                }
-            }
-        } else {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back in routine builder")
-                }
-                Text(
-                    title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f).semantics { heading() },
+    WhipEditorHeader(
+        navigationAction = {
+            if (page == RoutineBuilderPage.Outline) {
+                WhipTrailingCloseAction(
+                    label = if (editing) "Close routine editor" else "Cancel routine creation",
+                    onClick = onCancel,
                 )
-                if (page == RoutineBuilderPage.Outline) {
-                    WhipTextButton(onClick = onCancel) { Text(if (editing) "Close" else "Cancel") }
-                    WhipButton(enabled = canSave, onClick = onSave, modifier = Modifier.testTag("routine-builder-save")) { Text("Save") }
-                }
+            } else {
+                WhipBackAction(label = "Back to routine outline", onClick = onBack)
             }
-        }
-    }
-    HorizontalDivider()
+        },
+        title = {
+            Text(
+                title,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        hasActions = page == RoutineBuilderPage.Outline,
+        actions = {
+            if (page == RoutineBuilderPage.Outline) {
+                WhipButton(
+                    enabled = canSave,
+                    onClick = onSave,
+                    modifier = Modifier.testTag("routine-builder-save"),
+                ) { Text("Save") }
+            }
+        },
+    )
 }
 
 @Composable

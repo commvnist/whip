@@ -62,8 +62,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -2768,21 +2766,21 @@ internal fun TrackEditor(
         Scaffold(
             modifier = if (busy) Modifier.clearAndSetSemantics {} else Modifier,
             topBar = {
-                TopAppBar(
+                WhipEditorHeader(
                     title = { Text(if (editing) "Edit Track" else "Create Track") },
-                    navigationIcon = { IconButton(enabled = !busy, onClick = ::requestDismiss) { Icon(Icons.Outlined.Close, "Close Track Editor") } },
-                    actions = { WhipTextButton(enabled = !busy && !targetUnavailable, onClick = {
+                    navigationAction = { IconButton(enabled = !busy, onClick = ::requestDismiss) { Icon(Icons.Outlined.Close, "Close Track Editor") } },
+                    actions = { WhipButton(enabled = !busy && !targetUnavailable, onClick = {
                         if (draft.name.isBlank()) {
                             validationError = "Track name is required."
-                            return@WhipTextButton
+                            return@WhipButton
                         }
                         if (fields.isEmpty()) {
                             validationError = "Add at least one Entry Field."
-                            return@WhipTextButton
+                            return@WhipButton
                         }
                         if (!editing && areas.count { !it.archived } > 1 && draft.areaId == null) {
                             validationError = "Choose an Area for this Track."
-                            return@WhipTextButton
+                            return@WhipButton
                         }
                         val valid = runCatching { currentDraft().validated() }
                             .onFailure { validationError = it.message ?: "Review the track fields." }
@@ -2809,7 +2807,6 @@ internal fun TrackEditor(
                             }
                         }
                     }) { Text(if (saving) "Saving…" else if (reviewLoading) "Reviewing…" else "Save") } },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 )
             },
         ) { padding ->
@@ -3390,15 +3387,14 @@ internal fun TrackEntryEditor(
         Box(Modifier.fillMaxSize()) {
         Scaffold(
             modifier = if (saving) Modifier.clearAndSetSemantics {} else Modifier,
-            topBar = { TopAppBar(
+            topBar = { WhipEditorHeader(
                 title = { Text(if (!editing) "Add Entry" else "Edit Entry") },
-                navigationIcon = { IconButton(enabled = !saving, onClick = ::requestDismiss) { Icon(Icons.Outlined.Close, "Close Entry Editor") } },
-                actions = { WhipTextButton(enabled = !saving && conflictKind == null, onClick = {
+                navigationAction = { IconButton(enabled = !saving, onClick = ::requestDismiss) { Icon(Icons.Outlined.Close, "Close Entry Editor") } },
+                actions = { WhipButton(enabled = !saving && conflictKind == null, onClick = {
                     attempted = true
                     if (validationMessages.isEmpty()) onSave(draft)
                     else validationScrollFieldUuid = (missing + invalidNumbers).firstOrNull()?.uuid
                 }) { Text(if (saving) "Saving…" else if (!editing) "Add" else "Save") } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             ) },
         ) { padding ->
             LazyColumn(

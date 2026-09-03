@@ -6174,7 +6174,7 @@ internal fun MachineEditorDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipButton(
                 enabled = !saving && name.isNotBlank() && parsedLoads.error == null &&
                     (loadType == MachineLoadType.Mass || levelLabel.isNotBlank()) &&
                     (pulleyRatio.toWhipDoubleOrNull()?.let { it > 0.0 && it <= 10.0 } == true) &&
@@ -6205,7 +6205,13 @@ internal fun MachineEditorDialog(
                 },
             ) { Text(if (saving) "Saving…" else "Save") }
         },
-        dismissButton = { WhipTextButton(onClick = requestDismiss, enabled = !saving) { Text("Cancel") } },
+        dismissButton = {
+            WhipTrailingCloseAction(
+                label = "Cancel machine profile editing",
+                onClick = requestDismiss,
+                enabled = !saving,
+            )
+        },
     )
     pendingMachineUnit?.let { selected ->
         val currentSummary = machineLoadSummary(parsedLoads.values)
@@ -7828,14 +7834,19 @@ private fun TrackedRecordsManagerDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipButton(
                 onClick = {
                     onSave(draft.mapIndexed { index, selection -> selection.copy(position = index) })
                 },
                 modifier = Modifier.testTag("tracked-records-save"),
             ) { Text("Save") }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = {
+            WhipTrailingCloseAction(
+                label = "Close tracked records editor",
+                onClick = onDismiss,
+            )
+        },
     )
 }
 
@@ -9733,13 +9744,13 @@ internal fun ExerciseEditorDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipButton(
                 enabled = !saving,
                 onClick = {
                     validationRequested = true
                     if (validationErrors.isNotEmpty()) {
                         showAdvanced = true
-                        return@WhipTextButton
+                        return@WhipButton
                     }
                     onSave(
                         ExerciseDraft(
@@ -9771,7 +9782,13 @@ internal fun ExerciseEditorDialog(
                 },
             ) { Text(if (saving) "Saving…" else "Save") }
         },
-        dismissButton = { WhipTextButton(onClick = requestDismiss, enabled = !saving) { Text("Cancel") } },
+        dismissButton = {
+            WhipTrailingCloseAction(
+                label = "Cancel exercise editing",
+                onClick = requestDismiss,
+                enabled = !saving,
+            )
+        },
     )
     pendingWeightUnit?.let { selected ->
         val currentSetup = WeightEquipmentSetup(
@@ -10092,14 +10109,20 @@ private fun WorkoutSetEditorDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipButton(
                 enabled = validationMessage == null && !saving,
                 onClick = {
                     onSave(pendingDraft)
                 },
             ) { Text(if (saving) "Saving…" else "Save") }
         },
-        dismissButton = { WhipTextButton(onClick = ::requestDismiss, enabled = !saving) { Text("Cancel") } },
+        dismissButton = {
+            WhipTrailingCloseAction(
+                label = "Cancel set editing",
+                onClick = ::requestDismiss,
+                enabled = !saving,
+            )
+        },
     )
     if (showDiscardConfirmation) {
         UnsavedChangesDialog("set", { showDiscardConfirmation = false }, onDismiss, modifier)

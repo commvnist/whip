@@ -37,10 +37,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -81,6 +83,59 @@ internal object WhipContentWidth {
     val compactDialog = 560.dp
     val readable = 920.dp
     val dashboard = 1200.dp
+}
+
+/**
+ * Shared chrome for full-screen authored editors.
+ *
+ * The title and exit action keep a stable first row. At narrow widths or large
+ * text, authored actions move to their own trailing row instead of squeezing,
+ * truncating, or hiding the editor identity.
+ */
+@Composable
+internal fun WhipEditorHeader(
+    navigationAction: @Composable () -> Unit,
+    title: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    hasActions: Boolean = true,
+    actions: @Composable RowScope.() -> Unit = {},
+) {
+    BoxWithConstraints(modifier.fillMaxWidth().testTag("editor-header")) {
+        val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 2f)
+        val stackActions = hasActions && maxWidth < 360.dp * fontScale
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = WhipSpacing.sibling, vertical = WhipSpacing.sibling),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                navigationAction()
+                ProvideTextStyle(MaterialTheme.typography.titleLarge) {
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .semantics { heading() }
+                            .testTag("editor-title"),
+                    ) { title() }
+                }
+                if (!stackActions && hasActions) {
+                    actions()
+                }
+            }
+            if (stackActions) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically,
+                    content = actions,
+                )
+            }
+        }
+    }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 /** A leading Up action for hierarchical child pages. */

@@ -476,3 +476,12 @@
 - Scope limit: This is structural/tool-policy evidence. The first frozen-candidate `scripts/check --emulator` run must populate and integrate the cache before the optimization is treated as final runtime evidence.
 - Related: `FB-20260902-009`, `IMP-20260902-018`.
 - Status: Structurally verified; emulator integration pending the frozen candidate.
+
+### VER-20260902-020 — Shared editor chrome verification
+
+- JVM/source contract: `scripts/qa-targeted --jvm com.whip.app.ui.UiDesignArchitectureTest` passed. It also compiled all Android-test Kotlin against the changed production source.
+- Device interaction: `InteractionControlUiTest#editorHeaderStacksActionsBelowIdentityAtCompactLargeText` passed on the disposable API 34 emulator. The test proves that a 320dp editor at 200% text retains the heading and 48dp exit target while moving the filled commit action below the title row.
+- Inspection: Task, shared Productivity, Track, Track Entry, Routine, Machine, Exercise, tracked-record, and Set primary-editor chrome now resolves through one visible hierarchy. `EntityInspector` already omits its selector for one section and already uses `DestinationTabBar`; both facts now have explicit source contracts.
+- Scope: Targeted development evidence only. The frozen candidate still requires the complete emulator and release gates.
+- Related: `FND-20260902-011`, `DEC-20260902-016`, `IMP-20260902-019`.
+- Status: Targeted checks passed.

@@ -445,3 +445,13 @@
 - Related: `FB-20260902-009`, `docs/quality/UI_UX_REMEDIATION_PLAN.md`.
 - Verification: `VER-20260902-019`.
 - Status: Implemented and structurally verified; its first frozen-candidate emulator run remains the integration gate.
+
+### IMP-20260902-019 — Consistent adaptive editor chrome
+
+- Added `WhipEditorHeader`, a shared full-width editor header with a 48dp identity row, heading semantics, standard divider/spacing, and automatic action stacking for narrow or enlarged-text layouts.
+- Adopted it in shared Productivity editors, Task, Track, Track Entry, and Routine Builder. Routine outline now has one unambiguous X exit; nested builder pages use Back to the outline.
+- Standardized primary Gym editor Save actions as filled buttons and their dismiss actions as accessible 48dp icon targets for Machine, Exercise, tracked-record, and Set editing.
+- Added source architecture contracts for adoption, primary action hierarchy, single-section inspector suppression, and shared inspector navigation; added a focused 320dp/200%-text Compose regression.
+- Related: `FND-20260902-011`, `DEC-20260902-016`.
+- Verification: `VER-20260902-020`.
+- Status: Implemented and targeted-test verified.

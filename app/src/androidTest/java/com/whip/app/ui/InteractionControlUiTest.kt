@@ -34,6 +34,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -84,6 +85,44 @@ import org.junit.runner.RunWith
 class InteractionControlUiTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun editorHeaderStacksActionsBelowIdentityAtCompactLargeText() {
+        val largeText = Density(compose.density.density, fontScale = 2f)
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides largeText) {
+                WhipTheme(dynamicColor = false) {
+                    Box(Modifier.width(320.dp)) {
+                        WhipEditorHeader(
+                            navigationAction = {
+                                Box(Modifier.size(48.dp).testTag("editor-close-target"))
+                            },
+                            title = { Text("Edit a detailed training routine") },
+                            actions = {
+                                WhipButton(
+                                    onClick = {},
+                                    modifier = Modifier.testTag("editor-primary-action"),
+                                ) { Text("Save") }
+                            },
+                        )
+                    }
+                }
+            }
+        }
+
+        val header = compose.onNodeWithTag("editor-header").assertIsDisplayed()
+        val title = compose.onNodeWithTag("editor-title").assertIsDisplayed()
+        val action = compose.onNodeWithTag("editor-primary-action").assertIsDisplayed()
+        val close = compose.onNodeWithTag("editor-close-target").assertIsDisplayed()
+        val titleBounds = title.getUnclippedBoundsInRoot()
+        val actionBounds = action.getUnclippedBoundsInRoot()
+        val closeBounds = close.getUnclippedBoundsInRoot()
+
+        assertTrue("Large-text editor actions must move below the title row", actionBounds.top >= titleBounds.bottom)
+        assertTrue("The editor exit target must remain at least 48 dp", closeBounds.bottom - closeBounds.top >= 48.dp)
+        assertTrue(header.fetchSemanticsNode().boundsInRoot.height > close.fetchSemanticsNode().boundsInRoot.height)
+        assertTrue(title.fetchSemanticsNode().config.contains(SemanticsProperties.Heading))
+    }
 
     @Test
     fun commandMenuItemsDoNotPretendToBeSelectableChoices() {

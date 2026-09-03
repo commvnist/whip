@@ -90,6 +90,27 @@ class UiDesignArchitectureTest {
     }
 
     @Test
+    fun fullScreenEditorsUseOneAdaptiveChromeAndPrimaryActionHierarchy() {
+        val patterns = File(sourceRoot, "com/whip/app/ui/WhipPagePatterns.kt").readText()
+        val productivity = File(sourceRoot, "com/whip/app/ui/ProductivityEditorComponents.kt").readText()
+        val tasks = File(sourceRoot, "com/whip/app/ui/TaskEditorDialog.kt").readText()
+        val tracks = File(sourceRoot, "com/whip/app/ui/TrackScreens.kt").readText()
+        val routines = File(sourceRoot, "com/whip/app/ui/RoutineBuilder.kt").readText()
+        val gym = File(sourceRoot, "com/whip/app/ui/GymScreens.kt").readText()
+
+        listOf(productivity, tasks, tracks, routines).forEach { source ->
+            assertTrue("A primary editor bypasses WhipEditorHeader", source.contains("WhipEditorHeader("))
+        }
+        assertTrue(patterns.contains("maxWidth < 360.dp * fontScale"))
+        assertTrue(patterns.contains("heightIn(min = 48.dp)"))
+        assertTrue("Track editors must not preserve a separate TopAppBar design", !tracks.contains("TopAppBar("))
+        assertTrue("Routine outline must have one unambiguous exit", routines.contains("WhipTrailingCloseAction("))
+        assertTrue("Nested routine pages must navigate back to the outline", routines.contains("WhipBackAction(label = \"Back to routine outline\""))
+        assertTrue("Primary Gym editors must use the filled save hierarchy", gym.contains("confirmButton = {\n            WhipButton("))
+        assertTrue("Primary Gym editors must use the same icon exit contract", gym.contains("WhipTrailingCloseAction("))
+    }
+
+    @Test
     fun themeDoesNotCollapseSuccessWarningAndActionIntoOneAccent() {
         val theme = File(sourceRoot, "com/whip/app/ui/theme/Theme.kt").readText()
         assertFalse(theme.contains("withUnifiedHighlights"))
@@ -212,6 +233,10 @@ class UiDesignArchitectureTest {
         assertTrue(
             "Entity inspector sections must use Whip's adaptive destination contract",
             inspector.contains("DestinationTabBar("),
+        )
+        assertTrue(
+            "A one-section inspector must not render a redundant selector",
+            inspector.contains("if (sections.size > 1)"),
         )
         assertFalse(
             "Entity inspector controls must not expose compatibility labels through zero-size text",

@@ -468,65 +468,64 @@ fun TaskEditorDialog(
             Column(
                 modifier = if (saving) Modifier.clearAndSetSemantics {} else Modifier,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    IconButton(onClick = requestDismiss, enabled = !saving) {
-                        Icon(Icons.Outlined.Close, contentDescription = "Cancel Task editing")
-                    }
-                    Text(
-                        text = when {
-                            request.task == null -> "Create Task"
-                            request.fromOccurrence != null -> "Edit This and Future"
-                            else -> "Edit Task"
-                        },
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (request.task == null && onSaveAndNew != null && powerMode) {
-                        WhipTextButton(
+                WhipEditorHeader(
+                    navigationAction = {
+                        IconButton(onClick = requestDismiss, enabled = !saving) {
+                            Icon(Icons.Outlined.Close, contentDescription = "Cancel Task editing")
+                        }
+                    },
+                    title = {
+                        Text(
+                            text = when {
+                                request.task == null -> "Create Task"
+                                request.fromOccurrence != null -> "Edit This and Future"
+                                else -> "Edit Task"
+                            },
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    actions = {
+                        if (request.task == null && onSaveAndNew != null && powerMode) {
+                            WhipTextButton(
+                                enabled = !saving,
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                                onClick = {
+                                    if (canSave) {
+                                        onSaveAndNew(request.task?.id, currentDraft, request.fromOccurrence)
+                                    } else {
+                                        validationRequested = true
+                                    }
+                                },
+                            ) {
+                                Text(
+                                    text = "Save & New",
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                        WhipButton(
                             enabled = !saving,
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
                             onClick = {
                                 if (canSave) {
-                                    onSaveAndNew(request.task?.id, currentDraft, request.fromOccurrence)
+                                    onSave(request.task?.id, currentDraft, request.fromOccurrence)
                                 } else {
                                     validationRequested = true
                                 }
                             },
                         ) {
                             Text(
-                                text = "Save & New",
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                                when {
+                                    saving -> "Saving…"
+                                    request.fromOccurrence != null -> "Save Future"
+                                    else -> "Save"
+                                },
                             )
                         }
-                    }
-                    WhipButton(
-                        enabled = !saving,
-                        onClick = {
-                            if (canSave) {
-                                onSave(request.task?.id, currentDraft, request.fromOccurrence)
-                            } else {
-                                validationRequested = true
-                            }
-                        },
-                    ) {
-                        Text(
-                            when {
-                                saving -> "Saving…"
-                                request.fromOccurrence != null -> "Save Future"
-                                else -> "Save"
-                            },
-                        )
-                    }
-                }
-                HorizontalDivider()
+                    },
+                )
                 Column(
                     modifier = Modifier
                         .weight(1f)
