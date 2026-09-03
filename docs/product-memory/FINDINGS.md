@@ -686,3 +686,25 @@
 - Evidence: `RoutineBuilder.kt` and `RoutineBuilderUiTest#structuredMainLiftUsesProgramStructureAndHidesGenericRewriteControls`.
 - Resolution: Added a direct Edit Program Structure action, removed incompatible generic rewrite controls for program-controlled Main/Supplemental placements, and collapsed Training Max detail by default with an unapplied-change summary and automatic reveal when action is required.
 - Status: Resolved in `IMP-20260903-009`, verified in `VER-20260903-009`, and released in `VER-20260903-010`.
+
+### FND-20260903-013 — Gym's shared exercise picker did not complete the search-to-create journey
+
+- Severity/category: P1 cross-Gym UX consistency, discoverability, and contextual authorship.
+- Observed: Active-workout and 5/3/1 selection reused a compact picker whose Create New action was vague, whose empty/no-match state was passive, and whose search query was discarded when creation opened. Routine and Machine selection already provided stronger search/create guidance, so the same user intent behaved differently by entry point.
+- Expected: One shared add/select surface should use the complete active pane, keep search and creation visible, convert a no-result query into an explicit Create action, prefill the Exercise editor, and preserve the owning workout/program context.
+- Why it matters: A user searching “Zercher Squat” should not need to retype it or infer that a generic Create New action will return safely to the current workflow.
+- Affected users: Active-workout users, 5/3/1 lifters with custom movements, new users, users with large libraries, and phone/fold users.
+- Evidence: `GymScreens.kt`, `GymCatalogMutationUi.kt`, and `RoutineBuilderUiTest#sharedExercisePickerAlwaysOffersSearchAndSeededCreation`.
+- Resolution: Promoted the shared picker to a full-pane editor with search, result count, permanent contextual Create Lift/Exercise action, actionable no-results state, 48dp rows, and query-to-editor name seeding across active-workout and 5/3/1 paths.
+- Status: Resolved in `IMP-20260903-011`, verified in `VER-20260903-011`, and released in `VER-20260903-012`.
+
+### FND-20260903-014 — Custom 5/3/1 stopped offering lift creation after the first new lift
+
+- Severity/category: P0 workflow dead end for new-user 5/3/1 creation.
+- Observed: Add another lift appeared only when the library already contained an unselected eligible exercise. Starting empty, creating one Weight + Reps exercise caused that sole exercise to be selected, making selected count equal eligible count and removing the action. The user could not create lift two without abandoning the setup.
+- Expected: Add another lift remains available for every custom program, opens the shared picker, lists any unselected compatible exercise, and offers in-context creation when no candidate exists. Selecting the created lift appends a complete independent TM/increment slot without disturbing prior lifts.
+- Why it matters: A multi-lift custom 5/3/1 program cannot be built by a new user if creation becomes impossible after lift one.
+- Affected users: New lifters and anyone building custom 5/3/1 while their Exercise Library lacks all intended main lifts.
+- Evidence: `RoutineBuilder.kt` and the end-to-end `RoutineBuilderUiTest#emptyCustomFiveThreeOneCanCreateAndAddSeveralLiftsWithoutLeavingSetup` journey.
+- Resolution: Made Add another lift unconditional for Custom layout, routed empty-library creation through the same picker, and taught selection to append a new complete custom-lift slot when the picker owns the next index.
+- Status: Resolved in `IMP-20260903-011`, verified in `VER-20260903-011`, and released in `VER-20260903-012`.

@@ -212,3 +212,11 @@ These records preserve durable user intent. “Released” means the change reac
 - Destructive boundary: Deployment must preserve Android installation identity and must not clear phone data or run instrumentation on the physical device.
 - Related: `FND-20260903-010` through `FND-20260903-012`, `DEC-20260903-006`, `IMP-20260903-009`, `IMP-20260903-010`, `VER-20260903-009`, `VER-20260903-010`.
 - Status: Implemented, verified, pushed, and released to the physical phone as Whip 0.3.41/code 47.
+
+### FB-20260903-007 — Unify Gym lift search/creation and keep 5/3/1 creation repeatable
+
+- User need: “Add lift” should behave consistently throughout Gym: users can search, receive an actionable create prompt when nothing matches, and always access an explicit Create Lift/Exercise action. A new 5/3/1 user must be able to create and add several lifts successively without leaving the routine/program builder.
+- Acceptance criteria: Shared picker presentation and semantics are reused by active-workout and 5/3/1 selection; a no-result query can seed the new Exercise name; contextual creation returns to the owning workflow; custom 5/3/1 always retains Add another lift even when every current library lift is already selected; duplicate lift selection remains prevented; focused and broader Gym regressions pass before an in-place signed release.
+- Destructive boundary: Preserve Android installation identity and user data; do not run instrumentation on the physical phone.
+- Related: `FND-20260903-013`, `FND-20260903-014`, `DEC-20260903-007`, `IMP-20260903-011`, `IMP-20260903-012`, `VER-20260903-011`, `VER-20260903-012`.
+- Status: Implemented, verified, pushed, and released to the physical phone as Whip 0.3.42/code 48.

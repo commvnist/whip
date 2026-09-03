@@ -669,3 +669,23 @@
 - Related: `FB-20260903-006`, `IMP-20260903-009`, `VER-20260903-009`.
 - Verification: `VER-20260903-010`.
 - Status: Released and physically verified; version commit `cd1c4ba`.
+
+### IMP-20260903-011 — Shared Gym lift/exercise search and repeatable 5/3/1 creation
+
+- Rebuilt `ExercisePickerDialog` as the full-pane shared single-select contract with persistent search, result count, an always-visible contextual Create action, an actionable no-results card, query-prefilled creation, 48dp selection rows, stable semantics/test identities, and workout/program-specific explanatory copy.
+- Carried the search seed through the Gym catalog editor while retaining the active-workout add/substitute mutation boundary and clearing the seed at every completion, dismissal, or invalidated-authorship boundary.
+- Changed custom 5/3/1 Add another lift from “only if an unused Exercise already exists” to an unconditional open-slot picker. Empty libraries now start through that same picker, and a chosen/created lift appends its complete independent Training Max, basis, cycle-increment, and BBB-mapping state.
+- Added two Android regressions and updated the declared baseline to 1,504 product tests: 583 JVM and 921 Android.
+- Important files: `GymScreens.kt`, `GymCatalogMutationUi.kt`, `RoutineBuilder.kt`, `RoutineBuilderUiTest.kt`, and `docs/testing.md`.
+- Related: `FB-20260903-007`, `FND-20260903-013`, `FND-20260903-014`, `DEC-20260903-007`.
+- Verification: `VER-20260903-011`.
+- Status: Implemented and pushed in `9ba83b0`.
+
+### IMP-20260903-012 — Signed Whip 0.3.42 lift-creation release
+
+- Assigned version 0.3.42/code 48, ran the guarded release gate, and built the minified signed APK and Play bundle with the established Whip signer.
+- Installed in place on the selected physical Samsung endpoint, verified artifact/package/signing identity and preserved first-install identity, then cold-launched the app without clearing data or running physical-device instrumentation.
+- Important files: `app/build.gradle.kts`, signed APK/AAB, `scripts/check`, and `scripts/device`.
+- Related: `FB-20260903-007`, `IMP-20260903-011`, `VER-20260903-011`.
+- Verification: `VER-20260903-012`.
+- Status: Released and physically verified; version commit `7455073`.

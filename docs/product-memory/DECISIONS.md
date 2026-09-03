@@ -612,3 +612,12 @@
 - Compatibility: No persistence or schema change. Existing routines and completed workouts retain their exact stored structure; only authoring presentation and access to unsafe bulk helpers changes.
 - Related: `FB-20260903-006`, `FND-20260903-010` through `FND-20260903-012`, `IMP-20260903-009`, `VER-20260903-009`.
 - Status: Accepted, implemented, verified, and released in Whip 0.3.41/code 47.
+
+### DEC-20260903-007 — Treat search and contextual creation as one reusable Gym picker contract
+
+- Context: Selecting an existing Exercise and creating a missing one are two outcomes of the same user intent. Separate or passive empty-state behavior caused inconsistent return paths, repeated typing, and a custom 5/3/1 dead end.
+- Decision: The shared single-select Gym picker owns search, visible results, contextual noun labels, a permanent Create action, and a query-specific empty-state Create action. It passes the normalized query to the shared Exercise editor and leaves persistence/return ownership with the invoking workout or program workflow. Multi-select Routine and Machine pickers retain their specialized selection UI but follow the same search/always-create/actionable-empty-state contract. Custom 5/3/1 models “add next lift” as an open slot rather than requiring an existing unused library row.
+- Rationale: This gives every Gym entry point the same mental model without forcing different single- and multi-select tasks into one oversized component. The open-slot model supports unlimited successive creation while preserving distinct per-lift Training Max state.
+- Compatibility: UI/state-flow only; no persistence or schema change. Existing Exercises, Routines, active workouts, and historical workouts are unchanged.
+- Related: `FB-20260903-007`, `FND-20260903-013`, `FND-20260903-014`, `IMP-20260903-011`, `VER-20260903-011`.
+- Status: Accepted, implemented, verified, and released in Whip 0.3.42/code 48.
