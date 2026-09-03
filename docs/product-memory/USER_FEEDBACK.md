@@ -146,3 +146,23 @@ These records preserve durable user intent. “Released” means the change reac
 - Risk/approval: High risk because the work crosses programming correctness, progression, persistence/history, and several UI/domain subsystems. VERA requires a read-only Sol plan before implementation, deterministic gates, and a fresh independent Sol review after checks. Repository and emulator changes are authorized; physical-device installation remains a separate explicit release action.
 - Acceptance criteria: One-tap presets are truthful and sourced; arbitrary main and alternate lifts work; 7th Week roles have exact validated prescriptions; Joker ladders are optional, bounded, performance-gated, individually loggable, and never replace supplemental work; assistance suggestions use compatible user/library exercises, explain their source, allow replacement/omission, and meet visible category/rep targets; existing routines and completed workouts remain valid; 320dp/200%-text, keyboard/screen-reader semantics, lifecycle, migration/backup, and complete regression gates pass.
 - Status: Implemented, fully verified, and independently accepted on 2026-09-02; not installed on a physical phone.
+
+### FB-20260902-007 — Replace compatibility architecture with an explicit clean slate
+
+- User need: Remove transitional, migratory, and obsolete legacy behavior instead of preserving architecture that exists only for old data. The next breaking update may require existing users to erase local data.
+- Acceptance criteria: Define one canonical current schema/model; distinguish true compatibility code from current product concepts that happen to have legacy names; show an explicit destructive reset boundary; atomically clear database, preferences, work, reminders, widgets, caches, and private recovery journals; reject old backups clearly; and remove obsolete migrations/adapters/tests without weakening current integrity or fail-closed behavior.
+- Risk/approval: Critical and intentionally destructive. The user explicitly authorizes a forced data reset on update; physical-device deployment remains separately gated.
+- Status: Architecture investigation in progress under the required VERA risk gate.
+
+### FB-20260902-008 — Complete the residual whole-product audit backlog
+
+- User need: Finish the remaining findings preserved when the two-day maximum-quality mission was stopped.
+- Acceptance criteria: Reconcile the durable ledgers against current code, enumerate the concrete unresolved members of the two partial umbrella findings, retire stale backlog wording, implement real remaining gaps in coherent prioritized chunks, and finish with one cross-product acceptance campaign.
+- Status: Accepted and inventoried; implementation follows the clean-slate boundary and targeted-QA tooling.
+
+### FB-20260902-009 — Make UI/UX gap discovery and QA fast and consistent
+
+- User need: Spend less development time repeatedly running the entire suite; quickly identify and implement UI, UX, usability, accessibility, and visual-consistency fixes across every route/dialog/state.
+- Acceptance criteria: Use a complete surface inventory, one canonical design contract, shared-code outlier scans, screen-family audits, evidence/priority scoring, exact targeted tests during development, signature-aware instrumentation batch reuse, and only one full gate after source freezes.
+- Plan: `docs/quality/UI_UX_REMEDIATION_PLAN.md`.
+- Status: Plan recorded; targeted tooling and the first screen-family inventory are next.
