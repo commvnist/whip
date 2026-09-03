@@ -98,8 +98,12 @@ class RoutineBuilderUiTest {
                 hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
         ).performClick()
 
-        compose.onNodeWithText("Choose a program structure, then review its lifts, Training Maxes, optional work, assistance, and exact phase timeline before building.")
+        compose.onNodeWithText("Choose a program, configure its lifts, then review the exact work before building your routine.")
             .assertIsDisplayed()
+        compose.onNodeWithTag("five-three-one-program-setup").assertIsDisplayed()
+        compose.onNodeWithTag("five-three-one-plan-SingleCycle").assertIsSelected()
+        compose.onNodeWithTag("five-three-one-program-status")
+            .assertTextContains("Still needed · Enter a Training Max and cycle increase above zero for every selected lift.")
         compose.onNode(hasText("Choose Your Lifts") and hasClickAction()).assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-create-standard-lifts").performScrollTo().assertIsDisplayed()
     }
@@ -358,6 +362,99 @@ class RoutineBuilderUiTest {
             assertEquals(listOf(200.0, 300.0, 250.0), draft.days.map { it.exercises.single().trainingMaxValue })
             assertEquals(RoutineProgramKind.FiveThreeOne, draft.program?.kind)
         }
+    }
+
+    @Test
+    fun customFiveThreeOneLiftSelectionSearchesAFullExerciseLibrary() {
+        val exercises = listOf(
+            exercise(1, "Bench Press"),
+            exercise(2, "Deadlift"),
+            exercise(3, "Zercher Squat"),
+            exercise(4, "Overhead Press"),
+            exercise(5, "Safety Bar Squat"),
+        ) + (6L..85L).map { exercise(it, "Accessory $it") }
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                RoutineBuilderScreen(
+                    routineId = null,
+                    gymState = GymUiState(exercises = exercises, loading = false),
+                    initial = null,
+                    onDismiss = {},
+                    onSave = { _, complete -> complete(true) },
+                    onCreateExercise = { _, _ -> },
+                    onCreateMachine = { _, _ -> },
+                )
+            }
+        }
+
+        compose.onNode(
+            hasText("Set Up 5/3/1") and hasClickAction() and
+                hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
+        ).performClick()
+        compose.onNode(hasText("Choose Your Lifts") and hasClickAction()).performClick()
+        compose.onNodeWithContentDescription("Lift 1 exercise: Bench Press").performScrollTo().performClick()
+
+        compose.onNodeWithText("Choose Lift 1").assertIsDisplayed()
+        compose.onNodeWithTag("exercise-picker-search").performTextInput("Safety Bar")
+        compose.onNode(
+            hasText("Safety Bar Squat") and hasAnyAncestor(hasTestTag("workout-exercise-picker-list")),
+            useUnmergedTree = true,
+        ).performClick()
+        compose.onNodeWithContentDescription("Lift 1 exercise: Safety Bar Squat").assertIsDisplayed()
+    }
+
+    @Test
+    fun structuredMainLiftUsesProgramStructureAndHidesGenericRewriteControls() {
+        val bench = exercise(1, "Bench Press")
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                RoutineBuilderScreen(
+                    routineId = 7,
+                    gymState = GymUiState(exercises = listOf(bench), loading = false),
+                    initial = RoutineDraft(
+                        name = "Bench 5/3/1",
+                        program = RoutineProgramDraft(RoutineProgramKind.FiveThreeOne, phaseCount = 1),
+                        days = listOf(
+                            RoutineDayDraft(
+                                "Bench",
+                                listOf(
+                                    RoutineExerciseDraft(
+                                        exerciseId = bench.id,
+                                        trainingMaxValue = 200.0,
+                                        trainingMaxUnitId = "pound",
+                                        cycleIncrementValue = 5.0,
+                                        placementKind = RoutinePlacementKind.MainLift,
+                                        plannedSets = listOf(
+                                            WorkoutSetDraft(
+                                                reps = 5,
+                                                loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                                                loadPercentage = 65.0,
+                                                workSection = RoutineWorkSection.Main,
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                    onDismiss = {},
+                    onSave = { _, complete -> complete(true) },
+                    onCreateExercise = { _, _ -> },
+                    onCreateMachine = { _, _ -> },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Bench Press", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("routine-placement-open-program-structure").assertIsDisplayed()
+        compose.onAllNodesWithText("Saved Schemes · App-wide").assertCountEquals(0)
+        compose.onAllNodesWithText("Generate Equipment-Aware Warm-Ups").assertCountEquals(0)
+        compose.onAllNodes(hasTestTag("routine-copy-previous")).assertCountEquals(0)
+
+        compose.onNodeWithTag("routine-placement-open-program-structure").performClick()
+        compose.onNodeWithTag("routine-program-structure-page").assertIsDisplayed()
+        compose.onNodeWithTag("routine-program-training-maxes-disclosure").assertIsDisplayed()
+        compose.onNodeWithTag("routine-program-phase-select-0").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -682,6 +779,7 @@ class RoutineBuilderUiTest {
         }
 
         compose.onNodeWithTag("routine-open-program-structure").performClick()
+        compose.onNodeWithTag("routine-program-training-maxes-disclosure").performClick()
         compose.onNodeWithTag("routine-program-structure-page")
             .performScrollToNode(hasTestTag("routine-program-tm-basis-1"))
         compose.onNodeWithTag("routine-program-tm-basis-1").performClick()

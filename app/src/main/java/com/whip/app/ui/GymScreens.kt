@@ -8667,7 +8667,7 @@ private fun RoutineContent(
                 }
             }
         }
-        if (!reordering && focusedRoutineId == null) {
+        if (!reordering && focusedRoutineId == null && (state.archivedRoutines.isNotEmpty() || showArchived)) {
         item { ToggleRow("Show archived", showArchived) { showArchived = it } }
         }
         if (reordering) item {
@@ -10162,7 +10162,7 @@ private fun SteppedNumberField(
 }
 
 @Composable
-private fun ExercisePickerDialog(
+internal fun ExercisePickerDialog(
     modifier: Modifier = Modifier,
     exercises: List<Exercise>,
     preferredIds: List<Long> = emptyList(),
@@ -10210,7 +10210,8 @@ private fun ExercisePickerDialog(
                         { query = it },
                         enabled = !saving,
                         label = { Text("Search") },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().testTag("exercise-picker-search"),
+                        singleLine = true,
                     )
                 }
                 val visible = exercises.filter { exerciseMatchesQuery(it, query) }

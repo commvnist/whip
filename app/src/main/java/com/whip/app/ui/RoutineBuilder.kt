@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -57,10 +58,16 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -184,6 +191,7 @@ internal fun RoutineBuilderScreen(
     var pickerSelection by rememberSaveable(token) { mutableStateOf<List<Long>>(emptyList()) }
     var pendingAssistanceRole by rememberSaveable(token) { mutableStateOf<RoutineAssistanceRole?>(null) }
     var showCreateExercise by rememberSaveable(token) { mutableStateOf(false) }
+    var createExerciseForProgramSetup by rememberSaveable(token) { mutableStateOf(false) }
     var exerciseNameSeed by rememberSaveable(token) { mutableStateOf("") }
     var librarySaveInFlight by rememberSaveable(token) { mutableStateOf(false) }
     var routineSaveInFlight by rememberSaveable(token) { mutableStateOf(false) }
@@ -622,6 +630,7 @@ internal fun RoutineBuilderScreen(
                                         programPhaseLabels = builder.programPhaseLabels,
                                         onApplyFiveThreeOne = { result -> applyFiveThreeOneProgram(selectedPlacement.key, result) },
                                         onCreateFiveThreeOneProgram = { showFiveThreeOneProgramSetup = true },
+                                        onEditProgramStructure = { page = RoutineBuilderPage.ProgramStructure },
                                         onUpdateDay = { transform -> updateDay(selectedDay.key, transform) },
                                         onChooseEquipment = { equipmentPickerPlacementKey = selectedPlacement.key },
                                         onMoveToDay = { target, copy -> moveOrCopyPlacement(stateHolder, selectedDay.key, target, selectedPlacement, copy) },
@@ -661,6 +670,7 @@ internal fun RoutineBuilderScreen(
                                     programPhaseLabels = builder.programPhaseLabels,
                                     onApplyFiveThreeOne = { result -> applyFiveThreeOneProgram(selectedPlacement.key, result) },
                                     onCreateFiveThreeOneProgram = { showFiveThreeOneProgramSetup = true },
+                                    onEditProgramStructure = { page = RoutineBuilderPage.ProgramStructure },
                                     onUpdateDay = { transform -> updateDay(selectedDay.key, transform) },
                                     onChooseEquipment = { equipmentPickerPlacementKey = selectedPlacement.key },
                                     onMoveToDay = { target, copy -> moveOrCopyPlacement(stateHolder, selectedDay.key, target, selectedPlacement, copy) },
@@ -733,14 +743,21 @@ internal fun RoutineBuilderScreen(
                 .getOrDefault(EstimatedOneRepMaxFormula.Epley),
             platePresets = gymState.appSettings.platePresets,
             powerMode = gymState.appSettings.powerMode,
-            onDismiss = { showCreateExercise = false },
+            onDismiss = {
+                showCreateExercise = false
+                createExerciseForProgramSetup = false
+            },
             onSave = { draft ->
                 val targetDay = selectedDay?.key
+                val belongsToProgramSetup = createExerciseForProgramSetup
                 showCreateExercise = false
                 librarySaveInFlight = true
                 onCreateExercise(draft) { id ->
                     librarySaveInFlight = false
-                    if (id != null && targetDay != null) {
+                    createExerciseForProgramSetup = false
+                    if (id != null && belongsToProgramSetup) {
+                        stateHolder.noteIndependentLibrarySave()
+                    } else if (id != null && targetDay != null) {
                         addCreatedExercise(targetDay, id, draft.name.trim(), pendingAssistanceRole)
                         pendingAssistanceRole = null
                         page = RoutineBuilderPage.Outline
@@ -823,6 +840,11 @@ internal fun RoutineBuilderScreen(
             standardLiftCreationInFlight = standardLiftCreationInFlight,
             standardLiftCreationError = standardLiftCreationError,
             onCreateMissingStandardLifts = ::createMissingStandardLifts,
+            onCreateLift = {
+                exerciseNameSeed = ""
+                createExerciseForProgramSetup = true
+                showCreateExercise = true
+            },
             onApply = { request ->
                 stateHolder.update { current ->
                     buildFiveThreeOneProgramState(current, request)
@@ -900,6 +922,7 @@ private fun FiveThreeOneProgramSetupDialog(
     standardLiftCreationInFlight: Boolean,
     standardLiftCreationError: String?,
     onCreateMissingStandardLifts: () -> Unit,
+    onCreateLift: () -> Unit,
     onApply: (FiveThreeOneProgramRequest) -> Unit,
 ) {
     val eligible = exercises.filter { it.trackingType == ExerciseTrackingType.WeightReps }
@@ -953,6 +976,7 @@ private fun FiveThreeOneProgramSetupDialog(
     var assistanceExerciseIds by rememberSaveable { mutableStateOf(List(3) { 0L }) }
     var manuallyChangedAssistanceIndices by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) }
     var progressionModeName by rememberSaveable { mutableStateOf(RoutineProgressionMode.Standard.name) }
+    var liftPickerIndex by rememberSaveable { mutableStateOf<Int?>(null) }
     val layout = FiveThreeOneProgramLayout.valueOf(layoutName)
     val plan = FiveThreeOneProgramPlan.valueOf(planName)
     val closingProtocol = FiveThreeOneSeventhWeekProtocol.valueOf(closingProtocolName)
@@ -1201,7 +1225,46 @@ private fun FiveThreeOneProgramSetupDialog(
         bbbTargetIds = bbbTargetIds.moved(fromIndex, toIndex)
     }
 
-    PaneAwareAlertDialog(
+    fun selectLift(index: Int, exercise: Exercise) {
+        val previousExerciseId = exerciseIds.getOrNull(index)
+        val role = activeRoles.getOrNull(index)
+        exerciseIds = exerciseIds.toMutableList().also { it[index] = exercise.id }
+        if (layout != FiveThreeOneProgramLayout.Custom) {
+            manuallySelectedRoleIndices = (manuallySelectedRoleIndices + index).distinct()
+        }
+        if (exercise.id != previousExerciseId) {
+            // Training Max values and their provenance belong to one lift. Replacing the
+            // exercise must never carry another lift's load or source into the new slot.
+            trainingMaxes = trainingMaxes.toMutableList().also { it[index] = "" }
+            useRecentMaxSuggestion = useRecentMaxSuggestion.toMutableList().also { it[index] = false }
+            recentMaxes = recentMaxes.toMutableList().also { it[index] = "" }
+            trainingMaxPercentages = trainingMaxPercentages.toMutableList().also { it[index] = "85" }
+            trainingMaxBasisKinds = trainingMaxBasisKinds.toMutableList().also {
+                it[index] = TrainingMaxBasisKind.ActualOneRepMax.name
+            }
+            appliedSourceMaxes = appliedSourceMaxes.toMutableList().also { it[index] = "" }
+            appliedTrainingMaxPercentages = appliedTrainingMaxPercentages.toMutableList().also { it[index] = "" }
+            appliedTrainingMaxBasisKinds = appliedTrainingMaxBasisKinds.toMutableList().also { it[index] = "" }
+            appliedDerivedTrainingMaxes = appliedDerivedTrainingMaxes.toMutableList().also { it[index] = "" }
+        }
+        increments = increments.toMutableList().also {
+            it[index] = editableNumericValue(
+                defaultFiveThreeOneCycleIncrease(
+                    unitId = exercise.weightUnitId,
+                    exerciseName = exercise.name,
+                    role = role,
+                ),
+            )
+        }
+        bbbTargetIds = List(exerciseIds.size) { slot ->
+            bbbTargetIds.getOrNull(slot)?.takeIf { it in exerciseIds } ?: exerciseIds[slot]
+        }
+    }
+
+    val dialogPlacement = LocalWhipDialogPlacement.current
+    ProductivityEditorDialog(
+        modifier = Modifier.absoluteOffset(x = dialogPlacement.offsetX).width(dialogPlacement.maxWidth),
+        testTag = "five-three-one-program-setup",
         onDismissRequest = onDismiss,
         title = { Text("Set Up 5/3/1") },
         text = {
@@ -1209,7 +1272,23 @@ private fun FiveThreeOneProgramSetupDialog(
                 Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text("Choose a program structure, then review its lifts, Training Maxes, optional work, assistance, and exact phase timeline before building.")
+                Text("Choose a program, configure its lifts, then review the exact work before building your routine.")
+                Surface(
+                    color = if (valid) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("five-three-one-program-status")
+                        .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+                ) {
+                    Text(
+                        if (valid) "Ready to build · ${requiredLiftCount} ${if (requiredLiftCount == 1) "lift" else "lifts"} configured"
+                        else "Still needed · ${buildBlocker ?: "Review the highlighted program settings."}",
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
                 if (replacingExistingRoutine) {
                     Text(
                         "Building replaces this draft's current days with the complete program shown below. Nothing is persisted until you use the routine Save action.",
@@ -1222,7 +1301,13 @@ private fun FiveThreeOneProgramSetupDialog(
                 FiveThreeOneProgramPlan.entries.forEach { choice ->
                     OutlinedCard(
                         onClick = { planName = choice.name },
-                        modifier = Modifier.fillMaxWidth().testTag("five-three-one-plan-${choice.name}"),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("five-three-one-plan-${choice.name}")
+                            .semantics {
+                                selected = plan == choice
+                                stateDescription = if (plan == choice) "Selected" else "Not selected"
+                            },
                         colors = CardDefaults.outlinedCardColors(
                             containerColor = if (plan == choice) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
                         ),
@@ -1286,7 +1371,18 @@ private fun FiveThreeOneProgramSetupDialog(
                     )
                 }
                 if (layout == FiveThreeOneProgramLayout.Custom && eligible.isEmpty()) {
-                    Text("Create at least one Weight + Reps exercise in the Gym library first.", color = MaterialTheme.colorScheme.error)
+                    Text(
+                        "Create at least one Weight + Reps lift without leaving this setup.",
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    WhipButton(
+                        onClick = onCreateLift,
+                        modifier = Modifier.fillMaxWidth().testTag("five-three-one-create-custom-lift"),
+                    ) {
+                        Icon(Icons.Filled.Add, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Create a Lift")
+                    }
                 } else if (layout != FiveThreeOneProgramLayout.Custom && eligible.size < roles.size) {
                     Text("Create at least four weight-and-reps exercises before setting up this program.", color = MaterialTheme.colorScheme.error)
                 }
@@ -1368,44 +1464,32 @@ private fun FiveThreeOneProgramSetupDialog(
                         val availableForSlot = eligible.filter { exercise ->
                             exercise.id == selected.id || exercise.id !in selectedElsewhere
                         }
-                        SelectionField(
-                            label = if (role == null) "Lift ${index + 1} exercise" else "${role.label} exercise",
-                            values = availableForSlot,
-                            selected = selected,
-                            valueText = Exercise::name,
-                            onSelect = { exercise ->
-                                val exerciseChanged = exercise.id != selected.id
-                                exerciseIds = exerciseIds.toMutableList().also { it[index] = exercise.id }
-                                if (layout != FiveThreeOneProgramLayout.Custom) {
-                                    manuallySelectedRoleIndices = (manuallySelectedRoleIndices + index).distinct()
-                                }
-                                if (exerciseChanged) {
-                                    // A Training Max and its source belong to the selected lift. Never carry
-                                    // another lift's value or unit into a replacement selection.
-                                    trainingMaxes = trainingMaxes.toMutableList().also { it[index] = "" }
-                                    useRecentMaxSuggestion = useRecentMaxSuggestion.toMutableList().also { it[index] = false }
-                                    recentMaxes = recentMaxes.toMutableList().also { it[index] = "" }
-                                    trainingMaxPercentages = trainingMaxPercentages.toMutableList().also { it[index] = "85" }
-                                    trainingMaxBasisKinds = trainingMaxBasisKinds.toMutableList().also {
-                                        it[index] = TrainingMaxBasisKind.ActualOneRepMax.name
-                                    }
-                                    appliedSourceMaxes = appliedSourceMaxes.toMutableList().also { it[index] = "" }
-                                    appliedTrainingMaxPercentages = appliedTrainingMaxPercentages.toMutableList().also { it[index] = "" }
-                                    appliedTrainingMaxBasisKinds = appliedTrainingMaxBasisKinds.toMutableList().also { it[index] = "" }
-                                    appliedDerivedTrainingMaxes = appliedDerivedTrainingMaxes.toMutableList().also { it[index] = "" }
-                                }
-                                increments = increments.toMutableList().also {
-                                    it[index] = editableNumericValue(
-                                        defaultFiveThreeOneCycleIncrease(
-                                            unitId = exercise.weightUnitId,
-                                            exerciseName = exercise.name,
-                                            role = role,
-                                        ),
-                                    )
-                                }
-                            },
-                            modifier = Modifier.testTag("five-three-one-exercise-$fieldKey"),
-                        )
+                        val exerciseFieldLabel = if (role == null) "Lift ${index + 1} exercise" else "${role.label} exercise"
+                        Column(
+                            Modifier.fillMaxWidth().testTag("five-three-one-exercise-$fieldKey"),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(exerciseFieldLabel, style = MaterialTheme.typography.labelMedium)
+                            WhipOutlinedButton(
+                                onClick = { liftPickerIndex = index },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 48.dp)
+                                    .semantics {
+                                        contentDescription = "$exerciseFieldLabel: ${selected.name}"
+                                    },
+                            ) {
+                                Text(selected.name, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text("Change", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                            }
+                            if (availableForSlot.size > 8) {
+                                Text(
+                                    "Search ${availableForSlot.size} compatible lifts",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                         if (role != null) {
                             Text(
                                 when {
@@ -1506,6 +1590,7 @@ private fun FiveThreeOneProgramSetupDialog(
                                         },
                                         modifier = field.testTag("five-three-one-recent-max-$fieldKey"),
                                         singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     )
                                 },
                                 second = { field ->
@@ -1516,6 +1601,7 @@ private fun FiveThreeOneProgramSetupDialog(
                                         isError = trainingMaxPercentages[index].toWhipDoubleOrNull()?.let { it !in 1.0..100.0 } != false,
                                         modifier = field.testTag("five-three-one-tm-percent-$fieldKey"),
                                         singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     )
                                 },
                             )
@@ -1576,6 +1662,7 @@ private fun FiveThreeOneProgramSetupDialog(
                                 label = { Text("Cycle increase (editable suggestion)") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             )
                         } else {
                             ResponsiveFieldPair(
@@ -1586,6 +1673,7 @@ private fun FiveThreeOneProgramSetupDialog(
                                         label = { Text("Training Max (${unitSymbol(selected.weightUnitId)})") },
                                         modifier = field.testTag("five-three-one-training-max-$fieldKey"),
                                         singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     )
                                 },
                                 second = { field ->
@@ -1595,6 +1683,7 @@ private fun FiveThreeOneProgramSetupDialog(
                                         label = { Text("Cycle increase (editable suggestion)") },
                                         modifier = field,
                                         singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     )
                                 },
                             )
@@ -1688,6 +1777,7 @@ private fun FiveThreeOneProgramSetupDialog(
                             isError = boringButBigPercent?.let { it !in 1.0..100.0 } != false,
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth().testTag("five-three-one-program-bbb-percent"),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         )
                         if (layout != FiveThreeOneProgramLayout.Beginners && lifts.isNotEmpty()) {
                             Text("BBB lift mapping", style = MaterialTheme.typography.labelLarge)
@@ -1731,7 +1821,13 @@ private fun FiveThreeOneProgramSetupDialog(
                     FiveThreeOneSeventhWeekProtocol.entries.forEach { protocol ->
                         OutlinedCard(
                             onClick = { closingProtocolName = protocol.name },
-                            modifier = Modifier.fillMaxWidth().testTag("five-three-one-protocol-${protocol.name}"),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("five-three-one-protocol-${protocol.name}")
+                                .semantics {
+                                    selected = closingProtocol == protocol
+                                    stateDescription = if (closingProtocol == protocol) "Selected" else "Not selected"
+                                },
                             colors = CardDefaults.outlinedCardColors(
                                 containerColor = if (closingProtocol == protocol) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
                             ),
@@ -1935,8 +2031,28 @@ private fun FiveThreeOneProgramSetupDialog(
                 modifier = Modifier.testTag("five-three-one-program-create"),
             ) { Text(if (replacingExistingRoutine) "Replace Draft with Program" else "Build Program") }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipBackAction(label = "Back to routine outline", onClick = onDismiss) },
+        primary = true,
+        paneTitle = "5/3/1 program setup",
+        dismissOnClickOutside = false,
     )
+
+    liftPickerIndex?.let { index ->
+        val selected = selectedExercises.getOrNull(index)
+        val selectedElsewhere = exerciseIds.filterIndexed { itemIndex, _ -> itemIndex != index }.toSet()
+        ExercisePickerDialog(
+            exercises = eligible.filter { it.id == selected?.id || it.id !in selectedElsewhere },
+            preferredIds = listOfNotNull(selected?.id),
+            title = "Choose ${activeRoles.getOrNull(index)?.label ?: "Lift ${index + 1}"}",
+            supportingText = "Only active Weight + Reps exercises are shown. Search by name, equipment, or muscle.",
+            onDismiss = { liftPickerIndex = null },
+            onPick = { exercise ->
+                selectLift(index, exercise)
+                liftPickerIndex = null
+            },
+            onCreate = onCreateLift,
+        )
+    }
 }
 
 @Composable
@@ -1954,8 +2070,14 @@ private fun RoutineProgramStructurePage(
     var selectedPhase by rememberSaveable(builder.token) { mutableStateOf(savedCurrentPhase ?: 0) }
     var prescriptionExerciseId by rememberSaveable(builder.token) { mutableStateOf<Long?>(null) }
     var pendingRemovePhase by rememberSaveable(builder.token) { mutableStateOf<Int?>(null) }
+    var trainingMaxesExpanded by rememberSaveable(builder.token) {
+        mutableStateOf(pendingTrainingMaxDerivations.isNotEmpty())
+    }
     LaunchedEffect(builder.programPhaseCount) {
         selectedPhase = selectedPhase.coerceIn(0, (builder.programPhaseCount - 1).coerceAtLeast(0))
+    }
+    LaunchedEffect(pendingTrainingMaxDerivations.isNotEmpty()) {
+        if (pendingTrainingMaxDerivations.isNotEmpty()) trainingMaxesExpanded = true
     }
     val labels = builder.normalizedProgramPhaseLabels()
     val roles = builder.normalizedProgramPhaseRoles()
@@ -2045,14 +2167,29 @@ private fun RoutineProgramStructurePage(
             }
         }
         item {
-            Text("Main lifts & Training Maxes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(
-                "Training Max is separate from your actual or estimated 1RM. Editing a repeated lift updates every day where that lift appears.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            DisclosureRow(
+                title = "Training Maxes",
+                supportingText = buildString {
+                    append(quantityLabel(mainLifts.size, "main lift"))
+                    if (pendingTrainingMaxDerivations.isNotEmpty()) {
+                        append(" · ${pendingTrainingMaxDerivations.size} unapplied")
+                    } else {
+                        append(" · edit values, sources, and cycle increases")
+                    }
+                },
+                expanded = trainingMaxesExpanded,
+                onClick = { trainingMaxesExpanded = !trainingMaxesExpanded },
+                modifier = Modifier.testTag("routine-program-training-maxes-disclosure"),
             )
+            if (trainingMaxesExpanded) {
+                Text(
+                    "Training Max is separate from your actual or estimated 1RM. Editing a repeated lift updates every day where that lift appears.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
-        mainLifts.forEach { lift ->
+        if (trainingMaxesExpanded) mainLifts.forEach { lift ->
             item(key = "program-lift-${lift.exerciseId}") {
                 val exercise = (gymState.exercises + gymState.archivedExercises).firstOrNull { it.id == lift.exerciseId }
                 val unitId = lift.trainingMaxUnitId.ifBlank { exercise?.weightUnitId ?: gymState.appSettings.gymWeightUnitId }
@@ -2109,6 +2246,7 @@ private fun RoutineProgramStructurePage(
                                     supportingText = { Text(if (trainingMaxIsInvalid) "Enter a Training Max above zero" else "Explicit TM") },
                                     isError = trainingMaxIsInvalid,
                                     singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     modifier = field.testTag("routine-program-training-max-${lift.exerciseId}"),
                                 )
                             },
@@ -2128,6 +2266,7 @@ private fun RoutineProgramStructurePage(
                                     },
                                     isError = cycleIncreaseIsInvalid,
                                     singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     modifier = field.testTag("routine-program-cycle-increase-${lift.exerciseId}"),
                                 )
                             },
@@ -2246,6 +2385,7 @@ private fun RoutineProgramStructurePage(
                                                 )
                                             },
                                             singleLine = true,
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                             modifier = field.testTag("routine-program-tm-source-${lift.exerciseId}"),
                                         )
                                     },
@@ -2263,6 +2403,7 @@ private fun RoutineProgramStructurePage(
                                             supportingText = { Text("1–100%; 80–90% is the common starting range") },
                                             isError = editedBasis.percentage.toWhipDoubleOrNull()?.let { it !in 1.0..100.0 } != false,
                                             singleLine = true,
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                             modifier = field.testTag("routine-program-tm-percent-${lift.exerciseId}"),
                                         )
                                     },
@@ -3276,6 +3417,7 @@ private fun RoutinePlacementEditor(
     programPhaseLabels: List<String>,
     onApplyFiveThreeOne: (FiveThreeOneBuilderResult) -> Unit,
     onCreateFiveThreeOneProgram: () -> Unit,
+    onEditProgramStructure: () -> Unit,
     onUpdateDay: ((RoutineBuilderDayState) -> RoutineBuilderDayState) -> Unit,
     onChooseEquipment: () -> Unit,
     onMoveToDay: (Long, Boolean) -> Unit,
@@ -3322,6 +3464,10 @@ private fun RoutinePlacementEditor(
     val singleLiftConversionAvailable = allDays.size == 1
     val placementKind = runCatching { RoutinePlacementKind.valueOf(placement.placementKind) }
         .getOrDefault(RoutinePlacementKind.General)
+    val isProgramControlledPlacement = isStructuredFiveThreeOne && placementKind in setOf(
+        RoutinePlacementKind.MainLift,
+        RoutinePlacementKind.Supplemental,
+    )
     val hasTrainingMaxPrescription = placement.sets.any {
         it.loadPrescriptionType == RoutineLoadPrescriptionType.PercentTrainingMax.name
     }
@@ -3386,6 +3532,10 @@ private fun RoutinePlacementEditor(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    WhipOutlinedButton(
+                        onClick = onEditProgramStructure,
+                        modifier = Modifier.fillMaxWidth().testTag("routine-placement-open-program-structure"),
+                    ) { Text("Edit Program Structure") }
                 }
             }
         } else if (placementKind == RoutinePlacementKind.Supplemental) item {
@@ -3397,6 +3547,10 @@ private fun RoutinePlacementEditor(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    WhipOutlinedButton(
+                        onClick = onEditProgramStructure,
+                        modifier = Modifier.fillMaxWidth().testTag("routine-placement-open-program-structure"),
+                    ) { Text("Edit Program Structure") }
                 }
             }
         } else if (isStructuredFiveThreeOne || placementKind == RoutinePlacementKind.Assistance) item {
@@ -3499,7 +3653,7 @@ private fun RoutinePlacementEditor(
                 }
             }
         }
-        if (exercise?.supportsRepPrescription() != false) item {
+        if (!isProgramControlledPlacement && exercise?.supportsRepPrescription() != false) item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Saved Schemes · App-wide", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 IconButton(
@@ -3559,7 +3713,7 @@ private fun RoutinePlacementEditor(
                 )
             }
         }
-        if (exercise?.trackingType in setOf(ExerciseTrackingType.WeightReps, ExerciseTrackingType.WeightOnly, ExerciseTrackingType.WeightDuration)) {
+        if (!isProgramControlledPlacement && exercise?.trackingType in setOf(ExerciseTrackingType.WeightReps, ExerciseTrackingType.WeightOnly, ExerciseTrackingType.WeightDuration)) {
             item {
                 val workingLoad = placement.sets.firstOrNull { it.classification != WorkoutSetClassification.WarmUp.name }
                     ?.load?.toWhipDoubleOrNull()
@@ -3593,18 +3747,20 @@ private fun RoutinePlacementEditor(
                     testTag = "routine-advanced-consequence",
                 )
             }
-            RoutineLabeledSwitchRow(
-                label = "Copy Previous Values When No Plan",
-                checked = placement.copyPreviousWorkout,
-                onCheckedChange = { checked -> onUpdate { it.copy(copyPreviousWorkout = checked) } },
-                testTag = "routine-copy-previous",
-            )
-            if (placement.copyPreviousWorkout) {
-                Text(
-                    "Unplanned fields start with values from the previous workout.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            if (!isProgramControlledPlacement) {
+                RoutineLabeledSwitchRow(
+                    label = "Copy Previous Values When No Plan",
+                    checked = placement.copyPreviousWorkout,
+                    onCheckedChange = { checked -> onUpdate { it.copy(copyPreviousWorkout = checked) } },
+                    testTag = "routine-copy-previous",
                 )
+                if (placement.copyPreviousWorkout) {
+                    Text(
+                        "Unplanned fields start with values from the previous workout.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
         if (supportsTrainingMax && !isStructuredFiveThreeOne) {
@@ -3689,6 +3845,7 @@ private fun RoutinePlacementEditor(
                                 supportingText = { Text("Enter the exact Training Max this routine should use.") },
                                 modifier = Modifier.fillMaxWidth().testTag("routine-training-max-value"),
                                 singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             )
                             if (derivedTrainingMax != null) {
                                 WhipOutlinedButton(
@@ -3717,6 +3874,7 @@ private fun RoutinePlacementEditor(
                                 supportingText = { Text("Recalculates from the current equipment-specific e1RM when the routine starts.") },
                                 modifier = Modifier.fillMaxWidth().testTag("routine-training-max-percent"),
                                 singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             )
                             if (derivedTrainingMax == null) {
                                 Text(
