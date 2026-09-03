@@ -10,6 +10,7 @@ import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.ExerciseTrackingType
 import com.whip.app.domain.GymMachineDraft
+import com.whip.app.domain.GymGraphMetric
 import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.LoadInterpretation
@@ -119,6 +120,39 @@ class GymRepositoryTest {
             }
         }
         assertTrue(runBlocking { repository.exercises.first().isEmpty() })
+    }
+
+    @Test
+    fun repositoryCanonicalizesFieldsHiddenByExerciseAndMachineTypes() = runBlocking {
+        val exerciseId = repository.createExercise(
+            ExerciseDraft(
+                name = "Plank",
+                trackingType = ExerciseTrackingType.DurationOnly,
+                weightIncrement = Double.NaN,
+                repetitionIncrement = -1,
+                defaultGraphMetric = GymGraphMetric.EstimatedOneRepMax.name,
+                barWeightKg = -1.0,
+                availablePlatesKg = listOf(-1.0),
+                includeInVolume = true,
+            ),
+        )
+        val exercise = requireNotNull(repository.exercises.first().single { it.id == exerciseId })
+        assertEquals(GymGraphMetric.Duration.name, exercise.defaultGraphMetric)
+        assertEquals(null, exercise.barWeightKg)
+        assertTrue(exercise.availablePlatesKg.isEmpty())
+        assertFalse(exercise.includeInVolume)
+
+        val machineId = repository.createMachine(
+            GymMachineDraft(
+                name = "Mass stack",
+                loadType = MachineLoadType.Mass,
+                loadInterpretation = LoadInterpretation.OrdinalSetting,
+                massMappingKg = mapOf(1.0 to 10.0),
+            ),
+        )
+        val machine = requireNotNull(repository.machines.first().single { it.id == machineId })
+        assertEquals(LoadInterpretation.MachineDisplayedMass, machine.loadInterpretation)
+        assertTrue(machine.massMappingKg.isEmpty())
     }
 
     @Test

@@ -43,13 +43,83 @@ class HabitRulesTest {
         ).validationErrors()
 
         assertTrue(problems.contains("Habit name is required"))
-        assertTrue(problems.contains("Schedule interval must be a positive whole number"))
+        assertFalse(problems.contains("Schedule interval must be a positive whole number"))
         assertFalse(problems.contains("Quick increment must be a positive number"))
-        assertTrue(problems.contains("Decimal places must be between 0 and 6"))
+        assertFalse(problems.contains("Decimal places must be between 0 and 6"))
         assertTrue(problems.contains("Add at least one checklist item"))
         assertTrue(problems.contains("Pick at least one weekday"))
         assertTrue(problems.contains("Enter a valid target range"))
         assertTrue(problems.contains("Choose an end date on or after the start date"))
+    }
+
+    @Test
+    fun inactiveHabitFieldsCannotBlockOrLeakIntoTheSelectedConfiguration() {
+        val stale = HabitDraft(
+            name = "Read",
+            trackingMode = HabitTrackingMode.CheckOff,
+            precision = -1,
+            comparison = TargetComparison.None,
+            targetMin = Double.NaN,
+            targetMax = Double.NaN,
+            targetPeriod = TargetPeriod.RollingDays,
+            rollingDays = 0,
+            scheduleType = HabitScheduleType.Daily,
+            scheduleInterval = 0,
+            weekdays = setOf(DayOfWeek.MONDAY),
+            flexibleTimesPerWeek = 0,
+            endType = HabitEndType.Never,
+            endDate = monday.minusDays(1),
+            endValue = Double.NaN,
+            checklistItems = listOf(HabitChecklistItemDraft("Old item", 0)),
+            autoCompleteFromItems = false,
+            startDate = monday,
+        )
+
+        assertTrue(stale.validationErrors().isEmpty())
+        val semantic = stale.withConfigurationSemantics()
+        assertEquals(TargetComparison.AtLeast, semantic.comparison)
+        assertEquals(1.0, semantic.targetMin ?: -1.0, 0.0)
+        assertNull(semantic.targetMax)
+        assertEquals(TargetPeriod.Occurrence, semantic.targetPeriod)
+        assertEquals(0, semantic.precision)
+        assertNull(semantic.rollingDays)
+        assertEquals(1, semantic.scheduleInterval)
+        assertTrue(semantic.weekdays.isEmpty())
+        assertNull(semantic.flexibleTimesPerWeek)
+        assertNull(semantic.endDate)
+        assertNull(semantic.endValue)
+        assertTrue(semantic.checklistItems.isEmpty())
+        assertTrue(semantic.autoCompleteFromItems)
+    }
+
+    @Test
+    fun atMostUsesOneCanonicalMaximumAndRepairsTheFormerMinimumShape() {
+        val formerEditorShape = HabitDraft(
+            name = "Caffeine",
+            trackingMode = HabitTrackingMode.Count,
+            comparison = TargetComparison.AtMost,
+            targetMin = 3.0,
+            targetMax = null,
+            startDate = monday,
+        )
+
+        assertTrue(formerEditorShape.validationErrors().contains("Enter a maximum"))
+        val repaired = formerEditorShape.withConfigurationSemantics()
+        assertNull(repaired.targetMin)
+        assertEquals(3.0, repaired.targetMax ?: -1.0, 0.0)
+        assertTrue(repaired.validationErrors().isEmpty())
+    }
+
+    @Test
+    fun everyNDaysStillRequiresItsVisibleInterval() {
+        val problems = HabitDraft(
+            name = "Water plants",
+            scheduleType = HabitScheduleType.EveryNDays,
+            scheduleInterval = 0,
+            startDate = monday,
+        ).validationErrors()
+
+        assertTrue(problems.contains("Schedule interval must be a positive whole number"))
     }
 
     @Test

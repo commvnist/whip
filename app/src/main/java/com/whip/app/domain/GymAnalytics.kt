@@ -22,6 +22,86 @@ enum class GymGraphMetric(val label: String) {
     MaxMachineSetting("Best machine setting"),
 }
 
+/** Metrics that the selected input contract can actually produce. */
+fun ExerciseTrackingType.supportedGraphMetrics(
+    machineLoadType: MachineLoadType? = null,
+): List<GymGraphMetric> {
+    if (machineLoadType == MachineLoadType.Level) return when (this) {
+        ExerciseTrackingType.WeightReps,
+        ExerciseTrackingType.BodyweightReps,
+        ExerciseTrackingType.AssistedBodyweightReps,
+        -> listOf(
+            GymGraphMetric.MaxMachineSetting,
+            GymGraphMetric.MaxRepetitions,
+            GymGraphMetric.TotalRepetitions,
+        )
+        ExerciseTrackingType.WeightOnly -> listOf(GymGraphMetric.MaxMachineSetting)
+        ExerciseTrackingType.WeightDuration -> listOf(
+            GymGraphMetric.MaxMachineSetting,
+            GymGraphMetric.Duration,
+        )
+        ExerciseTrackingType.RepsOnly -> listOf(
+            GymGraphMetric.MaxRepetitions,
+            GymGraphMetric.TotalRepetitions,
+        )
+        ExerciseTrackingType.RepsDuration -> listOf(
+            GymGraphMetric.MaxRepetitions,
+            GymGraphMetric.TotalRepetitions,
+            GymGraphMetric.Duration,
+        )
+        ExerciseTrackingType.DistanceDuration -> listOf(
+            GymGraphMetric.Distance,
+            GymGraphMetric.Duration,
+            GymGraphMetric.Speed,
+            GymGraphMetric.Pace,
+        )
+        ExerciseTrackingType.DistanceOnly -> listOf(GymGraphMetric.Distance)
+        ExerciseTrackingType.DurationOnly -> listOf(GymGraphMetric.Duration)
+    }
+    return when (this) {
+        ExerciseTrackingType.WeightReps -> listOf(
+            GymGraphMetric.EstimatedOneRepMax,
+            GymGraphMetric.MaxWeight,
+            GymGraphMetric.MaxRepetitions,
+            GymGraphMetric.MaxWeightForReps,
+            GymGraphMetric.ActualRepMaxHistory,
+            GymGraphMetric.SetVolume,
+            GymGraphMetric.WorkoutVolume,
+            GymGraphMetric.TotalRepetitions,
+        )
+        ExerciseTrackingType.BodyweightReps,
+        ExerciseTrackingType.AssistedBodyweightReps,
+        -> listOf(
+            GymGraphMetric.MaxRepetitions,
+            GymGraphMetric.TotalRepetitions,
+            GymGraphMetric.SetVolume,
+            GymGraphMetric.WorkoutVolume,
+        )
+        ExerciseTrackingType.RepsOnly -> listOf(
+            GymGraphMetric.MaxRepetitions,
+            GymGraphMetric.TotalRepetitions,
+        )
+        ExerciseTrackingType.WeightOnly -> listOf(GymGraphMetric.MaxWeight)
+        ExerciseTrackingType.DistanceDuration -> listOf(
+            GymGraphMetric.Distance,
+            GymGraphMetric.Duration,
+            GymGraphMetric.Speed,
+            GymGraphMetric.Pace,
+        )
+        ExerciseTrackingType.WeightDuration -> listOf(
+            GymGraphMetric.MaxWeight,
+            GymGraphMetric.Duration,
+        )
+        ExerciseTrackingType.RepsDuration -> listOf(
+            GymGraphMetric.MaxRepetitions,
+            GymGraphMetric.TotalRepetitions,
+            GymGraphMetric.Duration,
+        )
+        ExerciseTrackingType.DistanceOnly -> listOf(GymGraphMetric.Distance)
+        ExerciseTrackingType.DurationOnly -> listOf(GymGraphMetric.Duration)
+    }
+}
+
 enum class GymGraphAggregation { Workout, Week, Month }
 enum class GymGraphRange { Month, ThreeMonths, SixMonths, Year, All, Custom }
 

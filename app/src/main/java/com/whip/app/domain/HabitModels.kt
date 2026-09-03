@@ -93,24 +93,82 @@ data class HabitDraft(
 fun HabitTrackingMode.supportsQuickAddAmounts(): Boolean =
     this == HabitTrackingMode.Count || this == HabitTrackingMode.Decimal
 
+/**
+ * Removes values owned by controls that are not active for the selected Habit configuration.
+ * This keeps a previously edited, now-hidden field from changing behavior or blocking a save.
+ */
+fun HabitDraft.withConfigurationSemantics(): HabitDraft {
+    val checkBased = trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)
+    val semanticComparison = if (checkBased) TargetComparison.AtLeast else comparison
+    val semanticTargetMin = if (checkBased) 1.0 else when (semanticComparison) {
+        TargetComparison.AtLeast, TargetComparison.Exactly -> targetMin ?: targetMax
+        TargetComparison.WithinRange -> targetMin
+        TargetComparison.AtMost, TargetComparison.None -> null
+    }
+    val semanticTargetMax = if (checkBased) null else when (semanticComparison) {
+        TargetComparison.AtMost -> targetMax ?: targetMin
+        TargetComparison.WithinRange -> targetMax
+        TargetComparison.AtLeast, TargetComparison.Exactly, TargetComparison.None -> null
+    }
+    val flexibleSchedule = scheduleType in setOf(
+        HabitScheduleType.FlexibleTimesPerWeek,
+        HabitScheduleType.FlexibleTimesPerMonth,
+    )
+    val thresholdEnding = endType in setOf(
+        HabitEndType.AfterStreak,
+        HabitEndType.AfterCompletions,
+        HabitEndType.AfterTotal,
+    )
+    return copy(
+        precision = precision.takeUnless {
+            sourceMetricId == null &&
+                trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist, HabitTrackingMode.Rating)
+        } ?: 0,
+        comparison = semanticComparison,
+        targetMin = semanticTargetMin,
+        targetMax = semanticTargetMax,
+        targetPeriod = targetPeriod.takeUnless { checkBased } ?: TargetPeriod.Occurrence,
+        rollingDays = rollingDays.takeIf {
+            !checkBased && semanticComparison != TargetComparison.None && targetPeriod == TargetPeriod.RollingDays
+        },
+        scheduleInterval = scheduleInterval.takeIf { scheduleType == HabitScheduleType.EveryNDays } ?: 1,
+        weekdays = weekdays.takeIf { scheduleType == HabitScheduleType.SelectedWeekdays }.orEmpty(),
+        flexibleTimesPerWeek = flexibleTimesPerWeek.takeIf { flexibleSchedule },
+        endDate = endDate.takeIf { endType == HabitEndType.OnDate },
+        endValue = endValue.takeIf { thresholdEnding },
+        checklistItems = checklistItems.takeIf { trackingMode == HabitTrackingMode.Checklist }.orEmpty(),
+        autoCompleteFromItems = autoCompleteFromItems.takeIf {
+            trackingMode == HabitTrackingMode.Checklist
+        } ?: true,
+    )
+}
+
 /** One validation contract shared by the editor and persistence layer. */
 fun HabitDraft.validationErrors(): List<String> = buildList {
     if (name.isBlank()) add("Habit name is required")
     if (name.length > 100) add("Habit names can be at most 100 characters")
     if (tags.any { ',' in it }) add("Use separate Tags instead of commas")
-    if (scheduleInterval <= 0) add("Schedule interval must be a positive whole number")
+    if (scheduleType == HabitScheduleType.EveryNDays && scheduleInterval <= 0) {
+        add("Schedule interval must be a positive whole number")
+    }
     if (sourceMetricId == null && trackingMode.supportsQuickAddAmounts()) {
         if (!quickIncrement.isFinite() || quickIncrement <= 0.0) add("Quick increment must be a positive number")
         if (quickActions.any { !it.isFinite() || it < 0.0 }) add("Quick actions must be non-negative numbers")
     }
-    if (precision !in 0..6) add("Decimal places must be between 0 and 6")
+    if (
+        sourceMetricId == null &&
+        trackingMode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist, HabitTrackingMode.Rating) &&
+        precision !in 0..6
+    ) add("Decimal places must be between 0 and 6")
     if (reminderMinutes.any { it !in 0..1439 } || weekdayReminderMinutes.values.flatten().any { it !in 0..1439 }) {
         add("Reminder times must be valid times of day")
     }
-    val checklistIds = checklistItems.mapNotNull(HabitChecklistItemDraft::id)
-    val checklistUuids = checklistItems.mapNotNull(HabitChecklistItemDraft::uuid)
-    if (checklistIds.distinct().size != checklistIds.size || checklistUuids.distinct().size != checklistUuids.size) {
-        add("Checklist item identities must be unique")
+    if (trackingMode == HabitTrackingMode.Checklist) {
+        val checklistIds = checklistItems.mapNotNull(HabitChecklistItemDraft::id)
+        val checklistUuids = checklistItems.mapNotNull(HabitChecklistItemDraft::uuid)
+        if (checklistIds.distinct().size != checklistIds.size || checklistUuids.distinct().size != checklistUuids.size) {
+            add("Checklist item identities must be unique")
+        }
     }
     if (trackingMode == HabitTrackingMode.Duration && dimension != UnitDimension.Duration) {
         add("Duration tracking requires a Duration unit")
@@ -123,16 +181,25 @@ fun HabitDraft.validationErrors(): List<String> = buildList {
         scheduleType in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth) &&
         (flexibleTimesPerWeek ?: 0) <= 0
     ) add("Flexible schedule count must be a positive whole number")
-    if (listOfNotNull(targetMin, targetMax).any { !it.isFinite() }) add("Habit targets must be valid numbers")
+    val activeTargets = when (comparison) {
+        TargetComparison.AtLeast, TargetComparison.Exactly -> listOfNotNull(targetMin)
+        TargetComparison.AtMost -> listOfNotNull(targetMax)
+        TargetComparison.WithinRange -> listOfNotNull(targetMin, targetMax)
+        TargetComparison.None -> emptyList()
+    }
+    if (activeTargets.any { !it.isFinite() }) add("Habit targets must be valid numbers")
     when (comparison) {
         TargetComparison.AtLeast, TargetComparison.Exactly -> if (targetMin == null) add("Enter a target")
-        TargetComparison.AtMost -> if (targetMin == null && targetMax == null) add("Enter a maximum")
+        TargetComparison.AtMost -> if (targetMax == null) add("Enter a maximum")
         TargetComparison.WithinRange -> if (targetMin == null || targetMax == null || targetMin > targetMax) {
             add("Enter a valid target range")
         }
         TargetComparison.None -> Unit
     }
-    if (targetPeriod == TargetPeriod.RollingDays && (rollingDays ?: 0) <= 0) add("Enter a positive rolling window")
+    if (
+        comparison != TargetComparison.None && targetPeriod == TargetPeriod.RollingDays &&
+        (rollingDays ?: 0) <= 0
+    ) add("Enter a positive rolling window")
     when (endType) {
         HabitEndType.Never -> Unit
         HabitEndType.OnDate -> if (endDate == null || endDate.isBefore(startDate)) {

@@ -39,7 +39,9 @@ import com.whip.app.domain.AreaScope
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitChecklistItemDraft
 import com.whip.app.domain.HabitEndType
+import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.TargetComparison
 import com.whip.app.domain.TaskDraft
 import com.whip.app.ui.theme.WhipTheme
 import java.time.DayOfWeek
@@ -595,6 +597,44 @@ class EntitySaveCoordinatorUiTest {
         compose.runOnIdle {
             assertEquals(1.0, requireNotNull(savedDraft).quickIncrement, 0.0)
             assertTrue(requireNotNull(savedDraft).quickActions.isEmpty())
+        }
+    }
+
+    @Test
+    fun atMostHabitShowsAndSavesItsMaximumWhileIgnoringInactiveScheduleValues() {
+        var savedDraft: HabitDraft? = null
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                HabitEditorDialog(
+                    habit = null,
+                    initialDraft = HabitDraft(
+                        name = "Caffeine",
+                        trackingMode = HabitTrackingMode.Count,
+                        comparison = TargetComparison.AtMost,
+                        targetMin = null,
+                        targetMax = 3.0,
+                        scheduleType = HabitScheduleType.Daily,
+                        scheduleInterval = 0,
+                        startDate = LocalDate.of(2026, 9, 3),
+                    ),
+                    initialChecklist = emptyList(),
+                    today = LocalDate.of(2026, 9, 3),
+                    onDismiss = {},
+                    onSave = { savedDraft = it },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Maximum per day"))
+        compose.onNodeWithText("Maximum per day").assertIsDisplayed()
+        compose.onAllNodesWithText("Target per day").assertCountEquals(0)
+        compose.onNodeWithText("Save").performClick()
+
+        compose.runOnIdle {
+            val saved = requireNotNull(savedDraft)
+            assertNull(saved.targetMin)
+            assertEquals(3.0, saved.targetMax ?: -1.0, 0.0)
+            assertEquals(1, saved.scheduleInterval)
         }
     }
 

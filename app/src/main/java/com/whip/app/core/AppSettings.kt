@@ -11,6 +11,7 @@ import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.AreaScope
 import com.whip.app.domain.CustomIdentityEmoji
 import com.whip.app.domain.normalizeCustomIdentityEmojis
+import com.whip.app.domain.WorkoutSetClassification
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
@@ -426,7 +427,7 @@ fun AppSettings.normalized(): AppSettings {
         defaultRestSeconds = defaultRestSeconds.coerceIn(15, 3_600),
         restTimerPresetSeconds = normalizeRestTimerPresets(restTimerPresetSeconds),
         hardSetClassifications = hardSetClassifications
-            .intersect(setOf("Working", "BackOff", "Drop", "Amrap", "Failure", "WarmUp"))
+            .intersect(WorkoutSetClassification.entries.mapTo(mutableSetOf(), WorkoutSetClassification::name))
             .ifEmpty { setOf("Working") },
         categoryAllocationMode = categoryAllocationMode
             .takeIf { it in setOf("Full", "Fractional", "PrimaryOnly") } ?: "Fractional",

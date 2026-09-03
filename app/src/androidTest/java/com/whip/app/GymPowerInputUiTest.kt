@@ -13,6 +13,7 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
@@ -37,7 +38,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.BodyweightLoadPolicy
 import com.whip.app.domain.EstimatedOneRepMaxFormula
 import com.whip.app.domain.Exercise
+import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.ExerciseTrackingType
+import com.whip.app.domain.GymGraphMetric
 import com.whip.app.domain.LoadInterpretation
 import com.whip.app.domain.GymMachineDraft
 import com.whip.app.domain.MachineLevelDirection
@@ -293,6 +296,43 @@ class GymPowerInputUiTest {
         compose.onNodeWithContentDescription("Save blocked. Weight increment must be above 0")
             .assertIsDisplayed()
         compose.runOnIdle { assertEquals(false, submitted) }
+    }
+
+    @Test
+    fun durationExerciseOnlyShowsApplicableAdvancedOptionsAndRepairsItsGraphDefault() {
+        var submitted: ExerciseDraft? = null
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                ExerciseEditorDialog(
+                    exercise = testExercise().copy(
+                        trackingType = ExerciseTrackingType.DurationOnly,
+                        defaultGraphMetric = GymGraphMetric.EstimatedOneRepMax.name,
+                    ),
+                    categories = emptyList(),
+                    selectedCategoryIds = emptySet(),
+                    defaultWeightUnit = "kilogram",
+                    defaultRestSeconds = 120,
+                    defaultFormula = EstimatedOneRepMaxFormula.Epley,
+                    platePresets = emptyList(),
+                    onDismiss = {},
+                    onSave = { submitted = it },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Advanced Options").performClick()
+        compose.onNodeWithTag("exercise-editor-list").performScrollToNode(hasText("Default graph"))
+        compose.onAllNodesWithTag("exercise-weight-increment").assertCountEquals(0)
+        compose.onAllNodesWithTag("exercise-repetition-increment").assertCountEquals(0)
+        compose.onAllNodesWithText("Estimated 1RM formula").assertCountEquals(0)
+        compose.onAllNodesWithText("Include in volume").assertCountEquals(0)
+        compose.onNodeWithContentDescription("Default graph: Duration").assertIsDisplayed()
+        compose.onNodeWithText("Save").performClick()
+
+        compose.runOnIdle {
+            assertEquals(GymGraphMetric.Duration.name, requireNotNull(submitted).defaultGraphMetric)
+            assertEquals(false, requireNotNull(submitted).includeInVolume)
+        }
     }
 
     @Test

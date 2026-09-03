@@ -16,6 +16,8 @@ import com.whip.app.domain.HabitChecklistItemDraft
 import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.HabitEndType
 import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.HabitScheduleType
+import com.whip.app.domain.TargetComparison
 import com.whip.app.domain.HabitTimerBoundary
 import com.whip.app.domain.HabitTimerReviewResolution
 import com.whip.app.domain.HabitTimerStartOutcome
@@ -73,6 +75,26 @@ class HabitRepositoryTest {
         val id = repository.create(HabitDraft(name = "Glasses", trackingMode = HabitTrackingMode.Count, targetMin = 8.0, startDate = FixedClock.today()))
         repeat(6) { repository.log(id, 1.0) }
         assertEquals(6.0, repository.logs.first().sumOf { it.value ?: 0.0 }, 0.0)
+    }
+
+    @Test fun repositoryPersistsOnlyTheControlsEnabledByTheHabitConfiguration() = runBlocking {
+        val id = repository.create(
+            HabitDraft(
+                name = "Caffeine",
+                trackingMode = HabitTrackingMode.Count,
+                comparison = TargetComparison.AtMost,
+                targetMin = 3.0,
+                targetMax = null,
+                scheduleType = HabitScheduleType.Daily,
+                scheduleInterval = 0,
+                startDate = FixedClock.today(),
+            ),
+        )
+
+        val saved = requireNotNull(repository.get(id))
+        assertEquals(null, saved.targetMin)
+        assertEquals(3.0, saved.targetMax ?: -1.0, 0.0)
+        assertEquals(1, saved.scheduleInterval)
     }
 
     @Test fun invalidSourcesAndUnavailableHabitsRejectNewProgress() = runBlocking {

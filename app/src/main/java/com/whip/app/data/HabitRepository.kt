@@ -23,6 +23,7 @@ import com.whip.app.domain.HabitTimerSessionState
 import com.whip.app.domain.HabitTimerStartOutcome
 import com.whip.app.domain.HabitTimerStartRequest
 import com.whip.app.domain.HabitTimerStopOutcome
+import com.whip.app.domain.withConfigurationSemantics
 import com.whip.app.domain.DEFAULT_HABIT_EMOJI
 import com.whip.app.domain.normalizedIdentityEmoji
 import com.whip.app.domain.MetricEntryStatus
@@ -125,17 +126,18 @@ class RoomHabitRepository(
     override suspend fun get(id: Long): Habit? = dao.getHabit(id)?.toDomain()
 
     override suspend fun create(draft: HabitDraft): Long = database.withTransaction {
-        validateHabit(draft)
-        validateSourceMetric(draft)
-        val area = areaRepository.resolve(draft.areaId, draft.area)
-        val resolvedDraft = draft.copy(areaId = area.id, area = area.name)
-        measurementRepository.ensureCustomUnit(draft.unitId, draft.unitId, draft.unitId, draft.dimension)
+        val semanticDraft = draft.withConfigurationSemantics()
+        validateHabit(semanticDraft)
+        validateSourceMetric(semanticDraft)
+        val area = areaRepository.resolve(semanticDraft.areaId, semanticDraft.area)
+        val resolvedDraft = semanticDraft.copy(areaId = area.id, area = area.name)
+        measurementRepository.ensureCustomUnit(semanticDraft.unitId, semanticDraft.unitId, semanticDraft.unitId, semanticDraft.dimension)
         val metricId = measurementRepository.createMetric(
-            name = draft.name,
-            valueKind = draft.trackingMode.metricValueKind(),
-            dimension = draft.dimension,
-            defaultUnitId = draft.unitId,
-            precision = draft.precision,
+            name = semanticDraft.name,
+            valueKind = semanticDraft.trackingMode.metricValueKind(),
+            dimension = semanticDraft.dimension,
+            defaultUnitId = semanticDraft.unitId,
+            precision = semanticDraft.precision,
         )
         val now = clock.now().toEpochMilli()
         val habitId = dao.insertHabit(
@@ -151,37 +153,38 @@ class RoomHabitRepository(
     }
 
     override suspend fun update(id: Long, draft: HabitDraft) = database.withTransaction {
-        validateHabit(draft)
-        validateSourceMetric(draft)
-        val area = areaRepository.resolve(draft.areaId, draft.area)
-        val resolvedDraft = draft.copy(areaId = area.id, area = area.name)
-        measurementRepository.ensureCustomUnit(draft.unitId, draft.unitId, draft.unitId, draft.dimension)
+        val semanticDraft = draft.withConfigurationSemantics()
+        validateHabit(semanticDraft)
+        validateSourceMetric(semanticDraft)
+        val area = areaRepository.resolve(semanticDraft.areaId, semanticDraft.area)
+        val resolvedDraft = semanticDraft.copy(areaId = area.id, area = area.name)
+        measurementRepository.ensureCustomUnit(semanticDraft.unitId, semanticDraft.unitId, semanticDraft.unitId, semanticDraft.dimension)
         val existing = dao.getHabit(id) ?: error("Habit no longer exists")
-        require(existing.dimension == draft.dimension.name) {
+        require(existing.dimension == semanticDraft.dimension.name) {
             "A habit's measurement dimension cannot change; create a new habit instead"
         }
         if (existing.timerSessionId != null) {
-            val resolvedEndEpochDay = draft.endDate
-                ?.takeIf { draft.endType == HabitEndType.OnDate }
+            val resolvedEndEpochDay = semanticDraft.endDate
+                ?.takeIf { semanticDraft.endType == HabitEndType.OnDate }
                 ?.toEpochDay()
-            val resolvedEndValue = draft.endValue?.takeIf {
-                draft.endType in setOf(
+            val resolvedEndValue = semanticDraft.endValue?.takeIf {
+                semanticDraft.endType in setOf(
                     HabitEndType.AfterStreak,
                     HabitEndType.AfterCompletions,
                     HabitEndType.AfterTotal,
                 )
             }
             require(
-                draft.trackingMode == HabitTrackingMode.Duration &&
-                    draft.dimension == UnitDimension.Duration &&
-                    draft.unitId == existing.unitId &&
-                    draft.sourceMetricId == null &&
-                    draft.scheduleType.name == existing.scheduleType &&
-                    draft.scheduleInterval == existing.scheduleInterval &&
-                    draft.weekdays.toWeekdayMask() == existing.weekdaysMask &&
-                    draft.flexibleTimesPerWeek == existing.flexibleTimesPerWeek &&
-                    draft.startDate.toEpochDay() == existing.startEpochDay &&
-                    draft.endType.name == existing.endType &&
+                semanticDraft.trackingMode == HabitTrackingMode.Duration &&
+                    semanticDraft.dimension == UnitDimension.Duration &&
+                    semanticDraft.unitId == existing.unitId &&
+                    semanticDraft.sourceMetricId == null &&
+                    semanticDraft.scheduleType.name == existing.scheduleType &&
+                    semanticDraft.scheduleInterval == existing.scheduleInterval &&
+                    semanticDraft.weekdays.toWeekdayMask() == existing.weekdaysMask &&
+                    semanticDraft.flexibleTimesPerWeek == existing.flexibleTimesPerWeek &&
+                    semanticDraft.startDate.toEpochDay() == existing.startEpochDay &&
+                    semanticDraft.endType.name == existing.endType &&
                     resolvedEndEpochDay == existing.endEpochDay &&
                     resolvedEndValue == existing.endValue
             ) { "Stop or discard the running timer before changing its tracking unit or schedule" }
@@ -983,21 +986,26 @@ private fun HabitDraft.toEntity(
     timerSessionId, timerNeedsReview, timerAccumulatedSeconds, timerAnchorElapsedRealtimeMillis,
 )
 
-private fun HabitEntity.toDomain() = Habit(
-    id, uuid, metricId, name, notes, areaId, area, tagsCsv.split(',').map(String::trim).filter(String::isNotBlank), icon,
-    HabitTrackingMode.valueOf(trackingMode), UnitDimension.valueOf(dimension), unitId,
-    precision, TargetComparison.valueOf(comparison), targetMin, targetMax,
-    TargetPeriod.valueOf(targetPeriod), rollingDays, HabitScheduleType.valueOf(scheduleType),
-    scheduleInterval, weekdaysMask.toWeekdays(), flexibleTimesPerWeek,
-    LocalDate.ofEpochDay(startEpochDay), HabitEndType.valueOf(endType),
-    endEpochDay?.let(LocalDate::ofEpochDay), endValue, quickIncrement,
-    quickActionsCsv.split(',').mapNotNull(String::toDoubleOrNull),
-    reminderMinutesCsv.split(',').mapNotNull(String::toIntOrNull),
-    weekdayReminderMinutesCsv.fromReminderCsv(),
-    java.time.DayOfWeek.valueOf(weekStart), timerStartedAtMillis, pinned, position,
-    archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId, autoCompleteFromItems,
-    timerSessionId, timerNeedsReview, timerAccumulatedSeconds, timerAnchorElapsedRealtimeMillis,
-)
+private fun HabitEntity.toDomain(): Habit {
+    val targetComparison = TargetComparison.valueOf(comparison)
+    val resolvedTargetMin = targetMin.takeUnless { targetComparison == TargetComparison.AtMost }
+    val resolvedTargetMax = if (targetComparison == TargetComparison.AtMost) targetMax ?: targetMin else targetMax
+    return Habit(
+        id, uuid, metricId, name, notes, areaId, area, tagsCsv.split(',').map(String::trim).filter(String::isNotBlank), icon,
+        HabitTrackingMode.valueOf(trackingMode), UnitDimension.valueOf(dimension), unitId,
+        precision, targetComparison, resolvedTargetMin, resolvedTargetMax,
+        TargetPeriod.valueOf(targetPeriod), rollingDays, HabitScheduleType.valueOf(scheduleType),
+        scheduleInterval, weekdaysMask.toWeekdays(), flexibleTimesPerWeek,
+        LocalDate.ofEpochDay(startEpochDay), HabitEndType.valueOf(endType),
+        endEpochDay?.let(LocalDate::ofEpochDay), endValue, quickIncrement,
+        quickActionsCsv.split(',').mapNotNull(String::toDoubleOrNull),
+        reminderMinutesCsv.split(',').mapNotNull(String::toIntOrNull),
+        weekdayReminderMinutesCsv.fromReminderCsv(),
+        java.time.DayOfWeek.valueOf(weekStart), timerStartedAtMillis, pinned, position,
+        archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId, autoCompleteFromItems,
+        timerSessionId, timerNeedsReview, timerAccumulatedSeconds, timerAnchorElapsedRealtimeMillis,
+    )
+}
 
 private fun HabitTimerSessionEntity.boundary(habit: HabitEntity) = HabitTimerBoundary(
     habitId = habitId,

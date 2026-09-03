@@ -102,6 +102,10 @@ import com.whip.app.core.UuidWhipIdGenerator
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.ExerciseCategory
 import com.whip.app.domain.ExerciseTrackingType
+import com.whip.app.domain.supportsLoadEntry
+import com.whip.app.domain.supportsRepetitionEntry
+import com.whip.app.domain.supportedGraphMetrics
+import com.whip.app.domain.withTrackingSemantics
 import com.whip.app.domain.BodyweightLoadPolicy
 import com.whip.app.domain.WorkoutSession
 import com.whip.app.domain.WorkoutExercise
@@ -123,6 +127,7 @@ import com.whip.app.domain.validateWorkoutSetDraft
 import com.whip.app.domain.GymRoutine
 import com.whip.app.domain.GymMachine
 import com.whip.app.domain.GymMachineDraft
+import com.whip.app.domain.withLoadSemantics
 import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.MachineStackMode
@@ -5788,7 +5793,15 @@ internal fun MachineEditorDialog(
         mutableStateOf(machine?.levelDirection ?: MachineLevelDirection.HigherNumberMoreResistance)
     }
     var loadInterpretation by rememberSaveable(editorKey) {
-        mutableStateOf(machine?.loadInterpretation ?: LoadInterpretation.Total)
+        mutableStateOf(
+            when (machine?.loadType) {
+                MachineLoadType.Level -> LoadInterpretation.OrdinalSetting
+                MachineLoadType.Mass -> machine.loadInterpretation
+                    .takeUnless { it == LoadInterpretation.OrdinalSetting }
+                    ?: LoadInterpretation.MachineDisplayedMass
+                null -> LoadInterpretation.Total
+            },
+        )
     }
     var baseLoad by rememberSaveable(editorKey) {
         mutableStateOf(machine?.baseLoadKg?.let { editableNumber(massFromKilograms(it, machine.unitId.ifBlank { "kilogram" })) }.orEmpty())
@@ -5818,6 +5831,29 @@ internal fun MachineEditorDialog(
         mutableStateOf(editableNumber(initialSequence?.increment ?: defaultSequence.increment))
     }
     val parsedLoads = parseNumericSequence(loads, loadIncrement.toWhipDoubleOrNull())
+    val parsedMassMapping = if (loadType == MachineLoadType.Level) {
+        parseMachineMassMapping(massMapping)
+    } else {
+        emptyMap()
+    }
+    var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
+    val machineValidationErrors = buildList {
+        if (name.isBlank()) add("Enter a machine name")
+        parsedLoads.error?.let(::add)
+        if (loadType == MachineLoadType.Level && levelLabel.isBlank()) add("Enter a setting label")
+        if (parsedMassMapping == null) add("Use one setting-to-mass mapping per line, such as 1=10")
+        if (pulleyRatio.toWhipDoubleOrNull()?.let { it.isFinite() && it > 0.0 && it <= 10.0 } != true) {
+            add("Resistance multiplier must be greater than 0 and at most 10")
+        }
+        if (
+            loadType == MachineLoadType.Mass && loadInterpretation == LoadInterpretation.PerSide &&
+            baseLoad.isNotBlank() && baseLoad.toWhipDoubleOrNull()?.let { it.isFinite() && it >= 0.0 } != true
+        ) add("Base resistance must be 0 or more")
+        if (
+            addOnPlate.isNotBlank() &&
+            addOnPlate.toWhipDoubleOrNull()?.let { it.isFinite() && it >= 0.0 } != true
+        ) add("Add-on resistance must be 0 or more")
+    }.distinct()
     val largeText = LocalDensity.current.fontScale >= 1.5f
     fun setupFieldWidth(normal: androidx.compose.ui.unit.Dp): Modifier =
         if (largeText) Modifier.fillMaxWidth() else Modifier.width(normal)
@@ -5830,8 +5866,10 @@ internal fun MachineEditorDialog(
         if (selected == loadType) return
         loadType = selected
         if (selected == MachineLoadType.Level) {
-            loadInterpretation = LoadInterpretation.Total
+            loadInterpretation = LoadInterpretation.OrdinalSetting
             baseLoad = ""
+        } else if (loadInterpretation == LoadInterpretation.OrdinalSetting) {
+            loadInterpretation = LoadInterpretation.MachineDisplayedMass
         }
         applyStandardSequence(type = selected)
     }
@@ -5919,6 +5957,13 @@ internal fun MachineEditorDialog(
                         )
                     }
                 }
+                if (validationRequested && machineValidationErrors.isNotEmpty()) item {
+                    FormValidationSummary(
+                        messages = machineValidationErrors,
+                        visible = true,
+                        testTag = "machine-save-problem",
+                    )
+                }
                 item { OutlinedTextField(name, { name = it.replace('\n', ' ').replace('\r', ' ').take(100) }, label = { Text("Machine name *") }, supportingText = { Text("${name.length}/100 · Example: Home multi-gym") }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("machine-editor-name")) }
                 item { OutlinedTextField(location, { location = it }, label = { Text("Location") }, supportingText = { Text("Example: Home or Downtown Gym") }, modifier = Modifier.fillMaxWidth()) }
                 item { OutlinedTextField(details, { details = it }, label = { Text("Model / setup notes") }, supportingText = { Text("Seat, attachment, pulley, or other setup that changes resistance") }, modifier = Modifier.fillMaxWidth()) }
@@ -5972,7 +6017,7 @@ internal fun MachineEditorDialog(
                         } else {
                             GymEnumDropdown(
                                 "What one entered load means",
-                                LoadInterpretation.entries,
+                                LoadInterpretation.entries.filterNot { it == LoadInterpretation.OrdinalSetting },
                                 loadInterpretation,
                                 LoadInterpretation::label,
                             ) { loadInterpretation = it }
@@ -5995,7 +6040,15 @@ internal fun MachineEditorDialog(
                             if (definitionLocked) {
                                 Text("Base resistance: ${baseLoad.ifBlank { "0" }} ${unitSymbol(unitId)}")
                             } else {
-                                NumberField(baseLoad, { baseLoad = it }, "Base resistance (${unitSymbol(unitId)})")
+                                NumberField(
+                                    baseLoad,
+                                    { baseLoad = it },
+                                    "Base resistance (${unitSymbol(unitId)})",
+                                    isError = validationRequested && machineValidationErrors.contains("Base resistance must be 0 or more"),
+                                    supportingText = "Base resistance must be 0 or more".takeIf {
+                                        validationRequested && machineValidationErrors.contains(it)
+                                    },
+                                )
                             }
                         }
                     }
@@ -6028,6 +6081,7 @@ internal fun MachineEditorDialog(
                             { massMapping = it },
                             label = { Text("Optional setting-to-${unitSymbol(mappingUnitId)} mapping") },
                             supportingText = { Text("One per line, e.g. 1=10, 2=15. Leave blank to keep the setting ordinal and exclude it from mass analytics.") },
+                            isError = validationRequested && parsedMassMapping == null,
                             minLines = 3,
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -6107,21 +6161,36 @@ internal fun MachineEditorDialog(
                 }
                 if (showAdvancedSetup) item {
                     GymEnumDropdown("Stack / arm arrangement", MachineStackMode.entries, stackMode, MachineStackMode::label) { stackMode = it }
-                    NumberField(pulleyRatio, { pulleyRatio = it }, "Effective resistance multiplier")
+                    NumberField(
+                        pulleyRatio,
+                        { pulleyRatio = it },
+                        "Effective resistance multiplier",
+                        isError = validationRequested && machineValidationErrors.contains("Resistance multiplier must be greater than 0 and at most 10"),
+                        supportingText = "Resistance multiplier must be greater than 0 and at most 10".takeIf {
+                            validationRequested && machineValidationErrors.contains(it)
+                        },
+                    )
                     Text("Use 1 for direct resistance, 0.5 when a 2:1 pulley halves the displayed resistance, or the manufacturer-tested multiplier.", style = MaterialTheme.typography.bodySmall)
                     OutlinedTextField(stackLabels, { stackLabels = it }, label = { Text("Stack / arm labels") }, supportingText = { Text("Comma-separated, e.g. left, right") }, modifier = Modifier.fillMaxWidth())
-                    NumberField(addOnPlate, { addOnPlate = it }, "Add-on resistance (${unitSymbol(if (loadType == MachineLoadType.Mass) unitId else mappingUnitId)})")
+                    NumberField(
+                        addOnPlate,
+                        { addOnPlate = it },
+                        "Add-on resistance (${unitSymbol(if (loadType == MachineLoadType.Mass) unitId else mappingUnitId)})",
+                        isError = validationRequested && machineValidationErrors.contains("Add-on resistance must be 0 or more"),
+                        supportingText = "Add-on resistance must be 0 or more".takeIf {
+                            validationRequested && machineValidationErrors.contains(it)
+                        },
+                    )
                     ToggleRow("Allow comparison with selected compatible versions", compatibleForComparison) { compatibleForComparison = it }
                 }
             }
         },
         confirmButton = {
             WhipButton(
-                enabled = !saving && name.isNotBlank() && parsedLoads.error == null &&
-                    (loadType == MachineLoadType.Mass || levelLabel.isNotBlank()) &&
-                    (pulleyRatio.toWhipDoubleOrNull()?.let { it > 0.0 && it <= 10.0 } == true) &&
-                    parseMachineMassMapping(massMapping) != null,
+                enabled = !saving,
                 onClick = {
+                    validationRequested = true
+                    if (machineValidationErrors.isNotEmpty()) return@WhipButton
                     onSave(
                         GymMachineDraft(
                             exerciseId = exerciseIds.firstOrNull(), name = name, location = location,
@@ -6138,11 +6207,11 @@ internal fun MachineEditorDialog(
                             stackMode = stackMode,
                             addOnPlateKg = addOnPlate.toWhipDoubleOrNull()?.let { massToKilograms(it, if (loadType == MachineLoadType.Mass) unitId else mappingUnitId) },
                             stackLabels = stackLabels.split(',').map(String::trim).filter(String::isNotBlank),
-                            massMappingKg = requireNotNull(parseMachineMassMapping(massMapping)).mapValues { (_, value) -> massToKilograms(value, mappingUnitId) },
+                            massMappingKg = parsedMassMapping.orEmpty().mapValues { (_, value) -> massToKilograms(value, mappingUnitId) },
                             compatibleForComparison = compatibleForComparison,
                             exerciseIds = exerciseIds.toSet(),
                             levelDirection = levelDirection,
-                        ),
+                        ).withLoadSemantics(),
                     )
                 },
             ) { Text(if (saving) "Saving…" else "Save") }
@@ -7942,24 +8011,24 @@ internal fun GymProgressContent(
                     .mapNotNullTo(scopes, WorkoutExercise::equipmentScopeKey)
             }
     } else setOfNotNull(selectedMachineScope)
-    LaunchedEffect(selectedMachineScope, selectedMachine?.loadType) {
-        if (selectedMachine?.loadType == MachineLoadType.Level && metric !in setOf(
-                GymGraphMetric.MaxMachineSetting,
-                GymGraphMetric.MaxRepetitions,
-                GymGraphMetric.TotalRepetitions,
-                GymGraphMetric.Duration,
-            )
-        ) {
-            metric = GymGraphMetric.MaxMachineSetting
-        }
-        if (machineScoped) comparisonIds = emptySet()
-    }
     val through = LocalWhipToday.current
     val validatedRange = validateGymGraphRange(range, customFrom, customTo, through)
     val effectiveFrom = validatedRange.from
     val effectiveTo = validatedRange.to
     val selectedPlacement = exercisePlacements.firstOrNull { it.equipmentScopeKey == selectedMachineScope }
     val selectedMachineLoadType = selectedMachine?.loadType ?: selectedPlacement?.machineLoadTypeSnapshot
+    val availableMetrics = exercise?.trackingType?.supportedGraphMetrics(selectedMachineLoadType)
+        ?: listOf(GymGraphMetric.EstimatedOneRepMax)
+    LaunchedEffect(selectedExerciseId, selectedMachineScope, selectedMachineLoadType) {
+        if (metric !in availableMetrics) metric = availableMetrics.first()
+        if (machineScoped) comparisonIds = emptySet()
+    }
+    LaunchedEffect(metric, state.exercises) {
+        val compatibleExerciseIds = state.exercises
+            .filter { metric in it.trackingType.supportedGraphMetrics() }
+            .mapTo(mutableSetOf(), Exercise::id)
+        comparisonIds = comparisonIds.intersect(compatibleExerciseIds)
+    }
     val selectedMachineUnitId = selectedMachine?.unitId?.takeIf(String::isNotBlank)
         ?: selectedPlacement?.machineUnitIdSnapshot?.takeIf(String::isNotBlank)
     // A single exercise should read in the unit chosen for that exercise or machine. Comparisons
@@ -8076,8 +8145,11 @@ internal fun GymProgressContent(
                 onSelect = { id ->
                     val selected = state.exercises.firstOrNull { it.id == id } ?: return@ExerciseSelectionField
                     selectedExerciseId = selected.id
+                    val metrics = selected.trackingType.supportedGraphMetrics()
                     metric = runCatching { GymGraphMetric.valueOf(selected.defaultGraphMetric) }
-                        .getOrDefault(GymGraphMetric.EstimatedOneRepMax)
+                        .getOrNull()
+                        .takeIf(metrics::contains)
+                        ?: metrics.first()
                 },
                 modifier = Modifier.fillMaxWidth().testTag("gym-progress-exercise-selector"),
             )
@@ -8111,11 +8183,6 @@ internal fun GymProgressContent(
             )
         }
         item {
-            val availableMetrics = if (selectedMachine?.loadType == MachineLoadType.Level) {
-                listOf(GymGraphMetric.MaxMachineSetting, GymGraphMetric.MaxRepetitions, GymGraphMetric.TotalRepetitions, GymGraphMetric.Duration)
-            } else {
-                GymGraphMetric.entries.filterNot { it == GymGraphMetric.MaxMachineSetting }
-            }
             GymEnumDropdown("Metric", availableMetrics, metric.takeIf { it in availableMetrics } ?: availableMetrics.first(), { it.label }) { metric = it }
             if (metric == GymGraphMetric.EstimatedOneRepMax) {
                 val formulas = exercisePlacements.map(WorkoutExercise::oneRepMaxFormulaSnapshot).distinct()
@@ -8168,7 +8235,7 @@ internal fun GymProgressContent(
                 }
                 if (state.exercises.size > 1 && !machineScoped) {
                     ExerciseComparisonField(
-                        exercises = state.exercises,
+                        exercises = state.exercises.filter { metric in it.trackingType.supportedGraphMetrics() },
                         excludedExerciseId = selectedExerciseId,
                         selectedExerciseIds = comparisonIds,
                         onSelectionChange = { comparisonIds = it },
@@ -9421,6 +9488,13 @@ internal fun ExerciseEditorDialog(
     var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
     var pendingWeightUnit by rememberSaveable(editorKey) { mutableStateOf<String?>(null) }
     var pendingLoadInterpretation by rememberSaveable(editorKey) { mutableStateOf<LoadInterpretation?>(null) }
+    val supportsLoad = trackingType.supportsLoadEntry()
+    val supportsRepetitions = trackingType.supportsRepetitionEntry()
+    val supportedGraphMetrics = trackingType.supportedGraphMetrics()
+    LaunchedEffect(trackingType) {
+        val selected = runCatching { GymGraphMetric.valueOf(graphMetric) }.getOrNull()
+        if (selected !in supportedGraphMetrics) graphMetric = supportedGraphMetrics.first().name
+    }
     fun convertDefaultsToUnit(selected: String) {
         val current = WeightEquipmentSetup(
             increment = weightIncrement.toWhipDoubleOrNull()
@@ -9447,22 +9521,25 @@ internal fun ExerciseEditorDialog(
     val parsedPlateValues = plateEntries.mapNotNull(String::toWhipDoubleOrNull)
     val nameError = "Enter an exercise name".takeIf { name.isBlank() }
     val weightIncrementError = "Weight increment must be above 0".takeIf {
-        weightIncrement.toWhipDoubleOrNull()?.let { !it.isFinite() || it <= 0.0 } != false
+        supportsLoad && weightIncrement.toWhipDoubleOrNull()?.let { !it.isFinite() || it <= 0.0 } != false
     }
     val repetitionIncrementError = "Rep increment must be at least 1".takeIf {
-        repetitionIncrement.toIntOrNull()?.let { it <= 0 } != false
+        supportsRepetitions && repetitionIncrement.toIntOrNull()?.let { it <= 0 } != false
     }
     val restSecondsError = "Default rest must be 1–86,400 seconds, or blank".takeIf {
         restSeconds.isNotBlank() && restSeconds.toIntOrNull()?.let { it !in 1..86_400 } != false
     }
     val effectiveBodyweightError = "Effective bodyweight must be from 0–200%".takeIf {
-        effectiveBodyweight.toWhipDoubleOrNull()?.let { !it.isFinite() || it !in 0.0..200.0 } != false
+        trackingType in setOf(ExerciseTrackingType.BodyweightReps, ExerciseTrackingType.AssistedBodyweightReps) &&
+            effectiveBodyweight.toWhipDoubleOrNull()?.let { !it.isFinite() || it !in 0.0..200.0 } != false
     }
     val barWeightError = "Bar or base weight must be 0 or more".takeIf {
-        barWeight.isNotBlank() && barWeight.toWhipDoubleOrNull()?.let { !it.isFinite() || it < 0.0 } != false
+        supportsLoad && barWeight.isNotBlank() &&
+            barWeight.toWhipDoubleOrNull()?.let { !it.isFinite() || it < 0.0 } != false
     }
     val platesError = "Plates must be comma-separated positive numbers".takeIf {
-        parsedPlateValues.size != plateEntries.size || parsedPlateValues.any { !it.isFinite() || it <= 0.0 }
+        supportsLoad &&
+            (parsedPlateValues.size != plateEntries.size || parsedPlateValues.any { !it.isFinite() || it <= 0.0 })
     }
     val validationErrors = listOfNotNull(
         nameError,
@@ -9594,7 +9671,7 @@ internal fun ExerciseEditorDialog(
                     item { OutlinedTextField(equipment, { equipment = it }, label = { Text("Equipment") }, modifier = Modifier.fillMaxWidth()) }
                     item { OutlinedTextField(primaryMuscles, { primaryMuscles = it }, label = { Text("Primary muscles / tags") }, modifier = Modifier.fillMaxWidth()) }
                     item { OutlinedTextField(secondaryMuscles, { secondaryMuscles = it }, label = { Text("Secondary muscles / tags") }, modifier = Modifier.fillMaxWidth()) }
-                    item {
+                    if (supportsLoad) item {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             WhipFilterChip(selected = weightUnit == "kilogram", onClick = { if (weightUnit != "kilogram") pendingWeightUnit = "kilogram" }, label = { Text("kg") })
                             WhipFilterChip(selected = weightUnit == "pound", onClick = { if (weightUnit != "pound") pendingWeightUnit = "pound" }, label = { Text("lb") })
@@ -9604,7 +9681,7 @@ internal fun ExerciseEditorDialog(
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
-                    item { ResponsiveFieldPair(
+                    if (supportsLoad && supportsRepetitions) item { ResponsiveFieldPair(
                         first = { field -> NumberField(
                             weightIncrement,
                             { weightIncrement = it },
@@ -9623,7 +9700,28 @@ internal fun ExerciseEditorDialog(
                             supportingText = repetitionIncrementError.takeIf { validationRequested },
                         ) },
                     ) }
-                    item {
+                    if (supportsLoad && !supportsRepetitions) item {
+                        NumberField(
+                            weightIncrement,
+                            { weightIncrement = it },
+                            "Weight increment (${unitSymbol(weightUnit)})",
+                            modifier = Modifier.fillMaxWidth().testTag("exercise-weight-increment"),
+                            isError = validationRequested && weightIncrementError != null,
+                            supportingText = weightIncrementError.takeIf { validationRequested },
+                        )
+                    }
+                    if (!supportsLoad && supportsRepetitions) item {
+                        NumberField(
+                            repetitionIncrement,
+                            { repetitionIncrement = it },
+                            "Rep increment",
+                            integer = true,
+                            modifier = Modifier.fillMaxWidth().testTag("exercise-repetition-increment"),
+                            isError = validationRequested && repetitionIncrementError != null,
+                            supportingText = repetitionIncrementError.takeIf { validationRequested },
+                        )
+                    }
+                    if (supportsLoad) item {
                         GymEnumDropdown(
                             "What one weight entry means",
                             LoadInterpretation.entries,
@@ -9656,9 +9754,18 @@ internal fun ExerciseEditorDialog(
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    item { GymEnumDropdown("Default graph", GymGraphMetric.entries, GymGraphMetric.entries.firstOrNull { it.name == graphMetric } ?: GymGraphMetric.EstimatedOneRepMax, { it.label }) { graphMetric = it.name } }
-                    item { GymEnumDropdown("Estimated 1RM formula", EstimatedOneRepMaxFormula.entries, formula, { it.name }) { formula = it } }
-                    item { ResponsiveFieldPair(
+                    item {
+                        GymEnumDropdown(
+                            "Default graph",
+                            supportedGraphMetrics,
+                            supportedGraphMetrics.firstOrNull { it.name == graphMetric } ?: supportedGraphMetrics.first(),
+                            GymGraphMetric::label,
+                        ) { graphMetric = it.name }
+                    }
+                    if (trackingType == ExerciseTrackingType.WeightReps) item {
+                        GymEnumDropdown("Estimated 1RM formula", EstimatedOneRepMaxFormula.entries, formula, { it.name }) { formula = it }
+                    }
+                    if (supportsLoad) item { ResponsiveFieldPair(
                         first = { field -> NumberField(
                             barWeight,
                             { barWeight = it },
@@ -9676,7 +9783,7 @@ internal fun ExerciseEditorDialog(
                             modifier = field.testTag("exercise-plates"),
                         ) },
                     ) }
-                    if (platePresets.isNotEmpty()) item {
+                    if (supportsLoad && platePresets.isNotEmpty()) item {
                         Text("Apply Plate Preset", style = MaterialTheme.typography.labelMedium)
                         FlowRow(
                             modifier = Modifier.fillMaxWidth(),
@@ -9718,7 +9825,7 @@ internal fun ExerciseEditorDialog(
                         }
                         GymEnumDropdown("Tempo field", listOf<Boolean?>(null, true, false), showTempo, ::fieldVisibilityLabel) { showTempo = it }
                     }
-                    item { ToggleRow("Include in volume", includeVolume) { includeVolume = it } }
+                    if (supportsLoad) item { ToggleRow("Include in volume", includeVolume) { includeVolume = it } }
                     item { ToggleRow("Include in personal records", includePr) { includePr = it } }
                 }
             }
@@ -9757,7 +9864,7 @@ internal fun ExerciseEditorDialog(
                             showTempo = showTempo,
                             categoryIds = categoryIds,
                             loadInterpretation = loadInterpretation,
-                        ),
+                        ).withTrackingSemantics(),
                     )
                 },
             ) { Text(if (saving) "Saving…" else "Save") }

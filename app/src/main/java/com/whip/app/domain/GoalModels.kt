@@ -56,6 +56,12 @@ fun GoalType.defaultDirection(): GoalDirection = when (this) {
     else -> GoalDirection.Increase
 }
 
+fun GoalType.supportsAggregationPeriod(): Boolean = this !in setOf(
+    GoalType.Consistency,
+    GoalType.WeightedMilestones,
+    GoalType.ElapsedSince,
+)
+
 data class GoalDraft(
     val name: String,
     val description: String = "",
@@ -89,6 +95,11 @@ fun GoalDraft.withTypeSemantics(): GoalDraft = copy(
     aggregation = aggregation.takeIf { it in type.compatibleAggregations() } ?: type.defaultAggregation(),
     direction = type.defaultDirection(),
     paceType = paceType.takeIf { deadline != null && type !in setOf(GoalType.OpenEndedTrend, GoalType.ElapsedSince) } ?: GoalPaceType.None,
+    aggregationPeriod = aggregationPeriod.takeIf { type.supportsAggregationPeriod() }
+        ?: GoalAggregationPeriod.All,
+    rollingDays = rollingDays.takeIf {
+        type.supportsAggregationPeriod() && aggregationPeriod == GoalAggregationPeriod.RollingDays
+    },
 )
 
 /**
@@ -126,7 +137,10 @@ fun GoalDraft.validationErrors(nowMillis: Long): List<String> = buildList {
         }
         GoalType.Consistency, GoalType.OpenEndedTrend -> Unit
     }
-    if (aggregationPeriod == GoalAggregationPeriod.RollingDays && (rollingDays ?: 0) <= 0) {
+    if (
+        type.supportsAggregationPeriod() && aggregationPeriod == GoalAggregationPeriod.RollingDays &&
+        (rollingDays ?: 0) <= 0
+    ) {
         add("Enter a positive rolling window")
     }
     if (type == GoalType.Consistency) {

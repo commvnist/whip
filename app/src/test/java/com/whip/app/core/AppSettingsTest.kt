@@ -20,6 +20,15 @@ import com.whip.app.domain.CustomIdentityEmoji
 
 class AppSettingsTest {
     @Test
+    fun hardSetChoicesRetainEveryCurrentWorkoutClassification() {
+        val normalized = AppSettings(
+            hardSetClassifications = setOf("TrainingMaxTest", "Unknown"),
+        ).normalized()
+
+        assertEquals(setOf("TrainingMaxTest"), normalized.hardSetClassifications)
+    }
+
+    @Test
     fun focusTimerIdentityAndDeadlineAreNormalizedAsOneState() {
         val deadline = 2_000_000L
 

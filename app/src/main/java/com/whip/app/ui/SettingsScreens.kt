@@ -101,6 +101,7 @@ import com.whip.app.domain.IDENTITY_EMOJI_PRESETS
 import com.whip.app.domain.isDefaultIdentityEmoji
 import com.whip.app.domain.isIdentityEmoji
 import com.whip.app.domain.UnitDimension
+import com.whip.app.domain.WorkoutSetClassification
 import com.whip.app.domain.CustomUnitBoundary
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.AreaScope
@@ -148,6 +149,8 @@ internal val DataPrivacyGroupOrder = listOf(
     DataPrivacyGroup.Backup,
     DataPrivacyGroup.Reset,
 )
+
+internal fun supportsAndroidDynamicColor(sdkInt: Int): Boolean = sdkInt >= Build.VERSION_CODES.S
 
 internal fun healthConnectOrphanedMessage(pendingAction: String?): String = when {
     pendingAction == "sync" ->
@@ -519,7 +522,7 @@ internal fun SettingsContent(
                 supportingText = "De-emphasizes streaks and success/failure language in Habit views without changing history.",
             ) { selected -> viewModel.update { it.copy(lowPressureMode = selected) } }
         }
-        if (settings.powerMode) item {
+        item {
             WhipSettingsSectionCard {
                 Text("Hardware Keyboard", fontWeight = FontWeight.Bold)
                 Text("Ctrl+H Home · Ctrl+K Search · Ctrl+N contextual add · Ctrl+1–5 switch Tasks, Habits, Goals, Tracks, Gym", style = MaterialTheme.typography.bodySmall)
@@ -527,10 +530,16 @@ internal fun SettingsContent(
         }
         item { SettingsDropdown("Theme", AppThemeMode.entries, settings.themeMode, AppThemeMode::label) { selected -> viewModel.update { it.copy(themeMode = selected) } } }
         item {
+            val dynamicColorAvailable = supportsAndroidDynamicColor(Build.VERSION.SDK_INT)
             SettingsToggle(
                 "Use Android dynamic colors",
                 settings.dynamicColor,
-                supportingText = "Uses the device wallpaper palette on supported Android versions.",
+                enabled = dynamicColorAvailable,
+                supportingText = if (dynamicColorAvailable) {
+                    "Uses the device wallpaper palette."
+                } else {
+                    "Requires Android 12 or newer. Whip uses its selected Theme on this device."
+                },
             ) { selected -> viewModel.update { it.copy(dynamicColor = selected) } }
         }
         item {
@@ -605,7 +614,7 @@ internal fun SettingsContent(
         item {
             SettingsHeading("Home Overview")
             Text(
-                "Choose which sections and empty-day shortcuts appear on Whip Home. Main navigation and saved data remain unchanged. Pinning an item reveals and expands its section so the action always has a visible destination. Show Details by Default controls whether a visible section starts expanded.",
+                "Choose which sections and empty-day shortcuts appear on Whip Home. Main navigation and saved data remain unchanged. Pinning an item reveals and expands its section so the action always has a visible destination. Visible sections can start expanded or collapsed.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -653,12 +662,13 @@ internal fun SettingsContent(
                             )
                         }
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            DisclosureButton(
-                                label = "Show Details by Default",
-                                expanded = expanded,
-                                onClick = { viewModel.update { current -> current.copy(collapsedHomeSections = if (section in current.collapsedHomeSections) current.collapsedHomeSections - section else current.collapsedHomeSections + section) } },
-                                enabled = visible,
-                            )
+                            if (visible) {
+                                DisclosureButton(
+                                    label = "Show Details by Default",
+                                    expanded = expanded,
+                                    onClick = { viewModel.update { current -> current.copy(collapsedHomeSections = if (section in current.collapsedHomeSections) current.collapsedHomeSections - section else current.collapsedHomeSections + section) } },
+                                )
+                            }
                             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
                                 WhipReorderHandle(
                                     label = "${section.label} Home section",
@@ -962,7 +972,8 @@ internal fun SettingsContent(
         item {
             Text("Hard-Set Classifications", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("Working", "BackOff", "Drop", "Amrap", "Failure", "WarmUp").forEach { value ->
+                WorkoutSetClassification.entries.forEach { classification ->
+                    val value = classification.name
                     WhipFilterChip(
                         selected = value in settings.hardSetClassifications,
                         onClick = {

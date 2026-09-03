@@ -107,6 +107,23 @@ class GoalRulesTest {
         assertEquals(GoalPaceType.Linear, range.paceType)
     }
 
+    @Test fun goalTypeRemovesAHiddenAggregationWindow() {
+        val staleWindow = GoalDraft(
+            name = "Project",
+            type = GoalType.WeightedMilestones,
+            startDate = today,
+            aggregationPeriod = GoalAggregationPeriod.RollingDays,
+            rollingDays = 0,
+            milestones = listOf(GoalMilestoneDraft("Ship", weight = 1.0)),
+        )
+
+        assertTrue(staleWindow.validationErrors(1_000L).none { it.contains("rolling window") })
+        val semantic = staleWindow.withTypeSemantics()
+        assertEquals(GoalAggregationPeriod.All, semantic.aggregationPeriod)
+        assertNull(semantic.rollingDays)
+        assertTrue(semantic.validationErrors(1_000L).isEmpty())
+    }
+
     @Test fun rollingAverageOnlyUsesConfiguredWindow() {
         val rolling = goal(type = GoalType.MeetAverage).copy(
             aggregation = GoalAggregation.Average,

@@ -93,6 +93,7 @@ import com.whip.app.domain.GoalPaceType
 import com.whip.app.domain.GoalProjection
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.GoalType
+import com.whip.app.domain.withTypeSemantics
 import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.elapsedCounter
 import com.whip.app.domain.DEFAULT_GOAL_EMOJI
@@ -1469,7 +1470,7 @@ internal fun GoalEditorDialog(
         consistencyRequiredPeriods = consistencyRequiredPeriods.toIntOrNull(),
         elapsedStartMillis = elapsedStartInstant?.toEpochMilli().takeIf { type == GoalType.ElapsedSince },
         elapsedDisplayUnit = elapsedDisplayUnit,
-    )
+    ).withTypeSemantics()
     val rawFieldProblems = buildList {
         if (goal == null && areas.count { !it.archived } > 1 && areaId == null) add("Choose an Area for this Goal")
         if (

@@ -95,6 +95,7 @@ import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitSkip
 import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.withConfigurationSemantics
 import com.whip.app.domain.DEFAULT_HABIT_EMOJI
 import com.whip.app.domain.TargetComparison
 import com.whip.app.domain.TargetPeriod
@@ -1988,15 +1989,36 @@ internal fun HabitEditorDialog(
             .mapIndexed { index, item -> item.copy(name = item.name.trim(), position = index) },
         autoCompleteFromItems = autoCompleteFromItems,
         sourceMetricId = sourceMetricId,
-    )
+    ).withConfigurationSemantics()
     val rawFieldProblems = buildList {
-        if (targetMin.isNotBlank() && targetMin.toWhipDoubleOrNull() == null) add("Target must be a valid number")
-        if (targetMax.isNotBlank() && targetMax.toWhipDoubleOrNull() == null) add("Maximum must be a valid number")
-        if (interval.toIntOrNull() == null) add("Schedule interval must be a positive whole number")
-        if (precision.toIntOrNull() == null) add("Decimal places must be between 0 and 6")
-        if (rollingDays.isNotBlank() && rollingDays.toIntOrNull() == null) add("Rolling window must be a positive whole number")
-        if (flexible.isNotBlank() && flexible.toIntOrNull() == null) add("Flexible schedule count must be a positive whole number")
-        if (endValue.isNotBlank() && endValue.toWhipDoubleOrNull() == null) add("Ending threshold must be a valid number")
+        if (
+            comparison in setOf(TargetComparison.AtLeast, TargetComparison.Exactly, TargetComparison.WithinRange) &&
+            targetMin.isNotBlank() && targetMin.toWhipDoubleOrNull() == null
+        ) add("Target must be a valid number")
+        if (
+            comparison in setOf(TargetComparison.AtMost, TargetComparison.WithinRange) &&
+            targetMax.isNotBlank() && targetMax.toWhipDoubleOrNull() == null
+        ) add("Maximum must be a valid number")
+        if (schedule == HabitScheduleType.EveryNDays && interval.toIntOrNull() == null) {
+            add("Schedule interval must be a positive whole number")
+        }
+        if (
+            sourceMetricId == null &&
+            mode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist, HabitTrackingMode.Rating) &&
+            precision.toIntOrNull() == null
+        ) add("Decimal places must be between 0 and 6")
+        if (
+            comparison != TargetComparison.None && targetPeriod == TargetPeriod.RollingDays &&
+            rollingDays.isNotBlank() && rollingDays.toIntOrNull() == null
+        ) add("Rolling window must be a positive whole number")
+        if (
+            schedule in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth) &&
+            flexible.isNotBlank() && flexible.toIntOrNull() == null
+        ) add("Flexible schedule count must be a positive whole number")
+        if (
+            endType in setOf(HabitEndType.AfterStreak, HabitEndType.AfterCompletions, HabitEndType.AfterTotal) &&
+            endValue.isNotBlank() && endValue.toWhipDoubleOrNull() == null
+        ) add("Ending threshold must be a valid number")
         if (quickAddsEnabled) quickActionResult.error?.let(::add)
         if (habit == null && areas.count { !it.archived } > 1 && areaId == null) add("Choose an Area for this Habit")
     }
@@ -2306,7 +2328,15 @@ internal fun HabitEditorDialog(
                         }
                         item { NumberTextField(precision, { precision = it }, "Decimal places (0–6)") }
                     }
-                    item { EnumDropdown("Target rule", TargetComparison.entries, comparison, TargetComparison::displayLabel) { comparison = it } }
+                    item {
+                        EnumDropdown("Target rule", TargetComparison.entries, comparison, TargetComparison::displayLabel) { selected ->
+                            if (selected == TargetComparison.AtMost && targetMax.isBlank()) targetMax = targetMin
+                            if (selected in setOf(TargetComparison.AtLeast, TargetComparison.Exactly) && targetMin.isBlank()) {
+                                targetMin = targetMax
+                            }
+                            comparison = selected
+                        }
+                    }
                     if (comparison != TargetComparison.None) {
                         item {
                             if (comparison == TargetComparison.WithinRange) {
@@ -2314,16 +2344,20 @@ internal fun HabitEditorDialog(
                                     first = { field -> NumberTextField(targetMin, { targetMin = it }, "Minimum", field) },
                                     second = { field -> NumberTextField(targetMax, { targetMax = it }, "Maximum", field) },
                                 )
-                            } else NumberTextField(
-                                targetMin,
-                                { targetMin = it },
-                                when (targetPeriod) {
-                                    TargetPeriod.Week -> "Target per week"
-                                    TargetPeriod.Month -> "Target per month"
-                                    TargetPeriod.Occurrence -> "Target each time"
-                                    else -> "Target per day"
-                                },
-                            )
+                            } else {
+                                val maximum = comparison == TargetComparison.AtMost
+                                NumberTextField(
+                                    if (maximum) targetMax else targetMin,
+                                    { value -> if (maximum) targetMax = value else targetMin = value },
+                                    when (targetPeriod) {
+                                        TargetPeriod.Week -> if (maximum) "Maximum per week" else "Target per week"
+                                        TargetPeriod.Month -> if (maximum) "Maximum per month" else "Target per month"
+                                        TargetPeriod.Occurrence -> if (maximum) "Maximum each time" else "Target each time"
+                                        TargetPeriod.RollingDays -> if (maximum) "Maximum per window" else "Target per window"
+                                        TargetPeriod.Day -> if (maximum) "Maximum per day" else "Target per day"
+                                    },
+                                )
+                            }
                         }
                         item {
                             EnumChips("Target period", TargetPeriod.entries, targetPeriod, TargetPeriod::displayLabel) { targetPeriod = it }

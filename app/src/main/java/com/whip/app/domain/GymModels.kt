@@ -18,6 +18,22 @@ enum class ExerciseTrackingType(val label: String) {
     DurationOnly("Duration only"),
 }
 
+fun ExerciseTrackingType.supportsLoadEntry(): Boolean = this in setOf(
+    ExerciseTrackingType.WeightReps,
+    ExerciseTrackingType.BodyweightReps,
+    ExerciseTrackingType.AssistedBodyweightReps,
+    ExerciseTrackingType.WeightOnly,
+    ExerciseTrackingType.WeightDuration,
+)
+
+fun ExerciseTrackingType.supportsRepetitionEntry(): Boolean = this in setOf(
+    ExerciseTrackingType.WeightReps,
+    ExerciseTrackingType.BodyweightReps,
+    ExerciseTrackingType.AssistedBodyweightReps,
+    ExerciseTrackingType.RepsOnly,
+    ExerciseTrackingType.RepsDuration,
+)
+
 enum class EstimatedOneRepMaxFormula(val label: String) {
     Epley("Epley"),
     Brzycki("Brzycki"),
@@ -83,6 +99,23 @@ data class GymMachineDraft(
     val exerciseIds: Set<Long> = exerciseId?.let(::setOf).orEmpty(),
     val levelDirection: MachineLevelDirection = MachineLevelDirection.HigherNumberMoreResistance,
 )
+
+/** Keeps persisted resistance fields aligned with the machine scale the user selected. */
+fun GymMachineDraft.withLoadSemantics(): GymMachineDraft = when (loadType) {
+    MachineLoadType.Mass -> copy(
+        levelLabel = "level",
+        massMappingKg = emptyMap(),
+        loadInterpretation = loadInterpretation.takeUnless { it == LoadInterpretation.OrdinalSetting }
+            ?: LoadInterpretation.MachineDisplayedMass,
+        baseLoadKg = baseLoadKg.takeIf { loadInterpretation == LoadInterpretation.PerSide },
+        levelDirection = MachineLevelDirection.HigherNumberMoreResistance,
+    )
+    MachineLoadType.Level -> copy(
+        unitId = "",
+        loadInterpretation = LoadInterpretation.OrdinalSetting,
+        baseLoadKg = null,
+    )
+}
 
 data class GymMachine(
     val id: Long,
@@ -421,6 +454,33 @@ data class ExerciseDraft(
     val categoryIds: Set<Long> = emptySet(),
     val loadInterpretation: LoadInterpretation = LoadInterpretation.Total,
 )
+
+/** Removes options that cannot affect this tracking type and repairs an incompatible chart default. */
+fun ExerciseDraft.withTrackingSemantics(): ExerciseDraft {
+    val loadEnabled = trackingType.supportsLoadEntry()
+    val repetitionsEnabled = trackingType.supportsRepetitionEntry()
+    val bodyweightEnabled = trackingType in setOf(
+        ExerciseTrackingType.BodyweightReps,
+        ExerciseTrackingType.AssistedBodyweightReps,
+    )
+    val graphMetrics = trackingType.supportedGraphMetrics()
+    val graphMetric = runCatching { GymGraphMetric.valueOf(defaultGraphMetric) }
+        .getOrNull()
+        .takeIf(graphMetrics::contains)
+        ?: graphMetrics.first()
+    return copy(
+        weightIncrement = weightIncrement.takeIf { loadEnabled } ?: 1.0,
+        repetitionIncrement = repetitionIncrement.takeIf { repetitionsEnabled } ?: 1,
+        defaultGraphMetric = graphMetric.name,
+        barWeightKg = barWeightKg.takeIf { loadEnabled },
+        availablePlatesKg = availablePlatesKg.takeIf { loadEnabled }.orEmpty(),
+        includeInVolume = includeInVolume && loadEnabled,
+        bodyweightLoadPolicy = bodyweightLoadPolicy.takeIf { bodyweightEnabled }
+            ?: BodyweightLoadPolicy.ExternalWeightOnly,
+        effectiveBodyweightPercent = effectiveBodyweightPercent.takeIf { bodyweightEnabled } ?: 100.0,
+        loadInterpretation = loadInterpretation.takeIf { loadEnabled } ?: LoadInterpretation.Total,
+    )
+}
 
 data class Exercise(
     val id: Long,

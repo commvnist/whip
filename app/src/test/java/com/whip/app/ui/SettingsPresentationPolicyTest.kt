@@ -12,6 +12,13 @@ import org.junit.Test
 
 class SettingsPresentationPolicyTest {
     @Test
+    fun dynamicColorIsOnlyOfferedWhereAndroidCanApplyIt() {
+        assertFalse(supportsAndroidDynamicColor(30))
+        assertTrue(supportsAndroidDynamicColor(31))
+        assertTrue(supportsAndroidDynamicColor(36))
+    }
+
+    @Test
     fun dataPrivacyPrioritizesHealthAndKeepsWholeAppResetLast() {
         assertEquals(
             listOf(DataPrivacyGroup.Health, DataPrivacyGroup.Backup, DataPrivacyGroup.Reset),

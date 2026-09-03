@@ -4,10 +4,74 @@ import java.time.Instant
 import java.time.DayOfWeek
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GymAnalyticsTest {
+    @Test
+    fun eachTrackingTypeOnlyOffersMetricsItsSetsCanProduce() {
+        assertEquals(
+            listOf(GymGraphMetric.Duration),
+            ExerciseTrackingType.DurationOnly.supportedGraphMetrics(),
+        )
+        assertEquals(
+            listOf(GymGraphMetric.Distance),
+            ExerciseTrackingType.DistanceOnly.supportedGraphMetrics(),
+        )
+        assertTrue(GymGraphMetric.EstimatedOneRepMax in ExerciseTrackingType.WeightReps.supportedGraphMetrics())
+        assertTrue(GymGraphMetric.EstimatedOneRepMax !in ExerciseTrackingType.WeightOnly.supportedGraphMetrics())
+        assertEquals(
+            listOf(GymGraphMetric.MaxMachineSetting, GymGraphMetric.Duration),
+            ExerciseTrackingType.WeightDuration.supportedGraphMetrics(MachineLoadType.Level),
+        )
+    }
+
+    @Test
+    fun exerciseDraftDropsHiddenLoadFieldsAndRepairsItsGraphDefault() {
+        val semantic = ExerciseDraft(
+            name = "Plank",
+            trackingType = ExerciseTrackingType.DurationOnly,
+            weightIncrement = Double.NaN,
+            repetitionIncrement = -1,
+            defaultGraphMetric = GymGraphMetric.EstimatedOneRepMax.name,
+            barWeightKg = 20.0,
+            availablePlatesKg = listOf(20.0),
+            includeInVolume = true,
+            loadInterpretation = LoadInterpretation.PerSide,
+        ).withTrackingSemantics()
+
+        assertEquals(1.0, semantic.weightIncrement, 0.0)
+        assertEquals(1, semantic.repetitionIncrement)
+        assertEquals(GymGraphMetric.Duration.name, semantic.defaultGraphMetric)
+        assertNull(semantic.barWeightKg)
+        assertTrue(semantic.availablePlatesKg.isEmpty())
+        assertFalse(semantic.includeInVolume)
+        assertEquals(LoadInterpretation.Total, semantic.loadInterpretation)
+    }
+
+    @Test
+    fun machineDraftDropsFieldsOwnedByTheOtherResistanceScale() {
+        val mass = GymMachineDraft(
+            name = "Stack",
+            loadType = MachineLoadType.Mass,
+            loadInterpretation = LoadInterpretation.OrdinalSetting,
+            massMappingKg = mapOf(1.0 to 10.0),
+        ).withLoadSemantics()
+        assertEquals(LoadInterpretation.MachineDisplayedMass, mass.loadInterpretation)
+        assertTrue(mass.massMappingKg.isEmpty())
+
+        val level = mass.copy(
+            loadType = MachineLoadType.Level,
+            unitId = "pound",
+            loadInterpretation = LoadInterpretation.PerSide,
+            baseLoadKg = 12.0,
+        ).withLoadSemantics()
+        assertEquals("", level.unitId)
+        assertEquals(LoadInterpretation.OrdinalSetting, level.loadInterpretation)
+        assertNull(level.baseLoadKg)
+    }
     @Test fun downsamplingKeepsEndpointsWithoutChangingSourceHistory() {
         val source = (0 until 1_000).toList()
         val sampled = downsampleEvenly(source, 100)

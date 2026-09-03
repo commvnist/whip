@@ -187,7 +187,7 @@ class GoalRepositoryTest {
         )
     }
 
-    @Test fun aggregationAndConsistencyWindowsPersist() = runBlocking {
+    @Test fun consistencyKeepsItsOwnPeriodAndDropsTheUnrelatedAggregationWindow() = runBlocking {
         repository.create(
             GoalDraft(
                 name = "Train consistently",
@@ -203,8 +203,8 @@ class GoalRepositoryTest {
         )
 
         val saved = repository.goals.first().single()
-        assertEquals(GoalAggregationPeriod.RollingDays, saved.aggregationPeriod)
-        assertEquals(28, saved.rollingDays)
+        assertEquals(GoalAggregationPeriod.All, saved.aggregationPeriod)
+        assertEquals(null, saved.rollingDays)
         assertEquals(GoalConsistencyPeriod.Week, saved.consistencyPeriod)
         assertEquals(12, saved.consistencyRequiredPeriods)
     }

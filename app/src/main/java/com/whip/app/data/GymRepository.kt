@@ -11,7 +11,10 @@ import com.whip.app.domain.Exercise
 import com.whip.app.domain.ExerciseCategory
 import com.whip.app.domain.ExerciseCategoryLink
 import com.whip.app.domain.ExerciseDraft
+import com.whip.app.domain.withTrackingSemantics
 import com.whip.app.domain.ExerciseTrackingType
+import com.whip.app.domain.supportsLoadEntry
+import com.whip.app.domain.supportsRepetitionEntry
 import com.whip.app.domain.FiveThreeOneEvidenceKind
 import com.whip.app.domain.FiveThreeOneEvidenceRow
 import com.whip.app.domain.FiveThreeOneProgression
@@ -19,6 +22,7 @@ import com.whip.app.domain.FiveThreeOneProgressionCategory
 import com.whip.app.domain.FiveThreeOneProgressionRecommendation
 import com.whip.app.domain.GymMachine
 import com.whip.app.domain.GymMachineDraft
+import com.whip.app.domain.withLoadSemantics
 import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.MachineStackMode
@@ -332,17 +336,18 @@ class RoomGymRepository(
     }
 
     private suspend fun createMachineInTransaction(draft: GymMachineDraft): Long {
-        validateMachine(draft)
-        val exerciseIds = draft.normalizedExerciseIds()
+        val semanticDraft = draft.withLoadSemantics()
+        validateMachine(semanticDraft)
+        val exerciseIds = semanticDraft.normalizedExerciseIds()
         exerciseIds.forEach { exerciseId ->
             requireNotNull(dao.getExercise(exerciseId)) { "Exercise no longer exists" }
         }
         val now = nowMillis()
         val uuid = ids.nextId()
         val machineId = dao.insertMachine(
-            draft.copy(
-                configurationGroupId = draft.configurationGroupId.ifBlank { uuid },
-                configurationVersion = draft.configurationVersion.coerceAtLeast(1),
+            semanticDraft.copy(
+                configurationGroupId = semanticDraft.configurationGroupId.ifBlank { uuid },
+                configurationVersion = semanticDraft.configurationVersion.coerceAtLeast(1),
             ).toEntity(uuid = uuid, createdAtMillis = now, primaryExerciseId = exerciseIds.firstOrNull()),
         )
         syncMachineExercises(machineId, exerciseIds)
@@ -382,8 +387,9 @@ class RoomGymRepository(
     }
 
     override suspend fun updateMachine(id: Long, draft: GymMachineDraft) = database.withTransaction {
-        validateMachine(draft)
-        val exerciseIds = draft.normalizedExerciseIds()
+        val semanticDraft = draft.withLoadSemantics()
+        validateMachine(semanticDraft)
+        val exerciseIds = semanticDraft.normalizedExerciseIds()
         exerciseIds.forEach { exerciseId ->
             requireNotNull(dao.getExercise(exerciseId)) { "Exercise no longer exists" }
         }
@@ -391,22 +397,24 @@ class RoomGymRepository(
         val removedExerciseIds = dao.getMachineExerciseJoins(id).mapTo(mutableSetOf()) { it.exerciseId } - exerciseIds
         if (dao.getAllWorkoutExercises().any { it.machineId == id }) {
             require(
-                draft.loadType.name == existing.loadType &&
-                    (draft.loadType != MachineLoadType.Mass || draft.unitId == existing.unitId) &&
-                    draft.loadInterpretation.name == existing.loadInterpretation &&
-                    draft.baseLoadKg == existing.baseLoadKg &&
-                    draft.pulleyRatio == existing.pulleyRatio &&
-                    draft.stackMode.name == existing.stackMode &&
-                    draft.addOnPlateKg == existing.addOnPlateKg &&
-                    draft.massMappingKg.toStableMappingCsv() == existing.massMappingCsv &&
-                    (draft.loadType != MachineLoadType.Level ||
-                        draft.levelLabel.trim() == existing.levelLabel && draft.levelDirection.name == existing.levelDirection),
+                semanticDraft.loadType.name == existing.loadType &&
+                    (semanticDraft.loadType != MachineLoadType.Mass || semanticDraft.unitId == existing.unitId) &&
+                    (semanticDraft.loadType != MachineLoadType.Mass ||
+                        semanticDraft.loadInterpretation.name == existing.loadInterpretation &&
+                            semanticDraft.baseLoadKg == existing.baseLoadKg) &&
+                    semanticDraft.pulleyRatio == existing.pulleyRatio &&
+                    semanticDraft.stackMode.name == existing.stackMode &&
+                    semanticDraft.addOnPlateKg == existing.addOnPlateKg &&
+                    (semanticDraft.loadType != MachineLoadType.Level ||
+                        semanticDraft.massMappingKg.toStableMappingCsv() == existing.massMappingCsv &&
+                            semanticDraft.levelLabel.trim() == existing.levelLabel &&
+                            semanticDraft.levelDirection.name == existing.levelDirection),
             ) {
                 "The resistance scale is locked after this machine has workout history. Create a new machine profile for a changed stack or setup."
             }
         }
         dao.updateMachine(
-            draft.toEntity(
+            semanticDraft.toEntity(
                 id = existing.id,
                 uuid = existing.uuid,
                 archived = existing.archived,
@@ -445,16 +453,17 @@ class RoomGymRepository(
     }
 
     override suspend fun createExercise(draft: ExerciseDraft): Long = database.withTransaction {
-        validateExercise(draft)
+        val semanticDraft = draft.withTrackingSemantics()
+        validateExercise(semanticDraft)
         val now = clock.now().toEpochMilli()
         val id = dao.insertExercise(
-            draft.toEntity(
+            semanticDraft.toEntity(
                 uuid = ids.nextId(),
                 position = dao.nextExercisePosition(),
                 createdAtMillis = now,
             ),
         )
-        syncCategories(id, draft.categoryIds)
+        syncCategories(id, semanticDraft.categoryIds)
         id
     }
 
@@ -499,11 +508,12 @@ class RoomGymRepository(
         draft: ExerciseDraft,
     ): Long? {
         val requestedPlacement = dao.getWorkoutExerciseByUuid(requestedWorkoutExerciseUuid) ?: return null
-        validateExercise(draft)
+        val semanticDraft = draft.withTrackingSemantics()
+        validateExercise(semanticDraft)
         val existing = requireNotNull(dao.getExercise(requestedPlacement.exerciseId)) {
             "The exercise created by this request no longer exists"
         }
-        val expected = draft.toEntity(
+        val expected = semanticDraft.toEntity(
             id = existing.id,
             uuid = existing.uuid,
             position = existing.position,
@@ -513,24 +523,25 @@ class RoomGymRepository(
             updatedAtMillis = existing.updatedAtMillis,
         )
         val categoryIds = dao.getCategoryJoins(existing.id).mapTo(mutableSetOf()) { it.categoryId }
-        require(existing == expected && categoryIds == draft.categoryIds) {
+        require(existing == expected && categoryIds == semanticDraft.categoryIds) {
             "This exercise-creation request conflicts with a newer catalog change"
         }
         return existing.id
     }
 
     override suspend fun updateExercise(id: Long, draft: ExerciseDraft) = database.withTransaction {
-        validateExercise(draft)
+        val semanticDraft = draft.withTrackingSemantics()
+        validateExercise(semanticDraft)
         val existing = dao.getExercise(id) ?: error("Exercise no longer exists")
-        val programmingSemanticsChanged = existing.trackingType != draft.trackingType.name ||
-            existing.loadInterpretation != draft.loadInterpretation.name ||
-            existing.bodyweightLoadPolicy != draft.bodyweightLoadPolicy.name ||
-            existing.effectiveBodyweightPercent != draft.effectiveBodyweightPercent
+        val programmingSemanticsChanged = existing.trackingType != semanticDraft.trackingType.name ||
+            existing.loadInterpretation != semanticDraft.loadInterpretation.name ||
+            existing.bodyweightLoadPolicy != semanticDraft.bodyweightLoadPolicy.name ||
+            existing.effectiveBodyweightPercent != semanticDraft.effectiveBodyweightPercent
         require(!programmingSemanticsChanged || routineDao.getAllExercises().none { it.exerciseId == id }) {
             "This exercise is used by a routine. Remove it from those routines before changing its tracking or load semantics."
         }
         dao.updateExercise(
-            draft.toEntity(
+            semanticDraft.toEntity(
                 id = existing.id,
                 uuid = existing.uuid,
                 position = existing.position,
@@ -540,7 +551,7 @@ class RoomGymRepository(
                 updatedAtMillis = clock.now().toEpochMilli(),
             ),
         )
-        syncCategories(id, draft.categoryIds)
+        syncCategories(id, semanticDraft.categoryIds)
     }
 
     override suspend fun duplicateExercise(id: Long): Long = database.withTransaction {
@@ -2478,19 +2489,25 @@ class RoomGymRepository(
 
 private fun validateExercise(draft: ExerciseDraft) {
     require(draft.name.isNotBlank()) { "Exercise name is required" }
-    require(draft.weightIncrement.isFinite() && draft.weightIncrement > 0.0) { "Weight increment must be positive" }
-    require(draft.repetitionIncrement > 0) { "Repetition increment must be positive" }
+    if (draft.trackingType.supportsLoadEntry()) {
+        require(draft.weightIncrement.isFinite() && draft.weightIncrement > 0.0) { "Weight increment must be positive" }
+        require(draft.barWeightKg == null || draft.barWeightKg.isFinite() && draft.barWeightKg >= 0.0) {
+            "Bar or base load must be a non-negative number"
+        }
+        require(draft.availablePlatesKg.all { it.isFinite() && it > 0.0 }) {
+            "Available plates must contain positive numbers"
+        }
+    }
+    if (draft.trackingType.supportsRepetitionEntry()) {
+        require(draft.repetitionIncrement > 0) { "Repetition increment must be positive" }
+    }
     require(draft.defaultRestSeconds == null || draft.defaultRestSeconds in 1..86_400) {
         "Default rest must be between 1 second and 24 hours"
     }
-    require(draft.effectiveBodyweightPercent in 0.0..200.0) {
-        "Effective bodyweight percentage must be between 0 and 200"
-    }
-    require(draft.barWeightKg == null || draft.barWeightKg.isFinite() && draft.barWeightKg >= 0.0) {
-        "Bar or base load must be a non-negative number"
-    }
-    require(draft.availablePlatesKg.all { it.isFinite() && it > 0.0 }) {
-        "Available plates must contain positive numbers"
+    if (draft.trackingType in setOf(ExerciseTrackingType.BodyweightReps, ExerciseTrackingType.AssistedBodyweightReps)) {
+        require(draft.effectiveBodyweightPercent.isFinite() && draft.effectiveBodyweightPercent in 0.0..200.0) {
+            "Effective bodyweight percentage must be between 0 and 200"
+        }
     }
 }
 
