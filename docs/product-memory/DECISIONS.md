@@ -502,3 +502,12 @@
 - Compatibility: No schema or backup-format change. Category data changes only after a successful authored save; Track deletion remains explicitly permanent but now binds the exact reviewed graph.
 - Related: `FND-20260831-019`, `FND-20260901-027`, `FND-20260902-016`, `IMP-20260902-024`, `VER-20260902-025`.
 - Status: Accepted, implemented, and targeted emulator verified.
+
+### DEC-20260902-022 — Use one typed request channel for Gym catalog authoring
+
+- Context: Category saving already survived recreation, but Machine/Exercise editors independently mixed local `saving` flags with callbacks owned by a particular composition.
+- Decision: Route Category, Machine, Machine-version, Exercise, and nested Exercise-for-Machine persistence through one mutex-serialized ViewModel request state with typed receipts. Compose coordinators reclaim only their namespaced request, retain drafts and inline failures, and close the precise editor layer after success. Extract catalog overlays from the Gym shell so the ownership logic remains testable and coverage instrumentation stays below JVM method limits.
+- Rationale: The catalog permits only one foreground authoring operation, so one typed channel is smaller and clearer than five ad hoc callback protocols. Typed outcomes distinguish closing a whole editor stack from returning a newly created Exercise to the underlying Machine editor.
+- Compatibility: No schema, backup, catalog identity, Routine definition, active Workout, or completed History change.
+- Related: `FND-20260902-017`, `IMP-20260902-025`, `VER-20260902-026`.
+- Status: Accepted, implemented, and targeted emulator verified.

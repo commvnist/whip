@@ -626,6 +626,7 @@ fun GymAreaContent(
     val workoutDeletionTargetMissing by viewModel.workoutDeletionTargetMissing.collectAsStateWithLifecycle()
     val gymDeletionState by viewModel.gymDeletionState.collectAsStateWithLifecycle()
     val sessionMutationState by viewModel.sessionMutationState.collectAsStateWithLifecycle()
+    val catalogMutationState by viewModel.catalogMutationState.collectAsStateWithLifecycle()
     val historyCopyAuthorship by viewModel.historyCopyAuthorship.collectAsStateWithLifecycle()
     val pendingWorkoutLayoutUndo by viewModel.pendingWorkoutLayoutUndo.collectAsStateWithLifecycle()
     val orphanedGymDeletionRequestId by viewModel.orphanedGymDeletionRequestId.collectAsStateWithLifecycle()
@@ -701,7 +702,6 @@ fun GymAreaContent(
     var requestedInitialSetUuid by rememberSaveable { mutableStateOf<String?>(null) }
     var workoutAuthorshipGeneration by rememberSaveable { mutableStateOf<Long?>(null) }
     var routineEditorOpen by rememberSaveable { mutableStateOf(false) }
-    var catalogSavePending by rememberSaveable { mutableStateOf(false) }
     var trackedRecordsManagerOpen by rememberSaveable { mutableStateOf(false) }
     var trackedRecordsInitialExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
     var browseReordering by rememberSaveable { mutableStateOf(false) }
@@ -773,7 +773,6 @@ fun GymAreaContent(
                     requestedWorkoutExerciseUuid = null
                     requestedInitialSetUuid = null
                     workoutAuthorshipGeneration = null
-                    catalogSavePending = false
                     exercisePickerError = null
                     machineChoiceError = null
                 }
@@ -797,7 +796,6 @@ fun GymAreaContent(
                     creatingMachine = false
                     inlineMachineBoundary = null
                     inlineMachineExerciseId = null
-                    catalogSavePending = false
                     workoutAuthorshipGeneration = null
                 }
                 GymSessionMutationKind.WorkoutArranged,
@@ -852,6 +850,32 @@ fun GymAreaContent(
                     discardReviewRevision = null
                 }
             }
+        },
+    )
+    val catalogEditorOpen = (
+        (creatingMachine || machineEditor != null || machineVersionSource != null) && inlineMachineBoundary == null
+        ) || (
+        (creatingExercise || exerciseEditor != null) &&
+            createExerciseAddBoundary == null &&
+            createForSubstitutionBoundary == null
+        )
+    val catalogMutationCoordinator = rememberGymCatalogMutationCoordinator(
+        editorOpen = catalogEditorOpen,
+        state = catalogMutationState,
+        consume = viewModel::consumeCatalogMutationResult,
+        onExerciseCreatedForMachine = { createdId ->
+            createdExerciseForMachineId = createdId
+            creatingExercise = false
+            creatingExerciseForMachine = false
+        },
+        onCatalogSaved = {
+            creatingMachine = false
+            creatingExerciseForMachine = false
+            createdExerciseForMachineId = null
+            machineEditorId = null
+            machineVersionSourceId = null
+            creatingExercise = false
+            exerciseEditorId = null
         },
     )
     val historyCopyCoordinator = rememberPersistenceRequestCoordinator(
@@ -1105,7 +1129,6 @@ fun GymAreaContent(
             requestedWorkoutExerciseUuid = null
             requestedInitialSetUuid = null
             workoutAuthorshipGeneration = null
-            catalogSavePending = false
             machineChoiceError = null
             exercisePickerError = null
         }
@@ -1128,7 +1151,7 @@ fun GymAreaContent(
         requestedWorkoutExerciseUuid = null
         requestedInitialSetUuid = null
         workoutAuthorshipGeneration = null
-        catalogSavePending = false
+        catalogMutationCoordinator?.clear()
     }
     LaunchedEffect(addRequest) {
         when (addRequest) {
@@ -1447,145 +1470,49 @@ fun GymAreaContent(
         }
     }
 
-    if (creatingMachine || machineEditor != null || machineVersionSource != null) {
-        MachineEditorDialog(
-            modifier = dialogModifier,
-            machine = machineVersionSource ?: machineEditor,
-            exercises = if (machineEditor == null) state.exercises else state.exercises + state.archivedExercises,
-            definitionLocked = machineVersionSource == null && machineEditor?.let { selected -> state.allWorkoutExercises.any { it.machineId == selected.id } } == true,
-            creatingVersion = machineVersionSource != null,
-            initialExerciseId = inlineMachineExerciseId,
-            createdExerciseIdRequest = createdExerciseForMachineId,
-            onCreatedExerciseRequestConsumed = { createdExerciseForMachineId = null },
-            onCreateExercise = {
-                creatingExerciseForMachine = true
-                creatingExercise = true
-            },
-            onCreateVersion = machineEditor?.takeIf { selected -> state.allWorkoutExercises.any { it.machineId == selected.id } }?.let { selected ->
-                {
-                    machineEditorId = null
-                    machineVersionSourceId = selected.id
-                }
-            },
-            saving = catalogSavePending || (inlineMachineBoundary != null && sessionMutationCoordinator.saving),
-            errorMessage = sessionMutationCoordinator.errorMessage.takeIf { inlineMachineBoundary != null },
-            onDismiss = { closeCatalogEditors() },
-            onSave = { draft ->
-                when {
-                    inlineMachineBoundary != null -> {
-                        sessionMutationCoordinator.begin()?.let { requestId ->
-                            if (!viewModel.createMachineAndAssign(
-                                    requireNotNull(inlineMachineBoundary),
-                                    draft,
-                                    requestId,
-                                )
-                            ) {
-                                sessionMutationCoordinator.finishFailure(
-                                    "Another workout change is still saving. Wait before creating the machine.",
-                                )
-                            }
-                        }
-                    }
-                    else -> {
-                        catalogSavePending = true
-                        val onFinished: (Boolean) -> Unit = { succeeded ->
-                            catalogSavePending = false
-                            if (succeeded) closeCatalogEditors()
-                        }
-                        if (machineVersionSource != null) {
-                            viewModel.createMachineVersion(machineVersionSource.id, draft, onFinished)
-                        } else {
-                            viewModel.saveMachine(machineEditor?.id, draft, onFinished)
-                        }
-                    }
-                }
-            },
-        )
-    }
+    GymMachineEditorOverlay(
+        visible = creatingMachine || machineEditor != null || machineVersionSource != null,
+        modifier = dialogModifier,
+        state = state,
+        machineEditor = machineEditor,
+        machineVersionSource = machineVersionSource,
+        inlineMachineBoundary = inlineMachineBoundary,
+        inlineMachineExerciseId = inlineMachineExerciseId,
+        createdExerciseForMachineId = createdExerciseForMachineId,
+        catalogCoordinator = catalogMutationCoordinator,
+        sessionCoordinator = sessionMutationCoordinator,
+        viewModel = viewModel,
+        onCreatedExerciseConsumed = { createdExerciseForMachineId = null },
+        onCreateExercise = {
+            creatingExerciseForMachine = true
+            creatingExercise = true
+        },
+        onCreateVersion = { machineId ->
+            machineEditorId = null
+            machineVersionSourceId = machineId
+        },
+        onDismiss = { closeCatalogEditors() },
+    )
 
-    if (creatingExercise || exerciseEditor != null) {
-        ExerciseEditorDialog(
-            modifier = dialogModifier,
-            exercise = exerciseEditor,
-            categories = state.categories,
-            selectedCategoryIds = state.categoryLinks.filter { it.exerciseId == exerciseEditor?.id }.mapTo(mutableSetOf()) { it.categoryId },
-            defaultWeightUnit = state.appSettings.gymWeightUnitId,
-            defaultRestSeconds = state.appSettings.defaultRestSeconds,
-            defaultFormula = runCatching {
-                EstimatedOneRepMaxFormula.valueOf(state.appSettings.oneRepMaxFormula)
-            }.getOrDefault(EstimatedOneRepMaxFormula.Epley),
-            platePresets = state.appSettings.platePresets,
-            powerMode = state.appSettings.powerMode,
-            saving = catalogSavePending || sessionMutationCoordinator.saving,
-            errorMessage = sessionMutationCoordinator.errorMessage.takeIf {
-                createExerciseAddBoundary != null || createForSubstitutionBoundary != null
-            },
-            onDismiss = {
-                if (creatingExerciseForMachine) {
-                    creatingExercise = false
-                    creatingExerciseForMachine = false
-                    catalogSavePending = false
-                } else {
-                    closeCatalogEditors()
-                }
-            },
-            onSave = { draft ->
-                catalogSavePending = creatingExerciseForMachine ||
-                    (createExerciseAddBoundary == null && createForSubstitutionBoundary == null)
-                if (creatingExerciseForMachine) {
-                    viewModel.createExerciseForMachine(draft) { createdId ->
-                        catalogSavePending = false
-                        if (createdId != null) {
-                            createdExerciseForMachineId = createdId
-                            creatingExercise = false
-                            creatingExerciseForMachine = false
-                        }
-                    }
-                } else {
-                    val addBoundary = createExerciseAddBoundary
-                    val substitutionBoundary = createForSubstitutionBoundary
-                    val placementUuid = requestedWorkoutExerciseUuid
-                    val setUuid = requestedInitialSetUuid
-                    if (substitutionBoundary != null && placementUuid != null && setUuid != null) {
-                        sessionMutationCoordinator.begin()?.let { requestId ->
-                            if (!viewModel.createExerciseAndSubstitute(
-                                    substitutionBoundary,
-                                    draft,
-                                    placementUuid,
-                                    setUuid,
-                                    requestId,
-                                )
-                            ) {
-                                sessionMutationCoordinator.finishFailure(
-                                    "Another workout change is still saving. Wait for it before trying again.",
-                                )
-                            }
-                        }
-                    } else if (addBoundary != null && placementUuid != null && setUuid != null) {
-                        sessionMutationCoordinator.begin()?.let { requestId ->
-                            if (!viewModel.createExerciseAndAdd(
-                                    addBoundary,
-                                    draft,
-                                    placementUuid,
-                                    setUuid,
-                                    requestId,
-                                )
-                            ) {
-                                sessionMutationCoordinator.finishFailure(
-                                    "Another workout change is still saving. Wait for it before trying again.",
-                                )
-                            }
-                        }
-                    } else {
-                        viewModel.saveExercise(exerciseEditor?.id, draft) { succeeded ->
-                            catalogSavePending = false
-                            if (succeeded) closeCatalogEditors()
-                        }
-                    }
-                }
-            },
-        )
-    }
+    GymExerciseEditorOverlay(
+        visible = creatingExercise || exerciseEditor != null,
+        modifier = dialogModifier,
+        state = state,
+        exerciseEditor = exerciseEditor,
+        creatingExerciseForMachine = creatingExerciseForMachine,
+        createExerciseAddBoundary = createExerciseAddBoundary,
+        createForSubstitutionBoundary = createForSubstitutionBoundary,
+        requestedWorkoutExerciseUuid = requestedWorkoutExerciseUuid,
+        requestedInitialSetUuid = requestedInitialSetUuid,
+        catalogCoordinator = catalogMutationCoordinator,
+        sessionCoordinator = sessionMutationCoordinator,
+        viewModel = viewModel,
+        onDismissMachineExercise = {
+            creatingExercise = false
+            creatingExerciseForMachine = false
+        },
+        onDismissCatalog = { closeCatalogEditors() },
+    )
 
     exerciseNotesEditor?.let { item ->
         WorkoutExerciseNotesDialog(

@@ -164,12 +164,17 @@ class EditorStateRecreationTest {
         )
     }
 
-    @Test fun dirtyExerciseEditorSurvivesActivityRecreation() = withActivity {
+    @Test fun exerciseEditorRetainsItsDraftAcrossRecreationAndClosesOnlyAfterSave() = withActivity {
         openExerciseEditorFromGym()
         compose.onNodeWithTag("exercise-editor-name").performTextInput("Keep exercise draft")
         it.recreate()
         waitForTag("exercise-editor-name")
         compose.onNodeWithTag("exercise-editor-name").assertTextContains("Keep exercise draft")
+        compose.onNodeWithText("Save").performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithTag("exercise-editor-name").fetchSemanticsNodes().isEmpty()
+        }
+        compose.onNodeWithText("Keep exercise draft").assertIsDisplayed()
     }
 
     @Test fun dirtyExerciseEditorRequiresExplicitDiscardOnSystemBack() = withActivity {
@@ -181,13 +186,18 @@ class EditorStateRecreationTest {
         compose.onNodeWithText("Discard Changes").performClick()
     }
 
-    @Test fun dirtyMachineEditorSurvivesActivityRecreation() = withActivity {
+    @Test fun machineEditorRetainsItsDraftAcrossRecreationAndClosesOnlyAfterSave() = withActivity {
         openGymDestination("Machines")
         compose.onAllNodesWithText("Create Machine")[0].performScrollTo().performClick()
         compose.onNodeWithTag("machine-editor-name").performTextInput("Keep machine draft")
         it.recreate()
         waitForTag("machine-editor-name")
         compose.onNodeWithTag("machine-editor-name").assertTextContains("Keep machine draft")
+        compose.onNodeWithText("Save").performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithTag("machine-editor-name").fetchSemanticsNodes().isEmpty()
+        }
+        compose.onNodeWithText("Keep machine draft").assertIsDisplayed()
     }
 
     @Test fun dirtyRoutineEditorSurvivesActivityRecreation() = withActivity {

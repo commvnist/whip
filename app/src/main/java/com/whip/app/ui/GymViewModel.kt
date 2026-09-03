@@ -296,8 +296,17 @@ internal data class GymSessionMutationReceipt(
     val setRemovalReason: WorkoutSetRemovalReason? = null,
 )
 
+internal enum class GymCatalogMutationKind {
+    CategorySaved,
+    MachineSaved,
+    MachineVersionCreated,
+    ExerciseSaved,
+    ExerciseCreatedForMachine,
+}
+
 internal data class GymCatalogMutationReceipt(
-    val categoryId: Long,
+    val kind: GymCatalogMutationKind,
+    val targetId: Long,
 )
 
 data class WorkoutLayoutUndo(
@@ -1021,12 +1030,16 @@ class GymViewModel @JvmOverloads constructor(
         }
     }
 
-    fun saveMachine(id: Long?, draft: GymMachineDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
-        if (id == null) "Creating machine…" else "Saving machine…",
-        if (id == null) "Machine created" else "Machine saved",
-        onFinished,
+    fun saveMachine(id: Long?, draft: GymMachineDraft, requestId: String): Boolean = runCatalogMutation(
+        running = if (id == null) "Creating machine…" else "Saving machine…",
+        success = if (id == null) "Machine created" else "Machine saved",
+        requestId = requestId,
     ) {
-        if (id == null) repository.createMachine(draft) else repository.updateMachine(id, draft)
+        val savedId = if (id == null) repository.createMachine(draft) else {
+            repository.updateMachine(id, draft)
+            id
+        }
+        GymCatalogMutationReceipt(GymCatalogMutationKind.MachineSaved, savedId)
     }
 
     fun createMachineForRoutine(draft: GymMachineDraft, onCreated: (Long?) -> Unit) {
@@ -1047,11 +1060,17 @@ class GymViewModel @JvmOverloads constructor(
         }
     }
 
-    fun createMachineVersion(sourceId: Long, draft: GymMachineDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
-        "Creating configuration version…",
-        "Machine configuration version created",
-        onFinished,
-    ) { repository.createMachineVersion(sourceId, draft) }
+    fun createMachineVersion(sourceId: Long, draft: GymMachineDraft, requestId: String): Boolean =
+        runCatalogMutation(
+            running = "Creating configuration version…",
+            success = "Machine configuration version created",
+            requestId = requestId,
+        ) {
+            GymCatalogMutationReceipt(
+                GymCatalogMutationKind.MachineVersionCreated,
+                repository.createMachineVersion(sourceId, draft),
+            )
+        }
 
     fun createMachineAndAssign(
         boundary: WorkoutPlacementMutationBoundary,
@@ -1216,12 +1235,16 @@ class GymViewModel @JvmOverloads constructor(
         }
     }
 
-    fun saveExercise(id: Long?, draft: ExerciseDraft, onFinished: (Boolean) -> Unit = {}) = runOperation(
-        if (id == null) "Creating exercise…" else "Saving exercise…",
-        if (id == null) "Exercise created" else "Exercise saved",
-        onFinished,
+    fun saveExercise(id: Long?, draft: ExerciseDraft, requestId: String): Boolean = runCatalogMutation(
+        running = if (id == null) "Creating exercise…" else "Saving exercise…",
+        success = if (id == null) "Exercise created" else "Exercise saved",
+        requestId = requestId,
     ) {
-        if (id == null) repository.createExercise(draft) else repository.updateExercise(id, draft)
+        val savedId = if (id == null) repository.createExercise(draft) else {
+            repository.updateExercise(id, draft)
+            id
+        }
+        GymCatalogMutationReceipt(GymCatalogMutationKind.ExerciseSaved, savedId)
     }
 
     fun createExerciseForRoutine(draft: ExerciseDraft, onCreated: (Long?) -> Unit) {
@@ -1242,22 +1265,15 @@ class GymViewModel @JvmOverloads constructor(
         }
     }
 
-    fun createExerciseForMachine(draft: ExerciseDraft, onCreated: (Long?) -> Unit) {
-        viewModelScope.launch {
-            _operationStatus.value = OperationStatus.Running("Creating exercise…")
-            try {
-                val id = checkNotNull(app.withUserDataAccess { repository.createExercise(draft) }) {
-                    "Whip data is unavailable while recovery is in progress"
-                }
-                onCreated(id)
-                _operationStatus.value = OperationStatus.Succeeded("Exercise created and linked")
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Throwable) {
-                onCreated(null)
-                _operationStatus.value = OperationStatus.Failed(error.message ?: "Could not create exercise", error)
-            }
-        }
+    fun createExerciseForMachine(draft: ExerciseDraft, requestId: String): Boolean = runCatalogMutation(
+        running = "Creating exercise…",
+        success = "Exercise created and linked",
+        requestId = requestId,
+    ) {
+        GymCatalogMutationReceipt(
+            GymCatalogMutationKind.ExerciseCreatedForMachine,
+            repository.createExercise(draft),
+        )
     }
 
     fun createExerciseAndAdd(
@@ -1417,46 +1433,18 @@ class GymViewModel @JvmOverloads constructor(
         repository.reorderExercises(ids)
     }
 
-    fun saveCategory(id: Long?, name: String, kind: String, requestId: String): Boolean {
-        if (!_catalogMutationState.tryStartPersistenceRequest(requestId)) return false
-        _operationStatus.value = OperationStatus.Running(
-            if (id == null) "Creating category…" else "Saving category…",
-        )
-        viewModelScope.launch {
-            val result = try {
-                val savedId = checkNotNull(app.withUserDataAccess {
-                    catalogMutationMutex.withLock {
-                        if (id == null) repository.createCategory(name, kind)
-                        else {
-                            repository.updateCategory(id, name, kind)
-                            id
-                        }
-                    }
-                }) { "Whip data is unavailable while recovery is in progress" }
-                _operationStatus.value = OperationStatus.Succeeded(
-                    "Category saved",
-                    OperationFeedbackPresentation.Snackbar,
-                )
-                WhipResult.Success(GymCatalogMutationReceipt(savedId))
-            } catch (cancelled: CancellationException) {
-                if ((_catalogMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
-                    _catalogMutationState.value = PersistenceRequestState.Idle
-                }
-                _operationStatus.value = OperationStatus.Idle
-                throw cancelled
-            } catch (error: Exception) {
-                _operationStatus.value = OperationStatus.Idle
-                WhipResult.Failure(
-                    error.message ?: "The Category could not be saved. Your changes are still here.",
-                    error,
-                )
+    fun saveCategory(id: Long?, name: String, kind: String, requestId: String): Boolean =
+        runCatalogMutation(
+            running = if (id == null) "Creating category…" else "Saving category…",
+            success = "Category saved",
+            requestId = requestId,
+        ) {
+            val savedId = if (id == null) repository.createCategory(name, kind) else {
+                repository.updateCategory(id, name, kind)
+                id
             }
-            if ((_catalogMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
-                _catalogMutationState.value = PersistenceRequestState.Finished(requestId, result)
-            }
+            GymCatalogMutationReceipt(GymCatalogMutationKind.CategorySaved, savedId)
         }
-        return true
-    }
 
     fun setCategoryArchived(id: Long, archived: Boolean) = runOperation(
         "Updating category…",
@@ -2479,6 +2467,44 @@ class GymViewModel @JvmOverloads constructor(
                 }
             }
         }
+    }
+
+    private fun runCatalogMutation(
+        running: String,
+        success: String,
+        requestId: String,
+        block: suspend () -> GymCatalogMutationReceipt,
+    ): Boolean {
+        if (!_catalogMutationState.tryStartPersistenceRequest(requestId)) return false
+        _operationStatus.value = OperationStatus.Running(running)
+        viewModelScope.launch {
+            val result = try {
+                val receipt = checkNotNull(app.withUserDataAccess {
+                    catalogMutationMutex.withLock { block() }
+                }) { "Whip data is unavailable while recovery is in progress" }
+                _operationStatus.value = OperationStatus.Succeeded(
+                    success,
+                    OperationFeedbackPresentation.Snackbar,
+                )
+                WhipResult.Success(receipt)
+            } catch (cancelled: CancellationException) {
+                if ((_catalogMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                    _catalogMutationState.value = PersistenceRequestState.Idle
+                }
+                _operationStatus.value = OperationStatus.Idle
+                throw cancelled
+            } catch (error: Exception) {
+                _operationStatus.value = OperationStatus.Idle
+                WhipResult.Failure(
+                    error.message ?: "The Library change could not be saved. Your changes are still here.",
+                    error,
+                )
+            }
+            if ((_catalogMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                _catalogMutationState.value = PersistenceRequestState.Finished(requestId, result)
+            }
+        }
+        return true
     }
 
     private fun runSessionMutation(

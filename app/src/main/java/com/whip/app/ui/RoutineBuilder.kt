@@ -432,6 +432,7 @@ internal fun RoutineBuilderScreen(
             RoutineBuilderHeader(
                 editing = routineId != null,
                 page = page,
+                placementDetailOpen = selectedPlacement != null,
                 canSave = canSave && (routineId == null || isDirty),
                 onBack = {
                     when {
@@ -836,6 +837,7 @@ internal fun RoutineBuilderScreen(
 private fun RoutineBuilderHeader(
     editing: Boolean,
     page: RoutineBuilderPage,
+    placementDetailOpen: Boolean,
     canSave: Boolean,
     onBack: () -> Unit,
     onCancel: () -> Unit,
@@ -849,7 +851,7 @@ private fun RoutineBuilderHeader(
     }.uiTitleCase()
     WhipEditorHeader(
         navigationAction = {
-            if (page == RoutineBuilderPage.Outline) {
+            if (page == RoutineBuilderPage.Outline && !placementDetailOpen) {
                 WhipTrailingCloseAction(
                     label = if (editing) "Close routine editor" else "Cancel routine creation",
                     onClick = onCancel,

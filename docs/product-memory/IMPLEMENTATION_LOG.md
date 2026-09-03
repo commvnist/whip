@@ -509,3 +509,15 @@
 - Related: `FND-20260831-019`, `FND-20260901-027`, `FND-20260902-016`, `DEC-20260902-021`.
 - Verification: `VER-20260902-025`.
 - Status: Implemented and targeted emulator verified.
+
+### IMP-20260902-025 — Request-owned Gym catalog editors and contextual Routine Back
+
+- Generalized the Gym catalog receipt into typed Category, Machine, Machine-version, Exercise, and Exercise-for-Machine outcomes behind one serialized request runner.
+- Replaced composition-owned Machine/Exercise completion callbacks with namespaced coordinators that retain the draft, expose inline failure, prevent duplicate submission/dismissal during the owned request, and close only after the matching success result.
+- Extracted Machine/Exercise catalog overlays from the broad Gym shell, reducing its bytecode enough for JaCoCo instrumentation while keeping dialog behavior cohesive.
+- Changed the Routine Builder header to expose Back whenever a placement detail is selected, preserving routine-level Save without presenting a destructive editor-close action as the way out of a child pane.
+- Added successful-save closure assertions to the existing Exercise/Machine Activity-recreation tests.
+- Important files: `GymCatalogMutationUi.kt`, `GymViewModel.kt`, `GymScreens.kt`, `RoutineBuilder.kt`, and `EditorStateRecreationTest.kt`.
+- Related: `FND-20260902-017`, `DEC-20260902-022`.
+- Verification: `VER-20260902-026`.
+- Status: Implemented and targeted emulator verified.

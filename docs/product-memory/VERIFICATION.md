@@ -533,3 +533,13 @@
 - Scope: Focused compile and emulator evidence; the frozen-candidate full gate remains pending.
 - Related: `FND-20260831-019`, `FND-20260901-027`, `FND-20260902-016`, `DEC-20260902-021`, `IMP-20260902-024`.
 - Status: Targeted checks passed.
+
+### VER-20260902-026 — Gym catalog lifecycle and Routine detail navigation verification
+
+- Production and complete Android-test Kotlin compilation passed. Direct `:app:jacocoDebug` instrumentation passed after the catalog overlays were extracted from the broad Gym shell.
+- The disposable API 34 emulator passed five focused journeys: Exercise draft recreation/save/close, Machine draft recreation/save/close, Category recreation/save regression, Exercise creation without dropping the Routine draft, and quick Machine creation without leaving the builder.
+- The initial builder journey exposed a real header regression: a selected compact placement had no contextual Back action. The header contract was corrected and the complete five-test batch then passed with zero failures/skips.
+- `git diff --check` passed. Responsive/large-text coverage immediately before this chunk also passed the 320dp/200% Leader/Anchor setup, full routine exercise pane, large-text timer actions, active-workout composer, adaptive theme/font/RTL matrix, and Gym progressive-disclosure journeys.
+- Scope: Focused development/emulator evidence; frozen-candidate full emulator and release gates remain pending.
+- Related: `FND-20260902-017`, `DEC-20260902-022`, `IMP-20260902-025`.
+- Status: Targeted checks passed.
