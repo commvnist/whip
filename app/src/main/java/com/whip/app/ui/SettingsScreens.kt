@@ -1005,7 +1005,7 @@ internal fun SettingsContent(
             )
         }
         item { SettingsToggle("Adjust estimated 1RM using RPE/RIR", settings.adjustE1rmForEffort) { selected -> viewModel.update { it.copy(adjustE1rmForEffort = selected) } } }
-        item { SettingsToggle("Allow assisted lifts in personal records", settings.includeAssistedInPersonalRecords) { selected -> viewModel.update { it.copy(includeAssistedInPersonalRecords = selected) } } }
+        item { SettingsToggle("Allow assisted exercises in personal records", settings.includeAssistedInPersonalRecords) { selected -> viewModel.update { it.copy(includeAssistedInPersonalRecords = selected) } } }
         }
 
         if (section == SettingsSection.Organization) {

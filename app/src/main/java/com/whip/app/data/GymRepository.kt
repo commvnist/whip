@@ -837,11 +837,11 @@ class RoomGymRepository(
             val mode = runCatching { RoutineProgressionMode.valueOf(routine.progressionMode) }
                 .getOrDefault(RoutineProgressionMode.Standard)
             require(trainingMaxDecisions.orEmpty().map(TrainingMaxCycleDecision::exerciseId).distinct().size ==
-                trainingMaxDecisions.orEmpty().size) { "Only one Training Max decision is allowed per lift" }
+                trainingMaxDecisions.orEmpty().size) { "Only one Training Max decision is allowed per exercise" }
             val decisionsByExerciseId = trainingMaxDecisions.orEmpty().associateBy(TrainingMaxCycleDecision::exerciseId)
             decisionsByExerciseId.keys.let { keys ->
                 require(keys.all { it in mainPlacementsByExerciseId }) {
-                    "Training Max decisions must reference a programmed Main lift"
+                    "Training Max decisions must reference a programmed Main exercise"
                 }
             }
             mainPlacementsByExerciseId.forEach { (exerciseId, placements) ->
@@ -878,7 +878,7 @@ class RoomGymRepository(
                             when (decision.action) {
                                 TrainingMaxDecisionAction.UseStandard -> require(
                                     eligible && abs(decision.requestedDelta - standard) <= 1e-9,
-                                ) { "Use Standard must apply the configured increase to an eligible lift" }
+                                ) { "Use Standard must apply the configured increase to an eligible exercise" }
                                 TrainingMaxDecisionAction.Hold -> require(abs(decision.requestedDelta) <= 1e-9) {
                                     "Hold must keep the current Training Max"
                                 }
@@ -903,7 +903,7 @@ class RoomGymRepository(
                     "Training Max change must be from one standard decrease through twice the configured increase"
                 }
                 require(eligible || requestedDelta <= 0.0) {
-                    "A positive Training Max change requires completed Main work for that lift"
+                    "A positive Training Max change requires completed Main work for that exercise"
                 }
                 require(current + requestedDelta > 0.0) {
                     "Training Max change must leave a positive Training Max"
@@ -964,7 +964,7 @@ class RoomGymRepository(
                             if (eligible) {
                                 "Applied the configured standard 5/3/1 cycle increase after completed Main work."
                             } else {
-                                "Held this lift because its required Main work was not completed."
+                                "Held this exercise because its required Main work was not completed."
                             },
                         ),
                         engineVersion = "five-three-one-standard/1",

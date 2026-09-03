@@ -245,7 +245,7 @@ internal fun FiveThreeOneBuilder(
                     Text(
                         suggestedTrainingMax?.let {
                             "Suggested 85% e1RM: ${editableNumericValue(it)} ${unitSymbol(unitId)} · suggestion only"
-                        } ?: "Enter the training max you intend to use for this lift.",
+                        } ?: "Enter the training max you intend to use for this exercise.",
                     )
                 },
                 isError = trainingMaxText.isNotBlank() && inputError == "Enter a training max above zero",
@@ -265,7 +265,7 @@ internal fun FiveThreeOneBuilder(
                     cycleIncrementText = value.filter { it.isDigit() || it == '.' || it == ',' }.take(12)
                 },
                 label = { Text("Training max increase each cycle (${unitSymbol(unitId)})") },
-                supportingText = { Text("Applied after the final phase. You can use a different increase for each main lift.") },
+                supportingText = { Text("Applied after the final phase. You can use a different increase for each main exercise.") },
                 isError = cycleIncrementText.isNotBlank() && inputError == "Enter a cycle increase above zero",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true,

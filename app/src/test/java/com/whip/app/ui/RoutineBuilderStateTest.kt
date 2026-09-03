@@ -1187,7 +1187,7 @@ class RoutineBuilderStateTest {
         assertEquals("Deadlift", leaderPolicy?.alternateSupplementalExerciseName)
         assertTrue(
             built.fiveThreeOnePhasePrescriptionSummary(0, bench.exerciseId)
-                .any { it.startsWith("Supplemental · Deadlift (alternate lift)") },
+                .any { it.startsWith("Supplemental · Deadlift (alternate exercise)") },
         )
 
         val alternatePhaseBefore = alternateBbb.sets.filter { it.routinePhaseIndex == 0 }

@@ -44,7 +44,7 @@ internal enum class FiveThreeOneSupplement(val label: String) {
 internal enum class FiveThreeOneProgramLayout(val label: String) {
     FourDay("4-Day 5/3/1"),
     Beginners("5/3/1 for Beginners"),
-    Custom("Choose Your Lifts"),
+    Custom("Choose Your Exercises"),
 }
 
 internal enum class FiveThreeOneProgramPlan(val label: String, val supportingText: String) {
@@ -727,7 +727,7 @@ private fun FiveThreeOneProgramRequest.generatedPhases(): List<FiveThreeOneGener
     FiveThreeOneProgramPlan.ForeverFslLeaderAnchor,
     -> {
         require(layout != FiveThreeOneProgramLayout.Beginners) {
-            "Leader/Anchor presets require one programmed main lift per day"
+            "Leader/Anchor presets require one programmed main exercise per day"
         }
         val leaderSupplement = if (plan == FiveThreeOneProgramPlan.ForeverBbbLeaderAnchor) {
             FiveThreeOneSupplement.BoringButBig

@@ -284,7 +284,7 @@ internal fun FiveThreeOneCycleReviewDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    "Nothing changes until you apply these per-lift decisions. 5/3/1 standard uses the saved increase; Whip suggestions are advisory.",
+                    "Nothing changes until you apply these per-exercise decisions. 5/3/1 standard uses the saved increase; Whip suggestions are advisory.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

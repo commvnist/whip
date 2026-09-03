@@ -1213,11 +1213,11 @@ private fun FiveThreeOneProgramSetupDialog(
             boringButBigPercent?.let { it.isFinite() && it in 1.0..100.0 } == true)
     val buildBlocker = when {
         !everyDerivedTrainingMaxIsApplied -> "Apply every calculated Training Max after changing its source max or percentage."
-        requiredLiftCount <= 0 || lifts.size != requiredLiftCount -> "Enter a Training Max and cycle increase above zero for every selected lift."
-        lifts.map(FiveThreeOneProgramLift::exerciseId).distinct().size != requiredLiftCount -> "Choose each main lift only once."
-        !standardSelectionsConfirmed -> "Confirm or replace every prefilled standard lift."
-        !bbbMappingsValid -> "Choose the BBB lift used after every Main lift."
-        lifts.any { it.trainingMax <= 0.0 || it.cycleIncrement <= 0.0 } -> "Enter a Training Max and cycle increase above zero for every selected lift."
+        requiredLiftCount <= 0 || lifts.size != requiredLiftCount -> "Enter a Training Max and cycle increase above zero for every selected exercise."
+        lifts.map(FiveThreeOneProgramLift::exerciseId).distinct().size != requiredLiftCount -> "Choose each main exercise only once."
+        !standardSelectionsConfirmed -> "Confirm or replace every prefilled standard exercise."
+        !bbbMappingsValid -> "Choose the BBB exercise used after every Main exercise."
+        lifts.any { it.trainingMax <= 0.0 || it.cycleIncrement <= 0.0 } -> "Enter a Training Max and cycle increase above zero for every selected exercise."
         supplement == FiveThreeOneSupplement.BoringButBig &&
             boringButBigPercent?.let { it.isFinite() && it in 1.0..100.0 } != true ->
             "Enter a Boring But Big percentage from 1 to 100%."
@@ -1313,7 +1313,7 @@ private fun FiveThreeOneProgramSetupDialog(
                 Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text("Choose a program, configure its lifts, then review the exact work before building your routine.")
+                Text("Choose a program, configure its exercises, then review the exact work before building your routine.")
                 Surface(
                     color = if (valid) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
                     shape = MaterialTheme.shapes.medium,
@@ -1323,7 +1323,7 @@ private fun FiveThreeOneProgramSetupDialog(
                         .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
                 ) {
                     Text(
-                        if (valid) "Ready to build · ${requiredLiftCount} ${if (requiredLiftCount == 1) "lift" else "lifts"} configured"
+                        if (valid) "Ready to build · ${requiredLiftCount} ${if (requiredLiftCount == 1) "exercise" else "exercises"} configured"
                         else "Still needed · ${buildBlocker ?: "Review the highlighted program settings."}",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                         style = MaterialTheme.typography.bodySmall,
@@ -1367,7 +1367,7 @@ private fun FiveThreeOneProgramSetupDialog(
                         modifier = Modifier.testTag("five-three-one-book-guided-note"),
                     )
                 }
-                Text("2 · Schedule and lifts", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("2 · Schedule and exercises", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     FiveThreeOneProgramLayout.entries.filter { choice ->
                         plan == FiveThreeOneProgramPlan.SingleCycle || choice != FiveThreeOneProgramLayout.Beginners
@@ -1390,9 +1390,9 @@ private fun FiveThreeOneProgramSetupDialog(
                 }
                 Text(
                     if (progressionModeName == RoutineProgressionMode.Standard.name) {
-                        "Automatically apply each lift's saved standard increase after completed Main work. Every boundary is recorded in Training Max history."
+                        "Automatically apply each exercise's saved standard increase after completed Main work. Every boundary is recorded in Training Max history."
                     } else {
-                        "At each boundary, Whip shows per-lift evidence and waits for Standard, suggestion, custom, decrease, or Hold. Log RPE or RIR for effort-sensitive suggestions."
+                        "At each boundary, Whip shows per-exercise evidence and waits for Standard, suggestion, custom, decrease, or Hold. Log RPE or RIR for effort-sensitive suggestions."
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1406,14 +1406,14 @@ private fun FiveThreeOneProgramSetupDialog(
                     )
                 } else if (layout == FiveThreeOneProgramLayout.Custom) {
                     Text(
-                        "Choose one or more of your Weight + Reps exercises. Each selected lift becomes its own training day in this order; the lift does not need to be one of the four standard 5/3/1 lifts.",
+                        "Choose one or more of your Weight + Reps exercises. Each selected exercise becomes its own training day in this order; the exercise does not need to be one of the four standard 5/3/1 exercises.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 if (layout == FiveThreeOneProgramLayout.Custom && eligible.isEmpty()) {
                     Text(
-                        "Add at least one Weight + Reps lift. You can search or create it without leaving this setup.",
+                        "Add at least one Weight + Reps exercise. You can search or create it without leaving this setup.",
                         color = MaterialTheme.colorScheme.error,
                     )
                     WhipButton(
@@ -1422,7 +1422,7 @@ private fun FiveThreeOneProgramSetupDialog(
                     ) {
                         Icon(Icons.Filled.Add, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Add a Lift")
+                        Text("Add an Exercise")
                     }
                 } else if (layout != FiveThreeOneProgramLayout.Custom && eligible.size < roles.size) {
                     Text("Create at least four weight-and-reps exercises before setting up this program.", color = MaterialTheme.colorScheme.error)
@@ -1434,7 +1434,7 @@ private fun FiveThreeOneProgramSetupDialog(
                         onClick = onCreateMissingStandardLifts,
                         modifier = Modifier.fillMaxWidth().testTag("five-three-one-create-standard-lifts"),
                     ) {
-                        Text(if (standardLiftCreationInFlight) "Creating standard lifts…" else "Create missing standard Squat, Bench Press, Deadlift, and Overhead Press exercises")
+                        Text(if (standardLiftCreationInFlight) "Creating standard exercises…" else "Create missing standard Squat, Bench Press, Deadlift, and Overhead Press exercises")
                     }
                     standardLiftCreationError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 }
@@ -1443,7 +1443,7 @@ private fun FiveThreeOneProgramSetupDialog(
                         val role = activeRoles[index]
                         val selected = selectedExercises[index] ?: eligible.first()
                         val fieldKey = role?.name ?: "Custom-$index"
-                        val heading = role?.label ?: "Lift ${index + 1}"
+                        val heading = role?.label ?: "Exercise ${index + 1}"
                         Row(
                             Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -1505,7 +1505,7 @@ private fun FiveThreeOneProgramSetupDialog(
                         val availableForSlot = eligible.filter { exercise ->
                             exercise.id == selected.id || exercise.id !in selectedElsewhere
                         }
-                        val exerciseFieldLabel = if (role == null) "Lift ${index + 1} exercise" else "${role.label} exercise"
+                        val exerciseFieldLabel = if (role == null) "Exercise ${index + 1}" else "${role.label} exercise"
                         Column(
                             Modifier.fillMaxWidth().testTag("five-three-one-exercise-$fieldKey"),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -1525,7 +1525,7 @@ private fun FiveThreeOneProgramSetupDialog(
                             }
                             if (availableForSlot.size > 8) {
                                 Text(
-                                    "Search ${availableForSlot.size} compatible lifts",
+                                    "Search ${availableForSlot.size} compatible exercises",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -1535,7 +1535,7 @@ private fun FiveThreeOneProgramSetupDialog(
                             Text(
                                 when {
                                     role.matchesExerciseName(selected.name) ->
-                                        "Suggested from the exercise name. Confirm that ${selected.name} is the ${role.label} lift you intend to program."
+                                        "Suggested from the exercise name. Confirm that ${selected.name} is the ${role.label} exercise you intend to program."
                                     index in manuallySelectedRoleIndices ->
                                         "Confirmed by you for the ${role.label} slot; the exercise name did not assign this role."
                                     else ->
@@ -1733,7 +1733,7 @@ private fun FiveThreeOneProgramSetupDialog(
                             if (role != null) {
                                 "The starting increase is suggested from the ${role.label} role and unit. You control the saved value."
                             } else {
-                                "The starting increase is suggested from this custom lift's name and unit. Review it; you control the saved value."
+                                "The starting increase is suggested from this custom exercise's name and unit. Review it; you control the saved value."
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1746,7 +1746,7 @@ private fun FiveThreeOneProgramSetupDialog(
                         ) {
                             Icon(Icons.Filled.Add, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Add another lift")
+                            Text("Add another exercise")
                         }
                     }
                     Text("3 · Programming", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -1803,9 +1803,9 @@ private fun FiveThreeOneProgramSetupDialog(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         )
                         if (layout != FiveThreeOneProgramLayout.Beginners && lifts.isNotEmpty()) {
-                            Text("BBB lift mapping", style = MaterialTheme.typography.labelLarge)
+                            Text("BBB exercise mapping", style = MaterialTheme.typography.labelLarge)
                             Text(
-                                "Use the Main lift again or choose another selected program lift. The alternate uses its own Training Max.",
+                                "Use the Main exercise again or choose another selected program exercise. The alternate uses its own Training Max.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -1817,7 +1817,7 @@ private fun FiveThreeOneProgramSetupDialog(
                                     values = lifts,
                                     selected = selectedTarget,
                                     valueText = { target ->
-                                        if (target.exerciseId == mainLift.exerciseId) "${target.exerciseName} · same lift"
+                                        if (target.exerciseId == mainLift.exerciseId) "${target.exerciseName} · same exercise"
                                         else target.exerciseName
                                     },
                                     onSelect = { target ->
@@ -2066,9 +2066,9 @@ private fun FiveThreeOneProgramSetupDialog(
         ExercisePickerDialog(
             exercises = eligible.filter { it.id == selected?.id || it.id !in selectedElsewhere },
             preferredIds = listOfNotNull(selected?.id),
-            title = "Choose ${activeRoles.getOrNull(index)?.label ?: "Lift ${index + 1}"}",
+            title = "Choose ${activeRoles.getOrNull(index)?.label ?: "Exercise ${index + 1}"}",
             supportingText = "Only active Weight + Reps exercises are shown. Search by name, equipment, or muscle.",
-            itemLabel = "lift",
+            itemLabel = "exercise",
             onDismiss = { liftPickerIndex = null },
             onPick = { exercise ->
                 selectLift(index, exercise)
@@ -2170,9 +2170,9 @@ private fun RoutineProgramStructurePage(
                 }
                 Text(
                     if (builder.progressionMode == RoutineProgressionMode.PerformanceInformed.name) {
-                        "At a cycle boundary, review each lift independently. Nothing changes until you choose the suggestion, the saved standard increase, a custom value, or Hold. Log RPE or RIR on PR and Joker sets when you want effort-sensitive lower or higher suggestions."
+                        "At a cycle boundary, review each exercise independently. Nothing changes until you choose the suggestion, the saved standard increase, a custom value, or Hold. Log RPE or RIR on PR and Joker sets when you want effort-sensitive lower or higher suggestions."
                     } else {
-                        "Use the saved per-lift 5/3/1 increase at each boundary. Required Main work can still hold only the affected lift."
+                        "Use the saved per-exercise 5/3/1 increase at each boundary. Required Main work can still hold only the affected exercise."
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -2194,7 +2194,7 @@ private fun RoutineProgramStructurePage(
             DisclosureRow(
                 title = "Training Maxes",
                 supportingText = buildString {
-                    append(quantityLabel(mainLifts.size, "main lift"))
+                    append(quantityLabel(mainLifts.size, "main exercise"))
                     if (pendingTrainingMaxDerivations.isNotEmpty()) {
                         append(" · ${pendingTrainingMaxDerivations.size} unapplied")
                     } else {
@@ -2207,7 +2207,7 @@ private fun RoutineProgramStructurePage(
             )
             if (trainingMaxesExpanded) {
                 Text(
-                    "Training Max is separate from your actual or estimated 1RM. Editing a repeated lift updates every day where that lift appears.",
+                    "Training Max is separate from your actual or estimated 1RM. Editing a repeated exercise updates every day where that exercise appears.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -2594,7 +2594,7 @@ private fun RoutineProgramStructurePage(
             item {
                 Text("Prescription for this phase", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text(
-                    "Choose one lift to preserve intentional differences, or apply a uniform policy to all mapped main lifts.",
+                    "Choose one exercise to preserve intentional differences, or apply a uniform policy to all mapped main exercises.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -2605,7 +2605,7 @@ private fun RoutineProgramStructurePage(
                     WhipFilterChip(
                         selected = prescriptionExerciseId == null,
                         onClick = { prescriptionExerciseId = null },
-                        label = { Text("All main lifts") },
+                        label = { Text("All main exercises") },
                         modifier = Modifier.testTag("routine-program-policy-scope-all"),
                     )
                     mainLifts.forEach { lift ->
@@ -2621,7 +2621,7 @@ private fun RoutineProgramStructurePage(
                 }
                 if (mixedProgramPolicy) {
                     Text(
-                        "This phase has different prescriptions between lifts. Choose a lift to edit it without overwriting the others.",
+                        "This phase has different prescriptions between exercises. Choose an exercise to edit it without overwriting the others.",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.testTag("routine-program-policy-mixed"),
@@ -2629,10 +2629,10 @@ private fun RoutineProgramStructurePage(
                 } else if (policy != null) {
                     val scopeLabel = prescriptionExerciseId?.let { id ->
                         (gymState.exercises + gymState.archivedExercises).firstOrNull { it.id == id }?.name
-                    } ?: "All main lifts"
+                    } ?: "All main exercises"
                     Text(
                         "$scopeLabel · ${policy.mainWorkScheme.uiLabel()} · ${policy.supplementalScheme.uiLabel()}" +
-                            policy.alternateSupplementalExerciseName?.let { " · alternate lift: $it" }.orEmpty() +
+                            policy.alternateSupplementalExerciseName?.let { " · alternate exercise: $it" }.orEmpty() +
                             if (policy.jokerEnabled) " · ${policy.jokerCount} optional ${if (policy.jokerCount == 1) "Joker" else "Jokers"}" else "",
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.testTag("routine-program-policy-summary"),
@@ -2709,7 +2709,7 @@ private fun RoutineProgramStructurePage(
                 )
                 policy.alternateSupplementalExerciseName?.let { alternateName ->
                     Text(
-                        "Alternate-lift BBB uses $alternateName and its own Training Max. Selecting another Supplemental scheme replaces this phase's alternate BBB; Main-work and Joker edits preserve it.",
+                        "Alternate-exercise BBB uses $alternateName and its own Training Max. Selecting another Supplemental scheme replaces this phase's alternate BBB; Main-work and Joker edits preserve it.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.testTag("routine-program-alternate-bbb-summary"),
@@ -2956,7 +2956,7 @@ private fun RoutineOutlinePane(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        "Review earlier and later phases, then change one phase without digging through every lift.",
+                        "Review earlier and later phases, then change one phase without digging through every exercise.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -2975,7 +2975,7 @@ private fun RoutineOutlinePane(
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Start a strength program", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
-                        "Choose a standard layout or build 5/3/1 around your own Weight + Reps lifts. Gym keeps Main, Supplemental, Assistance, and Optional work distinct across the full cycle.",
+                        "Choose a standard layout or build 5/3/1 around your own Weight + Reps exercises. Gym keeps Main, Supplemental, Assistance, and Optional work distinct across the full cycle.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -3410,7 +3410,7 @@ private fun RoutinePlacementCard(
 }
 
 private fun RoutineBuilderPlacementState.routineRoleSummary(): String? = when (placementKind) {
-    RoutinePlacementKind.MainLift.name -> "Program main lift"
+    RoutinePlacementKind.MainLift.name -> "Program main exercise"
     RoutinePlacementKind.Supplemental.name -> "Program supplemental work"
     RoutinePlacementKind.Assistance.name -> {
         val label = when (assistanceCategory) {
@@ -3550,9 +3550,9 @@ private fun RoutinePlacementEditor(
         if (placementKind == RoutinePlacementKind.MainLift) item {
             OutlinedCard(Modifier.fillMaxWidth().testTag("routine-main-lift-provenance")) {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Program main lift", fontWeight = FontWeight.Bold)
+                    Text("Program main exercise", fontWeight = FontWeight.Bold)
                     Text(
-                        "This role came from the 5/3/1 program setup. Change main-lift structure in Program Structure; routine assistance controls cannot promote or demote a main lift.",
+                        "This role came from the 5/3/1 program setup. Change main-exercise structure in Program Structure; routine assistance controls cannot promote or demote a main exercise.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -3565,9 +3565,9 @@ private fun RoutinePlacementEditor(
         } else if (placementKind == RoutinePlacementKind.Supplemental) item {
             OutlinedCard(Modifier.fillMaxWidth().testTag("routine-supplemental-provenance")) {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Program supplemental lift", fontWeight = FontWeight.Bold)
+                    Text("Program supplemental exercise", fontWeight = FontWeight.Bold)
                     Text(
-                        "This lift is programmed separately from the day's Main lift and uses its own Training Max. Change the mapping by rebuilding the preset or edit its executable sets below.",
+                        "This exercise is programmed separately from the day's Main exercise and uses its own Training Max. Change the mapping by rebuilding the preset or edit its executable sets below.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -3634,11 +3634,11 @@ private fun RoutinePlacementEditor(
                 onClick = { showFiveThreeOneBuilder = !showFiveThreeOneBuilder },
                 modifier = Modifier.fillMaxWidth().testTag("routine-five-three-one-toggle"),
             ) {
-                Text(if (showFiveThreeOneBuilder) "Hide 5/3/1 Cycle Generator" else "Generate a 5/3/1 Cycle for This Lift")
+                Text(if (showFiveThreeOneBuilder) "Hide 5/3/1 Cycle Generator" else "Generate a 5/3/1 Cycle for This Exercise")
             }
             if (showFiveThreeOneBuilder) {
                 Text(
-                    "This converts the current routine into a canonical four-phase 5/3/1 cycle. Use Set Up 5/3/1 from an empty routine to choose several standard or custom lifts at once.",
+                    "This converts the current routine into a canonical four-phase 5/3/1 cycle. Use Set Up 5/3/1 from an empty routine to choose several standard or custom exercises at once.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -3666,7 +3666,7 @@ private fun RoutinePlacementEditor(
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Build the whole 5/3/1 program", fontWeight = FontWeight.Bold)
                     Text(
-                        "This routine has several days. Converting only this lift would leave other days without required Main work and block Training Max progression. Review a complete standard or custom-lift program instead.",
+                        "This routine has several days. Converting only this exercise would leave other days without required Main work and block Training Max progression. Review a complete standard or custom-exercise program instead.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -5421,7 +5421,7 @@ private fun RoutineAssistanceRole.assistanceUiLabel(): String = when (this) {
     RoutineAssistanceRole.SingleLegCore -> "Single-leg / Core"
     RoutineAssistanceRole.Other -> "Other"
     RoutineAssistanceRole.Unspecified -> "Unclassified"
-    RoutineAssistanceRole.MainLift -> "Main lift"
+    RoutineAssistanceRole.MainLift -> "Main exercise"
 }
 
 private fun RoutineAssistanceRole.assistanceUiDescription(): String = when (this) {
@@ -5595,7 +5595,7 @@ internal fun RoutineBuilderState.fiveThreeOnePhasePrescriptionSummary(
         summaries.add(
             1.coerceAtMost(summaries.size),
             alternateActive.joinToString(
-                prefix = "Supplemental · ${alternate.exerciseNameSnapshot} (alternate lift) · ",
+                prefix = "Supplemental · ${alternate.exerciseNameSnapshot} (alternate exercise) · ",
                 separator = " · ",
             ) { it.shortPrescription() },
         )

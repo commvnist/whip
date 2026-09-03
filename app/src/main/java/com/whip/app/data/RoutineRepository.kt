@@ -1161,7 +1161,7 @@ private fun validateRoutine(draft: RoutineDraft) {
         when (placementKind) {
             RoutinePlacementKind.MainLift -> require(exercise.plannedSets.none {
                 it.workSection in setOf(RoutineWorkSection.Assistance, RoutineWorkSection.Unspecified)
-            }) { "Main-lift placements may only contain Main, Supplemental, or Optional work" }
+            }) { "Main-exercise placements may only contain Main, Supplemental, or Optional work" }
             RoutinePlacementKind.Supplemental -> require(exercise.plannedSets.all {
                 it.workSection == RoutineWorkSection.Supplemental
             }) { "Supplemental placements may only contain Supplemental work" }
@@ -1184,9 +1184,9 @@ private fun validateRoutine(draft: RoutineDraft) {
             require(exercise.trainingMaxValue != null) { "Cycle increment requires an explicit training max" }
         }
         if (fiveThreeOneProgram && placementKind == RoutinePlacementKind.MainLift) {
-            require(exercise.trainingMaxValue != null) { "5/3/1 main lifts require an explicit training max" }
+            require(exercise.trainingMaxValue != null) { "5/3/1 main exercises require an explicit training max" }
             require(exercise.cycleIncrementValue?.let { it.isFinite() && it > 0.0 } == true) {
-                "5/3/1 main lifts require a cycle increase above zero"
+                "5/3/1 main exercises require a cycle increase above zero"
             }
         }
         require(exercise.progressionPercentages.all { it.isFinite() && it in 1.0..200.0 }) {
@@ -1240,7 +1240,7 @@ private fun validateRoutine(draft: RoutineDraft) {
                 .filter { it.classification == WorkoutSetClassification.TrainingMaxTest }
                 .groupBy(WorkoutSetDraft::routinePhaseIndex)
             require(testSetsByPhase.values.all { it.size == 1 }) {
-                "A main-lift placement may have only one explicit Training Max test set per phase"
+                "A main-exercise placement may have only one explicit Training Max test set per phase"
             }
             require(exercise.plannedSets.none { set ->
                 set.optionalWorkKind == RoutineOptionalWorkKind.Joker &&
@@ -1267,7 +1267,7 @@ private fun validateRoutine(draft: RoutineDraft) {
                                 set.classification == WorkoutSetClassification.TrainingMaxTest
                         }
                     } == 1) {
-                        "Each main lift requires exactly one explicit Training Max test set in phase ${phaseIndex + 1}"
+                        "Each main exercise requires exactly one explicit Training Max test set in phase ${phaseIndex + 1}"
                     }
                 }
             }
@@ -1291,7 +1291,7 @@ private fun validateRoutine(draft: RoutineDraft) {
                         candidate.plannedSets.filterNot { it.classification == WorkoutSetClassification.TrainingMaxTest } ==
                             expected.plannedSets.filterNot { it.classification == WorkoutSetClassification.TrainingMaxTest }
                 }) {
-                    "Repeated 5/3/1 main-lift placements must share the same training max, progression, and non-test prescriptions"
+                    "Repeated 5/3/1 main-exercise placements must share the same training max, progression, and non-test prescriptions"
                 }
             }
     }

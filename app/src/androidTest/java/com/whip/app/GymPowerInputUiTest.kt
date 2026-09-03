@@ -1092,7 +1092,7 @@ class GymPowerInputUiTest {
         compose.onNodeWithContentDescription("Manage set 1").performClick()
         compose.onNodeWithText("Mark Main Set Not Performed").performClick()
         compose.onNodeWithText("Mark Main Set not performed?").assertIsDisplayed()
-        compose.onNodeWithText("It can hold this lift's Training Max progression", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("It can hold this exercise's Training Max progression", substring = true).assertIsDisplayed()
         compose.runOnIdle {
             assertEquals(null, submittedBoundary)
             latestBoundary.value = reviewedBoundary.copy(

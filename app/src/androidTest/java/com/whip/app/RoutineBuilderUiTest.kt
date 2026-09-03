@@ -125,13 +125,13 @@ class RoutineBuilderUiTest {
                 hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
         ).performClick()
 
-        compose.onNodeWithText("Choose a program, configure its lifts, then review the exact work before building your routine.")
+        compose.onNodeWithText("Choose a program, configure its exercises, then review the exact work before building your routine.")
             .assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-program-setup").assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-plan-SingleCycle").assertIsSelected()
         compose.onNodeWithTag("five-three-one-program-status")
-            .assertTextContains("Still needed · Enter a Training Max and cycle increase above zero for every selected lift.")
-        compose.onNode(hasText("Choose Your Lifts") and hasClickAction()).assertIsDisplayed()
+            .assertTextContains("Still needed · Enter a Training Max and cycle increase above zero for every selected exercise.")
+        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-create-standard-lifts").performScrollTo().assertIsDisplayed()
     }
 
@@ -161,7 +161,8 @@ class RoutineBuilderUiTest {
             hasText("Set Up 5/3/1") and hasClickAction() and
                 hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
         ).performClick()
-        compose.onNode(hasText("Choose Your Lifts") and hasClickAction()).performClick()
+        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performClick()
+        compose.onNode(hasText("Add an Exercise") and hasClickAction()).performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-create-custom-lift").performScrollTo().performClick()
 
         compose.onNodeWithTag("exercise-picker-empty").assertIsDisplayed()
@@ -201,8 +202,8 @@ class RoutineBuilderUiTest {
             useUnmergedTree = true,
         ).performClick()
 
-        compose.onNodeWithContentDescription("Lift 1 exercise: Bench Press").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Lift 2 exercise: Deadlift").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Exercise 1: Bench Press").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Exercise 2: Deadlift").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-add-custom-lift").performScrollTo().assertIsDisplayed()
     }
 
@@ -424,21 +425,21 @@ class RoutineBuilderUiTest {
             hasText("Set Up 5/3/1") and hasClickAction() and
                 hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
         ).performClick()
-        compose.onNode(hasText("Choose Your Lifts") and hasClickAction()).performClick()
+        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performClick()
         compose.waitUntil(5_000) {
             compose.onAllNodes(hasTestTag("five-three-one-training-max-Custom-3"))
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        compose.onNodeWithContentDescription("Lift 1 exercise: Bench Press").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Lift 2 exercise: Deadlift").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Lift 3 exercise: Zercher Squat").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Exercise 1: Bench Press").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Exercise 2: Deadlift").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Exercise 3: Zercher Squat").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-remove-Custom-3").performScrollTo().performClick()
         compose.onNodeWithTag("five-three-one-add-custom-lift").performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("Move Bench Press later").performScrollTo().performClick()
-        compose.onNodeWithContentDescription("Lift 1 exercise: Deadlift").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Exercise 1: Deadlift").performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("Move Bench Press earlier").performScrollTo().performClick()
-        compose.onNodeWithContentDescription("Lift 1 exercise: Bench Press").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Exercise 1: Bench Press").performScrollTo().assertIsDisplayed()
 
         listOf("200", "300", "250").forEachIndexed { index, trainingMax ->
             compose.onNodeWithTag("five-three-one-training-max-Custom-$index")
@@ -489,16 +490,16 @@ class RoutineBuilderUiTest {
             hasText("Set Up 5/3/1") and hasClickAction() and
                 hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
         ).performClick()
-        compose.onNode(hasText("Choose Your Lifts") and hasClickAction()).performClick()
-        compose.onNodeWithContentDescription("Lift 1 exercise: Bench Press").performScrollTo().performClick()
+        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performClick()
+        compose.onNodeWithContentDescription("Exercise 1: Bench Press").performScrollTo().performClick()
 
-        compose.onNodeWithText("Choose Lift 1").assertIsDisplayed()
+        compose.onNodeWithText("Choose Exercise 1").assertIsDisplayed()
         compose.onNodeWithTag("exercise-picker-search").performTextInput("Safety Bar")
         compose.onNode(
             hasText("Safety Bar Squat") and hasAnyAncestor(hasTestTag("workout-exercise-picker-list")),
             useUnmergedTree = true,
         ).performClick()
-        compose.onNodeWithContentDescription("Lift 1 exercise: Safety Bar Squat").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Exercise 1: Safety Bar Squat").assertIsDisplayed()
     }
 
     @Test
@@ -594,7 +595,7 @@ class RoutineBuilderUiTest {
                     .performTextReplacement(tm)
             }
         compose.onNodeWithTag("five-three-one-bbb-lift-1").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("BBB after Squat: Squat · same lift").performClick()
+        compose.onNodeWithContentDescription("BBB after Squat: Squat · same exercise").performClick()
         compose.onNodeWithContentDescription("BBB after Squat option: Bench Press").performClick()
         compose.onNodeWithContentDescription("BBB after Squat: Bench Press").assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-joker-count-3").performScrollTo().performClick()
@@ -711,7 +712,7 @@ class RoutineBuilderUiTest {
             hasText("Set Up 5/3/1") and hasClickAction() and
                 hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
         ).performClick()
-        compose.onNode(hasText("Choose Your Lifts") and hasClickAction()).performClick()
+        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performClick()
         compose.waitUntil(5_000) {
             compose.onAllNodes(hasTestTag("five-three-one-training-max-Custom-0"))
                 .fetchSemanticsNodes().isNotEmpty()

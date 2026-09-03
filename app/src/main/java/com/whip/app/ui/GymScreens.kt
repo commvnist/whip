@@ -2046,7 +2046,7 @@ fun GymAreaContent(
                 }
                 " Program position will advance, but Training Max progression is held" +
                     (names.takeIf { it.isNotEmpty() }?.joinToString(prefix = " only for ") ?: " for affected Main work") +
-                    " because a prescribed Main lift was removed or substituted."
+                    " because a prescribed Main exercise was removed or substituted."
             } else if (heldMainLiftNames.isNotEmpty()) {
                 " Program position will advance; Training Max progression is held only for ${heldMainLiftNames.joinToString()} because required Main work was incomplete, failed, under reps, or under load."
             } else {
@@ -3582,7 +3582,7 @@ internal fun WorkoutExerciseCard(
                 }
             }
             val placementRoleLabel = when (item.workoutExercise.placementKindSnapshot) {
-                RoutinePlacementKind.Supplemental -> "Supplemental · alternate programmed lift"
+                RoutinePlacementKind.Supplemental -> "Supplemental · alternate programmed exercise"
                 else -> item.workoutExercise.assistanceLabel()
             }
             placementRoleLabel?.let { roleLabel ->
@@ -3917,7 +3917,7 @@ internal fun WorkoutExerciseCard(
             } else {
                 "Completed sets stay in History. Unperformed sets are marked as not performed because the exercise was removed." +
                     if (item.workoutExercise.placementKindSnapshot == RoutinePlacementKind.MainLift) {
-                        " Removing prescribed Main work holds this lift's Training Max increase."
+                        " Removing prescribed Main work holds this exercise's Training Max increase."
                     } else ""
             },
             confirmLabel = "Remove Exercise",
@@ -3939,7 +3939,7 @@ internal fun WorkoutExerciseCard(
             title = "Replace ${item.exercise.name}?",
             message = "Completed sets stay attached to ${item.exercise.name} in History. Unperformed sets are marked as replaced; the new exercise is logged separately." +
                 if (item.workoutExercise.placementKindSnapshot == RoutinePlacementKind.MainLift) {
-                    " Replacing prescribed Main work holds this lift's Training Max increase."
+                    " Replacing prescribed Main work holds this exercise's Training Max increase."
                 } else "",
             confirmLabel = "Choose Replacement",
             onDismiss = { substituteConfirmationBoundary = null },
@@ -3957,7 +3957,7 @@ internal fun WorkoutExerciseCard(
             title = "Mark Main Set not performed?",
             message = buildString {
                 append("This keeps the prescribed Set in workout History as not performed. ")
-                append("It can hold this lift's Training Max progression when the workout is finished.")
+                append("It can hold this exercise's Training Max progression when the workout is finished.")
                 setNumber?.let { append(" This is Main Set $it.") }
             },
             confirmLabel = "Mark Not Performed",
@@ -8911,7 +8911,7 @@ private fun RoutineContent(
                                 )
                                 Text(
                                     if (heldMainLiftNames.isEmpty()) {
-                                        "Training Max progression · All lifts eligible"
+                                        "Training Max progression · All exercises eligible"
                                     } else {
                                         "Training Max held · ${heldMainLiftNames.joinToString()}"
                                     },
