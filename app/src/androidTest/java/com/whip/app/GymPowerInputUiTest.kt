@@ -49,6 +49,7 @@ import com.whip.app.domain.RoutineMainWorkScheme
 import com.whip.app.domain.RoutinePlacementKind
 import com.whip.app.domain.RoutineProgramKind
 import com.whip.app.domain.RoutineProgramPhaseRole
+import com.whip.app.domain.RoutineProgressionMode
 import com.whip.app.domain.RoutineSet
 import com.whip.app.domain.RoutineSupplementalScheme
 import com.whip.app.domain.RoutineTrainingMaxSource
@@ -131,6 +132,8 @@ class GymPowerInputUiTest {
                 RoutineProgramPhaseRole.Deload,
             ),
             trainingMaxAdvanceAfterPhaseIndices = setOf(3),
+            progressionMode = RoutineProgressionMode.PerformanceInformed,
+            allowNonStandardHigherSuggestions = true,
         )
         val day = RoutineDay(2, "day", routine.id, "Upper", 0, 1, 2, progressionIndex = 4)
         val placement = RoutineExercise(
@@ -209,6 +212,8 @@ class GymPowerInputUiTest {
             reconstructed.program?.phaseRoles,
         )
         assertEquals(setOf(3), reconstructed.program?.trainingMaxAdvanceAfterPhaseIndices)
+        assertEquals(RoutineProgressionMode.PerformanceInformed, reconstructed.program?.progressionMode)
+        assertTrue(reconstructed.program?.allowNonStandardHigherSuggestions == true)
         assertEquals(plannedSet.draft, reconstructedPlacement.plannedSets.single())
         assertEquals(
             "5/3/1 · Cycle 3 · 5/3/1 · Next · Upper",

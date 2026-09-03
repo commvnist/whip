@@ -554,3 +554,14 @@
 - Evidence: `HabitScreens.kt` and `WhipNavigationTest.kt`.
 - Resolution: Implemented in `IMP-20260902-029` under `DEC-20260902-027` and verified in `VER-20260902-030`.
 - Status: Resolved and complete-candidate verified in `VER-20260902-031`.
+
+### FND-20260903-001 — Routine editing discarded saved performance-informed progression
+
+- Severity/category: P1 Gym authored-state integrity and 5/3/1 configuration correctness.
+- Observed: Creating a 5/3/1 routine with Performance review persisted `PerformanceInformed`, but reopening Edit Routine showed Standard 5/3/1 progression. The repository correctly stored and restored both progression fields; `routineDraftForEditing` omitted them when projecting the saved routine into builder state, so `RoutineProgramDraft` supplied its new-routine defaults.
+- Expected: Editing must reproduce the saved progression mode and higher-suggestion policy exactly. Defaults apply only to a new program.
+- Why it matters: A routine can appear to change its progression policy without user intent, and saving the edit can overwrite the correct stored configuration.
+- Affected users: Any 5/3/1 user who chooses Performance review and later edits the routine, especially lifters relying on AMRAP/Joker-informed cycle suggestions.
+- Evidence: `GymScreens.kt`, `GymModels.kt`, `RoutineRepository.kt`, and `GymPowerInputUiTest.kt`.
+- Resolution: Implemented in `IMP-20260903-002` under `DEC-20260903-002` and verified in `VER-20260903-002`.
+- Status: Resolved in source; not yet released to the physical phone.

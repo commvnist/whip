@@ -566,3 +566,12 @@
 - Compatibility: The installed application is upgraded, but existing Whip local data remains untouched until the user confirms “Erase all Whip data”. Older backups remain intentionally unsupported by the current epoch.
 - Related: `FB-20260903-001`, `IMP-20260903-001`, `VER-20260903-001`.
 - Status: Accepted, released, and physically verified.
+
+### DEC-20260903-002 — Existing-routine edit projections copy persisted program policy
+
+- Context: The persistence model retained Performance review, but the edit adapter reconstructed a partial program draft and allowed defaults intended for new programs to replace two omitted persisted fields.
+- Decision: Treat the saved routine as authoritative when entering edit mode and explicitly project `progressionMode` and `allowNonStandardHigherSuggestions` alongside all other program metadata. Protect the projection boundary with a round-trip regression fixture using non-default values.
+- Rationale: Default constructor values are appropriate for creation, not hydration. An explicit complete projection prevents the editor from visually or durably changing authored program policy.
+- Compatibility: No schema, backup, historical Workout, or calculation change. Existing correctly persisted routines immediately reopen with their actual configuration after updating.
+- Related: `FB-20260903-002`, `FND-20260903-001`, `IMP-20260903-002`, `VER-20260903-002`.
+- Status: Accepted, implemented, and targeted emulator verified.

@@ -605,3 +605,11 @@
 - Source/release ledger: `origin/main` at `614ab10`; production candidate through `25eeac3`.
 - Related: `FB-20260903-001`, `DEC-20260903-001`, `IMP-20260903-001`, `VER-20260902-031`.
 - Status: Signed physical release installed and smoke-verified; explicit on-device data erasure awaits the user.
+
+### VER-20260903-002 — Performance-review edit round-trip verification
+
+- `GymPowerInputUiTest#routineEditReconstructionPreservesAdvancedProgrammingFields` passed three consecutive times on the disposable API 34 emulator with a saved `PerformanceInformed` mode and enabled non-standard higher suggestions.
+- The `gym531` targeted profile passed: its five JVM programming/builder suites completed successfully, followed by all 71 Android tests across `RoutineRepositoryTest`, `RoutineBuilderUiTest`, and `FiveThreeOneCycleReviewUiTest` with zero failures and zero skips.
+- Scope: Exact regression plus the focused 5/3/1 creation, persistence, progression-review, and builder surface. The complete 1,485-test release gate and physical-phone deployment were not rerun for this source change.
+- Related: `FB-20260903-002`, `FND-20260903-001`, `DEC-20260903-002`, `IMP-20260903-002`.
+- Status: Targeted verification passed; corrected physical release pending an explicit request.

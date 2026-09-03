@@ -174,3 +174,10 @@ These records preserve durable user intent. “Released” means the change reac
 - Destructive boundary: Installation and launch are authorized. The in-app “Erase all Whip data” confirmation remains a separate destructive user action and must not be pressed during release verification.
 - Related: `DEC-20260903-001`, `IMP-20260903-001`, `VER-20260903-001`.
 - Status: Released and verified on 2026-09-03; the phone is waiting at the explicit fresh-start confirmation.
+
+### FB-20260903-002 — Preserve Performance review when editing a saved 5/3/1 routine
+
+- User need: A 5/3/1 routine created and saved with Performance review must still show Performance review when reopened for editing instead of reverting to Standard 5/3/1 progression.
+- Acceptance criteria: Routine editing round-trips both the saved progression mode and its higher-suggestion policy; opening and saving an existing routine never substitutes new-routine defaults for persisted program choices.
+- Related: `FND-20260903-001`, `DEC-20260903-002`, `IMP-20260903-002`, `VER-20260903-002`.
+- Status: Implemented and targeted verified; not yet released to the physical phone.

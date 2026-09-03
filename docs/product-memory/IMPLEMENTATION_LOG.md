@@ -574,3 +574,12 @@
 - Related: `FB-20260903-001`, `DEC-20260903-001`.
 - Verification: `VER-20260903-001`.
 - Status: Released and physically verified.
+
+### IMP-20260903-002 — Lossless 5/3/1 progression edit projection
+
+- Added the persisted progression mode and non-standard higher-suggestion policy to `routineDraftForEditing`, preventing saved Performance review routines from hydrating as Standard progression.
+- Expanded the advanced-programming reconstruction test with deliberately non-default progression values so future omissions fail at the edit boundary.
+- Important files: `GymScreens.kt` and `GymPowerInputUiTest.kt`.
+- Related: `FB-20260903-002`, `FND-20260903-001`, `DEC-20260903-002`.
+- Verification: `VER-20260903-002`.
+- Status: Implemented and targeted verified; physical release pending an explicit request.

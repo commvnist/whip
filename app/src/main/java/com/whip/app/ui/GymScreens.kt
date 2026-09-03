@@ -9193,6 +9193,8 @@ internal fun routineDraftForEditing(state: GymUiState, routine: GymRoutine): Rou
         currentPhaseIndexHint = routine.currentProgramPhaseIndex,
         templateKey = routine.programTemplateKey,
         templateRevision = routine.programTemplateRevision,
+        progressionMode = routine.progressionMode,
+        allowNonStandardHigherSuggestions = routine.allowNonStandardHigherSuggestions,
     ),
     nextProgramDayPositionHint = routine.nextProgramDayPosition,
 )
