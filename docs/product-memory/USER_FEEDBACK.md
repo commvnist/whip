@@ -234,3 +234,10 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Hidden fields cannot block saves or leak stale data; Habit target/schedule semantics are correct; Goal windows match Goal types; Gym exercise/machine options and Progress metrics match their input contracts; Settings expose available capabilities and omit unavailable subordinate controls; domain, repository, and UI tests agree; release without physical-device instrumentation or automatic data erasure.
 - Related: `FND-20260903-016` through `FND-20260903-018`, `DEC-20260903-009`, `IMP-20260903-014`, `VER-20260903-014`.
 - Status: Implemented, verified, and released to the physical phone as Whip 0.3.43/code 49; see `VER-20260903-015`.
+
+### FB-20260903-010 — Make VERA-Codex automatic for development
+
+- User need: VERA-Codex must be the standing default for development work; the user should not have to request it for each task.
+- Acceptance criteria: Every software change is automatically classified and routed under VERA; required VERA agents and risk reviews may be spawned without a repeated prompt; trivial direct-parent work remains an explicit VERA route; unrelated conversational work is not over-orchestrated; destructive, credential, production, billing, publication, and external-action approval boundaries remain unchanged; canonical, global, and Whip policies agree.
+- Related: `DEC-20260903-010`, `IMP-20260903-016`, `VER-20260903-016`.
+- Status: Implemented globally, in Whip, and in canonical VERA-Codex source.

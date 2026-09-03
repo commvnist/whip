@@ -754,3 +754,13 @@
 - Source: implementation `9e09457`; memory `daffe81`; version/release source `c770132`.
 - Related: `FB-20260903-008`, `FB-20260903-009`, `DEC-20260903-008`, `DEC-20260903-009`, `IMP-20260903-013` through `IMP-20260903-015`, `VER-20260903-013`, `VER-20260903-014`.
 - Status: Signed release installed and verified on the physical phone.
+
+### VER-20260903-016 — Automatic VERA-Codex policy verification
+
+- Canonical, global, and Whip `AGENTS.md` files compare byte-for-byte after installation.
+- All five global role definitions compare byte-for-byte with canonical VERA-Codex: Luna scout, Terra builder, Terra reviewer, Sol architect, and Sol critical builder.
+- Global Codex configuration retains agents enabled with a three-agent cap, Terra parent, Luna default subagent, and interruption support. `codex --version` loaded successfully as `codex-cli 0.146.0-alpha.9.2` after the global policy/config update.
+- `git diff --check` passed in both VERA-Codex and Whip. Canonical VERA-Codex commit `bd8629c` was confirmed pushed to `origin/main`.
+- Scope: Static policy/configuration activation and synchronization. No application behavior, phone package, user data, or external production system changed.
+- Related: `FB-20260903-010`, `DEC-20260903-010`, `IMP-20260903-016`.
+- Status: Passed; VERA-Codex is the standing default for subsequent development requests.

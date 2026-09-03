@@ -1,6 +1,16 @@
 # VERA-Codex orchestration policy
 
-Apply these rules to non-trivial development work in this repository.
+Apply these rules to all development work in every workspace governed by this file.
+
+## Default activation and standing authorization
+
+VERA-Codex is the default development process. Automatically classify and route every request that creates, changes, repairs, refactors, tests, builds, packages, migrates, or deploys software. The user does not need to name VERA-Codex or request agents again.
+
+The user grants standing authorization to spawn the VERA roles required by this policy for development work. Begin VERA routing before substantive investigation or editing. Do not bypass a required route merely because delegation was not repeated in the current prompt.
+
+This standing authorization does not authorize destructive, irreversible, credential, production, billing, publication, or external side effects beyond the task's scope. Those approval boundaries remain in force.
+
+Trivial work may remain in the parent when the explicit `direct_parent` rule applies. That is a VERA-routed decision, not an exemption from VERA. Status, explanation, and other read-only conversational requests are not development work unless they also request a software change.
 
 ## Objective
 

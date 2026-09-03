@@ -639,3 +639,12 @@
 - Compatibility: No schema or completed-history rewrite. Former At Most rows are interpreted correctly on read and canonicalized when edited; new writes remove irrelevant current-definition fields.
 - Related: `FB-20260903-009`, `FND-20260903-016` through `FND-20260903-018`, `IMP-20260903-014`, `VER-20260903-014`.
 - Status: Accepted, implemented, verified, and released in Whip 0.3.43/code 49.
+
+### DEC-20260903-010 — VERA-Codex is standing policy, not an opt-in phrase
+
+- Context: VERA roles and routing files were installed, but a development run could still execute directly when the current prompt did not explicitly name VERA.
+- Decision: Automatically apply VERA classification and routing to every request that changes, repairs, refactors, tests, builds, packages, migrates, or deploys software. The user's standing authorization satisfies the delegation trigger for required VERA roles; per-task repetition is unnecessary.
+- Boundaries: A genuinely trivial task may remain in the parent only through VERA's explicit direct-parent route. Read-only conversation is outside development routing. Standing delegation does not authorize destructive, irreversible, credential, production, billing, publication, or unrelated external effects.
+- Rationale: Installation without automatic activation is not truthful use of an orchestration system. Explicit scope preserves the efficient vanilla path for trivial work while guaranteeing the medium/high-risk review gates.
+- Related: `FB-20260903-010`, `IMP-20260903-016`, `VER-20260903-016`.
+- Status: Accepted and implemented.

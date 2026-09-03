@@ -722,3 +722,14 @@
 - Related: `FB-20260903-008`, `FB-20260903-009`, `IMP-20260903-013`, `IMP-20260903-014`.
 - Verification: `VER-20260903-015`.
 - Status: Released and physically verified; version/release source `c770132`.
+
+### IMP-20260903-016 — Automatic VERA-Codex activation
+
+- Added a default-activation and standing-authorization contract to canonical VERA-Codex, the global Codex policy, and Whip's repository policy.
+- Defined development work precisely, retained VERA's explicit direct-parent route for trivial changes, and preserved separate approval requirements for destructive or external effects.
+- Marked automatic development activation and standing delegation in the machine-readable seed policy, documented intended installation behavior, and retained the existing enabled Luna/Terra/Sol role configuration.
+- Canonical VERA-Codex source was committed and pushed at `bd8629c`.
+- Important files: global `AGENTS.md`/`config.toml`, Whip `AGENTS.md`, and canonical VERA-Codex `AGENTS.md`, `README.md`, `.codex/config.toml`, and `routing-policy.yaml`.
+- Related: `FB-20260903-010`, `DEC-20260903-010`.
+- Verification: `VER-20260903-016`.
+- Status: Implemented globally and in both repositories.
