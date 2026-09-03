@@ -653,3 +653,36 @@
 - Evidence: `AppSettings.kt`, `WhipApplication.kt`, `SettingsViewModel.kt`, `TaskRepository.kt`, `HabitRepository.kt`, `TrackRepository.kt`, `AppSettingsTest.kt`, and focus-deletion integration coverage.
 - Resolution: Normalize focus settings atomically, clear deleted-task focus state durably, reject orphaned state during recovery, and move vulnerable mutations into transactions.
 - Status: Resolved in `IMP-20260903-007`, verified in `VER-20260903-007`, and released in `VER-20260903-008`.
+
+### FND-20260903-010 — 5/3/1 setup used a constrained dialog for a program-sized workflow
+
+- Severity/category: P1 mobile/fold UX, comprehension, and accessibility.
+- Observed: The full program plan—preset, schedule, arbitrary lifts, Training Maxes, progression, supplemental work, Jokers, assistance, and phase review—was placed in a compact alert surface. On the target fold layout it consumed only a narrow partial pane, hid most decisions below the fold, and left a disabled Build action without an immediate explanation.
+- Expected: Program creation should use the complete active pane, preserve a stable title/back/build hierarchy, explain the first unresolved requirement at the top, and remain navigable at compact width and enlarged text.
+- Why it matters: A long strength-program configuration is not a confirmation dialog. Constraining it increases scrolling, configuration errors, and uncertainty about why the routine cannot be built.
+- Affected users: Novice and experienced 5/3/1 lifters, foldable/phone users, keyboard and screen-reader users, and users with enlarged text.
+- Evidence: `RoutineBuilder.kt`, `RoutineBuilderUiTest.kt`, and before/after API-34 emulator inspection of the 5/3/1 setup surface.
+- Resolution: Replaced the alert with the shared full-pane primary editor, added a polite live build-status summary, stable Back/Build hierarchy, selected-state semantics, and numeric keyboards.
+- Status: Resolved in `IMP-20260903-009`, verified in `VER-20260903-009`, and released in `VER-20260903-010`.
+
+### FND-20260903-011 — Arbitrary-lift selection did not scale to a real exercise library
+
+- Severity/category: P1 5/3/1 flexibility, discoverability, and interaction cost.
+- Observed: Each 5/3/1 lift slot used an unsearchable dropdown. Users with dozens of exercises had to scan a long menu, and a user with no eligible Weight + Reps exercise was told to leave the setup and create one elsewhere.
+- Expected: Every lift slot should open the same searchable exercise picker used by Gym, exclude duplicate selections, search name/equipment/muscle, and allow contextual creation without losing the in-progress program.
+- Why it matters: First-class custom-lift support is only practical when Bench Press, Deadlift, Zercher Squat, alternate BBB lifts, and user-created movements can be found quickly and safely.
+- Affected users: Lifters running non-standard 5/3/1 lift selections and users with large/custom exercise libraries.
+- Evidence: `RoutineBuilder.kt`, `GymScreens.kt`, and `RoutineBuilderUiTest#customFiveThreeOneLiftSelectionSearchesAFullExerciseLibrary` using an 85-exercise library.
+- Resolution: Reused the searchable full picker for each slot, added in-context Weight + Reps lift creation, preserved the setup draft, and retained the rule that changing a lift clears that lift's prior TM provenance.
+- Status: Resolved in `IMP-20260903-009`, verified in `VER-20260903-009`, and released in `VER-20260903-010`.
+
+### FND-20260903-012 — Structured 5/3/1 work exposed generic controls that could contradict its program
+
+- Severity/category: P1 programming integrity and information architecture.
+- Observed: A generated Main or Supplemental placement exposed app-wide saved schemes, a generic warm-up generator, and copy-previous behavior beside its structured prescription. These controls could truncate or replace generated set structure. Meanwhile the authoritative Program Structure page began with every expanded Training Max card, pushing phase editing far below the entry point.
+- Expected: Generated Main/Supplemental work should clearly route program-wide edits to Program Structure, hide generic bulk rewrite tools that do not preserve program semantics, and keep Training Max detail available through progressive disclosure without burying phase navigation.
+- Why it matters: The interface should make the safe edit path obvious and prevent a normal-looking routine shortcut from silently undermining 5/3/1 prescriptions.
+- Affected users: All structured 5/3/1 users, especially users who customize phases, supplemental work, or Training Maxes.
+- Evidence: `RoutineBuilder.kt` and `RoutineBuilderUiTest#structuredMainLiftUsesProgramStructureAndHidesGenericRewriteControls`.
+- Resolution: Added a direct Edit Program Structure action, removed incompatible generic rewrite controls for program-controlled Main/Supplemental placements, and collapsed Training Max detail by default with an unapplied-change summary and automatic reveal when action is required.
+- Status: Resolved in `IMP-20260903-009`, verified in `VER-20260903-009`, and released in `VER-20260903-010`.

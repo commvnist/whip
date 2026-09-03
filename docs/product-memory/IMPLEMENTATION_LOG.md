@@ -647,3 +647,25 @@
 - Related: `FB-20260903-005`, `DEC-20260903-005`, `IMP-20260903-007`.
 - Verification: `VER-20260903-008`.
 - Status: Released and physically verified; release version commit `48e8b3b`.
+
+### IMP-20260903-009 — Gym Routine and 5/3/1 authoring UX remediation
+
+- Promoted 5/3/1 program setup from a constrained alert to the shared full-pane primary editor with stable Back/Build actions and an immediate live validation/status summary.
+- Added searchable arbitrary-lift selection and contextual Weight + Reps lift creation while preserving the in-progress setup; selected plan/protocol cards now expose semantic selected state and numeric program fields request decimal keyboards.
+- Made Program Structure's Training Max detail progressively disclosed with pending-change visibility, and added a direct Program Structure route from generated Main/Supplemental placements.
+- Removed app-wide scheme, warm-up generation, and copy-previous bulk controls only from program-controlled Main/Supplemental placements so ordinary routines and explicit advanced edits remain flexible.
+- Hid the Routine library's archived filter when no archived routine exists and made the shared exercise-picker query a stable single-line searchable field.
+- Added two Android regressions and updated the declared baseline to 1,502 product tests: 583 JVM and 919 Android.
+- Important files: `RoutineBuilder.kt`, `GymScreens.kt`, `RoutineBuilderUiTest.kt`, and `docs/testing.md`.
+- Related: `FB-20260903-006`, `FND-20260903-010` through `FND-20260903-012`, `DEC-20260903-006`.
+- Verification: `VER-20260903-009`.
+- Status: Implemented and pushed in `4262468`.
+
+### IMP-20260903-010 — Signed Whip 0.3.41 Gym authoring release
+
+- Assigned version 0.3.41/code 47, ran the guarded release gate, and built the minified signed APK and Play bundle with the established Whip signer.
+- Installed the release in place on the explicitly selected Samsung endpoint, verified the exact installed artifact hash and preserved installation identity, and cold-launched `MainActivity` without clearing app data or running physical-device instrumentation.
+- Important files: `app/build.gradle.kts`, signed APK/AAB, `scripts/check`, and `scripts/device`.
+- Related: `FB-20260903-006`, `IMP-20260903-009`, `VER-20260903-009`.
+- Verification: `VER-20260903-010`.
+- Status: Released and physically verified; version commit `cd1c4ba`.

@@ -602,3 +602,13 @@
 - Compatibility: No new Room schema or backup version was required beyond schema 44/data epoch 4/backup 21. Invalid newly authored or restored data is now rejected; valid current data round-trips unchanged. Checklist definitions referenced by history remain as archived rows.
 - Related: `FB-20260903-005`, `FND-20260903-006` through `FND-20260903-009`, `IMP-20260903-007`, `VER-20260903-007`.
 - Status: Accepted, implemented, verified, and released in Whip 0.3.40/code 46.
+
+### DEC-20260903-006 — Use a guided full-pane 5/3/1 setup with Program Structure as the edit authority
+
+- Context: 5/3/1 creation has substantially more hierarchy and validation than an ordinary exercise edit, but lifters still need fast arbitrary-lift customization and familiar routine editing after generation.
+- Decision: Keep the hybrid model: a dedicated full-pane guided 5/3/1 setup produces the initial structured routine, while Program Structure remains the authoritative place for later program-wide Training Max, phase, progression, and prescription edits. Reuse the shared searchable exercise picker rather than introducing another lift selector. Suppress generic placement rewrite tools only for program-controlled Main/Supplemental work; keep explicit advanced set editing and ordinary-routine flexibility intact.
+- Rationale: This preserves a clear novice path and efficient expert customization without locking 5/3/1 to four named lifts, duplicating library UX, or building a generic programming DSL. Central edit routing makes semantic ownership visible and reduces accidental prescription loss.
+- Rejected alternatives: Refining the compact alert still constrains a program-sized task; putting every program option directly into ordinary placement editing scatters ownership and conditional logic; disabling all set-level edits would unnecessarily remove expert control.
+- Compatibility: No persistence or schema change. Existing routines and completed workouts retain their exact stored structure; only authoring presentation and access to unsafe bulk helpers changes.
+- Related: `FB-20260903-006`, `FND-20260903-010` through `FND-20260903-012`, `IMP-20260903-009`, `VER-20260903-009`.
+- Status: Accepted, implemented, verified, and released in Whip 0.3.41/code 47.

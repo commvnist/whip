@@ -204,3 +204,11 @@ These records preserve durable user intent. “Released” means the change reac
 - Destructive boundary: Current-only schema/data-epoch policy remains in force. Deployment must preserve Android installation identity and must not clear phone data or confirm Whip's fresh-start action for the user.
 - Related: `FND-20260903-006` through `FND-20260903-009`, `DEC-20260903-005`, `IMP-20260903-007`, `IMP-20260903-008`, `VER-20260903-007`, `VER-20260903-008`.
 - Status: Implemented, verified, pushed, and released to the physical phone as Whip 0.3.40/code 46.
+
+### FB-20260903-006 — Refine Gym, Routine, and 5/3/1 authoring UX and release it
+
+- User need: Perform another focused UI/UX pass across Gym Routines and the 5/3/1 builder, implement the concrete fixes, and release the finished build to the physical phone.
+- Acceptance criteria: 5/3/1 setup uses the available phone/fold pane instead of a constrained alert; arbitrary user-defined lifts remain searchable and can be created in context; build blockers and selected presets are understandable without color alone; program-wide Training Max and phase controls are reachable without excessive scrolling; structured Main/Supplemental work is not casually rewritten by generic routine tools; numeric inputs use appropriate keyboards; routine-library chrome avoids controls with no current value; focused and broader Gym regression profiles pass before a signed in-place phone install.
+- Destructive boundary: Deployment must preserve Android installation identity and must not clear phone data or run instrumentation on the physical device.
+- Related: `FND-20260903-010` through `FND-20260903-012`, `DEC-20260903-006`, `IMP-20260903-009`, `IMP-20260903-010`, `VER-20260903-009`, `VER-20260903-010`.
+- Status: Implemented, verified, pushed, and released to the physical phone as Whip 0.3.41/code 47.

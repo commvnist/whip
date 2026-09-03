@@ -679,3 +679,25 @@
 - Source: repair `0c37914`; version/release source `48e8b3b`.
 - Related: `FB-20260903-005`, `IMP-20260903-007`, `IMP-20260903-008`.
 - Status: Signed release installed and verified on the physical phone.
+
+### VER-20260903-009 — Gym Routine and 5/3/1 authoring verification
+
+- Production and Android-test Kotlin compilation passed after the authoring changes. The complete `RoutineBuilderUiTest` passed 27/27 on the disposable API 34 emulator, including the existing 320dp/200%-text Leader/Anchor contract and the new searchable custom-lift and structured-placement safety regressions.
+- The focused `gym531` profile passed all selected JVM suites and 76/76 Android tests with zero failures/skips. The broader `gym` profile then passed its selected JVM suites and 154/154 Android repository/UI tests with zero failures/skips.
+- Three high-risk UI methods—blank-program setup/status, searchable custom-lift selection, and structured Main-lift edit routing—also passed three consecutive runs, 9/9 executions.
+- Before/after emulator inspection confirmed that 5/3/1 setup now occupies the complete active pane with visible status and stable actions instead of the former constrained alert.
+- Scope: Focused and broader Gym domain/UI regression on the disposable emulator. Complete release compilation, lint, coverage, shrinking, packaging, signing, and physical installation are recorded separately in `VER-20260903-010`.
+- Source: implementation `4262468`.
+- Related: `FB-20260903-006`, `FND-20260903-010` through `FND-20260903-012`, `DEC-20260903-006`, `IMP-20260903-009`.
+- Status: Passed with zero observed failures or skips in the stated executed scopes.
+
+### VER-20260903-010 — Whip 0.3.41 Gym authoring physical release
+
+- `WHIP_DEVICE=192.168.2.187:44401 scripts/device release-deploy` selected the explicit physical endpoint and passed Play-asset verification, all 583 JVM tests, Android-test compilation, debug/release lint, deterministic coverage (78.81% domain lines, 55.87% domain branches, and 68.31% Settings/policy lines), R8/resource optimization, release APK/AAB assembly, and benchmark assembly.
+- The release-key build produced APK SHA-256 `f4c73baf5b23f33ca8e01c6c3a60801f57658fd0d32b980cada5c05fb9a40de6` and AAB SHA-256 `07af952bbdc4b67c88c2f30a0805bfac6c245c17bb85a3b004ab977b432bd47c`. APK verification reports v2 signing, exactly one signer, and certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`.
+- Streamed `adb install -r` returned `Success`. Android reports `commvne.com.whip.app` version 0.3.41/code 47, min SDK 26, target SDK 37, and the installed base APK hash exactly matches the signed local artifact. `firstInstallTime=2026-08-26 17:59:24` remains unchanged.
+- A forced cold launch completed successfully in 118 ms (`TotalTime`) / 119 ms (`WaitTime`) and left a live Whip process. Its error log contained only Samsung/graphics vendor diagnostics and no fatal exception, AndroidRuntime crash, Room/SQLite failure, or Whip application error.
+- No application data was cleared, no fresh-start confirmation was pressed, and no instrumentation or unrestricted debug-artifact write occurred on the physical phone.
+- Source: implementation `4262468`; version/release source `cd1c4ba`.
+- Related: `FB-20260903-006`, `IMP-20260903-009`, `IMP-20260903-010`, `VER-20260903-009`.
+- Status: Signed release installed and verified on the physical phone.
