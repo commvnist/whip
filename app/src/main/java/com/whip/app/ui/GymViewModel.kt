@@ -392,6 +392,7 @@ internal fun GymUiState.captureWorkoutArrangementDraft(
 
 internal enum class GymDeletionKind {
     Exercise,
+    Machine,
     Routine,
     Workout,
 }
@@ -473,8 +474,10 @@ class GymViewModel @JvmOverloads constructor(
         )
     private val _machineDeletionImpact = MutableStateFlow<MachineDeletionImpact?>(null)
     val machineDeletionImpact: StateFlow<MachineDeletionImpact?> = _machineDeletionImpact.asStateFlow()
-    private val _machineDeletionInProgress = MutableStateFlow(false)
-    val machineDeletionInProgress: StateFlow<Boolean> = _machineDeletionInProgress.asStateFlow()
+    private val _machineDeletionPreviewError = MutableStateFlow<String?>(null)
+    val machineDeletionPreviewError: StateFlow<String?> = _machineDeletionPreviewError.asStateFlow()
+    private val _machineDeletionTargetMissing = MutableStateFlow(false)
+    val machineDeletionTargetMissing: StateFlow<Boolean> = _machineDeletionTargetMissing.asStateFlow()
     private val _exerciseDeletionImpact = MutableStateFlow<ExerciseDeletionImpact?>(null)
     val exerciseDeletionImpact: StateFlow<ExerciseDeletionImpact?> = _exerciseDeletionImpact.asStateFlow()
     private val _exerciseDeletionPreviewError = MutableStateFlow<String?>(null)
@@ -508,6 +511,7 @@ class GymViewModel @JvmOverloads constructor(
     private val sessionMutationMutex = Mutex()
     private val _pendingWorkoutLayoutUndo = MutableStateFlow<WorkoutLayoutUndo?>(null)
     val pendingWorkoutLayoutUndo: StateFlow<WorkoutLayoutUndo?> = _pendingWorkoutLayoutUndo.asStateFlow()
+    private var machineDeletionPreviewGeneration = 0L
     private var exerciseDeletionPreviewGeneration = 0L
     private var routineDeletionPreviewGeneration = 0L
     private var workoutDeletionPreviewGeneration = 0L
@@ -617,7 +621,8 @@ class GymViewModel @JvmOverloads constructor(
                 pendingMachineArchiveId = null
                 _pendingMachineArchiveUndo.value = null
                 _machineDeletionImpact.value = null
-                _machineDeletionInProgress.value = false
+                _machineDeletionPreviewError.value = null
+                _machineDeletionTargetMissing.value = false
                 _exerciseDeletionImpact.value = null
                 _exerciseDeletionPreviewError.value = null
                 _exerciseDeletionTargetMissing.value = false
@@ -633,6 +638,7 @@ class GymViewModel @JvmOverloads constructor(
                 _pendingWorkoutLayoutUndo.value = null
                 _orphanedGymDeletionRequestId.value = null
                 orphanRecoveryInProgressRequestId.value = null
+                machineDeletionPreviewGeneration++
                 exerciseDeletionPreviewGeneration++
                 routineDeletionPreviewGeneration++
                 workoutDeletionPreviewGeneration++
@@ -1094,40 +1100,97 @@ class GymViewModel @JvmOverloads constructor(
         }
     }
 
-    fun previewMachineDeletion(id: Long) {
+    fun previewMachineDeletion(id: Long, expectedUuid: String? = null) {
+        val generation = ++machineDeletionPreviewGeneration
+        _machineDeletionImpact.value = null
+        _machineDeletionPreviewError.value = null
+        _machineDeletionTargetMissing.value = false
         viewModelScope.launch {
-            _operationStatus.value = OperationStatus.Running("Checking machine usage…")
             try {
-                _machineDeletionImpact.value = checkNotNull(app.withUserDataAccess {
-                    checkNotNull(app.domainDeletionCoordinator.previewMachineDeletion(id)) {
-                        "Machine no longer exists"
-                    }
+                val lookup = checkNotNull(app.withUserDataAccess {
+                    GymDeletionPreviewLookup(app.domainDeletionCoordinator.previewMachineDeletion(id))
                 }) { "Whip data is unavailable while recovery is in progress" }
-                _operationStatus.value = OperationStatus.Idle
-            } catch (error: Throwable) {
-                if (error is CancellationException) throw error
-                _operationStatus.value = OperationStatus.Failed(error.message ?: "Could not inspect machine", error)
+                if (machineDeletionPreviewGeneration == generation) {
+                    val impact = lookup.impact
+                    if (impact != null && expectedUuid != null && impact.machineUuid != expectedUuid) {
+                        _machineDeletionPreviewError.value =
+                            "Machine identity changed while the deletion review was opening. Close it and select the machine again."
+                    } else {
+                        _machineDeletionImpact.value = impact
+                        if (impact == null) {
+                            _machineDeletionTargetMissing.value = true
+                            _machineDeletionPreviewError.value =
+                                "Machine no longer exists. It may already have been deleted; close this review and verify the Library."
+                        }
+                    }
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                if (machineDeletionPreviewGeneration == generation) {
+                    _machineDeletionPreviewError.value =
+                        error.message ?: "Could not review machine deletion impact"
+                }
             }
         }
     }
 
-    fun dismissMachineDeletion() { _machineDeletionImpact.value = null }
+    fun dismissMachineDeletion() {
+        machineDeletionPreviewGeneration++
+        _machineDeletionImpact.value = null
+        _machineDeletionPreviewError.value = null
+        _machineDeletionTargetMissing.value = false
+    }
 
-    fun confirmMachineDeletion() {
-        val impact = _machineDeletionImpact.value ?: return
-        if (_machineDeletionInProgress.value) return
-        _machineDeletionInProgress.value = true
-        runOperation(
-            "Deleting machine profile…",
-            "Machine profile permanently deleted; workout history was preserved",
-            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
-        ) {
-            try {
-                app.domainDeletionCoordinator.deleteMachine(impact.machineId, impact.revisionToken)
-                _machineDeletionImpact.value = null
-            } finally {
-                _machineDeletionInProgress.value = false
+    fun deleteMachinePermanently(
+        id: Long,
+        expectedRevisionToken: String,
+        requestId: String,
+    ): Boolean = runGymDeletion(
+        running = "Deleting machine profile…",
+        success = "Machine profile permanently deleted; workout history was preserved",
+        requestId = requestId,
+        savedDescription = "machine profile deletion",
+    ) {
+        val result = app.domainDeletionCoordinator.deleteMachine(id, expectedRevisionToken)
+        require(result.deleted) {
+            _machineDeletionImpact.value = null
+            _machineDeletionTargetMissing.value = true
+            _machineDeletionPreviewError.value =
+                "Machine no longer exists. It may already have been deleted; close this review and verify the Library."
+            "Machine no longer exists. It may already have been deleted; close this review and verify the Library."
+        }
+        GymDeletionReceipt(GymDeletionKind.Machine, id)
+    }
+
+    fun finishOrphanedMachineDeletionAsAchieved(
+        requestId: String,
+        machineId: Long,
+        expectedDataGeneration: Long,
+    ) {
+        if (!tryStartOrphanedGymDeletionRecovery(requestId)) return
+        try {
+            if (!app.isCurrentUserDataGeneration(expectedDataGeneration)) {
+                if ((_gymDeletionState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                    _gymDeletionState.value = PersistenceRequestState.Idle
+                }
+                return
             }
+            if ((_gymDeletionState.value as? PersistenceRequestState.Running)?.requestId == requestId &&
+                _orphanedGymDeletionRequestId.value == requestId
+            ) {
+                _operationStatus.value = OperationStatus.Succeeded(
+                    "Machine profile is already absent; deletion end state confirmed",
+                    OperationFeedbackPresentation.Snackbar,
+                )
+                _orphanedGymDeletionRequestId.value = null
+                _gymDeletionState.value = PersistenceRequestState.Finished(
+                    requestId,
+                    WhipResult.Success(GymDeletionReceipt(GymDeletionKind.Machine, machineId)),
+                )
+            }
+        } finally {
+            finishOrphanedGymDeletionRecovery(requestId)
         }
     }
 

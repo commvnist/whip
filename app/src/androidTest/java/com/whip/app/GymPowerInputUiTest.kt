@@ -441,32 +441,43 @@ class GymPowerInputUiTest {
     @Test
     fun machineDeleteDialogExplainsPreservedHistoryAndBlocksActiveUse() {
         compose.setContent {
-            WhipTheme(darkTheme = true, dynamicColor = false) {
-                MachinePermanentDeleteDialog(
-                    impact = MachineDeletionImpact(
-                        machineId = 1,
-                        machineUuid = "machine-1",
-                        displayName = "Downtown cable stack",
-                        configurationVersion = 2,
-                        historicalPlacements = 9,
-                        completedSessions = 9,
-                        setCount = 46,
-                        firstWorkoutDate = LocalDate.of(2026, 1, 1),
-                        lastWorkoutDate = LocalDate.of(2026, 8, 1),
-                        activePlacements = 1,
-                        routineReferences = 2,
-                        routineNames = listOf("Push A", "Upper"),
-                        currentPersonalRecords = 3,
-                        siblingVersions = 2,
-                        revisionToken = "revision",
-                    ),
-                    onDismiss = {},
-                    onConfirm = {},
-                    onReviewRoutines = {},
-                    onOpenActiveWorkout = {},
-                    onBackUpFirst = {},
-                    deleting = false,
-                )
+            CompositionLocalProvider(
+                LocalDensity provides Density(compose.density.density, fontScale = 2f),
+                LocalWhipDialogPlacement provides WhipDialogPlacement(maxWidth = 320.dp),
+            ) {
+                WhipTheme(darkTheme = true, dynamicColor = false) {
+                    MachinePermanentDeleteDialog(
+                        modifier = Modifier.width(320.dp),
+                        machineName = "Downtown cable stack",
+                        impact = MachineDeletionImpact(
+                            machineId = 1,
+                            machineUuid = "machine-1",
+                            displayName = "Downtown cable stack",
+                            configurationVersion = 2,
+                            historicalPlacements = 9,
+                            completedSessions = 9,
+                            setCount = 46,
+                            firstWorkoutDate = LocalDate.of(2026, 1, 1),
+                            lastWorkoutDate = LocalDate.of(2026, 8, 1),
+                            activePlacements = 1,
+                            routineReferences = 2,
+                            routineNames = listOf("Push A", "Upper"),
+                            currentPersonalRecords = 3,
+                            siblingVersions = 2,
+                            revisionToken = "revision",
+                        ),
+                        targetMissing = false,
+                        preparing = false,
+                        deleting = false,
+                        errorMessage = null,
+                        onDismiss = {},
+                        onReviewUpdatedImpact = {},
+                        onConfirm = {},
+                        onReviewRoutines = {},
+                        onOpenActiveWorkout = {},
+                        onBackUpFirst = {},
+                    )
+                }
             }
         }
 
@@ -474,6 +485,41 @@ class GymPowerInputUiTest {
         compose.onNodeWithText("Kept").assertIsDisplayed()
         compose.onNodeWithText("Needs Attention").assertIsDisplayed()
         compose.onNodeWithText("Active Workout").assertIsDisplayed()
+        compose.onNodeWithTag("machine-delete-confirm").assertIsNotEnabled()
+    }
+
+    @Test
+    fun machineDeleteDialogMakesAnUnverifiedOutcomeRetryableAtNarrowLargeText() {
+        var retried = false
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalDensity provides Density(compose.density.density, fontScale = 2f),
+                LocalWhipDialogPlacement provides WhipDialogPlacement(maxWidth = 320.dp),
+            ) {
+                WhipTheme(darkTheme = true, dynamicColor = false) {
+                    MachinePermanentDeleteDialog(
+                        modifier = Modifier.width(320.dp),
+                        machineName = "Cable stack",
+                        impact = null,
+                        targetMissing = false,
+                        preparing = false,
+                        deleting = false,
+                        errorMessage = "The previous deletion outcome could not be verified.",
+                        onDismiss = {},
+                        onReviewUpdatedImpact = { retried = true },
+                        onConfirm = {},
+                        onReviewRoutines = {},
+                        onOpenActiveWorkout = {},
+                        onBackUpFirst = {},
+                        outcomeVerificationPending = true,
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("machine-delete-error").assertIsDisplayed()
+        compose.onNodeWithText("Retry Verification").performClick()
+        compose.runOnIdle { assertTrue(retried) }
         compose.onNodeWithTag("machine-delete-confirm").assertIsNotEnabled()
     }
 

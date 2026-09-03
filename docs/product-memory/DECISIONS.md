@@ -400,3 +400,13 @@
 - Compatibility: No Room schema, migration, or backup-format change. Only the explicitly selected completed Workout graph is removed. Existing Training Max decisions and linked historical facts remain; derived records are reconciled from surviving workout data.
 - Related: `FND-20260831-019`, `FND-20260901-025`, `FND-20260902-009`, `IMP-20260902-011`, `VER-20260902-011`.
 - Status: Accepted, implemented, and fully verified.
+
+### DEC-20260902-011 — Machine deletion uses the shared exact Gym request lifecycle
+
+- Context: Machine deletion already had a transaction-derived impact and revision check, but its presentation result was not owned across recreation. Completed workout equipment snapshots are historical facts while routine references are current editable definitions.
+- Decision: Represent Machine deletion as `GymDeletionKind.Machine` in the same bounded request lifecycle used by other exact Gym deletions. Save the target ID, UUID, data generation, reviewed impact, and revision; reject UUID or revision mismatch; serialize one owner; and on process recovery read current repository truth. An absent exact target settles achieved once, while a present or unverified target requires retry/review. Preserve the existing transaction semantics: block active use, delete only the selected Machine, mark affected routines as needing equipment, and retain completed-workout snapshots.
+- Rationale: One lifecycle gives every consequential Gym deletion the same authorship, replay, and recovery guarantees without duplicating a coordinator or inferring deletion from asynchronously collected lists. It preserves history while making uncertainty explicit.
+- Rejected alternatives: Callback-only success because it is lost across lifecycle changes; list-based absence inference because projections may be stale; and a separate Machine-only coordinator because it would duplicate exact-deletion state and drift.
+- Compatibility: No Room schema, migration, backup-format, completed-set, workout snapshot, Exercise, or Routine identity change. Only the reviewed Machine profile is removed; existing affected routines retain identity and are marked for repair.
+- Related: `FND-20260902-010`, `IMP-20260902-012`, `VER-20260902-012`.
+- Status: Accepted, implemented, and fully verified.

@@ -389,3 +389,15 @@
 - Counts: Current baseline is 1,463 product tests—552 JVM and 911 Android—plus 9 Macrobenchmark/Baseline Profile scenarios.
 - Related: `FND-20260831-019`, `FND-20260901-025`, `FND-20260902-009`, `DEC-20260902-010`, `IMP-20260902-011`.
 - Status: Fully verified for this coherent completed-Workout deletion chunk.
+
+### VER-20260902-012 — Exact Machine-deletion lifecycle and responsive-dialog verification
+
+- Scope/environment: Machine deletion impact preview/commit; active-use blocking; exact revision and UUID validation; request serialization; single-owner terminal delivery; process-restored absent-target settlement; present/unverified retry; routine repair disclosure; preserved workout snapshots; 320dp/200%-text reachability; API 34 disposable emulator `emulator-5554` at 1080×2400/420 dpi.
+- Focused evidence: `GymDeletionViewModelIntegrationTest` and `GymPowerInputUiTest` passed 47/47 tests with zero failures/skips. Three new ViewModel paths prove exact one-owner success, absent-target recovery, and UUID-mismatch rejection. The new Compose recovery test proves an unverified result remains retryable at 320dp/200% text; the existing destructive flow now uses that same constrained viewport.
+- Manual UI evidence: A final-source emulator walkthrough created `Audit Cable Stack`, opened its exact deletion review, and inspected normal and 200%-text states. The enlarged content scrolls to `Back Up First` while fixed Cancel/Delete actions remain reachable. Captures and hierarchies are under `artifacts/full-product-audit/2026-09-02/machine-deletion/`; font scale was restored to 1.0 afterward.
+- Complete gates: On the exact final source, `ANDROID_SERIAL=emulator-5554 scripts/check --emulator` passed all 552 JVM and all 915 Android tests—1,467 product tests total—with zero failures/skips across ten instrumentation batches. Play assets, compilation, debug assembly, lint, and deterministic coverage passed: domain lines 78.17% (3,993/5,108), domain branches 56.26% (2,215/3,937), and core policy lines 66.46% (545/820). `scripts/check --full` passed release APK/AAB, release lint-vital, R8/resource shrinking, and optimized benchmark-harness assembly.
+- Release-build evidence: unsigned release APK SHA-256 `9f3dfa5a194536f6e3340e433ff426a459bf25947a8ef5b6150cf83911dcd358`; signed release AAB SHA-256 `5935c6e2f2d995cd1b3e62587ea68138248dc6798c1a5d89fcf37564485f34b7`.
+- Compatibility/exclusions: No Room schema, migration, backup format, unrelated Machine, Routine identity, completed Set, or historical workout snapshot changed. API 26/API 37 and actual TalkBack were not rerun because the immediately preceding whole-product matrix covers unchanged shared controls; the exact new narrow/200%-text contract ran on API 34. No physical-device release occurred.
+- Counts: Current baseline is 1,467 product tests—552 JVM and 915 Android—plus 9 Macrobenchmark/Baseline Profile scenarios.
+- Related: `FND-20260902-010`, `DEC-20260902-011`, `IMP-20260902-012`.
+- Status: Fully verified for this coherent Machine-deletion chunk.

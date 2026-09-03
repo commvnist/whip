@@ -400,3 +400,14 @@
 - Evidence: `DomainDeletionCoordinator.kt`, `GymViewModel.kt`, `GymScreens.kt`, `DomainDeletionCoordinatorTest.kt`, `GymDeletionViewModelIntegrationTest.kt`, `WorkoutDeletionUiTest.kt`, and inspected final-source artifacts under `artifacts/full-product-audit/2026-09-02/workout-deletion/`.
 - Resolution: Implemented in `IMP-20260902-011` and fully verified in `VER-20260902-011`. The exact transaction removes only the selected session graph, rebuilds personal-record projections after commit, preserves Training Max decisions and retired Link/automation audit history under the compatibility policy, and publishes an owned result across lifecycle recovery.
 - Status: Resolved and emulator/release-build verified; no schema, backup format, completed record outside the selected workout, Exercise/Routine definition, or historical Training Max decision was rewritten.
+
+### FND-20260902-010 — Machine deletion had an exact transaction but an unowned UI outcome
+
+- Severity/category: P1 destructive lifecycle ownership, equipment-catalog integrity, responsive UX, and accessibility.
+- Observed: Machine deletion already used an exact domain transaction, but the screen relied on callback/global status and an in-memory impact. Activity or process recreation could lose the reviewed target, revision, and terminal outcome; a failure could detach from the dialog that authored it.
+- Expected: The request saves the Machine ID, stable UUID, data generation, exact impact, and revision; commit accepts only that reviewed revision; one request-owned terminal state survives recreation; recovery verifies current repository presence before declaring success; mismatch or uncertainty requires explicit retry/review.
+- Why it matters: Deleting equipment can change multiple routines while completed workouts must continue to describe what happened. Losing request identity can cause duplicate destructive attempts, false success, or uncertainty about affected routines.
+- Affected users: Users maintaining Machine profiles and routines, especially users interrupted during deletion, users with large text or narrow phones, and lifters relying on truthful historical equipment snapshots.
+- Evidence: `GymViewModel.kt`, `GymScreens.kt`, `GymDeletionViewModelIntegrationTest.kt`, `GymPowerInputUiTest.kt`, and `artifacts/full-product-audit/2026-09-02/machine-deletion/`.
+- Resolution: Implemented in `IMP-20260902-012` and fully verified in `VER-20260902-012` through the shared exact Gym-deletion lifecycle.
+- Status: Resolved and emulator/release-build verified; no schema, backup format, Machine identity outside the selected target, Routine identity, or completed-workout history was rewritten.

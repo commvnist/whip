@@ -369,3 +369,16 @@
 - Related: `FND-20260831-019`, `FND-20260901-025`, `FND-20260902-009`, `DEC-20260902-010`.
 - Verification: `VER-20260902-011`.
 - Status: Implemented and fully verified; physical release remains deferred while the whole-product goal continues.
+
+### IMP-20260902-012 — Exact, recoverable Machine-profile deletion
+
+- Added `GymDeletionKind.Machine` to the shared request-owned deletion lifecycle, with a saveable candidate ID/UUID/data generation, explicit preparing/ready/error/missing states, transaction-derived impact/revision, exact commit admission, and one consumable terminal receipt.
+- Added process-restored recovery against fresh repository truth. An absent exact target settles as achieved exactly once; a present or unverified target stays actionable and never masquerades as success. UUID mismatch is rejected before preview or commit.
+- Reworked the Machine confirmation into a scrollable responsive review with explicit impact, error, missing-target, retry, and fixed-footer actions. At 320dp and 200% text the content scrolls while Cancel/Delete remain reachable.
+- Preserved existing domain behavior: active-workout use blocks deletion, affected routines are marked `Needs equipment`, and completed-workout Machine snapshots remain immutable historical evidence.
+- Added three real-application ViewModel regressions, one new 320dp/200%-text Compose recovery regression, and strengthened the existing destructive Machine UI test. Final visual evidence is retained under `artifacts/full-product-audit/2026-09-02/machine-deletion/`.
+- Compatibility: No Room schema, migration, backup format, Machine identifier outside the reviewed target, Routine identity, completed Set, or historical workout snapshot changed. No physical-device release occurred.
+- Important files: `GymViewModel.kt`, `GymScreens.kt`, `GymDeletionViewModelIntegrationTest.kt`, `GymPowerInputUiTest.kt`, `docs/testing.md`, and the final visual artifacts.
+- Related: `FND-20260902-010`, `DEC-20260902-011`.
+- Verification: `VER-20260902-012`.
+- Status: Implemented and fully verified; physical release remains deferred at user-directed mission closeout.

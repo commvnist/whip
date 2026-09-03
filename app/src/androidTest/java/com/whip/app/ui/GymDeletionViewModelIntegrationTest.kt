@@ -12,6 +12,7 @@ import com.whip.app.core.OperationStatus
 import com.whip.app.core.PersistenceRequestState
 import com.whip.app.core.WhipResult
 import com.whip.app.domain.ExerciseDraft
+import com.whip.app.domain.GymMachineDraft
 import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
@@ -131,6 +132,81 @@ class GymDeletionViewModelIntegrationTest {
         assertEquals(PersistenceRequestState.Idle, viewModel.gymDeletionState.value)
         viewModel.consumeGymDeletionResult("exercise:first")
         assertEquals(PersistenceRequestState.Idle, viewModel.gymDeletionState.value)
+    }
+
+    @Test
+    fun reviewedMachineDeletionAdmitsOneOwnerAndPreservesTheExerciseDefinition() = runBlocking {
+        val exerciseId = createExercise("Cable row")
+        val machineId = createMachine(exerciseId, "North cable stack")
+        val impact = previewMachine(machineId)
+
+        assertTrue(
+            viewModel.deleteMachinePermanently(
+                machineId,
+                impact.revisionToken,
+                requestId = "machine:first",
+            ),
+        )
+        assertFalse(
+            viewModel.deleteMachinePermanently(
+                machineId,
+                impact.revisionToken,
+                requestId = "machine:second",
+            ),
+        )
+
+        val finished = awaitFinished("machine:first")
+        val success = finished.result as WhipResult.Success
+        assertEquals(GymDeletionKind.Machine, success.value.kind)
+        assertEquals(machineId, success.value.targetId)
+        assertNull(app.database.gymDao().getMachine(machineId))
+        assertNotNull(app.database.gymDao().getExercise(exerciseId))
+    }
+
+    @Test
+    fun restoredRequestWithAbsentMachineSettlesAsAchievedExactlyOnce() = runBlocking {
+        val exerciseId = createExercise("Machine press")
+        val machineId = createMachine(exerciseId, "Already removed machine")
+        val impact = requireNotNull(app.domainDeletionCoordinator.previewMachineDeletion(machineId))
+        app.domainDeletionCoordinator.deleteMachine(machineId, impact.revisionToken)
+        assertNull(app.database.gymDao().getMachine(machineId))
+        replaceViewModel()
+
+        val generation = viewModel.currentDataGeneration()
+        assertTrue(viewModel.adoptOrphanedGymDeletionRequest("restored:machine-absent"))
+        viewModel.finishOrphanedMachineDeletionAsAchieved(
+            requestId = "restored:machine-absent",
+            machineId = machineId,
+            expectedDataGeneration = generation,
+        )
+        viewModel.finishOrphanedMachineDeletionAsAchieved(
+            requestId = "restored:machine-absent",
+            machineId = machineId,
+            expectedDataGeneration = generation,
+        )
+
+        val finished = awaitFinished("restored:machine-absent")
+        val success = finished.result as WhipResult.Success
+        assertEquals(GymDeletionKind.Machine, success.value.kind)
+        assertEquals(machineId, success.value.targetId)
+        assertNull(viewModel.orphanedGymDeletionRequestId.value)
+        assertNotNull(app.database.gymDao().getExercise(exerciseId))
+        val operation = viewModel.operationStatus.value as OperationStatus.Succeeded
+        assertTrue(operation.message.contains("already absent"))
+    }
+
+    @Test
+    fun machinePreviewRejectsAReusedIdentityWithoutOfferingDeletion() = runBlocking {
+        val exerciseId = createExercise("Identity press")
+        val machineId = createMachine(exerciseId, "Identity machine")
+
+        viewModel.previewMachineDeletion(machineId, expectedUuid = "not-the-machine-uuid")
+        val error = withTimeout(5_000) { viewModel.machineDeletionPreviewError.first { it != null } }
+
+        assertTrue(error.orEmpty().contains("identity changed"))
+        assertNull(viewModel.machineDeletionImpact.value)
+        assertFalse(viewModel.machineDeletionTargetMissing.value)
+        assertNotNull(app.database.gymDao().getMachine(machineId))
     }
 
     @Test
@@ -446,6 +522,9 @@ class GymDeletionViewModelIntegrationTest {
     private suspend fun createExercise(name: String): Long =
         app.gymRepository.createExercise(ExerciseDraft(name = name))
 
+    private suspend fun createMachine(exerciseId: Long, name: String): Long =
+        app.gymRepository.createMachine(GymMachineDraft(exerciseId, name))
+
     private suspend fun createFinishedWorkout(exerciseId: Long, name: String): Long {
         val sessionId = app.gymRepository.startWorkout(name)
         val placementId = app.gymRepository.addExerciseToWorkout(sessionId, exerciseId)
@@ -485,6 +564,12 @@ class GymDeletionViewModelIntegrationTest {
         viewModel.previewExerciseDeletion(exerciseId)
         viewModel.exerciseDeletionImpact.first { it?.exerciseId == exerciseId }
             ?: error("Exercise deletion preview disappeared")
+    }
+
+    private suspend fun previewMachine(machineId: Long) = withTimeout(5_000) {
+        viewModel.previewMachineDeletion(machineId)
+        viewModel.machineDeletionImpact.first { it?.machineId == machineId }
+            ?: error("Machine deletion preview disappeared")
     }
 
     private suspend fun previewWorkout(sessionId: Long, sessionUuid: String) = withTimeout(5_000) {

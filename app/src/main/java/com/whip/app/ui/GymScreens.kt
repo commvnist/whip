@@ -613,7 +613,8 @@ fun GymAreaContent(
     }
     val context = LocalContext.current
     val machineDeletionImpact by viewModel.machineDeletionImpact.collectAsStateWithLifecycle()
-    val machineDeletionInProgress by viewModel.machineDeletionInProgress.collectAsStateWithLifecycle()
+    val machineDeletionPreviewError by viewModel.machineDeletionPreviewError.collectAsStateWithLifecycle()
+    val machineDeletionTargetMissing by viewModel.machineDeletionTargetMissing.collectAsStateWithLifecycle()
     val exerciseDeletionImpact by viewModel.exerciseDeletionImpact.collectAsStateWithLifecycle()
     val exerciseDeletionPreviewError by viewModel.exerciseDeletionPreviewError.collectAsStateWithLifecycle()
     val exerciseDeletionTargetMissing by viewModel.exerciseDeletionTargetMissing.collectAsStateWithLifecycle()
@@ -674,6 +675,9 @@ fun GymAreaContent(
     var workoutDeleteCandidateGeneration by rememberSaveable { mutableStateOf<Long?>(null) }
     var routineDeleteCandidateId by rememberSaveable { mutableStateOf<Long?>(null) }
     var routineDeleteCandidateGeneration by rememberSaveable { mutableStateOf<Long?>(null) }
+    var machineDeleteCandidateId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var machineDeleteCandidateUuid by rememberSaveable { mutableStateOf<String?>(null) }
+    var machineDeleteCandidateGeneration by rememberSaveable { mutableStateOf<Long?>(null) }
     var creatingMachine by rememberSaveable { mutableStateOf(false) }
     var creatingExerciseForMachine by rememberSaveable { mutableStateOf(false) }
     var createdExerciseForMachineId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -713,6 +717,9 @@ fun GymAreaContent(
     val exerciseEditor = exerciseEditorId?.let { id -> allExercises.firstOrNull { it.id == id } }
     val exerciseActions = exerciseActionsId?.let { id -> allExercises.firstOrNull { it.id == id } }
     val exerciseDeleteCandidate = exerciseDeleteCandidateId?.let { id -> allExercises.firstOrNull { it.id == id } }
+    val machineDeleteCandidate = machineDeleteCandidateId?.let { id ->
+        (state.machines + state.archivedMachines).firstOrNull { it.id == id }
+    }
     val machineEditor = machineEditorId?.let { id -> (state.machines + state.archivedMachines).firstOrNull { it.id == id } }
     val machineVersionSource = machineVersionSourceId?.let { id -> (state.machines + state.archivedMachines).firstOrNull { it.id == id } }
     val pendingMachineExercise = pendingMachineExerciseId?.let { id -> state.exercises.firstOrNull { it.id == id } }
@@ -869,6 +876,7 @@ fun GymAreaContent(
     )
     val deletionTargetKey = when {
         exerciseDeleteCandidateId != null -> "exercise-${exerciseDeleteCandidateId}"
+        machineDeleteCandidateId != null -> "machine-${machineDeleteCandidateId}"
         routineDeleteCandidateId != null -> "routine-${routineDeleteCandidateId}"
         workoutDeleteCandidateId != null -> "workout-${workoutDeleteCandidateId}"
         else -> null
@@ -886,6 +894,12 @@ fun GymAreaContent(
                         exerciseDeleteCandidateUuid = null
                         exerciseDeleteCandidateGeneration = null
                         viewModel.dismissExerciseDeletion()
+                    }
+                    GymDeletionKind.Machine -> {
+                        machineDeleteCandidateId = null
+                        machineDeleteCandidateUuid = null
+                        machineDeleteCandidateGeneration = null
+                        viewModel.dismissMachineDeletion()
                     }
                     GymDeletionKind.Routine -> {
                         routineDeleteCandidateId = null
@@ -907,6 +921,12 @@ fun GymAreaContent(
         val id = exerciseDeleteCandidateId ?: return@LaunchedEffect
         if (exerciseDeletionImpact?.exerciseId != id && exerciseDeletionPreviewError == null) {
             viewModel.previewExerciseDeletion(id)
+        }
+    }
+    LaunchedEffect(machineDeleteCandidateId) {
+        val id = machineDeleteCandidateId ?: return@LaunchedEffect
+        if (machineDeletionImpact?.machineId != id && machineDeletionPreviewError == null) {
+            viewModel.previewMachineDeletion(id, machineDeleteCandidateUuid)
         }
     }
     LaunchedEffect(routineDeleteCandidateId) {
@@ -943,12 +963,15 @@ fun GymAreaContent(
     LaunchedEffect(
         orphanedGymDeletionRequestId,
         exerciseDeletionTargetMissing,
+        machineDeletionTargetMissing,
         routineDeletionTargetMissing,
         workoutDeletionTargetMissing,
         exerciseDeletionImpact,
+        machineDeletionImpact,
         routineDeletionImpact,
         workoutDeletionImpact,
         exerciseDeletionPreviewError,
+        machineDeletionPreviewError,
         routineDeletionPreviewError,
         workoutDeletionPreviewError,
     ) {
@@ -962,6 +985,14 @@ fun GymAreaContent(
                     requestId = requestId,
                     exerciseId = requireNotNull(exerciseDeleteCandidateId),
                     exerciseUuid = exerciseDeleteCandidateUuid,
+                    expectedDataGeneration = expectedGeneration,
+                )
+            }
+            machineDeleteCandidateId != null && machineDeletionTargetMissing -> {
+                val expectedGeneration = machineDeleteCandidateGeneration ?: return@LaunchedEffect
+                viewModel.finishOrphanedMachineDeletionAsAchieved(
+                    requestId = requestId,
+                    machineId = requireNotNull(machineDeleteCandidateId),
                     expectedDataGeneration = expectedGeneration,
                 )
             }
@@ -985,6 +1016,10 @@ fun GymAreaContent(
                 exerciseDeletionImpact?.exerciseId == exerciseDeleteCandidateId -> {
                 viewModel.finishOrphanedGymDeletionAsInterrupted(requestId)
             }
+            machineDeleteCandidateId != null &&
+                machineDeletionImpact?.machineId == machineDeleteCandidateId -> {
+                viewModel.finishOrphanedGymDeletionAsInterrupted(requestId)
+            }
             routineDeleteCandidateId != null &&
                 routineDeletionImpact?.routineId == routineDeleteCandidateId -> {
                 viewModel.finishOrphanedGymDeletionAsInterrupted(requestId)
@@ -994,6 +1029,9 @@ fun GymAreaContent(
                 viewModel.finishOrphanedGymDeletionAsInterrupted(requestId)
             }
             exerciseDeleteCandidateId != null && exerciseDeletionPreviewError != null -> {
+                viewModel.finishOrphanedGymDeletionAsUnverified(requestId)
+            }
+            machineDeleteCandidateId != null && machineDeletionPreviewError != null -> {
                 viewModel.finishOrphanedGymDeletionAsUnverified(requestId)
             }
             routineDeleteCandidateId != null && routineDeletionPreviewError != null -> {
@@ -1017,6 +1055,14 @@ fun GymAreaContent(
             exerciseDeleteCandidateId = null
             exerciseDeleteCandidateUuid = null
             exerciseDeleteCandidateGeneration = null
+        }
+        if (machineDeleteCandidateGeneration?.let { it != currentGeneration } == true) {
+            gymDeletionCoordinator?.clear()
+            viewModel.abandonOrphanedGymDeletionVerification()
+            viewModel.dismissMachineDeletion()
+            machineDeleteCandidateId = null
+            machineDeleteCandidateUuid = null
+            machineDeleteCandidateGeneration = null
         }
         if (routineDeleteCandidateGeneration?.let { it != currentGeneration } == true) {
             gymDeletionCoordinator?.clear()
@@ -1328,7 +1374,11 @@ fun GymAreaContent(
                 onEdit = { machineEditorId = it.id },
                 onArchive = viewModel::setMachineArchived,
                 onNewVersion = { machineVersionSourceId = it.id },
-                onDelete = { viewModel.previewMachineDeletion(it.id) },
+                onDelete = {
+                    machineDeleteCandidateId = it.id
+                    machineDeleteCandidateUuid = it.uuid
+                    machineDeleteCandidateGeneration = viewModel.currentDataGeneration()
+                },
             )
             GymDestination.Categories -> ExerciseCategoryContent(
                 state = state,
@@ -1725,25 +1775,54 @@ fun GymAreaContent(
         )
     }
 
-    machineDeletionImpact?.let { impact ->
-        MachinePermanentDeleteDialog(
+    machineDeleteCandidateId?.let { machineId ->
+        val coordinator = gymDeletionCoordinator ?: return@let
+        MachineDeletionReviewSurface(
             modifier = dialogModifier,
-            impact = impact,
-            onDismiss = viewModel::dismissMachineDeletion,
-            onConfirm = viewModel::confirmMachineDeletion,
-            onReviewRoutines = {
+            machineId = machineId,
+            machineName = machineDeleteCandidate?.displayName.orEmpty(),
+            expectedMachineUuid = machineDeleteCandidateUuid,
+            impact = machineDeletionImpact,
+            targetMissing = machineDeletionTargetMissing,
+            previewError = machineDeletionPreviewError,
+            orphanedRequestId = orphanedGymDeletionRequestId,
+            coordinator = coordinator,
+            viewModel = viewModel,
+            onDismiss = {
+                coordinator.clear()
+                viewModel.abandonOrphanedGymDeletionVerification()
                 viewModel.dismissMachineDeletion()
+                machineDeleteCandidateId = null
+                machineDeleteCandidateUuid = null
+                machineDeleteCandidateGeneration = null
+            },
+            onReviewRoutines = {
+                coordinator.clear()
+                viewModel.abandonOrphanedGymDeletionVerification()
+                viewModel.dismissMachineDeletion()
+                machineDeleteCandidateId = null
+                machineDeleteCandidateUuid = null
+                machineDeleteCandidateGeneration = null
                 destination = GymDestination.Routines
             },
             onOpenActiveWorkout = {
+                coordinator.clear()
+                viewModel.abandonOrphanedGymDeletionVerification()
                 viewModel.dismissMachineDeletion()
+                machineDeleteCandidateId = null
+                machineDeleteCandidateUuid = null
+                machineDeleteCandidateGeneration = null
                 destination = GymDestination.Workout
             },
             onBackUpFirst = {
+                coordinator.clear()
+                viewModel.abandonOrphanedGymDeletionVerification()
                 viewModel.dismissMachineDeletion()
+                machineDeleteCandidateId = null
+                machineDeleteCandidateUuid = null
+                machineDeleteCandidateGeneration = null
                 onOpenBackupSettings()
             },
-            deleting = machineDeletionInProgress,
         )
     }
 
@@ -5148,6 +5227,71 @@ private fun RoutineDeletionReviewSurface(
 }
 
 @Composable
+private fun MachineDeletionReviewSurface(
+    modifier: Modifier,
+    machineId: Long,
+    machineName: String,
+    expectedMachineUuid: String?,
+    impact: MachineDeletionImpact?,
+    targetMissing: Boolean,
+    previewError: String?,
+    orphanedRequestId: String?,
+    coordinator: EntitySaveCoordinator,
+    viewModel: GymViewModel,
+    onDismiss: () -> Unit,
+    onReviewRoutines: () -> Unit,
+    onOpenActiveWorkout: () -> Unit,
+    onBackUpFirst: () -> Unit,
+) {
+    val exactImpact = impact?.takeIf {
+        it.machineId == machineId && (expectedMachineUuid == null || it.machineUuid == expectedMachineUuid)
+    }
+    MachinePermanentDeleteDialog(
+        modifier = modifier,
+        machineName = exactImpact?.displayName ?: machineName,
+        impact = exactImpact,
+        targetMissing = targetMissing,
+        outcomeVerificationPending = orphanedRequestId != null,
+        preparing = exactImpact == null && previewError == null,
+        deleting = coordinator.saving,
+        errorMessage = coordinator.errorMessage ?: previewError.takeIf { exactImpact == null },
+        onDismiss = onDismiss,
+        onReviewUpdatedImpact = {
+            coordinator.clear()
+            val verificationStarted = if (orphanedRequestId != null) {
+                val verificationRequestId = coordinator.begin()
+                verificationRequestId != null &&
+                    viewModel.restartOrphanedGymDeletionVerification(
+                        orphanedRequestId,
+                        verificationRequestId,
+                    )
+            } else {
+                true
+            }
+            if (verificationStarted) {
+                viewModel.previewMachineDeletion(machineId, expectedMachineUuid)
+            } else {
+                coordinator.finishFailure("Deletion verification is already running.")
+            }
+        },
+        onReviewRoutines = onReviewRoutines,
+        onOpenActiveWorkout = onOpenActiveWorkout,
+        onBackUpFirst = onBackUpFirst,
+        onConfirm = { reviewedImpact ->
+            val requestId = coordinator.begin() ?: return@MachinePermanentDeleteDialog
+            if (!viewModel.deleteMachinePermanently(
+                    machineId,
+                    reviewedImpact.revisionToken,
+                    requestId,
+                )
+            ) {
+                coordinator.finishFailure("Another Gym deletion is already finishing.")
+            }
+        },
+    )
+}
+
+@Composable
 private fun WorkoutDeletionReviewSurface(
     modifier: Modifier,
     workoutId: Long,
@@ -5478,68 +5622,138 @@ internal fun RoutinePermanentDeleteDialog(
 @Composable
 internal fun MachinePermanentDeleteDialog(
     modifier: Modifier = Modifier,
-    impact: MachineDeletionImpact,
+    machineName: String,
+    impact: MachineDeletionImpact?,
+    targetMissing: Boolean,
+    preparing: Boolean,
+    deleting: Boolean,
+    errorMessage: String?,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
+    onReviewUpdatedImpact: () -> Unit,
+    onConfirm: (MachineDeletionImpact) -> Unit,
     onReviewRoutines: () -> Unit,
     onOpenActiveWorkout: () -> Unit,
     onBackUpFirst: () -> Unit,
-    deleting: Boolean,
+    outcomeVerificationPending: Boolean = false,
 ) {
-    val blocked = impact.activePlacements > 0
+    val blocked = impact?.activePlacements?.let { it > 0 } == true
+    val outcomeUnverified = outcomeVerificationPending ||
+        errorMessage?.contains("could not be verified", ignoreCase = true) == true
     PaneAwareAlertDialog(
         modifier = modifier.testTag("machine-delete-dialog"),
         onDismissRequest = { if (!deleting) onDismiss() },
-        title = { Text("Delete “${impact.displayName}” v${impact.configurationVersion} Permanently?") },
+        title = {
+            Text(
+                "Delete “${machineName.ifBlank { "Machine Profile" }}”" +
+                    (impact?.let { " v${it.configurationVersion}" } ?: "") +
+                    " Permanently?",
+            )
+        },
         text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                item {
-                    Text("Removed", fontWeight = FontWeight.Bold)
-                    Text("The reusable profile, load presets, and current setup metadata. It cannot be restored.")
-                }
-                item {
-                    Text("Kept", fontWeight = FontWeight.Bold)
-                    Text(
-                        "${impact.completedSessions} completed workout${if (impact.completedSessions == 1) "" else "s"} and " +
-                            "${impact.setCount} set${if (impact.setCount == 1) "" else "s"} remain with their saved machine and configuration snapshots. " +
-                            "They will not merge with free weights.",
+            LazyColumn(
+                modifier = Modifier.testTag("machine-delete-impact-list"),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (preparing && !targetMissing) item {
+                    WhipNoticeCard(
+                        title = "Reviewing impact",
+                        message = "Checking the exact routine and workout-history impact…",
+                        tone = WhipNoticeTone.Informative,
+                        showProgress = true,
+                        semanticStateLabel = "Reviewing machine deletion impact",
                     )
                 }
-                if (impact.routineReferences > 0) item {
-                    Text("Needs Attention", fontWeight = FontWeight.Bold)
-                    Text(
-                        "${impact.routineReferences} routine placement${if (impact.routineReferences == 1) "" else "s"} " +
-                            "will be marked Needs equipment and cannot start until replaced." +
-                            impact.routineNames.takeIf(List<String>::isNotEmpty)?.joinToString(
-                                prefix = "\nAffected: ",
-                                limit = 3,
-                            ).orEmpty(),
+                errorMessage?.let { message -> item {
+                    WhipNoticeCard(
+                        title = when {
+                            outcomeUnverified -> "Outcome not verified"
+                            targetMissing -> "Machine unavailable"
+                            else -> "Deletion not completed"
+                        },
+                        message = message,
+                        tone = if (targetMissing && !outcomeUnverified) WhipNoticeTone.Neutral else WhipNoticeTone.Error,
+                        actionLabel = when {
+                            outcomeUnverified -> "Retry Verification"
+                            targetMissing -> "Close"
+                            else -> "Review Updated Impact"
+                        },
+                        onAction = if (targetMissing && !outcomeUnverified) onDismiss else onReviewUpdatedImpact,
+                        semanticStateLabel = when {
+                            outcomeUnverified -> "Machine deletion outcome not verified"
+                            targetMissing -> "Machine no longer available"
+                            else -> null
+                        },
+                        modifier = Modifier.testTag("machine-delete-error"),
                     )
-                    WhipTextButton(onClick = onReviewRoutines) { Text("Review Routines") }
-                }
-                if (blocked) item {
-                    Text("Active Workout", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
-                    Text("This profile is currently in use. Finish the workout or change that exercise’s equipment before deleting it.")
-                    WhipTextButton(onClick = onOpenActiveWorkout) { Text("Open Active Workout") }
-                }
-                item {
-                    Text(
-                        "Other configuration versions stay. Past workout snapshots and older backups may still contain the recorded machine name, location, and setup.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    WhipTextButton(onClick = onBackUpFirst) { Text("Back Up First") }
+                } }
+                impact?.let { exact ->
+                    if (errorMessage == null) item {
+                        Text(
+                            "Deletion impact ready — review it before confirming.",
+                            modifier = Modifier.semantics {
+                                liveRegion = LiveRegionMode.Polite
+                                stateDescription = "Machine deletion impact ready"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    item {
+                        Text("Removed", fontWeight = FontWeight.Bold)
+                        Text("The reusable profile, load presets, and current setup metadata. It cannot be restored.")
+                    }
+                    item {
+                        Text("Kept", fontWeight = FontWeight.Bold)
+                        Text(
+                            "${exact.completedSessions} completed workout${if (exact.completedSessions == 1) "" else "s"} and " +
+                                "${exact.setCount} set${if (exact.setCount == 1) "" else "s"} remain with their saved machine and configuration snapshots. " +
+                                "They will not merge with free weights.",
+                        )
+                    }
+                    if (exact.routineReferences > 0) item {
+                        Text("Needs Attention", fontWeight = FontWeight.Bold)
+                        Text(
+                            "${exact.routineReferences} routine placement${if (exact.routineReferences == 1) "" else "s"} " +
+                                "will be marked Needs equipment and cannot start until replaced." +
+                                exact.routineNames.takeIf(List<String>::isNotEmpty)?.joinToString(
+                                    prefix = "\nAffected: ",
+                                    limit = 3,
+                                ).orEmpty(),
+                        )
+                        WhipTextButton(onClick = onReviewRoutines) { Text("Review Routines") }
+                    }
+                    if (blocked) item {
+                        WhipNoticeCard(
+                            title = "Active Workout",
+                            message = "This profile is currently in use. Finish the workout or change that exercise’s equipment before deleting it.",
+                            tone = WhipNoticeTone.Warning,
+                            actionLabel = "Open Active Workout",
+                            onAction = onOpenActiveWorkout,
+                            semanticStateLabel = "Deletion blocked by active workout",
+                        )
+                    }
+                    item {
+                        Text(
+                            "Other configuration versions stay. Past workout snapshots and older backups may still contain the recorded machine name, location, and setup.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        WhipTextButton(onClick = onBackUpFirst) { Text("Back Up First") }
+                    }
                 }
             }
         },
         confirmButton = {
             WhipTextButton(
-                enabled = !blocked && !deleting,
-                onClick = onConfirm,
+                enabled = impact != null && !blocked && !deleting && errorMessage == null,
+                onClick = { impact?.let(onConfirm) },
                 modifier = Modifier.testTag("machine-delete-confirm"),
             ) { Text(if (deleting) "Deleting…" else "Delete profile permanently", color = MaterialTheme.colorScheme.error) }
         },
         dismissButton = { WhipTextButton(enabled = !deleting, onClick = onDismiss) { Text("Cancel") } },
+        inputBlocked = deleting,
+        inputBlockedLabel = "Permanently Deleting Machine Profile",
+        paneTitle = "Machine deletion review",
     )
 }
 
