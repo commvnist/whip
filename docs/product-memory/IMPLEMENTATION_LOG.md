@@ -625,3 +625,25 @@
 - Related: `FB-20260903-004`, `DEC-20260903-004`, `IMP-20260903-005`, `VER-20260903-005`.
 - Verification: `VER-20260903-006`.
 - Status: Released and physically verified within the non-destructive/keyguard-visible boundary.
+
+### IMP-20260903-007 — Cross-feature semantic and lifecycle integrity repair
+
+- Preserved removed Habit checklist definitions as archived history while limiting current auto-completion to active items; validated connected sources, dimensions, tracking modes, availability, and log dates before writes.
+- Centralized repository-owned authored validation for Tasks, Habits, Goals, and Tracks, including bounded names, complete schedules, valid time/duration/reminder values, delimiter-safe tags, and unique child identities.
+- Made Area/Tag changes revise affected consumer rows and conditionally rebuild Track search; normalized custom-unit identity transactionally and enforced paired measurement values/units.
+- Added pre-mutation backup validation for taxonomy uniqueness, enum/time semantics, metric compatibility, ownership graphs, completion consistency, and exact Track value shapes.
+- Made focus task/deadline state atomic, rejected missing Task identities, cleared focus state/schedules after Task or Area-cascade deletion, and protected vulnerable Task/Habit/Track flag and duplication operations with transactions.
+- Updated the declared baseline to 1,500 product tests: 583 JVM and 917 Android.
+- Important files: `BackupRepository.kt`, `HabitRepository.kt`, `TaskRepository.kt`, `AreaRepository.kt`, `MeasurementRepository.kt`, `TrackRepository.kt`, `AppSettings.kt`, `WhipApplication.kt`, domain models, and focused JVM/Android regressions.
+- Related: `FB-20260903-005`, `FND-20260903-006` through `FND-20260903-009`, `DEC-20260903-005`.
+- Verification: `VER-20260903-007`.
+- Status: Implemented and pushed in `0c37914`.
+
+### IMP-20260903-008 — Signed Whip 0.3.40 cross-feature data-integrity release
+
+- Assigned version 0.3.40/code 46, reran the guarded release gate, and built the minified APK and Play bundle with the established Whip signer.
+- Installed the APK in place on the explicitly selected Samsung endpoint, verified the installed artifact hash and package identity, and cold-launched `MainActivity` without clearing data or running instrumentation on the phone.
+- Important files: `app/build.gradle.kts`, signed APK/AAB, `scripts/check`, and `scripts/device`.
+- Related: `FB-20260903-005`, `DEC-20260903-005`, `IMP-20260903-007`.
+- Verification: `VER-20260903-008`.
+- Status: Released and physically verified; release version commit `48e8b3b`.

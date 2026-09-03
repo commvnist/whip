@@ -196,3 +196,11 @@ These records preserve durable user intent. “Released” means the change reac
 - Destructive boundary: The user previously authorized a current-only clean slate. This correction therefore establishes a new explicit schema/data epoch instead of adding a compatibility migration; deployment must not press the on-device erase confirmation automatically.
 - Related: `FND-20260903-003`, `FND-20260903-004`, `DEC-20260903-004`, `IMP-20260903-005`, `VER-20260903-005`.
 - Status: Implemented, verified, and released to the physical phone in Whip 0.3.39/code 45; see `VER-20260903-006`.
+
+### FB-20260903-005 — Audit and repair data integrity across the rest of Whip, then release
+
+- User need: Apply the same outward data audit used for Gym to Tasks, Habits, Goals, Tracks, measurements, taxonomy, backup/recovery, Settings, and cross-feature state; fix confirmed errors and release the result to the connected phone.
+- Acceptance criteria: Authored inputs are rejected rather than silently reinterpreted; removed definitions cannot rewrite history; source and ownership references are valid; backup data is semantically valid before mutation; taxonomy changes update revision/search projections; active focus state cannot outlive its Task; mutation races serialize; regressions and the complete release gate pass before an in-place physical deployment.
+- Destructive boundary: Current-only schema/data-epoch policy remains in force. Deployment must preserve Android installation identity and must not clear phone data or confirm Whip's fresh-start action for the user.
+- Related: `FND-20260903-006` through `FND-20260903-009`, `DEC-20260903-005`, `IMP-20260903-007`, `IMP-20260903-008`, `VER-20260903-007`, `VER-20260903-008`.
+- Status: Implemented, verified, pushed, and released to the physical phone as Whip 0.3.40/code 46.

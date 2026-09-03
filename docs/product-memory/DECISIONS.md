@@ -593,3 +593,12 @@
 - Compatibility: Intentionally breaking under the user-authorized clean slate. Older local data/backups are rejected through the explicit existing reset boundary; the release process installs in place but never confirms erasure for the user.
 - Related: `FB-20260903-004`, `FND-20260903-003`, `FND-20260903-004`, `FND-20260903-005`, `IMP-20260903-005`, `VER-20260903-005`.
 - Status: Accepted, implemented, verified, and released in Whip 0.3.39/code 45.
+
+### DEC-20260903-005 — Enforce semantic validity at each durable cross-feature boundary
+
+- Context: The post-Gym audit found a repeated pattern outside Gym: presentation paths prevented some invalid inputs, while repositories, notification actions, taxonomy operations, settings, and backup restore could still create ambiguous or cross-owned state.
+- Decision: Make repositories authoritative for authored constraints; preserve referenced history through archival rather than deletion; model connected Habit progress and focus timers as ownership-bearing states; update dependent revision/search projections in the same transaction as taxonomy changes; normalize measurement identities before lookup; and require whole-snapshot semantic validation before backup preview, merge, or restore. Serialize read-modify-write mutations that can be reached concurrently.
+- Rationale: Every mutation path then observes one falsifiable contract, historical facts remain interpretable, derived projections match canonical rows, and invalid portable data is rejected before partial durable effects. This is targeted hardening of existing domain concepts rather than a new generic framework.
+- Compatibility: No new Room schema or backup version was required beyond schema 44/data epoch 4/backup 21. Invalid newly authored or restored data is now rejected; valid current data round-trips unchanged. Checklist definitions referenced by history remain as archived rows.
+- Related: `FB-20260903-005`, `FND-20260903-006` through `FND-20260903-009`, `IMP-20260903-007`, `VER-20260903-007`.
+- Status: Accepted, implemented, verified, and released in Whip 0.3.40/code 46.

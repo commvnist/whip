@@ -609,3 +609,47 @@
 - Evidence: `RoutineRepository.kt` and `RoutineRepositoryTest.kt`.
 - Resolution: Implemented in `IMP-20260903-005`; verified in `VER-20260903-005`.
 - Status: Resolved and released in Whip 0.3.39/code 45; see `VER-20260903-006`.
+
+### FND-20260903-006 — Habit history and authored mutations crossed invalid lifecycle boundaries
+
+- Severity/category: P0 historical truth and authored-data integrity.
+- Observed: Removing a checklist item deleted its definition even when historical daily state referenced it, while checklist auto-completion counted every stored definition. Connected-source compatibility was not validated before create/update, manual progress could be written to paused, archived, or connected Habits, and future check-ins were accepted. Task/Habit/Goal/Track repository entry points also admitted several malformed names, times, reminders, tags, schedules, and duplicate child identities that UI validation happened to prevent.
+- Expected: Removed checklist definitions become archived history, only active items determine current completion, source metrics must exist and match dimension/tracking semantics, unavailable/read-only Habits reject manual progress, future logs are rejected, and every repository owns the same strict authored contract regardless of caller.
+- Why it matters: UI, notifications, imports, widgets, and restored state all reach repositories; relying on one presentation path permits contradictory history and invalid durable rows.
+- Affected users: All Task, Habit, Goal, and Track users, especially connected-metric and checklist Habit users.
+- Evidence: `HabitRepository.kt`, `HabitDao.kt`, `TaskRepository.kt`, `TaskModels.kt`, `HabitModels.kt`, `GoalModels.kt`, `TrackModels.kt`, and focused repository/notification regressions.
+- Resolution: Archive checklist definitions, count only active definitions, validate Habit source and mutation availability transactionally, and centralize bounded authored validation at repository/domain boundaries.
+- Status: Resolved in `IMP-20260903-007`, verified in `VER-20260903-007`, and released in `VER-20260903-008`.
+
+### FND-20260903-007 — Taxonomy mutations left consumer revisions and Track search stale
+
+- Severity/category: P1 cross-feature cache/search consistency.
+- Observed: Global Area moves/renames/reassignments and Tag renames/merges updated references without revising affected Task/Habit/Goal/Track rows; Track full-text search could therefore retain old taxonomy text. Tag names also lacked the shared 100-character bound.
+- Expected: A semantic taxonomy change advances every affected consumer's `updatedAtMillis`; Track search is rebuilt exactly when affected Track rows exist; authored Tag names obey the bounded identity contract.
+- Why it matters: Observers, synchronization, ordering, and search all depend on revisions accurately describing changed records.
+- Affected users: Users who organize or search Tasks, Habits, Goals, and Tracks by Area or Tag.
+- Evidence: `AreaRepository.kt`, `TrackRepository.kt`, `TrackModels.kt`, and `MeasurementTaxonomyRepositoryTest.kt`.
+- Resolution: Update consumer revisions in the taxonomy transaction, conditionally rebuild Track FTS, and validate bounded Tag names.
+- Status: Resolved in `IMP-20260903-007`, verified in `VER-20260903-007`, and released in `VER-20260903-008`.
+
+### FND-20260903-008 — Measurement and backup boundaries accepted ambiguous or cross-owned data
+
+- Severity/category: P0 restore integrity and measurement identity.
+- Observed: Custom-unit lookup occurred before canonical normalization, allowing whitespace aliases to overwrite or reinterpret an existing unit; measurements could persist a value without a unit or vice versa. Backup preview/restore validated shape but not all semantic ownership, enum, metric-dimension, and exact Track-value relationships before mutation.
+- Expected: Custom-unit identity is normalized before an atomic lookup/write; measurement value and unit are paired; every backup is semantically and referentially valid before previewed or restored, including case-insensitive taxonomy uniqueness, valid ownership, known enums, metric compatibility, and exact typed Track values.
+- Why it matters: Ambiguous units silently reinterpret historical numbers, while a structurally valid but semantically corrupt backup can contaminate several domains in one restore.
+- Affected users: Measurement, custom-unit, Track, backup, and device-transfer users.
+- Evidence: `MeasurementRepository.kt`, `MeasurementDao.kt`, `BackupRepository.kt`, `CustomUnitIntegrityTest.kt`, `MeasurementTaxonomyRepositoryTest.kt`, and `BackupRepositoryTest.kt`.
+- Resolution: Normalize and serialize custom-unit creation, enforce the value/unit pair, and run whole-snapshot semantic/ownership validation before any backup mutation.
+- Status: Resolved in `IMP-20260903-007`, verified in `VER-20260903-007`, and released in `VER-20260903-008`.
+
+### FND-20260903-009 — Focus state and flag mutations could become orphaned or lose races
+
+- Severity/category: P1 state ownership and concurrency.
+- Observed: Focus-timer task/deadline settings could be written independently, a deleted Task could leave a phantom active focus session, and several read-modify-write flag/duplicate operations were not transactionally serialized.
+- Expected: Focus task identity and deadline form one atomic validated state; startup/recovery and Task/Area deletion remove orphaned timers and schedules; archive/restore/reopen/pin/duplicate mutations serialize against their current row.
+- Why it matters: A timer must never claim ownership by a missing Task, and simultaneous user/notification actions must not overwrite each other's durable intent.
+- Affected users: Focus timer users and users invoking Task, Habit, or Track actions through multiple surfaces.
+- Evidence: `AppSettings.kt`, `WhipApplication.kt`, `SettingsViewModel.kt`, `TaskRepository.kt`, `HabitRepository.kt`, `TrackRepository.kt`, `AppSettingsTest.kt`, and focus-deletion integration coverage.
+- Resolution: Normalize focus settings atomically, clear deleted-task focus state durably, reject orphaned state during recovery, and move vulnerable mutations into transactions.
+- Status: Resolved in `IMP-20260903-007`, verified in `VER-20260903-007`, and released in `VER-20260903-008`.

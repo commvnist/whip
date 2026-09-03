@@ -658,3 +658,24 @@
 - Source: release source `d624ffb`; core repair `cd95fcc`; version commit `27f60cf`.
 - Related: `FB-20260903-004`, `FND-20260903-003`, `FND-20260903-004`, `FND-20260903-005`, `DEC-20260903-004`, `IMP-20260903-005`, `IMP-20260903-006`.
 - Status: Signed release installed and verified on the physical phone.
+
+### VER-20260903-007 — Cross-feature data-integrity verification
+
+- The complete JVM suite passed all 583 tests. Eight new exact Android regressions covering taxonomy revisions/search, Habit checklist history/current counts, Habit source/availability/future-date rejection, Task authored validation, custom-unit normalized collisions, measurement value/unit pairing, backup cross-owner/enum rejection, and focus cleanup passed three consecutive runs where selected: 24/24 executions.
+- Full `BackupRepositoryTest` plus `MeasurementTaxonomyRepositoryTest` and `CustomUnitIntegrityTest` passed 48/48 Android tests. The cross-feature repository/integration batch passed Task, Habit, Goal, Track, Track definition/entry/CSV integrity, notification actions, Settings persistence, portable backup, restore recovery, data epoch, Health reconciliation, and domain deletion: 254/254. The exact focus-deletion regression additionally passed 3/3 repeated executions.
+- `scripts/check` passed all 583 JVM tests, Android-test compilation, debug/release lint, artifact/inventory checks, and deterministic coverage: 78.81% domain lines (4,073/5,168), 55.87% domain branches (2,246/4,020), and 68.31% Settings/policy lines (569/833).
+- Scope: Exact repeated high-risk regressions, broad cross-feature Android repository/integration coverage, complete JVM suite, Android-test compilation, lint, inventory, and coverage. Release packaging and phone installation are recorded separately in `VER-20260903-008`.
+- Source: repair commit `0c37914`.
+- Related: `FB-20260903-005`, `FND-20260903-006` through `FND-20260903-009`, `DEC-20260903-005`, `IMP-20260903-007`.
+- Status: Passed with zero observed failures or skips in the stated executed scopes.
+
+### VER-20260903-008 — Whip 0.3.40 cross-feature data-integrity physical release
+
+- `WHIP_DEVICE=192.168.2.187:44401 scripts/device release-deploy` selected the physical Samsung endpoint and reran the required release gate. Release compilation, vital lint, R8/resource shrinking, signed APK, and Play bundle completed successfully.
+- The signed release APK SHA-256 is `cabbaabac6ddeeca8aea06b1a5dffe64847eab1ec061d45bb2abc3800a6884da`. Streamed `adb install -r` returned `Success`, and the installed base APK hash exactly matches the local signed artifact.
+- Android reports package `commvne.com.whip.app`, version 0.3.40/code 46, min SDK 26, target SDK 37, and `lastUpdateTime=2026-09-03 14:47:48`.
+- A forced cold launch completed in 111 ms (`TotalTime`) / 112 ms (`WaitTime`) with `MainActivity` foreground and resumed. The release-log query returned no Whip application errors.
+- No application data was cleared, no fresh-start confirmation was pressed, and no destructive instrumentation was run on the physical phone.
+- Source: repair `0c37914`; version/release source `48e8b3b`.
+- Related: `FB-20260903-005`, `IMP-20260903-007`, `IMP-20260903-008`.
+- Status: Signed release installed and verified on the physical phone.
