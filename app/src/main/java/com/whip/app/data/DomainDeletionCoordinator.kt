@@ -183,15 +183,60 @@ class DomainDeletionCoordinator internal constructor(
         )
     }
 
-    suspend fun deleteTrack(trackId: Long): DomainDeletionSummary {
-        val summary = database.withTransaction { deleteTrackWithinTransaction(trackId) }
-        linkRepository.rebuildAll()
-        return summary
+    suspend fun previewTrackDeletion(trackId: Long): TrackDeletionImpact? = database.withTransaction {
+        buildTrackDeletionImpact(trackId)
+    }
+
+    suspend fun deleteTrack(
+        trackId: Long,
+        expectedRevisionToken: String,
+    ): TrackDeletionSummary {
+        val summary = database.withTransaction {
+            deleteTrackExactWithinTransaction(trackId, expectedRevisionToken)
+        }
+        return try {
+            linkRepository.rebuildAll()
+            summary
+        } catch (cancelled: CancellationException) {
+            throw CommittedTrackDeletionCancellation(summary, cancelled)
+        } catch (_: Exception) {
+            try {
+                onDeletionInterrupted()
+            } catch (cancelled: CancellationException) {
+                throw CommittedTrackDeletionCancellation(summary, cancelled)
+            } catch (fatal: Error) {
+                throw fatal
+            } catch (_: Exception) {
+                // The deletion is authoritative; startup reconciliation owns the retry.
+            }
+            summary.copy(
+                warnings = summary.warnings +
+                    "Link and automation reconciliation did not finish; the Track itself was deleted.",
+            )
+        }
     }
 
     /** Room cleanup only. The caller owns the surrounding transaction and every post-commit action. */
     internal suspend fun deleteTrackWithinTransaction(trackId: Long): DomainDeletionSummary {
-        database.trackDao().getTrack(trackId) ?: return DomainDeletionSummary()
+        val impact = buildTrackDeletionImpact(trackId) ?: return DomainDeletionSummary()
+        val summary = deleteTrackExactWithinTransaction(trackId, impact.revisionToken)
+        return DomainDeletionSummary(
+            deleted = summary.trackDeleted,
+            linkRulesDeleted = summary.linkRulesDeleted,
+            automationRulesDeleted = summary.automationRulesDeleted,
+        )
+    }
+
+    private suspend fun deleteTrackExactWithinTransaction(
+        trackId: Long,
+        expectedRevisionToken: String?,
+    ): TrackDeletionSummary {
+        val impact = requireNotNull(buildTrackDeletionImpact(trackId)) { "Track no longer exists" }
+        if (expectedRevisionToken != null) {
+            require(impact.revisionToken == expectedRevisionToken) {
+                "The Track or its history changed while the confirmation was open. Review the updated impact before deleting."
+            }
+        }
         val links = database.linkDao().getRules().filter {
             it.sourceType == LinkSourceType.Track.name && it.sourceEntityId == trackId
         }
@@ -203,7 +248,15 @@ class DomainDeletionCoordinator internal constructor(
         triggers.forEach { linkRepository.deleteTrigger(it.id) }
         database.trackDao().deleteSearchForTrack(trackId)
         check(database.trackDao().deleteTrack(trackId) == 1) { "Track no longer exists" }
-        return DomainDeletionSummary(true, links.size, triggers.size)
+        return TrackDeletionSummary(
+            trackDeleted = true,
+            entriesDeleted = impact.entryCount,
+            fieldsDeleted = impact.fieldCount,
+            choiceOptionsDeleted = impact.choiceOptionCount,
+            savedValuesDeleted = impact.savedValueCount,
+            linkRulesDeleted = links.size,
+            automationRulesDeleted = triggers.size,
+        )
     }
 
     internal suspend fun rebuildLinksAfterCommittedDeletion() = rebuildLinksAfterGoalDeletion()
@@ -633,6 +686,70 @@ class DomainDeletionCoordinator internal constructor(
         )
     }
 
+    private suspend fun buildTrackDeletionImpact(trackId: Long): TrackDeletionImpact? {
+        val track = database.trackDao().getTrack(trackId) ?: return null
+        val fields = database.trackDao().getFields(trackId)
+        val fieldIds = fields.map(TrackFieldEntity::id)
+        val options = fieldIds.takeIf { it.isNotEmpty() }
+            ?.let { database.trackDao().getOptionsForFields(it) }
+            .orEmpty()
+        val entries = database.trackDao().getEntries(trackId)
+        val entryIds = entries.map(TrackEntryEntity::id)
+        val values = entryIds.takeIf { it.isNotEmpty() }
+            ?.let { database.trackDao().getValuesForEntries(it) }
+            .orEmpty()
+        val links = database.linkDao().getRules().filter {
+            it.sourceType == LinkSourceType.Track.name && it.sourceEntityId == trackId
+        }
+        val linkConditions = links.flatMap { database.linkDao().getRuleConditions(it.id) }
+        val linkConditionChoices = linkConditions.map(LinkRuleConditionEntity::id)
+            .takeIf { it.isNotEmpty() }
+            ?.let { database.linkDao().getLinkConditionChoices(it) }
+            .orEmpty()
+        val contributions = links.flatMap { database.linkDao().getContributions(it.id) }
+        val triggers = database.linkDao().getTriggerRules().filter {
+            (it.sourceType == LinkSourceType.Track.name && it.sourceEntityId == trackId) ||
+                (it.targetType == TriggerTargetType.Track.name && it.targetEntityId == trackId)
+        }
+        val triggerConditions = triggers.flatMap { database.linkDao().getTriggerConditions(it.id) }
+        val triggerConditionChoices = triggerConditions.map(TriggerRuleConditionEntity::id)
+            .takeIf { it.isNotEmpty() }
+            ?.let { database.linkDao().getTriggerConditionChoices(it) }
+            .orEmpty()
+        val triggerMappings = triggers.flatMap { database.linkDao().getTriggerMappings(it.id) }
+        val triggerOccurrences = triggers.flatMap { database.linkDao().getTriggerOccurrences(it.id) }
+        return TrackDeletionImpact(
+            trackId = track.id,
+            trackUuid = track.uuid,
+            displayName = track.name,
+            entryCount = entries.size,
+            fieldCount = fields.size,
+            choiceOptionCount = options.size,
+            savedValueCount = values.size,
+            linkRuleCount = links.size,
+            automationRuleCount = triggers.size,
+            revisionToken = gymDeletionRevision(
+                rootLabel = "track",
+                root = track,
+                rows = listOf(
+                    "field" to fields,
+                    "choice-option" to options,
+                    "entry" to entries,
+                    "saved-value" to values,
+                    "link" to links,
+                    "link-condition" to linkConditions,
+                    "link-condition-choice" to linkConditionChoices,
+                    "contribution" to contributions,
+                    "automation" to triggers,
+                    "automation-condition" to triggerConditions,
+                    "automation-condition-choice" to triggerConditionChoices,
+                    "automation-mapping" to triggerMappings,
+                    "automation-occurrence" to triggerOccurrences,
+                ),
+            ),
+        )
+    }
+
     private suspend fun buildRoutineDeletionImpact(routineId: Long): RoutineDeletionImpact? {
         val routine = database.routineDao().getRoutine(routineId) ?: return null
         val days = database.routineDao().getDays(routineId)
@@ -1053,3 +1170,34 @@ data class DomainDeletionSummary(
     val routineReferencesDeleted: Int = 0,
     val preservedHistoryReferences: Int = 0,
 )
+
+data class TrackDeletionImpact(
+    val trackId: Long,
+    val trackUuid: String,
+    val displayName: String,
+    val entryCount: Int,
+    val fieldCount: Int,
+    val choiceOptionCount: Int,
+    val savedValueCount: Int,
+    val linkRuleCount: Int,
+    val automationRuleCount: Int,
+    val revisionToken: String,
+) : Serializable
+
+data class TrackDeletionSummary(
+    val trackDeleted: Boolean = false,
+    val entriesDeleted: Int = 0,
+    val fieldsDeleted: Int = 0,
+    val choiceOptionsDeleted: Int = 0,
+    val savedValuesDeleted: Int = 0,
+    val linkRulesDeleted: Int = 0,
+    val automationRulesDeleted: Int = 0,
+    val warnings: List<String> = emptyList(),
+)
+
+class CommittedTrackDeletionCancellation(
+    val summary: TrackDeletionSummary,
+    cause: CancellationException,
+) : CancellationException(cause.message) {
+    init { initCause(cause) }
+}

@@ -522,3 +522,14 @@
 - Scope: Targeted compile and emulator evidence; no frozen-candidate full gate is claimed.
 - Related: `FND-20260902-015`, `DEC-20260902-020`, `IMP-20260902-023`.
 - Status: Targeted checks passed.
+
+### VER-20260902-025 — Secondary-dialog ownership verification
+
+- Kotlin production and complete Android-test source compilation passed after the request-state and exact-deletion changes.
+- `EditorStateRecreationTest#categoryEditorRetainsItsDraftAcrossRecreationAndClosesOnlyAfterSave` passed on the API 34 disposable emulator, proving both Category draft retention and successful-result dismissal.
+- `DomainDeletionCoordinatorTest#trackDeletionUsesExactReviewedDefinitionAndHistoryImpact` passed, proving transaction-derived counts, rejection after a Track definition change, rejection after an automation dependency change, and exact final deletion.
+- `TrackDeletionUiTest#deletionReviewSurvivesRecreationAndClosesOnlyAfterExactCommit` passed, proving the reviewed impact remains visible across Activity recreation and the dialog closes only after the owned commit result.
+- Static dispatch-and-dismiss inspection left only synchronous picker choices, explicit draft-discard actions, and immediately applied local-preference shortcuts; no remaining asynchronous draft-bearing or permanent-delete dialog was classified as optimistic.
+- Scope: Focused compile and emulator evidence; the frozen-candidate full gate remains pending.
+- Related: `FND-20260831-019`, `FND-20260901-027`, `FND-20260902-016`, `DEC-20260902-021`, `IMP-20260902-024`.
+- Status: Targeted checks passed.

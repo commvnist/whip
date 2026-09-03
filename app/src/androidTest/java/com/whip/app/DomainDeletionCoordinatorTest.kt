@@ -133,6 +133,55 @@ class DomainDeletionCoordinatorTest {
         assertEquals(1, links.triggerRules.first().count { it.targetEntityId == targetId })
     }
 
+    @Test fun trackDeletionUsesExactReviewedDefinitionAndHistoryImpact() = runBlocking {
+        val trackId = tracks.create(
+            TrackDraft(
+                name = "Reviewed Track",
+                fields = listOf(
+                    TrackFieldDraft(
+                        name = "Note",
+                        type = TrackFieldType.ShortText,
+                        primary = true,
+                        required = true,
+                    ),
+                ),
+            ),
+        )
+        val initial = requireNotNull(coordinator.previewTrackDeletion(trackId))
+        assertEquals("Reviewed Track", initial.displayName)
+        assertEquals(1, initial.fieldCount)
+        assertEquals(0, initial.entryCount)
+
+        tracks.setPinned(trackId, true)
+        val staleDelete = runCatching { coordinator.deleteTrack(trackId, initial.revisionToken) }
+
+        assertTrue(staleDelete.isFailure)
+        assertNotNull(database.trackDao().getTrack(trackId))
+
+        val beforeAutomation = requireNotNull(coordinator.previewTrackDeletion(trackId))
+        val automationTargetId = tasks.create(TaskDraft(title = "Automation target"))
+        links.createTrigger(
+            TriggerRuleDraft(
+                name = "New Track automation",
+                sourceType = LinkSourceType.Track,
+                sourceEntityId = trackId,
+                targetType = TriggerTargetType.Task,
+                targetEntityId = automationTargetId,
+            ),
+        )
+        assertTrue(runCatching { coordinator.deleteTrack(trackId, beforeAutomation.revisionToken) }.isFailure)
+
+        val refreshed = requireNotNull(coordinator.previewTrackDeletion(trackId))
+        assertEquals(1, refreshed.automationRuleCount)
+        val summary = coordinator.deleteTrack(trackId, refreshed.revisionToken)
+
+        assertTrue(summary.trackDeleted)
+        assertEquals(1, summary.fieldsDeleted)
+        assertEquals(0, summary.entriesDeleted)
+        assertEquals(1, summary.automationRulesDeleted)
+        assertNull(database.trackDao().getTrack(trackId))
+    }
+
     @Test fun taskDeletionRevisionRejectsAutomationConditionAndMappingAddedAfterPreview() = runBlocking {
         val taskId = tasks.create(TaskDraft(title = "Automation source under review"))
         val trackId = tracks.create(

@@ -21,6 +21,8 @@ import com.whip.app.core.revealHomeSection
 import com.whip.app.core.saveFollowUpWarning
 import com.whip.app.core.tryStartPersistenceRequest
 import com.whip.app.data.TrackRepository
+import com.whip.app.data.CommittedTrackDeletionCancellation
+import com.whip.app.data.TrackDeletionImpact
 import com.whip.app.data.requireTrackCsvExportWithinLimit
 import com.whip.app.domain.DeletedTrackEntry
 import com.whip.app.domain.Track
@@ -166,6 +168,14 @@ internal data class TrackEntryDeletePreparationUiState(
     val snapshot: TrackEntryEditSnapshot? = null,
     val errorMessage: String? = null,
 )
+
+internal data class TrackDeletionReceipt(
+    val trackId: Long,
+    val trackUuid: String,
+    val warnings: List<String> = emptyList(),
+)
+
+private data class TrackDeletionPreviewLookup(val impact: TrackDeletionImpact?)
 
 internal data class TrackDefinitionReviewUiState(
     val sessionId: Long? = null,
@@ -674,6 +684,17 @@ class TrackViewModel private constructor(
     )
     internal val csvImportRequestState: StateFlow<PersistenceRequestState<TrackCsvImportReceipt>> =
         _csvImportRequestState.asStateFlow()
+    private val _trackDeletionState = MutableStateFlow<PersistenceRequestState<TrackDeletionReceipt>>(
+        PersistenceRequestState.Idle,
+    )
+    internal val trackDeletionState: StateFlow<PersistenceRequestState<TrackDeletionReceipt>> =
+        _trackDeletionState.asStateFlow()
+    private val _trackDeletionImpact = MutableStateFlow<TrackDeletionImpact?>(null)
+    internal val trackDeletionImpact: StateFlow<TrackDeletionImpact?> = _trackDeletionImpact.asStateFlow()
+    private val _trackDeletionPreviewError = MutableStateFlow<String?>(null)
+    internal val trackDeletionPreviewError: StateFlow<String?> = _trackDeletionPreviewError.asStateFlow()
+    private val _trackDeletionTargetMissing = MutableStateFlow(false)
+    internal val trackDeletionTargetMissing: StateFlow<Boolean> = _trackDeletionTargetMissing.asStateFlow()
     private val _entryPreparationState = MutableStateFlow(TrackEntryPreparationUiState())
     internal val entryPreparationState: StateFlow<TrackEntryPreparationUiState> =
         _entryPreparationState.asStateFlow()
@@ -688,6 +709,7 @@ class TrackViewModel private constructor(
     private var definitionReviewGeneration = 0L
     private var entryPreparationGeneration = 0L
     private var entryDeletePreparationGeneration = 0L
+    private var trackDeletionPreviewGeneration = 0L
     private val operationMutex = Mutex()
     private var recoveryAcknowledgement: CompletableDeferred<Unit>? = null
     private val _lastDeletedEntry = MutableStateFlow<PendingTrackEntryUndo?>(null)
@@ -756,6 +778,11 @@ class TrackViewModel private constructor(
                 _definitionSaveState.value = PersistenceRequestState.Idle
                 _entryMutationState.value = PersistenceRequestState.Idle
                 _csvImportRequestState.value = PersistenceRequestState.Idle
+                _trackDeletionState.value = PersistenceRequestState.Idle
+                _trackDeletionImpact.value = null
+                _trackDeletionPreviewError.value = null
+                _trackDeletionTargetMissing.value = false
+                trackDeletionPreviewGeneration++
                 entryPreparationGeneration++
                 _entryPreparationState.value = TrackEntryPreparationUiState()
                 _entryConflictState.value = null
@@ -797,6 +824,51 @@ class TrackViewModel private constructor(
         if ((_csvImportRequestState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
             _csvImportRequestState.value = PersistenceRequestState.Idle
         }
+    }
+
+    fun consumeTrackDeletionResult(requestId: String) {
+        if ((_trackDeletionState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _trackDeletionState.value = PersistenceRequestState.Idle
+        }
+    }
+
+    fun preparePermanentTrackDeletion(trackId: Long) {
+        val generation = ++trackDeletionPreviewGeneration
+        _trackDeletionImpact.value = null
+        _trackDeletionPreviewError.value = null
+        _trackDeletionTargetMissing.value = false
+        _operationStatus.value = OperationStatus.Running("Reviewing Track deletion impact…")
+        viewModelScope.launch {
+            try {
+                val lookup = checkNotNull(app.withUserDataAccess {
+                    TrackDeletionPreviewLookup(app.domainDeletionCoordinator.previewTrackDeletion(trackId))
+                }) { "Whip data is unavailable while recovery is in progress" }
+                val impact = lookup.impact
+                if (generation != trackDeletionPreviewGeneration) return@launch
+                if (impact == null) {
+                    _trackDeletionTargetMissing.value = true
+                    _trackDeletionPreviewError.value =
+                        "Track no longer exists. Close this review and verify the Track workspace."
+                } else {
+                    _trackDeletionImpact.value = impact
+                }
+                _operationStatus.value = OperationStatus.Idle
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                if (generation != trackDeletionPreviewGeneration) return@launch
+                _trackDeletionPreviewError.value =
+                    error.message ?: "The Track deletion impact could not be verified."
+                _operationStatus.value = OperationStatus.Idle
+            }
+        }
+    }
+
+    fun dismissPermanentTrackDeletion() {
+        trackDeletionPreviewGeneration++
+        _trackDeletionImpact.value = null
+        _trackDeletionPreviewError.value = null
+        _trackDeletionTargetMissing.value = false
     }
 
     fun prepareEntryEditor(sessionId: Long, trackId: Long, entryId: Long?) {
@@ -1144,12 +1216,80 @@ class TrackViewModel private constructor(
         app.database.withTransaction { ids.distinct().forEach { repository.setArchived(it, archived) } }
     }
     fun reorder(ids: List<Long>) = runSilentReorder { repository.reorder(ids) }
-    fun deleteTrack(id: Long) = runOperation(
-        "Deleting Track…",
-        "Track permanently deleted",
-        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
-    ) {
-        app.domainDeletionCoordinator.deleteTrack(id)
+    fun deleteTrack(
+        id: Long,
+        expectedRevisionToken: String,
+        requestId: String,
+    ): Boolean {
+        if (!_trackDeletionState.tryStartPersistenceRequest(requestId)) return false
+        _operationStatus.value = OperationStatus.Running("Deleting Track…")
+        viewModelScope.launch {
+            fun successResult(receipt: TrackDeletionReceipt): WhipResult.Success<TrackDeletionReceipt> {
+                val message = if (receipt.warnings.isEmpty()) {
+                    "Track permanently deleted"
+                } else {
+                    "Track permanently deleted · ${receipt.warnings.joinToString(" ")}"
+                }
+                _operationStatus.value = OperationStatus.Succeeded(
+                    message,
+                    OperationFeedbackPresentation.Snackbar,
+                )
+                return WhipResult.Success(receipt)
+            }
+            val result = try {
+                val impact = requireNotNull(_trackDeletionImpact.value) {
+                    "Review the current Track deletion impact before deleting."
+                }
+                require(impact.trackId == id && impact.revisionToken == expectedRevisionToken) {
+                    "The Track deletion review changed. Review it again before deleting."
+                }
+                val summary = checkNotNull(app.withUserDataAccess {
+                    operationMutex.withLock {
+                        app.domainDeletionCoordinator.deleteTrack(id, expectedRevisionToken)
+                    }
+                }) { "Whip data is unavailable while recovery is in progress" }
+                successResult(TrackDeletionReceipt(id, impact.trackUuid, summary.warnings))
+            } catch (committed: CommittedTrackDeletionCancellation) {
+                if (currentCoroutineContext().isActive) {
+                    val impact = _trackDeletionImpact.value
+                    successResult(
+                        TrackDeletionReceipt(
+                            id,
+                            impact?.trackUuid.orEmpty(),
+                            committed.summary.warnings +
+                                "Follow-up reconciliation was interrupted; the Track itself was deleted.",
+                        ),
+                    )
+                } else {
+                    if ((_trackDeletionState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _trackDeletionState.value = PersistenceRequestState.Idle
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw committed
+                }
+            } catch (cancelled: CancellationException) {
+                if (currentCoroutineContext().isActive) {
+                    _operationStatus.value = OperationStatus.Idle
+                    WhipResult.Failure(
+                        "The Track deletion was interrupted. Verify the Track workspace before retrying.",
+                        cancelled,
+                    )
+                } else {
+                    if ((_trackDeletionState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _trackDeletionState.value = PersistenceRequestState.Idle
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw cancelled
+                }
+            } catch (error: Exception) {
+                _operationStatus.value = OperationStatus.Idle
+                WhipResult.Failure(error.message ?: "The Track could not be deleted.", error)
+            }
+            if ((_trackDeletionState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                _trackDeletionState.value = PersistenceRequestState.Finished(requestId, result)
+            }
+        }
+        return true
     }
 
     fun saveEntry(

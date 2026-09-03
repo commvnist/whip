@@ -199,6 +199,26 @@ class EditorStateRecreationTest {
         compose.onNodeWithTag("routine-editor-name").assertTextContains("Keep routine draft")
     }
 
+    @Test fun categoryEditorRetainsItsDraftAcrossRecreationAndClosesOnlyAfterSave() = withActivity {
+        openGymDestination("Categories")
+        compose.onNodeWithTag("workspace-add-action").performClick()
+        waitForTag("gym-category-name")
+        compose.onNodeWithTag("gym-category-name").performTextInput("Posterior chain")
+        compose.onNodeWithTag("gym-category-type").performTextClearance()
+        compose.onNodeWithTag("gym-category-type").performTextInput("Movement family")
+
+        it.recreate()
+
+        waitForTag("gym-category-name")
+        compose.onNodeWithTag("gym-category-name").assertTextContains("Posterior chain")
+        compose.onNodeWithTag("gym-category-type").assertTextContains("Movement family")
+        compose.onNodeWithText("Save").performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithTag("gym-category-editor").fetchSemanticsNodes().isEmpty()
+        }
+        compose.onNodeWithText("Posterior chain").assertIsDisplayed()
+    }
+
     @Test fun dirtyInlineSetSurvivesActivityRecreation() = withActivity {
         compose.onNodeWithContentDescription("Gym tab").performClick()
         compose.onNodeWithTag("active-workout-list").performScrollToNode(

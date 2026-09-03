@@ -6343,6 +6343,7 @@ private fun ExerciseCategoryContent(
     reorderDismissRequest: Int = 0,
 ) {
     val dialogModifier = modifier
+    val catalogMutationState by viewModel.catalogMutationState.collectAsStateWithLifecycle()
     var editingCategoryId by rememberSaveable { mutableStateOf<Long?>(null) }
     val editing = editingCategoryId?.let { id -> (state.categories + state.archivedCategories).firstOrNull { it.id == id } }
     var creating by rememberSaveable { mutableStateOf(false) }
@@ -6357,6 +6358,20 @@ private fun ExerciseCategoryContent(
     var kind by rememberSaveable(editorKey) { mutableStateOf(editing?.kind ?: "Category") }
     var showArchived by rememberSaveable { mutableStateOf(false) }
     var reordering by rememberSaveable { mutableStateOf(false) }
+    val categoryEditorOpen = creating || editing != null
+    val categoryRequestNamespace = "gym-category-${editingCategoryId ?: "new"}"
+    val categoryCoordinator = rememberPersistenceRequestCoordinator(
+        state = catalogMutationState,
+        consume = viewModel::consumeCatalogMutationResult,
+        key = editorKey,
+        requestNamespace = categoryRequestNamespace,
+        orphanedMessage =
+            "The previous Category save was interrupted. Your changes are still here; check the Library before retrying.",
+        onPersisted = {
+            creating = false
+            editingCategoryId = null
+        },
+    )
     val visible = if (showArchived) state.archivedCategories else state.categories
     BackHandler(enabled = reordering) { reordering = false }
     DisposableEffect(reordering) {
@@ -6463,19 +6478,65 @@ private fun ExerciseCategoryContent(
             }
         }
     }
-    if (creating || editing != null) {
+    if (categoryEditorOpen) {
         PaneAwareAlertDialog(
             modifier = dialogModifier,
-            onDismissRequest = { creating = false; editingCategoryId = null },
+            testTag = "gym-category-editor",
+            paneTitle = if (editing == null) "Create Category" else "Edit Category",
+            inputBlocked = categoryCoordinator.saving,
+            inputBlockedLabel = "Saving Category",
+            onDismissRequest = {
+                if (!categoryCoordinator.saving) {
+                    categoryCoordinator.clear()
+                    creating = false
+                    editingCategoryId = null
+                }
+            },
             title = { Text(if (editing == null) "Create Category" else "Edit Category") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(name, { name = it.replace('\n', ' ').replace('\r', ' ').take(80) }, label = { Text("Name") }, singleLine = true)
-                    OutlinedTextField(kind, { kind = it }, label = { Text("Type, e.g. Muscle or Equipment") })
+                    OutlinedTextField(
+                        name,
+                        { name = it.replace('\n', ' ').replace('\r', ' ').take(80) },
+                        modifier = Modifier.fillMaxWidth().testTag("gym-category-name"),
+                        label = { Text("Name") },
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        kind,
+                        { kind = it.replace('\n', ' ').replace('\r', ' ').take(80) },
+                        modifier = Modifier.fillMaxWidth().testTag("gym-category-type"),
+                        label = { Text("Type, e.g. Muscle or Equipment") },
+                        singleLine = true,
+                    )
+                    categoryCoordinator.errorMessage?.let { message ->
+                        PersistenceFailureNotice(message, testTag = "gym-category-save-problem")
+                    }
                 }
             },
-            confirmButton = { WhipTextButton(enabled = name.isNotBlank(), onClick = { viewModel.saveCategory(editing?.id, name, kind); creating = false; editingCategoryId = null }) { Text("Save") } },
-            dismissButton = { WhipTextButton(onClick = { creating = false; editingCategoryId = null }) { Text("Cancel") } },
+            confirmButton = {
+                WhipTextButton(
+                    enabled = name.isNotBlank() && !categoryCoordinator.saving,
+                    onClick = {
+                        val requestId = categoryCoordinator.begin() ?: return@WhipTextButton
+                        if (!viewModel.saveCategory(editing?.id, name, kind, requestId)) {
+                            categoryCoordinator.finishFailure(
+                                "Another Category change is still finishing. Wait for it, then try again.",
+                            )
+                        }
+                    },
+                ) { Text(if (categoryCoordinator.saving) "Saving…" else "Save") }
+            },
+            dismissButton = {
+                WhipTextButton(
+                    enabled = !categoryCoordinator.saving,
+                    onClick = {
+                        categoryCoordinator.clear()
+                        creating = false
+                        editingCategoryId = null
+                    },
+                ) { Text("Cancel") }
+            },
         )
     }
 }

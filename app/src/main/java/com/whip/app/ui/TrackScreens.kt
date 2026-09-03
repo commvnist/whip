@@ -321,6 +321,10 @@ internal fun TrackAreaContent(
     val csvExportState by viewModel.csvExportState.collectAsStateWithLifecycle()
     val entryDeletePreparationState by viewModel.entryDeletePreparationState.collectAsStateWithLifecycle()
     val entryMutationState by viewModel.entryMutationState.collectAsStateWithLifecycle()
+    val trackDeletionState by viewModel.trackDeletionState.collectAsStateWithLifecycle()
+    val trackDeletionImpact by viewModel.trackDeletionImpact.collectAsStateWithLifecycle()
+    val trackDeletionPreviewError by viewModel.trackDeletionPreviewError.collectAsStateWithLifecycle()
+    val trackDeletionTargetMissing by viewModel.trackDeletionTargetMissing.collectAsStateWithLifecycle()
     val defaultCsvFileName = stringResource(R.string.track_csv_default_export_name)
     val selected = selectedTrackId?.let(state::track)
     fun requestEntryDelete(entryId: Long) {
@@ -334,6 +338,31 @@ internal fun TrackAreaContent(
         deleteEntryId = null
         deleteEntryOpeningDataGeneration = null
         deleteEntryCandidate = null
+    }
+    fun closeTrackDelete() {
+        viewModel.dismissPermanentTrackDeletion()
+        deleteTrackId = null
+    }
+    LaunchedEffect(deleteTrackId) {
+        deleteTrackId?.let(viewModel::preparePermanentTrackDeletion)
+    }
+    val trackDeletionCoordinator = deleteTrackId?.let { trackId ->
+        val namespace = "track-delete-$trackId-g$userDataGeneration"
+        rememberPersistenceRequestCoordinator(
+            state = trackDeletionState,
+            consume = viewModel::consumeTrackDeletionResult,
+            key = namespace,
+            requestNamespace = namespace,
+            orphanedMessage =
+                "The previous Track deletion was interrupted and its outcome is unknown. " +
+                    "Close this review and verify the Track workspace before retrying.",
+            onPersisted = { receipt ->
+                if (receipt.trackId == trackId) {
+                    if (selectedTrackId == trackId) selectedTrackId = null
+                    closeTrackDelete()
+                }
+            },
+        )
     }
     val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -560,16 +589,98 @@ internal fun TrackAreaContent(
     }
 
     deleteTrackId?.let { id ->
-        val track = state.track(id)
-        if (track != null) PaneAwareAlertDialog(
+        val coordinator = trackDeletionCoordinator ?: return@let
+        val titleName = trackDeletionImpact?.displayName ?: state.track(id)?.track?.name
+        PaneAwareAlertDialog(
             modifier = dialogModifier,
-            onDismissRequest = { deleteTrackId = null },
-            title = { Text("Delete ${track.track.name} Permanently?") },
-            text = {
-                Text("This permanently deletes ${quantityLabel(track.entries.size, "Entry")}, ${quantityLabel(track.fields.size, "Field")}, and ${quantityLabel(track.options.size, "Choice option")}. This cannot be undone.")
+            testTag = "track-permanent-delete-dialog",
+            paneTitle = "Delete Track",
+            inputBlocked = coordinator.saving,
+            inputBlockedLabel = "Deleting Track",
+            onDismissRequest = {
+                if (!coordinator.saving) {
+                    coordinator.clear()
+                    closeTrackDelete()
+                }
             },
-            confirmButton = { WhipTextButton(onClick = { viewModel.deleteTrack(id); deleteTrackId = null; selectedTrackId = null }) { Text("Delete Permanently", color = MaterialTheme.colorScheme.error) } },
-            dismissButton = { WhipTextButton(onClick = { deleteTrackId = null }) { Text("Cancel") } },
+            title = {
+                Text(
+                    when {
+                        trackDeletionTargetMissing -> "Track Not Found"
+                        titleName != null -> "Delete $titleName Permanently?"
+                        else -> "Preparing Track Deletion"
+                    },
+                )
+            },
+            text = {
+                when {
+                    trackDeletionPreviewError != null -> PersistenceFailureNotice(
+                        requireNotNull(trackDeletionPreviewError),
+                        testTag = "track-delete-preview-problem",
+                    )
+                    trackDeletionImpact == null -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        LinearProgressIndicator(Modifier.fillMaxWidth())
+                        Text("Whip is verifying the exact Track, history, fields, and integrations before deletion.")
+                    }
+                    else -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        val impact = requireNotNull(trackDeletionImpact)
+                        Text(
+                            "This permanently deletes ${quantityLabel(impact.entryCount, "Entry")}, " +
+                                "${quantityLabel(impact.savedValueCount, "saved value")}, " +
+                                "${quantityLabel(impact.fieldCount, "Field")}, and " +
+                                "${quantityLabel(impact.choiceOptionCount, "Choice option")}.",
+                        )
+                        if (impact.linkRuleCount > 0 || impact.automationRuleCount > 0) {
+                            Text(
+                                "It also removes ${quantityLabel(impact.linkRuleCount, "Link rule")} and " +
+                                    "${quantityLabel(impact.automationRuleCount, "automation rule")} that depend on this Track.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text("This cannot be undone.", color = MaterialTheme.colorScheme.error)
+                        coordinator.errorMessage?.let { message ->
+                            PersistenceFailureNotice(message, testTag = "track-delete-commit-problem")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                when {
+                    trackDeletionPreviewError != null && !trackDeletionTargetMissing -> WhipTextButton(
+                        enabled = !coordinator.saving,
+                        onClick = {
+                            viewModel.dismissPermanentTrackDeletion()
+                            viewModel.preparePermanentTrackDeletion(id)
+                        },
+                    ) { Text("Try Again") }
+                    trackDeletionImpact != null -> WhipTextButton(
+                        enabled = !coordinator.saving,
+                        onClick = {
+                            val impact = trackDeletionImpact ?: return@WhipTextButton
+                            val requestId = coordinator.begin() ?: return@WhipTextButton
+                            if (!viewModel.deleteTrack(id, impact.revisionToken, requestId)) {
+                                coordinator.finishFailure(
+                                    "Another Track change is still finishing. Wait for it, then review again.",
+                                )
+                            }
+                        },
+                    ) {
+                        Text(
+                            if (coordinator.saving) "Deleting…" else "Delete Permanently",
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            },
+            dismissButton = {
+                WhipTextButton(
+                    enabled = !coordinator.saving,
+                    onClick = {
+                        coordinator.clear()
+                        closeTrackDelete()
+                    },
+                ) { Text(if (trackDeletionTargetMissing) "Close" else "Cancel") }
+            },
         )
     }
     if (deleteEntryId != null && deleteEntryCandidate == null) {

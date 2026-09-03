@@ -493,3 +493,12 @@
 - Compatibility: Semantics and tests only; no schema, backup, routine, prescription, workout, or historical-data changes.
 - Related: `FND-20260902-015`, `IMP-20260902-023`, `VER-20260902-024`.
 - Status: Accepted, implemented, and targeted-test verified.
+
+### DEC-20260902-021 — Let every consequential secondary dialog own its exact result
+
+- Context: The broad secondary-mutation campaign had one remaining authored draft (Exercise Category) and one destructive graph (Track) that still closed on dispatch rather than authoritative completion.
+- Decision: Give Category saving a dedicated request state and dialog-owned coordinator. For Track deletion, build the definition/history/value/Link/automation impact inside one transaction, hash that graph into the reviewed revision, require the same revision at commit, publish one request-owned receipt, and downgrade only post-commit reconciliation failure to a warning. Preserve lightweight synchronous picker and local-preference actions where failure cannot abandon a draft or create an ambiguous historical outcome.
+- Rationale: This completes the product-wide interaction rule without imposing a generic workflow engine on harmless controls. Users keep context exactly where retry matters, and permanent deletion becomes falsifiable and safe from stale review or false replay.
+- Compatibility: No schema or backup-format change. Category data changes only after a successful authored save; Track deletion remains explicitly permanent but now binds the exact reviewed graph.
+- Related: `FND-20260831-019`, `FND-20260901-027`, `FND-20260902-016`, `IMP-20260902-024`, `VER-20260902-025`.
+- Status: Accepted, implemented, and targeted emulator verified.

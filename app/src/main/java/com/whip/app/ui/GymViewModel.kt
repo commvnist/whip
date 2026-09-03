@@ -296,6 +296,10 @@ internal data class GymSessionMutationReceipt(
     val setRemovalReason: WorkoutSetRemovalReason? = null,
 )
 
+internal data class GymCatalogMutationReceipt(
+    val categoryId: Long,
+)
+
 data class WorkoutLayoutUndo(
     val boundary: WorkoutStructureBoundary,
     val snapshot: WorkoutLayoutSnapshot,
@@ -461,6 +465,11 @@ class GymViewModel @JvmOverloads constructor(
     )
     internal val sessionMutationState: StateFlow<PersistenceRequestState<GymSessionMutationReceipt>> =
         _sessionMutationState.asStateFlow()
+    private val _catalogMutationState = MutableStateFlow<PersistenceRequestState<GymCatalogMutationReceipt>>(
+        PersistenceRequestState.Idle,
+    )
+    internal val catalogMutationState: StateFlow<PersistenceRequestState<GymCatalogMutationReceipt>> =
+        _catalogMutationState.asStateFlow()
     private val historyCopyAuthorshipEncoded = savedStateHandle.getMutableStateFlow<ArrayList<String>?>(
         GYM_HISTORY_COPY_AUTHORSHIP_KEY,
         null,
@@ -509,6 +518,7 @@ class GymViewModel @JvmOverloads constructor(
     private val orphanRecoveryInProgressRequestId = MutableStateFlow<String?>(null)
     private val gymDeletionMutex = Mutex()
     private val sessionMutationMutex = Mutex()
+    private val catalogMutationMutex = Mutex()
     private val _pendingWorkoutLayoutUndo = MutableStateFlow<WorkoutLayoutUndo?>(null)
     val pendingWorkoutLayoutUndo: StateFlow<WorkoutLayoutUndo?> = _pendingWorkoutLayoutUndo.asStateFlow()
     private var machineDeletionPreviewGeneration = 0L
@@ -634,6 +644,7 @@ class GymViewModel @JvmOverloads constructor(
                 _workoutDeletionTargetMissing.value = false
                 _gymDeletionState.value = PersistenceRequestState.Idle
                 _sessionMutationState.value = PersistenceRequestState.Idle
+                _catalogMutationState.value = PersistenceRequestState.Idle
                 historyCopyAuthorshipEncoded.value = null
                 _pendingWorkoutLayoutUndo.value = null
                 _orphanedGymDeletionRequestId.value = null
@@ -653,6 +664,11 @@ class GymViewModel @JvmOverloads constructor(
     fun consumeSessionMutationResult(requestId: String) {
         if ((_sessionMutationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
             _sessionMutationState.value = PersistenceRequestState.Idle
+        }
+    }
+    fun consumeCatalogMutationResult(requestId: String) {
+        if ((_catalogMutationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _catalogMutationState.value = PersistenceRequestState.Idle
         }
     }
     fun consumeGymDeletionResult(requestId: String) {
@@ -1401,12 +1417,45 @@ class GymViewModel @JvmOverloads constructor(
         repository.reorderExercises(ids)
     }
 
-    fun saveCategory(id: Long?, name: String, kind: String) = runOperation(
-        if (id == null) "Creating category…" else "Saving category…",
-        "Category saved",
-    ) {
-        if (id == null) repository.createCategory(name, kind)
-        else repository.updateCategory(id, name, kind)
+    fun saveCategory(id: Long?, name: String, kind: String, requestId: String): Boolean {
+        if (!_catalogMutationState.tryStartPersistenceRequest(requestId)) return false
+        _operationStatus.value = OperationStatus.Running(
+            if (id == null) "Creating category…" else "Saving category…",
+        )
+        viewModelScope.launch {
+            val result = try {
+                val savedId = checkNotNull(app.withUserDataAccess {
+                    catalogMutationMutex.withLock {
+                        if (id == null) repository.createCategory(name, kind)
+                        else {
+                            repository.updateCategory(id, name, kind)
+                            id
+                        }
+                    }
+                }) { "Whip data is unavailable while recovery is in progress" }
+                _operationStatus.value = OperationStatus.Succeeded(
+                    "Category saved",
+                    OperationFeedbackPresentation.Snackbar,
+                )
+                WhipResult.Success(GymCatalogMutationReceipt(savedId))
+            } catch (cancelled: CancellationException) {
+                if ((_catalogMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                    _catalogMutationState.value = PersistenceRequestState.Idle
+                }
+                _operationStatus.value = OperationStatus.Idle
+                throw cancelled
+            } catch (error: Exception) {
+                _operationStatus.value = OperationStatus.Idle
+                WhipResult.Failure(
+                    error.message ?: "The Category could not be saved. Your changes are still here.",
+                    error,
+                )
+            }
+            if ((_catalogMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                _catalogMutationState.value = PersistenceRequestState.Finished(requestId, result)
+            }
+        }
+        return true
     }
 
     fun setCategoryArchived(id: Long, archived: Boolean) = runOperation(

@@ -498,3 +498,14 @@
 - Related: `FND-20260902-015`, `DEC-20260902-020`.
 - Verification: `VER-20260902-024`.
 - Status: Implemented and targeted emulator verified.
+
+### IMP-20260902-024 — Request-owned Category save and exact Track deletion
+
+- Added a dedicated Gym catalog request state. Category create/edit now preserves its name/type draft through Activity recreation, blocks duplicate submission and dismissal while saving, shows failures inline, and closes only for its own successful receipt.
+- Added transaction-derived Track deletion previews covering the Track definition, Fields, Choice options, Entries, values, Link rules and children, and automation rules and children. Commit rejects a stale revision and removes only the reviewed graph.
+- Added a Track deletion request state and responsive review surface with explicit counts, integration consequences, progress, retry, missing-target, and commit-failure states. A committed deletion with interrupted derived reconciliation reports success with a warning instead of inviting destructive replay.
+- Added focused recreation, exact-impact, stale-definition, stale-automation, and end-to-end deletion regressions.
+- Important files: `DomainDeletionCoordinator.kt`, `TrackViewModel.kt`, `TrackScreens.kt`, `GymViewModel.kt`, `GymScreens.kt`, `DomainDeletionCoordinatorTest.kt`, `TrackDeletionUiTest.kt`, and `EditorStateRecreationTest.kt`.
+- Related: `FND-20260831-019`, `FND-20260901-027`, `FND-20260902-016`, `DEC-20260902-021`.
+- Verification: `VER-20260902-025`.
+- Status: Implemented and targeted emulator verified.
