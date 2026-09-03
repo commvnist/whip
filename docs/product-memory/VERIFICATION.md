@@ -410,7 +410,7 @@
 - Official contract check: Current Codex documentation confirms trusted projects load `.codex/config.toml`; personal/project custom agents live in `~/.codex/agents/` and `.codex/agents/`; the chosen `[agents]` keys are documented; and nearer project `AGENTS.md` guidance overrides global guidance. This supports the deliberate Whip no-unrequested-delegation override.
 - Compatibility/exclusions: The supplied standalone YAML policy is declarative guidance rather than a Codex-native schema, so exact file parity and instruction review—not a nonexistent Codex YAML validator—are the validation boundary. No agent was spawned, no application/test/build/device behavior changed, and the current already-running session did not change models.
 - Related: `FB-20260902-001`, `FB-20260902-002`, `DEC-20260902-012`, `IMP-20260902-013`.
-- Status: Structurally verified; new Codex sessions inherit Terra/medium defaults and the applicable global/project instruction chain.
+- Status: Historical verification of the initial adapted installation; superseded by the canonical reset in `VER-20260902-015`.
 
 ### VER-20260902-014 — User-directed maximum-quality mission closeout
 
@@ -422,3 +422,13 @@
 - Preserved residuals: The original exhaustive whole-product completion criteria remain intentionally unmet. Secondary dialog/workflow families, continued real-user validation, and final signed physical-device installation/smoke verification remain future work. `INDEX.md` and the unresolved findings retain the detailed starting points.
 - Related: `FB-20260831-012`, `FB-20260902-003`, `MAXIMUM_QUALITY_GOAL.md`.
 - Status: Mission closed by user direction; not complete against the original definition of done and not eligible to be represented as a finished maximum-quality release.
+
+### VER-20260902-015 — Canonical VERA clean-slate and standalone-repository verification
+
+- Standalone source: Every tracked file in `/root/repos/vera-codex` was compared byte-for-byte with the corresponding member of the supplied `vera-codex.tar.gz`; all nine matched. Standard-library `tomllib` parsed its project config and five role definitions. Commit `2c763f0b8f7108f6bab06bd1799f4df78ec2be69` is reachable as `refs/heads/main` at private remote `https://github.com/commvnist/vera-codex`.
+- Installation parity: Whip `AGENTS.md`, `routing-policy.yaml`, `.codex/config.toml`, and all five role files match the canonical repository byte-for-byte. Global `AGENTS.md`, routing policy, and all five role files also match; the global config exposes the same VERA model/agent values while retaining unrelated host integrations.
+- Clean-slate evidence: `/mnt/c/Users/commv/.codex/agents/` contains only the five VERA roles. `atis-fast-explorer.toml` is absent, and neither active global nor Whip `AGENTS.md` contains ATIS, conventional-development, no-subagent, durable-memory, or physical-device policy additions.
+- Codex-native validation: Python `tomllib` parsed every global and Whip TOML file. `codex doctor --summary --no-color` loaded configuration with 17 healthy checks, one expected idle app-server check, two informational environment notes, and zero warnings/failures. Current official Codex documentation supports trusted project `.codex/config.toml`, global/project custom-agent directories, and layered `AGENTS.md` discovery.
+- Compatibility/exclusions: VERA's README states that `routing-policy.yaml` is a machine-readable seed for an API orchestrator and is not automatically consumed by Codex; active Codex behavior comes from the config, role files, and AGENTS instructions. No application/build/device test was required because application behavior did not change. A new session is required to observe the new instruction chain in a running agent.
+- Related: `FB-20260902-004`, `DEC-20260902-013`, `IMP-20260902-014`.
+- Status: Fully verified for the canonical VERA configuration and repository-publication scope.

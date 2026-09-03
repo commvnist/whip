@@ -105,7 +105,7 @@ These records preserve durable user intent. “Released” means the change reac
 - User need: Stop recursive subagent calls, simulated panels, formal debates, and repeated review loops for each issue. Use a straightforward development process now that the major problems are identified.
 - Acceptance criteria: One primary developer verifies the problem, implements the smallest coherent fix, adds proportionate tests, exercises affected UI, records concise durable facts, commits and pushes the chunk, and moves on. Subagents or specialist reviews are used only when the user explicitly requests them.
 - Related: `DEC-20260902-001`, `MAXIMUM_QUALITY_GOAL.md`
-- Status: Implemented in the active working protocol on 2026-09-02.
+- Status: Superseded on 2026-09-02 by the user's later clean-slate VERA direction in `FB-20260902-004`; the Whip-specific no-unrequested-subagents override was removed.
 
 ### FB-20260902-002 — Install VERA-Codex globally and inside Whip
 
@@ -113,7 +113,7 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Preserve existing global integrations and project trust; install the Luna/Terra/Sol role definitions and bounded routing policy in both scopes; keep Whip's explicit conventional-development/no-unrequested-subagents preference; validate configuration loading and model availability; commit and push the repository layer separately.
 - Source: `/mnt/c/Users/commv/Documents/Codex/2026-09-02/i-wa/outputs/vera-codex.tar.gz`.
 - Related: `DEC-20260902-012`, `IMP-20260902-013`, `VER-20260902-013`.
-- Status: Implemented and structurally verified on 2026-09-02.
+- Status: Initial adapted installation implemented and verified, then superseded by the archive-exact clean-slate installation in `FB-20260902-004`.
 
 ### FB-20260902-003 — Stop and close the long-running Whip mission
 
@@ -121,3 +121,11 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Finish, verify, commit, and push the active coherent change; preserve an honest residual backlog and release state; leave no dirty worktree or running worker; close the goal by user direction without claiming the original definition of done was reached.
 - Related: `FB-20260831-012`, `IMP-20260902-012`, `VER-20260902-012`, `VER-20260902-014`, `MAXIMUM_QUALITY_GOAL.md`.
 - Status: Implemented on 2026-09-02.
+
+### FB-20260902-004 — Reset orchestration to canonical VERA and publish it independently
+
+- User need: Remove the merged/adapted agent methods, start from a clean orchestration slate, implement only the supplied VERA system, and move VERA into its own repository on the remote.
+- Acceptance criteria: Publish the supplied bundle without content changes in a standalone repository; remove the ATIS role/instructions and Whip-specific conventional-development override; make global and Whip VERA policy/config/roles match that canonical source; preserve unrelated Codex authentication, plugin, MCP, notification, trust, and desktop configuration; validate and push every repository change.
+- Source: `/mnt/c/Users/commv/Documents/Codex/2026-09-02/i-wa/outputs/vera-codex.tar.gz`.
+- Related: `DEC-20260902-013`, `IMP-20260902-014`, `VER-20260902-015`.
+- Status: Implemented and verified on 2026-09-02.

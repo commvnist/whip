@@ -418,4 +418,13 @@
 - Rationale: This makes the requested agent system available and reproducible while honoring the more specific Whip workflow preference and preventing the unbounded debate/retry behavior the user rejected.
 - Compatibility: No application source, build, persistence, user data, release artifact, or device state changes. The current already-running Codex session keeps its existing model; new sessions load the new defaults.
 - Related: `FB-20260902-001`, `FB-20260902-002`, `IMP-20260902-013`, `VER-20260902-013`.
+- Status: Superseded by `DEC-20260902-013`; the user explicitly rejected the merged Whip override and requested canonical VERA only.
+
+### DEC-20260902-013 — Canonical VERA is the sole orchestration policy
+
+- Context: The initial installation preserved VERA's mechanics but paraphrased its policies and layered ATIS globally plus a Whip-specific no-unrequested-delegation rule. The user explicitly requested a clean orchestration slate and an independent VERA repository.
+- Decision: Treat `commvnist/vera-codex` as the canonical source. Install its `AGENTS.md`, `.codex/config.toml`, five custom agent definitions, and `routing-policy.yaml` without content changes in Whip. Globally, install the same AGENTS/routing/role contents and exact VERA model/agent values while preserving unrelated machine-local integrations. Remove `atis-fast-explorer.toml`, all ATIS instructions, and the Whip conventional-development adaptation. Do not retain another agent methodology in the active instruction chain.
+- Rationale: Archive parity makes the installation falsifiable and eliminates ambiguity about whether VERA or a locally synthesized hybrid governs orchestration. Preserving unrelated integrations avoids conflating an agent-policy reset with destructive loss of authentication, plugins, MCP servers, notifications, project trust, or desktop preferences.
+- Compatibility: No Whip application source, schema, data, build artifact, or device state changes. Historical product-memory records remain as an audit trail but are not active Codex instruction sources. New Codex sessions load the reset instruction chain; this already-running session retains the instructions it began with.
+- Related: `FB-20260902-004`, `IMP-20260902-014`, `VER-20260902-015`.
 - Status: Accepted and implemented.

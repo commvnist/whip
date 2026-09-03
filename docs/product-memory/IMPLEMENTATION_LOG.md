@@ -391,4 +391,14 @@
 - Compatibility: Configuration/instructions only. No Whip application code, schema, data, build output, device state, or release artifact changed.
 - Related: `FB-20260902-002`, `DEC-20260902-012`.
 - Verification: `VER-20260902-013`.
-- Status: Implemented and structurally verified.
+- Status: Superseded by the canonical clean-slate installation in `IMP-20260902-014`.
+
+### IMP-20260902-014 — Canonical VERA repository and clean orchestration installation
+
+- Created `/root/repos/vera-codex` directly from the supplied archive, normalized only filesystem permissions, confirmed all nine tracked file contents match the archive, committed it as `2c763f0`, created private GitHub repository `commvnist/vera-codex`, pushed `main`, and verified the remote ref.
+- Replaced global and Whip orchestration instructions with the canonical VERA `AGENTS.md`; restored the canonical multiline `routing-policy.yaml`; retained the archive-exact project `.codex/config.toml` and five archive-exact custom role files.
+- Removed global `atis-fast-explorer.toml`, the ATIS instruction section, the Whip-specific no-unrequested-subagents adaptation, and the previous condensed VERA wording. The global VERA values remain embedded alongside unrelated existing machine-local integrations, which were deliberately preserved.
+- Compatibility: Configuration/instructions only. No Whip application code, schema, user data, tests, release artifacts, or device state changed.
+- Related: `FB-20260902-004`, `DEC-20260902-013`.
+- Verification: `VER-20260902-015`.
+- Status: Implemented and verified.

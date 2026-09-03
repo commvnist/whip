@@ -1,27 +1,63 @@
-# Whip workspace instructions
+# VERA-Codex orchestration policy
 
-## VERA-Codex routing
+Apply these rules to non-trivial development work in this repository.
 
-- The repository carries the VERA-Codex model roles and routing policy in `.codex/` and `routing-policy.yaml` so explicitly requested agent work is bounded, evidence-driven, and stops when its required checks pass.
-- Whip's conventional-development preference overrides VERA's default delegation suggestions: do not spawn subagents, panels, debates, or recursive review loops unless the user explicitly requests delegation or multi-agent work.
-- When delegation is explicitly requested, keep trivial work in the parent; use `luna_scout` only for bounded read-only discovery, `terra_builder` for ordinary localized implementation, `terra_reviewer` for an independent medium-risk review, and Sol roles only for the high-risk gates named in `routing-policy.yaml`.
-- Spawn at most three non-overlapping agents, serialize overlapping edits, allow at most one same-tier repair, require compact evidence capsules, and stop after the stated deterministic checks and risk-appropriate review pass.
-- This policy does not broaden authority for destructive, production, credential, deployment, or physical-device actions.
+## Objective
 
-## Durable product memory
+Minimize total tokens, cost, and wall-clock time subject to the task's quality and safety requirements. Use the least expensive eligible model, verify its work, and escalate only on explicit risk or failed evidence.
 
-- For every non-trivial Whip investigation, user-feedback item, design decision, implementation, bug fix, migration, QA campaign, or release, use the personal `$maintain-whip-memory` skill when available.
-- Begin by reading `docs/product-memory/INDEX.md` and searching the linked ledgers for relevant features, identifiers, files, and user language.
-- Record new user feedback and acceptance criteria before implementation. Update findings, decisions, implementation evidence, verification, release state, residual risks, and the index before concluding.
-- Treat the memory as a durable map, not as proof. Reconcile it against current code, tests, schemas, and observed device behavior. Preserve superseded history instead of silently rewriting it.
-- If the personal skill is unavailable, follow the same protocol directly from `docs/product-memory/INDEX.md` and its linked ledgers.
-- After each coherent, independently understandable and revertible chunk is verified, update its memory, stage only files/hunks belonging to that chunk, create a focused commit, and push it to the configured upstream before starting substantially different work. Do not batch unrelated work into a final mega-commit.
-- Never absorb unrelated dirty-worktree changes, force-push, rewrite history, bypass hooks, or claim delivery when commit/push failed. Report authentication or upstream blockers with the local commit preserved.
+## Task contract
 
-## Physical-device files
+Before delegating, record the intended behavior, non-goals, affected boundary, risk class, acceptance checks, and approval constraints. Give subagents only the contract and relevant context.
 
-- Never write screenshots, UI hierarchy dumps, test output, traces, helper scripts, or other development artifacts directly to `/sdcard`, `/storage/emulated/0`, or `/data/local/tmp`.
-- Use `scripts/device-artifacts capture`, `scripts/device-artifacts ui-dump`, or a subdirectory created by `scripts/device-artifacts prepare`.
-- Shared debug artifacts belong under `/storage/emulated/0/whip-debug`; shell-only tooling belongs under `/data/local/tmp/whip-debug`.
-- Normal user-initiated release exports belong in the user-selected Android document folder. When using shared local storage, use `/storage/emulated/0/whip` and never the storage root.
-- Run destructive instrumentation only on a disposable emulator. Physical-device live inspection must not clear application data or run benchmark/instrumentation tooling.
+## Risk gates
+
+Classify as high or critical when work touches security boundaries, secrets, authorization, cryptography, schema/data migration, destructive operations, deployment, billing, public compatibility, distributed state, concurrency, or three or more tightly coupled subsystems. Also classify as high when requirements conflict, reproduction is unavailable, verification is weak, or two lower-tier attempts fail materially.
+
+For high/critical work:
+
+- Ask `sol_architect` for a read-only plan before implementation.
+- Use `sol_critical_builder` for the implementation when the change itself requires premium reasoning.
+- Ask `sol_architect` for a fresh, independent final review after deterministic checks pass.
+- Require user approval for irreversible, production, credential, or external side effects.
+
+## Default routing
+
+- Use `luna_scout` for bounded read-only file discovery, symbol maps, documentation extraction, log reduction, and independent test-gap searches.
+- Use `terra_builder` for localized bug fixes, tests, routine refactors, and ordinary multi-file changes.
+- Use `terra_reviewer` for independent review of medium-risk changes.
+- Keep trivial work in the parent when delegation overhead would exceed the work.
+- Do not use a premium agent for summarization, formatting, status, or raw search.
+
+## Parallelism
+
+- Spawn at most three independent read-only scouts at once.
+- Give each scout a non-overlapping question and require concise path/symbol evidence.
+- Parallelize independent checks when safe.
+- Serialize edits unless ownership is file-disjoint and interfaces are stable.
+- Never let two agents edit the same file. Each writer must know that other agents may be working and must preserve their changes.
+- Wait for every relevant delegated result before deciding.
+
+## Verification and escalation
+
+After a change, run the narrowest relevant reproduction, targeted tests, type/lint/build checks, regression checks, and diff-scope review.
+
+On the first material failure, give the same agent one repair attempt using only a compact failure capsule: task contract, changed diff, failing command, causal error, and relevant file paths. If it fails again, or evidence conflicts, escalate one tier with fresh context. Do not run unbounded self-reflection or retry loops.
+
+Low-risk work may finish after objective checks pass. Medium-risk work also requires `terra_reviewer`. High/critical work requires a fresh `sol_architect` review. Stop once all required checks and review gates pass.
+
+## Evidence capsule
+
+Every subagent returns no more than:
+
+1. Conclusion.
+2. Evidence with exact paths and symbols.
+3. Commands/checks run and their result.
+4. Remaining uncertainty.
+5. Recommended next action.
+
+Do not return full logs, restate the task, or include generic advice.
+
+## Evaluation
+
+Record per task: route, model, effort, input/cached/output/reasoning tokens, latency, retries, checks, review outcome, final acceptance, and escaped defect severity. Treat routing thresholds as provisional until validated against a frozen representative task set.

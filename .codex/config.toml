@@ -1,3 +1,4 @@
+# Balanced parent: capable enough to route and synthesize without paying Sol-xhigh on every turn.
 model = "gpt-5.6-terra"
 model_reasoning_effort = "medium"
 

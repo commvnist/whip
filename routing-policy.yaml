@@ -15,19 +15,34 @@ tiers:
   support:
     model: gpt-5.6-luna
     reasoning_effort: medium
-    allowed_work: [bounded_read_only_search, symbol_mapping, documentation_extraction, log_reduction, status_summarization]
+    allowed_work:
+      - bounded_read_only_search
+      - symbol_mapping
+      - documentation_extraction
+      - log_reduction
+      - status_summarization
   standard:
     model: gpt-5.6-terra
     reasoning_effort: medium
-    allowed_work: [localized_bug_fix, test_generation, routine_refactor, ordinary_multi_file_change]
+    allowed_work:
+      - localized_bug_fix
+      - test_generation
+      - routine_refactor
+      - ordinary_multi_file_change
   standard_review:
     model: gpt-5.6-terra
     reasoning_effort: high
-    allowed_work: [medium_risk_review, conflicting_evidence_review]
+    allowed_work:
+      - medium_risk_review
+      - conflicting_evidence_review
   premium:
     model: gpt-5.6-sol
     reasoning_effort: xhigh
-    allowed_work: [high_risk_architecture, high_risk_implementation, critical_final_review, recovery_after_lower_tier_failure]
+    allowed_work:
+      - high_risk_architecture
+      - high_risk_implementation
+      - critical_final_review
+      - recovery_after_lower_tier_failure
 
 hard_premium_gates:
   any_of:
@@ -43,7 +58,10 @@ hard_premium_gates:
     - conflicting_requirements
     - missing_reproduction_and_weak_verification
     - two_material_lower_tier_failures
-  required_stages: [premium_read_only_plan, deterministic_verification, independent_premium_final_review]
+  required_stages:
+    - premium_read_only_plan
+    - deterministic_verification
+    - independent_premium_final_review
 
 routing_rules:
   - when: "trivial and delegation_overhead_exceeds_work"
@@ -62,8 +80,14 @@ routing_rules:
     action: escalate_one_tier_with_fresh_failure_capsule
 
 parallelism:
-  allow: [non_overlapping_read_only_questions, independent_test_or_build_jobs, file_disjoint_writes_with_stable_interfaces]
-  deny: [overlapping_file_ownership, duplicate_uncertainty_search, write_branches_with_shared_mutable_state]
+  allow:
+    - non_overlapping_read_only_questions
+    - independent_test_or_build_jobs
+    - file_disjoint_writes_with_stable_interfaces
+  deny:
+    - overlapping_file_ownership
+    - duplicate_uncertainty_search
+    - write_branches_with_shared_mutable_state
   cancel_duplicate_work_when_evidence_sufficient: true
 
 verification_order:
@@ -89,4 +113,20 @@ promotion_targets:
   note: "Proposed operating targets, not published universal constants."
 
 telemetry:
-  required_fields: [task_id, risk_class, subsystem, route, model, reasoning_effort, input_tokens, cached_input_tokens, output_and_reasoning_tokens, tool_runtime, wall_clock_latency, retry_count, checks_run, review_outcome, final_acceptance, escaped_defect_severity]
+  required_fields:
+    - task_id
+    - risk_class
+    - subsystem
+    - route
+    - model
+    - reasoning_effort
+    - input_tokens
+    - cached_input_tokens
+    - output_and_reasoning_tokens
+    - tool_runtime
+    - wall_clock_latency
+    - retry_count
+    - checks_run
+    - review_outcome
+    - final_acceptance
+    - escaped_defect_severity
