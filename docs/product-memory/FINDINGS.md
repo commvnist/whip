@@ -752,3 +752,25 @@
 - Evidence: `GoalModels.kt`, `GoalScreens.kt`, `SettingsScreens.kt`, `AppSettings.kt`, and focused unit/repository tests.
 - Resolution: Extended Goal type semantics, made keyboard help unconditional, gated dynamic color at Android 12, omitted hidden Home detail controls, and derived hard-set choices from the classification enum.
 - Status: Resolved in `9e09457`, verified in `VER-20260903-014`, and released in Whip 0.3.43/code 49; see `VER-20260903-015`.
+
+### FND-20260903-019 — Machine-linked Exercise selection duplicated and weakened Gym's picker contract
+
+- Severity/category: P1 cross-Gym UX consistency, accessibility, and contextual authorship.
+- Observed: Machine Profile used a small `PaneAwareAlertDialog`, name-only search, passive no-results copy, and an unseeded Create callback instead of the full-pane shared Exercise-selection behavior. Its Routine Builder caller supplied no creation implementation, so a visible Create control could do nothing. Keeping the Machine editor composed incorrectly during nested creation could also lose unsaved Machine state.
+- Expected: Machine linking should use the same bounded search/create body as other Gym Exercise pickers, occupy the available pane, seed contextual creation from the normalized query, omit unsupported actions, and retain Machine/Routine drafts until a created Exercise reaches library state and can be linked.
+- Why it matters: Users should not relearn Exercise selection by entry point, retype a missing exercise, encounter a dead action, or lose a partially configured Machine while creating a linked Exercise.
+- Affected users: Machine-profile users, Routine Builder users, new Exercise-library users, large-library users, and phone/fold/large-text users.
+- Evidence: `GymExercisePicker.kt`; `MachineEditorDialog`, `ExercisePickerDialog`, and Gym catalog wiring in `GymScreens.kt`; `GymCatalogMutationUi.kt`; Routine Builder nested-editor state in `RoutineBuilder.kt`; focused regressions in `GymPowerInputUiTest` and `RoutineBuilderUiTest`.
+- Resolution: Extracted one Exercise-specific picker body, made Machine linking a full-pane multi-select consumer, propagated trimmed query seeds, made creation capability nullable, and retained/returned nested Routine and Machine drafts through an exact created-ID handoff.
+- Status: Resolved in `c8286e0`, verified and independently accepted in `VER-20260903-017`; unreleased to a physical phone.
+
+### FND-20260903-020 — Rest bypassed the collection-card design system
+
+- Severity/category: P1 visual hierarchy, accessibility, and maintainability.
+- Observed: The active-workout Rest presentation owned a raw unshaped `Surface` with one-off 10/6/2dp spacing and text styling, producing square geometry that visibly disagreed with Home/context collection cards.
+- Expected: One shared collection-card primitive should own container color, elevation, and medium radius; Rest should contribute only semantic content, tokenized internal spacing, responsive actions, and an announced timer state.
+- Why it matters: A frequently glanced in-gym control looked unrelated to the rest of Whip, and duplicated style ownership allowed future radius and formatting drift.
+- Affected users: All active-workout users, particularly one-handed, distracted, low-vision, and enlarged-text users.
+- Evidence: `WorkoutContent` and `RestTimerCard` in `GymScreens.kt`, `WhipCollectionCard` in `WhipPagePatterns.kt`, `UiDesignArchitectureTest`, and Rest regressions in `GymPowerInputUiTest`.
+- Resolution: Made the execution lane the sole `WhipCollectionCard` owner, removed the nested Rest surface, locked the primitive to `MaterialTheme.shapes.medium`, adopted shared spacing/type tokens, and exposed ready/running duration through `stateDescription`.
+- Status: Resolved in `c8286e0`, verified and independently accepted in `VER-20260903-017`; unreleased to a physical phone.

@@ -764,3 +764,14 @@
 - Scope: Static policy/configuration activation and synchronization. No application behavior, phone package, user data, or external production system changed.
 - Related: `FB-20260903-010`, `DEC-20260903-010`, `IMP-20260903-016`.
 - Status: Passed; VERA-Codex is the standing default for subsequent development requests.
+
+### VER-20260903-017 — Shared Gym picker and Rest-card verification
+
+- `git diff --check`, production Kotlin compilation, Android-test Kotlin compilation, and `UiDesignArchitectureTest` passed. The architecture regression requires both Gym picker consumers to use the bounded shared body, the active-workout lane to use `WhipCollectionCard`, and the shared primitive to own `MaterialTheme.shapes.medium`.
+- Seven focused API 34 emulator workflows passed together with zero failures/skips: shared search/no-result/seeded creation; Routine Exercise creation with draft return; advanced Machine → seeded Exercise creation with both drafts retained and automatic linking; Machine saving without linked Exercises or a no-op Create action; direct Machine multi-selection/create handoff; ready-timer configuration/state; and 200%-text Rest action layout.
+- A first three-test batch had one transient timeout waiting for the newly added Rest preset text. Its isolated rerun passed, and the subsequent seven-test combined run also passed; no product change was needed for that non-reproducing test-environment event.
+- A fresh read-only Sol acceptance review inspected the final diff and reported no blocking or non-blocking issues. It approved shared-module scope, draft ownership, no-op suppression, single-surface Rest ownership, design tokens, semantics, and coverage.
+- Scope: Focused compilation, architecture, and affected UI interaction coverage on the disposable emulator. The complete JVM/Android/lint/release gate and physical-device visual validation were not run; no phone package or user data changed.
+- Source: `c8286e0`.
+- Related: `FB-20260903-011`, `FND-20260903-019`, `FND-20260903-020`, `DEC-20260903-011`, `IMP-20260903-017`.
+- Status: Passed and independently accepted in the stated scope; implementation is pushed but not physically released.

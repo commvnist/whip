@@ -648,3 +648,13 @@
 - Rationale: Installation without automatic activation is not truthful use of an orchestration system. Explicit scope preserves the efficient vanilla path for trivial work while guaranteeing the medium/high-risk review gates.
 - Related: `FB-20260903-010`, `IMP-20260903-016`, `VER-20260903-016`.
 - Status: Accepted and implemented.
+
+### DEC-20260903-011 — Reuse bounded product primitives at semantic ownership boundaries
+
+- Context: Machine-linked Exercise selection and active-workout Rest each locally recreated behavior or styling already owned by an established Whip pattern. The inconsistency was visible, but a repository-wide generic dialog/card framework would add abstraction without proving a product need.
+- Decision: Share one Exercise-specific search/create body between single- and multi-select Gym workflows while leaving selection policy with each caller. Use `WhipCollectionCard` as the sole low-emphasis content-surface owner and explicitly centralize its medium shape, color, and elevation. Keep Rest containerless inside the execution lane and let nested creation return through existing domain-specific save receipts.
+- Rationale: This removes duplicate search, empty-state, creation, and card-style decisions at the exact boundaries that must stay consistent, while preserving specialized single/multi selection, Machine draft ownership, and timer behavior.
+- Rejected alternatives: Merely resizing the Machine alert would retain behavioral duplication; forcing every picker into one generic dialog would couple unrelated selection policies; nesting a rounded Rest card inside another card would create double surfaces; replacing all raw `Surface` uses would conflate content cards with intentional panes, charts, and backgrounds.
+- Compatibility: No database, schema, backup, completed-workout, Routine prescription, or timer calculation change. Existing Machine and Routine drafts retain their current save boundaries.
+- Related: `FB-20260903-011`, `FND-20260903-019`, `FND-20260903-020`, `IMP-20260903-017`, `VER-20260903-017`.
+- Status: Accepted, implemented, and independently approved.

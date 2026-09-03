@@ -733,3 +733,15 @@
 - Related: `FB-20260903-010`, `DEC-20260903-010`.
 - Verification: `VER-20260903-016`.
 - Status: Implemented globally and in both repositories.
+
+### IMP-20260903-017 — Shared Gym Exercise picker and collection-card contracts
+
+- Added `GymExercisePickerBody` as a bounded shared module for search, result count, normalized contextual creation, actionable empty states, progress/error presentation, stable semantics, and a full-height list. Existing single-select and Machine multi-select rows retain their own selection policy.
+- Replaced Machine Profile's fixed linked-Exercise alert with a full-pane editor, made creation capability explicit/nullable, propagated the search seed through the Gym catalog path, and assigned distinct Machine/Exercise editor semantics.
+- Completed the previously missing Routine Builder advanced-Machine path: nested Exercise creation preserves the Routine and Machine drafts, waits for the created Exercise in library state, auto-links it, and records the independent library save.
+- Made the active-workout execution lane a canonical `WhipCollectionCard`, removed Rest's nested raw surface, centralized the shared card's medium shape/elevation/color, adopted spacing/type tokens, and added accessible ready/running duration state.
+- Added one Android regression and strengthened existing picker, Machine, Rest, and architecture coverage; declared baseline is now 1,521 product tests: 593 JVM and 928 Android.
+- Important files: `GymExercisePicker.kt`, `GymScreens.kt`, `GymCatalogMutationUi.kt`, `RoutineBuilder.kt`, `WhipPagePatterns.kt`, `GymPowerInputUiTest.kt`, `RoutineBuilderUiTest.kt`, `UiDesignArchitectureTest.kt`, and `docs/testing.md`.
+- Related: `FB-20260903-011`, `FND-20260903-019`, `FND-20260903-020`, `DEC-20260903-011`.
+- Verification: `VER-20260903-017`.
+- Status: Implemented and pushed in `c8286e0`; not physically released.

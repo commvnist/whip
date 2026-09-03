@@ -241,3 +241,11 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Every software change is automatically classified and routed under VERA; required VERA agents and risk reviews may be spawned without a repeated prompt; trivial direct-parent work remains an explicit VERA route; unrelated conversational work is not over-orchestrated; destructive, credential, production, billing, publication, and external-action approval boundaries remain unchanged; canonical, global, and Whip policies agree.
 - Related: `DEC-20260903-010`, `IMP-20260903-016`, `VER-20260903-016`.
 - Status: Implemented globally, in Whip, and in canonical VERA-Codex source.
+
+### FB-20260903-011 — Make shared Gym interactions and surfaces visibly consistent
+
+- User need: Machine Profile's Linked Exercises flow must follow the established Gym search/create pattern instead of appearing in a tiny fixed dialog, and the active-workout Rest card must match the formatting and radius used by Home/context cards. Shared functionality, design elements, and components should be the default so the same interaction cannot drift across screens.
+- Acceptance criteria: Machine linking uses the complete pane, shared search semantics, result count, actionable no-results creation, a permanent Create action when creation is supported, and a trimmed query seed; unavailable creation never renders a no-op control; creating an Exercise from a Routine's advanced Machine flow returns to and preserves both drafts and auto-links the new Exercise; Rest has one canonical surface owner with the same color/elevation/medium shape contract as Home collection cards, tokenized spacing/type, responsive actions, and accessible ready/running state.
+- Scope boundary: Prefer bounded reusable Exercise-picker and collection-card primitives; do not introduce a generic UI DSL or indiscriminately replace intentional structural/chart surfaces.
+- Related: `FND-20260903-019`, `FND-20260903-020`, `DEC-20260903-011`, `IMP-20260903-017`, `VER-20260903-017`.
+- Status: Implemented, focused-emulator verified, independently accepted, committed, and pushed; not yet included in a physical-phone release.
