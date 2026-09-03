@@ -700,3 +700,15 @@
 - Related: `FB-20260903-008`, `FND-20260903-015`, `DEC-20260903-008`, `VER-20260903-013`.
 - Verification: `VER-20260903-013`.
 - Status: Implemented and pushed in `bc3de02`; not yet released to the phone.
+
+### IMP-20260903-014 — Cross-app conditional-control and semantic remediation
+
+- Added canonical Habit configuration semantics across target, cadence, ending, precision, checklist, and quick-add state. Corrected At Most to label, bind, evaluate, and persist one maximum value while repairing the former row shape on read.
+- Extended Goal type semantics so types that do not use aggregation windows cannot be blocked or influenced by hidden rolling-period state.
+- Added Gym tracking/load capability rules shared by Exercise and Machine editors, repository writes, default graph selection, Progress metrics, and comparison eligibility. Hidden machine-level fields no longer block mass-machine saves, and incompatible Exercise/Machine fields are canonicalized.
+- Made always-active keyboard shortcuts discoverable, gated Dynamic Color with an Android-version explanation, removed dead child controls beneath hidden Home sections, and populated hard-set choices from the complete current classification enum.
+- Added nine JVM and four Android regressions; updated the declared baseline to 1,520 product tests: 593 JVM and 927 Android.
+- Important files: `HabitModels.kt`, `HabitRepository.kt`, `HabitScreens.kt`, `GoalModels.kt`, `GoalScreens.kt`, `GymModels.kt`, `GymAnalytics.kt`, `GymRepository.kt`, `GymScreens.kt`, `SettingsScreens.kt`, `AppSettings.kt`, and their focused tests.
+- Related: `FB-20260903-009`, `FND-20260903-016` through `FND-20260903-018`, `DEC-20260903-009`.
+- Verification: `VER-20260903-014`.
+- Status: Implemented and pushed in `9e09457`; numbered phone release pending.

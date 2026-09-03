@@ -719,3 +719,36 @@
 - Evidence: `HabitScreens.kt`, `HabitModels.kt`, `HabitRepository.kt`, `HabitRulesTest.kt`, `HabitRepositoryTest.kt`, and `EntitySaveCoordinatorUiTest.kt`.
 - Resolution: Added one domain capability rule, used it in editor visibility/draft validation and repository persistence, canonicalized unsupported modes to increment `1.0` with no presets, and added exact switch/save/persistence regressions.
 - Status: Resolved in `IMP-20260903-013`, verified in `VER-20260903-013`, and pushed in `bc3de02`; awaiting a future phone release.
+
+### FND-20260903-016 — Habit target and hidden-field contracts contradicted runtime behavior
+
+- Severity/category: P0 correctness and P1 conditional-editor integrity.
+- Observed: At Most wrote its threshold to `targetMin`, while outcome evaluation read `targetMax`; a saved Habit could therefore have no evaluable threshold. Hidden interval, flexible-count, rolling-window, end-threshold, precision, checklist, and target values could remain validated or persisted after their owning selection changed.
+- Expected: At Most has one labeled maximum stored in `targetMax`; check-based Habits have canonical occurrence completion; only active target, cadence, ending, checklist, precision, and quick-add controls participate in validation or persistence.
+- Why it matters: A Habit could look valid but evaluate incorrectly, or Save could be blocked by an invisible field.
+- Affected users: At Most, Checklist, Check-off, and any Habit users who revise tracking, target, schedule, or ending choices.
+- Evidence: `HabitScreens.kt`, `HabitModels.kt`, `HabitRepository.kt`, `HabitRulesTest.kt`, `HabitRepositoryTest.kt`, and `EntitySaveCoordinatorUiTest.kt`.
+- Resolution: Added centralized configuration semantics, canonicalized repository writes and former At Most read shapes, corrected maximum labeling/binding, and scoped validation to active controls.
+- Status: Resolved in `9e09457`; focused verification passed in `VER-20260903-014`.
+
+### FND-20260903-017 — Gym editors and Progress exposed capabilities their data could not produce
+
+- Severity/category: P1 functional UX, analytics truth, and persistence semantics.
+- Observed: Distance- and duration-only exercises were offered weight increments, bars, plates, volume, and estimated-1RM configuration. Progress offered every non-machine metric regardless of tracking type. A mass-machine save could be blocked by a hidden level mapping, and a mass machine could retain the ordinal interpretation owned by numbered levels.
+- Expected: Exercise options, default charts, Progress metrics/comparisons, machine fields, validation, and durable rows derive from one tracking/load capability contract.
+- Why it matters: Inapplicable controls create dead settings and empty or misleading graphs; hidden machine data can block valid edits.
+- Affected users: All Gym users, especially cardio/duration/repetition-only exercise users and users changing a machine resistance type.
+- Evidence: `GymScreens.kt`, `GymModels.kt`, `GymAnalytics.kt`, `GymRepository.kt`, `GymAnalyticsTest.kt`, `GymRepositoryTest.kt`, and `GymPowerInputUiTest.kt`.
+- Resolution: Centralized load/rep/graph capabilities, filtered editor and chart choices, pruned incompatible comparisons, normalized Exercise/Machine drafts, and added actionable machine validation summaries.
+- Status: Resolved in `9e09457`; focused verification passed in `VER-20260903-014`.
+
+### FND-20260903-018 — Goal and Settings presentation retained unrelated or undiscoverable controls
+
+- Severity/category: P1 conditional UX and accessibility/discoverability.
+- Observed: A hidden rolling window could block or persist on Goal types that neither expose nor consume it. Hardware-keyboard help was hidden behind advanced-control presentation although shortcuts are always active. Dynamic color remained enabled on unsupported Android versions, hidden Home sections retained a dead Details child, and Training Max Test was absent from configurable hard-set classifications.
+- Expected: Type-inapplicable Goal windows are neutral; always-active capabilities remain discoverable; platform options explain availability; hidden parents do not expose dead children; classification choices cover the current domain enum.
+- Why it matters: The UI otherwise misstates cause/effect and makes supported operation depend on unrelated settings.
+- Affected users: Goal, Settings, hardware-keyboard, older-Android, Home-customization, and structured Gym users.
+- Evidence: `GoalModels.kt`, `GoalScreens.kt`, `SettingsScreens.kt`, `AppSettings.kt`, and focused unit/repository tests.
+- Resolution: Extended Goal type semantics, made keyboard help unconditional, gated dynamic color at Android 12, omitted hidden Home detail controls, and derived hard-set choices from the classification enum.
+- Status: Resolved in `9e09457`; focused verification passed in `VER-20260903-014`.

@@ -732,3 +732,14 @@
 - Source: `bc3de02`.
 - Related: `FB-20260903-008`, `FND-20260903-015`, `DEC-20260903-008`, `IMP-20260903-013`.
 - Status: Passed in the stated targeted and broader Habit scopes.
+
+### VER-20260903-014 — Conditional-control audit focused verification
+
+- Production Kotlin and Android-test Kotlin compiled, and the complete JVM suite passed 593/593 with zero failures.
+- Four exact high-risk emulator regressions passed 4/4: At Most Habit display/save with inactive schedule state, duration-only Exercise option filtering/default-graph repair, Habit repository canonicalization, and Exercise/Machine repository canonicalization.
+- A wider emulator batch across Habit, Goal, Gym, power-input UI, entity-save UI, and Settings behavior passed 167/168 initially. The sole failure asserted that a Consistency Goal retained a hidden rolling aggregation value which neither its editor nor calculation engine consumes. The obsolete assertion was corrected to the canonical contract, and its exact rerun passed; reconciled selected scope: 168/168, zero skips.
+- `git diff --check` passed before the implementation commit. No instrumentation ran on the physical phone.
+- Scope: Complete JVM coverage plus exact and broad high-risk Android subsets. The complete release, packaging, signing, and physical-install gate is recorded separately.
+- Source: `9e09457`.
+- Related: `FB-20260903-009`, `FND-20260903-016` through `FND-20260903-018`, `DEC-20260903-009`, `IMP-20260903-014`.
+- Status: Passed in every stated reconciled scope; numbered phone release pending.
