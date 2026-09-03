@@ -668,3 +668,12 @@
 - Compatibility: No schema, backup, migration, completed-history, or existing-draft rewrite. Archived Profiles remain valid only for existing bindings; new assignment still rejects them.
 - Related: `FB-20260903-012`, `FND-20260903-021`, `FND-20260903-022`, `IMP-20260903-018`, `VER-20260903-018`.
 - Status: Accepted, implemented, verified, and independently approved.
+
+### DEC-20260903-013 — Exercise is the interface noun; lift remains an internal compatibility detail
+
+- Context: Gym's library object is an Exercise, but parts of structured-program UI independently called the same object a lift. Renaming persisted `MainLift` identities would add migration risk without improving what users see.
+- Decision: Use Exercise/Exercises for every user-facing movement reference, including Main exercise and Supplemental exercise. Retain established internal type, enum, variable, serialization, and test-tag names where changing them would be cosmetic or compatibility-sensitive. Preserve words embedded in real exercise names, search aliases, and “lifter.”
+- Rationale: One visible noun makes creation, selection, editing, and programming coherent while keeping the change isolated from user data and historical workouts.
+- Compatibility: Copy and assertions only; no schema, backup, progression, prescription, completed-workout, or stored-identity change.
+- Related: `FB-20260903-014`, `FND-20260903-023`, `IMP-20260903-020`, `VER-20260903-020`.
+- Status: Accepted, implemented, and independently approved.

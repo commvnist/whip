@@ -796,3 +796,14 @@
 - Evidence: `TrackScreens.kt`, `WhipApp.kt`, `GoalScreens.kt`, `ProductivityEditorComponents.kt`, `SemanticDefaultsTest.kt`, `TrackDefinitionMutationUiTest.kt`, and `EditorDependencyUxTest.kt`.
 - Resolution: Passed live settings into fresh Track Field creation only, converted the 75 kg Goal basis into the selected valid mass unit while retaining the explicit 150 lb template, and selected unused reminder slots in 08:00/hourly/15-minute/minute order with duplicate and fully occupied states disabled and explained.
 - Status: Resolved in `829c444`, verified in `VER-20260903-018`, and released in Whip 0.3.44/code 50; see `VER-20260903-019`.
+
+### FND-20260903-023 — Gym exposed two names for the same user-owned movement
+
+- Severity/category: P1 Gym terminology, learnability, and accessibility consistency.
+- Observed: Routine and 5/3/1 flows called selectable library items “lifts,” while the shared picker, editor, catalog, and persistence concept called them “Exercises.” The custom-program journey could therefore say Add/Choose Lift and then open Create Exercise.
+- Expected: Exercise/Exercises is the sole interface noun for a configurable movement. Main, Supplemental, Assistance, Optional, Training Max, and 5/3/1 remain the precise programming concepts layered onto an Exercise.
+- Why it matters: Two nouns implied two objects, weakened novice comprehension, and made creation/navigation feel internally stitched together. Mixed accessibility descriptions increased the same ambiguity for TalkBack users.
+- Affected users: All Gym users, especially new lifters, custom 5/3/1 users, screen-reader users, and users who program noncanonical exercises.
+- Evidence: `RoutineBuilder.kt`, `GymScreens.kt`, `FiveThreeOneBuilder.kt`, `FiveThreeOneCycleReview.kt`, `FiveThreeOneProgramming.kt`, `SettingsScreens.kt`, and repository validation messages.
+- Resolution: Replaced visible and announced Lift/Lifts copy with Exercise/Exercises and updated focused assertions while preserving Deadlift names, search aliases, fixture data, stored enums, internal types, and stable automation tags.
+- Status: Resolved in `6527350` and verified in `VER-20260903-020`; not yet included in a physical-phone release.

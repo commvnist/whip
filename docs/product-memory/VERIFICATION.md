@@ -798,3 +798,14 @@
 - Source: implementation `c8286e0`, `92c25f9`, and `829c444`; memory `1b339cf`; release source `c01b2ff`.
 - Related: `FB-20260903-011` through `FB-20260903-013`, `IMP-20260903-017` through `IMP-20260903-019`, `VER-20260903-017`, `VER-20260903-018`.
 - Status: Signed release installed and independently accepted on the physical phone.
+
+### VER-20260903-020 — Unified Gym Exercise terminology verification
+
+- `git diff --check`, production Kotlin compilation, Android-test Kotlin compilation, and the focused `RoutineBuilderStateTest` passed.
+- Six affected API 34 emulator workflows passed together: blank-routine 5/3/1 entry, successive Exercise creation from an empty custom program, Bench/Deadlift/Zercher custom programming, full-library Exercise search, Leader/Anchor assistance/Joker/BBB configuration, and the required-Main-set warning.
+- After adding an explicit “Add an Exercise” visibility assertion, its first run showed that the control needed scrolling in the test viewport; the assertion was corrected to scroll like the real form, and the exact journey reran successfully.
+- A fresh read-only Terra review found no blockers and approved the interface terminology, compatibility boundary, wording, and focused coverage. Literal scans left only intentional exercise names/search aliases, internal variables/tags, comments, and fixture names.
+- Scope: Focused compilation, state, and UI interaction coverage on the disposable emulator. The complete release/lint/shrinker gate and physical-phone installation were not run.
+- Source: `6527350`.
+- Related: `FB-20260903-014`, `FND-20260903-023`, `DEC-20260903-013`, `IMP-20260903-020`.
+- Status: Passed and independently accepted; current product source remains unreleased to the phone.

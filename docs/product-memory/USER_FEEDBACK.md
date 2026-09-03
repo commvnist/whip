@@ -264,3 +264,10 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Assign a new version/code, run Whip's complete guarded release build, produce correctly signed APK/AAB artifacts, install in place on the explicit Samsung endpoint, verify local/installed artifact identity, preserve Android installation identity and user data, cold-launch successfully, and observe no Whip/runtime/database fatality. Do not run instrumentation, clear data, or confirm the app's fresh-start action on the phone.
 - Related: `FB-20260903-011`, `FB-20260903-012`, `IMP-20260903-019`, `VER-20260903-019`.
 - Status: Released and physically verified as Whip 0.3.44/code 50.
+
+### FB-20260903-014 — Use Exercise as Gym's single user-facing movement term
+
+- User need: Replace the competing Lift/Lifts vocabulary across Gym with Exercise/Exercises so an action never says “Create a Lift” and then opens “Create Exercise.”
+- Acceptance criteria: Routine and 5/3/1 setup, Training Max guidance, workout states, Settings, accessibility labels, and surfaced validation all use Exercise consistently; actual exercise names such as Deadlift remain intact; stored identities and existing user data require no migration.
+- Related: `FND-20260903-023`, `DEC-20260903-013`, `IMP-20260903-020`, `VER-20260903-020`.
+- Status: Implemented, focused-emulator verified, independently accepted, committed, and pushed; not yet released to the physical phone.

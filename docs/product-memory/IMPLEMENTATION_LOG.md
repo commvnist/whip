@@ -769,3 +769,13 @@
 - Related: `FB-20260903-011` through `FB-20260903-013`, `IMP-20260903-017`, `IMP-20260903-018`.
 - Verification: `VER-20260903-019`.
 - Status: Released and physically verified; release source `c01b2ff`.
+
+### IMP-20260903-020 — Unified Gym Exercise terminology
+
+- Reworded routine creation, guided and advanced 5/3/1 programming, Training Max progression/review, BBB mapping, workout substitution/removal, Settings, accessibility descriptions, and surfaced repository validation around Exercise/Exercises.
+- Preserved `MainLift`, `FiveThreeOneProgramLift`, internal variables, serialized enum identity, stable `*-lift-*` test tags, Deadlift names, search synonyms, and fixture values.
+- Updated UI and state assertions, including an explicit visible “Add an Exercise” entry assertion for the empty-library custom 5/3/1 journey.
+- Important files: `RoutineBuilder.kt`, `GymScreens.kt`, `FiveThreeOneBuilder.kt`, `FiveThreeOneCycleReview.kt`, `FiveThreeOneProgramming.kt`, `SettingsScreens.kt`, `GymRepository.kt`, `RoutineRepository.kt`, and focused tests.
+- Related: `FB-20260903-014`, `FND-20260903-023`, `DEC-20260903-013`.
+- Verification: `VER-20260903-020`.
+- Status: Implemented in `6527350`, committed, and pushed; not yet released to the physical phone.
