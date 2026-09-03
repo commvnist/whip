@@ -614,4 +614,14 @@
 - Important files: `RoutineRepository.kt`, `GymRepository.kt`, `GymDao.kt`, `GymEntities.kt`, `GymModels.kt`, `GymAnalytics.kt`, `GymViewModel.kt`, `GymScreens.kt`, `BackupRepository.kt`, startup epoch files, schema 44, and focused JVM/Android regressions.
 - Related: `FB-20260903-004`, `FND-20260903-003`, `FND-20260903-004`, `FND-20260903-005`, `DEC-20260903-004`.
 - Verification: `VER-20260903-005`.
-- Status: Implemented and focused verified; signed release pending.
+- Status: Implemented, verified, and released in `VER-20260903-006`.
+
+### IMP-20260903-006 — Signed schema-44 Gym data-integrity release
+
+- Refreshed the declared inventory to 1,491 product tests, assigned Whip 0.3.39/version code 45, and ran the guarded full release build after the 152-test Gym subsystem pass.
+- Built the minified release APK and Play AAB with the established Whip release signer, installed the APK in place on the explicitly selected Samsung endpoint, and cold-launched the application without clearing data or running instrumentation on the phone.
+- Verified package/version, exact installed APK hash, signer certificate, preserved Android first-install identity, foreground process/activity, and absence of fatal/Room/SQLite startup logs. Captured the final UI hierarchy/screenshot only through the approved `/storage/emulated/0/whip-debug` helper path; the device was keyguard-locked, so no in-app pixel claim is made.
+- Important files: `app/build.gradle.kts`, signed APK/AAB, `scripts/device`, `scripts/device-artifacts`, and the schema-44 startup fresh-start boundary.
+- Related: `FB-20260903-004`, `DEC-20260903-004`, `IMP-20260903-005`, `VER-20260903-005`.
+- Verification: `VER-20260903-006`.
+- Status: Released and physically verified within the non-destructive/keyguard-visible boundary.

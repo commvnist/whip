@@ -586,7 +586,7 @@
 - Affected users: All Gym users, especially 5/3/1 lifters using AMRAP evidence, assisted-exercise users, and users who discard or restore a workout.
 - Evidence: `RoutineRepository.kt`, `GymViewModel.kt`, `GymModels.kt`, and the record-policy regressions in `RoutineRepositoryTest.kt`.
 - Resolution: Implemented in `IMP-20260903-005` under `DEC-20260903-004`; verified in `VER-20260903-005`.
-- Status: Resolved; release pending.
+- Status: Resolved and released in Whip 0.3.39/code 45; see `VER-20260903-006`.
 
 ### FND-20260903-004 — Historical and copied Gym rows retained unstable or stale state
 
@@ -597,7 +597,7 @@
 - Affected users: Users repeating workouts, editing/deleting routines, using counterbalanced/assistance machines, backdating workouts, or training near time-zone/day boundaries.
 - Evidence: `GymRepository.kt`, `GymDao.kt`, `RoutineRepository.kt`, `GymEntities.kt`, `GymAnalytics.kt`, `GymScreens.kt`, and regressions in `GymRepositoryTest.kt`, `RoutineRepositoryTest.kt`, `DomainDeletionCoordinatorTest.kt`, `BackupRepositoryTest.kt`, and `GymAnalyticsTest.kt`.
 - Resolution: Implemented in `IMP-20260903-005` under `DEC-20260903-004`; verified in `VER-20260903-005`.
-- Status: Resolved in schema 44/data epoch 4; release pending.
+- Status: Resolved and released in schema 44/data epoch 4 as Whip 0.3.39/code 45; see `VER-20260903-006`.
 
 ### FND-20260903-005 — Graph presets accepted dangling and unsupported authored data
 
@@ -608,4 +608,4 @@
 - Affected users: Progress-chart users and backup/restore flows containing graph presets.
 - Evidence: `RoutineRepository.kt` and `RoutineRepositoryTest.kt`.
 - Resolution: Implemented in `IMP-20260903-005`; verified in `VER-20260903-005`.
-- Status: Resolved; release pending.
+- Status: Resolved and released in Whip 0.3.39/code 45; see `VER-20260903-006`.

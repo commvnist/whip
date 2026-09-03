@@ -646,3 +646,15 @@
 - Scope: Focused implementation and full Gym-subsystem evidence on the disposable emulator. Release lint, minification, signed APK/AAB, and physical phone verification remain pending.
 - Related: `FB-20260903-004`, `FND-20260903-003`, `FND-20260903-004`, `FND-20260903-005`, `DEC-20260903-004`, `IMP-20260903-005`.
 - Status: Focused checks passed; release pending.
+
+### VER-20260903-006 — Whip 0.3.39 schema-44 physical release
+
+- `WHIP_DEVICE=192.168.2.187:44401 scripts/device release-deploy` selected the physical Samsung SM-F976W rather than the connected emulator. The guarded gate passed Play assets, all 582 JVM tests, complete Android-test compilation, debug and release lint, deterministic coverage (79.08% domain lines, 56.79% domain branches, 68.07% core Settings/policy lines), R8/resource optimization, signed release APK/AAB assembly, and benchmark assembly.
+- The release-key build produced APK SHA-256 `6299113cf1a7411d0a5b4470397c3301d14de0d72f38ce46ed249f2c479e23be` and AAB SHA-256 `1edb665076da1ca6b68ed25d3c6ef19ee575ad788619fb9f3c9ab2406ee4726b`. `apksigner` verified APK Signature Scheme v2, exactly one signer, and the established certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`.
+- `adb install -r` returned `Success`. Android reports Whip 0.3.39/code 45, the installed base APK hash exactly matches the signed local APK, and the original `firstInstallTime=2026-08-26 17:59:24` remains unchanged.
+- A forced cold launch completed in 99 ms and left `commvne.com.whip.app/com.whip.app.MainActivity` resumed with live PID 2590. Its PID-scoped log scan found no fatal exception, AndroidRuntime, Room/SQLite, process-death, or activity-start failure.
+- Approved-path UI artifacts were captured at `/storage/emulated/0/whip-debug/ui/release-0.3.39-launch.xml` and `/storage/emulated/0/whip-debug/screenshots/release-0.3.39-launch.png`. The phone was keyguard-locked, so the artifacts show the lock screen and no post-launch in-app pixel claim is made. No unlock bypass, data reset, or physical-device instrumentation was attempted.
+- Scope: Repeated exact regressions, 152-test Gym emulator profile, complete JVM/build/lint/coverage/release gate, and non-destructive physical deployment. The complete 909-test Android instrumentation inventory was not rerun for this Gym-focused source change.
+- Source: release source `d624ffb`; core repair `cd95fcc`; version commit `27f60cf`.
+- Related: `FB-20260903-004`, `FND-20260903-003`, `FND-20260903-004`, `FND-20260903-005`, `DEC-20260903-004`, `IMP-20260903-005`, `IMP-20260903-006`.
+- Status: Signed release installed and verified on the physical phone.

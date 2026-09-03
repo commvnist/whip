@@ -592,4 +592,4 @@
 - Rationale: Completed history must remain self-describing, while current user preferences should control whether that history participates in derived records. Session identity/local date is a safer attribution boundary than UTC timestamps, and rejecting malformed authored data is safer than downstream fallback.
 - Compatibility: Intentionally breaking under the user-authorized clean slate. Older local data/backups are rejected through the explicit existing reset boundary; the release process installs in place but never confirms erasure for the user.
 - Related: `FB-20260903-004`, `FND-20260903-003`, `FND-20260903-004`, `FND-20260903-005`, `IMP-20260903-005`, `VER-20260903-005`.
-- Status: Accepted, implemented, and focused verified; physical release pending.
+- Status: Accepted, implemented, verified, and released in Whip 0.3.39/code 45.
