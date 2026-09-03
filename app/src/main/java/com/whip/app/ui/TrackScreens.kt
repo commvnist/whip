@@ -101,6 +101,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.whip.app.R
 import com.whip.app.WhipApplication
+import com.whip.app.core.AppSettings
 import com.whip.app.core.OperationStatus
 import com.whip.app.domain.Area
 import com.whip.app.domain.BuiltInUnits
@@ -2751,6 +2752,7 @@ internal fun TrackEditor(
     targetName: String?,
     areas: List<Area>,
     customUnits: List<UnitDefinition>,
+    settings: AppSettings = AppSettings(),
     defaultAreaId: String?,
     saving: Boolean,
     persistenceError: String? = null,
@@ -3028,6 +3030,8 @@ internal fun TrackEditor(
         TrackFieldEditor(
             initial = field,
             allUnits = BuiltInUnits.all + customUnits,
+            settings = settings,
+            applyFreshNumberDefaults = false,
             existingHasValues = field.id?.let { fieldId -> liveInitial?.entries?.any { it.value(fieldId) != null } } == true,
             onDismiss = { editingFieldIndex = null },
             onCreateCustomUnit = onCreateCustomUnit,
@@ -3043,6 +3047,8 @@ internal fun TrackEditor(
     if (addingField) TrackFieldEditor(
         initial = TrackFieldDraft("", TrackFieldType.ShortText),
         allUnits = BuiltInUnits.all + customUnits,
+        settings = settings,
+        applyFreshNumberDefaults = true,
         existingHasValues = false,
         onDismiss = { addingField = false },
         onCreateCustomUnit = onCreateCustomUnit,
@@ -3188,6 +3194,8 @@ internal fun TrackEditor(
 private fun TrackFieldEditor(
     initial: TrackFieldDraft,
     allUnits: List<UnitDefinition>,
+    settings: AppSettings,
+    applyFreshNumberDefaults: Boolean,
     existingHasValues: Boolean,
     onDismiss: () -> Unit,
     onCreateCustomUnit: CreateCustomUnitAction,
@@ -3211,6 +3219,12 @@ private fun TrackFieldEditor(
         mutableStateOf(initial.options.ifEmpty { listOf(TrackChoiceOptionDraft("Option 1")) })
     }
     var discardConfirm by rememberSaveable(initial.uuid, initial.id) { mutableStateOf(false) }
+
+    fun applyFreshNumberDefaults(selectedDimension: UnitDimension) {
+        dimension = selectedDimension
+        unitId = freshTrackNumberUnitId(settings, allUnits, selectedDimension)
+        precision = settings.numberPrecision
+    }
     val scaleMin = scaleMinText.trim().toIntOrNull()
     val scaleMax = scaleMaxText.trim().toIntOrNull()
     val scaleStep = scaleStepText.toWhipDoubleOrNull()
@@ -3245,8 +3259,30 @@ private fun TrackFieldEditor(
         title = { Text(if (initial.id == null && initial.uuid == null) "Add Field" else "Edit Field") },
         text = {
             WhipReorderLazyColumn(Modifier.fillMaxWidth().fillMaxHeight(0.72f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item { OutlinedTextField(name, { name = it.take(80) }, label = { Text("Field Name *") }, singleLine = true, modifier = Modifier.fillMaxWidth()) }
-                item { SelectionField("Field Type", TrackFieldType.entries, type, TrackFieldType::uiLabel, { type = it }, enabled = !existingHasValues) }
+                item {
+                    OutlinedTextField(
+                        name,
+                        { name = it.take(80) },
+                        label = { Text("Field Name *") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("track-field-name"),
+                    )
+                }
+                item {
+                    SelectionField(
+                        "Field Type",
+                        TrackFieldType.entries,
+                        type,
+                        TrackFieldType::uiLabel,
+                        { selected ->
+                            type = selected
+                            if (selected == TrackFieldType.Number && applyFreshNumberDefaults) {
+                                applyFreshNumberDefaults(dimension)
+                            }
+                        },
+                        enabled = !existingHasValues,
+                    )
+                }
                 if (existingHasValues) item { Text("A Field type can change only before it has saved values. Delete this Field and add another to change its type.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 when (type) {
                     TrackFieldType.Number -> {
@@ -3257,10 +3293,14 @@ private fun TrackFieldEditor(
                                 dimension,
                                 UnitDimension::uiLabel,
                                 { selected ->
-                                    dimension = selected
-                                    unitId = allUnits.firstOrNull {
-                                        it.dimension == selected && !it.archived
-                                    }?.id.orEmpty()
+                                    if (applyFreshNumberDefaults) {
+                                        applyFreshNumberDefaults(selected)
+                                    } else {
+                                        dimension = selected
+                                        unitId = allUnits.firstOrNull {
+                                            it.dimension == selected && !it.archived
+                                        }?.id.orEmpty()
+                                    }
                                 },
                                 enabled = !existingHasValues,
                             )
@@ -3384,6 +3424,15 @@ private fun TrackFieldEditor(
         },
     )
 }
+
+/** Defaults only a newly added Field when its author deliberately selects Number. */
+internal fun freshTrackNumberUnitId(
+    settings: AppSettings,
+    units: List<UnitDefinition>,
+    dimension: UnitDimension,
+): String = units.firstOrNull {
+    it.id == settings.preferredUnitId(dimension) && it.dimension == dimension && !it.archived
+}?.id ?: units.firstOrNull { it.dimension == dimension && !it.archived }?.id.orEmpty()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

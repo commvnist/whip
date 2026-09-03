@@ -3344,6 +3344,7 @@ private fun TrackDefinitionEditorRouteHost(
         targetName = route.targetName,
         areas = settingsState.areas,
         customUnits = settingsState.customUnits,
+        settings = settingsState.settings,
         defaultAreaId = defaultAreaId,
         saving = definitionSaveCoordinator.saving,
         persistenceError = definitionSaveCoordinator.errorMessage,

@@ -1227,13 +1227,7 @@ private fun GoalTemplateDialog(
     onChoose: (GoalDraft) -> Unit,
 ) {
     val templates = listOf(
-        "Reach a weight" to GoalDraft(
-            name = "Weight target", icon = "⚖️", type = GoalType.ReduceValue,
-            dimension = UnitDimension.Mass, unitId = defaults.massUnitId,
-            targetMin = if (defaults.massUnitId == "pound") 150.0 else 75.0,
-            aggregation = GoalAggregation.Latest,
-            startDate = today,
-        ),
+        "Reach a weight" to reachWeightTemplateDraft(defaults, today),
         "Build savings" to GoalDraft(
             name = "Savings", icon = "💰", type = GoalType.AccumulateTotal,
             dimension = UnitDimension.Money, unitId = "currency", targetMin = 1000.0,
@@ -1304,6 +1298,22 @@ private fun GoalTemplateDialog(
         },
         confirmButton = {},
         dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+internal fun reachWeightTemplateDraft(defaults: AppSettings, today: LocalDate): GoalDraft {
+    val unit = BuiltInUnits.get(defaults.massUnitId)
+        ?.takeIf { it.dimension == UnitDimension.Mass && !it.archived }
+        ?: BuiltInUnits.all.first { it.dimension == UnitDimension.Mass && !it.archived }
+    return GoalDraft(
+        name = "Weight target",
+        icon = "⚖️",
+        type = GoalType.ReduceValue,
+        dimension = UnitDimension.Mass,
+        unitId = unit.id,
+        targetMin = if (unit.id == "pound") 150.0 else unit.fromCanonical(75.0),
+        aggregation = GoalAggregation.Latest,
+        startDate = today,
     )
 }
 

@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.whip.app.core.AppSettings
 import com.whip.app.domain.TrackDefinitionBoundary
 import com.whip.app.domain.TrackDefinitionConflictKind
 import com.whip.app.domain.TrackDefinitionRemovalReview
@@ -35,6 +36,7 @@ import com.whip.app.domain.TrackDraft
 import com.whip.app.domain.TrackFieldDraft
 import com.whip.app.domain.TrackFieldRemovalImpact
 import com.whip.app.domain.TrackFieldType
+import com.whip.app.domain.UnitDimension
 import com.whip.app.ui.LocalWhipDialogPlacement
 import com.whip.app.ui.UnavailableCreateCustomUnitAction
 import com.whip.app.ui.TrackDefinitionReviewUiState
@@ -51,6 +53,92 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class TrackDefinitionMutationUiTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun freshAddedNumberFieldUsesCurrentUnitAndPrecisionPreferences() {
+        var saved: TrackDraft? = null
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                TrackEditor(
+                    liveInitial = null,
+                    targetTrackId = null,
+                    openingDraft = null,
+                    routeOpeningBoundary = null,
+                    targetName = null,
+                    areas = emptyList(),
+                    customUnits = emptyList(),
+                    settings = AppSettings(massUnitId = "pound", numberPrecision = 3),
+                    defaultAreaId = null,
+                    saving = false,
+                    modifier = Modifier,
+                    onDismiss = {},
+                    onCreateArea = { _, _, _ -> },
+                    onCreateCustomUnit = UnavailableCreateCustomUnitAction,
+                    onRetryPreparation = {},
+                    onReview = { _, _, _ -> },
+                    onSave = { draft, _, _ -> saved = draft },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("track-editor-name").performTextInput("Measurements")
+        compose.onNodeWithText("Add Field").performClick()
+        compose.onNodeWithTag("track-field-name").performTextInput("Weight")
+        compose.onNodeWithContentDescription("Field Type: Short Text").performClick()
+        compose.onNodeWithContentDescription("Field Type option: Number").performClick()
+        compose.onNodeWithContentDescription("Measurement Type: Count").performClick()
+        compose.onNodeWithContentDescription("Measurement Type option: Mass").performClick()
+        compose.onNodeWithContentDescription("Unit: pounds (lb)").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Decimal Places: 3").assertIsDisplayed()
+        compose.onNodeWithText("Save Field").performClick()
+        compose.onNodeWithText("Save").performClick()
+
+        compose.runOnIdle {
+            val field = requireNotNull(saved).fields.single { it.name == "Weight" }
+            assertEquals(TrackFieldType.Number, field.type)
+            assertEquals(UnitDimension.Mass, field.dimension)
+            assertEquals("pound", field.unitId)
+            assertEquals(3, field.precision)
+        }
+    }
+
+    @Test
+    fun openingNumberFieldRetainsItsAuthoredUnitAndPrecision() {
+        val authored = TrackFieldDraft(
+            name = "Weight",
+            type = TrackFieldType.Number,
+            dimension = UnitDimension.Mass,
+            unitId = "gram",
+            precision = 4,
+        )
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                TrackEditor(
+                    liveInitial = null,
+                    targetTrackId = null,
+                    openingDraft = TrackDraft("Measurements", fields = listOf(authored)),
+                    routeOpeningBoundary = null,
+                    targetName = null,
+                    areas = emptyList(),
+                    customUnits = emptyList(),
+                    settings = AppSettings(massUnitId = "pound", numberPrecision = 1),
+                    defaultAreaId = null,
+                    saving = false,
+                    modifier = Modifier,
+                    onDismiss = {},
+                    onCreateArea = { _, _, _ -> },
+                    onCreateCustomUnit = UnavailableCreateCustomUnitAction,
+                    onRetryPreparation = {},
+                    onReview = { _, _, _ -> },
+                    onSave = { _, _, _ -> },
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Edit Field Weight").performClick()
+        compose.onNodeWithContentDescription("Unit: grams (g)").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Decimal Places: 4").assertIsDisplayed()
+    }
 
     @Test
     fun exactRemovalReviewKeepsLongImpactAndActionsReachableAtTwoHundredPercentText() {

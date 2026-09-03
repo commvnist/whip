@@ -212,6 +212,44 @@ class EditorDependencyUxTest {
     }
 
     @Test
+    fun duplicateGeneralReminderTimeDisablesAdd() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                ClockPickerDialog(
+                    title = "General Reminder",
+                    initialMinutes = 8 * 60,
+                    occupiedMinutes = listOf(8 * 60),
+                    onDismiss = {},
+                    onSet = {},
+                )
+            }
+        }
+
+        compose.onAllNodesWithText("This time already has a reminder. Choose a different time.")
+            .assertCountEquals(1)
+        compose.onNodeWithText("Add").assertIsNotEnabled()
+    }
+
+    @Test
+    fun duplicateWeekdayReminderTimeDisablesAdd() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                ClockPickerDialog(
+                    title = "Monday Reminder",
+                    initialMinutes = 8 * 60,
+                    occupiedMinutes = listOf(8 * 60),
+                    onDismiss = {},
+                    onSet = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("This time already has a reminder. Choose a different time.")
+            .assertIsDisplayed()
+        compose.onNodeWithText("Add").assertIsNotEnabled()
+    }
+
+    @Test
     fun repeatSettingsStayBetweenScheduleChoiceAndPlanningFields() {
         compose.setContent {
             WhipTheme(dynamicColor = false) {

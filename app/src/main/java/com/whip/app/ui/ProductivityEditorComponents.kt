@@ -636,6 +636,7 @@ internal fun ReminderTimesEditor(
 ) {
     var adding by rememberSaveable(label) { mutableStateOf(false) }
     val context = LocalContext.current
+    val nextAvailableMinute = nextUnusedReminderMinute(values)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, style = MaterialTheme.typography.labelLarge)
         if (values.isEmpty()) {
@@ -653,16 +654,28 @@ internal fun ReminderTimesEditor(
                 }
             }
         }
-        WhipOutlinedButton(onClick = { adding = true }, modifier = Modifier.fillMaxWidth()) {
+        WhipOutlinedButton(
+            enabled = nextAvailableMinute != null,
+            onClick = { adding = true },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Icon(Icons.Filled.Add, contentDescription = null)
             Spacer(Modifier.width(6.dp))
             Text("Add Reminder Time")
+        }
+        if (nextAvailableMinute == null) {
+            Text(
+                "Every time of day already has a reminder. Remove one to add another.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
     if (adding) {
         ClockPickerDialog(
             title = "Add Reminder Time",
-            initialMinutes = values.lastOrNull() ?: 8 * 60,
+            initialMinutes = requireNotNull(nextAvailableMinute),
+            occupiedMinutes = values,
             onDismiss = { adding = false },
             onSet = { value -> onChange((values + value).distinct().sorted()); adding = false },
         )
@@ -680,6 +693,9 @@ internal fun WeekdayReminderEditor(
     val context = LocalContext.current
     val activeValues = values.mapValues { (_, times) -> times.distinct().sorted() }
         .filterValues { it.isNotEmpty() }
+    val hasAvailableWeekdaySlot = DayOfWeek.entries.any { day ->
+        nextUnusedReminderMinute(activeValues[day].orEmpty()) != null
+    }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text("Weekday-Specific Reminders", style = MaterialTheme.typography.labelLarge)
         Text(
@@ -707,10 +723,21 @@ internal fun WeekdayReminderEditor(
                 }
             }
         }
-        WhipOutlinedButton(onClick = { choosingDay = true }, modifier = Modifier.fillMaxWidth()) {
+        WhipOutlinedButton(
+            enabled = hasAvailableWeekdaySlot,
+            onClick = { choosingDay = true },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Icon(Icons.Filled.Add, contentDescription = null)
             Spacer(Modifier.width(4.dp))
             Text("Add Weekday Reminder")
+        }
+        if (!hasAvailableWeekdaySlot) {
+            Text(
+                "Every weekday already has every time of day assigned. Remove one to add another.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
     if (choosingDay) {
@@ -732,6 +759,7 @@ internal fun WeekdayReminderEditor(
                     ) {
                         orderedWeekdays(firstDayOfWeek).forEach { day -> WhipFilterChip(
                             selected = false,
+                            enabled = nextUnusedReminderMinute(activeValues[day].orEmpty()) != null,
                             onClick = {
                                 addingDayName = day.name
                                 choosingDay = false
@@ -747,9 +775,12 @@ internal fun WeekdayReminderEditor(
     }
     addingDayName?.let { dayName ->
         val selectedDay = DayOfWeek.valueOf(dayName)
+        val occupiedMinutes = activeValues[selectedDay].orEmpty()
+        val nextAvailableMinute = nextUnusedReminderMinute(occupiedMinutes)
         ClockPickerDialog(
             title = "${selectedDay.weekdayLabel()} Reminder",
-            initialMinutes = activeValues[selectedDay]?.lastOrNull() ?: 8 * 60,
+            initialMinutes = nextAvailableMinute ?: 8 * 60,
+            occupiedMinutes = occupiedMinutes,
             onDismiss = { addingDayName = null },
             onSet = { value ->
                 onChange(activeValues + (selectedDay to (activeValues[selectedDay].orEmpty() + value).distinct().sorted()))
@@ -766,9 +797,10 @@ private fun orderedWeekdays(first: DayOfWeek): List<DayOfWeek> =
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ClockPickerDialog(
+internal fun ClockPickerDialog(
     title: String,
     initialMinutes: Int,
+    occupiedMinutes: Collection<Int> = emptyList(),
     onDismiss: () -> Unit,
     onSet: (Int) -> Unit,
 ) {
@@ -778,14 +810,40 @@ private fun ClockPickerDialog(
         initialMinute = initialMinutes % 60,
         is24Hour = DateFormat.is24HourFormat(context),
     )
+    val selectedMinutes = picker.hour * 60 + picker.minute
+    val isDuplicate = selectedMinutes in occupiedMinutes.filter { it in 0..1439 }.toSet()
     PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
         paneTitle = title,
         title = { Text(title) },
-        text = { TimePicker(state = picker) },
-        confirmButton = { WhipTextButton(onClick = { onSet(picker.hour * 60 + picker.minute) }) { Text("Add") } },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                TimePicker(state = picker)
+                if (isDuplicate) {
+                    Text(
+                        "This time already has a reminder. Choose a different time.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            WhipTextButton(enabled = !isDuplicate, onClick = { onSet(selectedMinutes) }) { Text("Add") }
+        },
         dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
+}
+
+/** Finds an unused reminder time, preferring conventional morning and hourly slots. */
+internal fun nextUnusedReminderMinute(existing: Collection<Int>, preferred: Int = 8 * 60): Int? {
+    val occupied = existing.filterTo(mutableSetOf()) { it in 0..1439 }
+    if (occupied.size == 1440) return null
+    val anchor = ((preferred % 1440) + 1440) % 1440
+    fun firstAvailable(candidates: Sequence<Int>): Int? = candidates.firstOrNull { it !in occupied }
+    return firstAvailable((0 until 24).asSequence().map { (anchor + it * 60) % 1440 })
+        ?: firstAvailable((0 until 96).asSequence().map { (anchor + it * 15) % 1440 })
+        ?: firstAvailable((0 until 1440).asSequence().map { (anchor + it) % 1440 })
 }
 
 @Composable
