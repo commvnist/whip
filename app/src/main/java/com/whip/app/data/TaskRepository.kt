@@ -23,6 +23,7 @@ import com.whip.app.domain.WhipTask
 import com.whip.app.domain.toDraft
 import com.whip.app.domain.semanticRevisionToken
 import com.whip.app.domain.visibleTaskStepsForOccurrence
+import com.whip.app.domain.validationErrors
 import java.time.LocalDate
 import java.time.Instant
 import java.util.UUID
@@ -113,6 +114,7 @@ class RoomTaskRepository(
         }
 
     override suspend fun create(draft: TaskDraft): Long = database.withTransaction {
+        draft.requireValid()
         val now = clock.now().toEpochMilli()
         val area = areaRepository.resolve(draft.areaId, draft.area)
         val resolvedDraft = draft.copy(areaId = area.id, area = area.name)
@@ -137,6 +139,7 @@ class RoomTaskRepository(
                 )
                 else -> draft
             }
+            adjustedDraft.requireValid()
             val selectedArea = areaRepository.resolve(adjustedDraft.areaId, adjustedDraft.area)
             val resolvedDraft = adjustedDraft.copy(areaId = selectedArea.id, area = selectedArea.name)
             val now = clock.now().toEpochMilli()
@@ -410,8 +413,8 @@ class RoomTaskRepository(
         dao.updateStep(source.copy(archived = false, updatedAtMillis = clock.now().toEpochMilli()))
     }
 
-    override suspend fun archive(taskId: Long) {
-        val existing = dao.getTask(taskId) ?: return
+    override suspend fun archive(taskId: Long) = database.withTransaction {
+        val existing = dao.getTask(taskId) ?: return@withTransaction
         dao.updateTask(
             existing.copy(
                 archived = true,
@@ -420,8 +423,8 @@ class RoomTaskRepository(
         )
     }
 
-    override suspend fun restore(taskId: Long) {
-        val existing = dao.getTask(taskId) ?: return
+    override suspend fun restore(taskId: Long) = database.withTransaction {
+        val existing = dao.getTask(taskId) ?: return@withTransaction
         dao.updateTask(
             existing.copy(
                 archived = false,
@@ -433,8 +436,8 @@ class RoomTaskRepository(
     override suspend fun deletePermanently(taskId: Long): Boolean =
         dao.deleteTask(taskId) > 0
 
-    override suspend fun reopen(taskId: Long) {
-        val existing = dao.getTask(taskId) ?: return
+    override suspend fun reopen(taskId: Long) = database.withTransaction {
+        val existing = dao.getTask(taskId) ?: return@withTransaction
         dao.updateTask(
             existing.copy(
                 completedAtMillis = null,
@@ -515,8 +518,8 @@ class RoomTaskRepository(
         dao.deleteOccurrence(item.task.id, originalDate.toEpochDay()) > 0
     }
 
-    override suspend fun setPinned(taskId: Long, pinned: Boolean) {
-        val existing = dao.getTask(taskId) ?: return
+    override suspend fun setPinned(taskId: Long, pinned: Boolean) = database.withTransaction {
+        val existing = dao.getTask(taskId) ?: return@withTransaction
         dao.updateTask(existing.copy(pinned = pinned, updatedAtMillis = clock.now().toEpochMilli()))
     }
 
@@ -637,6 +640,7 @@ class RoomTaskRepository(
         require(!edit.updateArea || !edit.areaId.isNullOrBlank() || edit.areaName.isNotBlank()) {
             "Choose an Area before applying this change"
         }
+        require(edit.tags.orEmpty().none { ',' in it }) { "Use separate Tags instead of commas" }
         val selectedArea = if (edit.updateArea) areaRepository.resolve(edit.areaId, edit.areaName) else null
         taskIds.distinct().forEach { taskId ->
             val existing = requireNotNull(dao.getTask(taskId)) { "Task no longer exists" }
@@ -1189,6 +1193,11 @@ class RoomTaskRepository(
             )
         }
     }
+}
+
+private fun TaskDraft.requireValid() {
+    val problems = validationErrors()
+    require(problems.isEmpty()) { problems.first() }
 }
 
 private fun List<TaskStepEntity>.matches(drafts: List<com.whip.app.domain.TaskStepDraft>): Boolean {

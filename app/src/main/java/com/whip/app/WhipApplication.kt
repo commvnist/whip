@@ -164,7 +164,10 @@ class WhipApplication : Application(), Configuration.Provider {
             rawLinkRepository,
             reminderDeliveryCoordinator,
             onDeletionPrepared = { ids -> prepareReminderDeletion(ReminderDomain.Task, ids) },
-            onDeletionCommitted = { ids -> commitReminderDeletion(ReminderDomain.Task, ids) },
+            onDeletionCommitted = { ids ->
+                clearFocusTimerForDeletedTasks(ids)
+                commitReminderDeletion(ReminderDomain.Task, ids)
+            },
             onDeletionInterrupted = ::reconcilePendingReminderDeletions,
         )
     }
@@ -470,7 +473,11 @@ class WhipApplication : Application(), Configuration.Provider {
             val deadline = settings.focusTimerDeadlineMillis
             val taskId = settings.focusTimerTaskId
             if (deadline != null && taskId != null && deadline > System.currentTimeMillis()) {
-                focusTimerScheduler.schedule(taskId, deadline, allowDuringRecovery = true)
+                if (database.taskDao().getTask(taskId) == null) {
+                    clearFocusTimerForDeletedTasks(setOf(taskId))
+                } else {
+                    focusTimerScheduler.schedule(taskId, deadline, allowDuringRecovery = true)
+                }
             }
         }
         val runtimeJob = SupervisorJob(applicationScope.coroutineContext[Job])
@@ -599,7 +606,11 @@ class WhipApplication : Application(), Configuration.Provider {
             val deadline = settings.focusTimerDeadlineMillis
             val taskId = settings.focusTimerTaskId
             if (deadline != null && taskId != null && deadline > System.currentTimeMillis()) {
-                focusTimerScheduler.schedule(taskId, deadline, allowDuringRecovery = true)
+                if (database.taskDao().getTask(taskId) == null) {
+                    clearFocusTimerForDeletedTasks(setOf(taskId))
+                } else {
+                    focusTimerScheduler.schedule(taskId, deadline, allowDuringRecovery = true)
+                }
             }
         }
         val sessions = gymRepository.sessions.first()
@@ -647,9 +658,21 @@ class WhipApplication : Application(), Configuration.Provider {
     }
 
     private fun commitAreaReminderDeletion(summary: AreaDeletionSummary) {
+        clearFocusTimerForDeletedTasks(summary.taskIds.toSet())
         commitReminderDeletion(ReminderDomain.Task, summary.taskIds.toSet())
         commitReminderDeletion(ReminderDomain.Habit, summary.habitIds.toSet())
         commitReminderDeletion(ReminderDomain.Goal, summary.goalIds.toSet())
+    }
+
+    private fun clearFocusTimerForDeletedTasks(taskIds: Set<Long>) {
+        val current = settingsRepository.current()
+        if (current.focusTimerTaskId !in taskIds) return
+        check(
+            settingsRepository.updateAndConfirm {
+                it.copy(focusTimerDeadlineMillis = null, focusTimerTaskId = null)
+            },
+        ) { "Could not durably clear the deleted Task's focus timer" }
+        focusTimerScheduler.cancel()
     }
 
     internal suspend fun reconcilePendingReminderDeletions() {
@@ -661,10 +684,13 @@ class WhipApplication : Application(), Configuration.Provider {
             }
             if (!entityStillExists) {
                 when (pending.domain) {
-                    ReminderDomain.Task -> reminderScheduler.syncTask(
-                        pending.entityId,
-                        allowDuringRecovery = true,
-                    )
+                    ReminderDomain.Task -> {
+                        clearFocusTimerForDeletedTasks(setOf(pending.entityId))
+                        reminderScheduler.syncTask(
+                            pending.entityId,
+                            allowDuringRecovery = true,
+                        )
+                    }
                     ReminderDomain.Habit -> habitReminderScheduler.syncHabit(
                         pending.entityId,
                         allowDuringRecovery = true,

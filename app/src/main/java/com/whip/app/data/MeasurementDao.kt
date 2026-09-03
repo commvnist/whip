@@ -102,41 +102,41 @@ interface MeasurementDao {
     )
     suspend fun countAreaAssignments(areaId: String): Int
 
-    @Query("UPDATE tasks SET areaId = NULL, area = '' WHERE areaId = :areaId")
-    suspend fun clearTaskAreaReferences(areaId: String): Int
+    @Query("UPDATE tasks SET areaId = NULL, area = '', updatedAtMillis = :now WHERE areaId = :areaId")
+    suspend fun clearTaskAreaReferences(areaId: String, now: Long): Int
 
-    @Query("UPDATE habits SET areaId = NULL, area = '' WHERE areaId = :areaId")
-    suspend fun clearHabitAreaReferences(areaId: String): Int
+    @Query("UPDATE habits SET areaId = NULL, area = '', updatedAtMillis = :now WHERE areaId = :areaId")
+    suspend fun clearHabitAreaReferences(areaId: String, now: Long): Int
 
-    @Query("UPDATE goals SET areaId = NULL, area = '' WHERE areaId = :areaId")
-    suspend fun clearGoalAreaReferences(areaId: String): Int
+    @Query("UPDATE goals SET areaId = NULL, area = '', updatedAtMillis = :now WHERE areaId = :areaId")
+    suspend fun clearGoalAreaReferences(areaId: String, now: Long): Int
 
-    @Query("UPDATE tasks SET areaId = :targetId, area = :targetName WHERE areaId = :sourceId")
-    suspend fun moveTaskAreaReferences(sourceId: String, targetId: String, targetName: String)
+    @Query("UPDATE tasks SET areaId = :targetId, area = :targetName, updatedAtMillis = :now WHERE areaId = :sourceId")
+    suspend fun moveTaskAreaReferences(sourceId: String, targetId: String, targetName: String, now: Long)
 
-    @Query("UPDATE habits SET areaId = :targetId, area = :targetName WHERE areaId = :sourceId")
-    suspend fun moveHabitAreaReferences(sourceId: String, targetId: String, targetName: String)
+    @Query("UPDATE habits SET areaId = :targetId, area = :targetName, updatedAtMillis = :now WHERE areaId = :sourceId")
+    suspend fun moveHabitAreaReferences(sourceId: String, targetId: String, targetName: String, now: Long)
 
-    @Query("UPDATE goals SET areaId = :targetId, area = :targetName WHERE areaId = :sourceId")
-    suspend fun moveGoalAreaReferences(sourceId: String, targetId: String, targetName: String)
+    @Query("UPDATE goals SET areaId = :targetId, area = :targetName, updatedAtMillis = :now WHERE areaId = :sourceId")
+    suspend fun moveGoalAreaReferences(sourceId: String, targetId: String, targetName: String, now: Long)
 
-    @Query("UPDATE tasks SET areaId = :targetId, area = :targetName WHERE (:sourceId IS NULL AND areaId IS NULL) OR areaId = :sourceId")
-    suspend fun reassignAllTaskAreas(sourceId: String?, targetId: String?, targetName: String): Int
+    @Query("UPDATE tasks SET areaId = :targetId, area = :targetName, updatedAtMillis = :now WHERE (:sourceId IS NULL AND areaId IS NULL) OR areaId = :sourceId")
+    suspend fun reassignAllTaskAreas(sourceId: String?, targetId: String?, targetName: String, now: Long): Int
 
-    @Query("UPDATE habits SET areaId = :targetId, area = :targetName WHERE (:sourceId IS NULL AND areaId IS NULL) OR areaId = :sourceId")
-    suspend fun reassignAllHabitAreas(sourceId: String?, targetId: String?, targetName: String): Int
+    @Query("UPDATE habits SET areaId = :targetId, area = :targetName, updatedAtMillis = :now WHERE (:sourceId IS NULL AND areaId IS NULL) OR areaId = :sourceId")
+    suspend fun reassignAllHabitAreas(sourceId: String?, targetId: String?, targetName: String, now: Long): Int
 
-    @Query("UPDATE goals SET areaId = :targetId, area = :targetName WHERE (:sourceId IS NULL AND areaId IS NULL) OR areaId = :sourceId")
-    suspend fun reassignAllGoalAreas(sourceId: String?, targetId: String?, targetName: String): Int
+    @Query("UPDATE goals SET areaId = :targetId, area = :targetName, updatedAtMillis = :now WHERE (:sourceId IS NULL AND areaId IS NULL) OR areaId = :sourceId")
+    suspend fun reassignAllGoalAreas(sourceId: String?, targetId: String?, targetName: String, now: Long): Int
 
-    @Query("UPDATE tasks SET area = :name WHERE areaId = :areaId")
-    suspend fun updateTaskAreaNames(areaId: String, name: String)
+    @Query("UPDATE tasks SET area = :name, updatedAtMillis = :now WHERE areaId = :areaId")
+    suspend fun updateTaskAreaNames(areaId: String, name: String, now: Long)
 
-    @Query("UPDATE habits SET area = :name WHERE areaId = :areaId")
-    suspend fun updateHabitAreaNames(areaId: String, name: String)
+    @Query("UPDATE habits SET area = :name, updatedAtMillis = :now WHERE areaId = :areaId")
+    suspend fun updateHabitAreaNames(areaId: String, name: String, now: Long)
 
-    @Query("UPDATE goals SET area = :name WHERE areaId = :areaId")
-    suspend fun updateGoalAreaNames(areaId: String, name: String)
+    @Query("UPDATE goals SET area = :name, updatedAtMillis = :now WHERE areaId = :areaId")
+    suspend fun updateGoalAreaNames(areaId: String, name: String, now: Long)
 
     @Query("DELETE FROM tags WHERE id = :id")
     suspend fun deleteTag(id: String): Int

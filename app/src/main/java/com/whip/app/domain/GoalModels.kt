@@ -98,6 +98,9 @@ fun GoalDraft.withTypeSemantics(): GoalDraft = copy(
  */
 fun GoalDraft.validationErrors(nowMillis: Long): List<String> = buildList {
     if (name.isBlank()) add("Goal name is required")
+    if (name.length > 100) add("Goal names can be at most 100 characters")
+    if (tags.any { ',' in it }) add("Use separate Tags instead of commas")
+    if (reminderMinutes != null && reminderMinutes !in 0..1439) add("Goal reminder must be a valid time of day")
     if (deadline != null && deadline.isBefore(startDate)) add("Deadline cannot precede the start date")
     if (precision !in 0..6) add("Decimal places must be between 0 and 6")
     if (listOfNotNull(baseline, targetMin, targetMax).any { !it.isFinite() }) add("Goal values must be finite numbers")

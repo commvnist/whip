@@ -515,6 +515,7 @@ fun TrackDraft.validated(): TrackDraft {
     val normalizedName = name.trim().replace(Regex("\\s+"), " ")
     require(normalizedName.isNotBlank()) { "Track name is required" }
     require(normalizedName.length <= 100) { "Track names can be at most 100 characters" }
+    require(tags.none { ',' in it }) { "Use separate Tags instead of commas" }
     require(fields.isNotEmpty()) { "Add at least one Field" }
     require(fields.any(TrackFieldDraft::primary)) { "Choose at least one Entry Identity Field" }
     val normalizedFields = fields.map(TrackFieldDraft::validated)

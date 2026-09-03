@@ -22,6 +22,7 @@ import com.whip.app.domain.HabitTimerStartOutcome
 import com.whip.app.domain.HabitTimerStartRequest
 import com.whip.app.domain.HabitTimerStopOutcome
 import com.whip.app.domain.MetricSourceType
+import com.whip.app.domain.MetricValueKind
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.valueInUnit
 import com.whip.app.domain.valueForPeriod
@@ -72,6 +73,40 @@ class HabitRepositoryTest {
         val id = repository.create(HabitDraft(name = "Glasses", trackingMode = HabitTrackingMode.Count, targetMin = 8.0, startDate = FixedClock.today()))
         repeat(6) { repository.log(id, 1.0) }
         assertEquals(6.0, repository.logs.first().sumOf { it.value ?: 0.0 }, 0.0)
+    }
+
+    @Test fun invalidSourcesAndUnavailableHabitsRejectNewProgress() = runBlocking {
+        val today = FixedClock.today()
+        val missingSource = HabitDraft(
+            name = "Missing source",
+            trackingMode = HabitTrackingMode.Count,
+            sourceMetricId = "missing",
+            startDate = today,
+        )
+        assertTrue(runCatching { repository.create(missingSource) }.isFailure)
+
+        val sourceId = measurements.ensureMetric(
+            id = "source-count",
+            name = "Source count",
+            valueKind = MetricValueKind.Integer,
+            dimension = UnitDimension.Count,
+            defaultUnitId = "count",
+            precision = 0,
+        )
+        val syncedId = repository.create(missingSource.copy(name = "Synced", sourceMetricId = sourceId))
+        assertTrue(runCatching { repository.log(syncedId, 1.0) }.isFailure)
+
+        val pausedId = repository.create(HabitDraft(name = "Paused", startDate = today))
+        repository.setPaused(pausedId, true)
+        assertTrue(runCatching { repository.log(pausedId, 1.0) }.isFailure)
+
+        val archivedId = repository.create(HabitDraft(name = "Archived", startDate = today))
+        repository.setArchived(archivedId, true)
+        assertTrue(runCatching { repository.log(archivedId, 1.0) }.isFailure)
+
+        val currentId = repository.create(HabitDraft(name = "Current", startDate = today))
+        assertTrue(runCatching { repository.log(currentId, 1.0, date = today.plusDays(1)) }.isFailure)
+        assertTrue(repository.logs.first().isEmpty())
     }
 
     @Test fun reorderNormalizesOmittedArchivedHabitsWithoutDuplicatePositions() = runBlocking {
@@ -504,8 +539,43 @@ class HabitRepositoryTest {
             ),
         )
 
-        assertEquals(listOf(bottle.id), repository.checklistItems.first().map { it.id })
-        assertTrue(repository.checklistStates.first().isEmpty())
+        val retained = repository.checklistItems.first()
+        assertEquals(listOf(bottle.id), retained.filterNot { it.archived }.map { it.id })
+        assertEquals(setOf(keys.id, reordered.single { it.name == "Wallet" }.id), retained.filter { it.archived }.map { it.id }.toSet())
+        assertEquals(keys.id, repository.checklistStates.first().single { it.completed }.itemId)
+    }
+
+    @Test fun archivedChecklistHistoryDoesNotCompleteTheRemainingActiveChecklist() = runBlocking {
+        val today = FixedClock.today()
+        val id = repository.create(
+            HabitDraft(
+                name = "Pack",
+                trackingMode = HabitTrackingMode.Checklist,
+                startDate = today,
+                checklistItems = listOf(
+                    HabitChecklistItemDraft("Keys", 0),
+                    HabitChecklistItemDraft("Bottle", 1),
+                ),
+            ),
+        )
+        val original = repository.checklistItems.first()
+        val keys = original.single { it.name == "Keys" }
+        val bottle = original.single { it.name == "Bottle" }
+        repository.toggleChecklistItem(id, keys.id, today, true)
+
+        repository.update(
+            id,
+            HabitDraft(
+                name = "Pack",
+                trackingMode = HabitTrackingMode.Checklist,
+                startDate = today,
+                checklistItems = listOf(HabitChecklistItemDraft("Bottle", 0, bottle.id, bottle.uuid)),
+            ),
+        )
+        repository.toggleChecklistItem(id, bottle.id, today, false)
+
+        assertTrue(repository.logs.first().isEmpty())
+        assertEquals(keys.id, repository.checklistStates.first().single { it.completed }.itemId)
     }
 
     @Test fun checklistOnlyAutoCompletesAfterTheFinalItem() = runBlocking {

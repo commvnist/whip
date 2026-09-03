@@ -38,6 +38,7 @@ import com.whip.app.domain.canonicalResistanceKg
 import java.security.MessageDigest
 import java.time.DayOfWeek
 import java.time.Instant
+import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -411,6 +412,206 @@ class RoomBackupRepository(
             }
         }
         validateBackupUnitReferencesAndCanonicalValues(tables)
+        validateBackupDomainRelationships(tables)
+    }
+
+    /**
+     * SQLite foreign keys prove that each referenced row exists, but several
+     * historical tables deliberately store two owners so a row can still point
+     * at a real child belonging to the wrong parent. Reject those valid-looking
+     * cross-owner links, unknown enums, and invalid authored primitives before
+     * replace or merge touches live data.
+     */
+    private fun validateBackupDomainRelationships(tables: JSONObject) {
+        fun enumNames(vararg values: String) = values.toSet()
+        fun JSONObject.requireEnum(key: String, values: Set<String>, label: String) {
+            require(optString(key) in values) { "Backup $label has an unknown $key" }
+        }
+
+        val areaKeys = mutableSetOf<String>()
+        tables.getJSONArray("areas").forEachObject { row ->
+            val name = row.optString("name")
+            require(name.isNotBlank() && row.optString("nameKey") == areaNameKey(name)) {
+                "Backup Area has an invalid normalized name"
+            }
+            require(areaKeys.add(row.getString("nameKey"))) { "Backup contains duplicate Area names" }
+        }
+        val tagNames = mutableSetOf<String>()
+        tables.getJSONArray("tags").forEachObject { row ->
+            val name = row.optString("name").trim()
+            require(name.isNotBlank() && ',' !in name) { "Backup Tag has an invalid name" }
+            require(tagNames.add(name.lowercase(Locale.ROOT))) { "Backup contains duplicate Tag names" }
+        }
+
+        val metrics = tables.getJSONArray("metric_definitions").objects().associateBy { it.getString("id") }
+        tables.getJSONArray("metric_definitions").forEachObject { row ->
+            row.requireEnum(
+                "valueKind",
+                enumNames("Boolean", "Integer", "Decimal", "Duration", "Percentage", "Rating", "TimeOfDay", "Checklist"),
+                "metric definition",
+            )
+            row.requireEnum("dimension", UnitDimension.entries.mapTo(mutableSetOf(), UnitDimension::name), "metric definition")
+        }
+        val metricEntries = tables.getJSONArray("metric_entries").objects().associateBy { it.getString("id") }
+        metricEntries.values.forEach { row ->
+            require(metrics.containsKey(row.getString("metricId"))) { "Backup metric history references a missing metric" }
+            row.requireEnum("status", enumNames("Recorded", "Missing", "Failed", "Skipped", "Excused"), "metric history")
+            row.requireEnum("sourceType", enumNames("Manual", "Habit", "Goal", "Task", "Workout", "Exercise", "Track", "Import", "HealthConnect"), "metric history")
+        }
+
+        val tasks = tables.getJSONArray("tasks").objects().associateBy { it.getLong("id") }
+        tasks.values.forEach { row ->
+            require(row.optString("title").isNotBlank()) { "Backup Task has no title" }
+            row.requireEnum("scheduleKind", enumNames("Anytime", "Once", "Recurring"), "Task")
+            row.requireEnum("progressDisplay", enumNames("Percent", "Fraction", "Both"), "Task")
+            row.requireEnum("repeatStepPolicy", enumNames("Reset", "CarryUnfinished"), "Task")
+            row.requireEnum("priority", enumNames("None", "Low", "Medium", "High", "Urgent"), "Task")
+            row.requireEnum("effort", enumNames("Unspecified", "Light", "Medium", "High"), "Task")
+            row.requireEnum("missedOccurrencePolicy", enumNames("KeepOldest", "KeepLatest", "CurrentOnly"), "Task")
+            val time = row.optLongOrNull("timeMinutes")
+            val duration = row.optLongOrNull("durationMinutes")
+            require(time == null || time in 0..1439) { "Backup Task has an invalid time" }
+            require(duration == null || duration in 1..1440) { "Backup Task has an invalid duration" }
+            when (row.getString("scheduleKind")) {
+                "Anytime" -> Unit
+                "Once" -> require(row.optLongOrNull("dateEpochDay") != null) { "Backup scheduled Task has no date" }
+                "Recurring" -> {
+                    require(row.optLongOrNull("dateEpochDay") != null) { "Backup recurring Task has no start date" }
+                    row.requireEnum("recurrenceUnit", enumNames("Days", "Weeks", "Months", "Years"), "recurring Task")
+                    row.requireEnum("recurrenceEnd", enumNames("Never", "OnDate", "AfterCount"), "recurring Task")
+                    row.requireEnum("recurrenceAnchor", enumNames("Schedule", "Completion"), "recurring Task")
+                    require(row.optInt("recurrenceInterval", 0) > 0) { "Backup recurring Task has an invalid interval" }
+                }
+            }
+        }
+        val taskSteps = tables.getJSONArray("task_steps").objects().associate { it.getLong("id") to it.getLong("taskId") }
+        tables.getJSONArray("task_step_states").forEachObject { row ->
+            require(taskSteps[row.getLong("stepId")] == row.getLong("taskId")) {
+                "Backup Subtask state belongs to a different Task"
+            }
+            val completed = row.optInt("completed", 0) != 0 || row.optBoolean("completed", false)
+            require(completed == (row.optLongOrNull("completedAtMillis") != null)) {
+                "Backup Subtask state has inconsistent completion data"
+            }
+        }
+        tables.getJSONArray("task_occurrences").forEachObject { row ->
+            require(tasks.containsKey(row.getLong("taskId"))) { "Backup occurrence references a missing Task" }
+            row.requireEnum("state", enumNames("Open", "Completed", "Skipped"), "Task occurrence")
+            require((row.getString("state") == "Open") == (row.optLongOrNull("completedAtMillis") == null)) {
+                "Backup Task occurrence has inconsistent completion data"
+            }
+        }
+
+        val habits = tables.getJSONArray("habits").objects().associateBy { it.getLong("id") }
+        habits.values.forEach { row ->
+            require(row.optString("name").isNotBlank()) { "Backup Habit has no name" }
+            row.requireEnum("trackingMode", enumNames("CheckOff", "Count", "Decimal", "Duration", "Checklist", "Rating", "LogOnly"), "Habit")
+            row.requireEnum("comparison", enumNames("AtLeast", "AtMost", "Exactly", "WithinRange", "None"), "Habit")
+            row.requireEnum("targetPeriod", enumNames("Occurrence", "Day", "Week", "Month", "RollingDays"), "Habit")
+            row.requireEnum("scheduleType", enumNames("Daily", "SelectedWeekdays", "EveryNDays", "FlexibleTimesPerWeek", "FlexibleTimesPerMonth"), "Habit")
+            row.requireEnum("endType", enumNames("Never", "OnDate", "AfterStreak", "AfterCompletions", "AfterTotal"), "Habit")
+            row.requireEnum("weekStart", enumNames("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"), "Habit")
+            val metric = metrics[row.getString("metricId")] ?: error("Backup Habit references a missing metric")
+            require(metric.getString("dimension") == row.getString("dimension")) { "Backup Habit metric uses another measurement type" }
+            val expectedValueKind = when (row.getString("trackingMode")) {
+                "CheckOff" -> "Boolean"
+                "Count" -> "Integer"
+                "Decimal", "LogOnly" -> "Decimal"
+                "Duration" -> "Duration"
+                "Checklist" -> "Checklist"
+                "Rating" -> "Rating"
+                else -> error("Backup Habit has an unknown tracking mode")
+            }
+            require(metric.getString("valueKind") == expectedValueKind) { "Backup Habit metric has incompatible value semantics" }
+            row.nonBlankString("sourceMetricId")?.let { sourceId ->
+                val source = metrics[sourceId] ?: error("Backup Habit references a missing connected data source")
+                require(source.getString("dimension") == row.getString("dimension")) {
+                    "Backup Habit connected data source uses another measurement type"
+                }
+                val expectedSourceMode = when (source.getString("valueKind")) {
+                    "Integer" -> "Count"
+                    "Duration" -> "Duration"
+                    else -> "Decimal"
+                }
+                require(row.getString("trackingMode") == expectedSourceMode) {
+                    "Backup Habit tracking does not match its connected data source"
+                }
+            }
+        }
+        val checklistItems = tables.getJSONArray("habit_checklist_items").objects()
+            .associate { it.getLong("id") to it.getLong("habitId") }
+        tables.getJSONArray("habit_checklist_states").forEachObject { row ->
+            require(checklistItems[row.getLong("itemId")] == row.getLong("habitId")) {
+                "Backup checklist history belongs to a different Habit"
+            }
+            val completed = row.optInt("completed", 0) != 0 || row.optBoolean("completed", false)
+            require(!completed || row.optLongOrNull("completedAtMillis") != null) {
+                "Backup checklist history has no completion time"
+            }
+        }
+        tables.getJSONArray("habit_logs").forEachObject { row ->
+            val habit = habits[row.getLong("habitId")] ?: error("Backup Habit history references a missing Habit")
+            row.requireEnum("status", enumNames("Recorded", "Success", "Failed"), "Habit history")
+            row.requireEnum("sourceType", enumNames("Manual", "Habit", "Goal", "Task", "Workout", "Exercise", "Track", "Import", "HealthConnect"), "Habit history")
+            row.nonBlankString("metricEntryId")?.let { entryId ->
+                require(metricEntries[entryId]?.getString("metricId") == habit.getString("metricId")) {
+                    "Backup Habit history points to another metric"
+                }
+            }
+        }
+
+        tables.getJSONArray("goals").forEachObject { row ->
+            require(row.optString("name").isNotBlank()) { "Backup Goal has no name" }
+            row.requireEnum("type", enumNames("ReachValue", "ReduceValue", "AccumulateTotal", "MaintainRange", "MeetAverage", "Consistency", "WeightedMilestones", "OpenEndedTrend", "ElapsedSince"), "Goal")
+            row.requireEnum("aggregation", enumNames("Latest", "Sum", "Average", "Minimum", "Maximum", "CompletionCount", "TimeInRange"), "Goal")
+            row.requireEnum("aggregationPeriod", enumNames("All", "Day", "Week", "Month", "RollingDays"), "Goal")
+            row.requireEnum("direction", enumNames("Increase", "Decrease", "Neutral"), "Goal")
+            row.requireEnum("paceType", enumNames("Linear", "None"), "Goal")
+            row.requireEnum("consistencyPeriod", enumNames("Day", "Week", "Month"), "Goal")
+            row.requireEnum("elapsedDisplayUnit", enumNames("Auto", "Minutes", "Hours", "Days", "Weeks", "Years"), "Goal")
+            row.requireEnum("status", enumNames("Active", "Paused", "Completed", "Abandoned", "Archived"), "Goal")
+            val metric = metrics[row.getString("metricId")] ?: error("Backup Goal references a missing metric")
+            require(metric.getString("dimension") == row.getString("dimension")) { "Backup Goal metric uses another measurement type" }
+            require(metric.getString("valueKind") == "Decimal") { "Backup Goal metric has incompatible value semantics" }
+        }
+        tables.getJSONArray("goal_completion_snapshots").forEachObject { row ->
+            row.requireEnum("status", enumNames("Completed", "Abandoned"), "Goal closure history")
+        }
+
+        val trackFields = tables.getJSONArray("track_fields").objects().associateBy { it.getLong("id") }
+        val trackEntries = tables.getJSONArray("track_entries").objects().associateBy { it.getLong("id") }
+        val trackChoices = tables.getJSONArray("track_choice_options").objects().associateBy { it.getLong("id") }
+        trackFields.values.forEach { row ->
+            row.requireEnum("type", enumNames("ShortText", "LongText", "Number", "SingleChoice", "Scale", "Date", "YesNo"), "Track Field")
+        }
+        tables.getJSONArray("track_values").forEachObject { row ->
+            val field = trackFields[row.getLong("fieldId")] ?: error("Backup Track value references a missing Field")
+            val entry = trackEntries[row.getLong("entryId")] ?: error("Backup Track value references a missing Entry")
+            require(field.getLong("trackId") == entry.getLong("trackId")) { "Backup Track value crosses Track definitions" }
+            val present = buildSet {
+                if (row.nonBlankString("textValue") != null) add("Text")
+                if (row.nullableDouble("enteredNumber") != null) add("Number")
+                if (row.optLongOrNull("choiceOptionId") != null) add("Choice")
+                if (row.nullableDouble("scaleValue") != null) add("Scale")
+                if (row.optLongOrNull("dateEpochDay") != null) add("Date")
+                if (row.opt("booleanValue").let { it != null && it != JSONObject.NULL }) add("Boolean")
+            }
+            val expectedShape = when (field.getString("type")) {
+                "ShortText", "LongText" -> "Text"
+                "Number" -> "Number"
+                "SingleChoice" -> "Choice"
+                "Scale" -> "Scale"
+                "Date" -> "Date"
+                "YesNo" -> "Boolean"
+                else -> error("Backup Track Field has an unknown type")
+            }
+            require(present == setOf(expectedShape)) { "Backup Track value does not match its Field type" }
+            row.optLongOrNull("choiceOptionId")?.let { choiceId ->
+                require(trackChoices[choiceId]?.getLong("fieldId") == field.getLong("id")) {
+                    "Backup Track choice belongs to another Field"
+                }
+            }
+        }
     }
 
     private data class BackupUnitContract(

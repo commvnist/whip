@@ -83,6 +83,25 @@ class TaskRepositoryTest {
     }
 
     @Test
+    fun invalidTaskDraftsAreRejectedWithoutPartialRows() = runBlocking {
+        val invalidDrafts = listOf(
+            TaskDraft(title = " "),
+            TaskDraft(title = "x".repeat(201)),
+            TaskDraft(title = "Bad time", scheduleKind = ScheduleKind.Once, date = monday, timeMinutes = 1_440),
+            TaskDraft(title = "Bad duration", durationMinutes = 0),
+            TaskDraft(title = "Bad reminder", reminderOffsetsMinutes = listOf(-1)),
+            TaskDraft(title = "Missing date", scheduleKind = ScheduleKind.Once),
+            TaskDraft(title = "Missing recurrence", scheduleKind = ScheduleKind.Recurring),
+            TaskDraft(title = "Ambiguous tag", tags = setOf("one,two")),
+        )
+
+        invalidDrafts.forEach { draft -> assertTrue(runCatching { repository.create(draft) }.isFailure) }
+
+        assertTrue(repository.tasks.first().isEmpty())
+        assertTrue(repository.steps.first().isEmpty())
+    }
+
+    @Test
     fun stepStateIsPerOccurrenceAndAllStepsCanAutoCompleteParent() = runBlocking {
         val taskId = repository.create(recurringDraft(autoComplete = true))
         val task = requireNotNull(repository.getTask(taskId))

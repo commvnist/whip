@@ -8,6 +8,7 @@ import com.whip.app.core.WhipIdGenerator
 import com.whip.app.data.RoomMeasurementRepository
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.MetricValueKind
+import com.whip.app.domain.MetricEntryStatus
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.customUnitBoundary
 import java.time.Instant
@@ -61,6 +62,45 @@ class CustomUnitIntegrityTest {
         }
         assertTrue(failure.message.orEmpty().contains("different data"))
         assertEquals("Glass", measurements.customUnits.first().single().name)
+    }
+
+    @Test fun normalizedEnsureCannotOverwriteAnExistingConversionIdentity() = runBlocking {
+        measurements.createCustomUnitExact("unit-glass", "Glass", "gl", UnitDimension.Volume, 250.0)
+
+        assertEquals(
+            "unit-glass",
+            measurements.ensureCustomUnit(
+                id = "  unit-glass  ",
+                name = "Conflicting name",
+                symbol = "conflict",
+                dimension = UnitDimension.Volume,
+                toCanonicalFactor = 999.0,
+            ),
+        )
+
+        val stored = measurements.customUnits.first().single()
+        assertEquals("Glass", stored.name)
+        assertEquals("gl", stored.symbol)
+        assertEquals(250.0, stored.toCanonicalFactor, 0.0)
+    }
+
+    @Test fun measurementValueAndUnitMustAlwaysBeStoredAsAPair() = runBlocking {
+        val metricId = measurements.createMetric(
+            name = "Water",
+            valueKind = MetricValueKind.Decimal,
+            dimension = UnitDimension.Volume,
+            defaultUnitId = "millilitre",
+        )
+
+        expectFailure {
+            measurements.record(metricId, value = null, unitId = "millilitre", status = MetricEntryStatus.Missing)
+        }
+        expectFailure {
+            measurements.record(metricId, value = 1.0, unitId = null, status = MetricEntryStatus.Missing)
+        }
+        measurements.record(metricId, value = null, unitId = null, status = MetricEntryStatus.Missing)
+
+        assertEquals(1, measurements.entries.first().size)
     }
 
     @Test fun staleRenameAndArchiveCannotOverwriteAConcurrentEdit() = runBlocking {

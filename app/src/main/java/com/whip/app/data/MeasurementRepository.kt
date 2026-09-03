@@ -248,8 +248,10 @@ class RoomMeasurementRepository(
                 },
             )
         }
-        replaceTagName(existing.name, normalized)
-        dao.upsertTag(existing.copy(name = normalized, updatedAtMillis = clock.now().toEpochMilli()))
+        val now = clock.now().toEpochMilli()
+        val trackSearchChanged = replaceTagName(existing.name, normalized, now)
+        dao.upsertTag(existing.copy(name = normalized, updatedAtMillis = now))
+        if (trackSearchChanged) RoomTrackRepository(database, clock, ids).rebuildSearchIndex()
     }
 
     override suspend fun mergeTags(sourceId: String, targetId: String) = database.withTransaction {
@@ -257,7 +259,8 @@ class RoomMeasurementRepository(
         val source = requireNotNull(dao.getTag(sourceId)) { "Source Tag no longer exists" }
         val target = requireNotNull(dao.getTag(targetId)) { "Destination Tag no longer exists" }
         require(!target.archived) { "Choose an active destination Tag" }
-        replaceTagName(source.name, target.name)
+        val trackSearchChanged = replaceTagName(source.name, target.name, clock.now().toEpochMilli())
+        if (trackSearchChanged) RoomTrackRepository(database, clock, ids).rebuildSearchIndex()
         check(dao.deleteTag(sourceId) == 1) { "Source Tag could not be removed" }
     }
 
@@ -270,8 +273,9 @@ class RoomMeasurementRepository(
 
     override suspend fun moveArea(id: String, direction: Int) = areaRepository.move(id, direction)
 
-    private fun replaceTagName(old: String, new: String) {
+    private fun replaceTagName(old: String, new: String, now: Long): Boolean {
         val db = database.openHelper.writableDatabase
+        var trackSearchChanged = false
         listOf("tasks", "habits", "goals", "tracks").forEach { table ->
             db.query("SELECT id, tagsCsv FROM $table").use { cursor ->
                 val idIndex = cursor.getColumnIndexOrThrow("id")
@@ -281,15 +285,21 @@ class RoomMeasurementRepository(
                     if (tags.none { it.equals(old, true) }) continue
                     val replaced = tags.map { if (it.equals(old, true)) new else it }
                         .distinctBy { it.lowercase(Locale.ROOT) }.joinToString(",")
-                    db.execSQL("UPDATE $table SET tagsCsv = ? WHERE id = ?", arrayOf<Any>(replaced, cursor.getLong(idIndex)))
+                    db.execSQL(
+                        "UPDATE $table SET tagsCsv = ?, updatedAtMillis = ? WHERE id = ?",
+                        arrayOf<Any>(replaced, now, cursor.getLong(idIndex)),
+                    )
+                    if (table == "tracks") trackSearchChanged = true
                 }
             }
         }
+        return trackSearchChanged
     }
 
     private fun validateTagName(name: String): String = name.trim().also { normalized ->
         require(normalized.isNotBlank()) { "Tag name is required" }
         require(',' !in normalized) { "Use separate Tags instead of commas" }
+        require(normalized.length <= 100) { "Tag names can be at most 100 characters" }
     }
 
     override suspend fun ensureCustomUnit(
@@ -298,23 +308,24 @@ class RoomMeasurementRepository(
         symbol: String,
         dimension: UnitDimension,
         toCanonicalFactor: Double,
-    ): String {
-        require(id.isNotBlank()) { "Unit ID is required" }
-        val existing = findUnit(id)
+    ): String = database.withTransaction {
+        val normalizedId = id.trim()
+        require(normalizedId.isNotBlank()) { "Unit ID is required" }
+        val existing = findUnit(normalizedId)
         if (existing != null) {
             require(existing.dimension == dimension) { "The unit already belongs to ${existing.dimension}" }
-            return existing.id
+            return@withTransaction existing.id
         }
         require(toCanonicalFactor.isFinite() && toCanonicalFactor > 0.0) { "Conversion factor must be a finite positive number" }
         val now = clock.now().toEpochMilli()
         dao.upsertUnit(
             UnitDefinitionEntity(
-                id = id.trim(), name = name.trim().ifBlank { id.trim() }, symbol = symbol.trim(),
+                id = normalizedId, name = name.trim().ifBlank { normalizedId }, symbol = symbol.trim(),
                 dimension = dimension.name, toCanonicalFactor = toCanonicalFactor,
                 toCanonicalOffset = 0.0, custom = true, archived = false, createdAtMillis = now, updatedAtMillis = now,
             ),
         )
-        return id.trim()
+        normalizedId
     }
 
     override suspend fun renameCustomUnit(id: String, name: String, symbol: String) {
@@ -484,6 +495,9 @@ class RoomMeasurementRepository(
             "Reconciliation requires a stable measurement ID"
         }
         val metric = dao.getMetric(metricId)?.toDomain() ?: error("Metric no longer exists")
+        require((value == null) == (unitId == null)) {
+            "Measurement value and unit must be provided together"
+        }
         val unit = unitId?.let { findUnit(it) }
         require(value == null || value.isFinite()) { "Measurement value must be a finite number" }
         if (status == MetricEntryStatus.Recorded) {

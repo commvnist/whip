@@ -36,10 +36,12 @@ class RoomAreaRepository(
 
     override suspend fun ensureDefaultArea(): String = database.withTransaction {
         val area = ensureActiveArea()
-        dao.reassignAllTaskAreas(null, area.id, area.name)
-        dao.reassignAllHabitAreas(null, area.id, area.name)
-        dao.reassignAllGoalAreas(null, area.id, area.name)
-        database.trackDao().reassignAllAreas(null, area.id, area.name, clock.now().toEpochMilli())
+        val now = clock.now().toEpochMilli()
+        dao.reassignAllTaskAreas(null, area.id, area.name, now)
+        dao.reassignAllHabitAreas(null, area.id, area.name, now)
+        dao.reassignAllGoalAreas(null, area.id, area.name, now)
+        val movedTracks = database.trackDao().reassignAllAreas(null, area.id, area.name, now)
+        if (movedTracks > 0) rebuildTrackSearchIndex()
         area.id
     }
 
@@ -103,10 +105,12 @@ class RoomAreaRepository(
         val target = requireNotNull(dao.getArea(targetId)) { "Destination Area no longer exists" }
         require(!target.archived) { "Choose an active destination Area" }
         val targetName = target.name
-        dao.reassignAllTaskAreas(sourceId, targetId, targetName)
-        dao.reassignAllHabitAreas(sourceId, targetId, targetName)
-        dao.reassignAllGoalAreas(sourceId, targetId, targetName)
-        database.trackDao().reassignAllAreas(sourceId, targetId, targetName, clock.now().toEpochMilli())
+        val now = clock.now().toEpochMilli()
+        dao.reassignAllTaskAreas(sourceId, targetId, targetName, now)
+        dao.reassignAllHabitAreas(sourceId, targetId, targetName, now)
+        dao.reassignAllGoalAreas(sourceId, targetId, targetName, now)
+        val movedTracks = database.trackDao().reassignAllAreas(sourceId, targetId, targetName, now)
+        if (movedTracks > 0) rebuildTrackSearchIndex()
         Unit
     }
 
@@ -126,10 +130,12 @@ class RoomAreaRepository(
             "Choose another Area for ${area.name}'s items before deleting it."
         }
         replacement?.let { target ->
-            dao.reassignAllTaskAreas(id, target.id, target.name)
-            dao.reassignAllHabitAreas(id, target.id, target.name)
-            dao.reassignAllGoalAreas(id, target.id, target.name)
-            database.trackDao().reassignAllAreas(id, target.id, target.name, clock.now().toEpochMilli())
+            val now = clock.now().toEpochMilli()
+            dao.reassignAllTaskAreas(id, target.id, target.name, now)
+            dao.reassignAllHabitAreas(id, target.id, target.name, now)
+            dao.reassignAllGoalAreas(id, target.id, target.name, now)
+            val movedTracks = database.trackDao().reassignAllAreas(id, target.id, target.name, now)
+            if (movedTracks > 0) rebuildTrackSearchIndex()
         }
         check(dao.deleteArea(id) == 1) { "Area could not be deleted" }
     }
@@ -180,18 +186,26 @@ class RoomAreaRepository(
     }
 
     private suspend fun mergeRows(source: AreaEntity, target: AreaEntity) {
-        dao.moveTaskAreaReferences(source.id, target.id, target.name)
-        dao.moveHabitAreaReferences(source.id, target.id, target.name)
-        dao.moveGoalAreaReferences(source.id, target.id, target.name)
-        database.trackDao().moveAreaReferences(source.id, target.id, target.name, clock.now().toEpochMilli())
+        val now = clock.now().toEpochMilli()
+        dao.moveTaskAreaReferences(source.id, target.id, target.name, now)
+        dao.moveHabitAreaReferences(source.id, target.id, target.name, now)
+        dao.moveGoalAreaReferences(source.id, target.id, target.name, now)
+        val movedTracks = database.trackDao().moveAreaReferences(source.id, target.id, target.name, now)
+        if (movedTracks > 0) rebuildTrackSearchIndex()
         dao.deleteArea(source.id)
     }
 
     private suspend fun updateDisplayNames(id: String, name: String) {
-        dao.updateTaskAreaNames(id, name)
-        dao.updateHabitAreaNames(id, name)
-        dao.updateGoalAreaNames(id, name)
-        database.trackDao().updateAreaNames(id, name, clock.now().toEpochMilli())
+        val now = clock.now().toEpochMilli()
+        dao.updateTaskAreaNames(id, name, now)
+        dao.updateHabitAreaNames(id, name, now)
+        dao.updateGoalAreaNames(id, name, now)
+        val renamedTracks = database.trackDao().updateAreaNames(id, name, now)
+        if (renamedTracks > 0) rebuildTrackSearchIndex()
+    }
+
+    private suspend fun rebuildTrackSearchIndex() {
+        RoomTrackRepository(database, clock, ids).rebuildSearchIndex()
     }
 
     private suspend fun ensureActiveArea(): AreaEntity {

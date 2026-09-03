@@ -225,6 +225,29 @@ data class TaskDraft(
     val icon: String = DEFAULT_TASK_EMOJI,
 )
 
+/** One persistence contract shared by every Task creation and editing surface. */
+fun TaskDraft.validationErrors(): List<String> = buildList {
+    if (title.isBlank()) add("Task title is required")
+    if (title.codePointCount(0, title.length) > 200) add("Task titles can be at most 200 characters")
+    if (timeMinutes != null && timeMinutes !in 0..1439) add("Task time must be a valid time of day")
+    if (durationMinutes != null && durationMinutes !in 1..1440) add("Task duration must be between 1 minute and 24 hours")
+    if (reminderOffsetsMinutes.any { it < 0 }) add("Reminder offsets cannot be negative")
+    if (reminderEnabled && (scheduleKind == ScheduleKind.Anytime || timeMinutes == null)) {
+        add("Schedule a time before enabling reminders")
+    }
+    when (scheduleKind) {
+        ScheduleKind.Anytime -> Unit
+        ScheduleKind.Once -> if (date == null) add("Choose a Task date")
+        ScheduleKind.Recurring -> if (recurrence == null) add("Choose a recurrence rule")
+    }
+    if (tags.any { ',' in it }) add("Use separate Tags instead of commas")
+    val stepIds = steps.mapNotNull(TaskStepDraft::id)
+    if (stepIds.distinct().size != stepIds.size) add("Subtask identities must be unique")
+    if (steps.any { it.title.codePointCount(0, it.title.length) > 200 }) {
+        add("Subtask titles can be at most 200 characters")
+    }
+}.distinct()
+
 data class ScheduledTask(
     val task: WhipTask,
     val originalDate: LocalDate?,

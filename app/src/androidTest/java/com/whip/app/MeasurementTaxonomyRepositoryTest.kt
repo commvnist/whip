@@ -18,8 +18,10 @@ import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.MetricValueKind
 import com.whip.app.domain.TaskDraft
 import com.whip.app.domain.TrackDraft
+import com.whip.app.domain.TrackEntryDraft
 import com.whip.app.domain.TrackFieldDraft
 import com.whip.app.domain.TrackFieldType
+import com.whip.app.domain.TrackValueDraft
 import com.whip.app.domain.UnitDimension
 import java.time.Instant
 import java.time.LocalDate
@@ -99,6 +101,57 @@ class MeasurementTaxonomyRepositoryTest {
         assertEquals(workId, goals.goals.first().single().areaId)
         assertEquals(listOf("Focus"), goals.goals.first().single().tags)
         assertEquals(listOf("Focus"), tracks.tracks.first().single { it.id == trackId }.tags)
+    }
+
+    @Test
+    fun taxonomyRenamesAdvanceRevisionsAndRebuildTrackSearch() = runBlocking {
+        val areaId = measurements.ensureArea("Alpha Area")
+        val tagId = measurements.ensureTag("Alpha Tag")
+        val taskId = tasks.create(TaskDraft(title = "Task", areaId = areaId, tags = setOf("Alpha Tag")))
+        val habitId = habits.create(
+            HabitDraft(name = "Habit", areaId = areaId, tags = listOf("Alpha Tag"), startDate = FixedClock.today()),
+        )
+        val goalId = goals.create(
+            GoalDraft(
+                name = "Goal",
+                areaId = areaId,
+                tags = listOf("Alpha Tag"),
+                type = GoalType.OpenEndedTrend,
+                startDate = FixedClock.today(),
+            ),
+        )
+        val trackId = tracks.create(
+            TrackDraft(
+                name = "Journal",
+                areaId = areaId,
+                tags = listOf("Alpha Tag"),
+                fields = listOf(TrackFieldDraft("Note", TrackFieldType.ShortText, primary = true)),
+            ),
+        )
+        val projection = requireNotNull(tracks.projection(trackId))
+        val entryId = tracks.addEntry(
+            trackId,
+            TrackEntryDraft(
+                entryDate = FixedClock.today(),
+                values = mapOf(projection.primaryField.uuid to TrackValueDraft(textValue = "Entry")),
+            ),
+        )
+        database.taskDao().getTask(taskId)?.let { database.taskDao().updateTask(it.copy(updatedAtMillis = 1L)) }
+        database.habitDao().getHabit(habitId)?.let { database.habitDao().updateHabit(it.copy(updatedAtMillis = 1L)) }
+        database.goalDao().getGoal(goalId)?.let { database.goalDao().updateGoal(it.copy(updatedAtMillis = 1L)) }
+        database.trackDao().getTrack(trackId)?.let { database.trackDao().updateTrack(it.copy(updatedAtMillis = 1L)) }
+
+        measurements.renameArea(areaId, "Beta Zone")
+        measurements.renameTag(tagId, "Beta Tag")
+
+        assertEquals(setOf(entryId), tracks.searchEntryIds(trackId, "Beta Zone"))
+        assertEquals(setOf(entryId), tracks.searchEntryIds(trackId, "Beta Tag"))
+        assertTrue(tracks.searchEntryIds(trackId, "Alpha Area").isEmpty())
+        assertTrue(tracks.searchEntryIds(trackId, "Alpha Tag").isEmpty())
+        assertEquals(FixedClock.now().toEpochMilli(), requireNotNull(database.taskDao().getTask(taskId)).updatedAtMillis)
+        assertEquals(FixedClock.now().toEpochMilli(), requireNotNull(database.habitDao().getHabit(habitId)).updatedAtMillis)
+        assertEquals(FixedClock.now().toEpochMilli(), requireNotNull(database.goalDao().getGoal(goalId)).updatedAtMillis)
+        assertEquals(FixedClock.now().toEpochMilli(), requireNotNull(database.trackDao().getTrack(trackId)).updatedAtMillis)
     }
 
     @Test

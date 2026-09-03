@@ -20,6 +20,28 @@ import com.whip.app.domain.CustomIdentityEmoji
 
 class AppSettingsTest {
     @Test
+    fun focusTimerIdentityAndDeadlineAreNormalizedAsOneState() {
+        val deadline = 2_000_000L
+
+        assertEquals(
+            AppSettings(focusTimerDeadlineMillis = null, focusTimerTaskId = null),
+            AppSettings(focusTimerDeadlineMillis = null, focusTimerTaskId = 42L).normalized(),
+        )
+        assertEquals(
+            AppSettings(focusTimerDeadlineMillis = null, focusTimerTaskId = null),
+            AppSettings(focusTimerDeadlineMillis = deadline, focusTimerTaskId = null).normalized(),
+        )
+        assertEquals(
+            AppSettings(focusTimerDeadlineMillis = null, focusTimerTaskId = null),
+            AppSettings(focusTimerDeadlineMillis = deadline, focusTimerTaskId = 0L).normalized(),
+        )
+        assertEquals(
+            AppSettings(focusTimerDeadlineMillis = deadline, focusTimerTaskId = 42L),
+            AppSettings(focusTimerDeadlineMillis = deadline, focusTimerTaskId = 42L).normalized(),
+        )
+    }
+
+    @Test
     fun upcomingRepeatingTasksAreCompactByDefault() {
         assertEquals(false, AppSettings().showAllUpcomingTaskOccurrences)
         assertEquals(false, AppSettings().showHabitsInTaskPlanning)

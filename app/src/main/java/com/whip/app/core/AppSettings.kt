@@ -410,6 +410,7 @@ fun AppSettings.normalized(): AppSettings {
     } else {
         knownHidden
     }
+    val validFocusTimerPair = focusTimerDeadlineMillis != null && (focusTimerTaskId ?: 0L) > 0L
     return copy(
         activeAreaScope = AreaScope.fromStorageKey(activeAreaScope).storageKey,
         chosenOpeningAreaScope = AreaScope.fromStorageKey(chosenOpeningAreaScope).storageKey,
@@ -443,6 +444,8 @@ fun AppSettings.normalized(): AppSettings {
         } ?: "Smart",
         customIdentityEmojis = normalizeCustomIdentityEmojis(customIdentityEmojis),
         trackedGymRecords = normalizeTrackedGymRecords(trackedGymRecords),
+        focusTimerDeadlineMillis = focusTimerDeadlineMillis.takeIf { validFocusTimerPair },
+        focusTimerTaskId = focusTimerTaskId.takeIf { validFocusTimerPair },
     )
 }
 

@@ -125,6 +125,7 @@ class RoomHabitRepository(
 
     override suspend fun create(draft: HabitDraft): Long = database.withTransaction {
         validateHabit(draft)
+        validateSourceMetric(draft)
         val area = areaRepository.resolve(draft.areaId, draft.area)
         val resolvedDraft = draft.copy(areaId = area.id, area = area.name)
         measurementRepository.ensureCustomUnit(draft.unitId, draft.unitId, draft.unitId, draft.dimension)
@@ -150,6 +151,7 @@ class RoomHabitRepository(
 
     override suspend fun update(id: Long, draft: HabitDraft) = database.withTransaction {
         validateHabit(draft)
+        validateSourceMetric(draft)
         val area = areaRepository.resolve(draft.areaId, draft.area)
         val resolvedDraft = draft.copy(areaId = area.id, area = area.name)
         measurementRepository.ensureCustomUnit(draft.unitId, draft.unitId, draft.unitId, draft.dimension)
@@ -208,10 +210,10 @@ class RoomHabitRepository(
         }
     }
 
-    override suspend fun duplicate(id: Long): Long {
+    override suspend fun duplicate(id: Long): Long = database.withTransaction {
         val habit = dao.getHabit(id)?.toDomain() ?: error("Habit no longer exists")
         val items = dao.getChecklistItems(id).filterNot { it.archived }
-        return create(habit.toDraft(items).copy(name = "${habit.name} copy"))
+        create(habit.toDraft(items).copy(name = "${habit.name} copy"))
     }
 
     override suspend fun setArchived(id: Long, archived: Boolean) = updateFlags(id) {
@@ -291,6 +293,9 @@ class RoomHabitRepository(
         val instant = timestamp ?: clock.now()
         val zone = clock.zoneId()
         val localDate = date ?: timestamp?.atZone(zone)?.toLocalDate() ?: clock.today(zone)
+        requireHabitCanAcceptManualProgress(habit)
+        require(!instant.isAfter(clock.now())) { "Habit check-ins cannot be recorded in the future" }
+        require(!localDate.isAfter(clock.today(zone))) { "Habit check-ins cannot be recorded in the future" }
         dao.deleteSkip(habitId, localDate.toEpochDay())
         val logUuid = ids.nextId()
         val effectiveValue = if (
@@ -344,6 +349,8 @@ class RoomHabitRepository(
     ): Long? = database.withTransaction {
         require(value.isFinite()) { "Habit value must be finite" }
         val habit = dao.getHabit(habitId)?.toDomain() ?: error("Habit no longer exists")
+        requireHabitCanAcceptManualProgress(habit)
+        require(!date.isAfter(clock.today(clock.zoneId()))) { "Habit check-ins cannot be recorded in the future" }
         val current = habit.valueForPeriod(
             logs = dao.getLogsForHabit(habitId).map(HabitLogEntity::toDomain),
             date = date,
@@ -428,6 +435,8 @@ class RoomHabitRepository(
     override suspend fun setCheckOff(habitId: Long, date: LocalDate, completed: Boolean) {
         database.withTransaction {
             val habit = dao.getHabit(habitId)?.toDomain() ?: error("Habit no longer exists")
+            requireHabitCanAcceptManualProgress(habit)
+            require(!date.isAfter(clock.today(clock.zoneId()))) { "Habit check-ins cannot be recorded in the future" }
             require(habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)) {
                 "This habit cannot be completed with a check-off"
             }
@@ -443,6 +452,8 @@ class RoomHabitRepository(
     ) {
         database.withTransaction {
             val habit = dao.getHabit(habitId)?.toDomain() ?: error("Habit no longer exists")
+            requireHabitCanAcceptManualProgress(habit)
+            require(!date.isAfter(clock.today(clock.zoneId()))) { "Habit check-ins cannot be recorded in the future" }
             require(habit.trackingMode == HabitTrackingMode.Checklist) { "This habit does not have checklist items" }
             val activeItems = dao.getChecklistItems(habitId).filterNot(HabitChecklistItemEntity::archived)
             val item = activeItems.firstOrNull { it.id == itemId }
@@ -869,11 +880,30 @@ class RoomHabitRepository(
                 dao.updateChecklistItem(current.copy(name = draft.name.trim(), position = index, archived = false, updatedAtMillis = now))
             }
         }
-        existing.filterNot { it.id in retainedIds }.forEach { dao.deleteChecklistItem(it.id) }
+        existing.filterNot { it.id in retainedIds || it.archived }.forEach { item ->
+            dao.updateChecklistItem(item.copy(archived = true, updatedAtMillis = now))
+        }
     }
 
-    private suspend fun updateFlags(id: Long, transform: (HabitEntity) -> HabitEntity) {
-        val current = dao.getHabit(id) ?: return
+    private suspend fun validateSourceMetric(draft: HabitDraft) {
+        val sourceId = draft.sourceMetricId ?: return
+        val source = requireNotNull(database.measurementDao().getMetric(sourceId)) {
+            "Connected data source no longer exists"
+        }
+        require(!source.archived) { "Restore the connected data source before using it" }
+        require(source.dimension == draft.dimension.name) { "Connected data source uses a different measurement type" }
+        val expectedMode = when (MetricValueKind.valueOf(source.valueKind)) {
+            MetricValueKind.Integer -> HabitTrackingMode.Count
+            MetricValueKind.Duration -> HabitTrackingMode.Duration
+            else -> HabitTrackingMode.Decimal
+        }
+        require(draft.trackingMode == expectedMode) {
+            "Habit tracking must match its connected data source"
+        }
+    }
+
+    private suspend fun updateFlags(id: Long, transform: (HabitEntity) -> HabitEntity) = database.withTransaction {
+        val current = dao.getHabit(id) ?: return@withTransaction
         dao.updateHabit(transform(current).copy(updatedAtMillis = clock.now().toEpochMilli()))
     }
 
@@ -899,9 +929,10 @@ class RoomHabitRepository(
 }
 
 private fun List<HabitChecklistItemEntity>.matches(drafts: List<HabitChecklistItemDraft>): Boolean {
+    val active = filterNot(HabitChecklistItemEntity::archived)
     val normalized = drafts.filter { it.name.isNotBlank() }.sortedBy(HabitChecklistItemDraft::position)
-    if (size != normalized.size) return false
-    return zip(normalized).withIndex().all { (index, pair) ->
+    if (active.size != normalized.size) return false
+    return active.zip(normalized).withIndex().all { (index, pair) ->
         val (stored, draft) = pair
         !stored.archived &&
             stored.name == draft.name.trim() &&
@@ -912,6 +943,12 @@ private fun List<HabitChecklistItemEntity>.matches(drafts: List<HabitChecklistIt
 private fun validateHabit(draft: HabitDraft) {
     val problems = draft.validationErrors()
     require(problems.isEmpty()) { problems.first() }
+}
+
+private fun requireHabitCanAcceptManualProgress(habit: Habit) {
+    require(!habit.archived) { "Archived Habits cannot be changed" }
+    require(!habit.paused) { "Paused Habits cannot be changed" }
+    require(habit.sourceMetricId == null) { "Synced Habits are updated by their connected data source" }
 }
 
 private fun HabitTrackingMode.metricValueKind() = when (this) {

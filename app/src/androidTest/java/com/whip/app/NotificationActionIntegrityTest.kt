@@ -74,6 +74,24 @@ class NotificationActionIntegrityTest {
     }
 
     @Test
+    fun permanentTaskDeletionDurablyClearsItsFocusTimer() = runBlocking {
+        val taskId = app.taskRepository.create(TaskDraft(title = "Focused Task"))
+        val deadline = System.currentTimeMillis() + 60_000L
+        assertTrue(
+            app.settingsRepository.updateAndConfirm {
+                it.copy(focusTimerDeadlineMillis = deadline, focusTimerTaskId = taskId)
+            },
+        )
+        app.focusTimerScheduler.schedule(taskId, deadline)
+        val impact = app.taskDeletionCoordinator.preview(taskId)
+
+        app.taskDeletionCoordinator.delete(taskId, impact.revisionToken)
+
+        assertNull(app.settingsRepository.current().focusTimerDeadlineMillis)
+        assertNull(app.settingsRepository.current().focusTimerTaskId)
+    }
+
+    @Test
     fun taskActionValidationRejectsMissingArchivedWrongClosedAndNewlyBlockedTargets() = runBlocking {
         assertNull(app.currentTaskNotificationTarget(Long.MAX_VALUE, today, TaskNotificationAction.Complete))
 
@@ -246,9 +264,17 @@ class NotificationActionIntegrityTest {
         assertEquals(true, app.isCurrentHabitNotificationAction(current, today, HabitNotificationAction.Snooze, 1.0))
         assertEquals(true, app.isCurrentHabitNotificationAction(count, today, HabitNotificationAction.Increment, 2.0))
 
+        val healthStepsMetric = app.measurementRepository.ensureMetric(
+            id = "health:steps",
+            name = "Health steps",
+            valueKind = MetricValueKind.Integer,
+            dimension = UnitDimension.Count,
+            defaultUnitId = "count",
+            precision = 0,
+        )
         val sourceLinked = app.habitRepository.create(
             reminderHabit("Health-linked", HabitTrackingMode.Count).copy(
-                sourceMetricId = "health:steps",
+                sourceMetricId = healthStepsMetric,
                 targetMin = 5_000.0,
                 quickIncrement = 1_000.0,
             ),
@@ -327,7 +353,7 @@ class NotificationActionIntegrityTest {
         val sourceMetricId = app.measurementRepository.ensureMetric(
             id = "test-source-progress",
             name = "Source progress",
-            valueKind = MetricValueKind.Decimal,
+            valueKind = MetricValueKind.Integer,
             dimension = UnitDimension.Count,
             defaultUnitId = "count",
             precision = 1,
@@ -396,6 +422,14 @@ class NotificationActionIntegrityTest {
                 sourceClaim,
             ),
         )
+        app.measurementRepository.ensureMetric(
+            id = "another-source",
+            name = "Replacement source",
+            valueKind = MetricValueKind.Integer,
+            dimension = UnitDimension.Count,
+            defaultUnitId = "count",
+            precision = 0,
+        )
         app.habitRepository.update(sourceHabitId, sourceDraft.copy(sourceMetricId = "another-source"))
         assertFalse(
             app.isCurrentHabitNotificationAction(
@@ -438,20 +472,36 @@ class NotificationActionIntegrityTest {
     @Test
     fun sourceMetricResyncOnlyTouchesLinkedReminderEnabledHabits() = runBlocking {
         val sourceMetricId = "bounded-source"
+        app.measurementRepository.ensureMetric(
+            id = sourceMetricId,
+            name = "Bounded source",
+            valueKind = MetricValueKind.Integer,
+            dimension = UnitDimension.Count,
+            defaultUnitId = "count",
+            precision = 0,
+        )
+        app.measurementRepository.ensureMetric(
+            id = "different-source",
+            name = "Different source",
+            valueKind = MetricValueKind.Integer,
+            dimension = UnitDimension.Count,
+            defaultUnitId = "count",
+            precision = 0,
+        )
         val linkedId = app.habitRepository.create(
-            reminderHabit("Linked reminder").copy(sourceMetricId = sourceMetricId),
+            reminderHabit("Linked reminder", HabitTrackingMode.Count).copy(sourceMetricId = sourceMetricId),
         )
         val noReminderId = app.habitRepository.create(
-            reminderHabit("Linked without reminder").copy(
+            reminderHabit("Linked without reminder", HabitTrackingMode.Count).copy(
                 sourceMetricId = sourceMetricId,
                 reminderMinutes = emptyList(),
             ),
         )
         val unrelatedId = app.habitRepository.create(
-            reminderHabit("Unrelated reminder").copy(sourceMetricId = "different-source"),
+            reminderHabit("Unrelated reminder", HabitTrackingMode.Count).copy(sourceMetricId = "different-source"),
         )
         val archivedId = app.habitRepository.create(
-            reminderHabit("Archived linked reminder").copy(sourceMetricId = sourceMetricId),
+            reminderHabit("Archived linked reminder", HabitTrackingMode.Count).copy(sourceMetricId = sourceMetricId),
         )
         app.habitRepository.setArchived(archivedId, true)
 
@@ -494,7 +544,7 @@ class NotificationActionIntegrityTest {
         val sourceMetricId = app.measurementRepository.ensureMetric(
             id = "observer-source-progress",
             name = "Observer source progress",
-            valueKind = MetricValueKind.Decimal,
+            valueKind = MetricValueKind.Integer,
             dimension = UnitDimension.Count,
             defaultUnitId = "count",
             precision = 1,

@@ -125,11 +125,11 @@ fun TaskDraft.toEntity(
             .sortedBy(String::lowercase).joinToString(","),
         deadlineEpochDay = deadline?.toEpochDay(),
         recurrenceAnchor = rule?.anchor?.name ?: RecurrenceAnchor.Schedule.name,
-        reminderOffsetsMinutesCsv = reminderOffsetsMinutes.filter { it >= 0 }.distinct()
+        reminderOffsetsMinutesCsv = reminderOffsetsMinutes.distinct()
             .sortedDescending().joinToString(","),
         missedOccurrencePolicy = missedOccurrencePolicy.name,
         inbox = scheduleKind == ScheduleKind.Anytime,
-        durationMinutes = durationMinutes?.coerceIn(1, 1_440),
+        durationMinutes = durationMinutes,
         effort = effort.name,
         manualPosition = manualPosition,
         icon = icon.normalizedIdentityEmoji(DEFAULT_TASK_EMOJI),

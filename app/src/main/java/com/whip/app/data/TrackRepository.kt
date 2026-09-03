@@ -631,9 +631,9 @@ class RoomTrackRepository(
         )
     }
 
-    override suspend fun duplicate(id: Long): Long {
+    override suspend fun duplicate(id: Long): Long = database.withTransaction {
         val source = projection(id) ?: error("Track no longer exists")
-        return create(
+        create(
             TrackDraft(
                 name = "${source.track.name} Copy",
                 description = source.track.description,
@@ -663,12 +663,12 @@ class RoomTrackRepository(
         )
     }
 
-    override suspend fun setPinned(id: Long, pinned: Boolean) {
+    override suspend fun setPinned(id: Long, pinned: Boolean) = database.withTransaction {
         val current = dao.getTrack(id) ?: error("Track no longer exists")
         dao.updateTrack(current.copy(pinned = pinned, updatedAtMillis = clock.now().toEpochMilli()))
     }
 
-    override suspend fun setArchived(id: Long, archived: Boolean) {
+    override suspend fun setArchived(id: Long, archived: Boolean) = database.withTransaction {
         val current = dao.getTrack(id) ?: error("Track no longer exists")
         dao.updateTrack(current.copy(archived = archived, updatedAtMillis = clock.now().toEpochMilli()))
     }

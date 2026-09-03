@@ -101,7 +101,12 @@ interface HabitDao {
     @Query("SELECT * FROM habit_logs WHERE sourceId LIKE :sourcePrefix")
     suspend fun getLogsBySourcePrefix(sourcePrefix: String): List<HabitLogEntity>
 
-    @Query("SELECT COUNT(*) FROM habit_checklist_states WHERE habitId = :habitId AND localEpochDay = :epochDay AND completed = 1")
+    @Query(
+        "SELECT COUNT(*) FROM habit_checklist_states AS state " +
+            "INNER JOIN habit_checklist_items AS item ON item.id = state.itemId " +
+            "WHERE state.habitId = :habitId AND state.localEpochDay = :epochDay AND state.completed = 1 " +
+            "AND item.habitId = :habitId AND item.archived = 0",
+    )
     suspend fun completedChecklistCount(habitId: Long, epochDay: Long): Int
 
     @Query("SELECT COALESCE(MAX(position), -1) + 1 FROM habits")

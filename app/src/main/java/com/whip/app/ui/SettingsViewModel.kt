@@ -490,6 +490,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun selectHomeTaskFilter(name: String?) = update { it.copy(homeTaskFilterName = name) }
 
     fun startFocusTimer(taskId: Long, minutes: Int = 25) {
+        require(taskId > 0L) { "Focus timer requires a valid Task" }
         val deadline = System.currentTimeMillis() + minutes.coerceIn(1, 240) * 60_000L
         update { it.copy(focusTimerDeadlineMillis = deadline, focusTimerTaskId = taskId) }
         app.focusTimerScheduler.schedule(taskId, deadline)

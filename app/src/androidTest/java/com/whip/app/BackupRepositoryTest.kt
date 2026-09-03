@@ -36,6 +36,7 @@ import com.whip.app.domain.GoalType
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.HabitDraft
+import com.whip.app.domain.HabitChecklistItemDraft
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.HabitTimerStartRequest
 import com.whip.app.domain.LinkRuleDraft
@@ -178,7 +179,7 @@ class BackupRepositoryTest {
         val recovery = JSONObject(backups.exportRecoveryBackup())
         val portableSession = portable.getJSONObject("tables").getJSONArray("habit_timer_sessions").getJSONObject(0)
         val recoverySession = recovery.getJSONObject("tables").getJSONArray("habit_timer_sessions").getJSONObject(0)
-        assertEquals(20, portable.getInt("databaseVersion"))
+        assertEquals(21, portable.getInt("databaseVersion"))
         assertEquals("ReviewRequired", portableSession.getString("state"))
         assertTrue(portableSession.isNull("anchorElapsedRealtimeMillis"))
         assertTrue(portableSession.isNull("anchorBootId"))
@@ -326,8 +327,8 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val preview = backups.previewBackup(json)
         assertEquals(3, preview.envelopeVersion)
-        assertEquals(3, preview.dataModelEpoch)
-        assertEquals(20, preview.databaseVersion)
+        assertEquals(4, preview.dataModelEpoch)
+        assertEquals(21, preview.databaseVersion)
         assertTrue(preview.checksumValid)
         assertTrue(preview.settingsIncluded)
         assertTrue(preview.totalRecords >= 3)
@@ -375,7 +376,7 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val root = JSONObject(json)
 
-        assertEquals(20, root.getInt("databaseVersion"))
+        assertEquals(21, root.getInt("databaseVersion"))
         assertEquals(false, root.getJSONObject("tables").has("track_csv_import_receipts"))
         assertEquals(1, csvReceiptCount(committed.batchUuid))
 
@@ -859,6 +860,74 @@ class BackupRepositoryTest {
             assertEquals(AppThemeMode.Dark, settings.current().themeMode)
             assertEquals("servings", measurements.customUnits.first().single().name)
         }
+    }
+
+    @Test fun crossOwnerHistoryAndUnknownEnumsAreRejectedBeforeLiveMutation() = runBlocking {
+        val firstHabitId = habits.create(
+            HabitDraft(
+                name = "First checklist",
+                trackingMode = HabitTrackingMode.Checklist,
+                checklistItems = listOf(HabitChecklistItemDraft("First item", 0)),
+                startDate = FixedClock.today(),
+            ),
+        )
+        val secondHabitId = habits.create(
+            HabitDraft(
+                name = "Second checklist",
+                trackingMode = HabitTrackingMode.Checklist,
+                checklistItems = listOf(HabitChecklistItemDraft("Second item", 0)),
+                startDate = FixedClock.today(),
+            ),
+        )
+        val firstItem = habits.checklistItems.first().single { it.habitId == firstHabitId }
+        habits.toggleChecklistItem(firstHabitId, firstItem.id, FixedClock.today(), true)
+
+        suspend fun track(name: String): Long =
+            tracks.create(
+                TrackDraft(name, fields = listOf(TrackFieldDraft("Value", TrackFieldType.ShortText, primary = true))),
+            )
+        val firstTrackId = track("First Track")
+        val secondTrackId = track("Second Track")
+        val firstTrack = requireNotNull(tracks.projection(firstTrackId))
+        val secondTrack = requireNotNull(tracks.projection(secondTrackId))
+        tracks.addEntry(
+            firstTrackId,
+            TrackEntryDraft(
+                FixedClock.today(),
+                mapOf(firstTrack.primaryField.uuid to TrackValueDraft(textValue = "First value")),
+            ),
+        )
+        val exported = backups.exportBackup()
+        val mutations: List<(JSONObject) -> Unit> = listOf(
+            { root ->
+                root.getJSONObject("tables").getJSONArray("habit_checklist_states")
+                    .getJSONObject(0).put("habitId", secondHabitId)
+            },
+            { root ->
+                root.getJSONObject("tables").getJSONArray("track_values")
+                    .getJSONObject(0).put("fieldId", secondTrack.primaryField.id)
+            },
+            { root ->
+                root.getJSONObject("tables").getJSONArray("tasks")
+                    .put(
+                        JSONObject()
+                            .put("id", 999_999)
+                            .put("uuid", "invalid-task-enum")
+                            .put("title", "Invalid")
+                            .put("scheduleKind", "Sometimes"),
+                    )
+            },
+        )
+
+        mutations.forEach { mutate ->
+            val malformed = JSONObject(exported)
+            mutate(malformed)
+            refreshBackupChecksum(malformed)
+            assertTrue(runCatching { backups.previewBackup(malformed.toString()) }.isFailure)
+            assertTrue(runCatching { backups.restoreBackup(malformed.toString()) }.isFailure)
+        }
+        assertEquals(setOf(firstHabitId, secondHabitId), habits.habits.first().mapTo(mutableSetOf()) { it.id })
+        assertEquals(setOf(firstTrackId, secondTrackId), tracks.tracks.first().mapTo(mutableSetOf()) { it.id })
     }
 
     @Test fun replaceRestoreRejectsAUnitConversionThatContradictsCanonicalHistoryBeforeMutation() = runBlocking {
