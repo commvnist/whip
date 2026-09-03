@@ -689,3 +689,14 @@
 - Related: `FB-20260903-007`, `IMP-20260903-011`, `VER-20260903-011`.
 - Verification: `VER-20260903-012`.
 - Status: Released and physically verified; version commit `7455073`.
+
+### IMP-20260903-013 — Checklist Habit quick-add removal
+
+- Restricted Quick increment and the preset/range/expert Quick Buttons builder to unsynced Count and Decimal Habits.
+- Made draft validation ignore irrelevant quick-add state for all other modes and made repository persistence canonicalize it to increment `1.0` with an empty preset list.
+- Updated Details guidance for nonnumeric modes and protected Count → Checklist switching, save output, and repository round-trip with domain and Android regressions.
+- Added one JVM and two Android tests; updated the declared baseline to 1,507 product tests: 584 JVM and 923 Android.
+- Important files: `HabitModels.kt`, `HabitRepository.kt`, `HabitScreens.kt`, `HabitRulesTest.kt`, `HabitRepositoryTest.kt`, `EntitySaveCoordinatorUiTest.kt`, and `docs/testing.md`.
+- Related: `FB-20260903-008`, `FND-20260903-015`, `DEC-20260903-008`, `VER-20260903-013`.
+- Verification: `VER-20260903-013`.
+- Status: Implemented and pushed in `bc3de02`; not yet released to the phone.

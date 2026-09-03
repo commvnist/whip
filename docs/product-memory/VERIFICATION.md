@@ -722,3 +722,13 @@
 - Source: implementation `9ba83b0`; version/release source `7455073`.
 - Related: `FB-20260903-007`, `IMP-20260903-011`, `IMP-20260903-012`, `VER-20260903-011`.
 - Status: Signed release installed and verified on the physical phone.
+
+### VER-20260903-013 — Checklist Habit quick-add correction verification
+
+- Production Kotlin, Android-test Kotlin, and the focused `HabitRulesTest` compiled/passed after the capability change.
+- The exact editor switch/save regression and repository canonicalization regression passed three consecutive disposable-emulator runs: 6/6 executions with zero failures/skips.
+- The broader Habit profile passed all selected JVM Habit rule/timer/mutation/presentation suites and 68/68 Android repository, skip journey, history, and card-design tests with zero failures/skips.
+- `git diff --check` passed before the implementation commit. No instrumentation ran on the physical phone, and this change has not yet been installed there.
+- Source: `bc3de02`.
+- Related: `FB-20260903-008`, `FND-20260903-015`, `DEC-20260903-008`, `IMP-20260903-013`.
+- Status: Passed in the stated targeted and broader Habit scopes.

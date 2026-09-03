@@ -220,3 +220,10 @@ These records preserve durable user intent. “Released” means the change reac
 - Destructive boundary: Preserve Android installation identity and user data; do not run instrumentation on the physical phone.
 - Related: `FND-20260903-013`, `FND-20260903-014`, `DEC-20260903-007`, `IMP-20260903-011`, `IMP-20260903-012`, `VER-20260903-011`, `VER-20260903-012`.
 - Status: Implemented, verified, pushed, and released to the physical phone as Whip 0.3.42/code 48.
+
+### FB-20260903-008 — Remove numeric Quick Buttons from checklist Habits
+
+- User need: Checklist Habit creation must not show “Quick Buttons,” preset numeric adds, or range generation because those amounts have no relationship to checking named items.
+- Acceptance criteria: Switching a Habit from Count to Checklist immediately removes Quick increment and the complete preset/range builder; saving cannot be blocked by stale quick-add text; the resulting Checklist persists no numeric presets; manual Count and Decimal Habits retain the feature.
+- Related: `FND-20260903-015`, `DEC-20260903-008`, `IMP-20260903-013`, `VER-20260903-013`.
+- Status: Implemented, regression verified, and pushed in `bc3de02`; not yet included in a numbered phone release.

@@ -708,3 +708,14 @@
 - Evidence: `RoutineBuilder.kt` and the end-to-end `RoutineBuilderUiTest#emptyCustomFiveThreeOneCanCreateAndAddSeveralLiftsWithoutLeavingSetup` journey.
 - Resolution: Made Add another lift unconditional for Custom layout, routed empty-library creation through the same picker, and taught selection to append a new complete custom-lift slot when the picker owns the next index.
 - Status: Resolved in `IMP-20260903-011`, verified in `VER-20260903-011`, and released in `VER-20260903-012`.
+
+### FND-20260903-015 — Checklist Habit editing exposed and persisted unrelated numeric quick-add configuration
+
+- Severity/category: P1 Habit UX comprehension and domain integrity.
+- Observed: Habit Additional Details rendered `NumericQuickActionBuilder` for every manual tracking mode. Checklist and Check-off therefore exposed preset numeric adds, range endpoints, and expert numeric entry even though their daily interaction is boolean/item completion. Parsing and draft construction also retained this unrelated state.
+- Expected: Numeric quick-add configuration exists only for manually accumulated Count and Decimal Habits. Other tracking modes neither show nor validate those fields, and their durable rows use canonical neutral values.
+- Why it matters: The controls imply that checklist items are quantities, increase cognitive load, and let irrelevant hidden state block or pollute a Checklist save.
+- Affected users: Checklist and Check-off Habit users, especially anyone who changes an existing numeric Habit’s tracking mode.
+- Evidence: `HabitScreens.kt`, `HabitModels.kt`, `HabitRepository.kt`, `HabitRulesTest.kt`, `HabitRepositoryTest.kt`, and `EntitySaveCoordinatorUiTest.kt`.
+- Resolution: Added one domain capability rule, used it in editor visibility/draft validation and repository persistence, canonicalized unsupported modes to increment `1.0` with no presets, and added exact switch/save/persistence regressions.
+- Status: Resolved in `IMP-20260903-013`, verified in `VER-20260903-013`, and pushed in `bc3de02`; awaiting a future phone release.

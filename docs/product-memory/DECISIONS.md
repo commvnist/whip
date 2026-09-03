@@ -621,3 +621,12 @@
 - Compatibility: UI/state-flow only; no persistence or schema change. Existing Exercises, Routines, active workouts, and historical workouts are unchanged.
 - Related: `FB-20260903-007`, `FND-20260903-013`, `FND-20260903-014`, `IMP-20260903-011`, `VER-20260903-011`.
 - Status: Accepted, implemented, verified, and released in Whip 0.3.42/code 48.
+
+### DEC-20260903-008 — Make numeric quick adds an explicit Habit tracking-mode capability
+
+- Context: Quick increment, preset amounts, and generated ranges only drive one-tap accumulation on the Count and Decimal Habit cards, but the editor exposed their configuration to all manual modes and the shared validator treated the increment as universally meaningful.
+- Decision: `HabitTrackingMode.supportsQuickAddAmounts()` is the single semantic gate. Only unsynced Count and Decimal drafts render, parse, validate, and persist quick-add values. Every other mode persists the neutral non-null database representation (`1.0`, empty presets).
+- Rationale: Visibility alone would leave hidden invalid state and alternate repository callers inconsistent. One small capability rule keeps UI, validation, and persistence aligned without introducing a generic behavior framework.
+- Compatibility: No schema or historical-log change. Existing irrelevant presets on a nonnumeric Habit become invisible immediately and are removed the next time that Habit is saved; Count/Decimal behavior is unchanged.
+- Related: `FB-20260903-008`, `FND-20260903-015`, `IMP-20260903-013`, `VER-20260903-013`.
+- Status: Accepted, implemented, and pushed in `bc3de02`.
