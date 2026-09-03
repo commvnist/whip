@@ -574,3 +574,12 @@
 - Scope: Exact failure reproduction and targeted repair evidence. The complete 581-JVM/904-Android frozen-candidate gate is restarting from the new production-source signature.
 - Related: `FND-20260902-021`, `FND-20260902-022`, `DEC-20260902-025`, `DEC-20260902-026`, `IMP-20260902-028`.
 - Status: Targeted checks passed; complete gate pending.
+
+### VER-20260902-030 — Stable Habit navigation verification
+
+- The complete candidate gate exposed two failures in `WhipNavigationTest`: both expected the stable `habit-destination-All` identity after the visible label had changed to “All Habits”.
+- `WhipNavigationTest#switchingPrimaryAreasPreservesEachAreasLastHeading` and `#everyFirstClassDestinationIsReachableThroughVisibleNavigation` passed together on the disposable API 34 emulator three consecutive times after explicit enum-name identities were restored.
+- Both the loading and loaded Habit navigation bars now share the same explicit identity contract while retaining the clearer visible label.
+- Scope: Exact failure reproduction and repeated targeted repair evidence. The complete frozen-candidate gate must restart because production source changed.
+- Related: `FND-20260902-023`, `DEC-20260902-027`, `IMP-20260902-029`.
+- Status: Targeted checks passed; complete gate pending.

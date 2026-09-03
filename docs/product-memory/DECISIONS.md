@@ -548,3 +548,12 @@
 - Compatibility: Runtime synchronization only; no persisted data, schema, backup format, or recovery decision changes.
 - Related: `FND-20260902-022`, `IMP-20260902-028`, `VER-20260902-029`.
 - Status: Accepted, implemented, and repeated emulator verified.
+
+### DEC-20260902-027 — Keep navigation identity independent from interface copy
+
+- Context: `DestinationTabBar` supports an explicit stable tag value, but Habit navigation relied on the default visible label. The label became “All Habits” while the durable enum identity remained `All`.
+- Decision: Habit destinations use `HabitDestination.name` for test identity and `HabitDestination.label` for visible and spoken interface language in both loading and normal workspace states.
+- Rationale: Product copy should optimize comprehension and remain free to localize; automation identity should optimize stability. Keeping those concerns explicit preserves fast, meaningful regression coverage without compromising interface language.
+- Compatibility: Semantics/test identity only. No Habit, schedule, log, setting, database, or backup data changes.
+- Related: `FND-20260902-023`, `IMP-20260902-029`, `VER-20260902-030`.
+- Status: Accepted, implemented, and repeatedly emulator verified.

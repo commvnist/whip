@@ -193,6 +193,7 @@ fun HabitAreaContent(
                 onSelect = { destination = it },
                 label = HabitDestination::label,
                 testTagPrefix = "habit-destination",
+                testTagValue = HabitDestination::name,
                 barTestTag = "habit-workspace-navigation",
             )
             DomainLoadContent("habits", PaddingValues(), state.errorMessage, viewModel::retryLoading)
@@ -350,6 +351,7 @@ fun HabitAreaContent(
             onSelect = { destination = it; focusedArchivedHabitId = null },
             label = HabitDestination::label,
             testTagPrefix = "habit-destination",
+            testTagValue = HabitDestination::name,
             barTestTag = "habit-workspace-navigation",
         )
         when (destination) {

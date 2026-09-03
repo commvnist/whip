@@ -543,3 +543,14 @@
 - Evidence: `WhipApplication.kt`, `StartupRecoveryGate.kt`, and `RecoveryBoundaryIntegrationTest.kt`.
 - Resolution: Implemented in `IMP-20260902-028` under `DEC-20260902-026` and verified repeatedly in `VER-20260902-029`.
 - Status: Resolved; complete frozen-candidate verification is rerunning.
+
+### FND-20260902-023 — Habit navigation identity changed with visible copy
+
+- Severity/category: P2 navigation testability, design-system identity, and regression reliability.
+- Observed: Renaming the visible Habit destination from “All” to the clearer “All Habits” also changed its generated Compose test tag from `habit-destination-All` to `habit-destination-All Habits`. Two app-wide navigation journeys could no longer identify the destination even though the screen remained visible.
+- Expected: User-facing labels may evolve or localize without changing stable navigation identity. Loading and loaded states expose the same destination identifiers.
+- Why it matters: Coupling automation identity to product copy turns harmless clarity improvements into silent cross-product regression failures and makes the full QA gate slower and less trustworthy.
+- Affected users: Indirectly all users through navigation-regression coverage; directly developers and release verification.
+- Evidence: `HabitScreens.kt` and `WhipNavigationTest.kt`.
+- Resolution: Implemented in `IMP-20260902-029` under `DEC-20260902-027` and verified in `VER-20260902-030`.
+- Status: Resolved; complete frozen-candidate verification is restarting from the corrected production-source signature.

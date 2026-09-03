@@ -554,3 +554,12 @@
 - Related: `FND-20260902-021`, `FND-20260902-022`, `DEC-20260902-025`, `DEC-20260902-026`.
 - Verification: `VER-20260902-029`.
 - Status: Implemented and targeted emulator/lint verified.
+
+### IMP-20260902-029 — Stable Habit destination identity
+
+- Assigned explicit enum-name tag values to Habit destination bars in loading and normal states while retaining the clearer explicit display labels.
+- Restored the app-wide navigation contract without reverting “All Habits” or coupling future copy changes to automation identifiers.
+- Important files: `HabitScreens.kt` and `WhipNavigationTest.kt`.
+- Related: `FND-20260902-023`, `DEC-20260902-027`.
+- Verification: `VER-20260902-030`.
+- Status: Implemented and targeted emulator verified.
