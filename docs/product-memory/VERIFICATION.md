@@ -485,3 +485,13 @@
 - Scope: Targeted development evidence only. The frozen candidate still requires the complete emulator and release gates.
 - Related: `FND-20260902-011`, `DEC-20260902-016`, `IMP-20260902-019`.
 - Status: Targeted checks passed.
+
+### VER-20260902-021 — Clean-slate data epoch verification
+
+- JVM/compile: Focused `DataEpochPolicyTest`, `FreshStartRetryPolicyTest`, `BackupContractTest`, `LaunchRequestQueueTest`, `E2ECoverageContractTest`, `AppSettingsTest`, and `UiDesignArchitectureTest` passed; the complete Android-test source compiled against schema 42. The Settings targeted profile also passed.
+- Emulator: `DataEpochBoundaryTest` passed all three tests, proving a truly fresh marker, persisted interrupted-reset state, and rejection of a raw schema-41 database without a migration. `StartupRecoveryScreenTest` passed all eight tests, including two-step erasure and non-destructive epoch-check failure. `BackupRepositoryTest` passed all 26 current-contract tests with zero skips after the six obsolete upgrade tests were removed.
+- Destructive integration: `DataEpochResetIntegrationTest` passed on the disposable API 34 emulator. In one isolated process it seeded Whip preferences/widget snapshots, schema data, and delayed work; ran `LocalDataResetter.resetAndVerify()` twice; and proved schema 42/default settings/fresh nonzero generations, removal of the sentinel and Whip-owned state, cancellation/removal of stale work, distinct generations, and preservation of an unrelated preference store.
+- Tooling/inspection: `bash -n scripts/check` and `git diff --check` passed. The complete gate now gives the destructive reset class its own final instrumentation process. Independent final review reported no P0/P1 code blocker after the double-retry and restored-launch-request races were fixed.
+- Scope: Targeted destructive and current-backup evidence, not a frozen-candidate full emulator/release/physical-phone result. Installing 0.3.36 over an older release will intentionally require explicit local-data erasure.
+- Related: `FND-20260902-012`, `DEC-20260902-017`, `IMP-20260902-020`.
+- Status: Targeted and emulator verification passed; complete release gates remain pending.

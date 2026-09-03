@@ -120,6 +120,8 @@ class WhipWidgetConfigureActivity : ComponentActivity() {
                     StartupRecoveryScreen(
                         state = startupState,
                         onRetry = app::retryStartupRecovery,
+                        onEraseAllData = app::beginFreshStartReset,
+                        onKeepDataAndClose = ::finishAffinity,
                     )
                 }
                 return@setContent

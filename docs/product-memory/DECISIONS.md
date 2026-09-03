@@ -456,3 +456,13 @@
 - Compatibility: Presentation only; no domain, Room, backup, routine, workout, or historical data changes.
 - Related: `FND-20260902-011`, `IMP-20260902-019`, `VER-20260902-020`.
 - Status: Accepted, implemented, and targeted-test verified.
+
+### DEC-20260902-017 — Cross the breaking persistence boundary with a durable data epoch
+
+- Context: The user explicitly authorized an update-time local-data wipe so Whip could stop carrying migratory and compatibility architecture. Room destructive fallback alone cannot coordinate preferences, restore journals, widgets, work, notifications, or stale launch requests and cannot provide an authored confirmation boundary.
+- Decision: Make schema 42 and portable-backup envelope 3/data version 19/data epoch 2 the only accepted contracts. Before any Whip database or recovery access, resolve an `AtomicFile` epoch marker from no-backup storage. Existing Whip state without the current marker enters a dedicated two-step reset screen; a durable `ResetInProgress` marker precedes all deletion; an interrupted or confirmed failed reset remains blocked and resumes under one mutex. Clear enumerated Whip preferences and files, cancel work/notifications, recreate and verify schema 42/defaults/a fresh generation, invalidate widgets and launch requests, then mark Current and start normal runtime. Never use Room destructive fallback or accept an old backup.
+- Rationale: A durable gate makes the intentional incompatibility visible and recoverable across process death while eliminating the false promise that obsolete shapes remain supported. Exact-current backups and one schema drastically reduce conditional architecture without silently recomputing history.
+- Safety boundary: Epoch-inspection failures can only recheck or close; they cannot authorize reset. Rapid retries are state-claimed and mutex-serialized. Non-Whip/platform preferences and external user-owned backup documents are left intact.
+- Compatibility: Deliberately breaking. Updating users must explicitly erase local Whip data before entering schema 42; pre-epoch backups are rejected. This is the requested clean slate, not a data-preserving migration.
+- Related: `FND-20260902-012`, `IMP-20260902-020`, `VER-20260902-021`.
+- Status: Accepted, implemented, and targeted/emulator verified.

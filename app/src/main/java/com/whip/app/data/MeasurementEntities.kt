@@ -90,27 +90,3 @@ data class TagEntity(
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
 )
-
-/**
- * Retained for databases created by the public 0.3.x releases. Current features use the
- * denormalized tagsCsv fields, but keeping these rows makes the schema-27 upgrade lossless and
- * ensures delete-all continues to remove every record owned by Whip.
- */
-@Entity(
-    tableName = "entity_tag_links",
-    primaryKeys = ["entityType", "entityId", "tagId"],
-    foreignKeys = [
-        ForeignKey(
-            entity = TagEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["tagId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-    indices = [Index("tagId"), Index(value = ["entityType", "entityId"])],
-)
-data class LegacyEntityTagLinkEntity(
-    val entityType: String,
-    val entityId: String,
-    val tagId: String,
-)

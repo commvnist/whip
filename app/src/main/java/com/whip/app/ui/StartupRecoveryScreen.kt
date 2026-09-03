@@ -12,11 +12,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -34,8 +39,11 @@ import com.whip.app.startup.StartupRecoveryState
 fun StartupRecoveryScreen(
     state: StartupRecoveryState,
     onRetry: () -> Unit,
+    onEraseAllData: () -> Unit = {},
+    onKeepDataAndClose: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    var confirmErase by rememberSaveable { mutableStateOf(false) }
     Surface(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -127,6 +135,144 @@ fun StartupRecoveryScreen(
                             ),
                         )
                     }
+                }
+
+                StartupRecoveryState.FreshStartChecking -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                    Spacer(Modifier.height(24.dp))
+                    Text(
+                        text = stringResource(R.string.fresh_start_checking_title),
+                        modifier = Modifier.align(Alignment.CenterHorizontally).semantics { heading() },
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.fresh_start_checking_message),
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+
+                is StartupRecoveryState.FreshStartCheckBlocked -> {
+                    Icon(
+                        imageVector = Icons.Outlined.ErrorOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                    Spacer(Modifier.height(20.dp))
+                    Text(
+                        text = stringResource(R.string.fresh_start_check_blocked_title),
+                        modifier = Modifier.semantics { heading() },
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.fresh_start_check_blocked_message),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Spacer(Modifier.height(28.dp))
+                    WhipButton(
+                        onClick = onRetry,
+                        modifier = Modifier.fillMaxWidth().testTag("fresh-start-check-retry"),
+                    ) { Text(stringResource(R.string.fresh_start_check_again)) }
+                    Spacer(Modifier.height(8.dp))
+                    WhipOutlinedButton(
+                        onClick = onKeepDataAndClose,
+                        modifier = Modifier.fillMaxWidth().testTag("fresh-start-check-close"),
+                    ) { Text(stringResource(R.string.fresh_start_keep_and_close)) }
+                }
+
+                StartupRecoveryState.FreshStartRequired -> {
+                    Icon(
+                        imageVector = Icons.Outlined.ErrorOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                    Spacer(Modifier.height(20.dp))
+                    Text(
+                        text = stringResource(
+                            if (confirmErase) R.string.fresh_start_confirm_title else R.string.fresh_start_title,
+                        ),
+                        modifier = Modifier.semantics { heading() },
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(
+                            if (confirmErase) R.string.fresh_start_confirm_message else R.string.fresh_start_message,
+                        ),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Spacer(Modifier.height(28.dp))
+                    WhipButton(
+                        onClick = if (confirmErase) onEraseAllData else ({ confirmErase = true }),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
+                        ),
+                        modifier = Modifier.fillMaxWidth().testTag(
+                            if (confirmErase) "fresh-start-confirm-erase" else "fresh-start-erase",
+                        ),
+                    ) {
+                        Text(
+                            stringResource(
+                                if (confirmErase) R.string.fresh_start_confirm_erase else R.string.fresh_start_erase,
+                            ),
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    WhipOutlinedButton(
+                        onClick = if (confirmErase) ({ confirmErase = false }) else onKeepDataAndClose,
+                        modifier = Modifier.fillMaxWidth().testTag("fresh-start-safe-action"),
+                    ) {
+                        Text(
+                            stringResource(
+                                if (confirmErase) R.string.action_cancel else R.string.fresh_start_keep_and_close,
+                            ),
+                        )
+                    }
+                }
+
+                StartupRecoveryState.FreshStartResetting -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                    Spacer(Modifier.height(24.dp))
+                    Text(
+                        text = stringResource(R.string.fresh_start_title),
+                        modifier = Modifier.align(Alignment.CenterHorizontally).semantics { heading() },
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.fresh_start_resetting),
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+
+                is StartupRecoveryState.FreshStartBlocked -> {
+                    Icon(
+                        imageVector = Icons.Outlined.ErrorOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                    Spacer(Modifier.height(20.dp))
+                    Text(
+                        text = stringResource(R.string.fresh_start_title),
+                        modifier = Modifier.semantics { heading() },
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.fresh_start_failed),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Spacer(Modifier.height(28.dp))
+                    WhipButton(
+                        onClick = onRetry,
+                        modifier = Modifier.fillMaxWidth().testTag("fresh-start-retry"),
+                    ) { Text(stringResource(R.string.action_try_again)) }
                 }
 
                 StartupRecoveryState.Ready -> Unit

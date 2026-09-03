@@ -178,14 +178,19 @@ if [[ "$run_emulator_tests" == true ]]; then
 
     # Long Compose runs can exhaust host-emulator graphics state even when every
     # assertion is healthy. Run the canvas/color interaction suite first on the
-    # fresh AVD, then use class batches so the runner and app process get clean
-    # lifecycles without turning every test into a separate install cycle.
+    # fresh AVD. Run the whole-app destructive reset contract last in its own
+    # process so its deliberate teardown cannot contaminate a neighboring class.
+    # Keep the remaining classes in bounded batches.
     readonly graphics_test_class='com.whip.app.ui.InteractionControlUiTest'
+    readonly destructive_reset_test_class='com.whip.app.DataEpochResetIntegrationTest'
     remaining_instrumentation_classes=()
     graphics_test_found=false
+    destructive_reset_test_found=false
     for test_class in "${instrumentation_classes[@]}"; do
         if [[ "$test_class" == "$graphics_test_class" ]]; then
             graphics_test_found=true
+        elif [[ "$test_class" == "$destructive_reset_test_class" ]]; then
+            destructive_reset_test_found=true
         else
             remaining_instrumentation_classes+=("$test_class")
         fi
@@ -350,6 +355,11 @@ if [[ "$run_emulator_tests" == true ]]; then
 
     if [[ "$graphics_test_found" == true ]]; then
         batch_total="$((batch_total + 1))"
+    fi
+    if [[ "$destructive_reset_test_found" == true ]]; then
+        batch_total="$((batch_total + 1))"
+    fi
+    if [[ "$graphics_test_found" == true ]]; then
         printf 'Instrumentation batch 1/%s (graphics interaction class)\n' "$batch_total"
         run_instrumentation_batch 1 "$graphics_test_class"
     fi
@@ -364,6 +374,10 @@ if [[ "$run_emulator_tests" == true ]]; then
         printf 'Instrumentation batch %s/%s (%s classes)\n' "$batch_number" "$batch_total" "${#batch[@]}"
         run_instrumentation_batch "$batch_number" "$batch_classes"
     done
+    if [[ "$destructive_reset_test_found" == true ]]; then
+        printf 'Instrumentation batch %s/%s (destructive data-epoch reset class)\n' "$batch_total" "$batch_total"
+        run_instrumentation_batch "$batch_total" "$destructive_reset_test_class"
+    fi
     if [[ "$executed_test_total" -ne "$android_test_count" ]]; then
         printf 'error: expected %s Android tests from source but XML proves %s executed; see %s\n' \
             "$android_test_count" "$executed_test_total" "$aggregate_result" >&2

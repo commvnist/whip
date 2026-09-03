@@ -99,7 +99,7 @@ class RoomGoalRepository(
     override val goals = dao.observeGoals().map { it.map(GoalEntity::toDomain) }
     override val milestones = dao.observeMilestones().map { it.map(GoalMilestoneEntity::toDomain) }
     override val metricEntries = measurementRepository.entries
-    override val closureSnapshots = dao.observeClosureSnapshots().map { list -> list.map(LegacyGoalCompletionSnapshotEntity::toDomain) }
+    override val closureSnapshots = dao.observeClosureSnapshots().map { list -> list.map(GoalClosureSnapshotEntity::toDomain) }
     override val elapsedResetEvents = dao.observeElapsedResetEvents().map { list -> list.map(GoalElapsedResetEventEntity::toDomain) }
 
     override suspend fun get(id: Long): Goal? = dao.getGoal(id)?.toDomain()
@@ -461,7 +461,7 @@ class RoomGoalRepository(
             ?.takeIf { goal.type == GoalType.ElapsedSince }
             ?.let { started -> (now - started).coerceAtLeast(0L) }
         dao.insertClosureSnapshot(
-            LegacyGoalCompletionSnapshotEntity(
+            GoalClosureSnapshotEntity(
                 uuid = ids.nextId(),
                 goalId = current.id,
                 completedAtMillis = now,
@@ -593,7 +593,7 @@ private fun GoalEntity.lifecycleStatus(): GoalStatus = if (status == GoalStatus.
     GoalStatus.valueOf(status)
 }
 
-private fun LegacyGoalCompletionSnapshotEntity.toDomain() = GoalClosureSnapshot(
+private fun GoalClosureSnapshotEntity.toDomain() = GoalClosureSnapshot(
     id = id,
     uuid = uuid,
     goalId = goalId,

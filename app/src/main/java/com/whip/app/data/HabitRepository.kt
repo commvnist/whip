@@ -102,7 +102,6 @@ interface HabitRepository {
         resolution: HabitTimerReviewResolution,
     ): HabitTimerStopOutcome
     suspend fun reconcileTimerClockState()
-    suspend fun repairLegacyGeneratedCanonicalValues(): Int
 }
 
 class RoomHabitRepository(
@@ -123,9 +122,6 @@ class RoomHabitRepository(
     override val skips = dao.observeSkips().map { it.map(HabitSkipEntity::toDomain) }
 
     override suspend fun get(id: Long): Habit? = dao.getHabit(id)?.toDomain()
-
-    override suspend fun repairLegacyGeneratedCanonicalValues(): Int =
-        dao.repairLegacyGeneratedCanonicalValues(clock.now().toEpochMilli())
 
     override suspend fun create(draft: HabitDraft): Long = database.withTransaction {
         validateHabit(draft)

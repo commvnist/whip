@@ -2,7 +2,6 @@ package com.whip.app.core
 
 import android.annotation.SuppressLint
 import android.content.Context
-import com.whip.app.data.migrateSmartTaskCaptureDefault
 import android.content.SharedPreferences
 import java.time.DayOfWeek
 import java.time.Instant
@@ -188,7 +187,6 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
     private val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
 
     init {
-        migrateSmartTaskCaptureDefault(preferences)
         preferences.edit()
             .remove("savedReviewFilters")
             .remove("selectedReviewFilterName")

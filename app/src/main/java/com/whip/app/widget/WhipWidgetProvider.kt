@@ -258,6 +258,37 @@ class WhipWidgetProvider : AppWidgetProvider() {
             if (habitIds.isNotEmpty()) HabitTrackingWidgetProvider().onUpdate(context, manager, habitIds)
         }
 
+        fun showUpdateRequired(
+            context: Context,
+            manager: AppWidgetManager = AppWidgetManager.getInstance(context),
+            taskIds: IntArray = manager.getAppWidgetIds(ComponentName(context, WhipWidgetProvider::class.java)),
+            habitIds: IntArray = manager.getAppWidgetIds(ComponentName(context, HabitTrackingWidgetProvider::class.java)),
+        ) {
+            val open = PendingIntent.getActivity(
+                context,
+                0,
+                Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            fun lockedViews(layout: Int, listId: Int): RemoteViews = RemoteViews(context.packageName, layout).apply {
+                setTextViewText(R.id.widget_subtitle, context.getString(R.string.widget_update_required))
+                setTextViewText(R.id.widget_empty, context.getString(R.string.widget_update_required))
+                setViewVisibility(listId, android.view.View.GONE)
+                setViewVisibility(R.id.widget_empty, android.view.View.VISIBLE)
+                setViewVisibility(R.id.widget_add, android.view.View.GONE)
+                setOnClickPendingIntent(R.id.widget_header, open)
+                setOnClickPendingIntent(R.id.widget_brand, open)
+                setOnClickPendingIntent(R.id.widget_empty, open)
+                setContentDescription(R.id.widget_header, context.getString(R.string.widget_update_required))
+            }
+            taskIds.forEach { id ->
+                manager.updateAppWidget(id, lockedViews(R.layout.widget_task_agenda, R.id.widget_task_list))
+            }
+            habitIds.forEach { id ->
+                manager.updateAppWidget(id, lockedViews(R.layout.widget_habit_tracking, R.id.widget_habit_list))
+            }
+        }
+
         fun update(context: Context, appWidgetId: Int) {
             val manager = AppWidgetManager.getInstance(context)
             val provider = manager.getAppWidgetInfo(appWidgetId)?.provider?.className

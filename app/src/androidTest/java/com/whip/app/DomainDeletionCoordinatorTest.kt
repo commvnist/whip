@@ -23,7 +23,7 @@ import com.whip.app.data.CommittedGoalDeletionCancellation
 import com.whip.app.data.CommittedAreaDeletionCancellation
 import com.whip.app.data.ContributionEntity
 import com.whip.app.data.GoalElapsedResetEventEntity
-import com.whip.app.data.LegacyGoalCompletionSnapshotEntity
+import com.whip.app.data.GoalClosureSnapshotEntity
 import com.whip.app.data.LinkRuleConditionEntity
 import com.whip.app.data.TriggerFieldMappingEntity
 import com.whip.app.data.TriggerOccurrenceEntity
@@ -498,7 +498,7 @@ class DomainDeletionCoordinatorTest {
 
         preview = coordinator.previewGoalDeletion(goalId)
         database.goalDao().insertClosureSnapshot(
-            LegacyGoalCompletionSnapshotEntity(
+            GoalClosureSnapshotEntity(
                 uuid = "goal-closure-review",
                 goalId = goalId,
                 completedAtMillis = FixedClock.now().toEpochMilli(),

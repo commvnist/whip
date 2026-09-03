@@ -56,6 +56,11 @@ import com.whip.app.reminders.FocusTimerScheduler
 import com.whip.app.health.HealthConnectManager
 import com.whip.app.startup.StartupRecoveryGate
 import com.whip.app.startup.StartupRecoveryState
+import com.whip.app.startup.DataEpochGate
+import com.whip.app.startup.DataEpochState
+import com.whip.app.startup.LocalDataResetter
+import com.whip.app.startup.FreshStartRetryAction
+import com.whip.app.startup.freshStartRetryAction
 import com.whip.app.startup.generationMatches
 import com.whip.app.widget.WhipWidgetProvider
 import kotlinx.coroutines.CoroutineScope
@@ -77,6 +82,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.Configuration
 import androidx.work.WorkManager
@@ -92,7 +99,11 @@ import com.whip.app.core.calendarContextFlow
 class WhipApplication : Application(), Configuration.Provider {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var startupRecoveryGate: StartupRecoveryGate
+    private lateinit var dataEpochGate: DataEpochGate
+    private val mutableStartupState = MutableStateFlow<StartupRecoveryState>(StartupRecoveryState.Checking)
+    private var startupStateJob: Job? = null
     private var normalRuntimeJob: Job? = null
+    private val epochResetMutex = Mutex()
     private val recoveryPreferences by lazy {
         getSharedPreferences(RECOVERY_RUNTIME_PREFERENCES, MODE_PRIVATE)
     }
@@ -225,7 +236,7 @@ class WhipApplication : Application(), Configuration.Provider {
     val focusTimerScheduler by lazy { FocusTimerScheduler(this) }
     val healthConnectManager by lazy { HealthConnectManager(this, measurementRepository, settingsRepository) }
     val startupRecoveryState: StateFlow<StartupRecoveryState>
-        get() = startupRecoveryGate.state
+        get() = mutableStartupState
     val userDataGeneration: StateFlow<Long>
         get() = mutableUserDataGeneration
     override val workManagerConfiguration: Configuration
@@ -236,6 +247,28 @@ class WhipApplication : Application(), Configuration.Provider {
         // Channel registration is safe platform setup and must precede any
         // recovery rebuild that can enqueue an immediate notification worker.
         createNotificationChannels()
+        dataEpochGate = DataEpochGate(this)
+        val epochState = runCatching(dataEpochGate::evaluate).getOrElse { error ->
+            Log.e(LOG_TAG, "Data epoch could not be established", error)
+            mutableStartupState.value = StartupRecoveryState.FreshStartCheckBlocked(error.message)
+            showUpdateRequiredWidgetsBestEffort()
+            return
+        }
+        when (epochState) {
+            is DataEpochState.Current -> runBlocking(Dispatchers.IO) { startCanonicalRuntime() }
+            DataEpochState.ResetRequired -> {
+                mutableStartupState.value = StartupRecoveryState.FreshStartRequired
+                showUpdateRequiredWidgetsBestEffort()
+            }
+            is DataEpochState.ResetInProgress -> {
+                mutableStartupState.value = StartupRecoveryState.FreshStartResetting
+                showUpdateRequiredWidgetsBestEffort()
+                applicationScope.launch(Dispatchers.IO) { performEpochReset() }
+            }
+        }
+    }
+
+    private suspend fun startCanonicalRuntime() {
         var recoveryRebuiltBackground = false
         startupRecoveryGate = StartupRecoveryGate(
             recoverPendingRestore = {
@@ -248,15 +281,80 @@ class WhipApplication : Application(), Configuration.Provider {
                 recoveryRebuiltBackground = false
             },
         )
-        runBlocking(Dispatchers.IO) {
-            startupRecoveryGate.start()?.let(::logStartupRecoveryFailure)
+        startupStateJob?.cancel()
+        startupStateJob = applicationScope.launch {
+            startupRecoveryGate.state.collect { mutableStartupState.value = it }
         }
+        startupRecoveryGate.start()?.let(::logStartupRecoveryFailure)
+        mutableStartupState.value = startupRecoveryGate.state.value
     }
 
     fun retryStartupRecovery() {
-        applicationScope.launch(Dispatchers.IO) {
-            startupRecoveryGate.retry()?.let(::logStartupRecoveryFailure)
+        val state = mutableStartupState.value
+        when (state.freshStartRetryAction()) {
+            FreshStartRetryAction.ReevaluateEpoch -> {
+                if (!mutableStartupState.compareAndSet(state, StartupRecoveryState.FreshStartChecking)) return
+                applicationScope.launch(Dispatchers.IO) { retryDataEpochCheck() }
+            }
+            FreshStartRetryAction.ResumeConfirmedReset -> {
+                if (!mutableStartupState.compareAndSet(state, StartupRecoveryState.FreshStartResetting)) return
+                applicationScope.launch(Dispatchers.IO) { performEpochReset() }
+            }
+            FreshStartRetryAction.RetryStartupRecovery -> {
+                if (state !is StartupRecoveryState.Blocked) return
+                applicationScope.launch(Dispatchers.IO) {
+                    startupRecoveryGate.retry()?.let(::logStartupRecoveryFailure)
+                }
+            }
         }
+    }
+
+    private suspend fun retryDataEpochCheck() {
+        if (mutableStartupState.value != StartupRecoveryState.FreshStartChecking) return
+        val epochState = runCatching(dataEpochGate::evaluate).getOrElse { error ->
+            Log.e(LOG_TAG, "Data epoch still could not be established", error)
+            mutableStartupState.value = StartupRecoveryState.FreshStartCheckBlocked(error.message)
+            showUpdateRequiredWidgetsBestEffort()
+            return
+        }
+        when (epochState) {
+            is DataEpochState.Current -> startCanonicalRuntime()
+            DataEpochState.ResetRequired -> {
+                mutableStartupState.value = StartupRecoveryState.FreshStartRequired
+                showUpdateRequiredWidgetsBestEffort()
+            }
+            is DataEpochState.ResetInProgress -> {
+                mutableStartupState.value = StartupRecoveryState.FreshStartResetting
+                performEpochReset()
+            }
+        }
+    }
+
+    fun beginFreshStartReset() {
+        if (mutableStartupState.value != StartupRecoveryState.FreshStartRequired) return
+        mutableStartupState.value = StartupRecoveryState.FreshStartResetting
+        applicationScope.launch(Dispatchers.IO) { performEpochReset() }
+    }
+
+    private suspend fun performEpochReset() = epochResetMutex.withLock {
+        try {
+            // Always rewrite and fsync the marker, including crash-resume and Retry paths. No
+            // deletion is allowed to rely only on a marker observed during an earlier process.
+            dataEpochGate.markResetInProgress()
+            val generation = LocalDataResetter(this).resetAndVerify()
+            mutableUserDataGeneration.value = generation
+            dataEpochGate.markCurrent()
+            startCanonicalRuntime()
+        } catch (error: Throwable) {
+            Log.e(LOG_TAG, "Fresh-start reset did not complete", error)
+            mutableStartupState.value = StartupRecoveryState.FreshStartBlocked(error.message)
+            showUpdateRequiredWidgetsBestEffort()
+        }
+    }
+
+    private fun showUpdateRequiredWidgetsBestEffort() {
+        runCatching { WhipWidgetProvider.showUpdateRequired(this) }
+            .onFailure { error -> Log.e(LOG_TAG, "Could not lock widgets for the data epoch gate", error) }
     }
 
     /**
@@ -304,13 +402,13 @@ class WhipApplication : Application(), Configuration.Provider {
     ): Boolean = generationMatches(currentUserDataGeneration(), presented)
 
     suspend fun <T : Any> withUserDataAccess(block: suspend () -> T): T? =
-        startupRecoveryGate.withReadyDataAccess(
+        if (!::startupRecoveryGate.isInitialized || mutableStartupState.value != StartupRecoveryState.Ready) null else startupRecoveryGate.withReadyDataAccess(
             additionalCheck = { !restoreRecoveryManager.hasPendingRecovery() },
             block = block,
         )
 
     fun <T : Any> tryWithUserDataAccessNow(block: () -> T): T? =
-        startupRecoveryGate.tryWithReadyDataAccessNow(
+        if (!::startupRecoveryGate.isInitialized || mutableStartupState.value != StartupRecoveryState.Ready) null else startupRecoveryGate.tryWithReadyDataAccessNow(
             additionalCheck = { !restoreRecoveryManager.hasPendingRecovery() },
             block = block,
         )
@@ -338,10 +436,6 @@ class WhipApplication : Application(), Configuration.Provider {
         if (!backgroundAlreadyRebuilt) {
             areaRepository.ensureDefaultArea()
         }
-        // Older retired trigger automation could store 1.0 as a custom-unit
-        // Habit canonical value while its paired metric entry held the correct
-        // conversion. Repair only rows whose full paired provenance matches.
-        habitRepository.repairLegacyGeneratedCanonicalValues()
         habitRepository.reconcileTimerClockState()
         // Existing persisted reminder work cannot be trusted across a delivery
         // claim schema change. This is awaited while the startup recovery gate

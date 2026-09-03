@@ -78,6 +78,79 @@ class StartupRecoveryScreenTest {
         compose.onAllNodesWithText("Retry Recovery").assertCountEquals(0)
     }
 
+    @Test
+    fun freshStartRequiresTwoExplicitDestructiveActions() {
+        var resets = 0
+        compose.setContent {
+            WhipTheme {
+                StartupRecoveryScreen(
+                    state = StartupRecoveryState.FreshStartRequired,
+                    onRetry = { },
+                    onEraseAllData = { resets++ },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Whip needs a fresh start.").assertIsDisplayed()
+        compose.onNodeWithText("Erase all Whip data").performClick()
+        compose.runOnIdle { assertEquals(0, resets) }
+        compose.onNodeWithText("Erase all local Whip data?").assertIsDisplayed()
+        compose.onNodeWithText("Yes, erase everything").performClick()
+        compose.runOnIdle { assertEquals(1, resets) }
+    }
+
+    @Test
+    fun resettingIsNonInteractive() {
+        compose.setContent {
+            WhipTheme {
+                StartupRecoveryScreen(
+                    state = StartupRecoveryState.FreshStartResetting,
+                    onRetry = { },
+                )
+            }
+        }
+        compose.onNodeWithText("Erasing local data and preparing Whip…").assertIsDisplayed()
+        compose.onAllNodesWithText("Erase all Whip data").assertCountEquals(0)
+        compose.onAllNodesWithText("Try Again").assertCountEquals(0)
+    }
+
+    @Test
+    fun confirmedResetFailureOnlyOffersRetry() {
+        compose.setContent {
+            WhipTheme {
+                StartupRecoveryScreen(
+                    state = StartupRecoveryState.FreshStartBlocked("disk full"),
+                    onRetry = { },
+                )
+            }
+        }
+        compose.onNodeWithText("Try Again").assertIsDisplayed()
+        compose.onAllNodesWithText("Erase all Whip data").assertCountEquals(0)
+    }
+
+    @Test
+    fun epochCheckFailureCanOnlyRecheckOrCloseWithoutErasing() {
+        var retries = 0
+        var erases = 0
+        compose.setContent {
+            WhipTheme {
+                StartupRecoveryScreen(
+                    state = StartupRecoveryState.FreshStartCheckBlocked("unreadable storage"),
+                    onRetry = { retries++ },
+                    onEraseAllData = { erases++ },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Check again").performClick()
+        compose.runOnIdle {
+            assertEquals(1, retries)
+            assertEquals(0, erases)
+        }
+        compose.onAllNodesWithText("Erase all Whip data").assertCountEquals(0)
+        compose.onAllNodesWithText("Yes, erase everything").assertCountEquals(0)
+    }
+
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun blockedRecoveryPassesComposeAccessibilityChecks() {

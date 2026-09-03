@@ -89,7 +89,7 @@ data class GoalMilestoneEntity(
     ],
     indices = [Index("uuid", unique = true), Index("goalId")],
 )
-data class LegacyGoalCompletionSnapshotEntity(
+data class GoalClosureSnapshotEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(defaultValue = "''") val uuid: String,
     val goalId: Long,

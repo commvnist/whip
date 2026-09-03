@@ -57,6 +57,8 @@ class HealthPermissionsRationaleActivity : ComponentActivity() {
                     StartupRecoveryScreen(
                         state = startupState,
                         onRetry = app::retryStartupRecovery,
+                        onEraseAllData = app::beginFreshStartReset,
+                        onKeepDataAndClose = ::finishAffinity,
                     )
                 }
                 return@setContent

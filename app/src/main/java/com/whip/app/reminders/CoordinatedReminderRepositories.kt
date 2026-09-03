@@ -152,9 +152,6 @@ internal class CoordinatedHabitRepository(
         resolution: HabitTimerReviewResolution,
     ) = mutate { delegate.resolveTimerReview(boundary, resolution) }
     override suspend fun reconcileTimerClockState() = mutate { delegate.reconcileTimerClockState() }
-    override suspend fun repairLegacyGeneratedCanonicalValues() =
-        mutate { delegate.repairLegacyGeneratedCanonicalValues() }
-
     private suspend fun <T> mutate(block: suspend () -> T): T = coordinator.withStateBoundary(block)
 }
 

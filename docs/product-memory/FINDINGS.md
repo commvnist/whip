@@ -422,3 +422,14 @@
 - Evidence: `WhipPagePatterns.kt`, `ProductivityEditorComponents.kt`, `TaskEditorDialog.kt`, `TrackScreens.kt`, `RoutineBuilder.kt`, `GymScreens.kt`, `UiDesignArchitectureTest.kt`, and `InteractionControlUiTest.kt`.
 - Resolution: Implemented in `IMP-20260902-019` and verified in `VER-20260902-020`.
 - Status: Resolved for primary editor chrome; request-owned persistence and dirty-state behavior remain independently audited functional concerns.
+
+### FND-20260902-012 — Compatibility scaffolding prevented a truthful clean-slate release boundary
+
+- Severity/category: P0 data-integrity boundary and P1 architecture/maintainability.
+- Observed: Whip still registered a long Room migration chain, retained historical schemas and upgrade-only tests, accepted multiple old portable-backup shapes, and ran compatibility repair/default logic after the user explicitly chose a breaking clean slate.
+- Expected: One canonical schema and backup contract, an explicit pre-database epoch decision, no implicit destructive Room fallback, and a user-confirmed reset that either finishes durably or keeps the entire product blocked. Completed reset must remove only Whip-owned local state, cancel stale work/actions, rebuild schema 42, and never expose an unconfirmed destructive retry.
+- Why it matters: Half-removing compatibility can corrupt meaning, resurrect stale work, or make a reset appear successful while old state survives. Deleting before durable confirmation would violate the user's authorship of a destructive upgrade.
+- Affected users: Every updating user, backup/restore users, widget/reminder users, and developers changing persistence or program semantics.
+- Evidence: `DataEpochGate.kt`, `LocalDataResetter.kt`, `WhipApplication.kt`, `MainActivity.kt`, `WhipDatabase.kt`, `BackupRepository.kt`, schema exports, startup/reset UI, and the focused tests recorded in `VER-20260902-021`.
+- Resolution: Implemented in `IMP-20260902-020`; independent review found no remaining P0/P1 blocker after reset serialization, launch-request invalidation, exact-current backup enforcement, removal of schema 1–41 and ignored pre-epoch backup tests, and twice-run destructive reset integration coverage.
+- Status: Resolved and targeted/emulator verified; the frozen candidate still requires the complete release gate before distribution.

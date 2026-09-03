@@ -79,6 +79,19 @@ internal class LaunchRequestQueue(
         requests.addAll(retained)
     }
 
+    fun enqueueUnlessDataEpochGated(
+        state: StartupRecoveryState,
+        request: LaunchRequest,
+        overflowRequest: () -> LaunchRequest,
+    ): Boolean {
+        if (state.blocksLaunchRequestsForDataEpoch()) {
+            requests.clear()
+            return false
+        }
+        enqueue(request, overflowRequest)
+        return true
+    }
+
     fun addAll(restored: Iterable<LaunchRequest>) {
         restored.forEach(requests::addLast)
     }
@@ -92,6 +105,18 @@ internal class LaunchRequestQueue(
     fun firstOrNull(): LaunchRequest? = requests.firstOrNull()
 
     fun snapshot(): List<LaunchRequest> = requests.toList()
+
+    fun clear() = requests.clear()
+}
+
+internal fun StartupRecoveryState.blocksLaunchRequestsForDataEpoch(): Boolean = when (this) {
+    StartupRecoveryState.FreshStartChecking,
+    is StartupRecoveryState.FreshStartCheckBlocked,
+    StartupRecoveryState.FreshStartRequired,
+    StartupRecoveryState.FreshStartResetting,
+    is StartupRecoveryState.FreshStartBlocked,
+    -> true
+    else -> false
 }
 
 class MainActivity : ComponentActivity() {
@@ -106,6 +131,10 @@ class MainActivity : ComponentActivity() {
             enqueueLaunchRequest(intent.toWhipLaunchRequest())
         } else {
             pendingLaunchRequests.addAll(savedInstanceState.restoredLaunchRequests())
+            publishNextLaunchRequest()
+        }
+        if ((application as WhipApplication).startupRecoveryState.value.blocksLaunchRequestsForDataEpoch()) {
+            pendingLaunchRequests.clear()
             publishNextLaunchRequest()
         }
         val isDebuggable = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
@@ -129,10 +158,21 @@ class MainActivity : ComponentActivity() {
         when (startupState) {
             StartupRecoveryState.Ready -> NormalWhipContent()
             StartupRecoveryState.Checking,
+            StartupRecoveryState.FreshStartChecking,
+            is StartupRecoveryState.FreshStartCheckBlocked,
+            StartupRecoveryState.FreshStartRequired,
+            StartupRecoveryState.FreshStartResetting,
+            is StartupRecoveryState.FreshStartBlocked,
             is StartupRecoveryState.Blocked -> WhipTheme(darkTheme = isSystemInDarkTheme(), dynamicColor = false) {
                 StartupRecoveryScreen(
                     state = startupState,
                     onRetry = app::retryStartupRecovery,
+                    onEraseAllData = {
+                        pendingLaunchRequests.clear()
+                        publishNextLaunchRequest()
+                        app.beginFreshStartReset()
+                    },
+                    onKeepDataAndClose = ::finishAffinity,
                 )
             }
         }
@@ -222,7 +262,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun enqueueLaunchRequest(request: LaunchRequest) {
-        pendingLaunchRequests.enqueue(request) {
+        pendingLaunchRequests.enqueueUnlessDataEpochGated(
+            state = (application as WhipApplication).startupRecoveryState.value,
+            request = request,
+        ) {
             LaunchRequest(
                 action = WhipLaunchActions.ACTION_SHARED_TASK_QUEUE_OVERFLOW,
                 entityId = null,

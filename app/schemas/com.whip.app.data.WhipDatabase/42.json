@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 7,
-    "identityHash": "e4dab0db3719af63ea7131eaa3ddda03",
+    "version": 42,
+    "identityHash": "900c2d354dff270bde4c116aaf0b47d9",
     "entities": [
       {
         "tableName": "tasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `title` TEXT NOT NULL, `notes` TEXT NOT NULL, `scheduleKind` TEXT NOT NULL, `dateEpochDay` INTEGER, `recurrenceUnit` TEXT, `recurrenceInterval` INTEGER NOT NULL, `weekdaysMask` INTEGER NOT NULL, `recurrenceEnd` TEXT, `recurrenceEndEpochDay` INTEGER, `recurrenceCount` INTEGER, `timeMinutes` INTEGER, `reminderEnabled` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `completedAtMillis` INTEGER, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `showSubtaskProgress` INTEGER NOT NULL, `progressDisplay` TEXT NOT NULL, `autoCompleteFromSteps` INTEGER NOT NULL, `repeatStepPolicy` TEXT NOT NULL, `pinned` INTEGER NOT NULL, `priority` TEXT NOT NULL, `areaId` TEXT, `area` TEXT NOT NULL, `tagsCsv` TEXT NOT NULL, `deadlineEpochDay` INTEGER, `recurrenceAnchor` TEXT NOT NULL, `reminderOffsetsMinutesCsv` TEXT NOT NULL, `missedOccurrencePolicy` TEXT NOT NULL, `inbox` INTEGER NOT NULL, `durationMinutes` INTEGER, `effort` TEXT NOT NULL, `manualPosition` INTEGER NOT NULL, FOREIGN KEY(`areaId`) REFERENCES `areas`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `title` TEXT NOT NULL, `notes` TEXT NOT NULL, `scheduleKind` TEXT NOT NULL, `dateEpochDay` INTEGER, `recurrenceUnit` TEXT, `recurrenceInterval` INTEGER NOT NULL, `weekdaysMask` INTEGER NOT NULL, `recurrenceEnd` TEXT, `recurrenceEndEpochDay` INTEGER, `recurrenceCount` INTEGER, `timeMinutes` INTEGER, `reminderEnabled` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `completedAtMillis` INTEGER, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `showSubtaskProgress` INTEGER NOT NULL, `progressDisplay` TEXT NOT NULL, `autoCompleteFromSteps` INTEGER NOT NULL, `repeatStepPolicy` TEXT NOT NULL, `pinned` INTEGER NOT NULL, `priority` TEXT NOT NULL, `areaId` TEXT, `area` TEXT NOT NULL, `tagsCsv` TEXT NOT NULL, `deadlineEpochDay` INTEGER, `recurrenceAnchor` TEXT NOT NULL, `reminderOffsetsMinutesCsv` TEXT NOT NULL, `missedOccurrencePolicy` TEXT NOT NULL, `inbox` INTEGER NOT NULL, `durationMinutes` INTEGER, `effort` TEXT NOT NULL, `manualPosition` INTEGER NOT NULL, `icon` TEXT NOT NULL DEFAULT '✅', FOREIGN KEY(`areaId`) REFERENCES `areas`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
         "fields": [
           {
             "fieldPath": "id",
@@ -207,6 +207,13 @@
             "columnName": "manualPosition",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "icon",
+            "columnName": "icon",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'✅'"
           }
         ],
         "primaryKey": {
@@ -1441,7 +1448,7 @@
       },
       {
         "tableName": "gym_machines",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `exerciseId` INTEGER NOT NULL, `name` TEXT NOT NULL, `location` TEXT NOT NULL, `details` TEXT NOT NULL, `loadType` TEXT NOT NULL, `unitId` TEXT NOT NULL, `levelLabel` TEXT NOT NULL, `availableLoadsCsv` TEXT NOT NULL, `archived` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `loadInterpretation` TEXT NOT NULL, `baseLoadKg` REAL, `configurationGroupId` TEXT NOT NULL, `configurationVersion` INTEGER NOT NULL, `seatPosition` TEXT NOT NULL, `backPosition` TEXT NOT NULL, `attachment` TEXT NOT NULL, `pulleyRatio` REAL NOT NULL, `stackMode` TEXT NOT NULL, `addOnPlateKg` REAL, `stackLabelsCsv` TEXT NOT NULL, `massMappingCsv` TEXT NOT NULL, `compatibleForComparison` INTEGER NOT NULL, FOREIGN KEY(`exerciseId`) REFERENCES `exercises`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `exerciseId` INTEGER, `name` TEXT NOT NULL, `location` TEXT NOT NULL, `details` TEXT NOT NULL, `loadType` TEXT NOT NULL, `unitId` TEXT NOT NULL, `levelLabel` TEXT NOT NULL, `availableLoadsCsv` TEXT NOT NULL, `archived` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `loadInterpretation` TEXT NOT NULL, `baseLoadKg` REAL, `configurationGroupId` TEXT NOT NULL, `configurationVersion` INTEGER NOT NULL, `seatPosition` TEXT NOT NULL, `backPosition` TEXT NOT NULL, `attachment` TEXT NOT NULL, `pulleyRatio` REAL NOT NULL, `stackMode` TEXT NOT NULL, `addOnPlateKg` REAL, `stackLabelsCsv` TEXT NOT NULL, `massMappingCsv` TEXT NOT NULL, `compatibleForComparison` INTEGER NOT NULL, `levelDirection` TEXT NOT NULL, FOREIGN KEY(`exerciseId`) REFERENCES `exercises`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "id",
@@ -1458,8 +1465,7 @@
           {
             "fieldPath": "exerciseId",
             "columnName": "exerciseId",
-            "affinity": "INTEGER",
-            "notNull": true
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "name",
@@ -1596,6 +1602,12 @@
             "columnName": "compatibleForComparison",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "levelDirection",
+            "columnName": "levelDirection",
+            "affinity": "TEXT",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -1636,6 +1648,66 @@
         "foreignKeys": [
           {
             "table": "exercises",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "exerciseId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "gym_machine_exercise_joins",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`machineId` INTEGER NOT NULL, `exerciseId` INTEGER NOT NULL, PRIMARY KEY(`machineId`, `exerciseId`), FOREIGN KEY(`machineId`) REFERENCES `gym_machines`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`exerciseId`) REFERENCES `exercises`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "machineId",
+            "columnName": "machineId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exerciseId",
+            "columnName": "exerciseId",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "machineId",
+            "exerciseId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_gym_machine_exercise_joins_exerciseId",
+            "unique": false,
+            "columnNames": [
+              "exerciseId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_gym_machine_exercise_joins_exerciseId` ON `${TABLE_NAME}` (`exerciseId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "gym_machines",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "machineId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "exercises",
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
@@ -1649,7 +1721,7 @@
       },
       {
         "tableName": "workout_sessions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `notes` TEXT NOT NULL, `startedAtMillis` INTEGER NOT NULL, `endedAtMillis` INTEGER, `localEpochDay` INTEGER NOT NULL, `zoneId` TEXT NOT NULL, `state` TEXT NOT NULL, `keepScreenAwake` INTEGER NOT NULL, `restTimerDeadlineMillis` INTEGER, `restTimerDurationSeconds` INTEGER, `archived` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `sourceRoutineId` INTEGER)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `notes` TEXT NOT NULL, `startedAtMillis` INTEGER NOT NULL, `endedAtMillis` INTEGER, `localEpochDay` INTEGER NOT NULL, `zoneId` TEXT NOT NULL, `state` TEXT NOT NULL, `keepScreenAwake` INTEGER NOT NULL, `restTimerDeadlineMillis` INTEGER, `restTimerDurationSeconds` INTEGER, `archived` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `sourceRoutineId` INTEGER, `sourceRoutineDayId` INTEGER, `sourceRoutineProgramKind` TEXT NOT NULL, `sourceRoutinePhaseIndex` INTEGER, `sourceRoutineCycle` INTEGER, `sourceRoutineDayPosition` INTEGER, `sourceRoutineDayProgressionIndex` INTEGER, `programProgressAdvanced` INTEGER NOT NULL, `requiredMainWorkInvalidated` INTEGER NOT NULL, `invalidatedMainExerciseIdsCsv` TEXT NOT NULL, `sourceRoutinePhaseLabel` TEXT NOT NULL, `sourceRoutinePhaseRole` TEXT NOT NULL, `workoutRevision` INTEGER NOT NULL, `restTimerRevision` INTEGER NOT NULL, `restTimerCleanupPending` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -1742,6 +1814,85 @@
             "fieldPath": "sourceRoutineId",
             "columnName": "sourceRoutineId",
             "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sourceRoutineDayId",
+            "columnName": "sourceRoutineDayId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sourceRoutineProgramKind",
+            "columnName": "sourceRoutineProgramKind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceRoutinePhaseIndex",
+            "columnName": "sourceRoutinePhaseIndex",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sourceRoutineCycle",
+            "columnName": "sourceRoutineCycle",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sourceRoutineDayPosition",
+            "columnName": "sourceRoutineDayPosition",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sourceRoutineDayProgressionIndex",
+            "columnName": "sourceRoutineDayProgressionIndex",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "programProgressAdvanced",
+            "columnName": "programProgressAdvanced",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "requiredMainWorkInvalidated",
+            "columnName": "requiredMainWorkInvalidated",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "invalidatedMainExerciseIdsCsv",
+            "columnName": "invalidatedMainExerciseIdsCsv",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceRoutinePhaseLabel",
+            "columnName": "sourceRoutinePhaseLabel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceRoutinePhaseRole",
+            "columnName": "sourceRoutinePhaseRole",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workoutRevision",
+            "columnName": "workoutRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "restTimerRevision",
+            "columnName": "restTimerRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "restTimerCleanupPending",
+            "columnName": "restTimerCleanupPending",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -1884,7 +2035,7 @@
       },
       {
         "tableName": "workout_exercises",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `sessionId` INTEGER NOT NULL, `exerciseId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `notes` TEXT NOT NULL, `groupId` INTEGER, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `machineProfileUuidSnapshot` TEXT, `machineId` INTEGER, `machineNameSnapshot` TEXT NOT NULL, `machineLoadTypeSnapshot` TEXT NOT NULL, `machineUnitIdSnapshot` TEXT NOT NULL, `machineLevelLabelSnapshot` TEXT NOT NULL, `loadInterpretationSnapshot` TEXT NOT NULL, `baseLoadKgSnapshot` REAL, `trackingTypeSnapshot` TEXT NOT NULL, `bodyweightLoadPolicySnapshot` TEXT NOT NULL, `effectiveBodyweightPercentSnapshot` REAL NOT NULL, `oneRepMaxFormulaSnapshot` TEXT NOT NULL, `includeInVolumeSnapshot` INTEGER NOT NULL, `includeInPersonalRecordsSnapshot` INTEGER NOT NULL, `exerciseWeightUnitSnapshot` TEXT NOT NULL, `loadMultiplierSnapshot` REAL NOT NULL, `machineConfigurationGroupSnapshot` TEXT NOT NULL, `machineConfigurationVersionSnapshot` INTEGER NOT NULL, `machineConfigurationSnapshot` TEXT NOT NULL, `machinePulleyRatioSnapshot` REAL NOT NULL, `machineStackModeSnapshot` TEXT NOT NULL, `machineAddOnPlateKgSnapshot` REAL, `machineMassMappingCsvSnapshot` TEXT NOT NULL, `alternativeExerciseIdsCsvSnapshot` TEXT NOT NULL, FOREIGN KEY(`sessionId`) REFERENCES `workout_sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`exerciseId`) REFERENCES `exercises`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`groupId`) REFERENCES `workout_groups`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `sessionId` INTEGER NOT NULL, `exerciseId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `notes` TEXT NOT NULL, `groupId` INTEGER, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `machineProfileUuidSnapshot` TEXT, `machineId` INTEGER, `machineNameSnapshot` TEXT NOT NULL, `machineLoadTypeSnapshot` TEXT NOT NULL, `machineUnitIdSnapshot` TEXT NOT NULL, `machineLevelLabelSnapshot` TEXT NOT NULL, `loadInterpretationSnapshot` TEXT NOT NULL, `baseLoadKgSnapshot` REAL, `trackingTypeSnapshot` TEXT NOT NULL, `bodyweightLoadPolicySnapshot` TEXT NOT NULL, `effectiveBodyweightPercentSnapshot` REAL NOT NULL, `oneRepMaxFormulaSnapshot` TEXT NOT NULL, `includeInVolumeSnapshot` INTEGER NOT NULL, `includeInPersonalRecordsSnapshot` INTEGER NOT NULL, `exerciseWeightUnitSnapshot` TEXT NOT NULL, `loadMultiplierSnapshot` REAL NOT NULL, `machineConfigurationGroupSnapshot` TEXT NOT NULL, `machineConfigurationVersionSnapshot` INTEGER NOT NULL, `machineConfigurationSnapshot` TEXT NOT NULL, `machinePulleyRatioSnapshot` REAL NOT NULL, `machineStackModeSnapshot` TEXT NOT NULL, `machineAddOnPlateKgSnapshot` REAL, `machineMassMappingCsvSnapshot` TEXT NOT NULL, `alternativeExerciseIdsCsvSnapshot` TEXT NOT NULL, `trainingMaxKgSnapshot` REAL, `trainingMaxValueSnapshot` REAL, `trainingMaxUnitIdSnapshot` TEXT NOT NULL, `cycleIncrementValueSnapshot` REAL, `trainingMaxSourceSnapshot` TEXT NOT NULL, `mainWorkSchemeSnapshot` TEXT NOT NULL, `supplementalSchemeSnapshot` TEXT NOT NULL, `assistanceRoleSnapshot` TEXT NOT NULL, `placementKindSnapshot` TEXT NOT NULL, `assistanceCategorySnapshot` TEXT NOT NULL, `jokerSetsEnabledSnapshot` INTEGER NOT NULL, `outcome` TEXT NOT NULL, `outcomeAtMillis` INTEGER, `replacementWorkoutExerciseUuid` TEXT, FOREIGN KEY(`sessionId`) REFERENCES `workout_sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`exerciseId`) REFERENCES `exercises`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`groupId`) REFERENCES `workout_groups`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "id",
@@ -2078,6 +2229,85 @@
             "columnName": "alternativeExerciseIdsCsvSnapshot",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "trainingMaxKgSnapshot",
+            "columnName": "trainingMaxKgSnapshot",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "trainingMaxValueSnapshot",
+            "columnName": "trainingMaxValueSnapshot",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "trainingMaxUnitIdSnapshot",
+            "columnName": "trainingMaxUnitIdSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cycleIncrementValueSnapshot",
+            "columnName": "cycleIncrementValueSnapshot",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "trainingMaxSourceSnapshot",
+            "columnName": "trainingMaxSourceSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mainWorkSchemeSnapshot",
+            "columnName": "mainWorkSchemeSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "supplementalSchemeSnapshot",
+            "columnName": "supplementalSchemeSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "assistanceRoleSnapshot",
+            "columnName": "assistanceRoleSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "placementKindSnapshot",
+            "columnName": "placementKindSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "assistanceCategorySnapshot",
+            "columnName": "assistanceCategorySnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jokerSetsEnabledSnapshot",
+            "columnName": "jokerSetsEnabledSnapshot",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "outcome",
+            "columnName": "outcome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "outcomeAtMillis",
+            "columnName": "outcomeAtMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "replacementWorkoutExerciseUuid",
+            "columnName": "replacementWorkoutExerciseUuid",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -2172,7 +2402,7 @@
       },
       {
         "tableName": "workout_sets",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `workoutExerciseId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `classification` TEXT NOT NULL, `planned` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `canonicalWeightKg` REAL, `enteredWeight` REAL, `enteredWeightUnitId` TEXT, `repetitions` INTEGER, `canonicalDistanceMetres` REAL, `enteredDistance` REAL, `enteredDistanceUnitId` TEXT, `durationSeconds` INTEGER, `bodyweightKg` REAL, `note` TEXT NOT NULL, `rpe` REAL, `rir` REAL, `tempo` TEXT NOT NULL, `restSeconds` INTEGER, `completedAtMillis` INTEGER, `deletedAtMillis` INTEGER, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `machineLoadValue` REAL, `unilateral` INTEGER NOT NULL, `prescribedCanonicalWeightKg` REAL, `prescribedEnteredWeight` REAL, `prescribedWeightUnitId` TEXT, `prescribedRepetitions` INTEGER, `prescribedRpe` REAL, `prescribedRir` REAL, `prescribedDurationSeconds` INTEGER, `prescribedMachineLoadValue` REAL, `prescribedRepetitionsMax` INTEGER, `prescriptionSourceLabel` TEXT NOT NULL, FOREIGN KEY(`workoutExerciseId`) REFERENCES `workout_exercises`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `workoutExerciseId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `classification` TEXT NOT NULL, `planned` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `canonicalWeightKg` REAL, `enteredWeight` REAL, `enteredWeightUnitId` TEXT, `repetitions` INTEGER, `canonicalDistanceMetres` REAL, `enteredDistance` REAL, `enteredDistanceUnitId` TEXT, `durationSeconds` INTEGER, `bodyweightKg` REAL, `note` TEXT NOT NULL, `rpe` REAL, `rir` REAL, `tempo` TEXT NOT NULL, `restSeconds` INTEGER, `completedAtMillis` INTEGER, `deletedAtMillis` INTEGER, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `machineLoadValue` REAL, `unilateral` INTEGER NOT NULL, `prescribedCanonicalWeightKg` REAL, `prescribedEnteredWeight` REAL, `prescribedWeightUnitId` TEXT, `prescribedRepetitions` INTEGER, `prescribedRpe` REAL, `prescribedRir` REAL, `prescribedDurationSeconds` INTEGER, `prescribedMachineLoadValue` REAL, `prescribedRepetitionsMax` INTEGER, `prescriptionSourceLabel` TEXT NOT NULL, `workSectionSnapshot` TEXT NOT NULL, `optionalWorkKindSnapshot` TEXT NOT NULL, `prescribedClassificationSnapshot` TEXT NOT NULL, `requiredForProgressionSnapshot` INTEGER NOT NULL, `removalReason` TEXT, FOREIGN KEY(`workoutExerciseId`) REFERENCES `workout_exercises`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -2371,6 +2601,35 @@
             "columnName": "prescriptionSourceLabel",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "workSectionSnapshot",
+            "columnName": "workSectionSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "optionalWorkKindSnapshot",
+            "columnName": "optionalWorkKindSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "prescribedClassificationSnapshot",
+            "columnName": "prescribedClassificationSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "requiredForProgressionSnapshot",
+            "columnName": "requiredForProgressionSnapshot",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "removalReason",
+            "columnName": "removalReason",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -2433,7 +2692,7 @@
       },
       {
         "tableName": "gym_routines",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `notes` TEXT NOT NULL, `position` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `pinned` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `notes` TEXT NOT NULL, `position` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `pinned` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `programKind` TEXT NOT NULL, `programPhaseCount` INTEGER NOT NULL, `programPhaseLabelsCsv` TEXT NOT NULL, `currentProgramPhaseIndex` INTEGER NOT NULL, `currentProgramCycle` INTEGER NOT NULL, `nextProgramDayPosition` INTEGER NOT NULL, `trainingMaxIncreaseEligible` INTEGER NOT NULL, `programPhaseRolesCsv` TEXT NOT NULL, `trainingMaxAdvanceAfterPhaseIndicesCsv` TEXT NOT NULL, `programTemplateKey` TEXT NOT NULL, `programTemplateRevision` INTEGER NOT NULL, `progressionMode` TEXT NOT NULL, `allowNonStandardHigherSuggestions` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -2488,6 +2747,84 @@
             "columnName": "updatedAtMillis",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "programKind",
+            "columnName": "programKind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "programPhaseCount",
+            "columnName": "programPhaseCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "programPhaseLabelsCsv",
+            "columnName": "programPhaseLabelsCsv",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentProgramPhaseIndex",
+            "columnName": "currentProgramPhaseIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentProgramCycle",
+            "columnName": "currentProgramCycle",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nextProgramDayPosition",
+            "columnName": "nextProgramDayPosition",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trainingMaxIncreaseEligible",
+            "columnName": "trainingMaxIncreaseEligible",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "programPhaseRolesCsv",
+            "columnName": "programPhaseRolesCsv",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trainingMaxAdvanceAfterPhaseIndicesCsv",
+            "columnName": "trainingMaxAdvanceAfterPhaseIndicesCsv",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "programTemplateKey",
+            "columnName": "programTemplateKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "programTemplateRevision",
+            "columnName": "programTemplateRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "progressionMode",
+            "columnName": "progressionMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "allowNonStandardHigherSuggestions",
+            "columnName": "allowNonStandardHigherSuggestions",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -2528,7 +2865,7 @@
       },
       {
         "tableName": "routine_days",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `routineId` INTEGER NOT NULL, `name` TEXT NOT NULL, `position` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, FOREIGN KEY(`routineId`) REFERENCES `gym_routines`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `routineId` INTEGER NOT NULL, `name` TEXT NOT NULL, `position` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `progressionIndex` INTEGER NOT NULL, FOREIGN KEY(`routineId`) REFERENCES `gym_routines`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -2569,6 +2906,12 @@
           {
             "fieldPath": "updatedAtMillis",
             "columnName": "updatedAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "progressionIndex",
+            "columnName": "progressionIndex",
             "affinity": "INTEGER",
             "notNull": true
           }
@@ -2615,7 +2958,7 @@
       },
       {
         "tableName": "routine_exercises",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `routineDayId` INTEGER NOT NULL, `exerciseId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `notes` TEXT NOT NULL, `groupKey` TEXT, `copyPreviousWorkout` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `machineId` INTEGER, `equipmentBindingState` TEXT NOT NULL, `machineProfileUuidSnapshot` TEXT, `machineNameSnapshot` TEXT NOT NULL, `machineLoadTypeSnapshot` TEXT NOT NULL, `machineUnitIdSnapshot` TEXT NOT NULL, `machineLevelLabelSnapshot` TEXT NOT NULL, `machineLoadInterpretationSnapshot` TEXT NOT NULL, `machineConfigurationGroupSnapshot` TEXT NOT NULL, `machineConfigurationVersionSnapshot` INTEGER NOT NULL, `machineConfigurationSnapshot` TEXT NOT NULL, `trainingMaxPercent` REAL NOT NULL, `progressionPercentagesCsv` TEXT NOT NULL, `alternativeExerciseIdsCsv` TEXT NOT NULL, FOREIGN KEY(`routineDayId`) REFERENCES `routine_days`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`exerciseId`) REFERENCES `exercises`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `routineDayId` INTEGER NOT NULL, `exerciseId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `notes` TEXT NOT NULL, `groupKey` TEXT, `copyPreviousWorkout` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `machineId` INTEGER, `equipmentBindingState` TEXT NOT NULL, `machineProfileUuidSnapshot` TEXT, `machineNameSnapshot` TEXT NOT NULL, `machineLoadTypeSnapshot` TEXT NOT NULL, `machineUnitIdSnapshot` TEXT NOT NULL, `machineLevelLabelSnapshot` TEXT NOT NULL, `machineLoadInterpretationSnapshot` TEXT NOT NULL, `machineConfigurationGroupSnapshot` TEXT NOT NULL, `machineConfigurationVersionSnapshot` INTEGER NOT NULL, `machineConfigurationSnapshot` TEXT NOT NULL, `trainingMaxPercent` REAL NOT NULL, `progressionPercentagesCsv` TEXT NOT NULL, `alternativeExerciseIdsCsv` TEXT NOT NULL, `trainingMaxKg` REAL, `trainingMaxValue` REAL, `trainingMaxUnitId` TEXT NOT NULL, `cycleIncrementValue` REAL, `trainingMaxSource` TEXT NOT NULL, `trainingMaxBasisKind` TEXT NOT NULL, `trainingMaxBasisValue` REAL, `trainingMaxBasisUnitId` TEXT NOT NULL, `trainingMaxIncreaseEligible` INTEGER NOT NULL, `mainWorkScheme` TEXT NOT NULL, `supplementalScheme` TEXT NOT NULL, `assistanceRole` TEXT NOT NULL, `placementKind` TEXT NOT NULL, `assistanceCategory` TEXT NOT NULL, `jokerSetsEnabled` INTEGER NOT NULL, FOREIGN KEY(`routineDayId`) REFERENCES `routine_days`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`exerciseId`) REFERENCES `exercises`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
         "fields": [
           {
             "fieldPath": "id",
@@ -2757,6 +3100,92 @@
             "columnName": "alternativeExerciseIdsCsv",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "trainingMaxKg",
+            "columnName": "trainingMaxKg",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "trainingMaxValue",
+            "columnName": "trainingMaxValue",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "trainingMaxUnitId",
+            "columnName": "trainingMaxUnitId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cycleIncrementValue",
+            "columnName": "cycleIncrementValue",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "trainingMaxSource",
+            "columnName": "trainingMaxSource",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trainingMaxBasisKind",
+            "columnName": "trainingMaxBasisKind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trainingMaxBasisValue",
+            "columnName": "trainingMaxBasisValue",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "trainingMaxBasisUnitId",
+            "columnName": "trainingMaxBasisUnitId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trainingMaxIncreaseEligible",
+            "columnName": "trainingMaxIncreaseEligible",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mainWorkScheme",
+            "columnName": "mainWorkScheme",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "supplementalScheme",
+            "columnName": "supplementalScheme",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "assistanceRole",
+            "columnName": "assistanceRole",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "placementKind",
+            "columnName": "placementKind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "assistanceCategory",
+            "columnName": "assistanceCategory",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jokerSetsEnabled",
+            "columnName": "jokerSetsEnabled",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -2839,7 +3268,7 @@
       },
       {
         "tableName": "routine_sets",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `routineExerciseId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `classification` TEXT NOT NULL, `enteredWeight` REAL, `enteredWeightUnitId` TEXT, `repetitions` INTEGER, `enteredDistance` REAL, `enteredDistanceUnitId` TEXT, `durationSeconds` INTEGER, `bodyweightKg` REAL, `note` TEXT NOT NULL, `rpe` REAL, `rir` REAL, `tempo` TEXT NOT NULL, `restSeconds` INTEGER, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `machineLoadValue` REAL, `unilateral` INTEGER NOT NULL, `repetitionsMax` INTEGER, `loadPrescriptionType` TEXT NOT NULL, `loadPercentage` REAL, FOREIGN KEY(`routineExerciseId`) REFERENCES `routine_exercises`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `routineExerciseId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `classification` TEXT NOT NULL, `enteredWeight` REAL, `enteredWeightUnitId` TEXT, `repetitions` INTEGER, `enteredDistance` REAL, `enteredDistanceUnitId` TEXT, `durationSeconds` INTEGER, `bodyweightKg` REAL, `note` TEXT NOT NULL, `rpe` REAL, `rir` REAL, `tempo` TEXT NOT NULL, `restSeconds` INTEGER, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `machineLoadValue` REAL, `unilateral` INTEGER NOT NULL, `repetitionsMax` INTEGER, `loadPrescriptionType` TEXT NOT NULL, `loadPercentage` REAL, `routinePhaseIndex` INTEGER, `workSection` TEXT NOT NULL, `optionalWorkKind` TEXT NOT NULL, `mainWorkScheme` TEXT NOT NULL, `supplementalScheme` TEXT NOT NULL, FOREIGN KEY(`routineExerciseId`) REFERENCES `routine_exercises`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -2971,6 +3400,35 @@
             "fieldPath": "loadPercentage",
             "columnName": "loadPercentage",
             "affinity": "REAL"
+          },
+          {
+            "fieldPath": "routinePhaseIndex",
+            "columnName": "routinePhaseIndex",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "workSection",
+            "columnName": "workSection",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "optionalWorkKind",
+            "columnName": "optionalWorkKind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mainWorkScheme",
+            "columnName": "mainWorkScheme",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "supplementalScheme",
+            "columnName": "supplementalScheme",
+            "affinity": "TEXT",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -3010,6 +3468,181 @@
             "referencedColumns": [
               "id"
             ]
+          }
+        ]
+      },
+      {
+        "tableName": "training_max_decisions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `routineUuid` TEXT NOT NULL, `sessionUuid` TEXT NOT NULL, `exerciseUuid` TEXT NOT NULL, `exerciseName` TEXT NOT NULL, `cycle` INTEGER NOT NULL, `previousTrainingMax` REAL NOT NULL, `appliedDelta` REAL NOT NULL, `resultingTrainingMax` REAL NOT NULL, `unitId` TEXT NOT NULL, `standardDelta` REAL NOT NULL, `recommendationCategory` TEXT NOT NULL, `recommendationDelta` REAL NOT NULL, `confidence` REAL NOT NULL, `reasonsText` TEXT NOT NULL, `engineVersion` TEXT NOT NULL, `action` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "routineUuid",
+            "columnName": "routineUuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionUuid",
+            "columnName": "sessionUuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exerciseUuid",
+            "columnName": "exerciseUuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exerciseName",
+            "columnName": "exerciseName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cycle",
+            "columnName": "cycle",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "previousTrainingMax",
+            "columnName": "previousTrainingMax",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "appliedDelta",
+            "columnName": "appliedDelta",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resultingTrainingMax",
+            "columnName": "resultingTrainingMax",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitId",
+            "columnName": "unitId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "standardDelta",
+            "columnName": "standardDelta",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recommendationCategory",
+            "columnName": "recommendationCategory",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recommendationDelta",
+            "columnName": "recommendationDelta",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidence",
+            "columnName": "confidence",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reasonsText",
+            "columnName": "reasonsText",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "engineVersion",
+            "columnName": "engineVersion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "action",
+            "columnName": "action",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtMillis",
+            "columnName": "createdAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_training_max_decisions_uuid",
+            "unique": true,
+            "columnNames": [
+              "uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_training_max_decisions_uuid` ON `${TABLE_NAME}` (`uuid`)"
+          },
+          {
+            "name": "index_training_max_decisions_routineUuid_cycle",
+            "unique": false,
+            "columnNames": [
+              "routineUuid",
+              "cycle"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_training_max_decisions_routineUuid_cycle` ON `${TABLE_NAME}` (`routineUuid`, `cycle`)"
+          },
+          {
+            "name": "index_training_max_decisions_sessionUuid_exerciseUuid",
+            "unique": true,
+            "columnNames": [
+              "sessionUuid",
+              "exerciseUuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_training_max_decisions_sessionUuid_exerciseUuid` ON `${TABLE_NAME}` (`sessionUuid`, `exerciseUuid`)"
+          },
+          {
+            "name": "index_training_max_decisions_sessionUuid",
+            "unique": false,
+            "columnNames": [
+              "sessionUuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_training_max_decisions_sessionUuid` ON `${TABLE_NAME}` (`sessionUuid`)"
+          },
+          {
+            "name": "index_training_max_decisions_exerciseUuid",
+            "unique": false,
+            "columnNames": [
+              "exerciseUuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_training_max_decisions_exerciseUuid` ON `${TABLE_NAME}` (`exerciseUuid`)"
           }
         ]
       },
@@ -3289,7 +3922,7 @@
       },
       {
         "tableName": "habits",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `metricId` TEXT NOT NULL, `name` TEXT NOT NULL, `notes` TEXT NOT NULL, `areaId` TEXT, `area` TEXT NOT NULL, `tagsCsv` TEXT NOT NULL, `icon` TEXT NOT NULL, `trackingMode` TEXT NOT NULL, `dimension` TEXT NOT NULL, `unitId` TEXT NOT NULL, `precision` INTEGER NOT NULL, `comparison` TEXT NOT NULL, `targetMin` REAL, `targetMax` REAL, `targetPeriod` TEXT NOT NULL, `rollingDays` INTEGER, `scheduleType` TEXT NOT NULL, `scheduleInterval` INTEGER NOT NULL, `weekdaysMask` INTEGER NOT NULL, `flexibleTimesPerWeek` INTEGER, `startEpochDay` INTEGER NOT NULL, `endType` TEXT NOT NULL, `endEpochDay` INTEGER, `endValue` REAL, `quickIncrement` REAL NOT NULL, `quickActionsCsv` TEXT NOT NULL, `reminderMinutesCsv` TEXT NOT NULL, `weekdayReminderMinutesCsv` TEXT NOT NULL, `weekStart` TEXT NOT NULL, `timerStartedAtMillis` INTEGER, `pinned` INTEGER NOT NULL, `position` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `paused` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `sourceMetricId` TEXT, FOREIGN KEY(`areaId`) REFERENCES `areas`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `metricId` TEXT NOT NULL, `name` TEXT NOT NULL, `notes` TEXT NOT NULL, `areaId` TEXT, `area` TEXT NOT NULL, `tagsCsv` TEXT NOT NULL, `icon` TEXT NOT NULL, `trackingMode` TEXT NOT NULL, `dimension` TEXT NOT NULL, `unitId` TEXT NOT NULL, `precision` INTEGER NOT NULL, `comparison` TEXT NOT NULL, `targetMin` REAL, `targetMax` REAL, `targetPeriod` TEXT NOT NULL, `rollingDays` INTEGER, `scheduleType` TEXT NOT NULL, `scheduleInterval` INTEGER NOT NULL, `weekdaysMask` INTEGER NOT NULL, `flexibleTimesPerWeek` INTEGER, `startEpochDay` INTEGER NOT NULL, `endType` TEXT NOT NULL, `endEpochDay` INTEGER, `endValue` REAL, `quickIncrement` REAL NOT NULL, `quickActionsCsv` TEXT NOT NULL, `reminderMinutesCsv` TEXT NOT NULL, `weekdayReminderMinutesCsv` TEXT NOT NULL, `weekStart` TEXT NOT NULL, `timerStartedAtMillis` INTEGER, `pinned` INTEGER NOT NULL, `position` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `paused` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `sourceMetricId` TEXT, `autoCompleteFromItems` INTEGER NOT NULL DEFAULT 1, `timerSessionId` TEXT, `timerNeedsReview` INTEGER NOT NULL DEFAULT 0, `timerAccumulatedSeconds` REAL NOT NULL DEFAULT 0, `timerAnchorElapsedRealtimeMillis` INTEGER, FOREIGN KEY(`areaId`) REFERENCES `areas`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
         "fields": [
           {
             "fieldPath": "id",
@@ -3515,6 +4148,37 @@
             "fieldPath": "sourceMetricId",
             "columnName": "sourceMetricId",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "autoCompleteFromItems",
+            "columnName": "autoCompleteFromItems",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "timerSessionId",
+            "columnName": "timerSessionId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "timerNeedsReview",
+            "columnName": "timerNeedsReview",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "timerAccumulatedSeconds",
+            "columnName": "timerAccumulatedSeconds",
+            "affinity": "REAL",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "timerAnchorElapsedRealtimeMillis",
+            "columnName": "timerAnchorElapsedRealtimeMillis",
+            "affinity": "INTEGER"
           }
         ],
         "primaryKey": {
@@ -4008,8 +4672,194 @@
         ]
       },
       {
+        "tableName": "habit_skips",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uuid` TEXT NOT NULL, `habitId` INTEGER NOT NULL, `localEpochDay` INTEGER NOT NULL, `skippedAtMillis` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`habitId`, `localEpochDay`), FOREIGN KEY(`habitId`) REFERENCES `habits`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "habitId",
+            "columnName": "habitId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localEpochDay",
+            "columnName": "localEpochDay",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "skippedAtMillis",
+            "columnName": "skippedAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtMillis",
+            "columnName": "createdAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtMillis",
+            "columnName": "updatedAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "habitId",
+            "localEpochDay"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_habit_skips_uuid",
+            "unique": true,
+            "columnNames": [
+              "uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_habit_skips_uuid` ON `${TABLE_NAME}` (`uuid`)"
+          },
+          {
+            "name": "index_habit_skips_habitId",
+            "unique": false,
+            "columnNames": [
+              "habitId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_habit_skips_habitId` ON `${TABLE_NAME}` (`habitId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "habits",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "habitId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "habit_timer_sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sessionId` TEXT NOT NULL, `habitId` INTEGER NOT NULL, `activeHabitId` INTEGER, `state` TEXT NOT NULL, `anchorWallMillis` INTEGER, `anchorElapsedRealtimeMillis` INTEGER, `anchorBootId` TEXT, `accumulatedCanonicalSeconds` REAL, `unitId` TEXT, `createdAtMillis` INTEGER NOT NULL, `resolvedAtMillis` INTEGER, PRIMARY KEY(`sessionId`), FOREIGN KEY(`habitId`) REFERENCES `habits`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "habitId",
+            "columnName": "habitId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activeHabitId",
+            "columnName": "activeHabitId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "anchorWallMillis",
+            "columnName": "anchorWallMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "anchorElapsedRealtimeMillis",
+            "columnName": "anchorElapsedRealtimeMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "anchorBootId",
+            "columnName": "anchorBootId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "accumulatedCanonicalSeconds",
+            "columnName": "accumulatedCanonicalSeconds",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "unitId",
+            "columnName": "unitId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAtMillis",
+            "columnName": "createdAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resolvedAtMillis",
+            "columnName": "resolvedAtMillis",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "sessionId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_habit_timer_sessions_habitId",
+            "unique": false,
+            "columnNames": [
+              "habitId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_habit_timer_sessions_habitId` ON `${TABLE_NAME}` (`habitId`)"
+          },
+          {
+            "name": "index_habit_timer_sessions_activeHabitId",
+            "unique": true,
+            "columnNames": [
+              "activeHabitId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_habit_timer_sessions_activeHabitId` ON `${TABLE_NAME}` (`activeHabitId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "habits",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "habitId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
         "tableName": "goals",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `metricId` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT NOT NULL, `areaId` TEXT, `area` TEXT NOT NULL, `tagsCsv` TEXT NOT NULL, `icon` TEXT NOT NULL, `type` TEXT NOT NULL, `dimension` TEXT NOT NULL, `unitId` TEXT NOT NULL, `precision` INTEGER NOT NULL, `baseline` REAL, `targetMin` REAL, `targetMax` REAL, `direction` TEXT NOT NULL, `startEpochDay` INTEGER NOT NULL, `deadlineEpochDay` INTEGER, `aggregation` TEXT NOT NULL, `aggregationPeriod` TEXT NOT NULL, `rollingDays` INTEGER, `paceType` TEXT NOT NULL, `consistencyPeriod` TEXT NOT NULL, `consistencyRequiredPeriods` INTEGER, `elapsedStartMillis` INTEGER, `elapsedDisplayUnit` TEXT NOT NULL, `reminderMinutes` INTEGER, `status` TEXT NOT NULL, `pinned` INTEGER NOT NULL, `position` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, FOREIGN KEY(`areaId`) REFERENCES `areas`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `metricId` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT NOT NULL, `areaId` TEXT, `area` TEXT NOT NULL, `tagsCsv` TEXT NOT NULL, `icon` TEXT NOT NULL, `type` TEXT NOT NULL, `dimension` TEXT NOT NULL, `unitId` TEXT NOT NULL, `precision` INTEGER NOT NULL, `baseline` REAL, `targetMin` REAL, `targetMax` REAL, `direction` TEXT NOT NULL, `startEpochDay` INTEGER NOT NULL, `deadlineEpochDay` INTEGER, `aggregation` TEXT NOT NULL, `aggregationPeriod` TEXT NOT NULL, `rollingDays` INTEGER, `paceType` TEXT NOT NULL, `consistencyPeriod` TEXT NOT NULL, `consistencyRequiredPeriods` INTEGER, `elapsedStartMillis` INTEGER, `elapsedDisplayUnit` TEXT NOT NULL, `reminderMinutes` INTEGER, `status` TEXT NOT NULL, `archived` INTEGER NOT NULL DEFAULT 0, `pinned` INTEGER NOT NULL, `position` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, FOREIGN KEY(`areaId`) REFERENCES `areas`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
         "fields": [
           {
             "fieldPath": "id",
@@ -4177,6 +5027,13 @@
             "notNull": true
           },
           {
+            "fieldPath": "archived",
+            "columnName": "archived",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
             "fieldPath": "pinned",
             "columnName": "pinned",
             "affinity": "INTEGER",
@@ -4234,6 +5091,15 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_goals_status` ON `${TABLE_NAME}` (`status`)"
+          },
+          {
+            "name": "index_goals_archived",
+            "unique": false,
+            "columnNames": [
+              "archived"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_goals_archived` ON `${TABLE_NAME}` (`archived`)"
           },
           {
             "name": "index_goals_pinned",
@@ -4379,8 +5245,212 @@
         ]
       },
       {
+        "tableName": "goal_completion_snapshots",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL DEFAULT '', `goalId` INTEGER NOT NULL, `completedAtMillis` INTEGER NOT NULL, `value` REAL, `progress` REAL, `status` TEXT NOT NULL, `elapsedDurationMillis` INTEGER, `completedMilestoneCount` INTEGER, `totalMilestoneCount` INTEGER, FOREIGN KEY(`goalId`) REFERENCES `goals`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "goalId",
+            "columnName": "goalId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAtMillis",
+            "columnName": "completedAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "progress",
+            "columnName": "progress",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "elapsedDurationMillis",
+            "columnName": "elapsedDurationMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "completedMilestoneCount",
+            "columnName": "completedMilestoneCount",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "totalMilestoneCount",
+            "columnName": "totalMilestoneCount",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_goal_completion_snapshots_uuid",
+            "unique": true,
+            "columnNames": [
+              "uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_goal_completion_snapshots_uuid` ON `${TABLE_NAME}` (`uuid`)"
+          },
+          {
+            "name": "index_goal_completion_snapshots_goalId",
+            "unique": false,
+            "columnNames": [
+              "goalId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_goal_completion_snapshots_goalId` ON `${TABLE_NAME}` (`goalId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "goals",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "goalId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "goal_elapsed_reset_events",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `goalId` INTEGER NOT NULL, `goalUuid` TEXT NOT NULL, `previousStartMillis` INTEGER NOT NULL, `newStartMillis` INTEGER NOT NULL, `resetAtMillis` INTEGER NOT NULL, `elapsedDurationMillis` INTEGER NOT NULL, FOREIGN KEY(`goalId`) REFERENCES `goals`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "goalId",
+            "columnName": "goalId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "goalUuid",
+            "columnName": "goalUuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "previousStartMillis",
+            "columnName": "previousStartMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "newStartMillis",
+            "columnName": "newStartMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resetAtMillis",
+            "columnName": "resetAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "elapsedDurationMillis",
+            "columnName": "elapsedDurationMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_goal_elapsed_reset_events_uuid",
+            "unique": true,
+            "columnNames": [
+              "uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_goal_elapsed_reset_events_uuid` ON `${TABLE_NAME}` (`uuid`)"
+          },
+          {
+            "name": "index_goal_elapsed_reset_events_goalId",
+            "unique": false,
+            "columnNames": [
+              "goalId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_goal_elapsed_reset_events_goalId` ON `${TABLE_NAME}` (`goalId`)"
+          },
+          {
+            "name": "index_goal_elapsed_reset_events_goalId_resetAtMillis",
+            "unique": false,
+            "columnNames": [
+              "goalId",
+              "resetAtMillis"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_goal_elapsed_reset_events_goalId_resetAtMillis` ON `${TABLE_NAME}` (`goalId`, `resetAtMillis`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "goals",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "goalId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
         "tableName": "link_rules",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `kind` TEXT NOT NULL, `sourceType` TEXT NOT NULL, `sourceEntityId` INTEGER, `sourceMetricId` TEXT, `sourceItemId` INTEGER, `sourceMetric` TEXT NOT NULL, `targetGoalId` INTEGER NOT NULL, `targetMilestoneId` INTEGER, `valueMode` TEXT NOT NULL, `fixedValue` REAL, `multiplier` REAL NOT NULL, `offset` REAL NOT NULL, `retroactiveFromEpochDay` INTEGER, `enabled` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `trackAggregation` TEXT, `sourceFieldId` INTEGER, `conditionMode` TEXT NOT NULL, FOREIGN KEY(`targetGoalId`) REFERENCES `goals`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`targetMilestoneId`) REFERENCES `goal_milestones`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`sourceFieldId`) REFERENCES `track_fields`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `kind` TEXT NOT NULL, `sourceType` TEXT NOT NULL, `sourceEntityId` INTEGER, `sourceMetricId` TEXT, `sourceItemId` INTEGER, `sourceMetric` TEXT NOT NULL, `targetGoalId` INTEGER NOT NULL, `targetMilestoneId` INTEGER, `valueMode` TEXT NOT NULL, `fixedValue` REAL, `multiplier` REAL NOT NULL, `offset` REAL NOT NULL, `retroactiveFromEpochDay` INTEGER, `enabled` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `trackAggregation` TEXT, `sourceFieldId` INTEGER, `conditionMode` TEXT NOT NULL, FOREIGN KEY(`targetGoalId`) REFERENCES `goals`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`targetMilestoneId`) REFERENCES `goal_milestones`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`sourceFieldId`) REFERENCES `track_fields`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "id",
@@ -4586,7 +5656,7 @@
           },
           {
             "table": "track_fields",
-            "onDelete": "RESTRICT",
+            "onDelete": "SET NULL",
             "onUpdate": "NO ACTION",
             "columns": [
               "sourceFieldId"
@@ -5040,7 +6110,7 @@
       },
       {
         "tableName": "link_rule_conditions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `linkRuleId` INTEGER NOT NULL, `fieldId` INTEGER, `entryDate` INTEGER NOT NULL, `operator` TEXT NOT NULL, `position` INTEGER NOT NULL, `textValue` TEXT, `numberValue` REAL, `secondNumberValue` REAL, `dateEpochDay` INTEGER, `secondDateEpochDay` INTEGER, FOREIGN KEY(`linkRuleId`) REFERENCES `link_rules`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`fieldId`) REFERENCES `track_fields`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `linkRuleId` INTEGER NOT NULL, `fieldId` INTEGER, `entryDate` INTEGER NOT NULL, `operator` TEXT NOT NULL, `position` INTEGER NOT NULL, `textValue` TEXT, `numberValue` REAL, `secondNumberValue` REAL, `dateEpochDay` INTEGER, `secondDateEpochDay` INTEGER, FOREIGN KEY(`linkRuleId`) REFERENCES `link_rules`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`fieldId`) REFERENCES `track_fields`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "id",
@@ -5153,7 +6223,7 @@
           },
           {
             "table": "track_fields",
-            "onDelete": "RESTRICT",
+            "onDelete": "SET NULL",
             "onUpdate": "NO ACTION",
             "columns": [
               "fieldId"
@@ -5166,7 +6236,7 @@
       },
       {
         "tableName": "trigger_rule_conditions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `triggerRuleId` INTEGER NOT NULL, `fieldId` INTEGER, `entryDate` INTEGER NOT NULL, `operator` TEXT NOT NULL, `position` INTEGER NOT NULL, `textValue` TEXT, `numberValue` REAL, `secondNumberValue` REAL, `dateEpochDay` INTEGER, `secondDateEpochDay` INTEGER, FOREIGN KEY(`triggerRuleId`) REFERENCES `trigger_rules`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`fieldId`) REFERENCES `track_fields`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `triggerRuleId` INTEGER NOT NULL, `fieldId` INTEGER, `entryDate` INTEGER NOT NULL, `operator` TEXT NOT NULL, `position` INTEGER NOT NULL, `textValue` TEXT, `numberValue` REAL, `secondNumberValue` REAL, `dateEpochDay` INTEGER, `secondDateEpochDay` INTEGER, FOREIGN KEY(`triggerRuleId`) REFERENCES `trigger_rules`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`fieldId`) REFERENCES `track_fields`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "id",
@@ -5279,7 +6349,7 @@
           },
           {
             "table": "track_fields",
-            "onDelete": "RESTRICT",
+            "onDelete": "SET NULL",
             "onUpdate": "NO ACTION",
             "columns": [
               "fieldId"
@@ -5292,7 +6362,7 @@
       },
       {
         "tableName": "trigger_field_mappings",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `triggerRuleId` INTEGER NOT NULL, `targetFieldId` INTEGER NOT NULL, `sourceProperty` TEXT NOT NULL, `constantText` TEXT, `constantNumber` REAL, `constantUnitId` TEXT, `constantDateEpochDay` INTEGER, `constantBoolean` INTEGER, `constantChoiceOptionId` INTEGER, `constantScale` REAL, FOREIGN KEY(`triggerRuleId`) REFERENCES `trigger_rules`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`targetFieldId`) REFERENCES `track_fields`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`constantChoiceOptionId`) REFERENCES `track_choice_options`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `triggerRuleId` INTEGER NOT NULL, `targetFieldId` INTEGER NOT NULL, `sourceProperty` TEXT NOT NULL, `constantText` TEXT, `constantNumber` REAL, `constantUnitId` TEXT, `constantDateEpochDay` INTEGER, `constantBoolean` INTEGER, `constantChoiceOptionId` INTEGER, `constantScale` REAL, FOREIGN KEY(`triggerRuleId`) REFERENCES `trigger_rules`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`targetFieldId`) REFERENCES `track_fields`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`constantChoiceOptionId`) REFERENCES `track_choice_options`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "id",
@@ -5413,7 +6483,7 @@
           },
           {
             "table": "track_fields",
-            "onDelete": "RESTRICT",
+            "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
               "targetFieldId"
@@ -5424,7 +6494,7 @@
           },
           {
             "table": "track_choice_options",
-            "onDelete": "RESTRICT",
+            "onDelete": "SET NULL",
             "onUpdate": "NO ACTION",
             "columns": [
               "constantChoiceOptionId"
@@ -5437,7 +6507,7 @@
       },
       {
         "tableName": "link_condition_choices",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`conditionId` INTEGER NOT NULL, `optionId` INTEGER NOT NULL, PRIMARY KEY(`conditionId`, `optionId`), FOREIGN KEY(`conditionId`) REFERENCES `link_rule_conditions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`optionId`) REFERENCES `track_choice_options`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`conditionId` INTEGER NOT NULL, `optionId` INTEGER NOT NULL, PRIMARY KEY(`conditionId`, `optionId`), FOREIGN KEY(`conditionId`) REFERENCES `link_rule_conditions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`optionId`) REFERENCES `track_choice_options`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "conditionId",
@@ -5493,7 +6563,7 @@
           },
           {
             "table": "track_choice_options",
-            "onDelete": "RESTRICT",
+            "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
               "optionId"
@@ -5506,7 +6576,7 @@
       },
       {
         "tableName": "trigger_condition_choices",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`conditionId` INTEGER NOT NULL, `optionId` INTEGER NOT NULL, PRIMARY KEY(`conditionId`, `optionId`), FOREIGN KEY(`conditionId`) REFERENCES `trigger_rule_conditions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`optionId`) REFERENCES `track_choice_options`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`conditionId` INTEGER NOT NULL, `optionId` INTEGER NOT NULL, PRIMARY KEY(`conditionId`, `optionId`), FOREIGN KEY(`conditionId`) REFERENCES `trigger_rule_conditions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`optionId`) REFERENCES `track_choice_options`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "conditionId",
@@ -5562,7 +6632,7 @@
           },
           {
             "table": "track_choice_options",
-            "onDelete": "RESTRICT",
+            "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
               "optionId"
@@ -6287,11 +7357,107 @@
           "preferredOrder": "ASC"
         },
         "contentSyncTriggers": []
+      },
+      {
+        "tableName": "track_csv_import_receipts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`batchUuid` TEXT NOT NULL, `trackId` INTEGER NOT NULL, `trackUuid` TEXT NOT NULL, `trackCreatedAtMillis` INTEGER NOT NULL, `requestFingerprint` TEXT NOT NULL, `fingerprintVersion` INTEGER NOT NULL, `entryIdentityDigest` TEXT NOT NULL, `rowCount` INTEGER NOT NULL, `identityVersion` INTEGER NOT NULL, `committedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`batchUuid`), FOREIGN KEY(`trackId`) REFERENCES `tracks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "batchUuid",
+            "columnName": "batchUuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trackId",
+            "columnName": "trackId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trackUuid",
+            "columnName": "trackUuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trackCreatedAtMillis",
+            "columnName": "trackCreatedAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "requestFingerprint",
+            "columnName": "requestFingerprint",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fingerprintVersion",
+            "columnName": "fingerprintVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entryIdentityDigest",
+            "columnName": "entryIdentityDigest",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rowCount",
+            "columnName": "rowCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "identityVersion",
+            "columnName": "identityVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "committedAtMillis",
+            "columnName": "committedAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "batchUuid"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_track_csv_import_receipts_trackId",
+            "unique": false,
+            "columnNames": [
+              "trackId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_track_csv_import_receipts_trackId` ON `${TABLE_NAME}` (`trackId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "tracks",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "trackId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e4dab0db3719af63ea7131eaa3ddda03')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '900c2d354dff270bde4c116aaf0b47d9')"
     ]
   }
 }

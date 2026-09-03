@@ -455,3 +455,15 @@
 - Related: `FND-20260902-011`, `DEC-20260902-016`.
 - Verification: `VER-20260902-020`.
 - Status: Implemented and targeted-test verified.
+
+### IMP-20260902-020 — Canonical schema-42 data epoch and clean-slate reset
+
+- Raised Whip to `0.3.36`/version code 42 and made Room schema 42 the sole exported schema. Removed migrations, historical schema exports, migration-only sources/tests, compatibility settings initialization, old entity-tag storage, and ignored pre-epoch backup-upgrade tests.
+- Reduced portable backups to exact envelope 3, data epoch 2, data version 19, and the canonical current table set. Older, newer, malformed, or differently shaped backups fail before mutation; current replace/merge/private rollback safety remains.
+- Added a pre-Room `DataEpochGate` with durable Current/ResetRequired/ResetInProgress states and a repository-independent `LocalDataResetter`. Reset cancels work and notifications, releases Whip's portable-folder grant, deletes Whip database/files/preferences, preserves non-Whip preferences and external documents, rebuilds schema/defaults, creates a fresh generation, and locks widgets until success.
+- Added a dedicated accessible fresh-start flow with two explicit destructive actions, safe close, non-interactive progress, distinct pre-confirmation check failure, and confirmed-reset retry. Serialized reset retries, discarded all epoch-gated launch requests, and kept workers/widgets behind the Ready gate.
+- Isolated the destructive integration test as the last standalone instrumentation batch so its intended runtime teardown cannot contaminate neighboring tests.
+- Important files: `DataEpochGate.kt`, `LocalDataResetter.kt`, `WhipApplication.kt`, `MainActivity.kt`, `StartupRecoveryScreen.kt`, `WhipDatabase.kt`, `BackupRepository.kt`, `scripts/check`, schema 42, and focused JVM/Android regressions.
+- Related: `FND-20260902-012`, `DEC-20260902-017`.
+- Verification: `VER-20260902-021`.
+- Status: Implemented and targeted/emulator verified; not released to a physical phone.

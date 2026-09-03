@@ -2,6 +2,8 @@ package com.whip.app
 
 import com.whip.app.core.WhipLaunchActions
 import com.whip.app.widget.WhipWidgetProvider
+import com.whip.app.startup.StartupBlockReason
+import com.whip.app.startup.StartupRecoveryState
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -36,6 +38,50 @@ class LaunchRequestQueueTest {
         assertEquals("2", queue.snapshot()[4].sharedText)
         assertEquals(100L, queue.snapshot()[4].deliveryId)
         assertEquals(7L, queue.snapshot().last().deliveryId)
+    }
+
+    @Test
+    fun everyFreshStartStateDropsExistingAndNewLaunchRequests() {
+        listOf(
+            StartupRecoveryState.FreshStartChecking,
+            StartupRecoveryState.FreshStartCheckBlocked("storage unavailable"),
+            StartupRecoveryState.FreshStartRequired,
+            StartupRecoveryState.FreshStartResetting,
+            StartupRecoveryState.FreshStartBlocked("disk full"),
+        ).forEach { gatedState ->
+            val queue = LaunchRequestQueue(maxPendingSharedTaskRequests = 4)
+            queue.enqueue(request(WhipWidgetProvider.ACTION_OPEN_HABIT_TRACKING, 1L)) {
+                overflowRequest(99L)
+            }
+
+            assertEquals(
+                false,
+                queue.enqueueUnlessDataEpochGated(
+                    state = gatedState,
+                    request = sharedRequest(2L),
+                ) { overflowRequest(100L) },
+            )
+            assertEquals(emptyList<LaunchRequest>(), queue.snapshot())
+        }
+    }
+
+    @Test
+    fun currentEpochStartupAndRecoveryStatesStillQueueRequests() {
+        listOf(
+            StartupRecoveryState.Ready,
+            StartupRecoveryState.Checking,
+            StartupRecoveryState.Blocked(StartupBlockReason.Recovery),
+        ).forEach { state ->
+            val queue = LaunchRequestQueue(maxPendingSharedTaskRequests = 4)
+            assertEquals(
+                true,
+                queue.enqueueUnlessDataEpochGated(
+                    state = state,
+                    request = sharedRequest(3L),
+                ) { overflowRequest(101L) },
+            )
+            assertEquals(listOf(3L), queue.snapshot().map(LaunchRequest::deliveryId))
+        }
     }
 
     private fun sharedRequest(deliveryId: Long) = request(

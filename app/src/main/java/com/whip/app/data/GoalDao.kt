@@ -15,7 +15,7 @@ interface GoalDao {
     fun observeMilestones(): Flow<List<GoalMilestoneEntity>>
 
     @Query("SELECT * FROM goal_completion_snapshots ORDER BY completedAtMillis, id")
-    fun observeClosureSnapshots(): Flow<List<LegacyGoalCompletionSnapshotEntity>>
+    fun observeClosureSnapshots(): Flow<List<GoalClosureSnapshotEntity>>
 
     @Query("SELECT * FROM goal_elapsed_reset_events ORDER BY resetAtMillis, id")
     fun observeElapsedResetEvents(): Flow<List<GoalElapsedResetEventEntity>>
@@ -39,7 +39,7 @@ interface GoalDao {
     suspend fun getMilestones(goalId: Long): List<GoalMilestoneEntity>
 
     @Query("SELECT * FROM goal_completion_snapshots WHERE goalId = :goalId ORDER BY completedAtMillis, id")
-    suspend fun getClosureSnapshots(goalId: Long): List<LegacyGoalCompletionSnapshotEntity>
+    suspend fun getClosureSnapshots(goalId: Long): List<GoalClosureSnapshotEntity>
 
     @Query("SELECT * FROM goal_elapsed_reset_events WHERE goalId = :goalId ORDER BY resetAtMillis, id")
     suspend fun getElapsedResetEvents(goalId: Long): List<GoalElapsedResetEventEntity>
@@ -49,7 +49,7 @@ interface GoalDao {
 
     @Insert suspend fun insertGoal(entity: GoalEntity): Long
     @Insert suspend fun insertMilestone(entity: GoalMilestoneEntity): Long
-    @Insert suspend fun insertClosureSnapshot(entity: LegacyGoalCompletionSnapshotEntity): Long
+    @Insert suspend fun insertClosureSnapshot(entity: GoalClosureSnapshotEntity): Long
     @Insert suspend fun insertElapsedResetEvent(entity: GoalElapsedResetEventEntity): Long
     @Update suspend fun updateGoal(entity: GoalEntity)
     @Update suspend fun updateMilestone(entity: GoalMilestoneEntity)

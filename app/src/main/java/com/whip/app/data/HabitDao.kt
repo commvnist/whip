@@ -104,32 +104,6 @@ interface HabitDao {
     @Query("SELECT COUNT(*) FROM habit_checklist_states WHERE habitId = :habitId AND localEpochDay = :epochDay AND completed = 1")
     suspend fun completedChecklistCount(habitId: Long, epochDay: Long): Int
 
-    @Query(
-        """UPDATE habit_logs
-            SET canonicalValue = (
-                    SELECT metric_entries.canonicalValue
-                    FROM metric_entries
-                    WHERE metric_entries.id = habit_logs.metricEntryId
-                ),
-                updatedAtMillis = :updatedAtMillis
-            WHERE sourceId LIKE 'trigger:%'
-              AND metricEntryId IS NOT NULL
-              AND EXISTS (
-                    SELECT 1
-                    FROM metric_entries
-                    JOIN habits ON habits.id = habit_logs.habitId
-                    WHERE metric_entries.id = habit_logs.metricEntryId
-                      AND metric_entries.metricId = habits.metricId
-                      AND metric_entries.enteredValue = habit_logs.value
-                      AND metric_entries.enteredUnitId = habit_logs.enteredUnitId
-                      AND metric_entries.sourceType = habit_logs.sourceType
-                      AND metric_entries.sourceId = habit_logs.sourceId
-                      AND metric_entries.canonicalValue IS NOT NULL
-                      AND (habit_logs.canonicalValue IS NULL OR habit_logs.canonicalValue != metric_entries.canonicalValue)
-                )""",
-    )
-    suspend fun repairLegacyGeneratedCanonicalValues(updatedAtMillis: Long): Int
-
     @Query("SELECT COALESCE(MAX(position), -1) + 1 FROM habits")
     suspend fun nextPosition(): Int
 

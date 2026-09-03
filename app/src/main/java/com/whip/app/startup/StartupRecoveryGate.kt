@@ -215,7 +215,24 @@ class StartupRecoveryGate(
 sealed interface StartupRecoveryState {
     data object Checking : StartupRecoveryState
     data object Ready : StartupRecoveryState
+    data object FreshStartChecking : StartupRecoveryState
+    data class FreshStartCheckBlocked(val detail: String?) : StartupRecoveryState
+    data object FreshStartRequired : StartupRecoveryState
+    data object FreshStartResetting : StartupRecoveryState
+    data class FreshStartBlocked(val detail: String?) : StartupRecoveryState
     data class Blocked(val reason: StartupBlockReason) : StartupRecoveryState
+}
+
+internal enum class FreshStartRetryAction {
+    ReevaluateEpoch,
+    ResumeConfirmedReset,
+    RetryStartupRecovery,
+}
+
+internal fun StartupRecoveryState.freshStartRetryAction(): FreshStartRetryAction = when (this) {
+    is StartupRecoveryState.FreshStartCheckBlocked -> FreshStartRetryAction.ReevaluateEpoch
+    is StartupRecoveryState.FreshStartBlocked -> FreshStartRetryAction.ResumeConfirmedReset
+    else -> FreshStartRetryAction.RetryStartupRecovery
 }
 
 enum class StartupBlockReason {

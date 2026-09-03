@@ -28,11 +28,6 @@ import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.CustomIdentityEmoji
 import com.whip.app.domain.PersonalRecordType
-import com.whip.app.domain.DEFAULT_GOAL_EMOJI
-import com.whip.app.domain.DEFAULT_HABIT_EMOJI
-import com.whip.app.domain.DEFAULT_TASK_EMOJI
-import com.whip.app.domain.DEFAULT_TRACK_EMOJI
-import com.whip.app.domain.normalizedIdentityEmoji
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.LoadInterpretation
 import com.whip.app.domain.MachineStackMode
@@ -47,6 +42,7 @@ import org.json.JSONObject
 
 data class BackupPreview(
     val envelopeVersion: Int,
+    val dataModelEpoch: Int = CURRENT_DATA_MODEL_EPOCH,
     val databaseVersion: Int,
     val exportedAt: Instant,
     val tableCounts: Map<String, Int>,
@@ -54,7 +50,7 @@ data class BackupPreview(
     val duplicateStableIds: Int,
     val checksumValid: Boolean,
     val settingsIncluded: Boolean,
-    val restoreCompatible: Boolean = databaseVersion in OLDEST_COMPATIBLE_DATABASE_VERSION..BACKUP_DATABASE_VERSION,
+    val restoreCompatible: Boolean = databaseVersion == BACKUP_DATABASE_VERSION,
     val compatibilityMessage: String? = null,
 )
 
@@ -99,12 +95,12 @@ class RoomBackupRepository(
             tables.put(table, rows)
         }
         if (!includeLocalRecoveryState) sanitizeHabitTimersForPortableBackup(tables)
-        retireAutomationBackupRows(tables)
         val settings = settingsRepository?.current()?.toJson(includeLocalRecoveryState)
         val payload = checksumPayload(tables, settings)
         JSONObject()
             .put("format", BACKUP_FORMAT)
             .put("envelopeVersion", ENVELOPE_VERSION)
+            .put("dataModelEpoch", CURRENT_DATA_MODEL_EPOCH)
             .put("databaseVersion", BACKUP_DATABASE_VERSION)
             .put("exportedAt", Instant.now().toString())
             .put("checksumSha256", sha256(payload))
@@ -119,7 +115,6 @@ class RoomBackupRepository(
         val settings = root.optJSONObject("settings")
         val checksumValid = root.getString("checksumSha256") == sha256(checksumPayload(tables, settings))
         if (checksumValid) {
-            upgradeBackupTables(root.getInt("databaseVersion"), tables)
             validateBackupUnitDefinitions(tables)
         }
         val counts = EXPORT_TABLES.associateWith { table -> tables.optJSONArray(table)?.length() ?: 0 }
@@ -143,6 +138,7 @@ class RoomBackupRepository(
         val databaseVersion = root.getInt("databaseVersion")
         return BackupPreview(
             envelopeVersion = envelopeVersion,
+            dataModelEpoch = root.getInt("dataModelEpoch"),
             databaseVersion = databaseVersion,
             exportedAt = Instant.parse(root.getString("exportedAt")),
             tableCounts = counts,
@@ -151,11 +147,7 @@ class RoomBackupRepository(
             checksumValid = checksumValid,
             settingsIncluded = settings != null,
             restoreCompatible = true,
-            compatibilityMessage = if (databaseVersion < BACKUP_DATABASE_VERSION) {
-                "This backup will be upgraded to the current Whip backup format during restore."
-            } else {
-                null
-            },
+            compatibilityMessage = null,
         )
     }
 
@@ -168,7 +160,6 @@ class RoomBackupRepository(
                 checksumPayload(tables, settings),
             ),
         ) { "Backup checksum does not match" }
-        upgradeBackupTables(root.getInt("databaseVersion"), tables)
         validateBackupUnitDefinitions(tables)
         database.withTransaction {
             val db = database.openHelper.writableDatabase
@@ -177,9 +168,6 @@ class RoomBackupRepository(
                 val rows = tables.getJSONArray(table)
                 for (index in 0 until rows.length()) {
                     val values = rows.getJSONObject(index).toContentValues()
-                    values.applyBackupCompatibilityDefaults(table)
-                    values.retireAutomation(table)
-                    values.normalizeIdentityEmoji(table)
                     val result = db.insert(safeIdentifier(table), SQLiteDatabase.CONFLICT_ABORT, values)
                     require(result != -1L) { "Could not restore $table row ${index + 1}" }
                 }
@@ -205,7 +193,6 @@ class RoomBackupRepository(
                 checksumPayload(tables, settings),
             ),
         ) { "Backup checksum does not match" }
-        upgradeBackupTables(root.getInt("databaseVersion"), tables)
         validateBackupUnitDefinitions(tables)
         sanitizeHabitTimersForMerge(tables)
         val summary = database.withTransaction {
@@ -254,9 +241,6 @@ class RoomBackupRepository(
                         continue
                     }
                     val values = row.toContentValues()
-                    values.applyBackupCompatibilityDefaults(table)
-                    values.retireAutomation(table)
-                    values.normalizeIdentityEmoji(table)
                     val sourceOccurrenceId = if (table == "track_entries") {
                         values.getAsLong("sourceOccurrenceId")?.also { values.putNull("sourceOccurrenceId") }
                     } else {
@@ -363,32 +347,15 @@ class RoomBackupRepository(
     private fun parseAndValidate(json: String): JSONObject {
         val root = runCatching { JSONObject(json) }.getOrElse { error("This is not valid JSON") }
         require(root.optString("format") == BACKUP_FORMAT) { "This is not a Whip backup" }
-        require(root.optInt("envelopeVersion") == ENVELOPE_VERSION) {
-            "This backup uses unsupported envelope version ${root.optInt("envelopeVersion")}; this build requires version $ENVELOPE_VERSION"
-        }
-        val dbVersion = root.optInt("databaseVersion")
-        require(dbVersion in OLDEST_COMPATIBLE_DATABASE_VERSION..BACKUP_DATABASE_VERSION) {
-            "This backup uses unsupported data version $dbVersion; this build supports versions " +
-                "$OLDEST_COMPATIBLE_DATABASE_VERSION through $BACKUP_DATABASE_VERSION"
-        }
+        validateBackupContract(
+            envelopeVersion = root.optInt("envelopeVersion"),
+            dataModelEpoch = root.optInt("dataModelEpoch", 0),
+            databaseVersion = root.optInt("databaseVersion"),
+        )
+        val dbVersion = root.getInt("databaseVersion")
         val tables = root.optJSONObject("tables") ?: error("Backup has no table data")
         val tableNames = tables.keys().asSequence().toSet()
-        val expected = when (dbVersion) {
-            BACKUP_DATABASE_VERSION -> EXPORT_TABLES.toSet()
-            17, 16 -> VERSION_SEVENTEEN_EXPORT_TABLES.toSet()
-            15, 14 -> VERSION_FIFTEEN_EXPORT_TABLES.toSet()
-            13 -> VERSION_THIRTEEN_EXPORT_TABLES.toSet()
-            9 -> VERSION_THIRTEEN_EXPORT_TABLES.toSet()
-            8 -> VERSION_EIGHT_EXPORT_TABLES.toSet()
-            else -> LEGACY_EXPORT_TABLES.toSet()
-        }
-        val tableSetIsCompatible = tableNames == expected ||
-            (
-                dbVersion < BACKUP_DATABASE_VERSION &&
-                    tableNames.containsAll(expected) &&
-                    EXPORT_TABLES.toSet().containsAll(tableNames)
-            )
-        require(tableSetIsCompatible) {
+        require(tableNames == EXPORT_TABLES.toSet()) {
             "Backup table set does not match this build"
         }
         require(tableNames.all { tables.optJSONArray(it) != null }) { "Backup contains invalid table data" }
@@ -472,7 +439,6 @@ class RoomBackupRepository(
             metricDimensions[row.getString("id")] = dimension
             requireCompatibleBackupUnit(units, row.getString("defaultUnitId"), dimension, "metric definition")
         }
-        val metricEntryRows = tables.getJSONArray("metric_entries").objects().associateBy { it.getString("id") }
         tables.getJSONArray("metric_entries").forEachObject { row ->
             val enteredValue = row.nullableDouble("enteredValue")
             val enteredUnitId = row.nonBlankString("enteredUnitId")
@@ -498,9 +464,6 @@ class RoomBackupRepository(
         val habitDimensions = tables.getJSONArray("habits").objects().associate { row ->
             row.getLong("id") to row.getString("dimension")
         }
-        val habitMetricIds = tables.getJSONArray("habits").objects().associate { row ->
-            row.getLong("id") to row.getString("metricId")
-        }
         tables.getJSONArray("habit_logs").forEachObject { row ->
             val value = row.nullableDouble("value")
             val unitId = row.nonBlankString("enteredUnitId")
@@ -516,7 +479,6 @@ class RoomBackupRepository(
             val dimension = habitDimensions[row.getLong("habitId")]
                 ?: error("Backup Habit history references a missing Habit")
             val unit = requireCompatibleBackupUnit(units, unitId, dimension, "Habit history")
-            repairLegacyGeneratedHabitCanonical(row, habitMetricIds, metricEntryRows)
             validateCanonicalPair(row, "value", "canonicalValue", unit, "Habit history")
         }
         tables.getJSONArray("goals").forEachObject { row ->
@@ -705,24 +667,6 @@ class RoomBackupRepository(
     ) {
         val unitId = nonBlankString(key) ?: return
         requireCompatibleBackupUnit(units, unitId, dimension, label)
-    }
-
-    private fun repairLegacyGeneratedHabitCanonical(
-        row: JSONObject,
-        habitMetricIds: Map<Long, String>,
-        metricEntryRows: Map<String, JSONObject>,
-    ) {
-        val sourceId = row.nonBlankString("sourceId") ?: return
-        if (!sourceId.startsWith("trigger:")) return
-        val entry = row.nonBlankString("metricEntryId")?.let(metricEntryRows::get) ?: return
-        val sameContract = entry.optString("metricId") == habitMetricIds[row.getLong("habitId")] &&
-            entry.nonBlankString("enteredUnitId") == row.nonBlankString("enteredUnitId") &&
-            entry.nullableDouble("enteredValue") == row.nullableDouble("value") &&
-            entry.optString("sourceType") == row.optString("sourceType") &&
-            entry.nonBlankString("sourceId") == sourceId
-        if (sameContract) {
-            row.put("canonicalValue", entry.nullableDouble("canonicalValue") ?: JSONObject.NULL)
-        }
     }
 
     private fun JSONObject.requireBackupUnitForValues(
@@ -982,559 +926,7 @@ class RoomBackupRepository(
         }
     }
 
-    /** Upgrade a checksum-verified older envelope in memory before restore or merge. */
-    private fun upgradeBackupTables(databaseVersion: Int, tables: JSONObject) {
-        if (databaseVersion < 8 && !tables.has("habit_skips")) {
-            val logs = tables.getJSONArray("habit_logs")
-            val retainedLogs = JSONArray()
-            val skips = JSONArray()
-            val obsoleteMetricEntryIds = mutableSetOf<String>()
-            for (index in 0 until logs.length()) {
-                val row = logs.getJSONObject(index)
-                when (row.optString("status")) {
-                    "Skipped", "Excused" -> {
-                        val logUuid = row.optString("uuid")
-                        skips.put(
-                            JSONObject()
-                                .put("uuid", "habit-skip-$logUuid")
-                                .put("habitId", row.getLong("habitId"))
-                                .put("localEpochDay", row.getLong("localEpochDay"))
-                                .put("skippedAtMillis", row.optLong("timestampMillis"))
-                                .put("createdAtMillis", row.optLong("createdAtMillis"))
-                                .put("updatedAtMillis", row.optLong("updatedAtMillis")),
-                        )
-                        row.optString("metricEntryId").takeIf(String::isNotBlank)?.let(obsoleteMetricEntryIds::add)
-                    }
-                    "Missing" -> row.optString("metricEntryId").takeIf(String::isNotBlank)?.let(obsoleteMetricEntryIds::add)
-                    else -> retainedLogs.put(row)
-                }
-            }
-            val deduplicatedSkips = JSONArray()
-            val seenOccurrences = mutableSetOf<Pair<Long, Long>>()
-            for (index in 0 until skips.length()) {
-                val row = skips.getJSONObject(index)
-                if (seenOccurrences.add(row.getLong("habitId") to row.getLong("localEpochDay"))) deduplicatedSkips.put(row)
-            }
-            val entries = tables.getJSONArray("metric_entries")
-            val retainedEntries = JSONArray()
-            for (index in 0 until entries.length()) {
-                entries.getJSONObject(index).takeUnless { it.optString("id") in obsoleteMetricEntryIds }?.let(retainedEntries::put)
-            }
-            tables.put("habit_logs", retainedLogs)
-            tables.put("metric_entries", retainedEntries)
-            tables.put("habit_skips", deduplicatedSkips)
-        }
-        if (databaseVersion < 9 && !tables.has("gym_machine_exercise_joins")) {
-            val joins = JSONArray()
-            val machines = tables.getJSONArray("gym_machines")
-            for (index in 0 until machines.length()) {
-                val machine = machines.getJSONObject(index)
-                if (machine.has("exerciseId") && !machine.isNull("exerciseId")) {
-                    joins.put(
-                        JSONObject()
-                            .put("machineId", machine.getLong("id"))
-                            .put("exerciseId", machine.getLong("exerciseId")),
-                    )
-                }
-            }
-            tables.put("gym_machine_exercise_joins", joins)
-        }
-        if (databaseVersion < 13) upgradeTypedGymProgramming(tables)
-        if (databaseVersion < 14 && !tables.has("training_max_decisions")) {
-            tables.put("training_max_decisions", JSONArray())
-        }
-        if (databaseVersion < 16) {
-            if (!tables.has("goal_completion_snapshots")) tables.put("goal_completion_snapshots", JSONArray())
-            if (!tables.has("goal_elapsed_reset_events")) tables.put("goal_elapsed_reset_events", JSONArray())
-            val goalUuids = mutableMapOf<Long, String>()
-            tables.optJSONArray("goals")?.forEachObject { goal ->
-                goal.optLongOrNull("id")?.let { id ->
-                    goal.optString("uuid").takeIf(String::isNotBlank)?.let { goalUuids[id] = it }
-                }
-            }
-            tables.optJSONArray("goal_completion_snapshots")?.forEachObject { row ->
-                if (!row.has("uuid") || row.optString("uuid").isBlank()) {
-                    val goalId = row.optLong("goalId")
-                    val goalIdentity = goalUuids[goalId] ?: "missing-$goalId"
-                    row.put("uuid", "legacy-goal-closure:$goalIdentity:${row.optLong("id")}")
-                }
-            }
-            tables.optJSONArray("goals")?.forEachObject { row ->
-                if (!row.has("archived")) {
-                    val legacyArchived = row.optString("status") == "Archived"
-                    row.put("archived", if (legacyArchived) 1 else 0)
-                    if (legacyArchived) row.put("status", "Active")
-                }
-            }
-        }
-        if (databaseVersion < 18 && !tables.has("habit_timer_sessions")) {
-            val sessions = JSONArray()
-            tables.getJSONArray("habits").forEachObject { habit ->
-                val start = habit.optLongOrNull("timerStartedAtMillis")
-                if (start == null) {
-                    habit.put("timerSessionId", JSONObject.NULL)
-                    habit.put("timerNeedsReview", false)
-                    habit.put("timerAccumulatedSeconds", 0.0)
-                    habit.put("timerAnchorElapsedRealtimeMillis", JSONObject.NULL)
-                } else {
-                    val sessionId = "legacy-habit-timer:${habit.optString("uuid")}:$start"
-                    habit.put("timerSessionId", sessionId)
-                    habit.put("timerNeedsReview", true)
-                    habit.put("timerAccumulatedSeconds", 0.0)
-                    habit.put("timerAnchorElapsedRealtimeMillis", JSONObject.NULL)
-                    sessions.put(
-                        JSONObject()
-                            .put("sessionId", sessionId)
-                            .put("habitId", habit.getLong("id"))
-                            .put("activeHabitId", habit.getLong("id"))
-                            .put("state", "ReviewRequired")
-                            .put("anchorWallMillis", start)
-                            .put("anchorElapsedRealtimeMillis", JSONObject.NULL)
-                            .put("anchorBootId", JSONObject.NULL)
-                            .put("accumulatedCanonicalSeconds", 0.0)
-                            .put("unitId", habit.optString("unitId"))
-                            .put("createdAtMillis", start)
-                            .put("resolvedAtMillis", JSONObject.NULL),
-                    )
-                }
-            }
-            tables.put("habit_timer_sessions", sessions)
-        }
-        if (databaseVersion < 17) upgradeWorkoutProgressionRequirements(tables)
-        retireAutomationBackupRows(tables)
-    }
 
-    /** Mirrors the Room 39 -> 40 authored-requirement backfill for portable backups. */
-    private fun upgradeWorkoutProgressionRequirements(tables: JSONObject) {
-        val routineSessions = mutableMapOf<Long, Long>()
-        tables.optJSONArray("workout_sessions")?.forEachObject { session ->
-            if (session.has("sourceRoutineId") && !session.isNull("sourceRoutineId")) {
-                routineSessions[session.getLong("id")] = session.optLong("createdAtMillis")
-            }
-        }
-        val routinePlacements = mutableMapOf<Long, Pair<Long, Long>>()
-        tables.optJSONArray("workout_exercises")?.forEachObject { placement ->
-            routineSessions[placement.optLong("sessionId")]?.let { sessionCreatedAt ->
-                routinePlacements[placement.getLong("id")] =
-                    sessionCreatedAt to placement.optLong("createdAtMillis")
-            }
-        }
-        tables.optJSONArray("workout_sets")?.forEachObject { set ->
-            if (!set.has("requiredForProgressionSnapshot")) {
-                val sourceCreatedAt = routinePlacements[set.optLong("workoutExerciseId")]
-                val setCreatedAt = set.optLong("createdAtMillis")
-                set.put(
-                    "requiredForProgressionSnapshot",
-                    sourceCreatedAt != null &&
-                        set.optString("workSectionSnapshot", "Unspecified") != "Optional" &&
-                        (set.hasImmutableAuthoredPrescription() ||
-                            sourceCreatedAt.first == setCreatedAt && sourceCreatedAt.second == setCreatedAt),
-                )
-            }
-        }
-    }
-
-    /** Mirrors the Room 32 -> 33 semantic backfill for checksum-valid portable backups. */
-    private fun upgradeTypedGymProgramming(tables: JSONObject) {
-        fun inferredWorkSection(row: JSONObject): String = when {
-            row.optString("note").startsWith("Main Work ·") -> "Main"
-            row.optString("note").startsWith("Supplemental ·") -> "Supplemental"
-            else -> "Unspecified"
-        }
-
-        val routineSets = tables.optJSONArray("routine_sets") ?: JSONArray()
-        val routineSetsByExercise = mutableMapOf<Long, MutableList<JSONObject>>()
-        for (index in 0 until routineSets.length()) {
-            val row = routineSets.getJSONObject(index)
-            if (!row.has("workSection")) row.put("workSection", inferredWorkSection(row))
-            if (!row.has("optionalWorkKind")) row.put("optionalWorkKind", "None")
-            if (!row.has("mainWorkScheme")) row.put("mainWorkScheme", "")
-            if (!row.has("supplementalScheme")) row.put("supplementalScheme", "")
-            routineSetsByExercise.getOrPut(row.optLong("routineExerciseId"), ::mutableListOf) += row
-        }
-
-        val routineExercises = tables.optJSONArray("routine_exercises") ?: JSONArray()
-        for (index in 0 until routineExercises.length()) {
-            val row = routineExercises.getJSONObject(index)
-            val sets = routineSetsByExercise[row.optLong("id")].orEmpty()
-            val main = sets.filter { it.optString("workSection") == "Main" }
-            val supplemental = sets.filter { it.optString("workSection") == "Supplemental" }
-            if (!row.has("mainWorkScheme")) {
-                row.put(
-                    "mainWorkScheme",
-                    when {
-                        main.any { it.optString("classification") == "Amrap" } -> "ClassicPrSet"
-                        main.isNotEmpty() && main.all { it.optInt("repetitions") == 5 } -> "FivesPro"
-                        main.isNotEmpty() -> "ClassicMinimumReps"
-                        else -> "Unspecified"
-                    },
-                )
-            }
-            if (!row.has("supplementalScheme")) {
-                row.put(
-                    "supplementalScheme",
-                    when {
-                        supplemental.any { it.optInt("repetitions") == 10 } -> "BoringButBig"
-                        supplemental.isNotEmpty() -> "FirstSetLast"
-                        else -> "None"
-                    },
-                )
-            }
-            if (!row.has("assistanceRole")) {
-                row.put("assistanceRole", if (main.isEmpty()) "Unspecified" else "MainLift")
-            }
-            if (!row.has("placementKind")) {
-                row.put(
-                    "placementKind",
-                    when {
-                        main.isNotEmpty() || row.optString("assistanceRole") == "MainLift" -> "MainLift"
-                        sets.any { it.optString("workSection") == "Assistance" } ||
-                            row.optString("assistanceRole") in setOf("Push", "Pull", "SingleLegCore", "Other") -> "Assistance"
-                        else -> "General"
-                    },
-                )
-            }
-            if (!row.has("assistanceCategory")) {
-                row.put(
-                    "assistanceCategory",
-                    row.optString("assistanceRole").takeIf { it in setOf("Push", "Pull", "SingleLegCore", "Other") }
-                        ?: if (row.optString("placementKind") == "Assistance") "Other" else "Unspecified",
-                )
-            }
-            if (!row.has("jokerSetsEnabled")) row.put("jokerSetsEnabled", false)
-        }
-
-        val workoutSets = tables.optJSONArray("workout_sets") ?: JSONArray()
-        val workoutSetsByExercise = mutableMapOf<Long, MutableList<JSONObject>>()
-        for (index in 0 until workoutSets.length()) {
-            val row = workoutSets.getJSONObject(index)
-            if (!row.has("workSectionSnapshot")) row.put("workSectionSnapshot", inferredWorkSection(row))
-            if (!row.has("optionalWorkKindSnapshot")) row.put("optionalWorkKindSnapshot", "None")
-            workoutSetsByExercise.getOrPut(row.optLong("workoutExerciseId"), ::mutableListOf) += row
-        }
-
-        val workoutExercises = tables.optJSONArray("workout_exercises") ?: JSONArray()
-        for (index in 0 until workoutExercises.length()) {
-            val row = workoutExercises.getJSONObject(index)
-            val sets = workoutSetsByExercise[row.optLong("id")].orEmpty()
-            val main = sets.filter { it.optString("workSectionSnapshot") == "Main" }
-            val supplemental = sets.filter { it.optString("workSectionSnapshot") == "Supplemental" }
-            if (!row.has("mainWorkSchemeSnapshot")) {
-                row.put(
-                    "mainWorkSchemeSnapshot",
-                    when {
-                        main.any { it.optString("classification") == "Amrap" } -> "ClassicPrSet"
-                        main.isNotEmpty() && main.all { it.optInt("repetitions") == 5 } -> "FivesPro"
-                        main.isNotEmpty() -> "ClassicMinimumReps"
-                        else -> "Unspecified"
-                    },
-                )
-            }
-            if (!row.has("supplementalSchemeSnapshot")) {
-                row.put(
-                    "supplementalSchemeSnapshot",
-                    when {
-                        supplemental.any { it.optInt("repetitions") == 10 } -> "BoringButBig"
-                        supplemental.isNotEmpty() -> "FirstSetLast"
-                        else -> "None"
-                    },
-                )
-            }
-            if (!row.has("assistanceRoleSnapshot")) {
-                row.put("assistanceRoleSnapshot", if (main.isEmpty()) "Unspecified" else "MainLift")
-            }
-            if (!row.has("placementKindSnapshot")) {
-                row.put(
-                    "placementKindSnapshot",
-                    when {
-                        main.isNotEmpty() || row.optString("assistanceRoleSnapshot") == "MainLift" -> "MainLift"
-                        sets.any { it.optString("workSectionSnapshot") == "Assistance" } ||
-                            row.optString("assistanceRoleSnapshot") in setOf("Push", "Pull", "SingleLegCore", "Other") -> "Assistance"
-                        else -> "General"
-                    },
-                )
-            }
-            if (!row.has("assistanceCategorySnapshot")) {
-                row.put(
-                    "assistanceCategorySnapshot",
-                    row.optString("assistanceRoleSnapshot")
-                        .takeIf { it in setOf("Push", "Pull", "SingleLegCore", "Other") }
-                        ?: if (row.optString("placementKindSnapshot") == "Assistance") "Other" else "Unspecified",
-                )
-            }
-            if (!row.has("jokerSetsEnabledSnapshot")) row.put("jokerSetsEnabledSnapshot", false)
-        }
-
-        val routines = tables.optJSONArray("gym_routines") ?: JSONArray()
-        for (index in 0 until routines.length()) {
-            val row = routines.getJSONObject(index)
-            if (!row.has("trainingMaxIncreaseEligible")) row.put("trainingMaxIncreaseEligible", true)
-            if (!row.has("programPhaseRolesCsv")) {
-                val labels = row.optString("programPhaseLabelsCsv")
-                    .split(',').map(String::trim).filter(String::isNotBlank)
-                row.put(
-                    "programPhaseRolesCsv",
-                    labels.joinToString(",") { label ->
-                        when {
-                            label.contains("deload", ignoreCase = true) -> "Deload"
-                            label.contains("tm test", ignoreCase = true) -> "TrainingMaxTest"
-                            label.contains("pr test", ignoreCase = true) -> "PersonalRecordTest"
-                            label.contains("leader", ignoreCase = true) -> "Leader"
-                            label.contains("anchor", ignoreCase = true) -> "Anchor"
-                            else -> "Standard"
-                        }
-                    },
-                )
-            }
-            if (!row.has("trainingMaxAdvanceAfterPhaseIndicesCsv")) {
-                val finalPhase = row.optInt("programPhaseCount", 1) - 1
-                row.put(
-                    "trainingMaxAdvanceAfterPhaseIndicesCsv",
-                    finalPhase.toString().takeIf {
-                        row.optString("programKind", "Static") != "Static" && finalPhase >= 0
-                    }.orEmpty(),
-                )
-            }
-            if (!row.has("programTemplateKey")) {
-                row.put(
-                    "programTemplateKey",
-                    if (row.optString("programKind", "Static") in setOf(
-                            "FiveThreeOne", "FiveThreeOneClassic", "FiveSPro", "BoringButBig", "FirstSetLast",
-                        )
-                    ) "LegacyFiveThreeOne" else "None",
-                )
-            }
-            if (!row.has("programTemplateRevision")) {
-                row.put("programTemplateRevision", if (row.optString("programTemplateKey") == "None") 0 else 1)
-            }
-        }
-
-        val sessions = tables.optJSONArray("workout_sessions") ?: JSONArray()
-        for (index in 0 until sessions.length()) {
-            val row = sessions.getJSONObject(index)
-            if (!row.has("sourceRoutinePhaseLabel")) row.put("sourceRoutinePhaseLabel", "")
-            if (!row.has("sourceRoutinePhaseRole")) row.put("sourceRoutinePhaseRole", "Standard")
-        }
-    }
-}
-
-private fun ContentValues.applyBackupCompatibilityDefaults(table: String) {
-    if (table == "track_fields" && !containsKey("scaleStep")) put("scaleStep", 1.0)
-    if (table == "tasks" && !containsKey("icon")) put("icon", DEFAULT_TASK_EMOJI)
-    if (table == "goals" && !containsKey("archived")) {
-        val legacyArchived = getAsString("status") == "Archived"
-        put("archived", legacyArchived)
-        if (legacyArchived) put("status", "Active")
-    }
-    if (table == "gym_machines" && !containsKey("levelDirection")) put("levelDirection", "HigherNumberMoreResistance")
-    if (table == "gym_routines") {
-        if (!containsKey("programKind")) put("programKind", "Static")
-        if (!containsKey("programPhaseCount")) put("programPhaseCount", 1)
-        if (!containsKey("programPhaseLabelsCsv")) put("programPhaseLabelsCsv", "")
-        if (!containsKey("currentProgramPhaseIndex")) put("currentProgramPhaseIndex", 0)
-        if (!containsKey("currentProgramCycle")) put("currentProgramCycle", 1)
-        if (!containsKey("nextProgramDayPosition")) put("nextProgramDayPosition", 0)
-        if (!containsKey("trainingMaxIncreaseEligible")) put("trainingMaxIncreaseEligible", true)
-        if (!containsKey("programPhaseRolesCsv")) put("programPhaseRolesCsv", "")
-        if (!containsKey("trainingMaxAdvanceAfterPhaseIndicesCsv")) {
-            val finalPhase = (getAsInteger("programPhaseCount") ?: 1) - 1
-            put(
-                "trainingMaxAdvanceAfterPhaseIndicesCsv",
-                finalPhase.toString().takeIf {
-                    getAsString("programKind") != "Static" && finalPhase >= 0
-                }.orEmpty(),
-            )
-        }
-        if (!containsKey("programTemplateKey")) {
-            put(
-                "programTemplateKey",
-                if (getAsString("programKind") in setOf(
-                        "FiveThreeOne", "FiveThreeOneClassic", "FiveSPro", "BoringButBig", "FirstSetLast",
-                    )
-                ) "LegacyFiveThreeOne" else "None",
-            )
-        }
-        if (!containsKey("programTemplateRevision")) {
-            put("programTemplateRevision", if (getAsString("programTemplateKey") == "None") 0 else 1)
-        }
-        if (!containsKey("progressionMode")) put("progressionMode", "Standard")
-        if (!containsKey("allowNonStandardHigherSuggestions")) put("allowNonStandardHigherSuggestions", false)
-    }
-    if (table == "routine_days" && !containsKey("progressionIndex")) put("progressionIndex", 0)
-    if (table == "routine_exercises") {
-        if (!containsKey("trainingMaxUnitId")) put("trainingMaxUnitId", "kilogram")
-        if (!containsKey("trainingMaxSource")) put("trainingMaxSource", "EstimatedOneRepMaxPercent")
-        if (!containsKey("mainWorkScheme")) put("mainWorkScheme", "Unspecified")
-        if (!containsKey("supplementalScheme")) put("supplementalScheme", "None")
-        if (!containsKey("assistanceRole")) put("assistanceRole", "Unspecified")
-        if (!containsKey("placementKind")) {
-            put(
-                "placementKind",
-                when (getAsString("assistanceRole")) {
-                    "MainLift" -> "MainLift"
-                    "Push", "Pull", "SingleLegCore", "Other" -> "Assistance"
-                    else -> "General"
-                },
-            )
-        }
-        if (!containsKey("assistanceCategory")) {
-            put(
-                "assistanceCategory",
-                getAsString("assistanceRole").takeIf { it in setOf("Push", "Pull", "SingleLegCore", "Other") }
-                    ?: if (getAsString("placementKind") == "Assistance") "Other" else "Unspecified",
-            )
-        }
-        if (!containsKey("jokerSetsEnabled")) put("jokerSetsEnabled", false)
-        if (!containsKey("trainingMaxBasisKind")) {
-            put(
-                "trainingMaxBasisKind",
-                if (containsKey("trainingMaxValue") && getAsDouble("trainingMaxValue") != null) {
-                    "ExplicitTrainingMax"
-                } else {
-                    "Unspecified"
-                },
-            )
-        }
-        if (!containsKey("trainingMaxBasisValue") && containsKey("trainingMaxValue")) {
-            put("trainingMaxBasisValue", getAsDouble("trainingMaxValue"))
-        }
-        if (!containsKey("trainingMaxBasisUnitId")) {
-            put("trainingMaxBasisUnitId", getAsString("trainingMaxUnitId").orEmpty())
-        }
-        if (!containsKey("trainingMaxIncreaseEligible")) put("trainingMaxIncreaseEligible", true)
-    }
-    if (table == "routine_sets") {
-        if (!containsKey("workSection")) put("workSection", "Unspecified")
-        if (!containsKey("optionalWorkKind")) put("optionalWorkKind", "None")
-        if (!containsKey("mainWorkScheme")) put("mainWorkScheme", "")
-        if (!containsKey("supplementalScheme")) put("supplementalScheme", "")
-    }
-    if (table == "workout_sessions") {
-        if (!containsKey("sourceRoutineProgramKind")) put("sourceRoutineProgramKind", "Static")
-        if (!containsKey("programProgressAdvanced")) put("programProgressAdvanced", false)
-        if (!containsKey("requiredMainWorkInvalidated")) put("requiredMainWorkInvalidated", false)
-        if (!containsKey("invalidatedMainExerciseIdsCsv")) put("invalidatedMainExerciseIdsCsv", "")
-        if (!containsKey("sourceRoutinePhaseLabel")) put("sourceRoutinePhaseLabel", "")
-        if (!containsKey("sourceRoutinePhaseRole")) put("sourceRoutinePhaseRole", "Standard")
-        if (!containsKey("workoutRevision")) put("workoutRevision", 0L)
-        if (!containsKey("restTimerRevision")) put("restTimerRevision", 0L)
-        if (!containsKey("restTimerCleanupPending")) put("restTimerCleanupPending", false)
-    }
-    if (table == "workout_exercises") {
-        if (!containsKey("trainingMaxUnitIdSnapshot")) put("trainingMaxUnitIdSnapshot", "")
-        if (!containsKey("trainingMaxSourceSnapshot")) {
-            put("trainingMaxSourceSnapshot", "EstimatedOneRepMaxPercent")
-        }
-        if (!containsKey("mainWorkSchemeSnapshot")) put("mainWorkSchemeSnapshot", "Unspecified")
-        if (!containsKey("supplementalSchemeSnapshot")) put("supplementalSchemeSnapshot", "None")
-        if (!containsKey("assistanceRoleSnapshot")) put("assistanceRoleSnapshot", "Unspecified")
-        if (!containsKey("placementKindSnapshot")) {
-            put(
-                "placementKindSnapshot",
-                when (getAsString("assistanceRoleSnapshot")) {
-                    "MainLift" -> "MainLift"
-                    "Push", "Pull", "SingleLegCore", "Other" -> "Assistance"
-                    else -> "General"
-                },
-            )
-        }
-        if (!containsKey("assistanceCategorySnapshot")) {
-            put(
-                "assistanceCategorySnapshot",
-                getAsString("assistanceRoleSnapshot")
-                    .takeIf { it in setOf("Push", "Pull", "SingleLegCore", "Other") }
-                    ?: if (getAsString("placementKindSnapshot") == "Assistance") "Other" else "Unspecified",
-            )
-        }
-        if (!containsKey("jokerSetsEnabledSnapshot")) put("jokerSetsEnabledSnapshot", false)
-        if (!containsKey("outcome")) put("outcome", "Active")
-        if (!containsKey("outcomeAtMillis")) putNull("outcomeAtMillis")
-        if (!containsKey("replacementWorkoutExerciseUuid")) putNull("replacementWorkoutExerciseUuid")
-    }
-    if (table == "workout_sets") {
-        if (!containsKey("workSectionSnapshot")) put("workSectionSnapshot", "Unspecified")
-        if (!containsKey("optionalWorkKindSnapshot")) put("optionalWorkKindSnapshot", "None")
-        if (!containsKey("prescribedClassificationSnapshot")) {
-            put("prescribedClassificationSnapshot", getAsString("classification") ?: "Working")
-        }
-        if (!containsKey("requiredForProgressionSnapshot")) {
-            put(
-                "requiredForProgressionSnapshot",
-                hasImmutableAuthoredPrescription(),
-            )
-        }
-        if (!containsKey("removalReason")) {
-            if (getAsLong("deletedAtMillis") != null) put("removalReason", "Removed")
-            else putNull("removalReason")
-        }
-    }
-}
-
-private fun JSONObject.hasImmutableAuthoredPrescription(): Boolean {
-    val workSection = optString("workSectionSnapshot", "Unspecified")
-    if (workSection == "Optional") return false
-    return workSection in setOf("Main", "Supplemental", "Assistance") ||
-        listOf(
-            "prescribedCanonicalWeightKg",
-            "prescribedEnteredWeight",
-            "prescribedWeightUnitId",
-            "prescribedRepetitions",
-            "prescribedRepetitionsMax",
-            "prescribedRpe",
-            "prescribedRir",
-            "prescribedDurationSeconds",
-            "prescribedMachineLoadValue",
-        ).any { key -> has(key) && !isNull(key) } ||
-        optString("prescriptionSourceLabel").isNotBlank()
-}
-
-private fun ContentValues.hasImmutableAuthoredPrescription(): Boolean {
-    val workSection = getAsString("workSectionSnapshot") ?: "Unspecified"
-    if (workSection == "Optional") return false
-    return workSection in setOf("Main", "Supplemental", "Assistance") ||
-        listOf(
-            "prescribedCanonicalWeightKg",
-            "prescribedEnteredWeight",
-            "prescribedWeightUnitId",
-            "prescribedRepetitions",
-            "prescribedRepetitionsMax",
-            "prescribedRpe",
-            "prescribedRir",
-            "prescribedDurationSeconds",
-            "prescribedMachineLoadValue",
-        ).any { key -> containsKey(key) && get(key) != null } ||
-        getAsString("prescriptionSourceLabel").orEmpty().isNotBlank()
-}
-
-private fun ContentValues.retireAutomation(table: String) {
-    when (table) {
-        "link_rules" -> put("enabled", false)
-        "trigger_rules" -> {
-            put("enabled", false)
-            put("notificationEnabled", false)
-        }
-        "trigger_occurrences" -> if (getAsLong("fulfilledEntryId") == null && getAsLong("dismissedAtMillis") == null) {
-            put("dismissedAtMillis", getAsLong("deliveredAtMillis") ?: getAsLong("availableAtMillis") ?: 0L)
-            putNull("remindAtMillis")
-        }
-    }
-}
-
-private fun retireAutomationBackupRows(tables: JSONObject) {
-    tables.optJSONArray("link_rules")?.forEachObject { row -> row.put("enabled", 0) }
-    tables.optJSONArray("trigger_rules")?.forEachObject { row ->
-        row.put("enabled", 0)
-        row.put("notificationEnabled", 0)
-    }
-    tables.optJSONArray("trigger_occurrences")?.forEachObject { row ->
-        if (row.optLongOrNull("fulfilledEntryId") == null && row.optLongOrNull("dismissedAtMillis") == null) {
-            row.put(
-                "dismissedAtMillis",
-                row.optLongOrNull("deliveredAtMillis") ?: row.optLongOrNull("availableAtMillis") ?: 0L,
-            )
-            row.put("remindAtMillis", JSONObject.NULL)
-        }
-    }
 }
 
 private inline fun JSONArray.forEachObject(block: (JSONObject) -> Unit) {
@@ -1737,19 +1129,32 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
     .digest(value.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
 
 private const val BACKUP_FORMAT = "whip-backup"
-private const val ENVELOPE_VERSION = 2
-private const val OLDEST_COMPATIBLE_DATABASE_VERSION = 5
-private const val BACKUP_DATABASE_VERSION = 18
+internal const val ENVELOPE_VERSION = 3
+internal const val CURRENT_DATA_MODEL_EPOCH = 2
+internal const val BACKUP_DATABASE_VERSION = 19
 
-private fun ContentValues.normalizeIdentityEmoji(table: String) {
-    val defaultEmoji = when (table) {
-        "tasks" -> DEFAULT_TASK_EMOJI
-        "habits" -> DEFAULT_HABIT_EMOJI
-        "goals" -> DEFAULT_GOAL_EMOJI
-        "tracks" -> DEFAULT_TRACK_EMOJI
-        else -> return
+internal fun validateBackupContract(
+    envelopeVersion: Int,
+    dataModelEpoch: Int,
+    databaseVersion: Int,
+) {
+    require(dataModelEpoch == CURRENT_DATA_MODEL_EPOCH) {
+        if (dataModelEpoch < CURRENT_DATA_MODEL_EPOCH) {
+            "This backup is from an older Whip data epoch and cannot be restored after the fresh-start update"
+        } else {
+            "This backup is from a newer Whip data epoch and requires a newer version of Whip"
+        }
     }
-    put("icon", getAsString("icon").orEmpty().normalizedIdentityEmoji(defaultEmoji))
+    require(envelopeVersion == ENVELOPE_VERSION) {
+        "This backup uses unsupported envelope version $envelopeVersion; this build requires version $ENVELOPE_VERSION"
+    }
+    require(databaseVersion == BACKUP_DATABASE_VERSION) {
+        if (databaseVersion < BACKUP_DATABASE_VERSION) {
+            "This backup uses old data version $databaseVersion; only current version $BACKUP_DATABASE_VERSION can be restored"
+        } else {
+            "This backup uses future data version $databaseVersion; this build requires version $BACKUP_DATABASE_VERSION"
+        }
+    }
 }
 
 private val EXPORT_TABLES = listOf(
@@ -1765,12 +1170,6 @@ private val EXPORT_TABLES = listOf(
     "tracks", "track_fields", "track_choice_options", "track_entries", "track_values",
     "link_rules", "link_rule_conditions", "link_condition_choices", "contributions", "trigger_rules", "trigger_rule_conditions", "trigger_condition_choices", "trigger_field_mappings", "trigger_occurrences",
 )
-
-private val VERSION_SEVENTEEN_EXPORT_TABLES = EXPORT_TABLES - "habit_timer_sessions"
-private val VERSION_FIFTEEN_EXPORT_TABLES = VERSION_SEVENTEEN_EXPORT_TABLES - setOf("goal_completion_snapshots", "goal_elapsed_reset_events")
-private val VERSION_THIRTEEN_EXPORT_TABLES = VERSION_FIFTEEN_EXPORT_TABLES - "training_max_decisions"
-private val VERSION_EIGHT_EXPORT_TABLES = VERSION_THIRTEEN_EXPORT_TABLES - "gym_machine_exercise_joins"
-private val LEGACY_EXPORT_TABLES = VERSION_EIGHT_EXPORT_TABLES - "habit_skips"
 
 private fun checksumPayload(tables: JSONObject, settings: JSONObject?): String =
     tables.toString() + "\n" + settings?.toString().orEmpty()
