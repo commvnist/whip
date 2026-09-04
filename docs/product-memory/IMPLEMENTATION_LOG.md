@@ -779,3 +779,11 @@
 - Related: `FB-20260903-014`, `FND-20260903-023`, `DEC-20260903-013`.
 - Verification: `VER-20260903-020`.
 - Status: Implemented in `6527350`, committed, and pushed; not yet released to the physical phone.
+
+### IMP-20260903-021 — Canonical Exercise/Measurement clean-data boundary
+
+- Established the current-only Room schema 45, data epoch 5, and backup data version 22. Older local data and complete backups are rejected; the two-step user-confirmed fresh-start gate is the sole entry into the contract.
+- Made `Exercise` the persisted Gym/program noun, including 5/3/1 main-work identities, and renamed the shared Habit/Goal ledger from `Metric` to `Measurement` through Room, backup, Health, tests, benchmark seeding, and baseline profile.
+- Retained the distinct graph-analytics `GymGraphMetric` terminology and removed obsolete identity-symbol conversion and unowned Goal mutation entry points.
+- Removed old Room schemas and the old widget snapshot decoder. Retired rule-engine runtime rebuilding/scheduling and future Task-series replication are disconnected; Link/Trigger persistence removal remains a separate hard-cut chunk.
+- Source: `b73893e` on `origin/main`; not released to the physical phone.

@@ -809,3 +809,10 @@
 - Source: `6527350`.
 - Related: `FB-20260903-014`, `FND-20260903-023`, `DEC-20260903-013`, `IMP-20260903-020`.
 - Status: Passed and independently accepted; current product source remains unreleased to the phone.
+
+### VER-20260903-021 — Canonical Exercise/Measurement boundary verification
+
+- Full JVM suite passed: 598 tests. Production, unit-test, Android-test, and benchmark Kotlin compilation passed.
+- Reset Android profile passed: `DataEpochBoundaryTest` and `DataEpochResetIntegrationTest` (3 tests). A broader 175-test emulator profile ended after 82 passing tests without a product assertion; it is not accepted as a completed profile.
+- `git diff --check` passed. Independent architecture review accepted the Exercise/Measurement, graph-metric, schema 45/epoch 5/backup 22, benchmark, profile, and hard-reset contracts, then identified retired Link/Trigger persistence as the remaining clean-slate blocker.
+- Source: `b73893e`; status: verified first chunk, unreleased, with persistence removal open.

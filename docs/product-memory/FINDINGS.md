@@ -807,3 +807,10 @@
 - Evidence: `RoutineBuilder.kt`, `GymScreens.kt`, `FiveThreeOneBuilder.kt`, `FiveThreeOneCycleReview.kt`, `FiveThreeOneProgramming.kt`, `SettingsScreens.kt`, and repository validation messages.
 - Resolution: Replaced visible and announced Lift/Lifts copy with Exercise/Exercises and updated focused assertions while preserving Deadlift names, search aliases, fixture data, stored enums, internal types, and stable automation tags.
 - Status: Resolved in `6527350` and verified in `VER-20260903-020`; not yet included in a physical-phone release.
+
+### FND-20260903-024 — Retired Automation persistence survives the hard data boundary
+
+- Severity/category: P1 architecture and data-contract integrity.
+- Observed: Link/Trigger Automation has no supported product surface, yet its models, Room tables, backup/remap paths, Track provenance, and deletion previews remain canonical state.
+- Expected: A user-authorized current-only epoch must not retain a dormant unsupported subsystem as first-class persistent state.
+- Resolution status: runtime rebuilding/scheduling and Task-series copying are removed in `b73893e`; persistence removal remains open because Track history and deletion contracts must be rewritten together.
