@@ -677,3 +677,16 @@
 - Compatibility: Copy and assertions only; no schema, backup, progression, prescription, completed-workout, or stored-identity change.
 - Related: `FB-20260903-014`, `FND-20260903-023`, `IMP-20260903-020`, `VER-20260903-020`.
 - Status: Accepted, implemented, and independently approved.
+
+### DEC-20260903-014 — One summary-first collection density replaces the compact/comfortable choice
+
+- Context: Whip offered an expansive default card and an optional compact row, but the preference bundled information disclosure, insets, shape, and list rhythm. The compact interaction was more scannable and retained full capability through expansion, while its 6 dp vertical inset and 4 dp list gap felt cramped.
+- Position A: Keep both modes and only add padding to compact rows.
+- Position B: Make standard cards slightly smaller while retaining all details at once.
+- Evidence and constraints: The established compact parity contract already preserves primary actions, two-line titles, complete expandable information, multiple saved disclosures, 48 dp targets, and narrow/large-text reflow. Current shared geometry is small shape/10×6 dp/4 dp internal/4 dp list gap versus medium shape/14×14 dp/6 dp internal/12 dp list gap. Track master-pane compactness is viewport-driven and independent from the user preference.
+- Failure modes: Treating every internal nested gap as a density token would distort controls; leaving a dead serialized Boolean would contradict the requested clean cut; removing viewport compact code would regress adaptive layouts; forcing summary rows through selection/reorder would lose their dedicated controls; added insets could squeeze titles beside disclosure and primary-action lanes at 320 dp/200% text.
+- Decision: Use one summary-first collection grammar. Shared cards use the medium shape, 12 dp horizontal and 10 dp vertical padding, and 6 dp spacing between direct content groups; collection items use an 8 dp gap. Remove the Appearance toggle, `AppSettings.compactItemLayout`, its SharedPreferences key, its backup representation, and every user-density rendering branch. Keep Track master-pane, selection, and reorder paths independent. Bump the exact-match backup format from 23 to 24 so backups containing the retired setting are rejected cleanly. No Room schema/data-epoch change or local reset is required because the obsolete preference byte becomes unreachable.
+- Why this is superior for Whip: It preserves the useful information hierarchy of compact rows, restores calm breathing room, removes an unnecessary setup decision, and reduces cross-product behavioral variance without altering data or capability.
+- Consequences / reversal conditions: All users see the same collection layout and new backups no longer carry density state; any stale preference key is ignored as an unknown value rather than modeled. Reintroduce a density choice only if validated usage shows a distinct expert workflow that the balanced pattern cannot support without compromising ordinary use.
+- Related: `FB-20260903-016`, `FND-20260903-026`, `IMP-20260903-026`, `VER-20260903-026`.
+- Status: Accepted, implemented, verified, and independently approved.

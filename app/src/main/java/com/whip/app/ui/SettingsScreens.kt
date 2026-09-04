@@ -543,14 +543,6 @@ internal fun SettingsContent(
             ) { selected -> viewModel.update { it.copy(dynamicColor = selected) } }
         }
         item {
-            SettingsToggle(
-                "Use compact item rows",
-                settings.compactItemLayout,
-                supportingText = "Shows list-sized Tasks, Habits, Goals, and Tracks with their primary action. Expand a row for its complete information and controls.",
-                modifier = Modifier.testTag("settings-compact-item-layout"),
-            ) { selected -> viewModel.update { it.copy(compactItemLayout = selected) } }
-        }
-        item {
             SettingsHeading("Opening Area")
             Text(
                 "Choose whether a new Whip session returns to the Area you used last or always starts from one chosen view. Widget shortcuts switch the current Area immediately.",

@@ -72,7 +72,6 @@ class ProductivityCreationJourneyE2ETest {
                 setupCompleted = true,
                 powerMode = false,
                 naturalLanguageTaskCapture = false,
-                compactItemLayout = false,
                 hiddenHomeSections = it.hiddenHomeSections + HomeSection.Tasks,
                 collapsedHomeSections = it.collapsedHomeSections + HomeSection.Tasks,
             )

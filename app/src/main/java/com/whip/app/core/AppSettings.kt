@@ -76,7 +76,6 @@ data class AppSettings(
     val chosenOpeningAreaScope: String = AreaScope.All.storageKey,
     val themeMode: AppThemeMode = AppThemeMode.System,
     val dynamicColor: Boolean = false,
-    val compactItemLayout: Boolean = false,
     val firstDayOfWeek: DayOfWeek = DayOfWeek.MONDAY,
     val timeZoneId: String? = null,
     val dayCutoffMinutes: Int = 0,
@@ -231,7 +230,6 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             ?: AreaScope.All.storageKey,
         themeMode = preferences.enum("theme", AppThemeMode.System),
         dynamicColor = preferences.getBoolean("dynamicColor", false),
-        compactItemLayout = preferences.getBoolean("compactItemLayout", false),
         firstDayOfWeek = preferences.enum("firstDay", DayOfWeek.MONDAY),
         timeZoneId = preferences.getString("timeZoneId", null)?.takeIf { runCatching { ZoneId.of(it) }.isSuccess },
         dayCutoffMinutes = preferences.getInt("dayCutoff", 0).coerceIn(0, 1439),
@@ -325,7 +323,6 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .putString("chosenOpeningAreaScope", value.chosenOpeningAreaScope)
             .putString("theme", value.themeMode.name)
             .putBoolean("dynamicColor", value.dynamicColor)
-            .putBoolean("compactItemLayout", value.compactItemLayout)
             .putString("firstDay", value.firstDayOfWeek.name)
             .putNullableString("timeZoneId", value.timeZoneId)
             .putInt("dayCutoff", value.dayCutoffMinutes)

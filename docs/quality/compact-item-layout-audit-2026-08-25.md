@@ -1,5 +1,7 @@
 # Compact Item Layout Parity Audit — 2026-08-25
 
+> Superseded on 2026-09-03 by `DEC-20260903-014`: Whip now uses one balanced summary-first collection layout and no longer exposes or persists a compact/comfortable choice. The parity findings below remain historical evidence for the disclosure contract.
+
 ## Outcome
 
 Compact item layout is a first-class presentation of the same Tasks, Habits, Goals, and Tracks. Its collapsed state is a scannable list row, while its inline expanded state exposes the complete information and control set from the standard collection card. No functionality requires leaving the collection.

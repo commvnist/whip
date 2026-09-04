@@ -659,7 +659,6 @@ fun WhipApp(
             LocalWhipToday provides calendarContext.logicalDate,
             LocalWhipZone provides calendarContext.zoneId,
             LocalWhipDialogPlacement provides dialogPlacement,
-            LocalCompactItemLayout provides settingsState.settings.compactItemLayout,
             LocalCompactItemExpansionState provides compactItemExpansionState,
             LocalLaunchDeliveryConsumer provides onLaunchDeliveryConsumed,
         ) {
@@ -5108,7 +5107,7 @@ private fun HomeContent(
             .padding(innerPadding)
             .testTag("home-list"),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         areaScopeLabel?.let { label -> item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -6474,9 +6473,7 @@ private fun TaskAreaContent(
         WhipReorderLazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = WhipPageContentPadding,
-            verticalArrangement = Arrangement.spacedBy(
-                if (appSettings.compactItemLayout) WhipSpacing.micro else WhipSpacing.compact,
-            ),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
         appSettings.focusTimerDeadlineMillis?.takeIf { it > focusClockMillis && !selectionMode && !reordering }?.let { deadline ->
             item {

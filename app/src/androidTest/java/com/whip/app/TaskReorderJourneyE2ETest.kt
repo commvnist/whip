@@ -44,7 +44,7 @@ class TaskReorderJourneyE2ETest {
     fun seed() = runBlocking {
         app.backupRepository.deleteAllData()
         app.settingsRepository.update {
-            it.copy(setupCompleted = true, compactItemLayout = false)
+            it.copy(setupCompleted = true)
         }
         app.taskRepository.create(TaskDraft("First reorder task"))
         app.taskRepository.create(TaskDraft("Second reorder task"))

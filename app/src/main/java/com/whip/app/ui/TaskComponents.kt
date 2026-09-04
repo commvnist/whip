@@ -111,7 +111,6 @@ fun TaskRow(
     reorderMode: Boolean = false,
     showCompletionControl: Boolean = true,
 ) {
-    val compact = LocalCompactItemLayout.current
     val disclosure = rememberCompactItemDisclosure("task:${item.stableKey}")
     val metadata = item.detailSegments(completed)
     ProductivityItemCard(
@@ -178,10 +177,9 @@ fun TaskRow(
                     }
                 }
             } else null,
-            compactExpanded = disclosure.expanded,
-            onCompactExpansionToggle = disclosure.toggle.takeIf { compact && !reorderMode },
-            compactExpansionTag = "task-expand-${item.task.id}",
-            compactPrimaryActionWidth = 48.dp,
+            expanded = disclosure.expanded,
+            onExpansionToggle = disclosure.toggle.takeUnless { reorderMode },
+            expansionTag = "task-expand-${item.task.id}",
             primaryActionWidth = 48.dp,
             primaryAction = if (reorderMode || (!selectionMode && !showCompletionControl)) null else ({
                 if (selectionMode) {
@@ -212,7 +210,7 @@ fun TaskRow(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = if (compact) 56.dp else 58.dp),
+                .padding(start = 56.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             FlowRow(
@@ -234,7 +232,7 @@ fun TaskRow(
                     }
                 }
             }
-            if ((!compact || disclosure.expanded) && item.task.notes.isNotBlank()) {
+            if (!reorderMode && disclosure.expanded && item.task.notes.isNotBlank()) {
                 Text(
                     item.task.notes,
                     style = MaterialTheme.typography.bodySmall,
@@ -244,23 +242,13 @@ fun TaskRow(
                 )
             }
         }
-        if ((!compact || disclosure.expanded) && item.task.showSubtaskProgress && item.totalSubtasks > 0) {
-            if (compact) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    LinearProgressIndicator(progress = { item.subtaskProgress }, modifier = Modifier.weight(1f))
-                    Text(
-                        item.progressLabel(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            } else {
-                LinearProgressIndicator(progress = { item.subtaskProgress }, modifier = Modifier.fillMaxWidth())
+        if (!reorderMode && disclosure.expanded && item.task.showSubtaskProgress && item.totalSubtasks > 0) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LinearProgressIndicator(progress = { item.subtaskProgress }, modifier = Modifier.weight(1f))
                 Text(
                     item.progressLabel(),
                     style = MaterialTheme.typography.labelSmall,

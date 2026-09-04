@@ -867,7 +867,6 @@ fun HabitProgressCard(
 ) {
     val habit = item.habit
     val timerElapsedSeconds by rememberHabitTimerElapsedSeconds(habit)
-    val compact = LocalCompactItemLayout.current
     val skipped = item.dayState == HabitDayState.Skipped
     val unavailableForCheckIn = habit.timerStartedAtMillis == null &&
         (habit.paused || item.dayState in setOf(HabitDayState.Paused, HabitDayState.NotScheduled))
@@ -890,8 +889,8 @@ fun HabitProgressCard(
     val primaryAction: (@Composable () -> Unit)? = when {
         reorderMode -> null
         unavailableForCheckIn -> null
-        skipped -> if (compact) {{ ItemPrimaryTextButton("Undo", onUndoSkip) }} else {{ Text("Skipped", color = MaterialTheme.whipColors.warning, fontWeight = FontWeight.SemiBold) }}
-        habit.sourceMeasurementId != null -> if (compact) null else {{ Text("Synced", color = MaterialTheme.whipColors.success, fontWeight = FontWeight.SemiBold) }}
+        skipped -> {{ ItemPrimaryTextButton("Undo", onUndoSkip) }}
+        habit.sourceMeasurementId != null -> null
         habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) -> {{
             WhipCompletionCheckbox(
                 checked = item.successful == true,
@@ -914,27 +913,13 @@ fun HabitProgressCard(
                 habit.timerNeedsReview -> "Review timer for ${habit.name}; ${formatElapsedDurationSpoken(timerElapsedSeconds)} estimated"
                 else -> "Stop and log ${habit.name}; ${formatElapsedDurationSpoken(timerElapsedSeconds)} elapsed"
             }
-            if (compact) {
-                ItemPrimaryTextButton(label, onQuick, Modifier.semantics { contentDescription = actionDescription })
-            } else {
-                WhipButton(
-                    onClick = onQuick,
-                    modifier = Modifier.semantics { contentDescription = actionDescription },
-                ) { Text(if (label == "Stop") "Stop & Log" else "$label Timer") }
-            }
+            ItemPrimaryTextButton(label, onQuick, Modifier.semantics { contentDescription = actionDescription })
         }}
-        habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) -> if (compact) {{
+        habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) -> {{
             ItemPrimaryTextButton("+${editableNumericValue(habit.quickIncrement)}", { onQuickValue(habit.quickIncrement) })
-        }} else null
+        }}
         else -> {{
-            if (compact) {
-                ItemPrimaryTextButton(if (habit.trackingMode == HabitTrackingMode.Rating) "Rate" else "Log", onQuick)
-            } else {
-                WhipButton(onClick = onQuick) {
-                    if (habit.trackingMode == HabitTrackingMode.Rating) Text("Rate")
-                    else Icon(Icons.Filled.Add, contentDescription = "Log ${habit.name}", modifier = Modifier.size(24.dp))
-                }
-            }
+            ItemPrimaryTextButton(if (habit.trackingMode == HabitTrackingMode.Rating) "Rate" else "Log", onQuick)
         }}
     }
     ProductivityItemCard(
@@ -979,7 +964,7 @@ fun HabitProgressCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            compactSummaryContent = {
+            summaryContent = {
                 Text(
                     compactStatus,
                     style = MaterialTheme.typography.labelSmall,
@@ -987,15 +972,15 @@ fun HabitProgressCard(
                     maxLines = 1,
                 )
             },
-            compactExpanded = disclosure.expanded,
-            onCompactExpansionToggle = disclosure.toggle.takeIf { compact && !reorderMode },
-            compactExpansionTag = "habit-expand-${habit.id}",
-            compactPrimaryActionWidth = if (
+            expanded = disclosure.expanded,
+            onExpansionToggle = disclosure.toggle.takeUnless { reorderMode },
+            expansionTag = "habit-expand-${habit.id}",
+            primaryActionWidth = if (
                 skipped || habit.trackingMode in setOf(HabitTrackingMode.Duration, HabitTrackingMode.Rating, HabitTrackingMode.LogOnly)
             ) 72.dp else 64.dp,
             primaryAction = primaryAction,
         )
-        if (!reorderMode && (!compact || disclosure.expanded)) {
+        if (!reorderMode && disclosure.expanded) {
             if (habit.timerStartedAtMillis != null) {
                 Text(
                     if (habit.timerNeedsReview) {
@@ -1007,41 +992,26 @@ fun HabitProgressCard(
                 )
             }
             if (skipped) {
-                if (compact) {
-                    BoxWithConstraints(Modifier.fillMaxWidth()) {
-                        val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
-                        if (stacked) {
-                            Column {
-                                Text(
-                                    "Skipped Today · Streak Protected",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.whipColors.warning,
-                                )
-                                WhipTextButton(onClick = onUndoSkip, modifier = Modifier.fillMaxWidth()) { Text("Undo Skip") }
-                            }
-                        } else {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Text("Skipped Today · Streak Protected", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.whipColors.warning)
-                                WhipTextButton(onClick = onUndoSkip) { Text("Undo Skip") }
-                            }
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
+                    if (stacked) {
+                        Column {
+                            Text(
+                                "Skipped Today · Streak Protected",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.whipColors.warning,
+                            )
+                            WhipTextButton(onClick = onUndoSkip, modifier = Modifier.fillMaxWidth()) { Text("Undo Skip") }
                         }
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            "Skipped Today · Streak Protected",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.whipColors.warning,
-                        )
-                        WhipTextButton(onClick = onUndoSkip) { Text("Undo Skip") }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text("Skipped Today · Streak Protected", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.whipColors.warning)
+                            WhipTextButton(onClick = onUndoSkip) { Text("Undo Skip") }
+                        }
                     }
                 }
             }
@@ -1066,11 +1036,7 @@ fun HabitProgressCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     (if (showAllQuickValues) quickValues else quickValues.take(3)).forEach { value ->
-                        if (compact) {
-                            WhipTextButton(onClick = { onQuickValue(value) }) { Text("+${editableNumericValue(value)}") }
-                        } else {
-                            WhipButton(onClick = { onQuickValue(value) }) { Text("+${editableNumericValue(value)}") }
-                        }
+                        WhipTextButton(onClick = { onQuickValue(value) }) { Text("+${editableNumericValue(value)}") }
                     }
                     if (quickValues.size > 3) {
                         DisclosureButton(
@@ -1079,17 +1045,10 @@ fun HabitProgressCard(
                             onClick = { showAllQuickValues = !showAllQuickValues },
                         )
                     }
-                    if (compact) {
-                        WhipTextButton(enabled = item.value > 0.0, onClick = onDecrement) {
-                            Text("−${editableNumericValue(minOf(habit.quickIncrement, item.value.coerceAtLeast(0.0)))}")
-                        }
-                        WhipTextButton(onClick = onSetValue) { Text("Set") }
-                    } else {
-                        WhipOutlinedButton(enabled = item.value > 0.0, onClick = onDecrement) {
-                            Text("−${editableNumericValue(minOf(habit.quickIncrement, item.value.coerceAtLeast(0.0)))}")
-                        }
-                        WhipOutlinedButton(onClick = onSetValue) { Text("Set") }
+                    WhipTextButton(enabled = item.value > 0.0, onClick = onDecrement) {
+                        Text("−${editableNumericValue(minOf(habit.quickIncrement, item.value.coerceAtLeast(0.0)))}")
                     }
+                    WhipTextButton(onClick = onSetValue) { Text("Set") }
                     WhipTextButton(enabled = canUndo, onClick = onUndo) { Text("Undo") }
                 }
             }
@@ -1185,7 +1144,7 @@ fun HabitProgressCard(
             if (habit.sourceMeasurementId != null) {
                 Text(
                     "Read-only source: Health Connect. Updates automatically.",
-                    style = if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -1266,7 +1225,6 @@ private fun HabitList(
     onReorderModeChange: (Boolean) -> Unit = {},
     reorderDismissRequest: Int = 0,
 ) {
-    val compact = LocalCompactItemLayout.current
     var manageOrder by rememberSaveable { mutableStateOf(false) }
     var toolsExpanded by rememberSaveable { mutableStateOf(false) }
     val sections = if (separateCompleted) progress.dailyHabitSections() else DailyHabitSections(progress, emptyList())
@@ -1300,9 +1258,7 @@ private fun HabitList(
     WhipReorderLazyColumn(
         modifier = Modifier.fillMaxSize().testTag("habit-list-$title"),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(
-            if (compact) WhipSpacing.micro else WhipSpacing.compact,
-        ),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         item {
             WhipPageHeader(title = title, supportingText = subtitle) {

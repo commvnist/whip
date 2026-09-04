@@ -828,3 +828,16 @@
 - Resolution: Renamed the shared input to neutral priority ordering and made group/item role labels caller-owned. The 5/3/1 picker now marks its selected item only as “Current selection”; active-workout substitution explicitly supplies preferred-substitute language; the advanced Routine section explains that substitutes are optional and never change the programmed Exercise.
 - Related: `FB-20260903-015`, `IMP-20260903-024`, `VER-20260903-024`.
 - Status: Resolved in `ad2f3a9`, verified, independently accepted, and released to the physical phone in Whip 0.3.46/code 52; awaiting real-user validation. See `VER-20260903-025`.
+
+### FND-20260903-026 — Item density was split between an oversized default and an under-padded expert mode
+
+- Severity/category: P1 cross-product UX / visual hierarchy and preference complexity.
+- Observed: Tasks, Habits, Goals, and Tracks defaulted to fully expanded cards with 14 dp horizontal/vertical padding and 12 dp collection gaps. The optional compact mode introduced the stronger progressive-disclosure row grammar, but reduced shared cards to 10 dp horizontal by 6 dp vertical padding, small corners, and 4 dp collection gaps. It also exposed a global Appearance preference whose value flowed through every collection family and backup/settings persistence.
+- Expected: One default collection grammar should balance scanability and calm spacing without making users choose between excess height and cramped rows. Primary actions, concise state, and two-line identity remain visible; complete information and secondary controls remain available through disclosure; 48 dp targets and adaptive behavior remain intact.
+- Why it matters / affected users: Every Home and productivity collection user encounters the default mode, while users who discover compact mode inherit tighter vertical rhythm than the rest of Whip. The choice adds cognitive and test cost without representing a distinct capability or persona.
+- Evidence: `ItemControlPatterns.kt` (`ProductivityItemCard`, `ProductivityItemHeader`), `WhipApp.kt` root preference provider/Home spacing, `TaskComponents.kt`, `HabitScreens.kt`, `GoalScreens.kt`, `TrackScreens.kt`, `SettingsScreens.kt`, and `compact-item-layout-audit-2026-08-25.md`.
+- Root cause: Density, information disclosure, card shape, and collection rhythm were bundled behind one Boolean instead of defining a single preferred collection pattern.
+- Recommended solution: Make the expandable summary row the sole collection pattern, relax its shared inset and collection rhythm to a middle density, and cleanly remove the Appearance toggle, settings field, preference key, and backup representation. Keep viewport-driven adaptive compactness separate.
+- Resolution: Replaced both modes with one summary-first card using medium shape, 12×10 dp inset, 6 dp direct-content rhythm, and 8 dp collection gaps; removed every user-density branch and setting/backup representation; advanced the exact-match backup format to 24 while retaining viewport-driven adaptive composition.
+- Related: `FB-20260903-016`, `DEC-20260903-014`, `IMP-20260903-026`, `VER-20260903-026`.
+- Status: Verified; awaiting user validation.

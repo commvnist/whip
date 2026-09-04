@@ -1274,7 +1274,6 @@ private fun AllTracksPage(
     reorderDismissRequest: Int = 0,
     onRetryLoading: () -> Unit = {},
 ) {
-    val userCompact = LocalCompactItemLayout.current
     var moreOpen by rememberSaveable { mutableStateOf(false) }
     var reordering by rememberSaveable { mutableStateOf(false) }
     var selecting by rememberSaveable { mutableStateOf(false) }
@@ -1309,9 +1308,7 @@ private fun AllTracksPage(
             end = if (masterPane) 12.dp else 20.dp,
             bottom = WhipSpacing.screenExpanded,
         ),
-        verticalArrangement = Arrangement.spacedBy(
-            if (userCompact) WhipSpacing.micro else WhipSpacing.compact,
-        ),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         item {
             WhipPageHeader(
@@ -1463,13 +1460,11 @@ internal fun TrackRow(
     onEnterSelection: (() -> Unit)? = null,
     compact: Boolean = false,
 ) {
-    val userCompact = LocalCompactItemLayout.current
-    val dense = compact || userCompact
     val reorderInteraction = rememberWhipReorderInteractionState()
     val selectable = selectionMode && onSelectionToggle != null
     val latest = projection.entries.maxWithOrNull(compareBy<TrackEntryProjection> { it.entry.entryDate }.thenBy { it.entry.createdAtMillis })
-    if (dense && !selectable && !reordering) {
-        CompactTrackRow(
+    if (!selectable && !reordering) {
+        TrackSummaryRow(
             projection = projection,
             latest = latest,
             onOpen = onOpen,
@@ -1522,7 +1517,7 @@ internal fun TrackRow(
     ) {
         Column(
             Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(if (dense) 2.dp else 8.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 8.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (reordering && onMove != null) {
@@ -1573,28 +1568,13 @@ internal fun TrackRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (!dense && !selectable) {
-                WhipOutlinedButton(
-                    onClick = { onAddEntry(projection.track.id) },
-                    enabled = !projection.track.archived && !reordering,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(Icons.Outlined.Add, contentDescription = null); Spacer(Modifier.width(8.dp)); Text(if (projection.track.archived) "Restore to Add Entries" else projection.addEntryLabel())
-                }
-            } else if (dense && !reordering && !selectable) {
-                WhipTextButton(
-                    onClick = { onAddEntry(projection.track.id) },
-                    enabled = !projection.track.archived,
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text(if (projection.track.archived) "Archived" else projection.addEntryLabel()) }
-            }
         }
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun CompactTrackRow(
+private fun TrackSummaryRow(
     projection: TrackProjection,
     latest: TrackEntryProjection?,
     onOpen: (Long) -> Unit,
@@ -1627,7 +1607,7 @@ private fun CompactTrackRow(
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
@@ -1677,7 +1657,7 @@ private fun CompactTrackRow(
             if (disclosure.expanded) {
                 Column(
                     modifier = Modifier.fillMaxWidth().testTag("track-expanded-${projection.track.id}"),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     latest?.let {

@@ -199,7 +199,6 @@ fun GoalAreaContent(
         }
         return
     }
-    val compactItemLayout = LocalCompactItemLayout.current
     var creating by rememberSaveable { mutableStateOf(false) }
     var editingGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var recordingGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -407,9 +406,7 @@ fun GoalAreaContent(
         } else WhipReorderLazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = WhipPageContentPadding,
-            verticalArrangement = Arrangement.spacedBy(
-                if (compactItemLayout) WhipSpacing.micro else WhipSpacing.compact,
-            ),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
             item {
                 WhipPageHeader(
@@ -821,7 +818,6 @@ fun GoalCard(
     reorderMode: Boolean = false,
 ) {
     val goal = projection.goal
-    val compact = LocalCompactItemLayout.current
     val disclosure = rememberCompactItemDisclosure(itemKey = "goal:${goal.id}")
     val compactStatus = projection.collectionStatus(customUnits, nowMillis)
     val primaryAction: (@Composable () -> Unit)? = when {
@@ -864,7 +860,7 @@ fun GoalCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            compactSummaryContent = {
+            summaryContent = {
                 Text(
                     compactStatus,
                     style = MaterialTheme.typography.labelSmall,
@@ -872,31 +868,26 @@ fun GoalCard(
                     maxLines = 1,
                 )
             },
-            compactExpanded = disclosure.expanded,
-            onCompactExpansionToggle = disclosure.toggle.takeIf { compact && !reorderMode },
-            compactExpansionTag = "goal-expand-${goal.id}",
-            compactPrimaryActionWidth = if (goal.type == GoalType.ElapsedSince) 80.dp else 64.dp,
+            expanded = disclosure.expanded,
+            onExpansionToggle = disclosure.toggle.takeUnless { reorderMode },
+            expansionTag = "goal-expand-${goal.id}",
+            primaryActionWidth = if (goal.type == GoalType.ElapsedSince) 80.dp else 64.dp,
             primaryAction = primaryAction,
         )
-        if (!reorderMode && (!compact || disclosure.expanded)) {
+        if (!reorderMode && disclosure.expanded) {
         projection.progress?.let { progress ->
             val progressColor = if (progress >= 1.0) MaterialTheme.whipColors.success else MaterialTheme.whipColors.action
-            if (compact) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    LinearProgressIndicator(
-                        progress = { progress.toFloat().coerceIn(0f, 1f) },
-                        modifier = Modifier.weight(1f),
-                        color = progressColor,
-                    )
-                    Text("${(progress * 100).toInt()}% complete", style = MaterialTheme.typography.labelSmall, color = progressColor)
-                }
-            } else {
-                LinearProgressIndicator(progress = { progress.toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(), color = progressColor)
-                Text("${(progress * 100).toInt()}% complete", color = progressColor)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LinearProgressIndicator(
+                    progress = { progress.toFloat().coerceIn(0f, 1f) },
+                    modifier = Modifier.weight(1f),
+                    color = progressColor,
+                )
+                Text("${(progress * 100).toInt()}% complete", style = MaterialTheme.typography.labelSmall, color = progressColor)
             }
         }
         if (goal.type == GoalType.ElapsedSince) {
@@ -905,7 +896,7 @@ fun GoalCard(
             when {
                 frozenDuration != null -> Text(
                     elapsedCounter(0L, frozenDuration, goal.elapsedDisplayUnit).label(),
-                    style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 projection.terminalSnapshot != null -> Text(
@@ -916,7 +907,7 @@ fun GoalCard(
                 started != null -> {
                 Text(
                     elapsedCounter(started, nowMillis, goal.elapsedDisplayUnit).label(),
-                    style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 }

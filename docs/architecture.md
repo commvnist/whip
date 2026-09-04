@@ -134,7 +134,7 @@ files:
   "format": "whip-backup",
   "envelopeVersion": 3,
   "dataModelEpoch": 6,
-  "databaseVersion": 23,
+  "databaseVersion": 24,
   "exportedAt": "2026-08-18T00:00:00Z",
   "checksumSha256": "...",
   "tables": {},
@@ -143,7 +143,7 @@ files:
 ```
 
 The backup data version is intentionally independent of Room's schema version.
-Only envelope 3, data epoch 6, and backup data version 23 are accepted. Older
+Only envelope 3, data epoch 6, and backup data version 24 are accepted. Older
 and future complete archives are rejected before their tables are interpreted;
 the clean boundary deliberately provides no archive upgrade path. Import is
 parse -> authenticate/checksum -> validate -> preview -> recoverable commit.

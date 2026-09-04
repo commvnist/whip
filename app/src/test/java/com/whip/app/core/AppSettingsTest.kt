@@ -54,7 +54,6 @@ class AppSettingsTest {
     fun upcomingRepeatingTasksAreCompactByDefault() {
         assertEquals(false, AppSettings().showAllUpcomingTaskOccurrences)
         assertEquals(false, AppSettings().showHabitsInTaskPlanning)
-        assertEquals(false, AppSettings().compactItemLayout)
         assertEquals(false, AppSettings().dynamicColor)
         assertEquals(true, AppSettings().naturalLanguageTaskCapture)
         assertEquals(emptyList<RepPrescriptionScheme>(), AppSettings().repPrescriptionSchemes)

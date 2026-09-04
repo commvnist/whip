@@ -69,7 +69,6 @@ import com.whip.app.ui.HabitTimerReviewPrompt
 import com.whip.app.ui.HabitUiState
 import com.whip.app.ui.HabitViewModel
 import com.whip.app.ui.DestinationTabBar
-import com.whip.app.ui.LocalCompactItemLayout
 import com.whip.app.ui.LocalCompactItemExpansionState
 import com.whip.app.ui.TaskRow
 import com.whip.app.ui.rememberCompactItemExpansionState
@@ -173,20 +172,19 @@ class ProductivityCardDesignUiTest {
             "habit-primary-action-2",
             "goal-primary-action-3",
         ).map(::right)
-        val actionLefts = listOf(
-            "task-primary-action-1",
-            "habit-primary-action-2",
-            "goal-primary-action-3",
-        ).map(::left)
-        val editLefts = listOf("task-edit-action-1", "habit-edit-action-2", "goal-edit-action-3").map(::left)
-        val editRights = listOf("task-edit-action-1", "habit-edit-action-2", "goal-edit-action-3").map(::right)
-
         identityLefts.forEach { assertEquals(identityLefts.first(), it, 0.5f) }
         actionRights.forEach { assertEquals(actionRights.first(), it, 0.5f) }
         assertTrue(identityLefts.first() < actionRights.first())
-        editLefts.zip(editRights).zip(actionLefts).forEach { (edit, actionLeft) ->
-            assertTrue(edit.first < edit.second)
-            assertTrue(edit.second <= actionLeft)
+        listOf("task-expand-1", "habit-expand-2", "goal-expand-3").forEach { tag ->
+            assertTrue("Disclosure action must retain a 48 dp target", height(tag) >= 48.dp)
+            compose.onNodeWithTag(tag, useUnmergedTree = true).performClick()
+        }
+        val editLefts = listOf("task-edit-action-1", "habit-edit-action-2", "goal-edit-action-3").map(::left)
+        val editRights = listOf("task-edit-action-1", "habit-edit-action-2", "goal-edit-action-3").map(::right)
+        editRights.forEach { assertEquals(editRights.first(), it, 0.5f) }
+        editLefts.zip(editRights).forEach { (left, right) ->
+            assertTrue(left < right)
+            assertTrue(right - left >= with(compose.density) { 48.dp.toPx() })
         }
     }
 
@@ -230,8 +228,9 @@ class ProductivityCardDesignUiTest {
         }
 
         val titleNode = compose.onNodeWithText(title, useUnmergedTree = true).assertIsDisplayed()
-        val badgeNode = compose.onNodeWithText("Past Scheduled Date", useUnmergedTree = true).assertIsDisplayed()
         val titleBounds = titleNode.getUnclippedBoundsInRoot()
+        compose.onNodeWithTag("task-expand-4", useUnmergedTree = true).performClick()
+        val badgeNode = compose.onNodeWithText("Past Scheduled Date", useUnmergedTree = true).assertIsDisplayed()
         val badgeBounds = badgeNode.getUnclippedBoundsInRoot()
 
         assertTrue(
@@ -242,9 +241,8 @@ class ProductivityCardDesignUiTest {
     }
 
     @Test
-    fun scheduledDateAndRecurrenceReflowWithoutTruncationInStandardOrCompactCards() {
+    fun scheduledDateAndRecurrenceReflowWithoutTruncation() {
         val date = LocalDate.of(2026, 8, 27)
-        val compact = mutableStateOf(false)
         val item = ScheduledTask(
             task = WhipTask(
                 id = 18,
@@ -273,10 +271,7 @@ class ProductivityCardDesignUiTest {
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
                 val expansionState = rememberCompactItemExpansionState()
-                CompositionLocalProvider(
-                    LocalCompactItemLayout provides compact.value,
-                    LocalCompactItemExpansionState provides expansionState,
-                ) {
+                CompositionLocalProvider(LocalCompactItemExpansionState provides expansionState) {
                     Column(Modifier.width(300.dp).padding(12.dp)) {
                         TaskRow(item, false, {}, {}, {})
                     }
@@ -284,18 +279,12 @@ class ProductivityCardDesignUiTest {
             }
         }
 
-        assertSchedulingMetadataFits("standard")
-
-        compose.runOnIdle { compact.value = true }
-        compose.waitForIdle()
-
-        assertSchedulingMetadataFits("compact")
+        assertSchedulingMetadataFits("balanced")
     }
 
     @Test
-    fun compactTaskRowsReflowNotesAndSubtaskProgressWithoutLosingActions() {
+    fun taskSummaryRowsReflowNotesAndSubtaskProgressWithoutLosingActions() {
         val date = LocalDate.of(2026, 8, 24)
-        val compact = mutableStateOf(false)
         var completionRequested = false
         val notes = "Read the decision notes before the meeting."
         val item = ScheduledTask(
@@ -336,10 +325,7 @@ class ProductivityCardDesignUiTest {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 val expansionState = rememberCompactItemExpansionState()
-                CompositionLocalProvider(
-                    LocalCompactItemLayout provides compact.value,
-                    LocalCompactItemExpansionState provides expansionState,
-                ) {
+                CompositionLocalProvider(LocalCompactItemExpansionState provides expansionState) {
                     Column(Modifier.fillMaxWidth().padding(20.dp)) {
                         TaskRow(item, false, { completionRequested = true }, {}, {})
                     }
@@ -347,17 +333,8 @@ class ProductivityCardDesignUiTest {
             }
         }
 
-        val standardHeight = contentDescriptionHeight("Open task details for Review quarterly plan")
-        compose.onAllNodesWithText(notes).assertCountEquals(1)
-        compose.onNodeWithText("1/2 · 50%").assertIsDisplayed()
-
-        compose.runOnIdle { compact.value = true }
-        compose.waitForIdle()
-
-        val compactHeight = contentDescriptionHeight("Open task details for Review quarterly plan")
-        assertTrue("Collapsed compact row should be materially denser: $standardHeight vs $compactHeight", compactHeight <= standardHeight - 32.dp)
-        assertTrue("Compact primary action must retain a 48 dp target", height("task-primary-action-5") >= 48.dp)
-        assertTrue("Compact expansion action must retain a 48 dp target", height("task-expand-5") >= 48.dp)
+        assertTrue("Primary action must retain a 48 dp target", height("task-primary-action-5") >= 48.dp)
+        assertTrue("Expansion action must retain a 48 dp target", height("task-expand-5") >= 48.dp)
         compose.onAllNodesWithText(notes).assertCountEquals(0)
         compose.onAllNodesWithText("1/2 · 50%").assertCountEquals(0)
 
@@ -368,11 +345,11 @@ class ProductivityCardDesignUiTest {
         compose.onNodeWithTag("task-expand-5", useUnmergedTree = true).performClick()
         compose.onNodeWithText(notes).assertIsDisplayed()
         compose.onNodeWithText("1/2 · 50%").assertIsDisplayed()
-        assertTrue("Expanded compact edit action must retain a 48 dp target", height("task-edit-action-5") >= 48.dp)
+        assertTrue("Expanded edit action must retain a 48 dp target", height("task-edit-action-5") >= 48.dp)
     }
 
     @Test
-    fun compactRowsExpandIndependentlyAndWorkspaceTabChangesCollapseThem() {
+    fun summaryRowsExpandIndependentlyAndWorkspaceTabChangesCollapseThem() {
         val date = LocalDate.of(2026, 8, 24)
         val firstNotes = "First expanded details"
         val secondNotes = "Second expanded details"
@@ -390,10 +367,7 @@ class ProductivityCardDesignUiTest {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 val expansionState = rememberCompactItemExpansionState()
-                CompositionLocalProvider(
-                    LocalCompactItemLayout provides true,
-                    LocalCompactItemExpansionState provides expansionState,
-                ) {
+                CompositionLocalProvider(LocalCompactItemExpansionState provides expansionState) {
                     Column(Modifier.fillMaxWidth()) {
                         DestinationTabBar(
                             selected = selectedTab.value,
@@ -405,7 +379,7 @@ class ProductivityCardDesignUiTest {
                         if (selectedTab.value == "Today") {
                             Column(
                                 Modifier.fillMaxWidth().padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 TaskRow(first, false, {}, {}, {})
                                 TaskRow(second, false, {}, {}, {})
@@ -433,9 +407,8 @@ class ProductivityCardDesignUiTest {
     }
 
     @Test
-    fun compactHabitAndGoalRowsKeepDetailsAndInlineActions() {
+    fun habitAndGoalSummaryRowsKeepDetailsAndInlineActions() {
         val date = LocalDate.of(2026, 8, 24)
-        val compact = mutableStateOf(false)
         val habit = sampleHabit(date).copy(
             id = 6,
             name = "Drink water",
@@ -453,10 +426,7 @@ class ProductivityCardDesignUiTest {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 val expansionState = rememberCompactItemExpansionState()
-                CompositionLocalProvider(
-                    LocalCompactItemLayout provides compact.value,
-                    LocalCompactItemExpansionState provides expansionState,
-                ) {
+                CompositionLocalProvider(LocalCompactItemExpansionState provides expansionState) {
                     Column(
                         modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -509,14 +479,6 @@ class ProductivityCardDesignUiTest {
             }
         }
 
-        val standardGoalHeight = height("goal-card-7")
-        compose.onNodeWithText("50% complete").assertIsDisplayed()
-        compose.onNodeWithText("Finish the annual reading list.").assertIsDisplayed()
-
-        compose.runOnIdle { compact.value = true }
-        compose.waitForIdle()
-
-        assertTrue(height("goal-card-7") < standardGoalHeight)
         assertTrue(height("goal-primary-action-7") >= 48.dp)
         compose.onNodeWithText("2/8", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("50% complete").performScrollTo().assertIsDisplayed()
@@ -547,7 +509,7 @@ class ProductivityCardDesignUiTest {
     }
 
     @Test
-    fun compactChecklistHabitKeepsParentAndEachSubItemInteractive() {
+    fun checklistHabitSummaryKeepsParentAndEachSubItemInteractive() {
         val date = LocalDate.of(2026, 8, 24)
         var parentCompletionRequested = false
         var checklistUpdate: List<Any>? = null
@@ -580,10 +542,7 @@ class ProductivityCardDesignUiTest {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 val expansionState = rememberCompactItemExpansionState()
-                CompositionLocalProvider(
-                    LocalCompactItemLayout provides true,
-                    LocalCompactItemExpansionState provides expansionState,
-                ) {
+                CompositionLocalProvider(LocalCompactItemExpansionState provides expansionState) {
                     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp)) {
                         HabitProgressCard(
                             item = HabitDayProgress(
@@ -663,7 +622,7 @@ class ProductivityCardDesignUiTest {
     }
 
     @Test
-    fun compactHabitStateMatrixKeepsTimerSkipAndSyncedInformation() {
+    fun habitSummaryStateMatrixKeepsTimerSkipAndSyncedInformation() {
         val date = LocalDate.of(2026, 8, 24)
         var timerRequested = false
         var undoSkipRequested = false
@@ -679,11 +638,10 @@ class ProductivityCardDesignUiTest {
 
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                CompositionLocalProvider(LocalCompactItemLayout provides true) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                         HabitProgressCard(
                             item = HabitDayProgress(duration, date, true, 90.0, null, false, emptyList(), 2, 0.4, dayState = HabitDayState.Pending),
                             onOpen = {}, onEdit = {}, onQuick = { timerRequested = true }, onDecrement = {}, onUndo = {}, onUndoSkip = {},
@@ -699,7 +657,6 @@ class ProductivityCardDesignUiTest {
                             onOpen = {}, onEdit = {}, onQuick = {}, onDecrement = {}, onUndo = {}, onUndoSkip = {},
                             onChecklist = { _, _, _, _ -> },
                         )
-                    }
                 }
             }
         }
@@ -719,7 +676,7 @@ class ProductivityCardDesignUiTest {
     }
 
     @Test
-    fun compactPausedAndOffScheduleHabitsRemoveAccidentalQuickActions() {
+    fun pausedAndOffScheduleHabitSummariesRemoveAccidentalQuickActions() {
         val date = LocalDate.of(2026, 8, 24)
         var quickActions = 0
         val paused = sampleHabit(date).copy(id = 16, name = "Paused medication", paused = true)
@@ -733,11 +690,10 @@ class ProductivityCardDesignUiTest {
 
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                CompositionLocalProvider(LocalCompactItemLayout provides true) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                         HabitProgressCard(
                             item = HabitDayProgress(paused, date, false, 0.0, null, false, emptyList(), 3, 0.8, dayState = HabitDayState.Paused),
                             onOpen = {}, onEdit = {}, onQuick = { quickActions++ }, onDecrement = {}, onUndo = {}, onUndoSkip = {},
@@ -748,7 +704,6 @@ class ProductivityCardDesignUiTest {
                             onOpen = {}, onEdit = {}, onQuick = { quickActions++ }, onDecrement = {}, onUndo = {}, onUndoSkip = {},
                             onChecklist = { _, _, _, _ -> },
                         )
-                    }
                 }
             }
         }
@@ -792,7 +747,6 @@ class ProductivityCardDesignUiTest {
                 val density = LocalDensity.current
                 CompositionLocalProvider(
                     LocalDensity provides Density(density.density, 2f),
-                    LocalCompactItemLayout provides true,
                 ) {
                     Column(Modifier.width(320.dp).padding(12.dp)) {
                         HabitProgressCard(
@@ -861,7 +815,7 @@ class ProductivityCardDesignUiTest {
     }
 
     @Test
-    fun compactGoalKeepsElapsedTimerResetAndMilestoneControls() {
+    fun goalSummaryKeepsElapsedTimerResetAndMilestoneControls() {
         val date = LocalDate.of(2026, 8, 24)
         val nowMillis = 1_800_000_000_000L
         val twoDaysMillis = 2L * 24L * 60L * 60L * 1_000L
@@ -885,10 +839,7 @@ class ProductivityCardDesignUiTest {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 val expansionState = rememberCompactItemExpansionState()
-                CompositionLocalProvider(
-                    LocalCompactItemLayout provides true,
-                    LocalCompactItemExpansionState provides expansionState,
-                ) {
+                CompositionLocalProvider(LocalCompactItemExpansionState provides expansionState) {
                     Column(
                         modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -921,7 +872,7 @@ class ProductivityCardDesignUiTest {
         compose.onNodeWithContentDescription("Expand goal Days since smoking").assertExists()
         val resetLabelHeight = compose.onNodeWithText("Reset", useUnmergedTree = true)
             .getUnclippedBoundsInRoot().let { it.bottom - it.top }
-        assertTrue("Reset must remain on one line in the compact action lane: $resetLabelHeight", resetLabelHeight <= 24.dp)
+        assertTrue("Reset must remain on one line in the action lane: $resetLabelHeight", resetLabelHeight <= 24.dp)
         assertTrue(height("goal-primary-action-8") >= 48.dp)
         compose.onNodeWithText("Reset").performClick()
         compose.onNodeWithText("0/1 milestones").performScrollTo().assertIsDisplayed()
@@ -944,14 +895,13 @@ class ProductivityCardDesignUiTest {
     }
 
     @Test
-    fun compactCardsKeepLongTextReadableAtTwoHundredPercentFontScale() {
+    fun summaryCardsKeepLongTextReadableAtTwoHundredPercentFontScale() {
         val date = LocalDate.of(2026, 8, 24)
         val title = "Prepare the quarterly medication and care coordination review"
         val largeText = Density(compose.density.density, fontScale = 2f)
         compose.setContent {
             CompositionLocalProvider(
                 LocalDensity provides largeText,
-                LocalCompactItemLayout provides true,
             ) {
                 WhipTheme(dynamicColor = false) {
                     Column(
@@ -1001,7 +951,7 @@ class ProductivityCardDesignUiTest {
         }
 
         val titleBounds = compose.onNodeWithText(title, useUnmergedTree = true).assertIsDisplayed().getUnclippedBoundsInRoot()
-        assertTrue("Compact title must retain usable width at 200% text", titleBounds.right - titleBounds.left >= 100.dp)
+        assertTrue("Summary title must retain usable width at 200% text", titleBounds.right - titleBounds.left >= 100.dp)
         compose.onAllNodesWithText("Keep this context visible.").assertCountEquals(0)
         compose.onAllNodesWithText("Health").assertCountEquals(0)
         assertTrue(height("task-primary-action-10") >= 48.dp)
@@ -1020,26 +970,24 @@ class ProductivityCardDesignUiTest {
     }
 
     @Test
-    fun compactExpansionSurvivesSavedStateRestoration() {
+    fun summaryExpansionSurvivesSavedStateRestoration() {
         val date = LocalDate.of(2026, 8, 24)
         val notes = "Restored expanded details"
         val restoration = StateRestorationTester(compose)
         restoration.setContent {
             WhipTheme(dynamicColor = false) {
-                CompositionLocalProvider(LocalCompactItemLayout provides true) {
-                    Column(Modifier.fillMaxWidth().padding(20.dp)) {
-                        TaskRow(
-                            item = ScheduledTask(
-                                task = WhipTask(14, "Persist expansion", notes, ScheduleKind.Once, date, null, null, false, false, null, 1, 1),
-                                originalDate = date,
-                                scheduledDate = date,
-                            ),
-                            completed = false,
-                            onComplete = {},
-                            onOpenActions = {},
-                            onEdit = {},
-                        )
-                    }
+                Column(Modifier.fillMaxWidth().padding(20.dp)) {
+                    TaskRow(
+                        item = ScheduledTask(
+                            task = WhipTask(14, "Persist expansion", notes, ScheduleKind.Once, date, null, null, false, false, null, 1, 1),
+                            originalDate = date,
+                            scheduledDate = date,
+                        ),
+                        completed = false,
+                        onComplete = {},
+                        onOpenActions = {},
+                        onEdit = {},
+                    )
                 }
             }
         }

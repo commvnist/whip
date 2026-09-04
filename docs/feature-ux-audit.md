@@ -155,7 +155,7 @@ are covered by new persisted and Compose tests.
   natural-language capture.
 - **Implemented:** saved Home task filters, saved Review section filters, and
   drill-down from Home, Fold, and Review summary counts.
-- **Implemented:** explicit next-set focus/jump, configurable compact rows,
+- **Implemented:** explicit next-set focus/jump, balanced summary-first collection rows,
   reusable plate presets, and pinned routine-day shortcuts.
 - **Verified existing implementation:** editable templates for weight, savings,
   distance, reading, consistency, and weighted projects.

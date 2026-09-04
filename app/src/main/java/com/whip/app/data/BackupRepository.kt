@@ -1254,7 +1254,7 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 private const val BACKUP_FORMAT = "whip-backup"
 internal const val ENVELOPE_VERSION = 3
 internal const val CURRENT_DATA_MODEL_EPOCH = 6
-internal const val BACKUP_DATABASE_VERSION = 23
+internal const val BACKUP_DATABASE_VERSION = 24
 
 internal fun validateBackupContract(
     envelopeVersion: Int,
@@ -1310,7 +1310,6 @@ private fun AppSettings.toJson(includeLocalRecoveryState: Boolean = false): JSON
     .put("includeAssistedInPersonalRecords", includeAssistedInPersonalRecords)
     .put("themeMode", themeMode.name)
     .put("dynamicColor", dynamicColor)
-    .put("compactItemLayout", compactItemLayout)
     .put("firstDayOfWeek", firstDayOfWeek.name)
     .put("timeZoneId", timeZoneId ?: JSONObject.NULL)
     .put("dayCutoffMinutes", dayCutoffMinutes)
@@ -1421,7 +1420,6 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     includeAssistedInPersonalRecords = optBoolean("includeAssistedInPersonalRecords", false),
     themeMode = enumValue("themeMode", AppThemeMode.System),
     dynamicColor = optBoolean("dynamicColor", true),
-    compactItemLayout = optBoolean("compactItemLayout", false),
     firstDayOfWeek = enumValue("firstDayOfWeek", DayOfWeek.MONDAY),
     timeZoneId = optString("timeZoneId").takeUnless { !has("timeZoneId") || isNull("timeZoneId") || runCatching { java.time.ZoneId.of(it) }.isFailure },
     dayCutoffMinutes = optInt("dayCutoffMinutes", 0).coerceIn(0, 1439),

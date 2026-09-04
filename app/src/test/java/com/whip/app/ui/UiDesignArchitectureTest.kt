@@ -190,6 +190,10 @@ class UiDesignArchitectureTest {
         val habits = File(sourceRoot, "com/whip/app/ui/HabitScreens.kt").readText()
         val goals = File(sourceRoot, "com/whip/app/ui/GoalScreens.kt").readText()
         val tracks = File(sourceRoot, "com/whip/app/ui/TrackScreens.kt").readText()
+        val itemPatterns = File(sourceRoot, "com/whip/app/ui/ItemControlPatterns.kt").readText()
+        val settings = File(sourceRoot, "com/whip/app/ui/SettingsScreens.kt").readText()
+        val appSettings = File(sourceRoot, "com/whip/app/core/AppSettings.kt").readText()
+        val backups = File(sourceRoot, "com/whip/app/data/BackupRepository.kt").readText()
         val gym = File(sourceRoot, "com/whip/app/ui/GymScreens.kt").readText()
         val patterns = File(sourceRoot, "com/whip/app/ui/WhipPagePatterns.kt").readText()
 
@@ -204,16 +208,23 @@ class UiDesignArchitectureTest {
             "Track empty states must not stack local vertical padding on WhipEmptyState's shared rhythm: $locallyPaddedEmptyStates",
             locallyPaddedEmptyStates.isEmpty(),
         )
-        listOf(
-            app to "if (appSettings.compactItemLayout) WhipSpacing.micro else WhipSpacing.compact",
-            habits to "if (compact) WhipSpacing.micro else WhipSpacing.compact",
-            goals to "if (compactItemLayout) WhipSpacing.micro else WhipSpacing.compact",
-            tracks to "if (userCompact) WhipSpacing.micro else WhipSpacing.compact",
-        ).forEach { (source, sharedSpacing) ->
+        listOf(app, habits, goals, tracks).forEach { source ->
             assertTrue(
-                "Every first-class collection must use the shared compact and standard item gaps",
-                source.contains(sharedSpacing),
+                "Every first-class collection must use the balanced 8 dp item gap",
+                source.contains("verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling)"),
             )
+        }
+        assertTrue(itemPatterns.contains("shape = MaterialTheme.shapes.medium"))
+        assertTrue(itemPatterns.contains("horizontal = 12.dp"))
+        assertTrue(itemPatterns.contains("vertical = 10.dp"))
+        assertTrue(itemPatterns.contains("verticalArrangement = Arrangement.spacedBy(6.dp)"))
+        val removedPreference = "compact" + "ItemLayout"
+        val removedProvider = "Local" + "CompactItemLayout"
+        val removedTag = "settings-compact" + "-item-layout"
+        listOf(app, habits, goals, tracks, itemPatterns, settings, appSettings, backups).forEach { source ->
+            assertFalse(source.contains(removedPreference))
+            assertFalse(source.contains(removedProvider))
+            assertFalse(source.contains(removedTag))
         }
         assertTrue(app.contains("private fun SupportPaneEmptyMessage("))
         assertTrue(app.contains("private fun SupportPaneDescription("))

@@ -118,7 +118,6 @@ class BackupRepositoryTest {
         settings = FakeSettingsRepository(
             AppSettings(
                 themeMode = AppThemeMode.Dark,
-                compactItemLayout = true,
                 timeZoneId = "America/Toronto",
                 dayCutoffMinutes = 180,
                 showAllUpcomingTaskOccurrences = true,
@@ -166,7 +165,7 @@ class BackupRepositoryTest {
         val recovery = JSONObject(backups.exportRecoveryBackup())
         val portableSession = portable.getJSONObject("tables").getJSONArray("habit_timer_sessions").getJSONObject(0)
         val recoverySession = recovery.getJSONObject("tables").getJSONArray("habit_timer_sessions").getJSONObject(0)
-        assertEquals(23, portable.getInt("databaseVersion"))
+        assertEquals(24, portable.getInt("databaseVersion"))
         assertEquals("ReviewRequired", portableSession.getString("state"))
         assertTrue(portableSession.isNull("anchorElapsedRealtimeMillis"))
         assertTrue(portableSession.isNull("anchorBootId"))
@@ -315,11 +314,13 @@ class BackupRepositoryTest {
         val preview = backups.previewBackup(json)
         assertEquals(3, preview.envelopeVersion)
         assertEquals(6, preview.dataModelEpoch)
-        assertEquals(23, preview.databaseVersion)
+        assertEquals(24, preview.databaseVersion)
         assertTrue(preview.checksumValid)
         assertTrue(preview.settingsIncluded)
         assertTrue(preview.totalRecords >= 3)
-        val exportedTables = JSONObject(json).getJSONObject("tables")
+        val exportedRoot = JSONObject(json)
+        val exportedTables = exportedRoot.getJSONObject("tables")
+        assertFalse(exportedRoot.getJSONObject("settings").has("compact" + "ItemLayout"))
         assertEquals(false, exportedTables.has("entity_tag_links"))
         assertEquals(true, exportedTables.has("goal_completion_snapshots"))
         assertEquals(true, exportedTables.has("goal_elapsed_reset_events"))
@@ -334,7 +335,6 @@ class BackupRepositoryTest {
         assertEquals(FixedClock.today().plusDays(1), habits.skips.first().single().localDate)
         assertEquals("🚀", tasks.tasks.first().single().icon)
         assertEquals(AppThemeMode.Dark, settings.current().themeMode)
-        assertEquals(true, settings.current().compactItemLayout)
         assertEquals("America/Toronto", settings.current().timeZoneId)
         assertEquals(180, settings.current().dayCutoffMinutes)
         assertEquals(true, settings.current().showAllUpcomingTaskOccurrences)
@@ -363,7 +363,7 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val root = JSONObject(json)
 
-        assertEquals(23, root.getInt("databaseVersion"))
+        assertEquals(24, root.getInt("databaseVersion"))
         assertEquals(false, root.getJSONObject("tables").has("track_csv_import_receipts"))
         assertEquals(1, csvReceiptCount(committed.batchUuid))
 
@@ -999,7 +999,7 @@ class BackupRepositoryTest {
     @Test fun nonCurrentBackupVersionsOrTableSetsCannotBePreviewedOrRestored() = runBlocking {
         habits.create(HabitDraft(name = "Keep local", startDate = FixedClock.today()))
         val current = backups.exportBackup()
-        val wrongDatabase = JSONObject(current).put("databaseVersion", 19).toString()
+        val wrongDatabase = JSONObject(current).put("databaseVersion", 23).toString()
         val wrongEnvelope = JSONObject(current).put("envelopeVersion", 1).toString()
         val oldEpoch = JSONObject(current).put("dataModelEpoch", 1).toString()
         val incompleteTables = JSONObject(current).also {

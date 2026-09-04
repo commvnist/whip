@@ -23,9 +23,9 @@ class BackupContractTest {
         assertTrue(message.contains("newer Whip data epoch"))
     }
 
-    @Test fun oldAndFutureDataVersionsAreRejected() {
+    @Test fun version23AndFutureDataVersionsAreRejected() {
         assertTrue(rejected {
-            validateBackupContract(ENVELOPE_VERSION, CURRENT_DATA_MODEL_EPOCH, BACKUP_DATABASE_VERSION - 1)
+            validateBackupContract(ENVELOPE_VERSION, CURRENT_DATA_MODEL_EPOCH, 23)
         }.contains("old data version"))
         assertTrue(rejected {
             validateBackupContract(ENVELOPE_VERSION, CURRENT_DATA_MODEL_EPOCH, BACKUP_DATABASE_VERSION + 1)

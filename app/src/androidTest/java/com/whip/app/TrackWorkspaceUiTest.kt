@@ -42,7 +42,6 @@ import com.whip.app.ui.GoalUiState
 import com.whip.app.ui.HabitUiState
 import com.whip.app.ui.SettingsUiState
 import com.whip.app.ui.TaskUiState
-import com.whip.app.ui.LocalCompactItemLayout
 import com.whip.app.ui.TrackRow
 import com.whip.app.ui.TrackUiState
 import com.whip.app.ui.TrackViewModel
@@ -251,8 +250,7 @@ class TrackWorkspaceUiTest {
     }
 
     @Test
-    fun userSelectedCompactTrackRowsKeepLatestAddAndEditActions() {
-        val compact = mutableStateOf(false)
+    fun trackSummaryRowsKeepLatestAddAndEditActions() {
         var addedTrackId: Long? = null
         var editedTrackId: Long? = null
         val projection = trackProjection(
@@ -268,23 +266,14 @@ class TrackWorkspaceUiTest {
         )
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                CompositionLocalProvider(LocalCompactItemLayout provides compact.value) {
-                    TrackRow(projection, {}, { editedTrackId = it }, { addedTrackId = it })
-                }
+                TrackRow(projection, {}, { editedTrackId = it }, { addedTrackId = it })
             }
         }
 
-        val standardHeight = compose.onNodeWithTag("track-card-3").getUnclippedBoundsInRoot().let { it.bottom - it.top }
-        compose.onAllNodesWithText("Latest:", substring = true).assertCountEquals(1)
-
-        compose.runOnIdle { compact.value = true }
-        compose.waitForIdle()
-
-        val compactHeight = compose.onNodeWithTag("track-card-3").getUnclippedBoundsInRoot().let { it.bottom - it.top }
-        assertTrue("Collapsed compact Track row should be list-sized: $compactHeight", compactHeight <= 80.dp)
-        assertTrue("Compact Track row should be shorter: $standardHeight vs $compactHeight", compactHeight < standardHeight)
+        val summaryHeight = compose.onNodeWithTag("track-card-3").getUnclippedBoundsInRoot().let { it.bottom - it.top }
+        assertTrue("Collapsed Track summary row should be list-sized: $summaryHeight", summaryHeight <= 80.dp)
         assertTrue(
-            "Compact Track primary action must retain a 48 dp target",
+            "Track primary action must retain a 48 dp target",
             compose.onNodeWithTag("track-primary-action-3", useUnmergedTree = true).getUnclippedBoundsInRoot().let { it.bottom - it.top } >= 48.dp,
         )
         compose.onAllNodesWithText("Latest:", substring = true).assertCountEquals(0)
@@ -296,11 +285,11 @@ class TrackWorkspaceUiTest {
         compose.onNodeWithTag("track-expand-3", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Latest:", substring = true).assertIsDisplayed()
         compose.onAllNodesWithText("Add Title").assertCountEquals(0)
-        val compactEditHeight = compose.onNodeWithTag("track-edit-action-3", useUnmergedTree = true)
+        val editHeight = compose.onNodeWithTag("track-edit-action-3", useUnmergedTree = true)
             .getUnclippedBoundsInRoot().let { it.bottom - it.top }
         assertTrue(
-            "Expanded compact Track edit action must retain a 48 dp target: $compactEditHeight",
-            compactEditHeight >= 48.dp - 0.01.dp,
+            "Expanded Track edit action must retain a 48 dp target: $editHeight",
+            editHeight >= 48.dp - 0.01.dp,
         )
         compose.onNodeWithContentDescription("Edit Track Movies").performClick()
         compose.runOnIdle {
@@ -333,6 +322,7 @@ class TrackWorkspaceUiTest {
                     selectionMode = true,
                     selected = selected.value,
                     onSelectionToggle = { selected.value = !selected.value },
+                    compact = true,
                 )
             }
         }
@@ -347,6 +337,41 @@ class TrackWorkspaceUiTest {
         compose.onNodeWithTag("track-card-4").performClick()
         compose.runOnIdle { assertTrue(selected.value) }
         compose.onAllNodes(checkboxRole, useUnmergedTree = true).assertCountEquals(1)
+    }
+
+    @Test
+    fun adaptiveMasterPaneReorderKeepsItsDedicatedControls() {
+        val projection = trackProjection(
+            id = 5,
+            name = "Reading",
+            icon = "📚",
+            areaId = "personal",
+            area = "Personal",
+            entryId = 55,
+            title = "Parable",
+            score = 4.0,
+            date = LocalDate.of(2026, 8, 24),
+        )
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                TrackRow(
+                    projection = projection,
+                    onOpen = {},
+                    onEdit = {},
+                    onAddEntry = {},
+                    onMove = {},
+                    canMoveLater = true,
+                    reorderPosition = 1,
+                    reorderTotal = 2,
+                    reordering = true,
+                    compact = true,
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Reorder Reading").assertIsDisplayed()
+        compose.onAllNodesWithTag("track-expand-5", useUnmergedTree = true).assertCountEquals(0)
+        compose.onAllNodesWithTag("track-primary-action-5", useUnmergedTree = true).assertCountEquals(0)
     }
 
     private fun trackProjection(

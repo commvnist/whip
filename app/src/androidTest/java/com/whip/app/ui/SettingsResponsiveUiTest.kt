@@ -596,8 +596,9 @@ class SettingsResponsiveUiTest {
             .performScrollToNode(hasTestTag("settings-section-Appearance & Home"))
         compose.onNodeWithTag("settings-section-Appearance & Home").performClick()
         compose.onNodeWithTag("settings-list")
-            .performScrollToNode(hasTestTag("settings-compact-item-layout"))
-        compose.onNodeWithTag("settings-compact-item-layout").assertIsDisplayed()
+            .performScrollToNode(androidx.compose.ui.test.hasText("Theme"))
+        compose.onNodeWithText("Theme", useUnmergedTree = true).assertIsDisplayed()
+        compose.onAllNodesWithText("Use compact item rows").assertCountEquals(0)
     }
 
     @Test

@@ -188,7 +188,6 @@ class HabitSkipJourneyE2ETest {
     fun completingExpandedChecklistKeepsDoneCollapsedAndCollapsesTheMovedHabit() {
         val today = app.clock.today()
         val checklistHabitId = runBlocking {
-            app.settingsRepository.update { it.copy(compactItemLayout = true) }
             app.habitRepository.setCheckOff(habitId, today, true)
             app.habitRepository.create(
                 HabitDraft(

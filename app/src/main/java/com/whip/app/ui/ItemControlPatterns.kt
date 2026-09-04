@@ -120,9 +120,6 @@ import com.whip.app.R
 import com.whip.app.ui.theme.whipColors
 import kotlinx.coroutines.delay
 
-/** User-selected collection density; unrelated to window-size or fold posture. */
-internal val LocalCompactItemLayout = staticCompositionLocalOf { false }
-
 /**
  * Completion is a semantic success state throughout Whip. Keep this separate
  * from selection checkboxes, which continue to use the active selection color.
@@ -1089,18 +1086,17 @@ internal fun ProductivityItemCard(
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val compact = LocalCompactItemLayout.current
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = if (compact) MaterialTheme.shapes.small else MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = containerColor),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(
-                horizontal = if (compact) 10.dp else 14.dp,
-                vertical = if (compact) 6.dp else 14.dp,
+                horizontal = 12.dp,
+                vertical = 10.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
             content = content,
         )
     }
@@ -1130,119 +1126,24 @@ internal fun ProductivityItemHeader(
     titleCompleted: Boolean = false,
     headlineAccessory: (@Composable RowScope.() -> Unit)? = null,
     supportingContent: @Composable ColumnScope.() -> Unit = {},
-    compactSummaryContent: @Composable ColumnScope.() -> Unit = {},
-    compactExpanded: Boolean = false,
-    onCompactExpansionToggle: (() -> Unit)? = null,
-    compactExpansionTag: String? = null,
-    compactPrimaryActionWidth: Dp = 64.dp,
-    primaryActionWidth: Dp = 72.dp,
+    summaryContent: @Composable ColumnScope.() -> Unit = {},
+    expanded: Boolean = false,
+    onExpansionToggle: (() -> Unit)? = null,
+    expansionTag: String? = null,
+    primaryActionWidth: Dp = 64.dp,
     primaryAction: (@Composable () -> Unit)? = null,
 ) {
-    val compact = LocalCompactItemLayout.current
-    if (compact) {
-        Column(
-            modifier = modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(identityModifier) { WhipIdentityEmoji(emoji) }
-                Spacer(Modifier.width(8.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = itemName,
-                        modifier = Modifier.fillMaxWidth(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = completionTextColor(titleCompleted),
-                        textDecoration = completionTextDecoration(titleCompleted),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (onCompactExpansionToggle != null && !compactExpanded) compactSummaryContent()
-                }
-                if (onCompactExpansionToggle != null) {
-                    IconButton(
-                        onClick = onCompactExpansionToggle,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .then(compactExpansionTag?.let(Modifier::testTag) ?: Modifier)
-                            .semantics {
-                                contentDescription = "${if (compactExpanded) "Collapse" else "Expand"} $itemType $itemName"
-                                stateDescription = if (compactExpanded) "Expanded" else "Collapsed"
-                            },
-                    ) {
-                        Icon(
-                            if (compactExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                            contentDescription = null,
-                        )
-                    }
-                } else if (onEdit != null) {
-                    ItemEditButton(itemType, itemName, onEdit, editModifier)
-                }
-                primaryAction?.let { action ->
-                    Box(
-                        modifier = primaryActionModifier.width(compactPrimaryActionWidth).heightIn(min = 48.dp),
-                        contentAlignment = Alignment.Center,
-                    ) { action() }
-                }
-            }
-            if (onCompactExpansionToggle == null || compactExpanded) {
-                if (onCompactExpansionToggle != null) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                BoxWithConstraints(Modifier.fillMaxWidth()) {
-                    val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
-                    if (stacked) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            headlineAccessory?.let { accessory ->
-                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { accessory() }
-                            }
-                            if (areaId != null) AreaBadge(areaId, areaName)
-                            supportingContent()
-                            if (onCompactExpansionToggle != null && onEdit != null) {
-                                WhipTextButton(
-                                    onClick = onEdit,
-                                    modifier = editModifier
-                                        .fillMaxWidth()
-                                        .heightIn(min = 48.dp)
-                                        .semantics { contentDescription = "Edit $itemType $itemName" },
-                                ) {
-                                    Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(20.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Edit")
-                                    Spacer(Modifier.weight(1f))
-                                }
-                            }
-                        }
-                    } else {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                headlineAccessory?.let { accessory ->
-                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { accessory() }
-                                }
-                                if (areaId != null) AreaBadge(areaId, areaName)
-                                supportingContent()
-                            }
-                            if (onCompactExpansionToggle != null && onEdit != null) {
-                                ItemEditButton(itemType, itemName, onEdit, editModifier)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    } else {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
         Row(
-            modifier = modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(identityModifier) { WhipIdentityEmoji(emoji) }
-            Spacer(Modifier.width(10.dp))
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
+            Spacer(Modifier.width(8.dp))
+            Column(Modifier.weight(1f)) {
                 Text(
                     text = itemName,
                     modifier = Modifier.fillMaxWidth(),
@@ -1253,24 +1154,74 @@ internal fun ProductivityItemHeader(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                // Status badges must never compete with the item name for horizontal
-                // space. Narrow split panes still reserve the shared action lanes, so
-                // an inline badge could collapse even a short title to a few glyphs.
-                headlineAccessory?.let { accessory ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) { accessory() }
-                }
-                if (areaId != null) AreaBadge(areaId, areaName)
-                supportingContent()
+                if (onExpansionToggle != null && !expanded) summaryContent()
             }
-            if (onEdit != null) ItemEditButton(itemType, itemName, onEdit, editModifier)
+            if (onExpansionToggle != null) {
+                IconButton(
+                    onClick = onExpansionToggle,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .then(expansionTag?.let(Modifier::testTag) ?: Modifier)
+                        .semantics {
+                            contentDescription = "${if (expanded) "Collapse" else "Expand"} $itemType $itemName"
+                            stateDescription = if (expanded) "Expanded" else "Collapsed"
+                        },
+                ) {
+                    Icon(
+                        if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                        contentDescription = null,
+                    )
+                }
+            } else if (onEdit != null) {
+                ItemEditButton(itemType, itemName, onEdit, editModifier)
+            }
             primaryAction?.let { action ->
                 Box(
                     modifier = primaryActionModifier.width(primaryActionWidth).heightIn(min = 48.dp),
                     contentAlignment = Alignment.Center,
                 ) { action() }
+            }
+        }
+        if (onExpansionToggle == null || expanded) {
+            if (onExpansionToggle != null) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
+                if (stacked) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        headlineAccessory?.let { accessory ->
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { accessory() }
+                        }
+                        if (areaId != null) AreaBadge(areaId, areaName)
+                        supportingContent()
+                        if (onExpansionToggle != null && onEdit != null) {
+                            WhipTextButton(
+                                onClick = onEdit,
+                                modifier = editModifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 48.dp)
+                                    .semantics { contentDescription = "Edit $itemType $itemName" },
+                            ) {
+                                Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Edit")
+                                Spacer(Modifier.weight(1f))
+                            }
+                        }
+                    }
+                } else {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            headlineAccessory?.let { accessory ->
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { accessory() }
+                            }
+                            if (areaId != null) AreaBadge(areaId, areaName)
+                            supportingContent()
+                        }
+                        if (onExpansionToggle != null && onEdit != null) {
+                            ItemEditButton(itemType, itemName, onEdit, editModifier)
+                        }
+                    }
+                }
             }
         }
     }

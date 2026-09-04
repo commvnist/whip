@@ -280,3 +280,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Affected users/workflows: New 5/3/1 users, empty-library creation, custom Exercise selection, active-workout substitution, screen-reader users.
 - Related: `FND-20260903-025`, `IMP-20260903-024`, `VER-20260903-024`.
 - Status: Implemented in `ad2f3a9`, verified, independently accepted, and released to the physical phone in Whip 0.3.46/code 52; awaiting real-user validation. See `VER-20260903-025`.
+
+### FB-20260903-016 — Replace compact and comfortable item modes with one balanced layout
+
+- Date/source: 2026-09-03, direct user UX/UI feedback.
+- User need: Compact mode feels under-padded, while maintaining a separate comfortable mode adds an unnecessary choice. Tasks, Habits, Goals, and Tracks should use one default presentation that lands between the two current densities.
+- Acceptance criteria: Remove the compact-row setting and its stored/backup representation as a clean cut; use one consistent collection-row interaction and density across supported productivity surfaces; retain one-tap primary actions, complete information through clear disclosure, 48 dp targets, two-line titles, large-text/narrow-width reachability, reorder/selection behavior, and adaptive Track master-pane behavior; choose spacing and card shape that feel meaningfully less cramped than current compact rows without returning to the oversized standard cards. No compatibility or transitional behavior is required; a data reset is authorized if genuinely necessary.
+- Affected users/workflows: Appearance settings; Home, Tasks, Habits, Goals, and Tracks collections; restored/backed-up installations; compact phones, Fold panes, and enlarged text.
+- Related: `FND-20260903-026`, `DEC-20260903-014`, `IMP-20260903-026`, `VER-20260903-026`.
+- Notes: The user explicitly superseded the initial compatibility assumption after the first design gate: remove the legacy preference/backup field completely rather than leaving inert state.
+- Status: Implemented, automated/visual QA verified, and independently accepted; awaiting commit/push and user validation.

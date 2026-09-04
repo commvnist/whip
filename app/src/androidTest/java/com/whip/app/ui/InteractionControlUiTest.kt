@@ -801,26 +801,24 @@ class InteractionControlUiTest {
     }
 
     @Test
-    fun compactProductivityHeaderKeepsDisclosureBeforeTheTrailingPrimaryAction() {
+    fun productivityHeaderKeepsDisclosureBeforeTheTrailingPrimaryAction() {
         compose.setContent {
-            CompositionLocalProvider(LocalCompactItemLayout provides true) {
-                WhipTheme(dynamicColor = false) {
-                    Box(Modifier.width(320.dp)) {
-                        ProductivityItemHeader(
-                            itemType = "task",
-                            itemName = "Review release notes",
-                            emoji = "📋",
-                            areaId = null,
-                            areaName = "Main",
-                            onEdit = null,
-                            compactExpanded = false,
-                            onCompactExpansionToggle = {},
-                            compactExpansionTag = "header-disclosure",
-                            primaryAction = {
-                                Box(Modifier.size(48.dp).testTag("header-primary-action"))
-                            },
-                        )
-                    }
+            WhipTheme(dynamicColor = false) {
+                Box(Modifier.width(320.dp)) {
+                    ProductivityItemHeader(
+                        itemType = "task",
+                        itemName = "Review release notes",
+                        emoji = "📋",
+                        areaId = null,
+                        areaName = "Main",
+                        onEdit = null,
+                        expanded = false,
+                        onExpansionToggle = {},
+                        expansionTag = "header-disclosure",
+                        primaryAction = {
+                            Box(Modifier.size(48.dp).testTag("header-primary-action"))
+                        },
+                    )
                 }
             }
         }

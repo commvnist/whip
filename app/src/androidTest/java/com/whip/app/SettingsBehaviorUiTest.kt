@@ -59,12 +59,12 @@ class SettingsBehaviorUiTest {
     }
 
     @Test
-    fun compactItemLayoutCanBeEnabledFromAppearance() {
+    fun appearanceHasNoDensityChoiceAndTasksUseSummaryDisclosure() {
         val taskId = runBlocking {
             app.taskRepository.create(
                 TaskDraft(
-                    title = "Compact consequence task",
-                    notes = "Notes shown only in the comfortable row",
+                    title = "Summary-first task",
+                    notes = "Details revealed on request",
                     scheduleKind = ScheduleKind.Once,
                     date = app.clock.today(),
                     inbox = false,
@@ -72,22 +72,16 @@ class SettingsBehaviorUiTest {
             )
         }
         compose.waitUntil {
-            compose.onAllNodesWithText("Notes shown only in the comfortable row")
+            compose.onAllNodesWithTag("task-expand-$taskId")
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("Notes shown only in the comfortable row").assertIsDisplayed()
+        compose.onAllNodesWithText("Details revealed on request").assertCountEquals(0)
+        compose.onNodeWithTag("task-expand-$taskId").performClick()
+        compose.onNodeWithText("Details revealed on request").assertIsDisplayed()
 
         openAppearanceSettings()
-        compose.onNodeWithTag("settings-list")
-            .performScrollToNode(hasTestTag("settings-compact-item-layout"))
-        compose.onNodeWithTag("settings-compact-item-layout").performClick()
-
-        compose.waitUntil { app.settingsRepository.current().compactItemLayout }
-        compose.onNodeWithContentDescription("Close Settings").performClick()
-
-        compose.onAllNodesWithText("Notes shown only in the comfortable row").assertCountEquals(0)
-        compose.onNodeWithTag("task-expand-$taskId").assertIsDisplayed().performClick()
-        compose.onNodeWithText("Notes shown only in the comfortable row").assertIsDisplayed()
+        compose.onAllNodesWithText("Use compact item rows").assertCountEquals(0)
+        compose.onNodeWithText("Show advanced controls by default").assertIsDisplayed()
     }
 
     @Test
