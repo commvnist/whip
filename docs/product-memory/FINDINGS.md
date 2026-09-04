@@ -845,7 +845,7 @@
 ### FND-20260903-027 — Equivalent grouped surfaces still own conflicting visual rhythm
 
 - Severity/category: P1 cross-product visual consistency and maintainability.
-- Observed: Home, Track, Gym, and Settings still construct ordinary informational or grouped content with direct `Card` calls and locally chosen 12–16 dp padding and 4–10 dp internal gaps. `WhipSettingsSectionCard` already encodes the intended low-emphasis Settings surface but is used only for the Local Health Connect Copies block while equivalent Settings groups bypass it.
+- Observed: Home, Track, Gym, and Settings still construct ordinary informational or grouped content with direct `Card` calls and locally chosen 12–16 dp padding and 4–10 dp internal gaps. `WhipSettingsSectionCard` already encodes the intended low-emphasis Settings surface but is used only for Hardware Keyboard and Local Health Connect Copies while equivalent Settings groups bypass it.
 - Expected: Ordinary informational/grouped cards use one narrowly scoped, tokenized surface grammar; Settings sections use their existing canonical card. Item cards, charts, calendars, warning/provenance surfaces, workout execution rows, and reorder controls remain explicit semantic exceptions.
 - Why it matters / affected users: Visually equivalent information feels denser or more prominent depending on destination, and system-wide geometry improvements miss local implementations.
 - Evidence: `WhipPagePatterns.kt` (`WhipCollectionCard`, `WhipSettingsSectionCard`); direct grouped cards in `WhipApp.kt`, `TrackScreens.kt`, `SettingsScreens.kt`, `GymScreens.kt`, `GoalScreens.kt`, and `RoutineBuilder.kt`.
