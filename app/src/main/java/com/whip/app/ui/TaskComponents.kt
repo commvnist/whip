@@ -111,7 +111,7 @@ fun TaskRow(
     reorderMode: Boolean = false,
     showCompletionControl: Boolean = true,
 ) {
-    val disclosure = rememberCompactItemDisclosure("task:${item.stableKey}")
+    val disclosure = rememberItemDisclosure("task:${item.stableKey}")
     val metadata = item.detailSegments(completed)
     ProductivityItemCard(
         modifier = Modifier.then(

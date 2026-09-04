@@ -1014,7 +1014,7 @@ fun HabitProgressCard(
     val skipped = item.dayState == HabitDayState.Skipped
     val unavailableForCheckIn = habit.timerStartedAtMillis == null &&
         (habit.paused || item.dayState in setOf(HabitDayState.Paused, HabitDayState.NotScheduled))
-    val disclosure = rememberCompactItemDisclosure(itemKey = habitCompactExpansionKey(habit.id, item.date))
+    val disclosure = rememberItemDisclosure(itemKey = habitDisclosureKey(habit.id, item.date))
     var showAllQuickValues by rememberSaveable(habit.id) { mutableStateOf(false) }
     val streakUnit = when (habit.scheduleType) {
         HabitScheduleType.FlexibleTimesPerWeek -> "week"
@@ -1323,7 +1323,7 @@ internal fun List<HabitDayProgress>.dailyHabitSections(): DailyHabitSections {
     return DailyHabitSections(actionNeeded = actionNeeded, finished = finished)
 }
 
-internal fun habitCompactExpansionKey(habitId: Long, date: LocalDate): String =
+internal fun habitDisclosureKey(habitId: Long, date: LocalDate): String =
     "habit:$habitId:${date.toEpochDay()}"
 
 @Composable
@@ -1374,14 +1374,14 @@ private fun HabitList(
     val sections = if (separateCompleted) progress.dailyHabitSections() else DailyHabitSections(progress, emptyList())
     val finishedIds = sections.finished.mapTo(linkedSetOf()) { it.habit.id }
     val dateKey = progress.firstOrNull()?.date?.toEpochDay() ?: Long.MIN_VALUE
-    val compactExpansionState = LocalCompactItemExpansionState.current
+    val itemDisclosureState = LocalItemDisclosureState.current
     var finishedExpanded by rememberSaveable(title, dateKey) {
         mutableStateOf(false)
     }
     var knownFinishedIds by remember(title, dateKey) { mutableStateOf(finishedIds) }
-    LaunchedEffect(finishedIds, dateKey, compactExpansionState) {
+    LaunchedEffect(finishedIds, dateKey, itemDisclosureState) {
         (finishedIds - knownFinishedIds).forEach { habitId ->
-            compactExpansionState?.collapse(habitCompactExpansionKey(habitId, LocalDate.ofEpochDay(dateKey)))
+            itemDisclosureState?.collapse(habitDisclosureKey(habitId, LocalDate.ofEpochDay(dateKey)))
         }
         knownFinishedIds = finishedIds
     }

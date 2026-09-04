@@ -649,7 +649,7 @@ fun WhipApp(
                 maxWidth = minOf(contentWidth * 0.94f, 560.dp),
             )
         } else WhipDialogPlacement(maxWidth = minOf(maxWidth * 0.94f, 560.dp))
-        val compactItemExpansionState = rememberCompactItemExpansionState()
+        val itemDisclosureState = rememberItemDisclosureState()
         CompositionLocalProvider(
             LocalAreaUiContext provides AreaUiContext(
                 areas = settingsState.areas,
@@ -659,7 +659,7 @@ fun WhipApp(
             LocalWhipToday provides calendarContext.logicalDate,
             LocalWhipZone provides calendarContext.zoneId,
             LocalWhipDialogPlacement provides dialogPlacement,
-            LocalCompactItemExpansionState provides compactItemExpansionState,
+            LocalItemDisclosureState provides itemDisclosureState,
             LocalLaunchDeliveryConsumer provides onLaunchDeliveryConsumed,
         ) {
             UserDataGenerationBoundary(userDataGeneration) {
@@ -921,7 +921,7 @@ fun WhipScreen(
     adaptiveLayout: WhipAdaptiveLayout = WhipAdaptiveLayout.Compact,
     foldInfo: WhipFoldInfo? = null,
 ) {
-    val compactItemExpansionState = LocalCompactItemExpansionState.current
+    val itemDisclosureState = LocalItemDisclosureState.current
     val trackEntryUndoStateHolder = trackViewModel?.entryUndoState?.collectAsStateWithLifecycle()
     val trackEntryUndoState = trackEntryUndoStateHolder?.value ?: TrackEntryUndoUiState()
     var appDestination by rememberSaveable { mutableStateOf(AppDestination.Home) }
@@ -1423,7 +1423,7 @@ fun WhipScreen(
 
     fun selectPrimaryDestination(destination: AppDestination) {
         if (destination == appDestination) return
-        compactItemExpansionState?.collapseAll()
+        itemDisclosureState?.collapseAll()
         // Each primary workspace is a durable place. Switching roots preserves
         // its last destination, filters, and selected entity; explicit Home
         // shortcuts and deep links still opt into a precise destination.
@@ -5023,18 +5023,18 @@ private fun HomeContent(
     val pinnedRoutines = gymState.routines.filter { it.pinned }
     val gymHomeCount = gymHomeItemCount(gymState.activeSession != null, pinnedRoutines.size)
     val homeFinishedHabitIds = homeHabitSections.finished.mapTo(linkedSetOf()) { it.habit.id }
-    val compactItemExpansionState = LocalCompactItemExpansionState.current
+    val itemDisclosureState = LocalItemDisclosureState.current
     var homeFinishedExpanded by rememberSaveable(habitState.currentDate.toEpochDay()) {
         mutableStateOf(false)
     }
     var knownHomeFinishedHabitIds by remember(habitState.currentDate) { mutableStateOf(homeFinishedHabitIds) }
     var homeCompletionTrackingReady by remember(habitState.currentDate) { mutableStateOf(false) }
-    LaunchedEffect(habitState.loading, homeFinishedHabitIds, habitState.currentDate, compactItemExpansionState) {
+    LaunchedEffect(habitState.loading, homeFinishedHabitIds, habitState.currentDate, itemDisclosureState) {
         if (habitState.loading) return@LaunchedEffect
         if (homeCompletionTrackingReady) {
             (homeFinishedHabitIds - knownHomeFinishedHabitIds).forEach { habitId ->
-                compactItemExpansionState?.collapse(
-                    habitCompactExpansionKey(habitId, habitState.currentDate),
+                itemDisclosureState?.collapse(
+                    habitDisclosureKey(habitId, habitState.currentDate),
                 )
             }
         } else {
@@ -6201,7 +6201,7 @@ private fun TaskAreaContent(
                 },
                 label = TaskHistorySection::label,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-                resetCompactItemExpansionOnChange = true,
+                resetItemDisclosureOnChange = true,
             )
         }
         Column(
@@ -6421,7 +6421,7 @@ private fun TaskAreaContent(
                         onSelect = { planningView = workspaceDestination.normalizePlanningView(it) },
                         label = TaskPlanningView::label,
                         modifier = Modifier.fillMaxWidth(),
-                        resetCompactItemExpansionOnChange = true,
+                        resetItemDisclosureOnChange = true,
                     )
                 }
                 if (!reordering) WhipActiveFilterRow(

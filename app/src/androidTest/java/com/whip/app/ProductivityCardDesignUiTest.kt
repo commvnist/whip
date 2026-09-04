@@ -69,9 +69,9 @@ import com.whip.app.ui.HabitTimerReviewPrompt
 import com.whip.app.ui.HabitUiState
 import com.whip.app.ui.HabitViewModel
 import com.whip.app.ui.DestinationTabBar
-import com.whip.app.ui.LocalCompactItemExpansionState
+import com.whip.app.ui.LocalItemDisclosureState
 import com.whip.app.ui.TaskRow
-import com.whip.app.ui.rememberCompactItemExpansionState
+import com.whip.app.ui.rememberItemDisclosureState
 import com.whip.app.ui.theme.WhipTheme
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -270,8 +270,8 @@ class ProductivityCardDesignUiTest {
         )
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
-                val expansionState = rememberCompactItemExpansionState()
-                CompositionLocalProvider(LocalCompactItemExpansionState provides expansionState) {
+                val expansionState = rememberItemDisclosureState()
+                CompositionLocalProvider(LocalItemDisclosureState provides expansionState) {
                     Column(Modifier.width(300.dp).padding(12.dp)) {
                         TaskRow(item, false, {}, {}, {})
                     }
@@ -324,8 +324,8 @@ class ProductivityCardDesignUiTest {
         )
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                val expansionState = rememberCompactItemExpansionState()
-                CompositionLocalProvider(LocalCompactItemExpansionState provides expansionState) {
+                val expansionState = rememberItemDisclosureState()
+                CompositionLocalProvider(LocalItemDisclosureState provides expansionState) {
                     Column(Modifier.fillMaxWidth().padding(20.dp)) {
                         TaskRow(item, false, { completionRequested = true }, {}, {})
                     }
@@ -366,8 +366,8 @@ class ProductivityCardDesignUiTest {
         val selectedTab = mutableStateOf("Today")
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                val expansionState = rememberCompactItemExpansionState()
-                CompositionLocalProvider(LocalCompactItemExpansionState provides expansionState) {
+                val expansionState = rememberItemDisclosureState()
+                CompositionLocalProvider(LocalItemDisclosureState provides expansionState) {
                     Column(Modifier.fillMaxWidth()) {
                         DestinationTabBar(
                             selected = selectedTab.value,
@@ -425,8 +425,8 @@ class ProductivityCardDesignUiTest {
         var goalLogged = false
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                val expansionState = rememberCompactItemExpansionState()
-                CompositionLocalProvider(LocalCompactItemExpansionState provides expansionState) {
+                val expansionState = rememberItemDisclosureState()
+                CompositionLocalProvider(LocalItemDisclosureState provides expansionState) {
                     Column(
                         modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -541,8 +541,8 @@ class ProductivityCardDesignUiTest {
 
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                val expansionState = rememberCompactItemExpansionState()
-                CompositionLocalProvider(LocalCompactItemExpansionState provides expansionState) {
+                val expansionState = rememberItemDisclosureState()
+                CompositionLocalProvider(LocalItemDisclosureState provides expansionState) {
                     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp)) {
                         HabitProgressCard(
                             item = HabitDayProgress(
@@ -838,8 +838,8 @@ class ProductivityCardDesignUiTest {
 
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                val expansionState = rememberCompactItemExpansionState()
-                CompositionLocalProvider(LocalCompactItemExpansionState provides expansionState) {
+                val expansionState = rememberItemDisclosureState()
+                CompositionLocalProvider(LocalItemDisclosureState provides expansionState) {
                     Column(
                         modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),

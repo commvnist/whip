@@ -1583,7 +1583,7 @@ private fun TrackSummaryRow(
     onAddEntry: (Long) -> Unit,
     onEnterSelection: (() -> Unit)?,
 ) {
-    val disclosure = rememberCompactItemDisclosure("track:${projection.track.id}")
+    val disclosure = rememberItemDisclosure("track:${projection.track.id}")
     val addLabel = if (projection.track.archived) "Archived" else projection.addEntryLabel()
     ProductivityItemCard(
         modifier = Modifier

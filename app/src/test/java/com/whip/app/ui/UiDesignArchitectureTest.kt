@@ -227,10 +227,14 @@ class UiDesignArchitectureTest {
         val removedPreference = "compact" + "ItemLayout"
         val removedProvider = "Local" + "CompactItemLayout"
         val removedTag = "settings-compact" + "-item-layout"
+        val removedDisclosureState = "Compact" + "ItemExpansionState"
+        val removedDisclosure = "Compact" + "ItemDisclosure"
         listOf(app, habits, goals, tracks, itemPatterns, settings, appSettings, backups).forEach { source ->
             assertFalse(source.contains(removedPreference))
             assertFalse(source.contains(removedProvider))
             assertFalse(source.contains(removedTag))
+            assertFalse(source.contains(removedDisclosureState))
+            assertFalse(source.contains(removedDisclosure))
         }
         assertTrue(app.contains("private fun SupportPaneEmptyMessage("))
         assertTrue(app.contains("private fun SupportPaneDescription("))

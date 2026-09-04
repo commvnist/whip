@@ -3,10 +3,10 @@ package com.whip.app.ui
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class CompactItemExpansionStateTest {
+class ItemDisclosureStateTest {
     @Test
-    fun toggleAllowsMultipleCompactItemsToRemainExpanded() {
-        val state = CompactItemExpansionState()
+    fun toggleAllowsMultipleItemsToRemainExpanded() {
+        val state = ItemDisclosureState()
 
         state.toggle("task:1")
         state.toggle("habit:2")
@@ -27,10 +27,10 @@ class CompactItemExpansionStateTest {
 
     @Test
     fun freshStateStartsCollapsedAndSavedDisclosuresCanBeRestored() {
-        assertEquals(emptySet<String>(), CompactItemExpansionState().expandedItemKeys)
+        assertEquals(emptySet<String>(), ItemDisclosureState().expandedItemKeys)
         assertEquals(
             setOf("task:1", "goal:timer", "habit:timer"),
-            CompactItemExpansionState(setOf("task:1", "goal:timer", "habit:timer")).expandedItemKeys,
+            ItemDisclosureState(setOf("task:1", "goal:timer", "habit:timer")).expandedItemKeys,
         )
     }
 }

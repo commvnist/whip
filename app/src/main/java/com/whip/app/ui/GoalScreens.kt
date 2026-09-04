@@ -818,7 +818,7 @@ fun GoalCard(
     reorderMode: Boolean = false,
 ) {
     val goal = projection.goal
-    val disclosure = rememberCompactItemDisclosure(itemKey = "goal:${goal.id}")
+    val disclosure = rememberItemDisclosure(itemKey = "goal:${goal.id}")
     val compactStatus = projection.collectionStatus(customUnits, nowMillis)
     val primaryAction: (@Composable () -> Unit)? = when {
         reorderMode -> null

@@ -319,7 +319,7 @@ private fun EntityInspectorSectionSelector(
         secondaryTestTagPrefix = "entity-inspector-section".takeIf { connectedSectionTagPrefix != null },
         secondaryTestTagValue = EntityInspectorSection::id,
         barTestTag = "entity-inspector-section-selector",
-        resetCompactItemExpansionOnChange = false,
+        resetItemDisclosureOnChange = false,
     )
 }
 

@@ -973,9 +973,9 @@ internal fun WhipOverflowMenu(
     }
 }
 
-/** Coordinates independently expanded compact collection rows. */
+/** Coordinates independently expanded summary-first collection rows. */
 @Stable
-internal class CompactItemExpansionState(initialExpandedItemKeys: Set<String> = emptySet()) {
+internal class ItemDisclosureState(initialExpandedItemKeys: Set<String> = emptySet()) {
     var expandedItemKeys by mutableStateOf(initialExpandedItemKeys.toSet())
         private set
 
@@ -996,36 +996,36 @@ internal class CompactItemExpansionState(initialExpandedItemKeys: Set<String> = 
     }
 }
 
-private val CompactItemExpansionStateSaver = Saver<CompactItemExpansionState, ArrayList<String>>(
+private val ItemDisclosureStateSaver = Saver<ItemDisclosureState, ArrayList<String>>(
     save = { ArrayList(it.expandedItemKeys) },
-    restore = { CompactItemExpansionState(it.toSet()) },
+    restore = { ItemDisclosureState(it.toSet()) },
 )
 
 @Composable
-internal fun rememberCompactItemExpansionState(): CompactItemExpansionState = rememberSaveable(
-    saver = CompactItemExpansionStateSaver,
-) { CompactItemExpansionState() }
+internal fun rememberItemDisclosureState(): ItemDisclosureState = rememberSaveable(
+    saver = ItemDisclosureStateSaver,
+) { ItemDisclosureState() }
 
-internal val LocalCompactItemExpansionState = staticCompositionLocalOf<CompactItemExpansionState?> { null }
+internal val LocalItemDisclosureState = staticCompositionLocalOf<ItemDisclosureState?> { null }
 
-internal data class CompactItemDisclosure(
+internal data class ItemDisclosure(
     val expanded: Boolean,
     val toggle: () -> Unit,
 )
 
 @Composable
-internal fun rememberCompactItemDisclosure(
+internal fun rememberItemDisclosure(
     itemKey: String,
-): CompactItemDisclosure {
-    val fallback = rememberCompactItemExpansionState()
-    val expansionState = LocalCompactItemExpansionState.current ?: fallback
-    return CompactItemDisclosure(
+): ItemDisclosure {
+    val fallback = rememberItemDisclosureState()
+    val expansionState = LocalItemDisclosureState.current ?: fallback
+    return ItemDisclosure(
         expanded = itemKey in expansionState.expandedItemKeys,
         toggle = { expansionState.toggle(itemKey) },
     )
 }
 
-/** A one-line text action sized for the trailing lane of a compact item row. */
+/** A one-line text action sized for the trailing lane of a summary-first item row. */
 @Composable
 internal fun ItemPrimaryTextButton(
     label: String,
@@ -1252,13 +1252,13 @@ internal fun <T> DestinationTabBar(
     secondaryTestTagPrefix: String? = null,
     secondaryTestTagValue: (T) -> String = label,
     barTestTag: String? = null,
-    resetCompactItemExpansionOnChange: Boolean = true,
+    resetItemDisclosureOnChange: Boolean = true,
 ) {
     if (destinations.isEmpty()) return
-    val compactItemExpansionState = LocalCompactItemExpansionState.current
+    val itemDisclosureState = LocalItemDisclosureState.current
     fun selectDestination(destination: T) {
-        if (resetCompactItemExpansionOnChange && destination != selected) {
-            compactItemExpansionState?.collapseAll()
+        if (resetItemDisclosureOnChange && destination != selected) {
+            itemDisclosureState?.collapseAll()
         }
         onSelect(destination)
     }
@@ -1366,9 +1366,9 @@ internal fun <T> SegmentedChoiceBar(
     label: (T) -> String,
     modifier: Modifier = Modifier,
     testTagPrefix: String? = null,
-    resetCompactItemExpansionOnChange: Boolean = false,
+    resetItemDisclosureOnChange: Boolean = false,
 ) {
-    val compactItemExpansionState = LocalCompactItemExpansionState.current
+    val itemDisclosureState = LocalItemDisclosureState.current
     var menuExpanded by rememberSaveable { mutableStateOf(false) }
     BoxWithConstraints(modifier) {
         val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 1.5f)
@@ -1395,7 +1395,7 @@ internal fun <T> SegmentedChoiceBar(
                             leadingIcon = if (choice == selected) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
                             modifier = testTagPrefix?.let { Modifier.testTag("$it-${label(choice)}") } ?: Modifier,
                             onClick = {
-                                if (resetCompactItemExpansionOnChange && choice != selected) compactItemExpansionState?.collapseAll()
+                                if (resetItemDisclosureOnChange && choice != selected) itemDisclosureState?.collapseAll()
                                 menuExpanded = false
                                 onSelect(choice)
                             },
@@ -1408,8 +1408,8 @@ internal fun <T> SegmentedChoiceBar(
                 SegmentedButton(
                     selected = selected == choice,
                     onClick = {
-                        if (resetCompactItemExpansionOnChange && choice != selected) {
-                            compactItemExpansionState?.collapseAll()
+                        if (resetItemDisclosureOnChange && choice != selected) {
+                            itemDisclosureState?.collapseAll()
                         }
                         onSelect(choice)
                     },
@@ -1747,6 +1747,6 @@ internal fun DetailSectionBar(
         onSelect = onSelect,
         label = { it },
         testTagPrefix = testTagPrefix,
-        resetCompactItemExpansionOnChange = false,
+        resetItemDisclosureOnChange = false,
     )
 }
