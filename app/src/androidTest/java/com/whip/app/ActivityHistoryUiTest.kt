@@ -23,6 +23,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -242,6 +243,7 @@ class ActivityHistoryUiTest {
         var saving by mutableStateOf(false)
         var error by mutableStateOf<String?>(null)
         var savedEnd: LocalDate? = today
+        var saveCalls = 0
         var deleted = false
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
@@ -250,6 +252,7 @@ class ActivityHistoryUiTest {
                     pause = HabitPause(8, 1, today, today.plusDays(3), "Travel"),
                     onDismiss = {},
                     onSave = { _, end, _ ->
+                        saveCalls += 1
                         savedEnd = end
                         saving = true
                     },
@@ -261,9 +264,18 @@ class ActivityHistoryUiTest {
         }
 
         compose.onNodeWithTag("habit-pause-no-end").performClick()
+        compose.onNodeWithText("No end date", substring = true).assertIsDisplayed()
         compose.onNodeWithTag("habit-pause-note").performTextReplacement("Long recovery")
-        compose.onNodeWithTag("habit-pause-save").performClick()
-        compose.runOnIdle { assertNull(savedEnd) }
+        closeSoftKeyboard()
+        compose.waitForIdle()
+        compose.onNodeWithTag("habit-pause-save")
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .performClick()
+        compose.runOnIdle {
+            assertEquals(1, saveCalls)
+            assertNull(savedEnd)
+        }
         compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
 
         compose.runOnIdle {

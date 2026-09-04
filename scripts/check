@@ -21,7 +21,7 @@ usage() {
         '  scripts/check --full      Also build release and the optimized benchmark harness' \
         '' \
         'Instrumentation reinstalls/clears the debug app. Physical devices are refused.' \
-        'Set ANDROID_SERIAL to an API 34+ disposable emulator, or connect exactly one emulator.'
+        'Set ANDROID_SERIAL to exactly one API 34+ disposable emulator.'
 }
 
 while (($#)); do
@@ -38,6 +38,17 @@ done
 if [[ "$resume_emulator_batches" == false && "$run_emulator_tests" != true ]]; then
     printf 'error: --fresh-emulator requires --emulator\n' >&2
     exit 2
+fi
+
+if [[ "$run_emulator_tests" == true ]]; then
+    "${SCRIPT_DIR}/android-target-guard" instrumentation
+    readonly test_serial="$ANDROID_SERIAL"
+    emulator_api="$(adb -s "$test_serial" shell getprop ro.build.version.sdk | tr -d '\r')"
+    if [[ ! "$emulator_api" =~ ^[0-9]+$ ]] || ((emulator_api < 34)); then
+        printf 'error: instrumentation requires an API 34+ emulator; %s reports API %s\n' "$test_serial" "$emulator_api" >&2
+        exit 1
+    fi
+    readonly emulator_api
 fi
 
 tasks=(
@@ -124,38 +135,6 @@ if [[ "$build_release" == true ]]; then
 fi
 
 if [[ "$run_emulator_tests" == true ]]; then
-    command -v adb >/dev/null 2>&1 || {
-        printf 'error: adb is required for --emulator\n' >&2
-        exit 1
-    }
-
-    if [[ -n "${ANDROID_SERIAL:-}" ]]; then
-        test_serial="$ANDROID_SERIAL"
-        if ! adb -s "$test_serial" get-state 2>/dev/null | grep -qx device; then
-            printf 'error: ANDROID_SERIAL is not a connected device: %s\n' "$test_serial" >&2
-            exit 1
-        fi
-    else
-        mapfile -t connected_serials < <(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }')
-        if [[ "${#connected_serials[@]}" -ne 1 ]]; then
-            printf 'error: set ANDROID_SERIAL to one disposable emulator; found %s connected devices\n' "${#connected_serials[@]}" >&2
-            exit 1
-        fi
-        test_serial="${connected_serials[0]}"
-    fi
-
-    readonly test_serial
-    if [[ "$(adb -s "$test_serial" shell getprop ro.boot.qemu | tr -d '\r')" != "1" ]]; then
-        printf 'error: refusing to run destructive instrumentation on physical device %s\n' "$test_serial" >&2
-        exit 1
-    fi
-
-    emulator_api="$(adb -s "$test_serial" shell getprop ro.build.version.sdk | tr -d '\r')"
-    if [[ ! "$emulator_api" =~ ^[0-9]+$ ]] || ((emulator_api < 34)); then
-        printf 'error: instrumentation requires an API 34+ emulator; %s reports API %s\n' "$test_serial" "$emulator_api" >&2
-        exit 1
-    fi
-
     mapfile -t instrumentation_test_files < <(find app/src/androidTest -name '*Test.kt' -type f | sort)
     mapfile -t instrumentation_shared_files < <(find app/src/androidTest -type f ! -name '*Test.kt' | sort)
     declare -A instrumentation_class_files=()

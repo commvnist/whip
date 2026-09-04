@@ -205,7 +205,12 @@ class SafetyChoiceUiTest {
         }
 
         compose.onNodeWithTag("workout-editor-name").performTextInput("Retry draft")
-        compose.onNodeWithTag("workout-editor-confirm").performClick().assertIsNotEnabled()
+        compose.onNodeWithTag("workout-editor-confirm").performClick()
+        compose.runOnIdle {
+            assertEquals(1, starts.get())
+            checkNotNull(completion.get())
+        }
+        compose.onNodeWithTag("workout-editor-confirm").assertIsNotEnabled()
         compose.runOnIdle { completion.get().invoke(WhipResult.Failure("Database unavailable")) }
 
         compose.onNodeWithTag("workout-editor-save-error").assertTextContains("Database unavailable")

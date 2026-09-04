@@ -5,7 +5,7 @@ Local quality gate:
 ```bash
 scripts/check
 scripts/check --full
-scripts/check --emulator
+ANDROID_SERIAL=emulator-5554 scripts/check --emulator
 scripts/coverage
 ANDROID_SERIAL=emulator-5554 scripts/coverage --emulator
 scripts/qa-targeted gym531
@@ -23,14 +23,22 @@ This targeted evidence is a chunk gate, not a release claim. Run `scripts/check
 --emulator` once after product source freezes and `scripts/check --full` once for
 the release artifacts.
 
+All instrumentation entry points require one explicit `ANDROID_SERIAL`. The
+selected target must report `device` state and `ro.boot.qemu=1`; physical,
+offline, unauthorized, ambiguous, blank, managed, and other non-connected test
+targets fail closed. The root Gradle guard applies the same rule to direct app
+and benchmark `connected*AndroidTest` tasks, while Android-test compilation and
+assembly remain device-independent.
+
 The complete emulator gate resumes successful instrumentation batches only when
 the production source, build configuration, emulator image, shared test support,
 requested class set, and those class files have the same signatures. A product
 source change invalidates every device batch; a test-only correction reruns its
 own batch while retaining exact evidence for unaffected batches. Use
 `--fresh-emulator` to deliberately ignore the local cache. Cached batches never
-replace JVM, compilation, lint, coverage, artifact, class-accounting, or
-zero-skip checks.
+replace JVM, compilation, lint, artifact, class-accounting, or zero-skip checks.
+Coverage is stricter: `scripts/coverage --emulator` always executes every batch
+fresh and never consumes the successful-test cache.
 
 `scripts/check` is the required pre-commit gate: deterministic JVM tests with
 an enforced coverage floor,
@@ -48,7 +56,10 @@ deliberately opt-in. Instrumentation classes run in bounded batches so Compose
 and graphics state is released between runner processes. The graphics-heavy
 interaction class runs first against the fresh emulator; every `*Test.kt` class
 is still included, and the gate fails if a test file does not declare the
-matching top-level class.
+matching top-level class. The whole-app data-epoch reset class runs alone and
+last. At the current 90-class baseline this is exactly 11 runner processes: one
+graphics process, nine batches of at most ten ordinary classes, and one reset
+process.
 
 Emulator screenshots, UI hierarchy dumps, traces, and other inspection
 artifacts must be created with `scripts/device-artifacts`. The tool stores
@@ -83,7 +94,7 @@ $ANDROID_HOME/emulator/emulator @whip_api34 \
   -no-window -no-audio -no-boot-anim \
   -no-snapshot-load -no-snapshot-save \
   -gpu software -feature -Vulkan
-scripts/check --emulator
+ANDROID_SERIAL=emulator-5554 scripts/check --emulator
 ```
 
 Release signing is opt-in and never checked into the repository. Set all four
@@ -100,10 +111,13 @@ export WHIP_KEY_PASSWORD='...'
 Without them, `assembleRelease` still performs the R8/resource-shrinking build
 and emits an unsigned APK suitable for local verification.
 
-On the configured WSL workstation, `scripts/device release-deploy` reads the
+On the configured WSL workstation, `WHIP_DEVICE=SERIAL scripts/device
+release-deploy` first proves that the explicitly selected target is connected
+physical hardware, then reads the
 mode-600 key and password file under `/root/.android/whip`, exports those values
 only to the Gradle child process, builds the signed release, installs it with
-`adb install -r`, and launches it. `scripts/device release-install` reuses an
+`adb -s SERIAL install -r`, and launches it. `WHIP_DEVICE=SERIAL scripts/device
+release-install` reuses an
 already-built release APK. Never copy the keystore or password into this
 repository, and keep a secure offline copy of both.
 
@@ -137,13 +151,26 @@ the gate must not claim configurations that were not run.
 
 `scripts/coverage` generates AGP/JaCoCo's deterministic report and enforces the
 audited domain/core floors. `scripts/coverage --emulator` additionally runs the
-complete suite in one isolated runner, emits the real application E2E report,
-and enforces product-code, repository, first-class-screen, Track, and Gym
-non-regression floors. Generated Room `*_Impl.kt` code is excluded only from the
-product-code aggregate; its behavior is still executed through the repository
-tests and remains visible in the raw report. Reports are written to
+complete suite using the same 11-process graphics-first/ten-class/reset-last
+topology as `scripts/check`. Every nested connected task revalidates its explicit
+emulator target. After every process the script requires fresh XML proving the
+exact requested class set, nonzero execution, and zero failures/skips, plus
+exactly one fresh nonempty `.ec` copied into that run's unique evidence
+directory. It rejects source/build drift, stale results, cached execution, and
+partial coverage data. The public Gradle
+`createBatchedDebugAndroidTestCoverageReport` task then generates XML/HTML from
+the union of all copied `.ec` files before the E2E coverage floors run.
+Generated Room `*_Impl.kt` code is excluded only from the product-code
+aggregate; its behavior is still executed through the repository tests and
+remains visible in the raw report. Reports are written to
 `app/build/reports/coverage/test/debug/index.html` and
 `app/build/reports/coverage/androidTest/debug/connected/index.html`.
+
+To roll back the batching/report implementation, revert `scripts/coverage` and
+the `createBatchedDebugAndroidTestCoverageReport` task together while retaining
+the explicit Android-target guard. Generated `build/coverage-results-*`
+directories are disposable local evidence; this tooling change has no database,
+schema, release-package, or user-data transition to reverse.
 
 Line/branch percentages are not treated as a substitute for product behavior.
 The machine-checked cause/effect register in

@@ -1,8 +1,17 @@
+import com.android.build.gradle.tasks.TestSuiteTestTask
+import com.android.build.gradle.internal.tasks.AndroidTestTask
+import com.android.build.gradle.internal.tasks.DeviceProviderInstrumentTestTask
+import org.gradle.api.Action
+import org.gradle.api.GradleException
+import org.gradle.api.Task
+import org.gradle.testing.jacoco.tasks.JacocoReport
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+    jacoco
 }
 
 configurations.configureEach {
@@ -33,8 +42,8 @@ android {
         applicationId = "commvne.com.whip.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 52
-        versionName = "0.3.46"
+        versionCode = 53
+        versionName = "0.3.47"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -150,4 +159,144 @@ dependencies {
 // the matrix changes.
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
     inputs.file(rootProject.file("docs/quality/e2e-coverage.tsv"))
+}
+
+val batchedAndroidCoverageDirectory =
+    providers.gradleProperty("whipAndroidCoverageExecutionDataDir")
+val expectedBatchedAndroidCoverageFiles =
+    providers.gradleProperty("whipAndroidCoverageExpectedBatchCount")
+
+tasks.register<JacocoReport>("createBatchedDebugAndroidTestCoverageReport") {
+    group = "verification"
+    description = "Creates debug instrumentation coverage from fresh, isolated batch data."
+    notCompatibleWithConfigurationCache(
+        "Whip validates caller-owned batched execution data at task execution.",
+    )
+    dependsOn("compileDebugKotlin", "compileDebugJavaWithJavac")
+
+    val kotlinClasses =
+        layout.buildDirectory.dir("intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes")
+    val javaClasses =
+        layout.buildDirectory.dir("intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+    classDirectories.setFrom(kotlinClasses, javaClasses)
+    sourceDirectories.setFrom(files("src/main/java"))
+    additionalSourceDirs.setFrom(files("src/main/java"))
+    executionData.setFrom(
+        batchedAndroidCoverageDirectory.map { executionDataDirectory ->
+            fileTree(executionDataDirectory) {
+                include("batch-*.ec")
+            }
+        },
+    )
+
+    reports {
+        xml.required.set(true)
+        xml.outputLocation.set(
+            layout.buildDirectory.file("reports/coverage/androidTest/debug/connected/report.xml"),
+        )
+        html.required.set(true)
+        html.outputLocation.set(
+            layout.buildDirectory.dir("reports/coverage/androidTest/debug/connected"),
+        )
+        csv.required.set(false)
+    }
+
+    doFirst {
+        if (!batchedAndroidCoverageDirectory.isPresent ||
+            !expectedBatchedAndroidCoverageFiles.isPresent
+        ) {
+            throw GradleException(
+                "Both whipAndroidCoverageExecutionDataDir and " +
+                    "whipAndroidCoverageExpectedBatchCount are required.",
+            )
+        }
+        val expectedFileCount = expectedBatchedAndroidCoverageFiles.get().toIntOrNull()
+        if (expectedFileCount == null || expectedFileCount <= 0) {
+            throw GradleException("whipAndroidCoverageExpectedBatchCount must be positive.")
+        }
+        val executionDataFiles = fileTree(batchedAndroidCoverageDirectory.get()) {
+            include("batch-*.ec")
+        }.files.sortedBy { it.name }
+        if (executionDataFiles.size != expectedFileCount || executionDataFiles.any { it.length() == 0L }) {
+            throw GradleException(
+                "Expected $expectedFileCount nonempty batched coverage files, found " +
+                    "${executionDataFiles.size} in ${batchedAndroidCoverageDirectory.get()}.",
+            )
+        }
+    }
+}
+
+val androidTargetGuard = rootProject.layout.projectDirectory.file("scripts/android-target-guard")
+val explicitAndroidSerial = providers.environmentVariable("ANDROID_SERIAL")
+val commandPath = providers.environmentVariable("PATH")
+
+tasks.withType<TestSuiteTestTask>().configureEach {
+    notCompatibleWithConfigurationCache(
+        "Whip validates the live Android instrumentation target at task execution.",
+    )
+    val validateTarget = object : Action<Task> {
+        override fun execute(guardedTask: Task) {
+            val testTask = guardedTask as TestSuiteTestTask
+            if (!testTask.name.startsWith("connected") ||
+                testTask.testSuiteTarget.orNull != TestSuiteTestTask.CONNECTED_TEST_TEST_SUITE_TARGET_NAME
+            ) {
+                throw GradleException(
+                    "Whip instrumentation may run only through an explicitly selected connected emulator; " +
+                        "refusing ${testTask.path} target '${testTask.testSuiteTarget.orNull ?: "unknown"}'.",
+                )
+            }
+
+            val validationProcess = ProcessBuilder(
+                "bash",
+                androidTargetGuard.asFile.absolutePath,
+                "instrumentation",
+            )
+            explicitAndroidSerial.orNull?.let {
+                validationProcess.environment()["ANDROID_SERIAL"] = it
+            } ?: validationProcess.environment().remove("ANDROID_SERIAL")
+            commandPath.orNull?.let { validationProcess.environment()["PATH"] = it }
+            validationProcess.inheritIO()
+            if (validationProcess.start().waitFor() != 0) {
+                throw GradleException("Android instrumentation target validation failed for ${testTask.path}.")
+            }
+        }
+    }
+    doFirst("validateWhipAndroidInstrumentationTarget", validateTarget)
+    extensions.extraProperties["whipAndroidTargetGuardAction"] = actions.first()
+}
+
+tasks.configureEach {
+    if (this is AndroidTestTask) {
+        notCompatibleWithConfigurationCache(
+            "Whip validates the live Android instrumentation target at task execution.",
+        )
+        val validateTarget = object : Action<Task> {
+            override fun execute(guardedTask: Task) {
+                if (guardedTask !is DeviceProviderInstrumentTestTask ||
+                    !guardedTask.name.startsWith("connected")
+                ) {
+                    throw GradleException(
+                        "Whip instrumentation may run only through an explicitly selected connected emulator; " +
+                            "refusing ${guardedTask.path}.",
+                    )
+                }
+
+                val validationProcess = ProcessBuilder(
+                    "bash",
+                    androidTargetGuard.asFile.absolutePath,
+                    "instrumentation",
+                )
+                explicitAndroidSerial.orNull?.let {
+                    validationProcess.environment()["ANDROID_SERIAL"] = it
+                } ?: validationProcess.environment().remove("ANDROID_SERIAL")
+                commandPath.orNull?.let { validationProcess.environment()["PATH"] = it }
+                validationProcess.inheritIO()
+                if (validationProcess.start().waitFor() != 0) {
+                    throw GradleException("Android instrumentation target validation failed for ${guardedTask.path}.")
+                }
+            }
+        }
+        doFirst("validateWhipAndroidInstrumentationTarget", validateTarget)
+        extensions.extraProperties["whipAndroidTargetGuardAction"] = actions.first()
+    }
 }

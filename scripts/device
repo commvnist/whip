@@ -36,8 +36,8 @@ Pairing and connection use different ports shown on the phone:
   2. "Pair device with pairing code" supplies IP:PAIRING_PORT and the code.
   3. The main Wireless debugging screen supplies IP:DEBUG_PORT.
 
-When multiple devices are connected, select one for a command:
-  WHIP_DEVICE=192.168.1.50:37123 scripts/device deploy
+Release commands require an explicit connected physical device. For example:
+  WHIP_DEVICE=192.168.1.50:37123 scripts/device release-deploy
 EOF
 }
 
@@ -85,6 +85,11 @@ select_device() {
             die "multiple devices are connected; set WHIP_DEVICE to one serial"
             ;;
     esac
+}
+
+select_release_device() {
+    "${SCRIPT_DIR}/android-target-guard" release
+    printf '%s\n' "$WHIP_DEVICE"
 }
 
 build_debug_apk() {
@@ -196,14 +201,14 @@ main() {
             ;;
         release-deploy)
             local release_deploy_serial
-            release_deploy_serial="$(select_device)"
+            release_deploy_serial="$(select_release_device)"
             build_release_apk
             install_release_apk "$release_deploy_serial"
             launch_app "$release_deploy_serial"
             ;;
         release-install)
             local release_install_serial
-            release_install_serial="$(select_device)"
+            release_install_serial="$(select_release_device)"
             install_release_apk "$release_install_serial"
             ;;
         dev-run)
@@ -213,7 +218,7 @@ main() {
             ;;
         release-run)
             local release_run_serial
-            release_run_serial="$(select_device)"
+            release_run_serial="$(select_release_device)"
             launch_app "$release_run_serial" "$RELEASE_APP_ID"
             ;;
         dev-logs)
@@ -223,7 +228,7 @@ main() {
             ;;
         release-logs)
             local release_log_serial
-            release_log_serial="$(select_device)"
+            release_log_serial="$(select_release_device)"
             show_logs "$release_log_serial" "$RELEASE_APP_ID"
             ;;
         run|logs)

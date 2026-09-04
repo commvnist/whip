@@ -225,6 +225,11 @@ if [[ "${#jvm_patterns[@]}" -eq 0 && "${#android_classes[@]}" -eq 0 ]]; then
     exit 2
 fi
 
+if [[ "$run_emulator" == true && "${#android_classes[@]}" -gt 0 ]]; then
+    "${SCRIPT_DIR}/android-target-guard" instrumentation
+    readonly test_serial="$ANDROID_SERIAL"
+fi
+
 cd "$PROJECT_ROOT"
 
 if [[ "${#jvm_patterns[@]}" -gt 0 ]]; then
@@ -248,27 +253,6 @@ if [[ "${#android_classes[@]}" -eq 0 ]]; then
     printf 'No Android classes were selected.\n'
     exit 0
 fi
-
-command -v adb >/dev/null 2>&1 || { printf 'error: adb is required for Android tests\n' >&2; exit 1; }
-if [[ -n "${ANDROID_SERIAL:-}" ]]; then
-    test_serial="$ANDROID_SERIAL"
-else
-    mapfile -t connected_serials < <(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }')
-    [[ "${#connected_serials[@]}" -eq 1 ]] || {
-        printf 'error: set ANDROID_SERIAL to one disposable emulator; found %s devices\n' \
-            "${#connected_serials[@]}" >&2
-        exit 1
-    }
-    test_serial="${connected_serials[0]}"
-fi
-adb -s "$test_serial" get-state 2>/dev/null | grep -qx device || {
-    printf 'error: selected Android target is not connected: %s\n' "$test_serial" >&2
-    exit 1
-}
-[[ "$(adb -s "$test_serial" shell getprop ro.boot.qemu | tr -d '\r')" == "1" ]] || {
-    printf 'error: refusing to run destructive instrumentation on physical device %s\n' "$test_serial" >&2
-    exit 1
-}
 
 class_argument="$(IFS=,; printf '%s' "${android_classes[*]}")"
 for ((run_index = 1; run_index <= repeat_count; run_index++)); do

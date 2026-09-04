@@ -1,0 +1,543 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+readonly TEST_ROOT="$(mktemp -d)"
+readonly FAKE_BIN="${TEST_ROOT}/bin"
+readonly OUTPUT_FILE="${TEST_ROOT}/output"
+readonly ADB_LOG="${TEST_ROOT}/adb.log"
+readonly GRADLE_PROBE="${TEST_ROOT}/guard-probe.gradle"
+trap 'rm -rf -- "$TEST_ROOT"' EXIT
+mkdir -p "$FAKE_BIN"
+
+cat > "${FAKE_BIN}/adb" <<'FAKE_ADB'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "${FAKE_ADB_LOG:?}"
+case "$*" in
+    '-s '*" get-state")
+        printf '%s\n' "${FAKE_ADB_STATE:-device}"
+        ;;
+    '-s '*" shell getprop ro.boot.qemu")
+        if [[ "${FAKE_ADB_QEMU_STATUS:-0}" -ne 0 ]]; then
+            exit "$FAKE_ADB_QEMU_STATUS"
+        fi
+        printf '%s\n' "${FAKE_ADB_QEMU:-1}"
+        ;;
+    '-s '*" shell getprop ro.build.version.sdk")
+        printf '%s\n' "${FAKE_ADB_API:-34}"
+        ;;
+    '-s '*" shell am force-stop commvne.com.whip.app.debug"|\
+    '-s '*" shell am force-stop commvne.com.whip.app.debug.test")
+        ;;
+    *)
+        printf 'unexpected fake adb invocation: %s\n' "$*" >&2
+        exit 97
+        ;;
+esac
+FAKE_ADB
+chmod 755 "${FAKE_BIN}/adb"
+
+cat > "$GRADLE_PROBE" <<'GRADLE_PROBE_SCRIPT'
+gradle.projectsEvaluated {
+    def taskPath = gradle.startParameter.projectProperties['whipGuardProbeTask']
+    if (taskPath != null) {
+        def separator = taskPath.lastIndexOf(':')
+        def projectPath = separator == 0 ? ':' : taskPath.substring(0, separator)
+        def taskName = taskPath.substring(separator + 1)
+        def taskProject = gradle.rootProject.project(projectPath)
+        if (gradle.startParameter.projectProperties['whipGuardProbeMode'] == 'managed') {
+            def connectedTask = taskProject.tasks.getByName('connectedDebugAndroidTest')
+            def suiteType = connectedTask.class.classLoader.loadClass(
+                'com.android.build.gradle.tasks.LegacyReportingTestSuiteTestTask',
+            )
+            def managedTask = taskProject.tasks.register(taskName, suiteType).get()
+            managedTask.testSuiteName.set('debugAndroidTest')
+            managedTask.testSuiteTarget.set('whipApi34')
+            if (!managedTask.extensions.extraProperties.has('whipAndroidTargetGuardAction')) {
+                throw new GradleException("missing typed Android target guard on ${taskPath}")
+            }
+            def guardAction = managedTask.extensions.extraProperties.get('whipAndroidTargetGuardAction')
+            guardAction.execute(managedTask)
+            throw new GradleException("managed Android target guard unexpectedly returned")
+        } else {
+            def guardedTask = taskProject.tasks.getByName(taskName)
+            if (!guardedTask.extensions.extraProperties.has('whipAndroidTargetGuardAction')) {
+                throw new GradleException("missing typed Android target guard on ${taskPath}")
+            }
+            def guardAction = guardedTask.extensions.extraProperties.get('whipAndroidTargetGuardAction')
+            if (guardedTask.actions.isEmpty() || !guardedTask.actions[0].is(guardAction)) {
+                throw new GradleException("Android target guard is not the first action on ${taskPath}")
+            }
+            guardedTask.setDependsOn([])
+            guardedTask.setActions([guardAction])
+            guardedTask.outputs.upToDateWhen { false }
+        }
+    }
+
+    def unguardedTaskPath = gradle.startParameter.projectProperties['whipGuardProbeUnguardedTask']
+    if (unguardedTaskPath != null) {
+        def separator = unguardedTaskPath.lastIndexOf(':')
+        def projectPath = separator == 0 ? ':' : unguardedTaskPath.substring(0, separator)
+        def taskName = unguardedTaskPath.substring(separator + 1)
+        def unguardedTask = gradle.rootProject.project(projectPath).tasks.getByName(taskName)
+        if (unguardedTask.extensions.extraProperties.has('whipAndroidTargetGuardAction')) {
+            throw new GradleException("non-instrumentation task unexpectedly guarded: ${unguardedTaskPath}")
+        }
+    }
+}
+GRADLE_PROBE_SCRIPT
+
+export FAKE_ADB_LOG="$ADB_LOG"
+readonly GUARDED_PATH="${FAKE_BIN}:${PATH}"
+
+expect_failure() {
+    local name="$1" expected="$2"
+    shift 2
+    if "$@" >"$OUTPUT_FILE" 2>&1; then
+        printf 'FAIL %s: command unexpectedly succeeded\n' "$name" >&2
+        exit 1
+    fi
+    grep -Fq "$expected" "$OUTPUT_FILE" || {
+        printf 'FAIL %s: expected output %s\n' "$name" "$expected" >&2
+        sed -n '1,120p' "$OUTPUT_FILE" >&2
+        exit 1
+    }
+    printf 'PASS %s\n' "$name"
+}
+
+expect_success() {
+    local name="$1"
+    shift
+    if ! "$@" >"$OUTPUT_FILE" 2>&1; then
+        printf 'FAIL %s: command failed\n' "$name" >&2
+        sed -n '1,160p' "$OUTPUT_FILE" >&2
+        exit 1
+    fi
+    printf 'PASS %s\n' "$name"
+}
+
+expect_failure missing-serial 'set ANDROID_SERIAL' \
+    env -u ANDROID_SERIAL PATH="$GUARDED_PATH" "${SCRIPT_DIR}/android-target-guard" instrumentation
+[[ ! -s "$ADB_LOG" ]] || {
+    printf 'FAIL missing-serial: guard queried adb before validating explicit selection\n' >&2
+    exit 1
+}
+expect_failure blank-serial 'must not be blank' \
+    env ANDROID_SERIAL= PATH="$GUARDED_PATH" "${SCRIPT_DIR}/android-target-guard" instrumentation
+[[ ! -s "$ADB_LOG" ]] || {
+    printf 'FAIL blank-serial: guard queried adb before validating explicit selection\n' >&2
+    exit 1
+}
+expect_failure invalid-serial 'one valid device serial' \
+    env 'ANDROID_SERIAL=-invalid' PATH="$GUARDED_PATH" "${SCRIPT_DIR}/android-target-guard" instrumentation
+[[ ! -s "$ADB_LOG" ]] || {
+    printf 'FAIL invalid-serial: guard queried adb before validating explicit selection\n' >&2
+    exit 1
+}
+expect_failure multiple-serials 'one valid device serial' \
+    env 'ANDROID_SERIAL=emulator-5554,emulator-5556' PATH="$GUARDED_PATH" "${SCRIPT_DIR}/android-target-guard" instrumentation
+[[ ! -s "$ADB_LOG" ]] || {
+    printf 'FAIL multiple-serials: guard queried adb before validating explicit selection\n' >&2
+    exit 1
+}
+expect_failure offline-target 'not a connected, authorized device' \
+    env ANDROID_SERIAL=emulator-5554 FAKE_ADB_STATE=offline PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-target-guard" instrumentation
+expect_failure unauthorized-target 'not a connected, authorized device' \
+    env ANDROID_SERIAL=emulator-5554 FAKE_ADB_STATE=unauthorized PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-target-guard" instrumentation
+expect_failure physical-instrumentation 'refusing instrumentation' \
+    env ANDROID_SERIAL=R58M1234 FAKE_ADB_QEMU=0 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-target-guard" instrumentation
+expect_failure failed-qemu-instrumentation 'could not verify whether' \
+    env ANDROID_SERIAL=emulator-5554 FAKE_ADB_QEMU_STATUS=74 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-target-guard" instrumentation
+expect_success connected-emulator \
+    env ANDROID_SERIAL=emulator-5554 FAKE_ADB_QEMU=1 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-target-guard" instrumentation
+
+expect_failure missing-release-target 'set WHIP_DEVICE' \
+    env -u WHIP_DEVICE PATH="$GUARDED_PATH" "${SCRIPT_DIR}/android-target-guard" release
+expect_failure emulator-release-target 'refusing release action on emulator' \
+    env WHIP_DEVICE=emulator-5554 FAKE_ADB_QEMU=1 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-target-guard" release
+expect_failure failed-qemu-release-target 'could not verify whether' \
+    env WHIP_DEVICE=R58M1234 FAKE_ADB_QEMU_STATUS=74 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-target-guard" release
+expect_success connected-physical-release-target \
+    env WHIP_DEVICE=R58M1234 FAKE_ADB_QEMU=0 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-target-guard" release
+
+for wrapper in check coverage; do
+    : > "$ADB_LOG"
+    expect_failure "${wrapper}-requires-explicit-serial" 'set ANDROID_SERIAL' \
+        env -u ANDROID_SERIAL PATH="$GUARDED_PATH" "${SCRIPT_DIR}/${wrapper}" --emulator
+    [[ ! -s "$ADB_LOG" ]] || {
+        printf 'FAIL %s: wrapper queried a device before validating explicit selection\n' "$wrapper" >&2
+        exit 1
+    }
+done
+
+: > "$ADB_LOG"
+expect_failure qa-targeted-requires-explicit-serial 'set ANDROID_SERIAL' \
+    env -u ANDROID_SERIAL PATH="$GUARDED_PATH" "${SCRIPT_DIR}/qa-targeted" \
+        --android com.whip.app.GuardProbeTest
+[[ ! -s "$ADB_LOG" ]] || {
+    printf 'FAIL qa-targeted: wrapper queried a device before validating explicit selection\n' >&2
+    exit 1
+}
+
+: > "$ADB_LOG"
+expect_failure release-command-requires-explicit-device 'set WHIP_DEVICE' \
+    env -u WHIP_DEVICE PATH="$GUARDED_PATH" "${SCRIPT_DIR}/device" release-install
+[[ ! -s "$ADB_LOG" ]] || {
+    printf 'FAIL release-install: command queried a device before validating explicit selection\n' >&2
+    exit 1
+}
+
+[[ "$(grep -Fc 'adb -s "$serial" install -r' "${SCRIPT_DIR}/device")" -eq 2 ]] || {
+    printf 'FAIL install targeting: every install must use adb -s "$serial" install -r\n' >&2
+    exit 1
+}
+printf 'PASS explicitly-targeted installs\n'
+
+[[ "$(grep -Fc '="$(select_release_device)"' "${SCRIPT_DIR}/device")" -eq 4 ]] || {
+    printf 'FAIL release targeting: every release command must select a guarded physical device\n' >&2
+    exit 1
+}
+printf 'PASS release commands select guarded physical targets\n'
+
+if grep -Fq 'TestSuiteTestTask' "${PROJECT_ROOT}/build.gradle.kts"; then
+    printf 'FAIL Gradle guard: ineffective cross-project typed hook remains in root build script\n' >&2
+    exit 1
+fi
+for module_build in app/build.gradle.kts benchmark/build.gradle.kts; do
+    grep -Fq 'tasks.withType<TestSuiteTestTask>().configureEach' "${PROJECT_ROOT}/${module_build}" || {
+        printf 'FAIL Gradle guard: module-local typed hook is missing from %s\n' "$module_build" >&2
+        exit 1
+    }
+    grep -Fq 'testSuiteTarget.orNull != TestSuiteTestTask.CONNECTED_TEST_TEST_SUITE_TARGET_NAME' \
+        "${PROJECT_ROOT}/${module_build}" || {
+        printf 'FAIL Gradle guard: managed targets are not refused in %s\n' "$module_build" >&2
+        exit 1
+    }
+done
+printf 'PASS module-local connected-task guards\n'
+
+: > "$ADB_LOG"
+expect_success compile-task-unguarded \
+    env -u ANDROID_SERIAL PATH="$GUARDED_PATH" \
+        "${PROJECT_ROOT}/gradlew" -p "$PROJECT_ROOT" :app:compileDebugAndroidTestKotlin \
+        -I "$GRADLE_PROBE" -PwhipGuardProbeUnguardedTask=:app:compileDebugAndroidTestKotlin \
+        --dry-run --no-configuration-cache --console=plain
+[[ ! -s "$ADB_LOG" ]] || {
+    printf 'FAIL compile task: device guard was invoked\n' >&2
+    exit 1
+}
+
+for guarded_task in :app:connectedDebugAndroidTest :benchmark:connectedBenchmarkAndroidTest; do
+    : > "$ADB_LOG"
+    expect_success "${guarded_task}-accepts-explicit-emulator" \
+        env ANDROID_SERIAL=emulator-5554 FAKE_ADB_QEMU=1 PATH="$GUARDED_PATH" \
+            "${PROJECT_ROOT}/gradlew" -p "$PROJECT_ROOT" "$guarded_task" \
+            -I "$GRADLE_PROBE" -PwhipGuardProbeTask="$guarded_task" \
+            --no-configuration-cache --console=plain
+    [[ "$(wc -l < "$ADB_LOG" | tr -d ' ')" -eq 2 ]] &&
+        grep -Fqx -- '-s emulator-5554 get-state' "$ADB_LOG" &&
+        grep -Fqx -- '-s emulator-5554 shell getprop ro.boot.qemu' "$ADB_LOG" || {
+        printf 'FAIL %s: typed Gradle hook did not run only the fake target guard\n' "$guarded_task" >&2
+        sed -n '1,80p' "$ADB_LOG" >&2
+        exit 1
+    }
+done
+
+: > "$ADB_LOG"
+expect_failure gradle-task-requires-explicit-serial \
+    'Android instrumentation target validation failed for :app:connectedDebugAndroidTest.' \
+    env -u ANDROID_SERIAL PATH="$GUARDED_PATH" \
+        "${PROJECT_ROOT}/gradlew" -p "$PROJECT_ROOT" :app:connectedDebugAndroidTest \
+        -I "$GRADLE_PROBE" -PwhipGuardProbeTask=:app:connectedDebugAndroidTest \
+        --no-configuration-cache --console=plain
+[[ ! -s "$ADB_LOG" ]] || {
+    printf 'FAIL Gradle guard: missing serial reached adb\n' >&2
+    exit 1
+}
+
+: > "$ADB_LOG"
+expect_failure gradle-task-rejects-malformed-serial \
+    'Android instrumentation target validation failed for :app:connectedDebugAndroidTest.' \
+    env 'ANDROID_SERIAL=emulator-5554,emulator-5556' PATH="$GUARDED_PATH" \
+        "${PROJECT_ROOT}/gradlew" -p "$PROJECT_ROOT" :app:connectedDebugAndroidTest \
+        -I "$GRADLE_PROBE" -PwhipGuardProbeTask=:app:connectedDebugAndroidTest \
+        --no-configuration-cache --console=plain
+[[ ! -s "$ADB_LOG" ]] || {
+    printf 'FAIL Gradle guard: malformed serial reached adb\n' >&2
+    exit 1
+}
+
+: > "$ADB_LOG"
+expect_failure gradle-task-rejects-physical-target \
+    'Android instrumentation target validation failed for :app:connectedDebugAndroidTest.' \
+    env ANDROID_SERIAL=R58M1234 FAKE_ADB_QEMU=0 PATH="$GUARDED_PATH" \
+        "${PROJECT_ROOT}/gradlew" -p "$PROJECT_ROOT" :app:connectedDebugAndroidTest \
+        -I "$GRADLE_PROBE" -PwhipGuardProbeTask=:app:connectedDebugAndroidTest \
+        --no-configuration-cache --console=plain
+[[ "$(wc -l < "$ADB_LOG" | tr -d ' ')" -eq 2 ]] || {
+    printf 'FAIL Gradle guard: physical rejection did not stop after target validation\n' >&2
+    sed -n '1,80p' "$ADB_LOG" >&2
+    exit 1
+}
+
+: > "$ADB_LOG"
+expect_failure gradle-task-rejects-managed-target 'Whip instrumentation may run only' \
+    env ANDROID_SERIAL=emulator-5554 FAKE_ADB_QEMU=1 PATH="$GUARDED_PATH" \
+        "${PROJECT_ROOT}/gradlew" -p "$PROJECT_ROOT" :app:help \
+        -I "$GRADLE_PROBE" -PwhipGuardProbeTask=:app:whipApi34DebugAndroidTest \
+        -PwhipGuardProbeMode=managed --no-configuration-cache --console=plain
+[[ ! -s "$ADB_LOG" ]] || {
+    printf 'FAIL Gradle guard: managed target reached adb\n' >&2
+    exit 1
+}
+
+for batch_script in check coverage; do
+    grep -Fq "readonly graphics_test_class='com.whip.app.ui.InteractionControlUiTest'" \
+        "${SCRIPT_DIR}/${batch_script}" || {
+        printf 'FAIL batch topology: graphics-first class drifted in %s\n' "$batch_script" >&2
+        exit 1
+    }
+    grep -Fq "readonly destructive_reset_test_class='com.whip.app.DataEpochResetIntegrationTest'" \
+        "${SCRIPT_DIR}/${batch_script}" || {
+        printf 'FAIL batch topology: reset-last class drifted in %s\n' "$batch_script" >&2
+        exit 1
+    }
+    grep -Fq 'readonly instrumentation_batch_size=10' "${SCRIPT_DIR}/${batch_script}" || {
+        printf 'FAIL batch topology: ordinary batch size drifted in %s\n' "$batch_script" >&2
+        exit 1
+    }
+done
+printf 'PASS check/coverage batch topology contract\n'
+
+readonly COVERAGE_FIXTURE_ROOT="${TEST_ROOT}/coverage-project"
+readonly COVERAGE_GRADLE_LOG="${TEST_ROOT}/coverage-gradle.log"
+readonly COVERAGE_JAVA_LOG="${TEST_ROOT}/coverage-java.log"
+readonly COVERAGE_COUNTER="${TEST_ROOT}/coverage-counter"
+mkdir -p \
+    "${COVERAGE_FIXTURE_ROOT}/scripts" \
+    "${COVERAGE_FIXTURE_ROOT}/build" \
+    "${COVERAGE_FIXTURE_ROOT}/app/src/androidTest/java/com/whip/app/ui" \
+    "${COVERAGE_FIXTURE_ROOT}/app/src/androidTest/java/com/whip/app" \
+    "${COVERAGE_FIXTURE_ROOT}/gradle"
+cp "${SCRIPT_DIR}/coverage" "${SCRIPT_DIR}/android-target-guard" \
+    "${COVERAGE_FIXTURE_ROOT}/scripts/"
+: > "${COVERAGE_FIXTURE_ROOT}/app/build.gradle.kts"
+: > "${COVERAGE_FIXTURE_ROOT}/build.gradle.kts"
+: > "${COVERAGE_FIXTURE_ROOT}/settings.gradle.kts"
+: > "${COVERAGE_FIXTURE_ROOT}/gradle.properties"
+: > "${COVERAGE_FIXTURE_ROOT}/gradle/fixture"
+: > "$COVERAGE_COUNTER"
+
+cat > "${COVERAGE_FIXTURE_ROOT}/app/src/androidTest/java/com/whip/app/ui/InteractionControlUiTest.kt" <<'COVERAGE_TEST'
+package com.whip.app.ui
+class InteractionControlUiTest {
+    @Test fun probe() = Unit
+}
+COVERAGE_TEST
+cat > "${COVERAGE_FIXTURE_ROOT}/app/src/androidTest/java/com/whip/app/DataEpochResetIntegrationTest.kt" <<'COVERAGE_TEST'
+package com.whip.app
+class DataEpochResetIntegrationTest {
+    @Test fun probe() = Unit
+}
+COVERAGE_TEST
+for test_number in $(seq -w 1 88); do
+    test_class="CoverageProbe${test_number}Test"
+    cat > "${COVERAGE_FIXTURE_ROOT}/app/src/androidTest/java/com/whip/app/${test_class}.kt" <<COVERAGE_TEST
+package com.whip.app
+class ${test_class} {
+    @Test fun probe() = Unit
+}
+COVERAGE_TEST
+done
+
+cat > "${COVERAGE_FIXTURE_ROOT}/gradlew" <<'FAKE_GRADLE'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "${FAKE_COVERAGE_GRADLE_LOG:?}"
+if [[ " $* " == *' :app:createDebugUnitTestCoverageReport '* ]]; then
+    mkdir -p app/build/reports/coverage/test/debug
+    printf '<report/>\n' > app/build/reports/coverage/test/debug/report.xml
+    exit 0
+fi
+if [[ " $* " == *' :app:connectedDebugAndroidTest '* ]]; then
+    [[ "${ANDROID_SERIAL:-}" == 'emulator-5554' ]] || {
+        printf 'connected coverage task was not pinned\n' >&2
+        exit 90
+    }
+    [[ " $* " == *' --rerun '* && " $* " == *' --no-build-cache '* ]] || {
+        printf 'connected coverage task did not force fresh execution\n' >&2
+        exit 91
+    }
+    class_argument=''
+    for argument in "$@"; do
+        case "$argument" in
+            -Pandroid.testInstrumentationRunnerArguments.class=*)
+                class_argument="${argument#*=}"
+                ;;
+        esac
+    done
+    [[ -n "$class_argument" ]] || exit 92
+    invocation="$(( $(cat "${FAKE_COVERAGE_COUNTER:?}") + 1 ))"
+    printf '%s\n' "$invocation" > "$FAKE_COVERAGE_COUNTER"
+    printf 'connected\t%s\t%s\n' "$ANDROID_SERIAL" "$class_argument" \
+        >> "$FAKE_COVERAGE_GRADLE_LOG"
+
+    result_dir='app/build/outputs/androidTest-results/connected/debug'
+    coverage_dir='app/build/outputs/code_coverage/debugAndroidTest/connected/fake(AVD)'
+    mkdir -p "$result_dir" "$coverage_dir"
+    result_xml="${result_dir}/TEST-fixture.xml"
+    printf '<testsuite>\n' > "$result_xml"
+    IFS=',' read -r -a requested_classes <<< "$class_argument"
+    class_number=0
+    for requested_class in "${requested_classes[@]}"; do
+        class_number="$((class_number + 1))"
+        actual_class="$requested_class"
+        if [[ "${FAKE_COVERAGE_MODE:-success}" == 'mismatch' && "$class_number" -eq 1 ]]; then
+            actual_class='com.whip.app.UnrequestedCoverageTest'
+        fi
+        if [[ "${FAKE_COVERAGE_MODE:-success}" == 'zero' ]]; then
+            printf '  <probe classname="%s"/>\n' "$actual_class" >> "$result_xml"
+            continue
+        fi
+        printf '  <testcase classname="%s" name="probe">' "$actual_class" >> "$result_xml"
+        if [[ "${FAKE_COVERAGE_MODE:-success}" == 'failure' && "$class_number" -eq 1 ]]; then
+            printf '<failure message="fixture"/>' >> "$result_xml"
+        elif [[ "${FAKE_COVERAGE_MODE:-success}" == 'skip' && "$class_number" -eq 1 ]]; then
+            printf '<skipped />' >> "$result_xml"
+        fi
+        printf '</testcase>\n' >> "$result_xml"
+    done
+    printf '</testsuite>\n' >> "$result_xml"
+
+    coverage_file="${coverage_dir}/coverage.ec"
+    printf 'coverage-%s\n' "$invocation" > "$coverage_file"
+    case "${FAKE_COVERAGE_MODE:-success}" in
+        empty)
+            : > "$coverage_file"
+            ;;
+        multiple)
+            mkdir -p 'app/build/outputs/code_coverage/debugAndroidTest/connected/second(AVD)'
+            printf 'second\n' \
+                > 'app/build/outputs/code_coverage/debugAndroidTest/connected/second(AVD)/coverage.ec'
+            ;;
+        stale)
+            touch -d '2000-01-01 00:00:00 UTC' "$result_xml" "$coverage_file"
+            ;;
+    esac
+    exit 0
+fi
+if [[ " $* " == *' :app:createBatchedDebugAndroidTestCoverageReport '* ]]; then
+    execution_data_directory=''
+    expected_count=''
+    for argument in "$@"; do
+        case "$argument" in
+            -PwhipAndroidCoverageExecutionDataDir=*) execution_data_directory="${argument#*=}" ;;
+            -PwhipAndroidCoverageExpectedBatchCount=*) expected_count="${argument#*=}" ;;
+        esac
+    done
+    mapfile -t execution_data < <(find "$execution_data_directory" -name 'batch-*.ec' -type f | sort)
+    [[ "${#execution_data[@]}" -eq "$expected_count" && "$expected_count" -eq 11 ]] || exit 93
+    for coverage_file in "${execution_data[@]}"; do
+        [[ -s "$coverage_file" ]] || exit 94
+    done
+    printf 'report\t%s\t%s\n' "${#execution_data[@]}" "$execution_data_directory" \
+        >> "$FAKE_COVERAGE_GRADLE_LOG"
+    mkdir -p app/build/reports/coverage/androidTest/debug/connected
+    printf '<report/>\n' > app/build/reports/coverage/androidTest/debug/connected/report.xml
+    printf '<html/>\n' > app/build/reports/coverage/androidTest/debug/connected/index.html
+    exit 0
+fi
+printf 'unexpected fake Gradle invocation: %s\n' "$*" >&2
+exit 95
+FAKE_GRADLE
+chmod 755 "${COVERAGE_FIXTURE_ROOT}/gradlew"
+
+cat > "${FAKE_BIN}/java" <<'FAKE_JAVA'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "${FAKE_COVERAGE_JAVA_LOG:?}"
+FAKE_JAVA
+chmod 755 "${FAKE_BIN}/java"
+
+export FAKE_COVERAGE_GRADLE_LOG="$COVERAGE_GRADLE_LOG"
+export FAKE_COVERAGE_JAVA_LOG="$COVERAGE_JAVA_LOG"
+export FAKE_COVERAGE_COUNTER="$COVERAGE_COUNTER"
+: > "$ADB_LOG"
+: > "$COVERAGE_GRADLE_LOG"
+: > "$COVERAGE_JAVA_LOG"
+expect_success coverage-fresh-eleven-process-accounting \
+    env ANDROID_SERIAL=emulator-5554 FAKE_COVERAGE_MODE=success PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
+[[ "$(grep -c '^connected' "$COVERAGE_GRADLE_LOG")" -eq 11 ]] || {
+    printf 'FAIL coverage batching: expected 11 connected tasks\n' >&2
+    exit 1
+}
+mapfile -t coverage_class_arguments < <(awk -F '\t' '$1 == "connected" { print $3 }' "$COVERAGE_GRADLE_LOG")
+[[ "${coverage_class_arguments[0]}" == 'com.whip.app.ui.InteractionControlUiTest' &&
+    "${coverage_class_arguments[10]}" == 'com.whip.app.DataEpochResetIntegrationTest' ]] || {
+    printf 'FAIL coverage batching: graphics/reset boundaries are wrong\n' >&2
+    exit 1
+}
+for batch_index in $(seq 1 9); do
+    class_count="$(tr ',' '\n' <<< "${coverage_class_arguments[$batch_index]}" | wc -l | tr -d ' ')"
+    [[ "$class_count" -gt 0 && "$class_count" -le 10 ]] || {
+        printf 'FAIL coverage batching: ordinary batch %s has %s classes\n' "$batch_index" "$class_count" >&2
+        exit 1
+    }
+done
+[[ "$(grep -c '^report' "$COVERAGE_GRADLE_LOG")" -eq 1 ]] &&
+    grep -Fq $'report\t11\t' "$COVERAGE_GRADLE_LOG" || {
+    printf 'FAIL coverage report: union of 11 execution-data files was not requested\n' >&2
+    exit 1
+}
+[[ "$(grep -Fc -- '-s emulator-5554 get-state' "$ADB_LOG")" -eq 12 &&
+    "$(grep -Fc -- '-s emulator-5554 shell getprop ro.boot.qemu' "$ADB_LOG")" -eq 12 ]] || {
+    printf 'FAIL coverage guard: initial plus every nested task was not revalidated\n' >&2
+    exit 1
+}
+grep -Fq 'CoverageGate.java e2e app/build/reports/coverage/androidTest/debug/connected/report.xml' \
+    "$COVERAGE_JAVA_LOG" || {
+    printf 'FAIL coverage gate: E2E gate did not consume the batched XML report\n' >&2
+    exit 1
+}
+printf 'PASS fresh 11-process coverage accounting and report union\n'
+
+expect_failure coverage-rejects-class-mismatch 'executed a different class set than requested' \
+    env ANDROID_SERIAL=emulator-5554 FAKE_COVERAGE_MODE=mismatch PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
+expect_failure coverage-rejects-zero-tests 'requires nonzero tests and zero failures/skips' \
+    env ANDROID_SERIAL=emulator-5554 FAKE_COVERAGE_MODE=zero PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
+expect_failure coverage-rejects-failures 'requires nonzero tests and zero failures/skips' \
+    env ANDROID_SERIAL=emulator-5554 FAKE_COVERAGE_MODE=failure PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
+expect_failure coverage-rejects-skips 'requires nonzero tests and zero failures/skips' \
+    env ANDROID_SERIAL=emulator-5554 FAKE_COVERAGE_MODE=skip PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
+expect_failure coverage-rejects-multiple-ec 'requires exactly one nonempty fresh .ec file; found 2' \
+    env ANDROID_SERIAL=emulator-5554 FAKE_COVERAGE_MODE=multiple PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
+expect_failure coverage-rejects-empty-ec 'requires exactly one nonempty fresh .ec file; found 1' \
+    env ANDROID_SERIAL=emulator-5554 FAKE_COVERAGE_MODE=empty PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
+expect_failure coverage-rejects-stale-results 'produced no fresh executable XML' \
+    env ANDROID_SERIAL=emulator-5554 FAKE_COVERAGE_MODE=stale PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
+printf 'PASS stale/partial/failed coverage rejection\n'
+
+grep -Fq 'versionCode = 53' "${PROJECT_ROOT}/app/build.gradle.kts"
+grep -Fq 'versionName = "0.3.47"' "${PROJECT_ROOT}/app/build.gradle.kts"
+printf 'PASS release version 0.3.47 (53)\n'
+
+printf 'All Android target guard regressions passed.\n'

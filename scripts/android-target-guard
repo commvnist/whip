@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
+
+readonly guard_kind="${1:-}"
+case "$guard_kind" in
+    instrumentation)
+        readonly serial_variable='ANDROID_SERIAL'
+        ;;
+    release)
+        readonly serial_variable='WHIP_DEVICE'
+        ;;
+    *)
+        die 'usage: android-target-guard {instrumentation|release}'
+        ;;
+esac
+
+[[ -v "$serial_variable" ]] || die "set $serial_variable to one explicit device serial"
+readonly serial="${!serial_variable}"
+[[ -n "$serial" ]] || die "$serial_variable must not be blank"
+[[ "$serial" =~ ^[[:alnum:]][[:alnum:].:_-]*$ ]] ||
+    die "$serial_variable must contain one valid device serial"
+
+command -v adb >/dev/null 2>&1 || die 'adb is required to validate the selected device'
+
+device_state="$(adb -s "$serial" get-state 2>/dev/null || true)"
+device_state="${device_state//$'\r'/}"
+[[ "$device_state" == 'device' ]] ||
+    die "$serial_variable '$serial' is not a connected, authorized device"
+
+if ! qemu_state="$(adb -s "$serial" shell getprop ro.boot.qemu 2>/dev/null)"; then
+    die "could not verify whether '$serial' is an emulator or physical device"
+fi
+qemu_state="${qemu_state//$'\r'/}"
+case "$guard_kind" in
+    instrumentation)
+        [[ "$qemu_state" == '1' ]] ||
+            die "refusing instrumentation on physical or unverified target '$serial'"
+        ;;
+    release)
+        [[ "$qemu_state" != '1' ]] ||
+            die "refusing release action on emulator '$serial'"
+        ;;
+esac
