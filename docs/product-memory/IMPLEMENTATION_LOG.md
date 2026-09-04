@@ -863,7 +863,7 @@
 - Scope/constraints: No application source, test, device, user data, credential, plugin, deployment, publication, commit, or push action was part of this change. Concurrent unrelated Whip application edits were preserved untouched.
 - Related: `FB-20260903-010`, `FB-20260904-001`, `VER-20260904-001`.
 - Verification: `VER-20260904-001`.
-- Status: Implemented, deterministically verified, and independently accepted; remains local, uncommitted, and unpushed.
+- Status: Superseded by `IMP-20260904-005`; this entry remains the historical record of the prior working-tree installation.
 
 ### IMP-20260904-002 — Product-quality presentation convergence
 
@@ -893,3 +893,14 @@
 - Compatibility/rollback: Tooling and documentation only; no app source, Gradle guard, release script, schema, backup, package, or data change. Revert the complete harness/docs set together, retain the target guards, and discard generated `build/candidate-evidence` state.
 - Related: `FB-20260904-005`, `FB-20260904-006`, `DEC-20260904-003`, `VER-20260904-004`, and `VER-20260904-005`.
 - Status: Implemented and deterministically verified locally, including the real device-independent full gate; uncommitted, unpushed, unreleased, and awaiting fresh final review.
+
+### IMP-20260904-005 — Pinned e80d2cb VERA-Codex clean-cut installation
+
+- Behavior changed: Materialized `.agents/skills/vera-codex/SKILL.md` from pinned public source object `e80d2cbd5e92c602c0f2d0db68aa9a1f239eec8d`, verified its SHA-256, and atomically replaced the three stale Whip/root/Windows skill bodies. Changed only the Windows personal config's top-level `model` from `gpt-5.6-sol` to canonical `gpt-5.6-terra`.
+- Important files/symbols: `/root/repos/whip/.agents/skills/vera-codex/SKILL.md`, `/root/.codex/skills/vera-codex/SKILL.md`, `/mnt/c/Users/commv/.codex/skills/vera-codex/SKILL.md`, and the top-level `model` key in `/mnt/c/Users/commv/.codex/config.toml`.
+- Compatibility and limitations: These are exactly four runtime deltas. The five role files and skill metadata in every scope, Whip `AGENTS.md`/project config, both approved global `AGENTS.md` derivatives, root personal config, every unrelated personal-config semantic value, and all six Luna/routing-policy absences remain unchanged. Existing sessions may retain their already-loaded instructions; a new session is required for end-to-end observation.
+- Persistence/migration/history impact: No Whip application source, test, harness, schema, data, package, device, release, deployment, credential, or plugin state changed. Owner-only recovery data and rollback guidance are at `/root/.local/state/vera-codex/backups/20260904T185021Z-e80d2cb`.
+- Commit/push: None. The installation and memory records remain local; any remote publication requires separate explicit approval.
+- Related: `FB-20260904-001`, `FB-20260904-008`, `IMP-20260904-001`, `VER-20260904-006`.
+- Verification: `VER-20260904-006`.
+- Status: Implemented, deterministically verified, and independently accepted; remote publication remains pending separate approval.

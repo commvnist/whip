@@ -1,6 +1,6 @@
 ---
 name: vera-codex
-description: Route and verify repository software work with evidence-gated Codex agents and risk-appropriate review. Use for creating, changing, fixing, refactoring, testing, building, packaging, migrating, or deploying software, and for non-trivial software diagnosis or code review.
+description: Route and verify repository software implementation, testing, non-trivial diagnosis, and code review; not general status or explanation requests.
 ---
 
 # VERA-Codex
@@ -44,7 +44,7 @@ If classification remains unclear, assign one bounded question to `terra_scout`.
 
 Use only runtime-confirmed `gpt-5.6-terra` and `gpt-5.6-sol` roles from this repository. Keep exactly one writer active at a time. Serialize dependent work and integration. Run at most three complementary read-only agents concurrently, and only when their questions are independent. Do not use homogeneous voting, debate, or duplicate searches by default.
 
-### Spawn roles with explicit runtime overrides
+### Spawn roles with explicit runtime intent
 
 Every new role spawn must explicitly pass `model`, `reasoning_effort`, and `fork_turns` using this matrix:
 
@@ -56,7 +56,9 @@ Every new role spawn must explicitly pass `model`, `reasoning_effort`, and `fork
 | `sol_architect` | `gpt-5.6-sol` | `xhigh` |
 | `sol_critical_builder` | `gpt-5.6-sol` | `xhigh` |
 
-Set `fork_turns="none"` by default. Use only a small positive integer when task-local conversation context is essential; never use `fork_turns="all"` and never omit `fork_turns`. The parent must include the task contract plus only relevant evidence in the spawn message. The static role TOMLs are defense-in-depth, not runtime proof of the selected model or effort.
+Set `fork_turns="none"` by default. Use only a small positive integer when task-local conversation context is essential; never use `fork_turns="all"` and never omit `fork_turns`. The parent must include the task contract plus only relevant evidence in the spawn message.
+
+Explicit spawn values make routing intent auditable and establish the pre-role/default selection; they do not override a matching custom role TOML. Codex first resolves each setting from the explicit spawn value, then the corresponding `[agents]` default, then the parent's value. It applies the custom role TOML as the final configuration layer, so `model` and `model_reasoning_effort` in that file take precedence. The bundle validator keeps the explicit matrix above and the role TOMLs identical; that enforced identity protects final model and effort selection.
 
 ## Verify and accept
 

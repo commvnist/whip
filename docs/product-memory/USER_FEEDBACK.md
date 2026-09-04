@@ -308,7 +308,7 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Every non-trivial software development, diagnosis, testing, and code-review request automatically invokes `$vera-codex`; the only supported roles are Terra scout/low, Terra builder/medium, Terra reviewer/high, Sol architect/xhigh, and Sol critical builder/xhigh; no active Luna or standalone routing policy remains; Whip receives byte-exact source `AGENTS.md`, `.codex/config.toml`, role files, and skill files; global configs change only the seven approved VERA keys while every unrelated personal setting and Whip trust entry remains exact; recoverable backups and executable validation cover all three scopes.
 - Clean-cut constraints: Do not merge or rephrase the old prompt, retain Luna, commit, push, install a plugin, change application source/tests/device/data, use credentials, deploy, publish, or edit unrelated configuration.
 - Related: `FB-20260903-010`, `IMP-20260904-001`, `VER-20260904-001`.
-- Status: Implemented, deterministically verified, and independently accepted; remains local, uncommitted, and unpushed.
+- Status: Superseded by `FB-20260904-008`; this entry remains the historical record of the prior working-tree installation.
 
 ### FB-20260904-002 — Top-to-bottom product quality pass
 
@@ -366,3 +366,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: The ordinary emulator gate reuses only successful results whose source, test-class set, APK, runner, and device signatures still match; a localized test-only change reruns only affected batches; product/runtime or cache-integrity changes invalidate the relevant evidence; explicitly requested fresh coverage still uses isolated complete processes and exact accounting.
 - Related: `DEC-20260904-002`, `IMP-20260904-003`, and `VER-20260904-003`.
 - Status: Implemented and verified. The final localized repair reran only its affected batch before all 923 tests were accepted with zero failures or skips.
+
+### FB-20260904-008 — Install pinned public VERA-Codex as a clean cut
+
+- Date/source: 2026-09-04, direct user request with an approved critical Sol plan.
+- User need: Install the exact latest publicly pushed VERA-Codex revision `e80d2cbd5e92c602c0f2d0db68aa9a1f239eec8d` across Whip and both personal Codex homes, replacing the prior active skill body cleanly rather than merging prompts.
+- Acceptance criteria: Require clean `HEAD == origin/main` identities for canonical VERA and Whip before mutation; keep the active runtime boundary to source `AGENTS.md`, project config, five roles, skill body, and skill metadata; make exactly four runtime deltas—the three stale skill bodies and the Windows personal top-level model from Sol to Terra; retain byte-exact roles, metadata, Whip instructions/config, approved global instruction-path adaptation, root config, and all unrelated personal-config semantics; keep Luna and standalone routing-policy paths absent; create recoverable owner-only backups; pass the 5-role/43-case validator, exact mapping/hash/TOML/stale-policy/Doctor/diff/scope gates; and leave Whip with only the project skill plus four memory-ledger changes.
+- Affected users/workflows: All subsequent non-trivial Whip and personal Codex software implementation, diagnosis, testing, and review routing.
+- Related: `FB-20260904-001`, `IMP-20260904-005`, `VER-20260904-006`.
+- Status: Verified locally and installed as requested; remote publication remains pending separate approval.
+- Notes: Continue automatically through reversible local installation and verification without pausing for intermediate approval. Do not merge or preserve the old prompt logic. No commit, push, release, deployment, publication, credential use, plugin installation, device/emulator command, or application/test/harness edit is authorized; remote publication remains a separate explicit-approval boundary.
