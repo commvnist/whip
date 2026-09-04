@@ -38,6 +38,7 @@ import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -265,7 +266,13 @@ class SafetyChoiceUiTest {
         }
 
         compose.onNodeWithTag("workout-group-name").performTextInput("Retry group")
-        compose.onNodeWithTag("workout-group-confirm").performClick()
+        compose.onNodeWithTag("workout-group-confirm")
+            .assertIsEnabled()
+            .performSemanticsAction(SemanticsActions.OnClick)
+        compose.runOnIdle {
+            assertEquals(1, creations.get())
+            assertTrue(saving.value)
+        }
         compose.onNodeWithTag("workout-group-confirm", useUnmergedTree = true).assertIsNotEnabled()
         compose.onNodeWithTag("workout-group-name", useUnmergedTree = true).assertIsNotEnabled()
         compose.runOnIdle {
@@ -278,9 +285,14 @@ class SafetyChoiceUiTest {
         compose.onNodeWithTag("workout-group-confirm").assertIsEnabled()
         assertEquals(0, dismissals.get())
 
-        compose.onNodeWithTag("workout-group-confirm").performClick()
-        compose.runOnIdle { saving.value = false }
-        assertEquals(2, creations.get())
+        compose.onNodeWithTag("workout-group-confirm")
+            .assertIsEnabled()
+            .performSemanticsAction(SemanticsActions.OnClick)
+        compose.runOnIdle {
+            assertEquals(2, creations.get())
+            assertTrue(saving.value)
+            saving.value = false
+        }
         assertEquals(0, dismissals.get())
     }
 

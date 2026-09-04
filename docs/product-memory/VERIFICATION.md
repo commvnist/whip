@@ -961,3 +961,12 @@
 - Exclusions/approval: No Whip application/test/harness edit, emulator/device command, plugin install, credential action, signing, release, deployment, publication, staging, commit, fetch, push, or remote mutation was performed by this installation. Commit/push or any other publication still requires explicit approval.
 - Related: `FB-20260904-001`, `FB-20260904-008`, `IMP-20260904-001`, `IMP-20260904-005`, `VER-20260904-001`.
 - Status: Deterministic installation verification and fresh parent-level Sol acceptance review passed with zero Doctor failures; remote publication remains pending separate approval.
+
+### VER-20260904-007 — Release 0.3.48 Android test synchronization repair
+
+- Scope/environment: Test-only repair on the disposable API 34 emulator; no production source, signing, physical-device, installation, reset, or publication action.
+- Cause and repair: `SafetyChoiceUiTest.workoutGroupSaveFailureKeepsParentAndDraftOpenForRetry` had used pointer clicks and immediately read stale Compose semantics. The test now submits through enabled semantic `OnClick` and proves the creation callback plus `saving=true` before asserting the controls are disabled and before clearing the retry state.
+- Result: `git diff --check` and `:app:compileDebugAndroidTestKotlin` passed. The exact method passed 3/3 (`qCFmDx`, `gYpkkt`, `6Zlk69`), the full `SafetyChoiceUiTest` class passed 9/9 (`Sx2McG`), and the relevant batch-9 classes passed 49/49 with zero failures/skips (`Wq1pMW`).
+- Release implication: This localized test-source change invalidates prior candidate evidence. A new complete 1,536-test candidate is required before signing or physical release.
+- Related: `FB-20260904-007`.
+- Status: Targeted repair verified; complete candidate pending.

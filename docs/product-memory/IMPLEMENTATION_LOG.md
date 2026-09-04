@@ -904,3 +904,11 @@
 - Related: `FB-20260904-001`, `FB-20260904-008`, `IMP-20260904-001`, `VER-20260904-006`.
 - Verification: `VER-20260904-006`.
 - Status: Implemented, deterministically verified, and independently accepted; remote publication remains pending separate approval.
+
+### IMP-20260904-006 — Deterministic workout-group save retry test synchronization
+
+- Behavior changed: The Android-only workout-group retry test now invokes the exposed semantic submit action and proves the saving transition before inspecting disabled controls. Production save, persistence, schema, and user behavior are unchanged.
+- Important file/symbol: `SafetyChoiceUiTest.workoutGroupSaveFailureKeepsParentAndDraftOpenForRetry`.
+- Verification: `VER-20260904-007`.
+- Related: `FB-20260904-007`.
+- Status: Implemented and targeted verified; fresh complete candidate pending.
